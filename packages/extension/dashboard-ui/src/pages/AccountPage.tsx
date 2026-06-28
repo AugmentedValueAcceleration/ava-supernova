@@ -137,8 +137,8 @@ export function AccountPage({
         />
       )}
 
-      {activeTab === 'billing' && account && (
-        <Billing account={account} />
+      {activeTab === 'billing' && (
+        <Billing account={account ?? null} />
       )}
 
       {activeTab === 'connections' && (

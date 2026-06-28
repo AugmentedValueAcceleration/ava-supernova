@@ -17,11 +17,11 @@ interface Props {
 }
 
 const STEPS = stepsFor('extension'); // identity, path, tailored, breadth, connect, ready
-const ACCENT = '#a855f7';
+const ACCENT = 'var(--accent)';
 
 // Standard button — mirrors the chat "New Chat" pill: translucent purple fill,
 // purple border + text, subtle hover. The house button style.
-const BTN = 'rounded-lg text-sm font-semibold cursor-pointer transition bg-[rgba(168,85,247,0.1)] border border-[rgba(168,85,247,0.25)] text-[#a855f7] hover:bg-[rgba(168,85,247,0.2)]';
+const BTN = 'rounded-lg text-sm font-semibold cursor-pointer transition bg-[var(--accent)]/10 border border-[var(--accent)]/25 text-[var(--accent)] hover:bg-[var(--accent)]/20';
 
 const DEST_PAGE: Record<Destination, string> = {
   chat: 'chat',
@@ -58,7 +58,7 @@ export function WelcomeOnboarding({ isConnected, welcomeOnStartup, onSetWelcomeO
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div
-        className="relative flex flex-col rounded-2xl border border-[rgba(168,85,247,0.2)] shadow-2xl overflow-hidden"
+        className="relative flex flex-col rounded-2xl border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] shadow-2xl overflow-hidden"
         style={{ width: 'min(1100px, 94vw)', height: 'min(760px, 92vh)', background: 'var(--bg-card, #1a1020)' }}
       >
         {/* Top bar: progress + skip */}
@@ -105,7 +105,7 @@ function IdentityStep() {
   const avatarUri = typeof document !== 'undefined' ? document.getElementById('root')?.dataset.avaAvatarUri : '';
   return (
     <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
-      <div className="w-24 h-24 rounded-full mb-6 overflow-hidden flex items-center justify-center text-3xl" style={{ background: 'linear-gradient(135deg, #a855f7, #6366f1)', border: `1px solid ${ACCENT}55` }}>
+      <div className="w-24 h-24 rounded-full mb-6 overflow-hidden flex items-center justify-center text-3xl" style={{ background: 'linear-gradient(135deg, var(--accent), #6366f1)', border: '1px solid color-mix(in srgb, var(--accent) 33%, transparent)' }}>
         {avatarUri
           ? <img src={avatarUri} alt="Ava" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           : '✨'}
@@ -124,7 +124,7 @@ function PathStep({ selected, onPick }: { selected: string | null; onPick: (p: O
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {PATHS.map((p) => (
           <button key={p.id} onClick={() => onPick(p)} className="text-left p-4 rounded-xl border cursor-pointer transition flex items-start gap-3"
-            style={{ borderColor: selected === p.id ? ACCENT : 'rgba(255,255,255,0.1)', background: selected === p.id ? 'rgba(168,85,247,0.08)' : 'transparent' }}>
+            style={{ borderColor: selected === p.id ? ACCENT : 'rgba(255,255,255,0.1)', background: selected === p.id ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'transparent' }}>
             <span className="text-2xl">{p.icon}</span>
             <span>
               <span className="block text-sm font-semibold text-[var(--text-primary,#e5e5e5)] mb-0.5">{t(p.labelKey)}</span>
@@ -151,7 +151,7 @@ function TailoredStep({ path }: { path: OnboardingPath }) {
             <div className="text-sm font-semibold text-[var(--text-primary,#e5e5e5)] mb-1.5">{t(`${base}.title`)}</div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{t('onboarding.try_this')}</span>
-              <code className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(168,85,247,0.1)', color: ACCENT }}>{t(`${base}.example`)}</code>
+              <code className="text-xs px-2 py-1 rounded" style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)', color: ACCENT }}>{t(`${base}.example`)}</code>
             </div>
           </div>
         ))}
@@ -199,7 +199,7 @@ function BreadthStep() {
 function ConnectStep({ isConnected, onConnect }: { isConnected: boolean; onConnect: () => void }) {
   return (
     <div className="h-full flex flex-col items-center justify-center text-center max-w-xl mx-auto">
-      <div className="w-16 h-16 rounded-full mb-5 flex items-center justify-center text-2xl" style={{ background: 'rgba(168,85,247,0.15)' }}>{isConnected ? '✓' : '🔒'}</div>
+      <div className="w-16 h-16 rounded-full mb-5 flex items-center justify-center text-2xl" style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)' }}>{isConnected ? '✓' : '🔒'}</div>
       <h2 className="text-2xl font-semibold text-[var(--text-primary,#e5e5e5)] mb-2">{t('onboarding.connect.title')}</h2>
       <p className="text-sm text-[var(--text-muted)] mb-1">{t('onboarding.connect.subtitle')}</p>
       <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-6">{t('onboarding.connect.body')}</p>

@@ -62,7 +62,7 @@ const TONE_BADGE: Record<Tone, string> = {
 
 // Shared interactive-card surface — calm flat base, brand accent on hover only.
 // This is the one "clickable row" treatment for standalone cards across tabs.
-const INTERACTIVE_CARD = 'rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] transition hover:border-[var(--accent)]/45 hover:shadow-[0_0_12px_rgba(168,85,247,0.16)]';
+const INTERACTIVE_CARD = 'rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] transition hover:border-[var(--accent)]/45 hover:shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_16%,transparent)]';
 
 function costTone(cost: number): Tone {
   if (cost < 0.10) return 'success';

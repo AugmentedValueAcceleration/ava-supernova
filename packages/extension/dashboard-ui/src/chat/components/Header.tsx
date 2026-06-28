@@ -61,7 +61,7 @@ export function Header({
   // cloud (storage sunsets 1 Jul 2026). Managers default to local-only.
 
   return (
-    <div className="border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }}>
+    <div className="border-b" style={{ borderColor: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
     <div className="flex items-center gap-2 px-3 py-2" role="toolbar" aria-label="Chat controls">
       {/* Model selector — sidebar toggle dropped to match IDE which has no
           sidebar-toggle in the chat header (the dashboard sidebar collapses
@@ -153,14 +153,14 @@ export function Header({
           aria-label="New chat"
           style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-            background: 'rgba(168,85,247,0.1)',
-            border: '1px solid rgba(168,85,247,0.25)',
+            background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
             borderRadius: 8,
-            color: '#a855f7',
+            color: 'var(--accent)',
             fontSize: 11, fontWeight: 600, cursor: 'pointer',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.2)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 20%, transparent)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)'; }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -179,14 +179,14 @@ export function Header({
           aria-label="Clear chat"
           style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-            background: 'rgba(168,85,247,0.1)',
-            border: '1px solid rgba(168,85,247,0.25)',
+            background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
             borderRadius: 8,
-            color: '#a855f7',
+            color: 'var(--accent)',
             fontSize: 11, fontWeight: 600, cursor: 'pointer',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.2)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 20%, transparent)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)'; }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -206,11 +206,11 @@ export function Header({
         const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
         const remaining = Math.max(0, totalLimit - totalUsed);
         const pct = totalLimit > 0 ? Math.max(0, Math.min(100, (remaining / totalLimit) * 100)) : 0;
-        const color = pct <= 5 ? '#ef4444' : pct <= 20 ? '#eab308' : '#a855f7';
+        const color = pct <= 5 ? '#ef4444' : pct <= 20 ? '#eab308' : 'var(--accent)';
         return (
           <div className="px-3 pb-1.5">
             <div className="flex items-center gap-2">
-              <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: 'rgba(168,85,247,0.08)' }}>
+              <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${pct}%`, background: color }}

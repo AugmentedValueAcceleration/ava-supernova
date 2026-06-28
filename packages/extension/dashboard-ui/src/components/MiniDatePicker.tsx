@@ -62,7 +62,7 @@ export function MiniDatePicker({ value, onChange }: MiniDatePickerProps) {
                 height: 24,
                 borderRadius: '50%',
                 fontSize: 11,
-                background: isSelected ? 'var(--accent)' : isToday ? 'rgba(168,85,247,0.2)' : 'transparent',
+                background: isSelected ? 'var(--accent)' : isToday ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'transparent',
                 color: isSelected ? '#fff' : isToday ? 'var(--accent)' : 'var(--text-secondary)',
               }}
             >

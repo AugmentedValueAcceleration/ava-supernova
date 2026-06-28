@@ -81,7 +81,7 @@ export function HealthMySubmissions({ data, onRefresh, onContribute, onClearReje
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => setConfirming(false)}
-              className="rounded-md border border-[rgba(168,85,247,0.18)] bg-transparent px-3 py-1 text-[11px] text-vscode-descriptionForeground hover:text-vscode-foreground transition cursor-pointer"
+              className="rounded-md border border-[var(--accent)]/18 bg-transparent px-3 py-1 text-[11px] text-vscode-descriptionForeground hover:text-vscode-foreground transition cursor-pointer"
             >
               {t('health.mysubs.cancel')}
             </button>

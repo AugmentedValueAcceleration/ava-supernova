@@ -44,7 +44,7 @@ export function Roadmap({ themes, loading }: Props) {
           {/* Stats */}
           <div className="flex gap-6 mb-8">
             <div>
-              <div className="text-2xl font-light" style={{ color: 'var(--accent, #a855f7)' }}>{pct}%</div>
+              <div className="text-2xl font-light" style={{ color: 'var(--accent)' }}>{pct}%</div>
               <div className="text-[10px] font-light uppercase tracking-wider text-[var(--text-muted)]">Complete</div>
             </div>
             <div>

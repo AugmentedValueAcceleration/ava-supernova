@@ -418,7 +418,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         <div className="flex gap-2">
           <button
             onClick={() => postLoad({ type: 'load_local_memories' })}
-            className="rounded-lg border border-[rgba(168,85,247,0.2)] bg-transparent px-3 py-1.5 text-xs text-[#9ca3af] transition hover:text-white"
+            className="rounded-lg border border-[var(--accent)]/20 bg-transparent px-3 py-1.5 text-xs text-[#9ca3af] transition hover:text-white"
             title={t('memory.refresh_title')}
           >
             {t('health.browse.refresh')}

@@ -853,7 +853,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             uses platform-routed media endpoints regardless of BYOK toggle
             for chat — every signed-in user has a credit balance. */}
         {account?.tier === 'admin' ? (
-          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.30)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.10)] min-w-[200px]">
+          <div className="shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_color-mix(in_srgb,var(--accent)_10%,transparent)] min-w-[200px]">
             <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1.5">{t('dash.creative.credit_balance')}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-[18px] font-semibold leading-none bg-gradient-to-r from-[var(--accent)] to-purple-300 bg-clip-text text-transparent">
@@ -863,7 +863,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             <p className="text-[10px] text-[var(--text-muted)] mt-1">{t('dash.creative.admin_no_caps')}</p>
           </div>
         ) : account?.usage ? (
-          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.06)] min-w-[200px]">
+          <div className="shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_color-mix(in_srgb,var(--accent)_6%,transparent)] min-w-[200px]">
             <div className="flex items-baseline justify-between gap-3 mb-1.5">
               <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">{t('dash.creative.credit_balance')}</span>
               <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
@@ -890,13 +890,13 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             </div>
           </div>
         ) : account ? (
-          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.16)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
+          <div className="shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--accent)_16%,transparent)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
             <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1.5">{t('dash.creative.credit_balance')}</span>
             <div className="h-4 w-20 rounded bg-[var(--bg-input)]/60 animate-pulse" />
             <div className="mt-2 h-1 w-full rounded-full bg-[var(--bg-input)] animate-pulse" />
           </div>
         ) : (
-          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.16)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
+          <div className="shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--accent)_16%,transparent)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
             <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1">{t('dash.creative.credit_balance')}</span>
             <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
               {t('dash.creative.sign_in_credits')}
@@ -980,7 +980,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         <div
           onDrop={composerAcceptsReference ? handleComposerDrop : undefined}
           onDragOver={composerAcceptsReference ? (e) => e.preventDefault() : undefined}
-          className="rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] p-3 shadow-[0_0_30px_rgba(168,85,247,0.06)] focus-within:border-[rgba(168,85,247,0.45)] focus-within:shadow-[0_0_30px_rgba(168,85,247,0.14)] transition"
+          className="rounded-2xl border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] p-3 shadow-[0_0_30px_color-mix(in_srgb,var(--accent)_6%,transparent)] focus-within:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] focus-within:shadow-[0_0_30px_color-mix(in_srgb,var(--accent)_14%,transparent)] transition"
         >
           {/* Reference chip — pinned at the top of the composer when a
               first-frame image is attached for video. Click × to remove. */}
@@ -1061,7 +1061,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
               <button
                 onClick={currentSend}
                 disabled={!currentPrompt.trim() || generating}
-                className="rounded-lg bg-gradient-to-br from-[var(--accent)] to-purple-500 px-4 py-2 text-[12px] font-semibold text-white transition shadow-[0_0_18px_rgba(168,85,247,0.25)] hover:shadow-[0_0_22px_rgba(168,85,247,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none border-none cursor-pointer"
+                className="rounded-lg bg-gradient-to-br from-[var(--accent)] to-purple-500 px-4 py-2 text-[12px] font-semibold text-white transition shadow-[0_0_18px_color-mix(in_srgb,var(--accent)_25%,transparent)] hover:shadow-[0_0_22px_color-mix(in_srgb,var(--accent)_40%,transparent)] disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none border-none cursor-pointer"
               >
                 {generating ? t('dash.creative.generating') : t('dash.creative.send')}
               </button>
@@ -1123,7 +1123,7 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
           <button
             key={`${mode}-${shuffleTick}-${i}`}
             onClick={() => onSuggest(s)}
-            className="text-left rounded-xl border border-[rgba(168,85,247,0.12)] bg-transparent px-4 py-2.5 text-[12px] text-[var(--text-secondary)] transition hover:border-[rgba(168,85,247,0.35)] hover:bg-[#1a1625]/40 hover:text-white cursor-pointer"
+            className="text-left rounded-xl border border-[color-mix(in_srgb,var(--accent)_12%,transparent)] bg-transparent px-4 py-2.5 text-[12px] text-[var(--text-secondary)] transition hover:border-[color-mix(in_srgb,var(--accent)_35%,transparent)] hover:bg-[#1a1625]/40 hover:text-white cursor-pointer"
           >
             {s}
           </button>
@@ -1147,8 +1147,8 @@ function GeneratingCard({ mode, elapsed }: { mode: 'images' | 'audio' | 'voice' 
     mode === 'voice'  ? t('dash.creative.gen_voice') :
                         t('dash.creative.gen_video', { elapsed });
   return (
-    <div className="rounded-2xl border border-[rgba(168,85,247,0.30)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-5 py-4 flex items-center gap-3">
-      <div className="h-7 w-7 rounded-full border-[2.5px] border-[rgba(168,85,247,0.18)] border-t-[var(--accent)] animate-spin" />
+    <div className="rounded-2xl border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-5 py-4 flex items-center gap-3">
+      <div className="h-7 w-7 rounded-full border-[2.5px] border-[color-mix(in_srgb,var(--accent)_18%,transparent)] border-t-[var(--accent)] animate-spin" />
       <div className="flex-1">
         <p className="text-[12px] font-medium text-[var(--text-primary)]">{label}</p>
         <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
@@ -1162,7 +1162,7 @@ function GeneratingCard({ mode, elapsed }: { mode: 'images' | 'audio' | 'voice' 
 function ReferenceChip({ ref: refValue, onRemove }: { ref: { name: string; dataUrl: string }; onRemove: () => void }) {
   useLocale();
   return (
-    <div className="mb-2 inline-flex items-center gap-2 rounded-lg border border-[rgba(168,85,247,0.20)] bg-[var(--bg-input)]/60 pl-1 pr-2 py-1">
+    <div className="mb-2 inline-flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-[var(--bg-input)]/60 pl-1 pr-2 py-1">
       <img src={refValue.dataUrl} alt={refValue.name} className="h-7 w-7 rounded-md object-cover" />
       <span className="text-[10px] text-[var(--text-secondary)] max-w-[180px] truncate">{refValue.name}</span>
       <Tooltip content={t('dash.creative.remove_first_frame')}>
@@ -1257,8 +1257,8 @@ function FeedCard({
 
   return (
     <div
-      className="rounded-2xl border border-[rgba(168,85,247,0.16)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] overflow-hidden transition hover:border-[rgba(168,85,247,0.32)]"
-      style={{ boxShadow: '0 0 0 rgba(168,85,247,0)' }}
+      className="rounded-2xl border border-[color-mix(in_srgb,var(--accent)_16%,transparent)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] overflow-hidden transition hover:border-[color-mix(in_srgb,var(--accent)_32%,transparent)]"
+      style={{ boxShadow: '0 0 0 color-mix(in srgb, var(--accent) 0%, transparent)' }}
     >
       {/* Prompt header */}
       <div className="px-4 pt-3 pb-2 text-[11px] text-[#a6adc8] leading-relaxed">
@@ -1289,7 +1289,7 @@ function FeedCard({
       </div>
 
       {/* Actions */}
-      <div className="px-4 pb-3 flex flex-wrap gap-1.5 border-t border-[rgba(168,85,247,0.08)] pt-2.5">
+      <div className="px-4 pb-3 flex flex-wrap gap-1.5 border-t border-[color-mix(in_srgb,var(--accent)_8%,transparent)] pt-2.5">
         <FeedActionPill onClick={() => onRegenerate(item)}>{t('dash.creative.action_variations')}</FeedActionPill>
         {item.kind === 'image' && (
           <>
@@ -1320,8 +1320,8 @@ function FeedActionPill({ children, onClick, accent, danger }: { children: React
   const tone = danger
     ? 'border-red-500/20 bg-transparent text-[#f38ba8] hover:bg-red-500/10'
     : accent
-    ? 'border-[rgba(168,85,247,0.35)] bg-[rgba(168,85,247,0.08)] text-[var(--accent)] hover:bg-[rgba(168,85,247,0.18)]'
-    : 'border-[rgba(168,85,247,0.20)] bg-[rgba(49,34,68,0.5)] text-[#cdd6f4] hover:bg-[rgba(168,85,247,0.15)]';
+    ? 'border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]'
+    : 'border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-[rgba(49,34,68,0.5)] text-[#cdd6f4] hover:bg-[color-mix(in_srgb,var(--accent)_15%,transparent)]';
   return (
     <button onClick={onClick} className={`${base} ${tone}`}>
       {children}
@@ -1410,7 +1410,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
           reads as part of the same surface group. */}
       <button
         onClick={() => setOpen(true)}
-        className="w-full mb-2 rounded-xl border border-[rgba(168,85,247,0.12)] bg-[#0f0f17]/60 px-3 py-2 flex items-center justify-between text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[rgba(168,85,247,0.25)] transition cursor-pointer"
+        className="w-full mb-2 rounded-xl border border-[color-mix(in_srgb,var(--accent)_12%,transparent)] bg-[#0f0f17]/60 px-3 py-2 flex items-center justify-between text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[color-mix(in_srgb,var(--accent)_25%,transparent)] transition cursor-pointer"
       >
         <span className="flex items-center gap-2 min-w-0">
           <span className="uppercase tracking-wider font-semibold opacity-70 shrink-0">{t('dash.creative.mode_settings', { mode: modeLabel })}</span>
@@ -1434,11 +1434,11 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
           `}</style>
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[520px] max-h-[80vh] overflow-y-auto rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)]"
+            className="w-full max-w-[520px] max-h-[80vh] overflow-y-auto rounded-2xl border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_color-mix(in_srgb,var(--accent)_12%,transparent)]"
             style={{ animation: 'avaModalCardIn 160ms ease-out' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(168,85,247,0.10)]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
               <div>
                 <h3 className="text-[13px] font-semibold text-[#cdd6f4]">{t('dash.creative.mode_settings', { mode: modeLabel })}</h3>
                 <p className="text-[10px] text-[#9b8caa] mt-0.5">{summary}</p>
@@ -1473,7 +1473,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
                   value={props.imageNegative}
                   onChange={e => props.setImageNegative(e.target.value)}
                   placeholder={t('dash.creative.avoid_placeholder')}
-                  className="w-full rounded-md border border-[rgba(168,85,247,0.16)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] placeholder:text-[#6c7086] focus:border-[var(--accent)] focus:outline-none"
+                  className="w-full rounded-md border border-[color-mix(in_srgb,var(--accent)_16%,transparent)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] placeholder:text-[#6c7086] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
             </>
@@ -1491,7 +1491,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
                   onChange={e => props.setMusicLyrics(e.target.value)}
                   placeholder={t('dash.creative.lyrics_placeholder')}
                   rows={2}
-                  className="w-full resize-none rounded-md border border-[rgba(168,85,247,0.16)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] placeholder:text-[#6c7086] focus:border-[var(--accent)] focus:outline-none"
+                  className="w-full resize-none rounded-md border border-[color-mix(in_srgb,var(--accent)_16%,transparent)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] placeholder:text-[#6c7086] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
             </>
@@ -1505,7 +1505,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
                   className={`w-full flex items-center justify-between rounded-md px-2.5 py-1.5 text-[11px] font-medium transition border cursor-pointer mb-1 ${
                     props.avaVoice
                       ? 'border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--accent)]'
-                      : 'border-[rgba(168,85,247,0.16)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-white'
+                      : 'border-[color-mix(in_srgb,var(--accent)_16%,transparent)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-white'
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -1552,7 +1552,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-[rgba(168,85,247,0.10)]">
+            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
               <button
                 onClick={() => setOpen(false)}
                 className="rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/35 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/25 transition cursor-pointer"

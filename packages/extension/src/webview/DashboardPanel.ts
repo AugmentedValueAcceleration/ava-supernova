@@ -658,6 +658,10 @@ export class DashboardPanel {
         await this.deleteTaskEntry(msg.id);
         break;
 
+      case 'clear_all_tasks':
+        await this.clearAllTasks();
+        break;
+
       case 'complete_task':
         await this.completeTaskEntry(msg.id);
         break;
@@ -3456,14 +3460,29 @@ export class DashboardPanel {
   private async deleteTaskEntry(id: string): Promise<void> {
     try {
       const mgr = this.getTaskManager();
-      const deleted = await mgr.deleteTask(id);
-      if (deleted) {
-        this.post({ type: 'task_deleted', id });
-      } else {
-        this.post({ type: 'error', message: 'Task not found.' });
-      }
+      await mgr.deleteTask(id);
+      // Tell the UI to drop the row whether or not it was in the store — a
+      // "not found" just means it's a stale entry the list should stop showing,
+      // not an error to surface.
+      this.post({ type: 'task_deleted', id });
     } catch {
       this.post({ type: 'error', message: 'Failed to delete task.' });
+    }
+  }
+
+  /** Wipe EVERY task — the stored ones (global + project, incl. archived and any
+   *  hidden by the current filter) AND the in-memory "Ava's Progress" session
+   *  tasks — then refresh both lists so nothing lingers. */
+  private async clearAllTasks(): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      // Hard-wipe both stores + session in one shot. The previous per-id delete
+      // loop couldn't remove flushed `session-*` todos; emptying the arrays does.
+      await mgr.clearAllStored();
+      await this.loadTasks();
+      this.post({ type: 'session_tasks_updated', tasks: this.getSessionTasks() });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to clear tasks.' });
     }
   }
 

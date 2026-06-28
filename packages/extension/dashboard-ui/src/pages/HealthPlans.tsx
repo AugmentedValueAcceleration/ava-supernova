@@ -134,7 +134,7 @@ function PlanOverlay({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6">
       {/* Both phases are content-sized modals (capped at 88vh, body scrolls if
           longer) — the builder is a tidy day editor, not a full-screen sprawl. */}
-      <div className={`flex flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_rgba(168,85,247,0.15)] max-h-[88vh] ${planOpen ? 'w-full max-w-[860px]' : 'w-full max-w-[720px]'}`}>
+      <div className={`flex flex-col overflow-hidden rounded-xl border border-[var(--accent)]/25 bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_color-mix(in_srgb,_var(--accent)_15%,_transparent)] max-h-[88vh] ${planOpen ? 'w-full max-w-[860px]' : 'w-full max-w-[720px]'}`}>
         {planOpen ? (
           <PlanBuilder
             plan={planOpen}
@@ -658,7 +658,7 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
     }
     const { totals, estimated } = dayTotals({ day_index: 0, kind: 'rest', title: null, training: [], meals: allMeals, notes: null }, recipeDetails);
     const sections: DayAgendaSection[] = [
-      { key: 'training', label: t('health.plans.training'), icon: '🏋', accent: '#a855f7', items: training },
+      { key: 'training', label: t('health.plans.training'), icon: '🏋', accent: 'var(--accent)', items: training },
       { key: 'meals', label: t('health.plans.meals'), icon: '🍽', accent: '#f59e0b', items: meals },
     ];
     return { sections, mealTotals: totals, mealsEstimated: estimated, hasMeals: allMeals.length > 0 };
@@ -688,8 +688,8 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6" onClick={onClose}>
       <div ref={panelRef} onClick={(e) => e.stopPropagation()}
         style={{ minHeight: MIN_PANEL_H, ...(editing && frozenH ? { height: Math.max(frozenH, MIN_PANEL_H) } : {}) }}
-        className="flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_rgba(168,85,247,0.15)]">
-        <div className="flex shrink-0 items-center justify-between border-b border-[rgba(168,85,247,0.14)] px-6 py-3">
+        className="flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-xl border border-[var(--accent)]/25 bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_color-mix(in_srgb,_var(--accent)_15%,_transparent)]">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--accent)]/14 px-6 py-3">
           <div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{tt('health.plans.on_this_day', 'On this day')}</div>
             <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">{dateLabel}</h2>
@@ -944,7 +944,7 @@ function PlanSetup({ onCancel, onCreate, onAskAva }: {
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-[rgba(168,85,247,0.14)] px-6 py-4">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--accent)]/14 px-6 py-4">
         <div>
           <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{t('health.plans.new_plan_title_short')}</h2>
           <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{t('health.plans.setup_subtitle')}</p>
@@ -1192,7 +1192,7 @@ function PlanBuilder({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header */}
-      <div className="shrink-0 space-y-2 border-b border-[rgba(168,85,247,0.14)] px-6 py-3">
+      <div className="shrink-0 space-y-2 border-b border-[var(--accent)]/14 px-6 py-3">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={closeWithFlush}
             className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
@@ -1282,7 +1282,7 @@ function PlanBuilder({
       </div>
 
       {/* Footer */}
-      <div className="flex shrink-0 items-center border-t border-[rgba(168,85,247,0.14)] px-6 py-3">
+      <div className="flex shrink-0 items-center border-t border-[var(--accent)]/14 px-6 py-3">
         {confirming ? (
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-[var(--text-secondary)]">{t('health.plans.delete_confirm')}</span>
@@ -1326,8 +1326,8 @@ function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelec
   const monthLabel = new Date(year, mon, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
   return (
-    <div className={`overflow-hidden rounded-xl border border-[rgba(168,85,247,0.18)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_4px_28px_rgba(0,0,0,0.28)] ${fill ? 'flex flex-1 flex-col' : ''}`}>
-      <div className="flex items-center justify-between border-b border-[rgba(168,85,247,0.12)] bg-[var(--accent)]/5 px-4 py-2.5">
+    <div className={`overflow-hidden rounded-xl border border-[var(--accent)]/18 bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_4px_28px_rgba(0,0,0,0.28)] ${fill ? 'flex flex-1 flex-col' : ''}`}>
+      <div className="flex items-center justify-between border-b border-[var(--accent)]/12 bg-[var(--accent)]/5 px-4 py-2.5">
         <button type="button" onClick={() => onMonthChange(new Date(year, mon - 1, 1))} aria-label={t('health.plans.prev_month')}
           className="flex h-7 w-7 items-center justify-center rounded-md border-none bg-[var(--accent)]/10 text-[14px] text-[var(--text-secondary)] transition hover:bg-[var(--accent)]/25 hover:text-white cursor-pointer">‹</button>
         <span className="text-[13px] font-semibold tracking-wide text-[var(--text-primary)]">{monthLabel}</span>
@@ -1365,8 +1365,8 @@ function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelec
                   isSelected
                     ? 'border-[var(--accent)] bg-[var(--accent)]/15'
                     : hasContent
-                      ? 'border-[rgba(168,85,247,0.22)] bg-[var(--accent)]/5 hover:border-[var(--accent)]/50'
-                      : 'border-[rgba(168,85,247,0.08)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5'
+                      ? 'border-[var(--accent)]/22 bg-[var(--accent)]/5 hover:border-[var(--accent)]/50'
+                      : 'border-[var(--accent)]/8 hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5'
                 }`}
               >
                 <div className="flex items-center justify-between gap-1">
@@ -1665,7 +1665,7 @@ function ItemDetailModal({ detail, exercise, recipe, onClose }: {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 sm:p-6" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)]"
+        className="relative flex w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_color-mix(in_srgb,_var(--accent)_12%,_transparent)]"
         style={{ height: 'min(760px, 86vh)' }}
       >
         <button
@@ -1936,13 +1936,13 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-[rgba(168,85,247,0.14)] px-6 py-4">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--accent)]/14 px-6 py-4">
         <button type="button" onClick={onClose} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">{t('health.plans.back_to_plan')}</button>
         <span className="text-[13px] font-medium text-[var(--text-primary)]">{isEx ? t('health.plans.picker.add_exercises_header') : t('health.plans.picker.add_recipes_header')}</span>
         <span className="w-[80px]" aria-hidden />
       </div>
 
-      <div className="space-y-2 border-b border-[rgba(168,85,247,0.1)] px-6 py-3">
+      <div className="space-y-2 border-b border-[var(--accent)]/10 px-6 py-3">
         <input
           autoFocus
           value={query}
@@ -2003,7 +2003,7 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-[rgba(168,85,247,0.14)] px-6 py-3">
+      <div className="flex items-center justify-between gap-3 border-t border-[var(--accent)]/14 px-6 py-3">
         <button
           type="button"
           onClick={() => onConfirm([null])}

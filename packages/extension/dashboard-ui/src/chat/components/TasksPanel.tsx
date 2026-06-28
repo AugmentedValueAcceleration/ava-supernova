@@ -162,14 +162,14 @@ export function TasksPanel({
         minWidth: MIN_WIDTH,
         maxWidth: MAX_WIDTH,
         borderLeft: '1px solid var(--border-card)',
-        background: 'radial-gradient(ellipse 90% 40% at 50% 0%, rgba(168, 85, 247, 0.10) 0%, transparent 65%), linear-gradient(180deg, rgba(26,16,40,0.95) 0%, rgba(20,13,34,0.97) 100%)',
+        background: 'radial-gradient(ellipse 90% 40% at 50% 0%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 65%), linear-gradient(180deg, rgba(26,16,40,0.95) 0%, rgba(20,13,34,0.97) 100%)',
         backdropFilter: 'blur(12px)',
       }}
     >
       {/* Drag handle — left edge */}
       <div
         onMouseDown={onMouseDown}
-        className="absolute left-0 top-0 bottom-0 z-10 hover:bg-[#A855F7]/20 transition-colors"
+        className="absolute left-0 top-0 bottom-0 z-10 hover:bg-[var(--accent)]/20 transition-colors"
         style={{ width: 4, cursor: 'col-resize' }}
       />
 
@@ -180,7 +180,7 @@ export function TasksPanel({
         title={tt('tasks.collapse', 'Collapse')}
         aria-label={tt('tasks.collapse', 'Collapse')}
         className="absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-6 h-6 rounded-full cursor-pointer transition hover:scale-110"
-        style={{ left: -12, background: 'var(--bg-page)', border: '1px solid rgba(168,85,247,0.35)', color: 'var(--accent)', boxShadow: '0 1px 4px rgba(0,0,0,0.25)' }}
+        style={{ left: -12, background: 'var(--bg-page)', border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)', color: 'var(--accent)', boxShadow: '0 1px 4px rgba(0,0,0,0.25)' }}
       >
         <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
           <path d="M5.646 3.646a.5.5 0 0 1 .708 0l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L9.293 8 5.646 4.354a.5.5 0 0 1 0-.708z" />
@@ -254,7 +254,7 @@ function AvaBand({ sessionTasks, completedSession }: { sessionTasks: SessionTask
       style={{
         background: 'linear-gradient(180deg, rgba(40,22,58,0.97) 0%, rgba(30,18,46,0.97) 100%)',
         backdropFilter: 'blur(6px)',
-        borderBottom: '1px solid rgba(168,85,247,0.18)',
+        borderBottom: '1px solid color-mix(in srgb, var(--accent) 18%, transparent)',
       }}
     >
       <button
@@ -264,7 +264,7 @@ function AvaBand({ sessionTasks, completedSession }: { sessionTasks: SessionTask
         <div className="flex items-center gap-2">
           <span
             className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
-            style={{ color: allDone ? '#34d399' : '#A855F7' }}
+            style={{ color: allDone ? '#34d399' : 'var(--accent)' }}
           >
             {!allDone && <span className="inline-block animate-spin" style={{ animationDuration: '1.5s' }}>⟳</span>}
             {tt('tasks.ava', 'Ava')}
@@ -272,7 +272,7 @@ function AvaBand({ sessionTasks, completedSession }: { sessionTasks: SessionTask
           <span className="text-[10px] opacity-50 flex-1 truncate">
             {allDone ? tt('tasks.all_complete', 'All steps complete') : current?.title}
           </span>
-          <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: allDone ? '#34d399' : '#A855F7' }}>
+          <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: allDone ? '#34d399' : 'var(--accent)' }}>
             {completedSession}/{total}
           </span>
           <svg
@@ -283,10 +283,10 @@ function AvaBand({ sessionTasks, completedSession }: { sessionTasks: SessionTask
             <path d="M6 4l4 4-4 4V4z" />
           </svg>
         </div>
-        <div className="w-full h-1 rounded-full" style={{ background: 'rgba(168,85,247,0.12)' }}>
+        <div className="w-full h-1 rounded-full" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${total > 0 ? (completedSession / total) * 100 : 0}%`, background: allDone ? '#34d399' : '#A855F7' }}
+            style={{ width: `${total > 0 ? (completedSession / total) * 100 : 0}%`, background: allDone ? '#34d399' : 'var(--accent)' }}
           />
         </div>
       </button>
@@ -307,7 +307,7 @@ function AvaBand({ sessionTasks, completedSession }: { sessionTasks: SessionTask
 function AvaRecentWork({ avaCompletedTasks }: { avaCompletedTasks: AvaCompletedTaskUI[] }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-1" style={{ borderTop: '1px solid rgba(168, 85, 247, 0.06)' }}>
+    <div className="mt-1" style={{ borderTop: '1px solid color-mix(in srgb, var(--accent) 6%, transparent)' }}>
       <CollapsibleSection
         title={tt('tasks.ava_recent_work', "Ava's recent work")}
         count={String(avaCompletedTasks.length)}
@@ -412,9 +412,9 @@ function QuickAdd({
           className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg text-[11px] font-medium
                      border border-dashed cursor-pointer transition-all
                      text-[var(--text-secondary)] opacity-50 hover:opacity-90"
-          style={{ borderColor: 'rgba(168,85,247,0.25)', background: 'transparent' }}
+          style={{ borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)', background: 'transparent' }}
         >
-          <span className="text-[13px] leading-none" style={{ color: '#A855F7' }}>+</span>
+          <span className="text-[13px] leading-none" style={{ color: 'var(--accent)' }}>+</span>
           {tt('tasks.add_task', 'Add a task')}
         </button>
       </div>
@@ -437,7 +437,7 @@ function QuickAdd({
         style={{
           width: 'min(480px, 92vw)', maxHeight: '88vh',
           background: 'linear-gradient(180deg, rgba(30,18,46,0.99) 0%, rgba(22,14,36,1) 100%)',
-          border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
+          border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
         }}
       >
         <div className="flex items-center gap-2">
@@ -534,7 +534,7 @@ function QuickAdd({
             onClick={submit}
             disabled={!title.trim()}
             className="flex-1 py-2.5 rounded-lg text-[13px] font-semibold border-none cursor-pointer transition disabled:opacity-40 disabled:cursor-default"
-            style={{ background: '#A855F7', color: 'white' }}
+            style={{ background: 'var(--accent)', color: 'white' }}
           >
             {tt('tasks.create_task', 'Create task')}
           </button>
@@ -584,7 +584,7 @@ function YourTasks({
                 ? 'text-white'
                 : 'text-[var(--text-secondary)] opacity-40 hover:opacity-60 bg-transparent'
               }`}
-            style={filter === f ? { background: '#A855F7' } : undefined}
+            style={filter === f ? { background: 'var(--accent)' } : undefined}
           >
             {f === 'today' ? t('tasks.filter_today') : t('tasks.filter_all')}
             <span className="ml-1 opacity-60">
@@ -622,7 +622,7 @@ function YourTasks({
           {doneTasks.length > 0 && (
             <>
               {activeTasks.length > 0 && (
-                <div className="mx-1 my-2" style={{ borderTop: '1px solid rgba(168, 85, 247, 0.06)' }} />
+                <div className="mx-1 my-2" style={{ borderTop: '1px solid color-mix(in srgb, var(--accent) 6%, transparent)' }} />
               )}
               <div className="text-[9px] uppercase tracking-wider opacity-25 px-2 mb-1">
                 {t('tasks.completed')}
@@ -663,7 +663,7 @@ function CollapsibleSection({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ borderBottom: '1px solid rgba(168, 85, 247, 0.06)' }}>
+    <div style={{ borderBottom: '1px solid color-mix(in srgb, var(--accent) 6%, transparent)' }}>
       <button
         onClick={onToggle}
         className="flex items-center gap-1.5 w-full px-3 py-2 text-left bg-transparent border-none cursor-pointer
@@ -733,7 +733,7 @@ const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
 // categories fall back to slate.
 const CATEGORY_COLORS: Record<string, string> = {
   personal: '#38bdf8',
-  coding: '#a855f7',
+  coding: 'var(--accent)',
   admin: '#f59e0b',
   meeting: '#34d399',
   custom: '#94a3b8',
@@ -965,7 +965,7 @@ function TaskEditForm({
   }, [title, priority, category, dueDate, dueTime, recurrence, reminderLead, onSave, task.title]);
 
   return (
-    <div className="p-2 rounded-lg flex flex-col gap-2" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+    <div className="p-2 rounded-lg flex flex-col gap-2" style={{ background: 'color-mix(in srgb, var(--accent) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 15%, transparent)' }}>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -992,7 +992,7 @@ function TaskEditForm({
         </select>
       </div>
       <div className="flex items-center gap-1.5">
-        <button onClick={save} className="px-3 py-1 rounded-md text-[11px] font-semibold border-none cursor-pointer transition" style={{ background: '#A855F7', color: 'white' }}>
+        <button onClick={save} className="px-3 py-1 rounded-md text-[11px] font-semibold border-none cursor-pointer transition" style={{ background: 'var(--accent)', color: 'white' }}>
           {tt('tasks.save', 'Save')}
         </button>
         <button onClick={onCancel} className="px-2.5 py-1 rounded-md text-[11px] font-medium border-none cursor-pointer bg-transparent text-[var(--text-secondary)] opacity-50 hover:opacity-90 transition">
@@ -1014,7 +1014,7 @@ function SessionItem({ task }: { task: SessionTaskUI }) {
       <span
         className={`flex items-center justify-center w-4 h-4 flex-shrink-0 text-[11px]
           ${isDone ? 'text-emerald-400' : isActive ? '' : 'opacity-25'}`}
-        style={isActive ? { color: '#A855F7' } : undefined}
+        style={isActive ? { color: 'var(--accent)' } : undefined}
       >
         {isDone ? '✓' : isActive ? '⟳' : '○'}
       </span>

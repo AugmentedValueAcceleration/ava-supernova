@@ -187,7 +187,7 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
   // Health room: plain-prompt chips (no mode prefix — the room is locked to
   // health). They prefill the composer so the user can edit before sending.
   const healthChips: { label: string; prefix: string; prompt: string; color: string }[] = [
-    { label: t('health.room.starter.fitness'),  prefix: '🏋', prompt: t('health.room.starter.fitness_prompt'),  color: '#a855f7' },
+    { label: t('health.room.starter.fitness'),  prefix: '🏋', prompt: t('health.room.starter.fitness_prompt'),  color: 'var(--accent)' },
     { label: t('health.room.starter.meal'),     prefix: '🍳', prompt: t('health.room.starter.meal_prompt'),     color: '#f59e0b' },
     { label: t('health.room.starter.combined'), prefix: '🔥', prompt: t('health.room.starter.combined_prompt'), color: '#34d399' },
     { label: t('health.room.starter.injury'),   prefix: '🩹', prompt: t('health.room.starter.injury_prompt'),   color: '#60a5fa' },
@@ -195,7 +195,7 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
     { label: t('health.room.starter.exercise'), prefix: '💪', prompt: t('health.room.starter.exercise_prompt'), color: '#f38ba8' },
   ];
   const codeChips: { label: string; prefix: string; prompt: string; color: string }[] = [
-    { label: t('dash.chat.starter.explain'),    prefix: '>>', prompt: t('dash.chat.starter.explain_prompt'),    color: '#a855f7' },
+    { label: t('dash.chat.starter.explain'),    prefix: '>>', prompt: t('dash.chat.starter.explain_prompt'),    color: 'var(--accent)' },
     { label: t('dash.chat.starter.plan'),        prefix: '::', prompt: t('dash.chat.starter.plan_prompt'),        color: '#60a5fa' },
     { label: t('dash.chat.starter.teach'),       prefix: '??', prompt: t('dash.chat.starter.teach_prompt'),       color: '#f9e2af' },
     { label: t('dash.chat.starter.audit'),       prefix: '!!', prompt: t('dash.chat.starter.audit_prompt'),       color: '#f38ba8' },
@@ -208,13 +208,13 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
     <div
       className="rounded-2xl p-5 mt-3 ava-starter-card"
       style={{
-        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(96, 165, 250, 0.04) 100%)',
-        border: '1px solid rgba(168, 85, 247, 0.22)',
-        boxShadow: '0 4px 20px rgba(168, 85, 247, 0.08)',
+        background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent) 0%, rgba(96, 165, 250, 0.04) 100%)',
+        border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)',
+        boxShadow: '0 4px 20px color-mix(in srgb, var(--accent) 8%, transparent)',
       }}
     >
       <div className="flex items-center gap-2 mb-1.5">
-        <span style={{ color: '#a855f7', fontSize: 14 }}>✦</span>
+        <span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span>
         <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>{isHealth ? t('health.room.starter.heading') : t('dash.chat.starter.heading')}</div>
       </div>
       <p className="text-[12px] leading-relaxed mb-4" style={{ color: '#a6adc8' }}>
@@ -250,7 +250,7 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
       </div>
       {!isHealth && (
         <p className="text-[10px] mt-4" style={{ color: '#6c7086' }}>
-          {t('dash.chat.starter.tip_prefix')} <code style={{ color: '#a855f7' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> {t('dash.chat.starter.tip_suffix')}
+          {t('dash.chat.starter.tip_prefix')} <code style={{ color: 'var(--accent)' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> {t('dash.chat.starter.tip_suffix')}
         </p>
       )}
       <style>{`

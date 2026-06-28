@@ -12,8 +12,9 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
-import { CheckIcon } from '../components/Icons';
+import { CheckIcon, CreditCardIcon } from '../components/Icons';
 import { PurchaseCard } from '../components/PurchaseCard';
+import { btnPrimary } from '../components/ui';
 
 // Every pricing/upgrade CTA opens the canonical website page in the user's
 // browser rather than firing an in-extension Stripe flow. Keeps the extension
@@ -24,11 +25,36 @@ function openUrl(url: string) {
 }
 
 interface BillingProps {
-  account: AccountInfo;
+  account: AccountInfo | null;
 }
 
 export function Billing({ account }: BillingProps) {
   useLocale();
+
+  // Logged-out state — mirrors the IDE BillingPage (DashboardPages.tsx ~13498).
+  // Plan, credits and upgrades all live on the web dashboard, so the empty
+  // state simply points the user there to sign in rather than leaving a blank
+  // tab. (AccountPage used to gate this out entirely → the tab rendered empty.)
+  if (!account) {
+    return (
+      <div className="w-full">
+        <div className="mb-10">
+          <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.billing.title')}</h1>
+          <p className="mt-1.5 text-[13px] text-[#6c7086]">{t('dash.billing.subtitle')}</p>
+        </div>
+        <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-[60px] text-center">
+          <div className="mb-3 flex justify-center text-[var(--accent)]">
+            <CreditCardIcon className="h-11 w-11" />
+          </div>
+          <div className="mb-1.5 text-sm font-medium text-[#cdd6f4]">{t('billing.signin_title')}</div>
+          <div className="mb-[18px] text-xs text-[#6c7086]">{t('billing.signin_desc')}</div>
+          <button onClick={() => openUrl(dashboardBillingUrl())} className={`${btnPrimary} mx-auto`}>
+            {t('billing.signin_cta')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Storage usage / refresh removed — cloud storage is sunsetting (1 Jul 2026).
 
@@ -105,14 +131,12 @@ export function Billing({ account }: BillingProps) {
                   </div>
                 )}
               </div>
-              {account.tier !== 'admin' && (
-                <button
-                  onClick={() => openUrl(dashboardBillingUrl())}
-                  className="rounded-lg bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] px-[18px] py-2 text-xs font-semibold text-white transition hover:opacity-90"
-                >
-                  {t('billing.manage_plan')}
-                </button>
-              )}
+              <button
+                onClick={() => openUrl(dashboardBillingUrl())}
+                className="rounded-lg border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-[18px] py-2 text-xs font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
+              >
+                {t('billing.manage_plan')}
+              </button>
             </div>
 
             {/* Credits Remaining — separate card with big number */}
@@ -134,12 +158,12 @@ export function Billing({ account }: BillingProps) {
                   style={{
                     width: account.tier === 'admin' ? '100%' : `${usedPct}%`,
                     background: account.tier === 'admin'
-                      ? 'linear-gradient(90deg, #a855f7, #7c3aed)'
+                      ? 'linear-gradient(90deg, var(--accent), #7c3aed)'
                       : usedPct >= 95
                         ? 'linear-gradient(90deg, #f87171, #ef4444)'
                         : usedPct >= 80
                           ? 'linear-gradient(90deg, #f59e0b, #eab308)'
-                          : 'linear-gradient(90deg, #a855f7, #7c3aed)',
+                          : 'linear-gradient(90deg, var(--accent), #7c3aed)',
                   }}
                 />
               </div>
@@ -179,8 +203,7 @@ export function Billing({ account }: BillingProps) {
       {/* Token top-ups — CTAs deep-link to the dashboard billing page
           (same flow used by Pricing). Canonical data + effective rate
           makes the 10M "Best value" label honest. */}
-      {account.tier !== 'admin' && (
-        <div className="mb-10">
+      <div className="mb-10">
         <SectionGroup label={t('billing.topup_credits')} description={t('billing.topup_credits_desc')}>
           <div className="grid gap-3 sm:grid-cols-3">
             {CREDIT_TOPUPS.map((pkg: CreditTopupDefinition) => (
@@ -198,28 +221,25 @@ export function Billing({ account }: BillingProps) {
             ))}
           </div>
         </SectionGroup>
-        </div>
-      )}
+      </div>
 
       {/* Plans — every tier shown for full transparency. Current tier is
           flagged "Your plan". Free is always visible so paid users can see
           where they'd land on cancellation. Upgrade buttons deep-link to
           the web billing dashboard where Stripe checkout runs. */}
-      {account.tier !== 'admin' && (
-        <SectionGroup label={t('billing.plans')}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {(['free', 'pro', 'ultra', 'enterprise'] as const).map((tier) => (
-              <PlanCard
-                key={tier}
-                tier={tier}
-                isCurrent={tier === account.tier}
-                highlight={tier === 'ultra'}
-                onUpgrade={() => openUrl(dashboardBillingUrl())}
-              />
-            ))}
-          </div>
-        </SectionGroup>
-      )}
+      <SectionGroup label={t('billing.plans')}>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {(['free', 'pro', 'ultra', 'enterprise'] as const).map((tier) => (
+            <PlanCard
+              key={tier}
+              tier={tier}
+              isCurrent={tier === account.tier}
+              highlight={tier === 'ultra'}
+              onUpgrade={() => openUrl(dashboardBillingUrl())}
+            />
+          ))}
+        </div>
+      </SectionGroup>
     </div>
   );
 }
@@ -286,7 +306,7 @@ function PlanCard({
       ) : (
         <button
           onClick={onUpgrade}
-          className="mt-4 w-full rounded-lg bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          className="mt-4 w-full rounded-lg border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] py-2.5 text-sm font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
         >
           {t('billing.upgrade_to', { tier: t(`dash.billing.plan.${tier}`) })}
         </button>

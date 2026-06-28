@@ -265,7 +265,7 @@ export function Overview({
                 }}
                 placeholder={t('dash.cc.name_placeholder')}
                 maxLength={40}
-                className="text-2xl font-light text-white outline-none rounded-md px-2 py-0 bg-[rgba(168,85,247,0.08)] border border-[rgba(168,85,247,0.3)]"
+                className="text-2xl font-light text-white outline-none rounded-md px-2 py-0 bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)]"
                 style={{ minWidth: 220, fontFamily: 'inherit' }}
               />
             ) : firstName ? (
@@ -276,7 +276,7 @@ export function Overview({
                 title={t('dash.cc.name_change_title')}
                 style={{
                   cursor: 'pointer',
-                  borderBottom: nameHover ? '1px dashed #a855f7' : '1px dashed transparent',
+                  borderBottom: nameHover ? '1px dashed var(--accent)' : '1px dashed transparent',
                   transition: 'border-color 0.15s',
                 }}
               >
@@ -286,7 +286,7 @@ export function Overview({
               <span
                 onClick={() => { setNameInput(''); setEditingName(true); }}
                 title={t('dash.cc.name_set_title')}
-                style={{ cursor: 'pointer', color: '#a855f7', fontSize: 16, marginLeft: 4 }}
+                style={{ cursor: 'pointer', color: 'var(--accent)', fontSize: 16, marginLeft: 4 }}
               >
                 {t('dash.cc.add_name')}
               </span>
@@ -400,7 +400,7 @@ function HeroPill({ icon, text, title }: { icon: React.ReactNode; text: string; 
   return (
     <div
       title={title}
-      className="flex items-center gap-1.5 rounded-full border border-[var(--border-card)] bg-[rgba(168,85,247,0.08)] px-3 py-1.5 text-xs text-[var(--text-primary)]"
+      className="flex items-center gap-1.5 rounded-full border border-[var(--border-card)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] px-3 py-1.5 text-xs text-[var(--text-primary)]"
     >
       <span className="text-[var(--accent)]">{icon}</span>
       <span>{text}</span>
@@ -687,7 +687,7 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
                 {article.image_url ? (
                   <img src={article.image_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-lg object-cover mt-0.5" />
                 ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5 text-[var(--accent)]" style={{ background: 'rgba(168,85,247,0.08)' }}>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5 text-[var(--accent)]" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
                     <Newspaper weight="duotone" size={14} />
                   </div>
                 )}
@@ -859,7 +859,7 @@ function JournalWidget({ journalDay, loaded, onNavigate }: { journalDay: Dashboa
           {avaEntry && (
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-medium" style={{ color: '#A855F7' }}>{t('dash.journal.ava_entries')}</span>
+                <span className="text-[10px] font-medium" style={{ color: 'var(--accent)' }}>{t('dash.journal.ava_entries')}</span>
               </div>
               <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                 {truncate(avaEntry.content, 120)}
@@ -1055,7 +1055,7 @@ function WidgetCard({
 function StatCard({ icon, value, label, subtext }: { icon: React.ReactNode; value: string; label: string; subtext?: string }) {
   return (
     <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 transition hover:border-[var(--accent)]/20">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl text-[var(--accent)]" style={{ background: 'rgba(168,85,247,0.1)' }}>
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl text-[var(--accent)]" style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
         {icon}
       </div>
       <div className="text-2xl font-bold tracking-tight">{value}</div>

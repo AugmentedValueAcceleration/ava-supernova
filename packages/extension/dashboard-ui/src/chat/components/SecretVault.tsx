@@ -90,15 +90,15 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
         bottom: '100%',
         marginBottom: '8px',
         background: 'var(--vscode-editor-background, #1e1e1e)',
-        border: '1.5px solid rgba(168, 85, 247, 0.25)',
-        boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4), 0 0 12px rgba(168, 85, 247, 0.1)',
+        border: '1.5px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+        boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4), 0 0 12px color-mix(in srgb, var(--accent) 10%, transparent)',
         animation: 'vault-slide-up 0.2s ease-out',
       }}
     >
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: '1px solid rgba(168, 85, 247, 0.15)' }}
+        style={{ borderBottom: '1px solid color-mix(in srgb, var(--accent) 15%, transparent)' }}
       >
         <div className="flex items-center gap-2">
           <svg
@@ -106,7 +106,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#A855F7"
+            stroke="var(--accent)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -164,7 +164,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                 <div
                   key={secret.id}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-lg group
-                             hover:bg-[rgba(168,85,247,0.06)] transition-colors duration-150"
+                             hover:bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] transition-colors duration-150"
                 >
                   {/* Label + provider badge */}
                   <div className="min-w-[80px] shrink-0 flex flex-col">
@@ -172,7 +172,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                       {secret.label}
                     </span>
                     {secret.provider && (
-                      <span className="text-[9px] uppercase tracking-wide text-[var(--accent,#A855F7)] opacity-70 mt-0.5">
+                      <span className="text-[9px] uppercase tracking-wide text-[var(--accent)] opacity-70 mt-0.5">
                         {secret.provider}
                       </span>
                     )}
@@ -195,7 +195,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                   {/* Always-grant indicator */}
                   {secret.alwaysGrantProjects && secret.alwaysGrantProjects.length > 0 && (
                     <span
-                      className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--accent,#A855F7)]/15 text-[var(--accent,#A855F7)] shrink-0"
+                      className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--accent)]/15 text-[var(--accent)] shrink-0"
                       title="Auto-granted to Ava on this project — clear by deleting and re-adding the secret"
                     >
                       auto
@@ -252,7 +252,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
       {/* Add new secret row */}
       <div
         className="flex items-center gap-2 px-3 py-3"
-        style={{ borderTop: '1px solid rgba(168, 85, 247, 0.12)' }}
+        style={{ borderTop: '1px solid color-mix(in srgb, var(--accent) 12%, transparent)' }}
       >
         <input
           ref={labelInputRef}
@@ -266,8 +266,8 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                      text-[var(--vscode-input-foreground)]
                      placeholder:opacity-30
                      outline-none
-                     border border-[rgba(168,85,247,0.12)]
-                     focus:border-[rgba(168,85,247,0.4)]
+                     border border-[color-mix(in_srgb,var(--accent)_12%,transparent)]
+                     focus:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]
                      transition-colors duration-150"
         />
         <input
@@ -281,8 +281,8 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                      text-[var(--vscode-input-foreground)]
                      placeholder:opacity-30
                      outline-none
-                     border border-[rgba(168,85,247,0.12)]
-                     focus:border-[rgba(168,85,247,0.4)]
+                     border border-[color-mix(in_srgb,var(--accent)_12%,transparent)]
+                     focus:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]
                      transition-colors duration-150"
         />
         <button
@@ -294,10 +294,10 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                      disabled:opacity-20 disabled:cursor-not-allowed"
           style={{
             background: newLabel.trim() && newValue.trim()
-              ? 'linear-gradient(135deg, #A855F7, #7C3AED)'
-              : 'rgba(168, 85, 247, 0.15)',
+              ? 'linear-gradient(135deg, var(--accent), #7C3AED)'
+              : 'color-mix(in srgb, var(--accent) 15%, transparent)',
             boxShadow: newLabel.trim() && newValue.trim()
-              ? '0 2px 8px rgba(168, 85, 247, 0.3)'
+              ? '0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent)'
               : 'none',
           }}
         >

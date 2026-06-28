@@ -132,7 +132,7 @@ export function Tooltip({
             left: pos.left,
             transform: placement === 'top' ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
             background: 'rgba(15, 10, 26, 0.96)',
-            border: '1px solid rgba(168, 85, 247, 0.30)',
+            border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
             borderRadius: 6,
             padding: '7px 10px',
             fontSize: 11,

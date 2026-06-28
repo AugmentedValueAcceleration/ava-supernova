@@ -1660,6 +1660,7 @@ export type DashboardToExtMessage =
   | { type: 'create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; recurrence?: string }
   | { type: 'update_task'; id: string; title?: string; description?: string; priority?: string; status?: string; category?: string; due_date?: string; recurrence?: string; subtasks?: { id: string; title: string; done: boolean }[] }
   | { type: 'delete_task'; id: string }
+  | { type: 'clear_all_tasks' }
   | { type: 'complete_task'; id: string }
   | { type: 'archive_task'; id: string }
   | { type: 'restore_task'; id: string }

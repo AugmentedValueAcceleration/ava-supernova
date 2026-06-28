@@ -32,7 +32,7 @@ const CARD_WIDTH = 280;
 const cardStyle: React.CSSProperties = {
   flex: `0 0 ${CARD_WIDTH}px`,
   background: 'rgba(26, 16, 40, 0.6)',
-  border: '1px solid rgba(168, 85, 247, 0.12)',
+  border: '1px solid color-mix(in srgb, var(--accent) 12%, transparent)',
   borderRadius: 12,
   padding: 12,
   display: 'flex',
@@ -49,7 +49,7 @@ const pillBase: React.CSSProperties = {
   fontSize: 10,
   fontWeight: 500,
   cursor: 'pointer',
-  border: '1px solid rgba(168, 85, 247, 0.2)',
+  border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
   background: 'rgba(49, 34, 68, 0.5)',
   color: '#cdd6f4',
   fontFamily: 'inherit',
@@ -152,7 +152,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
         <button
           onClick={handleCopy}
           style={pillBase}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 15%, transparent)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; }}
         >
           {copied ? `✓ ${t('dash.creative.copied')}` : t('dash.creative.copy_prompt')}
@@ -160,7 +160,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
         <button
           onClick={handleDownload}
           style={pillBase}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 15%, transparent)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; }}
         >
           {t('dash.chat.download')}
@@ -169,7 +169,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
           <button
             onClick={() => onRegenerate(item)}
             style={pillBase}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 15%, transparent)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; }}
           >
             {t('dash.creative.regenerate')}
@@ -191,18 +191,18 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
           Visually subordinate to the main action row (slightly muted
           accent border) so users read primary actions first. */}
       {onSendTo && onSendTo.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid rgba(168,85,247,0.08)', paddingTop: 8 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid color-mix(in srgb, var(--accent) 8%, transparent)', paddingTop: 8 }}>
           {onSendTo.map(act => (
             <button
               key={act.label}
               onClick={() => act.action(item)}
               style={{
                 ...pillBase,
-                border: '1px solid rgba(168, 85, 247, 0.35)',
-                background: 'rgba(168, 85, 247, 0.08)',
+                border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)',
+                background: 'color-mix(in srgb, var(--accent) 8%, transparent)',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.22)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(168, 85, 247, 0.08)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 22%, transparent)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 8%, transparent)'; }}
             >
               → {act.label}
             </button>
@@ -292,7 +292,7 @@ export function CreativeGalleryStrip({ items, onRegenerate, onDelete, onSendTo, 
     return (
       <div style={{
         background: 'rgba(26, 16, 40, 0.6)',
-        border: '1px dashed rgba(168, 85, 247, 0.2)',
+        border: '1px dashed color-mix(in srgb, var(--accent) 20%, transparent)',
         borderRadius: 12,
         padding: '40px 20px',
         textAlign: 'center',

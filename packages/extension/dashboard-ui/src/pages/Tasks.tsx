@@ -139,6 +139,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
   // Date scope toggle. "selected" filters by the calendar pick (the
   // operator's primary intent when clicking a day); "all" shows every
   // task regardless of due_date so the page is still usable for
@@ -265,13 +266,33 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
         <div className="flex items-center gap-2.5">
           <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.tasks.title')}</h1>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowForm(!showForm); }}
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
-        >
-          <PlusIcon className="h-3.5 w-3.5" />
-          {t('dash.tasks.new_task')}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Clear all — wipes every task in storage, incl. archived / off-filter
+              ones that the list can't surface. Confirms first; it's irreversible. */}
+          {confirmClearAll ? (
+            <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5">
+              <span className="text-[11px] text-[var(--text-secondary)]">{tt('dash.tasks.clear_all_confirm', 'Delete all tasks?')}</span>
+              <button onClick={() => { post({ type: 'clear_all_tasks' }); setConfirmClearAll(false); }} className="text-[11px] font-semibold text-red-300 transition hover:text-red-200">{tt('dash.tasks.clear_all_yes', 'Delete all')}</button>
+              <button onClick={() => setConfirmClearAll(false)} className="text-[11px] text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">{tt('dash.tasks.clear_all_no', 'Cancel')}</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmClearAll(true)}
+              title={tt('dash.tasks.clear_all', 'Clear all tasks')}
+              className="flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20"
+            >
+              <TrashIcon className="h-3.5 w-3.5" />
+              {tt('dash.tasks.clear_all', 'Clear all')}
+            </button>
+          )}
+          <button
+            onClick={() => { resetForm(); setShowForm(!showForm); }}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+            {t('dash.tasks.new_task')}
+          </button>
+        </div>
       </div>
 
       {/* Date scope — shows the day picked on the sidebar mini-calendar
@@ -319,10 +340,10 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
         const pct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
         return (
-          <div className={`rounded-xl border p-4 ${allDone ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[#A855F7]/20 bg-[#A855F7]/5'}`}>
+          <div className={`rounded-xl border p-4 ${allDone ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[var(--accent)]/20 bg-[var(--accent)]/5'}`}>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-sm">{allDone ? '✅' : '⚡'}</span>
-              <h2 className={`text-sm font-semibold ${allDone ? 'text-emerald-400' : 'text-[#A855F7]'}`}>
+              <h2 className={`text-sm font-semibold ${allDone ? 'text-emerald-400' : 'text-[var(--accent)]'}`}>
                 {allDone ? t('dash.tasks.all_complete') : t('dash.tasks.ava_progress')}
               </h2>
               <span className="text-[10px] text-[var(--text-muted)]">
@@ -330,7 +351,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
               </span>
               <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-input)] overflow-hidden ml-2">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-500' : 'bg-[#A855F7]'}`}
+                  className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-500' : 'bg-[var(--accent)]'}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -342,7 +363,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
                 {active.map(task => (
                   <div key={task.id} className="flex items-center gap-2 text-xs">
                     <span className={`w-4 text-center ${
-                      task.status === 'in_progress' ? 'text-[#A855F7] animate-pulse' : 'text-[var(--text-muted)]'
+                      task.status === 'in_progress' ? 'text-[var(--accent)] animate-pulse' : 'text-[var(--text-muted)]'
                     }`}>
                       {task.status === 'in_progress' ? '⟳' : '○'}
                     </span>

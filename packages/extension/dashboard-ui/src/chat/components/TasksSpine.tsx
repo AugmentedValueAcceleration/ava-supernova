@@ -26,17 +26,17 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
   const circ = 2 * Math.PI * r;
   const pct = total > 0 ? done / total : 0;
   const allDone = total > 0 && done === total;
-  const color = allDone ? '#34d399' : '#A855F7';
+  const color = allDone ? '#34d399' : 'var(--accent)';
   return (
     <span className="relative flex items-center justify-center" style={{ width: 24, height: 24 }}>
       {!allDone && (
         <span
           className="absolute inline-flex rounded-full animate-ping opacity-60"
-          style={{ width: 22, height: 22, background: 'rgba(168,85,247,0.25)' }}
+          style={{ width: 22, height: 22, background: 'color-mix(in srgb, var(--accent) 25%, transparent)' }}
         />
       )}
       <svg width="24" height="24" viewBox="0 0 24 24" className="relative -rotate-90">
-        <circle cx="12" cy="12" r={r} fill="none" stroke="rgba(168,85,247,0.18)" strokeWidth="2.5" />
+        <circle cx="12" cy="12" r={r} fill="none" stroke="color-mix(in srgb, var(--accent) 18%, transparent)" strokeWidth="2.5" />
         <circle
           cx="12" cy="12" r={r} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round"
           strokeDasharray={`${pct * circ} ${circ}`}
@@ -62,7 +62,7 @@ export function TasksSpine({ activeCount, sessionTasks, onExpand }: TasksSpinePr
       style={{
         width: RAIL_WIDTH,
         borderLeft: '1px solid var(--border-card)',
-        background: 'radial-gradient(ellipse 120% 40% at 50% 0%, rgba(168, 85, 247, 0.08) 0%, transparent 70%), linear-gradient(180deg, rgba(26,16,40,0.9) 0%, rgba(20,13,34,0.95) 100%)',
+        background: 'radial-gradient(ellipse 120% 40% at 50% 0%, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 70%), linear-gradient(180deg, rgba(26,16,40,0.9) 0%, rgba(20,13,34,0.95) 100%)',
         backdropFilter: 'blur(12px)',
       }}
     >
@@ -76,8 +76,8 @@ export function TasksSpine({ activeCount, sessionTasks, onExpand }: TasksSpinePr
         style={{
           left: -12,
           background: 'var(--bg-page)',
-          border: '1px solid rgba(168, 85, 247, 0.35)',
-          color: '#A855F7',
+          border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)',
+          color: 'var(--accent)',
           boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
         }}
       >
@@ -98,7 +98,7 @@ export function TasksSpine({ activeCount, sessionTasks, onExpand }: TasksSpinePr
         ) : activeCount > 0 ? (
           <span
             className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold"
-            style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7' }}
+            style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)' }}
           >
             {activeCount > 99 ? '99+' : activeCount}
           </span>

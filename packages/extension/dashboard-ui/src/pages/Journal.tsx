@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { Skeleton } from '../components/Skeleton';
 import { Select } from '../components/Select';
+import { PlusIcon } from '../components/Icons';
 import { MiniDatePicker } from '../components/MiniDatePicker';
 import { post } from '../vscode';
 import { MarkdownRenderer } from '../chat/components/MarkdownRenderer';
@@ -135,19 +136,22 @@ export function Journal({ year, month, monthEntries, kinds, searchHits, yearSumm
         />
         <button
           onClick={() => setShowHeatmap((s) => !s)}
-          className="px-2.5 py-1 rounded-md text-[11px] border border-[var(--border-card)] cursor-pointer transition"
-          style={{ color: showHeatmap ? '#fff' : 'var(--text-muted)', background: showHeatmap ? 'rgba(168,85,247,0.15)' : 'transparent' }}
           title={t('dash.journal.year_view')}
+          className={`rounded-md px-2.5 py-1 text-[11px] font-medium border transition cursor-pointer ${
+            showHeatmap
+              ? 'border-[var(--accent)]/40 bg-[var(--accent)]/15 text-white'
+              : 'border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+          }`}
         >
           {t('dash.journal.year_view')}
         </button>
         <div className="flex-1" />
         <button
           onClick={startNew}
-          className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white border-none cursor-pointer transition"
-          style={{ background: '#A855F7' }}
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20 cursor-pointer"
         >
-          + {t('dash.journal.write_entry')}
+          <PlusIcon className="h-3.5 w-3.5" />
+          {t('dash.journal.write_entry')}
         </button>
       </div>
 
@@ -158,17 +162,17 @@ export function Journal({ year, month, monthEntries, kinds, searchHits, yearSumm
         </div>
       )}
 
-      {/* Month tabs */}
-      <div className="flex flex-wrap gap-1 mb-3">
+      {/* Month tabs — underline style, matching the Tasks view tabs */}
+      <div className="flex items-center gap-4 border-b border-[var(--border-card)] pb-px mb-3 overflow-x-auto">
         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
           <button
             key={m}
             onClick={() => onChangeMonth(year, m)}
-            className="px-3 py-1.5 rounded-md text-xs font-medium border-none cursor-pointer transition"
-            style={{
-              background: m === month ? '#A855F7' : 'var(--bg-input)',
-              color: m === month ? '#fff' : 'var(--text-muted)',
-            }}
+            className={`shrink-0 pb-2 text-xs font-medium transition cursor-pointer ${
+              m === month
+                ? 'border-b-2 border-[var(--accent)] text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
           >
             {monthName(year, m)}
           </button>
@@ -180,7 +184,7 @@ export function Journal({ year, month, monthEntries, kinds, searchHits, yearSumm
         <button
           onClick={() => setFilterKind(null)}
           className="px-2.5 py-1 rounded-full text-[11px] border cursor-pointer transition"
-          style={{ borderColor: filterKind === null ? '#A855F7' : 'var(--border-card)', color: filterKind === null ? '#fff' : 'var(--text-muted)', background: 'transparent' }}
+          style={{ borderColor: filterKind === null ? 'var(--accent)' : 'var(--border-card)', color: filterKind === null ? '#fff' : 'var(--text-muted)', background: 'transparent' }}
         >
           {t('dash.journal.all_kinds')}
         </button>
@@ -202,7 +206,7 @@ export function Journal({ year, month, monthEntries, kinds, searchHits, yearSumm
             key={a}
             onClick={() => setFilterAuthor(filterAuthor === a ? null : a)}
             className="px-2.5 py-1 rounded-full text-[11px] border cursor-pointer transition"
-            style={{ borderColor: filterAuthor === a ? '#A855F7' : 'var(--border-card)', color: filterAuthor === a ? '#fff' : 'var(--text-muted)', background: 'transparent' }}
+            style={{ borderColor: filterAuthor === a ? 'var(--accent)' : 'var(--border-card)', color: filterAuthor === a ? '#fff' : 'var(--text-muted)', background: 'transparent' }}
           >
             {t(key)}
           </button>
@@ -243,7 +247,7 @@ export function Journal({ year, month, monthEntries, kinds, searchHits, yearSumm
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1" style={{ background: `${k.color}22`, color: k.color }}>
                           <span className="w-1.5 h-1.5 rounded-full" style={{ background: k.color }} />{k.label}
                         </span>
-                        {e.author === 'ava' && <span className="text-[10px]" style={{ color: '#A855F7' }}>{t('dash.journal.ava_label')}</span>}
+                        {e.author === 'ava' && <span className="text-[10px]" style={{ color: 'var(--accent)' }}>{t('dash.journal.ava_label')}</span>}
                         {e.mood && <span className="w-2 h-2 rounded-full" style={{ background: MOOD_COLORS[e.mood] }} title={t(MOOD_LABEL_KEYS[e.mood])} />}
                       </span>
                       {e.title && <span className="block text-sm font-medium text-[var(--text-primary,#e5e5e5)] truncate">{e.title}</span>}
@@ -355,7 +359,7 @@ function KindManager({ kinds, onClose }: { kinds: DashboardJournalKind[]; onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="relative w-full max-w-md mx-4 rounded-2xl border border-[#A855F7]/20 bg-[var(--bg-card)] shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }} onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-md mx-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--bg-card)] shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <p className="text-sm font-semibold text-white">{t('dash.journal.manage_kinds')}</p>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-white hover:bg-white/10 border-none cursor-pointer transition">
@@ -399,7 +403,7 @@ function KindManager({ kinds, onClose }: { kinds: DashboardJournalKind[]; onClos
             <input type="checkbox" checked={tracksMood} onChange={(e) => setTracksMood(e.target.checked)} />
             {t('dash.journal.tracks_mood_hint')}
           </label>
-          <button onClick={add} disabled={!label.trim()} className="w-full px-4 py-2 rounded-lg text-xs font-semibold text-white border-none cursor-pointer transition disabled:opacity-40" style={{ background: '#A855F7' }}>
+          <button onClick={add} disabled={!label.trim()} className="w-full px-4 py-2 rounded-lg text-xs font-semibold text-white border-none cursor-pointer transition disabled:opacity-40" style={{ background: 'var(--accent)' }}>
             + {t('dash.journal.add_kind')}
           </button>
         </div>
@@ -429,7 +433,7 @@ function EntryViewer({ entry, kind, confirmDelete, onClose, onEdit, onAskDelete,
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: kind.color }} />{kind.label}
             </span>
             <span className="text-[11px] text-[var(--text-muted)]">{entry.date}</span>
-            {entry.author === 'ava' && <span className="text-[11px]" style={{ color: '#A855F7' }}>{t('dash.journal.ava_label')}</span>}
+            {entry.author === 'ava' && <span className="text-[11px]" style={{ color: 'var(--accent)' }}>{t('dash.journal.ava_label')}</span>}
             {entry.mood && <span className="text-[11px] px-2 py-0.5 rounded-full text-white" style={{ background: MOOD_COLORS[entry.mood] }}>{t(MOOD_LABEL_KEYS[entry.mood])}</span>}
           </div>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-white hover:bg-white/10 border-none cursor-pointer transition">
@@ -446,7 +450,7 @@ function EntryViewer({ entry, kind, confirmDelete, onClose, onEdit, onAskDelete,
           )}
         </div>
         <div className="flex gap-2 px-5 pb-5 pt-1">
-          {entry.author === 'user' && <button onClick={onEdit} className="px-4 py-2 rounded-lg text-xs font-semibold text-white border-none cursor-pointer" style={{ background: '#A855F7' }}>{t('dash.journal.edit_entry')}</button>}
+          {entry.author === 'user' && <button onClick={onEdit} className="px-4 py-2 rounded-lg text-xs font-semibold text-white border-none cursor-pointer" style={{ background: 'var(--accent)' }}>{t('dash.journal.edit_entry')}</button>}
           {confirmDelete ? (
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] text-red-400">{t('dash.journal.delete_confirm')}</span>
@@ -475,7 +479,7 @@ function EntryComposer({ draft, kinds, onChange, onSave, onCancel }: {
   const [showCal, setShowCal] = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onCancel}>
-      <div className="relative w-full max-w-xl mx-4 rounded-2xl border border-[#A855F7]/20 bg-[var(--bg-card)] shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }} onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-xl mx-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--bg-card)] shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <p className="text-sm font-semibold text-white">{draft.id ? t('dash.journal.edit_entry') : t('dash.journal.write_entry')}</p>
           <div className="relative">
@@ -531,7 +535,7 @@ function EntryComposer({ draft, kinds, onChange, onSave, onCancel }: {
             onChange={(e) => onChange({ ...draft, content: e.target.value })}
             placeholder={t('dash.journal.write')}
             className="w-full p-3 text-sm rounded-lg resize-none outline-none"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(168,85,247,0.15)', color: 'var(--text-primary, #e5e5e5)', height: '220px' }}
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--text-primary, #e5e5e5)', height: '220px' }}
             autoFocus
           />
           <input
@@ -546,7 +550,7 @@ function EntryComposer({ draft, kinds, onChange, onSave, onCancel }: {
         <div className="flex gap-2 px-5 pb-5">
           <button onClick={onSave} disabled={!draft.content.trim()}
             className="flex-1 px-5 py-2.5 rounded-lg text-xs font-semibold text-white border-none cursor-pointer transition disabled:opacity-40"
-            style={{ background: '#A855F7' }}>{t('dash.journal.save_entry')}</button>
+            style={{ background: 'var(--accent)' }}>{t('dash.journal.save_entry')}</button>
           <button onClick={onCancel} className="px-5 py-2.5 rounded-lg text-xs text-[var(--text-secondary)] bg-transparent border border-[var(--border-card)] cursor-pointer hover:bg-[var(--bg-input)] transition">{t('dash.journal.cancel')}</button>
         </div>
       </div>
@@ -602,7 +606,7 @@ function EmptyMonth({ onNew }: { onNew: () => void }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
       </svg>
       <p className="text-sm text-[var(--text-muted)] mb-4">{t('dash.journal.no_entries')}</p>
-      <button onClick={onNew} className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white border-none cursor-pointer transition" style={{ background: '#A855F7' }}>
+      <button onClick={onNew} className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white border-none cursor-pointer transition" style={{ background: 'var(--accent)' }}>
         + {t('dash.journal.write_entry')}
       </button>
     </div>

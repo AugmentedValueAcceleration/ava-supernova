@@ -49,9 +49,9 @@ const CONFIDENCE = {
 
 const STATUS_CONFIG = {
   pending_confirmation: {
-    color: 'var(--color-accent, #a855f7)',
-    bg: 'rgba(168,85,247,0.06)',
-    border: 'rgba(168,85,247,0.25)',
+    color: 'var(--color-accent, var(--accent))',
+    bg: 'color-mix(in srgb, var(--accent) 6%, transparent)',
+    border: 'color-mix(in srgb, var(--accent) 25%, transparent)',
     label: '',
     icon: '',
   },
@@ -98,7 +98,7 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
   if (!plan) {
     return (
       <div className="rounded-lg border text-xs overflow-hidden opacity-50"
-           style={{ borderColor: 'rgba(168,85,247,0.15)' }}>
+           style={{ borderColor: 'color-mix(in srgb, var(--accent) 15%, transparent)' }}>
         <div className="px-3 py-2">{t('plan.unavailable')}</div>
       </div>
     );
@@ -116,7 +116,7 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <button
         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left
-                   hover:bg-[rgba(168,85,247,0.04)]
+                   hover:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]
                    transition-colors border-none bg-transparent cursor-pointer
                    text-[var(--vscode-foreground)]"
         onClick={() => setExpanded(!expanded)}
@@ -171,12 +171,12 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                             ? 'rgba(76,175,80,0.15)'
                             : isFailed
                             ? 'rgba(244,67,54,0.15)'
-                            : 'rgba(168,85,247,0.12)',
+                            : 'color-mix(in srgb, var(--accent) 12%, transparent)',
                           color: isSuccess
                             ? '#4caf50'
                             : isFailed
                             ? '#f44336'
-                            : 'var(--color-accent, #a855f7)',
+                            : 'var(--color-accent, var(--accent))',
                         }}>
                     {isSuccess ? '\u2713' : i + 1}
                   </span>
@@ -189,8 +189,8 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                           <span key={fi}
                                 className="px-1.5 py-0.5 rounded text-[10px] font-mono"
                                 style={{
-                                  background: 'rgba(168,85,247,0.08)',
-                                  color: 'var(--color-accent, #a855f7)',
+                                  background: 'color-mix(in srgb, var(--accent) 8%, transparent)',
+                                  color: 'var(--color-accent, var(--accent))',
                                   opacity: 0.7,
                                 }}>
                             {shortenPath(f)}
@@ -227,19 +227,19 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                       className="w-full text-left px-3 py-2 rounded-lg border transition-all cursor-pointer
                                  bg-transparent text-[var(--vscode-foreground)]"
                       style={{
-                        borderColor: selected ? 'var(--color-accent, #a855f7)' : 'rgba(168,85,247,0.12)',
-                        background: selected ? 'rgba(168,85,247,0.06)' : 'transparent',
+                        borderColor: selected ? 'var(--color-accent, var(--accent))' : 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                        background: selected ? 'color-mix(in srgb, var(--accent) 6%, transparent)' : 'transparent',
                       }}
                       onClick={() => setSelectedAlt(selected ? null : alt.label)}
                     >
                       <div className="flex items-center gap-2">
                         <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
                               style={{
-                                borderColor: selected ? 'var(--color-accent, #a855f7)' : 'rgba(255,255,255,0.2)',
+                                borderColor: selected ? 'var(--color-accent, var(--accent))' : 'rgba(255,255,255,0.2)',
                               }}>
                           {selected && (
                             <span className="w-1.5 h-1.5 rounded-full"
-                                  style={{ background: 'var(--color-accent, #a855f7)' }} />
+                                  style={{ background: 'var(--color-accent, var(--accent))' }} />
                           )}
                         </span>
                         <span className="font-medium text-[12px]">{alt.label}</span>
@@ -260,7 +260,7 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                            border-none cursor-pointer transition-all
                            hover:opacity-90"
                 style={{
-                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
                   color: '#fff',
                 }}
                 onClick={() => onConfirmation(
@@ -278,7 +278,7 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                            text-[var(--vscode-foreground)] opacity-50 hover:opacity-80"
                 style={{
                   background: 'transparent',
-                  borderColor: 'rgba(168,85,247,0.15)',
+                  borderColor: 'color-mix(in srgb, var(--accent) 15%, transparent)',
                 }}
                 onClick={() => onConfirmation(toolCall.confirmationId!, false)}
               >

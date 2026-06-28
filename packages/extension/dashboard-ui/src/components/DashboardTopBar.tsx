@@ -69,12 +69,12 @@ export function DashboardTopBar({ account }: Props) {
 
   return (
     <div
-      className="flex items-center justify-end gap-3 border-b border-[rgba(168,85,247,0.10)] bg-gradient-to-r from-[#0f0f17] to-[#1a1625] px-6 py-2"
+      className="flex items-center justify-end gap-3 border-b border-[color-mix(in_srgb,var(--accent)_10%,transparent)] bg-gradient-to-r from-[#0f0f17] to-[#1a1625] px-6 py-2"
       style={{ minHeight: 40 }}
     >
       {tierLabel && (
         <span
-          className="rounded-full border border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.10)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--accent)]"
+          className="rounded-full border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--accent)]"
           title={t('dash.topbar.plan_title', { tier: tierLabel })}
         >
           {tierLabel}

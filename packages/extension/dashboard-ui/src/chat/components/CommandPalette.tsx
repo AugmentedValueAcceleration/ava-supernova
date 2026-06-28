@@ -114,8 +114,8 @@ export function CommandPalette({ query, activeIndex, onActiveIndexChange, onSele
         maxHeight: 320,
         overflowY: 'auto',
         background: 'var(--vscode-editor-background, #1e1e1e)',
-        border: '1.5px solid rgba(168, 85, 247, 0.25)',
-        boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4), 0 0 12px rgba(168, 85, 247, 0.1)',
+        border: '1.5px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+        boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4), 0 0 12px color-mix(in srgb, var(--accent) 10%, transparent)',
         animation: 'vault-slide-up 0.18s ease-out',
       }}
       role="listbox"
@@ -130,7 +130,7 @@ export function CommandPalette({ query, activeIndex, onActiveIndexChange, onSele
           <div key={group.sectionKey}>
             <div
               className="px-3 pt-2.5 pb-1 text-[9px] font-bold uppercase tracking-wider"
-              style={{ color: 'rgba(168, 85, 247, 0.7)' }}
+              style={{ color: 'color-mix(in srgb, var(--accent) 70%, transparent)' }}
             >
               {t(group.sectionKey)}
             </div>
@@ -146,7 +146,7 @@ export function CommandPalette({ query, activeIndex, onActiveIndexChange, onSele
                   className="w-full text-left px-4 py-2 text-xs font-medium cursor-pointer
                              border-none transition-colors duration-100"
                   style={{
-                    background: isActive ? 'rgba(168, 85, 247, 0.18)' : 'transparent',
+                    background: isActive ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent',
                     color: isActive ? '#fff' : 'var(--vscode-foreground)',
                   }}
                   role="option"

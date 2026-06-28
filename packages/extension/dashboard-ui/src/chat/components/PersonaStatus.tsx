@@ -77,7 +77,7 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vscode-panel-border)]">
         <div className="flex items-center gap-2">
           {active ? (
-            <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--ava-purple, #a855f7)' }} />
+            <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--ava-purple, var(--accent))' }} />
           ) : (
             <span className="inline-block w-2 h-2 rounded-full bg-[var(--vscode-terminal-ansiGreen)]" />
           )}
@@ -96,7 +96,7 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
           className="h-full transition-all duration-500 ease-out"
           style={{
             width: `${totalExpected > 0 ? (completedCount / totalExpected) * 100 : 0}%`,
-            backgroundColor: 'var(--ava-purple, #a855f7)',
+            backgroundColor: 'var(--ava-purple, var(--accent))',
           }}
         />
       </div>
@@ -132,7 +132,7 @@ function PersonaRow({ persona }: { persona: PersonaInfo }) {
 
   return (
     <div className={`rounded-md px-2 py-1.5 transition-all ${
-      isActive ? 'bg-[var(--ava-purple,#a855f7)]/10 border border-[var(--ava-purple,#a855f7)]/20' :
+      isActive ? 'bg-[var(--ava-purple,var(--accent))]/10 border border-[var(--ava-purple,var(--accent))]/20' :
       isComplete ? 'bg-[var(--vscode-terminal-ansiGreen)]/5' :
       isError ? 'bg-[var(--vscode-errorForeground)]/5' : ''
     }`}>
@@ -140,7 +140,7 @@ function PersonaRow({ persona }: { persona: PersonaInfo }) {
       <div className="flex items-center gap-2">
         <span className="w-4 text-center text-sm">{icon}</span>
         <span className={`font-semibold ${
-          isActive ? 'text-[var(--ava-purple,#a855f7)]' :
+          isActive ? 'text-[var(--ava-purple,var(--accent))]' :
           isComplete ? 'text-[var(--vscode-terminal-ansiGreen)]' :
           isError ? 'text-[var(--vscode-errorForeground)]' :
           'text-[var(--vscode-foreground)]'
@@ -170,7 +170,7 @@ function PersonaRow({ persona }: { persona: PersonaInfo }) {
                 key={i}
                 title={tool.name}
                 className={`inline-block w-1.5 h-1.5 rounded-full ${
-                  !tool.done ? 'animate-pulse bg-[var(--ava-purple,#a855f7)]' :
+                  !tool.done ? 'animate-pulse bg-[var(--ava-purple,var(--accent))]' :
                   tool.success ? 'bg-[var(--vscode-terminal-ansiGreen)]' :
                   'bg-[var(--vscode-errorForeground)]'
                 }`}
@@ -188,7 +188,7 @@ function PersonaRow({ persona }: { persona: PersonaInfo }) {
               key={i}
               className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono ${
                 !tool.done
-                  ? 'bg-[var(--ava-purple,#a855f7)]/15 text-[var(--ava-purple,#a855f7)]'
+                  ? 'bg-[var(--ava-purple,var(--accent))]/15 text-[var(--ava-purple,var(--accent))]'
                   : tool.success
                   ? 'bg-[var(--vscode-terminal-ansiGreen)]/10 text-[var(--vscode-terminal-ansiGreen)]'
                   : 'bg-[var(--vscode-errorForeground)]/10 text-[var(--vscode-errorForeground)]'

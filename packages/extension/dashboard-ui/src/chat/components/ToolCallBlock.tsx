@@ -50,7 +50,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
         style={{
           borderColor: isFailed
             ? 'var(--vscode-inputValidation-errorBorder, rgba(248, 81, 73, 0.4))'
-            : 'var(--vscode-panel-border, rgba(168, 85, 247, 0.15))',
+            : 'var(--vscode-panel-border, color-mix(in srgb, var(--accent) 15%, transparent))',
           backgroundColor: 'var(--vscode-editor-background, rgba(30, 30, 30, 0.4))',
         }}
       >
@@ -134,7 +134,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
         {expanded && !isPending && (
           <div
             className="border-t px-0 py-0"
-            style={{ borderColor: 'var(--vscode-panel-border, rgba(168, 85, 247, 0.15))' }}
+            style={{ borderColor: 'var(--vscode-panel-border, color-mix(in srgb, var(--accent) 15%, transparent))' }}
           >
             {diffStats ? (
               <DiffView

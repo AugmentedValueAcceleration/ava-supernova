@@ -205,8 +205,8 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
   if (!isOpen) return null;
 
   const tabBtn = (which: 'export' | 'import') => ({
-    background: tab === which ? 'rgba(168,85,247,0.15)' : 'transparent',
-    color: tab === which ? '#a855f7' : 'var(--text-muted)',
+    background: tab === which ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent',
+    color: tab === which ? 'var(--accent)' : 'var(--text-muted)',
     border: 'none', borderRadius: 6, padding: '6px 16px',
     fontSize: 12, fontWeight: 600 as const, cursor: 'pointer' as const,
   });
@@ -217,12 +217,12 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
     <div ref={panelRef} className="fixed z-[9999] rounded-xl border"
       style={{
         top: 80, left: 60, width: 340, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto',
-        background: '#1e1e2e', borderColor: 'rgba(168,85,247,0.2)',
+        background: '#1e1e2e', borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
         boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(168,85,247,0.1)' }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
         <span className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.portability.title')}</span>
         <div className="flex gap-1">
           <button onClick={() => setTab('export')} style={tabBtn('export')}>{t('dash.portability.export')}</button>
@@ -239,7 +239,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
           <button
             onClick={() => { setPassInput(''); setPassModal({ mode: 'export' }); }}
             className="mb-2 w-full rounded-lg border px-3 py-2.5 text-left transition hover:bg-[var(--accent)]/10"
-            style={{ borderColor: 'rgba(168,85,247,0.35)', background: 'rgba(168,85,247,0.06)' }}
+            style={{ borderColor: 'color-mix(in srgb, var(--accent) 35%, transparent)', background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}
           >
             <div className="flex items-center gap-2">
               <span className="text-base">{'\u{1F512}'}</span>
@@ -299,7 +299,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
           </div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] uppercase tracking-wider opacity-40">{t('dash.portability.select_data')}</span>
-            <button onClick={selectAllExport} className="text-[10px] bg-transparent border-none cursor-pointer" style={{ color: '#a855f7' }}>
+            <button onClick={selectAllExport} className="text-[10px] bg-transparent border-none cursor-pointer" style={{ color: 'var(--accent)' }}>
               {t('dash.portability.select_all')}
             </button>
           </div>
@@ -318,7 +318,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
                 <button
                   onClick={(e) => { e.stopPropagation(); handleExportSingle(dt.id); }}
                   className="text-[10px] px-2 py-1 rounded bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 hover:bg-white/[0.06]"
-                  style={{ color: '#a855f7' }}
+                  style={{ color: 'var(--accent)' }}
                   title={t('dash.portability.export_one', { name: t(dt.nameKey) })}
                 >
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
@@ -328,8 +328,8 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
                 {/* Checkbox */}
                 <div className="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0"
                   style={{
-                    borderColor: selected ? '#a855f7' : 'rgba(108,112,134,0.3)',
-                    background: selected ? '#a855f7' : 'transparent',
+                    borderColor: selected ? 'var(--accent)' : 'rgba(108,112,134,0.3)',
+                    background: selected ? 'var(--accent)' : 'transparent',
                   }}
                 >
                   {selected && <svg width="10" height="10" viewBox="0 0 16 16" fill="white"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg>}
@@ -342,7 +342,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
               onClick={handleExport}
               disabled={!!exporting}
               className="w-full mt-3 py-2 rounded-lg text-xs font-medium text-white border-none cursor-pointer"
-              style={{ background: exporting ? '#6c7086' : 'linear-gradient(135deg, #a855f7, #7c3aed)' }}
+              style={{ background: exporting ? '#6c7086' : 'linear-gradient(135deg, var(--accent), #7c3aed)' }}
             >
               {exporting ? t('dash.portability.exporting') : t('dash.portability.export_n_selected', { n: exportSelected.size })}
             </button>
@@ -359,10 +359,10 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
               // VS Code webview can't use native file input — route through host
               post({ type: 'import_pick_files' } as any);
             }}
-            className="flex flex-col items-center justify-center gap-2 py-6 rounded-lg cursor-pointer hover:bg-[rgba(168,85,247,0.06)] transition"
-            style={{ border: '2px dashed rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.03)' }}
+            className="flex flex-col items-center justify-center gap-2 py-6 rounded-lg cursor-pointer hover:bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] transition"
+            style={{ border: '2px dashed color-mix(in srgb, var(--accent) 20%, transparent)', background: 'color-mix(in srgb, var(--accent) 3%, transparent)' }}
           >
-            <svg width="24" height="24" viewBox="0 0 16 16" fill="#a855f7" opacity={0.4}>
+            <svg width="24" height="24" viewBox="0 0 16 16" fill="var(--accent)" opacity={0.4}>
               <path d="M8 1L4.146 4.854l.708.708L7.5 2.914V11h1V2.914l2.646 2.648.708-.708L8 1zM2 14h12v1H2v-1z"/>
             </svg>
             <span className="text-xs opacity-40">{t('dash.portability.click_select')}</span>
@@ -374,7 +374,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
             <div className="mt-3 space-y-1">
               <span className="text-[10px] uppercase tracking-wider opacity-40">{t('dash.portability.detected_files')}</span>
               {importFiles.map((file, i) => (
-                <div key={i} className="flex items-center gap-2 px-2 py-2 rounded-lg" style={{ background: 'rgba(168,85,247,0.05)' }}>
+                <div key={i} className="flex items-center gap-2 px-2 py-2 rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 5%, transparent)' }}>
                   <span className="text-sm">{dataTypeIcon(file.dataType)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium truncate" style={{ color: file.dataType !== 'unknown' ? '#cdd6f4' : '#ef4444' }}>
@@ -391,7 +391,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
                 onClick={handleImportAll}
                 disabled={importing || importFiles.every(f => f.dataType === 'unknown')}
                 className="w-full mt-2 py-2 rounded-lg text-xs font-medium text-white border-none cursor-pointer"
-                style={{ background: importing ? '#6c7086' : 'linear-gradient(135deg, #a855f7, #7c3aed)' }}
+                style={{ background: importing ? '#6c7086' : 'linear-gradient(135deg, var(--accent), #7c3aed)' }}
               >
                 {importing ? t('dash.portability.importing') : t('dash.portability.import_n_files', { n: importFiles.filter(f => f.dataType !== 'unknown').length })}
               </button>
@@ -409,13 +409,13 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
 
       {/* Status banner (backup saved / restored) */}
       {statusMsg && (
-        <div className="mx-3 mb-2 px-3 py-2 rounded-lg text-[11px]" style={{ background: 'rgba(168,85,247,0.1)', color: '#cdd6f4' }}>
+        <div className="mx-3 mb-2 px-3 py-2 rounded-lg text-[11px]" style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)', color: '#cdd6f4' }}>
           {statusMsg}
         </div>
       )}
 
       {/* Footer */}
-      <div className="px-4 py-2 text-[10px] opacity-30 border-t" style={{ borderColor: 'rgba(168,85,247,0.08)' }}>
+      <div className="px-4 py-2 text-[10px] opacity-30 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
         {t('dash.portability.footer')}
       </div>
 
@@ -424,7 +424,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
         <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', padding: 16 }}
           onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) { setPassModal(null); setPassInput(''); } }}
         >
-          <div className="rounded-xl border p-4" style={{ width: 320, background: '#1e1e2e', borderColor: 'rgba(168,85,247,0.3)' }}>
+          <div className="rounded-xl border p-4" style={{ width: 320, background: '#1e1e2e', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }}>
             <div className="text-xs font-semibold mb-1" style={{ color: '#cdd6f4' }}>
               {passModal.mode === 'export' ? t('dash.portability.pass_set') : t('dash.portability.pass_enter')}
             </div>
@@ -437,7 +437,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
               onKeyDown={(e) => { if (e.key === 'Enter' && passInput && !busy) confirmPass(); }}
               placeholder={t('dash.portability.passphrase')}
               className="w-full mb-3 px-2 py-1.5 rounded text-xs"
-              style={{ background: '#11111b', color: '#cdd6f4', border: '1px solid rgba(168,85,247,0.2)', outline: 'none' }}
+              style={{ background: '#11111b', color: '#cdd6f4', border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)', outline: 'none' }}
             />
             <div className="flex gap-2">
               <button onClick={() => { setPassModal(null); setPassInput(''); }} disabled={busy}
@@ -447,7 +447,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
               </button>
               <button onClick={confirmPass} disabled={!passInput || busy}
                 className="flex-1 py-1.5 rounded text-xs text-white border-none cursor-pointer"
-                style={{ background: (!passInput || busy) ? '#6c7086' : 'linear-gradient(135deg, #a855f7, #7c3aed)' }}>
+                style={{ background: (!passInput || busy) ? '#6c7086' : 'linear-gradient(135deg, var(--accent), #7c3aed)' }}>
                 {busy ? t('dash.portability.working') : passModal.mode === 'export' ? t('dash.portability.create_backup') : t('dash.portability.restore')}
               </button>
             </div>

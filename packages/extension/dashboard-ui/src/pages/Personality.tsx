@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
+import { btnPrimary } from '../components/ui';
 import type { PersonalityData } from '../types/messages';
 
 interface Props {
@@ -119,7 +120,7 @@ export function Personality({ personality, avatarDataUrl, account }: Props) {
           <div
             className="h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-[var(--border)] flex items-center justify-center text-lg font-light"
             style={{
-              background: avatarDataUrl ? `url(${avatarDataUrl}) center/cover no-repeat` : 'rgba(168,85,247,0.15)',
+              background: avatarDataUrl ? `url(${avatarDataUrl}) center/cover no-repeat` : 'color-mix(in srgb, var(--accent) 15%, transparent)',
               color: 'var(--accent)',
             }}
           >
@@ -131,7 +132,7 @@ export function Personality({ personality, avatarDataUrl, account }: Props) {
               <button
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarUploading}
-                className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[11px] font-medium text-white transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                className={`${btnPrimary} disabled:opacity-50`}
               >
                 {avatarUploading ? t('dash.journal.saving') : avatarDataUrl ? t('dash.settings.change_avatar') : t('dash.settings.upload_avatar')}
               </button>
@@ -226,7 +227,7 @@ export function Personality({ personality, avatarDataUrl, account }: Props) {
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          className="rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 cursor-pointer"
+          className={btnPrimary}
         >
           {saved ? t('dash.personality.saved') : t('dash.personality.save')}
         </button>
@@ -270,7 +271,7 @@ function OptionCard({
       onClick={onClick}
       className={`group relative flex flex-col items-start rounded-xl border p-4 text-left transition cursor-pointer ${
         selected
-          ? 'border-[var(--accent)] bg-[var(--accent)]/10 shadow-[0_0_16px_rgba(168,85,247,0.2)]'
+          ? 'border-[var(--accent)] bg-[var(--accent)]/10 shadow-[0_0_16px_color-mix(in_srgb,var(--accent)_20%,transparent)]'
           : 'border-[var(--border)] bg-[var(--bg-input)] hover:border-[var(--text-muted)]'
       }`}
     >

@@ -384,31 +384,45 @@ export class TaskManager {
     return [...this.sessionTasks];
   }
 
-  /** Flush session tasks to the project store (persists them). */
+  /**
+   * No-op by design. Session tasks (Ava's todo_write working notes) are
+   * EPHEMERAL — they live in memory and surface only in the live "Ava's
+   * Progress" band. They are deliberately NOT persisted into the user's task
+   * store: flushing them polluted real task lists with dozens of stale `ava`
+   * todos that couldn't be cleared. The method is kept (callers across the
+   * extension, IDE, CLI and auto-executor invoke it) but does nothing.
+   */
   async flushSessionTasks(): Promise<void> {
-    if (this.sessionTasks.length === 0) return;
-
-    const store = await this.loadProjectStore() ?? await this.ensureProjectStore();
-
-    for (const task of this.sessionTasks) {
-      const existing = store.entries.find(e => e.id === task.id);
-      if (existing) {
-        existing.status = task.status;
-        existing.updatedAt = task.updatedAt;
-        existing.completedAt = task.completedAt;
-      } else {
-        store.entries.push({ ...task });
-      }
-    }
-
-    store.lastModified = new Date().toISOString();
-    this.projectStore = store;
-    if (this.projectDir) await this.persistStore(this.projectDir, store);
+    /* intentionally empty — session todos never persist */
   }
 
   /** Clear session tasks from memory. */
   clearSessionTasks(): void {
     this.sessionTasks = [];
+  }
+
+  /**
+   * Hard-wipe EVERY stored task from both the global and project stores
+   * (active, done, archived alike) plus the in-memory session tasks. Empties
+   * the entry arrays directly — no per-id matching — so it clears reliably even
+   * for entries the per-id delete can't resolve (e.g. flushed `session-*` todos).
+   */
+  async clearAllStored(): Promise<void> {
+    const globalStore = await this.loadGlobalStore();
+    globalStore.entries = [];
+    globalStore.lastModified = new Date().toISOString();
+    this.globalStore = globalStore;
+    await this.persistStore(this.globalDir, globalStore);
+
+    if (this.projectDir) {
+      const projectStore = (await this.loadProjectStore()) ?? (await this.ensureProjectStore());
+      projectStore.entries = [];
+      projectStore.lastModified = new Date().toISOString();
+      this.projectStore = projectStore;
+      await this.persistStore(this.projectDir, projectStore);
+    }
+
+    this.clearSessionTasks();
   }
 
   // ── Recurrence ─────────────────────────────────────────────────────────────

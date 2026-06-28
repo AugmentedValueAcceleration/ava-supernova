@@ -1026,7 +1026,7 @@ function PermissionCard({
       onClick={onClick}
       className={`rounded-lg border p-3 text-left transition ${
         selected
-          ? 'border-purple-500/60 bg-purple-500/10 shadow-[0_0_12px_rgba(168,85,247,0.15)]'
+          ? 'border-purple-500/60 bg-purple-500/10 shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_15%,transparent)]'
           : 'border-[var(--border-card)] bg-[var(--bg-card)] hover:border-[var(--border-input)]'
       }`}
     >

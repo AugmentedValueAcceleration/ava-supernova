@@ -433,13 +433,13 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
         className="rounded-xl overflow-visible relative transition-all duration-200 outline-none focus-within:outline-none"
         style={{
           border: isDragOver
-            ? '1.5px dashed #A855F7'
+            ? '1.5px dashed var(--accent)'
             : isFocused
-              ? '1.5px solid #A855F7'
-              : '1.5px solid rgba(168, 85, 247, 0.15)',
+              ? '1.5px solid var(--accent)'
+              : '1.5px solid color-mix(in srgb, var(--accent) 15%, transparent)',
           background: 'rgba(0, 0, 0, 0.35)',
           boxShadow: isFocused
-            ? '0 0 12px rgba(168, 85, 247, 0.2), 0 0 0 1px rgba(168, 85, 247, 0.1)'
+            ? '0 0 12px color-mix(in srgb, var(--accent) 20%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent)'
             : '0 1px 3px rgba(0, 0, 0, 0.2)',
         }}
         onDragOver={handleDragOver}
@@ -508,7 +508,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               style={{
                 flexShrink: 0, alignSelf: 'center',
                 padding: '5px 10px', borderRadius: 8,
-                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
                 color: '#fff', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
               }}
             >
@@ -522,7 +522,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               className="flex items-center gap-1 cursor-pointer transition-all duration-200"
               style={{
                 padding: '5px 10px', borderRadius: 8, border: 'none',
-                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
                 color: '#fff', fontSize: 11, fontWeight: 600,
                 whiteSpace: 'nowrap',
               }}
@@ -540,7 +540,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
             {/* Dropdown menu */}
             {modesExpanded && (
               <div
-                className="absolute left-0 rounded-lg border border-[rgba(168,85,247,0.2)] p-1 min-w-[200px] shadow-xl"
+                className="absolute left-0 rounded-lg border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] p-1 min-w-[200px] shadow-xl"
                 style={{
                   background: 'var(--vscode-dropdown-background, var(--vscode-editor-background))',
                   bottom: '100%',
@@ -559,8 +559,8 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                     className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-xs font-medium
                                 cursor-pointer transition-all duration-150 border-none
                       ${mode === m.id
-                        ? 'text-white bg-[rgba(168,85,247,0.2)]'
-                        : 'text-[var(--vscode-foreground)] opacity-70 hover:opacity-100 hover:bg-[rgba(168,85,247,0.1)]'
+                        ? 'text-white bg-[color-mix(in_srgb,var(--accent)_20%,transparent)]'
+                        : 'text-[var(--vscode-foreground)] opacity-70 hover:opacity-100 hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]'
                       }`}
                   >
                     <span className="flex items-center gap-2">
@@ -621,9 +621,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                          text-[var(--vscode-foreground)] opacity-50 hover:opacity-90
                          disabled:opacity-20 disabled:cursor-not-allowed
                          transition-all duration-200
-                         border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)]
-                         hover:bg-[rgba(168,85,247,0.1)]"
-              style={{ background: 'rgba(168, 85, 247, 0.05)' }}
+                         border border-[color-mix(in_srgb,var(--accent)_15%,transparent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]
+                         hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
+              style={{ background: 'color-mix(in srgb, var(--accent) 5%, transparent)' }}
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a2.75 2.75 0 1 1-3.935-3.84l4.486-4.486a1.75 1.75 0 0 1 2.505 2.44L6.623 9.573a.75.75 0 0 1-1.08-1.04l4.473-4.563z" />
@@ -640,14 +640,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               className={`relative flex items-center justify-center w-9 h-9 rounded-lg
                          cursor-pointer transition-all duration-200
                          ${paletteOpen
-                           ? 'text-white border border-[rgba(168,85,247,0.5)]'
-                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)] hover:bg-[rgba(168,85,247,0.1)]'
+                           ? 'text-white border border-[color-mix(in_srgb,var(--accent)_50%,transparent)]'
+                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[color-mix(in_srgb,var(--accent)_15%,transparent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]'
                          }
                          disabled:opacity-20 disabled:cursor-not-allowed`}
               style={paletteOpen ? {
-                background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
-                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.35)',
-              } : { background: 'rgba(168, 85, 247, 0.05)' }}
+                background: 'linear-gradient(135deg, var(--accent), #7C3AED)',
+                boxShadow: '0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)',
+              } : { background: 'color-mix(in srgb, var(--accent) 5%, transparent)' }}
             >
               <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'monospace', lineHeight: 1 }}>/</span>
             </button>
@@ -661,14 +661,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               className={`relative flex items-center justify-center w-9 h-9 rounded-lg
                          cursor-pointer transition-all duration-200
                          ${vaultOpen
-                           ? 'text-white border border-[rgba(168,85,247,0.5)]'
-                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)] hover:bg-[rgba(168,85,247,0.1)]'
+                           ? 'text-white border border-[color-mix(in_srgb,var(--accent)_50%,transparent)]'
+                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[color-mix(in_srgb,var(--accent)_15%,transparent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]'
                          }
                          disabled:opacity-20 disabled:cursor-not-allowed`}
               style={vaultOpen ? {
-                background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
-                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.35)',
-              } : { background: 'rgba(168, 85, 247, 0.05)' }}
+                background: 'linear-gradient(135deg, var(--accent), #7C3AED)',
+                boxShadow: '0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)',
+              } : { background: 'color-mix(in srgb, var(--accent) 5%, transparent)' }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -678,7 +678,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                 <span
                   className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[8px] font-bold
                              flex items-center justify-center text-white"
-                  style={{ background: '#A855F7' }}
+                  style={{ background: 'var(--accent)' }}
                 >
                   {secrets.length}
                 </span>
@@ -723,10 +723,10 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                 className="flex items-center justify-center w-9 h-9 rounded-lg
                            text-white
                            hover:opacity-90
-                           border border-[rgba(168,85,247,0.5)] cursor-pointer transition-all duration-200"
+                           border border-[color-mix(in_srgb,var(--accent)_50%,transparent)] cursor-pointer transition-all duration-200"
                 style={{
-                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                  boxShadow: '0 2px 8px rgba(168, 85, 247, 0.35), 0 0 12px rgba(168, 85, 247, 0.15)',
+                  background: 'linear-gradient(135deg, var(--accent), #7c3aed)',
+                  boxShadow: '0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 12px color-mix(in srgb, var(--accent) 15%, transparent)',
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -742,12 +742,12 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                 className={`flex items-center justify-center w-9 h-9 rounded-lg
                            border cursor-pointer transition-all duration-200
                   ${hasContent && !disabled
-                    ? 'text-white border-[rgba(168,85,247,0.5)]'
-                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-15 cursor-not-allowed border-[rgba(168,85,247,0.08)]'
+                    ? 'text-white border-[color-mix(in_srgb,var(--accent)_50%,transparent)]'
+                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-15 cursor-not-allowed border-[color-mix(in_srgb,var(--accent)_8%,transparent)]'
                   }`}
                 style={hasContent && !disabled ? {
-                  background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
-                  boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
+                  background: 'linear-gradient(135deg, var(--accent), #7C3AED)',
+                  boxShadow: '0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 12px color-mix(in srgb, var(--accent) 15%, transparent)',
                 } : undefined}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">

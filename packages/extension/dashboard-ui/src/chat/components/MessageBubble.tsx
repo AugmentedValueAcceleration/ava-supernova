@@ -309,7 +309,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
       <div style={{
         width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
         marginRight: 10, marginTop: 4,
-        background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+        background: 'linear-gradient(135deg, var(--accent), #6366f1)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
         fontSize: 12, fontWeight: 600, color: '#fff',
@@ -333,7 +333,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
 
       <div className="flex flex-col flex-1 min-w-0 gap-2 items-start">
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#a855f7' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>
             {t('dash.chat.ava') || 'Ava'}
           </span>
           <span style={{ fontSize: 10, color: '#45475a' }}>{headerTs}</span>
@@ -353,7 +353,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                   padding: '10px 16px',
                   borderRadius: '16px 16px 16px 4px',
                   background: '#181825',
-                  border: '1px solid rgba(168, 85, 247, 0.12)',
+                  border: '1px solid color-mix(in srgb, var(--accent) 12%, transparent)',
                   fontSize: 14, lineHeight: 1.65, color: '#cdd6f4',
                 }}
               >
@@ -365,9 +365,9 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                                  bg-transparent border-none cursor-pointer
                                  transition-all duration-150"
                       style={{
-                        color: secretsRevealed ? '#ef4444' : '#A855F7',
-                        background: secretsRevealed ? 'rgba(239, 68, 68, 0.08)' : 'rgba(168, 85, 247, 0.08)',
-                        border: `1px solid ${secretsRevealed ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)'}`,
+                        color: secretsRevealed ? '#ef4444' : 'var(--accent)',
+                        background: secretsRevealed ? 'rgba(239, 68, 68, 0.08)' : 'color-mix(in srgb, var(--accent) 8%, transparent)',
+                        border: `1px solid ${secretsRevealed ? 'rgba(239, 68, 68, 0.15)' : 'color-mix(in srgb, var(--accent) 15%, transparent)'}`,
                       }}
                       title={secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
                     >
@@ -409,7 +409,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                           {showStreamingCursor && (
                             <span
                               className="inline-block w-2 h-4 animate-pulse ml-0.5"
-                              style={{ backgroundColor: 'var(--color-accent, #a855f7)' }}
+                              style={{ backgroundColor: 'var(--color-accent, var(--accent))' }}
                             />
                           )}
                         </div>

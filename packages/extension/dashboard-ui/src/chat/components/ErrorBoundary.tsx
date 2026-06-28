@@ -39,9 +39,9 @@ export class ErrorBoundary extends Component<PropsWithChildren, ErrorBoundarySta
           <button
             onClick={this.handleReset}
             className="px-4 py-2 rounded-lg text-xs font-medium text-white cursor-pointer border-none transition"
-            style={{ background: '#A855F7' }}
+            style={{ background: 'var(--accent)' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#9333EA')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#A855F7')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--accent)')}
           >
             {t('error_boundary.reset')}
           </button>

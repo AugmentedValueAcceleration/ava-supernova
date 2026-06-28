@@ -1091,7 +1091,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
           <a
             href="#chat-input"
             className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-1 focus:left-1 focus:px-3 focus:py-1.5 focus:rounded-lg focus:text-xs focus:font-medium focus:text-white focus:no-underline"
-            style={{ background: '#A855F7' }}
+            style={{ background: 'var(--accent)' }}
           >
             Skip to chat input
           </a>
@@ -1138,8 +1138,8 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
               <style>{`
                 .ava-chat-spinner {
                   width: 32px; height: 32px; border-radius: 50%;
-                  border: 2.5px solid rgba(168, 85, 247, 0.18);
-                  border-top-color: #a855f7;
+                  border: 2.5px solid color-mix(in srgb, var(--accent) 18%, transparent);
+                  border-top-color: var(--accent);
                   animation: avaSpin 0.9s linear infinite;
                 }
                 @keyframes avaSpin { to { transform: rotate(360deg); } }
@@ -1174,12 +1174,12 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
           {/* Compression indicator */}
           {state.isCompressing && (
-            <div className="flex items-center gap-2 px-4 py-2 text-xs" style={{ background: 'rgba(168, 85, 247, 0.06)', borderTop: '1px solid rgba(168, 85, 247, 0.12)' }}>
-              <svg width="14" height="14" viewBox="0 0 16 16" className="animate-spin" style={{ color: '#a855f7' }}>
+            <div className="flex items-center gap-2 px-4 py-2 text-xs" style={{ background: 'color-mix(in srgb, var(--accent) 6%, transparent)', borderTop: '1px solid color-mix(in srgb, var(--accent) 12%, transparent)' }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" className="animate-spin" style={{ color: 'var(--accent)' }}>
                 <path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11z" opacity="0.2"/>
                 <path fill="currentColor" d="M8 1v1.5A5.5 5.5 0 0 1 13.5 8H15A7 7 0 0 0 8 1z"/>
               </svg>
-              <span style={{ color: '#a855f7' }}>{t('input.compressing') || 'Compressing context...'}</span>
+              <span style={{ color: 'var(--accent)' }}>{t('input.compressing') || 'Compressing context...'}</span>
               <span className="opacity-40">Ava is summarising older messages to free up space</span>
             </div>
           )}

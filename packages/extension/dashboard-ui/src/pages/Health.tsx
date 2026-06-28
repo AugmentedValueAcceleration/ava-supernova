@@ -1293,7 +1293,7 @@ export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
               {((v.diets && v.diets.length > 0) || (v.dietary_flags && v.dietary_flags.length > 0)) && (
                 <div className="mb-4 flex flex-wrap gap-1.5">
                   {v.diets?.map((d) => (
-                    <span key={`d-${d}`} className="rounded-full border border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.08)] px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[#c084fc]">{d}</span>
+                    <span key={`d-${d}`} className="rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/8 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[#c084fc]">{d}</span>
                   ))}
                   {v.dietary_flags?.map((f) => (
                     <span key={`f-${f}`} className="rounded-full border border-amber-400/30 bg-amber-400/5 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300">{f}</span>
@@ -1368,8 +1368,8 @@ function LoadingCard({ label }: { label: string }) {
       <style>{`
         .ava-health-spinner {
           width: 12px; height: 12px; border-radius: 50%;
-          border: 1.5px solid rgba(168, 85, 247, 0.25);
-          border-top-color: #a855f7;
+          border: 1.5px solid color-mix(in srgb, var(--accent) 25%, transparent);
+          border-top-color: var(--accent);
           animation: avaHealthSpin 0.85s linear infinite;
           display: inline-block;
         }
@@ -1457,7 +1457,7 @@ function SearchInput({
       {loading && (
         <span
           aria-hidden
-          className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-[1.5px] border-[rgba(168,85,247,0.25)] border-t-[var(--accent)]"
+          className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-[1.5px] border-[var(--accent)]/25 border-t-[var(--accent)]"
           style={{ animation: 'avaHealthSearchSpin 0.85s linear infinite' }}
         />
       )}

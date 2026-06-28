@@ -184,7 +184,7 @@ export function TaskSuggestCard({ toolCall, onConfirmation }: Props) {
 function Chip({ children }: { children: React.ReactNode }) {
   return (
     <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium text-[var(--text-secondary)]"
-      style={{ background: 'rgba(168,85,247,0.12)' }}>
+      style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
       {children}
     </span>
   );

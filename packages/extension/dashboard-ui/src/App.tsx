@@ -762,11 +762,11 @@ export function App() {
         break;
       // Task messages
       case 'tasks_loaded':
-        setTasks(prev => {
-          const cloudIds = new Set(msg.tasks.map((t: any) => t.id));
-          const localOnly = prev.filter(t => !cloudIds.has(t.id));
-          return [...msg.tasks, ...localOnly];
-        });
+        // The store is the source of truth — REPLACE, don't merge. The old
+        // merge kept any previous task whose id wasn't in the new set, so once
+        // the store was emptied the stale entries lived forever as ghosts that
+        // couldn't be deleted (not in the store) or cleared.
+        setTasks(msg.tasks);
         break;
       case 'session_tasks_updated':
         setSessionTasks(msg.tasks);
@@ -1248,9 +1248,11 @@ export function App() {
     if (page === 'learning') {
       post({ type: 'load_learning' });
     }
-    // Load tasks when navigating to tasks page
+    // Load tasks when navigating to tasks page. Always refresh from the store
+    // (the localStorage cache is only for instant paint) so a stale cached list
+    // gets corrected against the real store instead of persisting.
     if (page === 'tasks') {
-      if (tasks.length === 0) post({ type: 'load_tasks' });
+      post({ type: 'load_tasks' });
       post({ type: 'load_session_tasks' });
     }
     // Load journal when navigating to journal page

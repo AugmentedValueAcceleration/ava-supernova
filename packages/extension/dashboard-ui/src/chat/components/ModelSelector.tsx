@@ -70,7 +70,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
         <button
           onClick={onOpenDashboard}
           className="cursor-pointer underline bg-transparent border-none p-0 text-xs"
-          style={{ color: '#a855f7' }}
+          style={{ color: 'var(--accent)' }}
         >
           {t('model.open_settings')}
         </button>{' '}
@@ -98,7 +98,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
         style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
           background: 'rgba(49, 34, 68, 0.5)',
-          border: '1px solid rgba(168, 85, 247, 0.2)',
+          border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
           borderRadius: 8,
           color: '#cdd6f4',
           fontSize: 12, fontWeight: 500, cursor: 'pointer',
@@ -125,7 +125,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
           style={{
             position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 999,
             background: '#160f23',
-            border: '1px solid rgba(168, 85, 247, 0.25)',
+            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
             borderRadius: 10,
             padding: 6,
             minWidth: 240,
@@ -174,21 +174,21 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       width: '100%', padding: '8px 10px',
-                      background: active && !isPreview ? 'rgba(168,85,247,0.15)' : 'transparent',
+                      background: active && !isPreview ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent',
                       border: 'none', borderRadius: 6,
                       color: isPreview ? '#6c7086' : active ? '#e0b0ff' : '#cdd6f4',
                       fontSize: 12, cursor: isPreview ? 'default' : 'pointer',
                       textAlign: 'left',
                       opacity: isPreview ? 0.55 : 1,
                     }}
-                    onMouseEnter={(e) => { if (!isPreview && !active) e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+                    onMouseEnter={(e) => { if (!isPreview && !active) e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 8%, transparent)'; }}
                     onMouseLeave={(e) => { if (!isPreview && !active) e.currentTarget.style.background = 'transparent'; }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {active && !isPreview && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7' }} />}
+                      {active && !isPreview && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />}
                       {label}
                     </span>
-                    <span style={{ fontSize: 10, color: isPreview ? '#facc15' : '#a855f7' }}>{subtitle}</span>
+                    <span style={{ fontSize: 10, color: isPreview ? '#facc15' : 'var(--accent)' }}>{subtitle}</span>
                   </button>
                 );
               })}
@@ -212,18 +212,18 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       width: '100%', padding: '8px 10px',
-                      background: active && m.available ? 'rgba(168,85,247,0.15)' : 'transparent',
+                      background: active && m.available ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent',
                       border: 'none', borderRadius: 6,
                       color: !m.available ? '#6c7086' : active ? '#e0b0ff' : '#cdd6f4',
                       fontSize: 12, cursor: 'pointer',
                       textAlign: 'left',
                       opacity: m.available ? 1 : 0.45,
                     }}
-                    onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+                    onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 8%, transparent)'; }}
                     onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {active && m.available && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7' }} />}
+                      {active && m.available && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />}
                       <span style={{ fontWeight: active && m.available ? 600 : 400 }}>{m.name}</span>
                     </span>
                     {!m.available && (

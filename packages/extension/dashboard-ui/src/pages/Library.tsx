@@ -5,6 +5,7 @@ import type { LibraryImage, LibraryPath, LibraryPathDetail, LibraryPaper, Papers
 import { LearningLibrary } from './LearningLibrary';
 import { LibraryPapers } from './LibraryPapers';
 import { Skeleton } from '../components/Skeleton';
+import { tabBar, tab as tabClass } from '../components/ui';
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -251,9 +252,9 @@ export function Library({
         </p>
       </div>
 
-      {/* Top-level tabs — matches IDE LibraryPage tab style at DashboardPages.tsx:8257-8285.
-          No counts (IDE doesn't show them); underlined active state in lavender. */}
-      <div className="mb-6 flex gap-0.5 border-b border-[rgba(168,85,247,0.12)]">
+      {/* Top-level tabs — canonical Tasks tab language (underline active state,
+          accent tracks the theme). No counts (IDE doesn't show them). */}
+      <div className={`mb-6 ${tabBar}`}>
         {([
           { key: 'courses',   label: t('library.tab.courses') },
           { key: 'papers',    label: t('library.tab.papers') },
@@ -263,16 +264,7 @@ export function Library({
           <button
             key={tb.key}
             onClick={() => setTab(tb.key)}
-            className="px-4 py-2 text-xs transition"
-            style={{
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontWeight: tab === tb.key ? 600 : 500,
-              color: tab === tb.key ? '#c084fc' : '#6c7086',
-              borderBottom: `2px solid ${tab === tb.key ? '#a855f7' : 'transparent'}`,
-              marginBottom: -1,
-            }}
+            className={tabClass(tab === tb.key)}
           >
             {tb.label}
           </button>
@@ -348,8 +340,8 @@ export function Library({
               <style>{`
                 .ava-library-spinner {
                   width: 11px; height: 11px; border-radius: 50%;
-                  border: 1.5px solid rgba(168, 85, 247, 0.25);
-                  border-top-color: #a855f7;
+                  border: 1.5px solid color-mix(in srgb, var(--accent) 25%, transparent);
+                  border-top-color: var(--accent);
                   animation: avaLibSpin 0.85s linear infinite;
                   display: inline-block;
                 }

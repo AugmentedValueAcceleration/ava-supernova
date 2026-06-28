@@ -29,7 +29,7 @@ export function PurchaseCard({
   const isActive = state === 'active';
 
   const borderClass = popular
-    ? 'border-[var(--accent)]/40 shadow-[0_0_0_1px_rgba(168,85,247,0.2)_inset]'
+    ? 'border-[var(--accent)]/40 shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent)_20%,transparent)_inset]'
     : isActive
       ? 'border-emerald-500/30'
       : 'border-[var(--border-card)]';
@@ -63,16 +63,17 @@ export function PurchaseCard({
       </p>
       <p className="mt-0.5 text-[10px] text-[var(--text-muted)] tabular-nums">{effectiveRate}</p>
 
-      {/* CTA */}
+      {/* CTA — pinned to the card bottom (mt-auto) so every button aligns across
+          the row regardless of content height. One unified outlined-accent style
+          for all cards; popular is distinguished by its border + callout, not the
+          button. Mirrors the IDE IdePurchaseCard. */}
       <button
         onClick={isInteractive ? onClick : undefined}
         disabled={!isInteractive}
-        className={`mt-4 w-full rounded-lg py-2 text-[11px] font-medium transition ${
+        className={`mt-auto w-full rounded-lg py-2 text-[11px] font-semibold transition ${
           !isInteractive
             ? 'cursor-not-allowed border border-[var(--border-input)] bg-[var(--bg-input)] text-[var(--text-muted)]'
-            : popular
-              ? 'bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] text-white hover:opacity-90'
-              : 'border border-[var(--border-input)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-white'
+            : 'border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]'
         }`}
       >
         {ctaLabel}

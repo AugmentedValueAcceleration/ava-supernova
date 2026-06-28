@@ -201,7 +201,7 @@ export function NavSidebar({
           <button
             onClick={onToggleSidebar}
             title={t('dash.nav.expand_sidebar')}
-            className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] hover:text-white bg-transparent border-none cursor-pointer mb-1"
+            className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--text-muted)] hover:text-white bg-transparent border-none cursor-pointer mb-1"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
               <path d="M1 2h14v12H1V2zm1 1v10h4V3H2zm5 0v10h7V3H7z" />
@@ -264,7 +264,7 @@ export function NavSidebar({
       {/* Drag handle — on the edge facing the content */}
       <div
         onMouseDown={handleDragStart}
-        className="absolute top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-[rgba(168,85,247,0.3)] transition-colors"
+        className="absolute top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-[color-mix(in_srgb,var(--accent)_30%,transparent)] transition-colors"
         style={{ [sidebarSide === 'right' ? 'left' : 'right']: 0 }}
       />
       {/* Logo + action buttons */}
@@ -411,7 +411,7 @@ export function NavSidebar({
                       className="flex-1 rounded text-[11px] font-medium transition border-none cursor-pointer"
                       style={{
                         padding: '5px 0',
-                        background: active ? '#a855f7' : 'rgba(49, 34, 68, 0.5)',
+                        background: active ? 'var(--accent)' : 'rgba(49, 34, 68, 0.5)',
                         color: active ? '#fff' : '#6c7086',
                       }}
                     >
@@ -657,7 +657,7 @@ function TaskCalendar({
           const background = isSelected
             ? 'var(--accent)'
             : isToday
-              ? 'rgba(168,85,247,0.2)'
+              ? 'color-mix(in srgb, var(--accent) 20%, transparent)'
               : 'transparent';
           const color = isSelected
             ? '#fff'
@@ -675,7 +675,7 @@ function TaskCalendar({
                 color,
                 fontSize: 9,
                 fontWeight: isSelected || isToday ? 500 : 300,
-                outline: isToday && !isSelected ? '1px solid rgba(168,85,247,0.5)' : 'none',
+                outline: isToday && !isSelected ? '1px solid color-mix(in srgb, var(--accent) 50%, transparent)' : 'none',
                 outlineOffset: -1,
               }}
             >

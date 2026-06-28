@@ -170,7 +170,7 @@ export function HealthSubmissionModal({
       `}</style>
       <div
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)]"
+        className="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_color-mix(in_srgb,_var(--accent)_12%,_transparent)]"
         style={{ animation: 'avaSubModalCardIn 160ms ease-out' }}
       >
         {/* Close */}
@@ -286,14 +286,14 @@ function StepIndicator({ step, method }: { step: Step; method: Method | null }) 
       {steps.map((s, i) => {
         const isActive = i === currentIdx;
         const isDone = i < currentIdx;
-        const color = isActive ? '#c084fc' : isDone ? '#a855f7' : '#6c7086';
+        const color = isActive ? '#c084fc' : isDone ? 'var(--accent)' : '#6c7086';
         return (
           <div key={s.id} className="flex items-center flex-1 gap-2 min-w-0">
             <div
               className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium"
               style={{
-                background: isActive ? 'rgba(168,85,247,0.20)' : isDone ? 'rgba(168,85,247,0.10)' : 'transparent',
-                border: `1px solid ${isDone || isActive ? 'rgba(168,85,247,0.40)' : 'rgba(168,85,247,0.15)'}`,
+                background: isActive ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : isDone ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
+                border: `1px solid ${isDone || isActive ? 'color-mix(in srgb, var(--accent) 40%, transparent)' : 'color-mix(in srgb, var(--accent) 15%, transparent)'}`,
                 color,
               }}
             >
@@ -306,7 +306,7 @@ function StepIndicator({ step, method }: { step: Step; method: Method | null }) 
               {s.label}
             </span>
             {i < steps.length - 1 && (
-              <div className="flex-1 h-px" style={{ background: isDone ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.10)' }} />
+              <div className="flex-1 h-px" style={{ background: isDone ? 'color-mix(in srgb, var(--accent) 35%, transparent)' : 'color-mix(in srgb, var(--accent) 10%, transparent)' }} />
             )}
           </div>
         );
@@ -352,15 +352,15 @@ function SpinnerStyles() {
     <style>{`
       .ava-health-spin {
         width: 12px; height: 12px; border-radius: 50%;
-        border: 1.5px solid rgba(168, 85, 247, 0.25);
-        border-top-color: #a855f7;
+        border: 1.5px solid color-mix(in srgb, var(--accent) 25%, transparent);
+        border-top-color: var(--accent);
         animation: avaHealthSpinKeys 0.85s linear infinite;
         display: inline-block;
       }
       .ava-health-spin-lg {
         width: 36px; height: 36px; border-radius: 50%;
-        border: 2.5px solid rgba(168, 85, 247, 0.20);
-        border-top-color: #a855f7;
+        border: 2.5px solid color-mix(in srgb, var(--accent) 20%, transparent);
+        border-top-color: var(--accent);
         animation: avaHealthSpinKeys 1.1s linear infinite;
         display: inline-block;
       }
@@ -432,7 +432,7 @@ function KindCard({ label, detail, onClick }: { label: string; detail: string; o
   return (
     <button
       onClick={onClick}
-      className="group rounded-xl border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-5 text-left transition cursor-pointer hover:border-[rgba(168,85,247,0.45)] hover:bg-[rgba(168,85,247,0.08)]"
+      className="group rounded-xl border border-[var(--accent)]/18 bg-[var(--accent)]/4 p-5 text-left transition cursor-pointer hover:border-[var(--accent)]/45 hover:bg-[var(--accent)]/8"
     >
       <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)] mb-2">{label}</div>
       <div className="text-[12px] text-[var(--text-muted)] leading-relaxed">{detail}</div>
@@ -459,7 +459,7 @@ function MethodPicker({ kind, onPick, onBack }: { kind: Kind; onPick: (m: Method
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
         <button
           onClick={() => onPick('manual')}
-          className="group rounded-xl border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-5 text-left transition cursor-pointer hover:border-[rgba(168,85,247,0.45)] hover:bg-[rgba(168,85,247,0.08)]"
+          className="group rounded-xl border border-[var(--accent)]/18 bg-[var(--accent)]/4 p-5 text-left transition cursor-pointer hover:border-[var(--accent)]/45 hover:bg-[var(--accent)]/8"
         >
           <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)] mb-2">{t('health.submit.method_manual_kicker')}</div>
           <div className="text-[15px] font-light text-[var(--text-primary)] mb-1">{t('health.submit.method_manual_title')}</div>
@@ -469,7 +469,7 @@ function MethodPicker({ kind, onPick, onBack }: { kind: Kind; onPick: (m: Method
         </button>
         <button
           onClick={() => onPick('ava')}
-          className="group rounded-xl border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-5 text-left transition cursor-pointer hover:border-[rgba(168,85,247,0.45)] hover:bg-[rgba(168,85,247,0.08)]"
+          className="group rounded-xl border border-[var(--accent)]/18 bg-[var(--accent)]/4 p-5 text-left transition cursor-pointer hover:border-[var(--accent)]/45 hover:bg-[var(--accent)]/8"
         >
           <div className="flex items-baseline justify-between mb-2">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">{t('health.submit.method_ava_kicker')}</div>
@@ -555,7 +555,7 @@ function ExerciseIntake({
 
       {error && <InlineError message={error} />}
 
-      <div className="flex items-center justify-between pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2 gap-3">
+      <div className="flex items-center justify-between pt-4 border-t border-[var(--accent)]/10 mt-2 gap-3">
         <button
           onClick={() => onGenerate({ prompt: '', surprise: true })}
           className={btnGhostCls}
@@ -636,7 +636,7 @@ function RecipeIntake({
 
       {error && <InlineError message={error} />}
 
-      <div className="flex items-center justify-between pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2 gap-3">
+      <div className="flex items-center justify-between pt-4 border-t border-[var(--accent)]/10 mt-2 gap-3">
         <button
           onClick={() => onGenerate({ prompt: '', surprise: true })}
           className={btnGhostCls}
@@ -741,7 +741,7 @@ function ExerciseForm({
       <FormHeader title={fromAva ? t('health.submit.ex_review_title') : t('health.submit.ex_new_title')} onBack={onBack} />
 
       {fromAva && (
-        <div className="mb-5 rounded-md border border-[rgba(168,85,247,0.25)] bg-[rgba(168,85,247,0.07)] px-3 py-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
+        <div className="mb-5 rounded-md border border-[var(--accent)]/25 bg-[var(--accent)]/7 px-3 py-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
           {t('health.submit.ex_from_ava_note')}
         </div>
       )}
@@ -768,8 +768,8 @@ function ExerciseForm({
                 className="h-7 w-7 rounded-full transition cursor-pointer text-[12px]"
                 style={{
                   borderStyle: 'solid', borderWidth: 1,
-                  borderColor: n <= difficulty ? 'rgba(168,85,247,0.55)' : 'rgba(168,85,247,0.18)',
-                  background: n <= difficulty ? 'rgba(168,85,247,0.22)' : 'transparent',
+                  borderColor: n <= difficulty ? 'color-mix(in srgb, var(--accent) 55%, transparent)' : 'color-mix(in srgb, var(--accent) 18%, transparent)',
+                  background: n <= difficulty ? 'color-mix(in srgb, var(--accent) 22%, transparent)' : 'transparent',
                   color: n <= difficulty ? '#c084fc' : '#6c7086',
                 }}
               >{n}</button>
@@ -799,7 +799,7 @@ function ExerciseForm({
         </p>
         {steps.map((step, i) => (
           <div key={i} className="flex gap-2 mb-2 items-start">
-            <span className="mt-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[rgba(168,85,247,0.40)] text-[11px] text-[var(--accent)]">{i + 1}</span>
+            <span className="mt-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--accent)]/40 text-[11px] text-[var(--accent)]">{i + 1}</span>
             <input type="text" value={step} maxLength={400}
               onChange={e => { const next = [...steps]; next[i] = e.target.value; setSteps(next); }}
               placeholder={t('health.submit.step_action_ph')} className={`${inputCls} flex-1`} />
@@ -916,7 +916,7 @@ function RecipeForm({
       <FormHeader title={fromAva ? t('health.submit.rc_review_title') : t('health.submit.rc_new_title')} onBack={onBack} />
 
       {fromAva && (
-        <div className="mb-5 rounded-md border border-[rgba(168,85,247,0.25)] bg-[rgba(168,85,247,0.07)] px-3 py-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
+        <div className="mb-5 rounded-md border border-[var(--accent)]/25 bg-[var(--accent)]/7 px-3 py-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
           {t('health.submit.rc_from_ava_note')}
         </div>
       )}
@@ -1010,11 +1010,11 @@ function RecipeForm({
 
 // ── Shared form bits ──────────────────────────────────────────────────
 
-const inputCls = 'w-full rounded-md border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.05)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition';
+const inputCls = 'w-full rounded-md border border-[var(--accent)]/18 bg-[var(--accent)]/5 px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition';
 
 const btnPrimaryCls = 'rounded-md border border-[var(--accent)]/50 bg-[var(--accent)]/15 px-4 py-2 text-[12px] text-[var(--accent)] hover:bg-[var(--accent)]/25 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
 
-const btnGhostCls = 'rounded-md border border-[rgba(168,85,247,0.18)] bg-transparent px-4 py-2 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[rgba(168,85,247,0.35)] transition cursor-pointer';
+const btnGhostCls = 'rounded-md border border-[var(--accent)]/18 bg-transparent px-4 py-2 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/35 transition cursor-pointer';
 
 function FormHeader({ title, onBack }: { title: string; onBack: () => void }) {
   useLocale();
@@ -1062,11 +1062,11 @@ function DraftVersionPreview({ version }: { version: HealthRecipeVersionPayload 
   ].filter(Boolean).join(' · ');
 
   return (
-    <div className="rounded-lg border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-3">
+    <div className="rounded-lg border border-[var(--accent)]/18 bg-[var(--accent)]/4 p-3">
       <div className="flex items-baseline gap-2 mb-1.5">
         <span
           className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em]"
-          style={{ background: 'rgba(168,85,247,0.15)', color: levelColour }}
+          style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: levelColour }}
         >
           {version.level}
         </span>
@@ -1081,7 +1081,7 @@ function DraftVersionPreview({ version }: { version: HealthRecipeVersionPayload 
         <div className="flex flex-wrap gap-1 mb-2">
           {version.diet_slugs.map(d => (
             <span key={`d-${d}`} className="px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider"
-              style={{ background: 'rgba(168,85,247,0.12)', color: '#c084fc' }}>{d}</span>
+              style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: '#c084fc' }}>{d}</span>
           ))}
           {version.dietary_flag_slugs.map(f => (
             <span key={`f-${f}`} className="px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider"
@@ -1147,7 +1147,7 @@ function FormFooter({
 }: { disabled: boolean; loading: boolean; primaryLabel: string; onSubmit: () => void }) {
   useLocale();
   return (
-    <div className="flex justify-end pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2">
+    <div className="flex justify-end pt-4 border-t border-[var(--accent)]/10 mt-2">
       <button type="button" onClick={onSubmit} disabled={disabled} className={btnPrimaryCls}>
         {loading ? t('health.submit.submitting') : primaryLabel}
       </button>

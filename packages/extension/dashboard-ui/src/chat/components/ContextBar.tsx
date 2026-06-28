@@ -28,7 +28,7 @@ export function ContextBar({ contextUsage, isCompressing, isStreaming, onCompres
     ? '#ef4444'
     : isWarning
       ? '#eab308'
-      : 'var(--color-accent, #a855f7)';
+      : 'var(--color-accent, var(--accent))';
 
   const usedDisplay = hasUsage ? formatTokens(contextUsage!.used) : '—';
   const limitDisplay = hasUsage ? formatTokens(contextUsage!.limit) : '—';
@@ -43,7 +43,7 @@ export function ContextBar({ contextUsage, isCompressing, isStreaming, onCompres
     <div className="w-full select-none" style={{ lineHeight: 1 }}>
       <div
         className="relative w-full"
-        style={{ height: '2px', backgroundColor: 'rgba(168, 85, 247, 0.10)' }}
+        style={{ height: '2px', backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
       >
         <div
           className="absolute top-0 left-0 h-full transition-[width,background-color] duration-500 ease-out"
