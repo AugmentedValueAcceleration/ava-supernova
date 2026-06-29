@@ -93,6 +93,9 @@ import type {
 } from './dashboard-message-types.js';
 import * as healthStore from './health-file-store.js';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
+import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
+import { deriveProgression, type LearningStore } from '@ava/core/learning';
+import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { readLocalCreative, saveLocalCreative, deleteLocalCreative, type CreativeKind } from './creative-store.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
@@ -737,6 +740,33 @@ export class DashboardPanel {
       case 'delete_curriculum':
         await this.deleteCurriculum(msg.id);
         break;
+
+      case 'set_active_course':
+        await this.setActiveCourse(msg.id);
+        break;
+
+      case 'load_learning_profile':
+        await this.loadLearningProfile();
+        break;
+
+      case 'save_learning_profile':
+        await this.saveLearningProfile(msg.profile);
+        break;
+
+      case 'export_certificate':
+        await this.exportProgression('certificate', msg.certId);
+        break;
+
+      case 'export_cv':
+        await this.exportProgression('cv');
+        break;
+
+      case 'open_progression_folder': {
+        const dir = path.join(this.getUserDataDir(), 'progression');
+        try { await (await import('node:fs/promises')).mkdir(dir, { recursive: true }); } catch { /* ignore */ }
+        await vscode.env.openExternal(vscode.Uri.file(dir));
+        break;
+      }
 
       case 'learning_step_progress':
         await this.persistStepProgress(msg.curriculumId, msg.lessonId, msg.stepId, msg.status, msg.lastAttempt);
@@ -3300,6 +3330,17 @@ export class DashboardPanel {
     }
   }
 
+  /** Enforce single-active in a curriculums array: if more than one is 'active',
+   *  keep the most-recently-updated and pause the rest. Returns true if it changed
+   *  anything (so the caller can persist). */
+  private healSingleActive(curriculums: Array<{ id: string; status: string; updated_at?: string }>): boolean {
+    const actives = curriculums.filter((c) => c.status === 'active');
+    if (actives.length <= 1) return false;
+    const keep = actives.slice().sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))[0];
+    for (const c of actives) if (c.id !== keep.id) c.status = 'paused';
+    return true;
+  }
+
   private async loadLearning(): Promise<void> {
     try {
       const fs = await import('node:fs/promises');
@@ -3307,9 +3348,102 @@ export class DashboardPanel {
       const raw = await fs.readFile(learningPath, 'utf-8');
       const store = JSON.parse(raw);
       const curriculums = Array.isArray(store.curriculums) ? store.curriculums : [];
+      // Self-heal legacy stores that ended up with multiple actives.
+      if (this.healSingleActive(curriculums)) {
+        try { await fs.writeFile(learningPath, JSON.stringify(store, null, 2), 'utf-8'); } catch { /* best-effort */ }
+      }
       this.post({ type: 'learning_loaded', curriculums });
     } catch {
       this.post({ type: 'learning_loaded', curriculums: [] });
+    }
+  }
+
+  /** Read the LearningStore, derive the earned progression, merge with the
+   *  editable learner.json, and post the combined Progression payload. */
+  private async loadLearningProfile(): Promise<void> {
+    const dir = this.getUserDataDir();
+    let progression;
+    try {
+      const fs = await import('node:fs/promises');
+      const raw = await fs.readFile(path.join(dir, 'learning.json'), 'utf-8');
+      const store = JSON.parse(raw) as LearningStore;
+      if (!store.streaks) store.streaks = { current: 0, longest: 0, lastActiveDate: null };
+      if (!Array.isArray(store.curriculums)) store.curriculums = [];
+      progression = deriveProgression(store);
+    } catch {
+      // No learning yet — derive from an empty store so the page renders cleanly.
+      progression = deriveProgression({ curriculums: [], streaks: { current: 0, longest: 0, lastActiveDate: null } });
+    }
+    const profile = readLearnerProfile(dir);
+    this.post({ type: 'learning_profile_loaded', payload: { profile, progression } });
+  }
+
+  /** Persist the editable learner.json, then re-derive + re-post so the page
+   *  reflects edits (and any self→earned graduation) immediately. */
+  private async saveLearningProfile(profile: import('./dashboard-message-types.js').LearnerProfile): Promise<void> {
+    try {
+      await writeLearnerProfile(this.getUserDataDir(), profile);
+    } catch {
+      this.post({ type: 'error', message: 'Failed to save your profile.' });
+    }
+    await this.loadLearningProfile();
+  }
+
+  /** Read the LearningStore from disk with safe defaults. */
+  private async readLearningStore(): Promise<LearningStore> {
+    try {
+      const fs = await import('node:fs/promises');
+      const raw = await fs.readFile(path.join(this.getUserDataDir(), 'learning.json'), 'utf-8');
+      const store = JSON.parse(raw) as LearningStore;
+      if (!store.streaks) store.streaks = { current: 0, longest: 0, lastActiveDate: null };
+      if (!Array.isArray(store.curriculums)) store.curriculums = [];
+      return store;
+    } catch {
+      return { curriculums: [], streaks: { current: 0, longest: 0, lastActiveDate: null } };
+    }
+  }
+
+  /** Render a certificate or CV to a branded PDF, save it under the local
+   *  progression/ folder, and open it. Mirrors the Creative Studio save path. */
+  private async exportProgression(kind: 'certificate' | 'cv', certId?: string): Promise<void> {
+    try {
+      const dir0 = this.getUserDataDir();
+      const prog = deriveProgression(await this.readLearningStore());
+      const profile = readLearnerProfile(dir0);
+      const name = profile.identity.display_name || 'Learner';
+
+      let markdown: string;
+      let outDir: string;
+      let fileName: string;
+      if (kind === 'certificate') {
+        const cert = prog.certificates.find((c) => c.id === certId);
+        if (!cert) { this.post({ type: 'progression_export_done', kind, ok: false }); return; }
+        markdown = buildCertificateMarkdown(cert, name);
+        outDir = path.join(dir0, 'progression', 'certificates');
+        fileName = `certificate_${cert.subject.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${cert.hash}.pdf`;
+      } else {
+        const earnedNames = new Set(prog.skills.map((s) => s.name.toLowerCase()));
+        markdown = buildCvMarkdown({
+          name,
+          headline: profile.identity.headline,
+          bio: profile.identity.bio,
+          progression: prog,
+          selfSkills: profile.self.skills.filter((s) => !earnedNames.has(s.trim().toLowerCase())),
+          selfAchievements: profile.self.achievements.map((a) => a.title),
+        });
+        outDir = path.join(dir0, 'progression', 'cv');
+        fileName = 'learning_cv.pdf';
+      }
+
+      const pdf = await renderProgressionPdf(markdown);
+      const fs = await import('node:fs/promises');
+      await fs.mkdir(outDir, { recursive: true });
+      const file = path.join(outDir, fileName);
+      await fs.writeFile(file, pdf);
+      await vscode.env.openExternal(vscode.Uri.file(file));
+      this.post({ type: 'progression_export_done', kind, ok: true, path: file });
+    } catch {
+      this.post({ type: 'progression_export_done', kind, ok: false });
     }
   }
 
@@ -3327,6 +3461,29 @@ export class DashboardPanel {
     } catch {
       this.post({ type: 'error', message: 'Failed to delete curriculum.' });
     }
+  }
+
+  /** Make one course the single active one (others active→paused, progress kept).
+   *  Completed courses stay completed unless this IS the chosen course. Re-posts
+   *  learning_loaded + the progression profile so the UI + Ava's context update. */
+  private async setActiveCourse(id: string): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const learningPath = path.join(this.getUserDataDir(), 'learning.json');
+      const store = JSON.parse(await fs.readFile(learningPath, 'utf-8'));
+      const curriculums = Array.isArray(store.curriculums) ? store.curriculums : [];
+      const target = curriculums.find((c: { id: string }) => c.id === id);
+      if (!target) return;
+      for (const c of curriculums as Array<{ id: string; status: string }>) {
+        if (c.status === 'completed' && c.id !== id) continue;
+        c.status = c.id === id ? 'active' : 'paused';
+      }
+      await fs.writeFile(learningPath, JSON.stringify(store, null, 2), 'utf-8');
+      this.post({ type: 'learning_loaded', curriculums });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to set the active course.' });
+    }
+    await this.loadLearningProfile();
   }
 
   // ── Interactive lesson player → persist progress to the learning store ──

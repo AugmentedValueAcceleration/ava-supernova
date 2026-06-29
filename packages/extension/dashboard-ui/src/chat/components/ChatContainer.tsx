@@ -3,6 +3,7 @@ import type { UIMessage } from '../../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
+import { Icon } from '../../components/Icon';
 // ContextBar is rendered by Chat.tsx above the composer — not in here anymore
 import { t, useLocale } from '../../i18n';
 
@@ -43,7 +44,7 @@ interface ChatContainerProps {
   /** Conversation lane — 'health' swaps the empty-state greeting + starter
    *  chips for the Ava Health & Fitness room (plans/training/nutrition), and
    *  drops the mode-switch tip (the room is locked to health). */
-  lane?: 'main' | 'health';
+  lane?: 'main' | 'health' | 'learning';
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed
@@ -143,7 +144,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
  * Date is appended in conversational form ("Tuesday") rather than full
  * ISO so it reads like a human picking up a conversation.
  */
-function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' = 'main'): string {
+function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' = 'main'): string {
   const now = new Date();
   const h = now.getHours();
   const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -152,6 +153,10 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' = '
   // The Ava Health room has its own warm, health-scoped greeting — no code talk.
   if (lane === 'health') {
     return t('health.room.greeting', { name });
+  }
+  // The Learning room greets around what they want to learn — no code talk.
+  if (lane === 'learning') {
+    return t('learning.room.greeting', { name });
   }
 
   if (h >= 5 && h < 12) {
@@ -181,20 +186,29 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' = '
  * chips with prefix-coloured tokens so the modes are recognisable on
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
-function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' }) {
+function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' }) {
   useLocale();
   const isHealth = lane === 'health';
+  const isLearning = lane === 'learning';
   // Health room: plain-prompt chips (no mode prefix — the room is locked to
   // health). They prefill the composer so the user can edit before sending.
-  const healthChips: { label: string; prefix: string; prompt: string; color: string }[] = [
-    { label: t('health.room.starter.fitness'),  prefix: '🏋', prompt: t('health.room.starter.fitness_prompt'),  color: 'var(--accent)' },
-    { label: t('health.room.starter.meal'),     prefix: '🍳', prompt: t('health.room.starter.meal_prompt'),     color: '#f59e0b' },
-    { label: t('health.room.starter.combined'), prefix: '🔥', prompt: t('health.room.starter.combined_prompt'), color: '#34d399' },
-    { label: t('health.room.starter.injury'),   prefix: '🩹', prompt: t('health.room.starter.injury_prompt'),   color: '#60a5fa' },
-    { label: t('health.room.starter.nutrition'),prefix: '🥗', prompt: t('health.room.starter.nutrition_prompt'),color: '#94e2d5' },
-    { label: t('health.room.starter.exercise'), prefix: '💪', prompt: t('health.room.starter.exercise_prompt'), color: '#f38ba8' },
+  const healthChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: t('health.room.starter.fitness'),  prefix: <Icon.fitness size={14} />,   prompt: t('health.room.starter.fitness_prompt'),  color: 'var(--accent)' },
+    { label: t('health.room.starter.meal'),     prefix: <Icon.meal size={14} />,      prompt: t('health.room.starter.meal_prompt'),     color: '#f59e0b' },
+    { label: t('health.room.starter.combined'), prefix: <Icon.streak size={14} />,    prompt: t('health.room.starter.combined_prompt'), color: '#34d399' },
+    { label: t('health.room.starter.injury'),   prefix: <Icon.injury size={14} />,    prompt: t('health.room.starter.injury_prompt'),   color: '#60a5fa' },
+    { label: t('health.room.starter.nutrition'),prefix: <Icon.nutrition size={14} />, prompt: t('health.room.starter.nutrition_prompt'),color: '#94e2d5' },
+    { label: t('health.room.starter.exercise'), prefix: <Icon.run size={14} />,       prompt: t('health.room.starter.exercise_prompt'), color: '#f38ba8' },
   ];
-  const codeChips: { label: string; prefix: string; prompt: string; color: string }[] = [
+  // Learning room: plain-prompt chips (no mode prefix — the room is locked to
+  // Teach). They prefill the composer so the user can edit before sending.
+  const learningChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: t('learning.room.starter.learn'),   prefix: <Icon.course size={14} />, prompt: t('learning.room.starter.learn_prompt'),   color: 'var(--accent)' },
+    { label: t('learning.room.starter.course'),  prefix: <Icon.books size={14} />,  prompt: t('learning.room.starter.course_prompt'),  color: '#f9e2af' },
+    { label: t('learning.room.starter.resume'),  prefix: <Icon.play size={14} />,   prompt: t('learning.room.starter.resume_prompt'),  color: '#34d399' },
+    { label: t('learning.room.starter.explain'), prefix: <Icon.idea size={14} />,   prompt: t('learning.room.starter.explain_prompt'), color: '#60a5fa' },
+  ];
+  const codeChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
     { label: t('dash.chat.starter.explain'),    prefix: '>>', prompt: t('dash.chat.starter.explain_prompt'),    color: 'var(--accent)' },
     { label: t('dash.chat.starter.plan'),        prefix: '::', prompt: t('dash.chat.starter.plan_prompt'),        color: '#60a5fa' },
     { label: t('dash.chat.starter.teach'),       prefix: '??', prompt: t('dash.chat.starter.teach_prompt'),       color: '#f9e2af' },
@@ -202,7 +216,7 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
     { label: t('dash.chat.starter.brainstorm'),  prefix: '**', prompt: t('dash.chat.starter.brainstorm_prompt'),  color: '#94e2d5' },
     { label: t('dash.chat.starter.chat'),        prefix: '..', prompt: '.. ',                                     color: '#a6adc8' },
   ];
-  const chips = isHealth ? healthChips : codeChips;
+  const chips = isHealth ? healthChips : isLearning ? learningChips : codeChips;
 
   return (
     <div
@@ -215,10 +229,10 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
     >
       <div className="flex items-center gap-2 mb-1.5">
         <span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span>
-        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>{isHealth ? t('health.room.starter.heading') : t('dash.chat.starter.heading')}</div>
+        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>{isHealth ? t('health.room.starter.heading') : isLearning ? t('learning.room.starter.heading') : t('dash.chat.starter.heading')}</div>
       </div>
       <p className="text-[12px] leading-relaxed mb-4" style={{ color: '#a6adc8' }}>
-        {isHealth ? t('health.room.starter.subheading') : t('dash.chat.starter.subheading')}
+        {isHealth ? t('health.room.starter.subheading') : isLearning ? t('learning.room.starter.subheading') : t('dash.chat.starter.subheading')}
       </p>
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
@@ -248,7 +262,7 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
           </button>
         ))}
       </div>
-      {!isHealth && (
+      {!isHealth && !isLearning && (
         <p className="text-[10px] mt-4" style={{ color: '#6c7086' }}>
           {t('dash.chat.starter.tip_prefix')} <code style={{ color: 'var(--accent)' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> {t('dash.chat.starter.tip_suffix')}
         </p>

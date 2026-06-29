@@ -1,4 +1,5 @@
 import { t, useLocale } from '../../i18n';
+import { Icon } from '../../components/Icon';
 
 interface PersonaTool {
   name: string;
@@ -20,47 +21,65 @@ interface PersonaStatusProps {
   personas: PersonaInfo[];
 }
 
-const PERSONA_ICONS: Record<string, string> = {
-  scout: '🔍',
-  recon: '🛡️',
-  researcher: '🔬',
-  architect: '📐',
-  verifier: '✅',
-  sequencer: '📋',
-  challenger: '🎯',
-  builder: '🔨',
-  content_writer: '✍️',
-  quiz_master: '❓',
-  tutor: '👩‍🏫',
+const PERSONA_ICONS: Record<string, React.ReactNode> = {
+  scout: <Icon.scout size={14} />,
+  recon: <Icon.shield size={14} />,
+  researcher: <Icon.flask size={14} />,
+  architect: <Icon.ruler size={14} />,
+  verifier: <Icon.done size={14} />,
+  sequencer: <Icon.clipboard size={14} />,
+  challenger: <Icon.target size={14} />,
+  builder: <Icon.hammer size={14} />,
+  content_writer: <Icon.pencil size={14} />,
+  quiz_master: <Icon.quiz size={14} />,
+  tutor: <Icon.teacher size={14} />,
 };
 
 // i18n keys (resolved via t() at render — never call t() at module scope).
+// Every specialist across Work / Plan / Teach / Security / Brainstorm — keep in
+// sync with the conductor's persona ids so none falls back to a raw id.
 const PERSONA_LABEL_KEYS: Record<string, string> = {
   scout: 'dash.chat.persona_label.scout',
-  recon: 'dash.chat.persona_label.recon',
-  researcher: 'dash.chat.persona_label.researcher',
   architect: 'dash.chat.persona_label.architect',
   verifier: 'dash.chat.persona_label.verifier',
   sequencer: 'dash.chat.persona_label.sequencer',
   challenger: 'dash.chat.persona_label.challenger',
   builder: 'dash.chat.persona_label.builder',
+  researcher: 'dash.chat.persona_label.researcher',
+  curriculum_architect: 'dash.chat.persona_label.curriculum_architect',
   content_writer: 'dash.chat.persona_label.content_writer',
+  fact_checker: 'dash.chat.persona_label.fact_checker',
   quiz_master: 'dash.chat.persona_label.quiz_master',
   tutor: 'dash.chat.persona_label.tutor',
+  recon: 'dash.chat.persona_label.recon',
+  scanner: 'dash.chat.persona_label.scanner',
+  cve_researcher: 'dash.chat.persona_label.cve_researcher',
+  reporter: 'dash.chat.persona_label.reporter',
+  explorer: 'dash.chat.persona_label.explorer',
+  ideator: 'dash.chat.persona_label.ideator',
+  refiner: 'dash.chat.persona_label.refiner',
 };
 
 const PERSONA_VERB_KEYS: Record<string, string> = {
   scout: 'dash.chat.persona_verb.scout',
-  recon: 'dash.chat.persona_verb.recon',
-  researcher: 'dash.chat.persona_verb.researcher',
   architect: 'dash.chat.persona_verb.architect',
   verifier: 'dash.chat.persona_verb.verifier',
   sequencer: 'dash.chat.persona_verb.sequencer',
   challenger: 'dash.chat.persona_verb.challenger',
   builder: 'dash.chat.persona_verb.builder',
+  researcher: 'dash.chat.persona_verb.researcher',
+  curriculum_architect: 'dash.chat.persona_verb.curriculum_architect',
   content_writer: 'dash.chat.persona_verb.content_writer',
+  fact_checker: 'dash.chat.persona_verb.fact_checker',
   quiz_master: 'dash.chat.persona_verb.quiz_master',
   tutor: 'dash.chat.persona_verb.tutor',
+  recon: 'dash.chat.persona_verb.recon',
+  scanner: 'dash.chat.persona_verb.scanner',
+  cve_researcher: 'dash.chat.persona_verb.cve_researcher',
+  reporter: 'dash.chat.persona_verb.reporter',
+  explorer: 'dash.chat.persona_verb.explorer',
+  ideator: 'dash.chat.persona_verb.ideator',
+  refiner: 'dash.chat.persona_verb.refiner',
 };
 
 export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
@@ -121,7 +140,7 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
 
 function PersonaRow({ persona }: { persona: PersonaInfo }) {
   useLocale();
-  const icon = PERSONA_ICONS[persona.id] || '🤖';
+  const icon = PERSONA_ICONS[persona.id] || <Icon.robot size={14} />;
   const labelKey = PERSONA_LABEL_KEYS[persona.id];
   const label = labelKey ? t(labelKey) : persona.id;
   const verbKey = PERSONA_VERB_KEYS[persona.id];

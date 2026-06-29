@@ -2,16 +2,15 @@ import { useEffect, useState } from 'react';
 import { useLocale } from '../i18n';
 import { Tasks } from './Tasks';
 import { Journal } from './Journal';
-import { Learning } from './Learning';
 import { HealthPlans } from './HealthPlans';
 import type {
   DashboardTaskEntry, DashboardJournalMonthEntry, DashboardJournalKind, DashboardJournalSearchHit,
-  DashboardJournalDaySummary, DashboardLearningCurriculum,
+  DashboardJournalDaySummary,
   HealthPlan, HealthPlanSummary, HealthExerciseSummary, HealthRecipeSummary,
   HealthExerciseDetail, HealthRecipeDetail,
 } from '../types/messages';
 
-type PlannerTab = 'tasks' | 'journal' | 'learning' | 'plans';
+type PlannerTab = 'tasks' | 'journal' | 'plans';
 
 interface SessionTask {
   id: string;
@@ -37,12 +36,10 @@ interface PlannerProps {
    *  click looked like a no-op. Counter not boolean so re-clicking the
    *  same day still re-fires the tab switch. */
   journalNavTick?: number;
-  learningCurriculums: DashboardLearningCurriculum[];
   /** Per-source load signals — true once the first load has landed.
    *  Each sub-tab skeletons until its own data is in. */
   tasksLoaded: boolean;
   journalLoaded: boolean;
-  learningLoaded: boolean;
   // Multi-week Health plans — the "Plans" tab. Threaded straight
   // through to the HealthPlans surface.
   healthPlans: HealthPlanSummary[];
@@ -70,14 +67,12 @@ interface PlannerProps {
 const TABS: { key: PlannerTab; icon: string }[] = [
   { key: 'tasks', icon: '\u2713' },
   { key: 'journal', icon: '\u270E' },
-  { key: 'learning', icon: '\u2605' },
   { key: 'plans', icon: '\u2630' },
 ];
 
 const TAB_LABELS: Record<PlannerTab, string> = {
   tasks: 'Tasks',
   journal: 'Journal',
-  learning: 'Learning',
   plans: 'Plans',
 };
 
@@ -85,8 +80,7 @@ export function Planner({
   tasks, sessionTasks,
   journalDate, journalNavTick,
   journalYear, journalMonth, journalMonthEntries, journalKinds, journalSearchHits, journalYearSummaries, onChangeJournalMonth, onClearJournalSearch,
-  learningCurriculums,
-  tasksLoaded, journalLoaded, learningLoaded,
+  tasksLoaded, journalLoaded,
   healthPlans, activeHealthPlans, healthPlanOpen, onOpenHealthPlan, onSaveHealthPlan, onDeleteHealthPlan, onCloseHealthPlan,
   planExerciseResults, planRecipeResults, planCatalogSearching, planExerciseTotal, planRecipeTotal,
   onSearchPlanExercises, onSearchPlanRecipes,
@@ -110,7 +104,7 @@ export function Planner({
       {/* Header */}
       <div>
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Planner</h1>
-        <p className="mt-1.5 text-[13px] text-[#6c7086]">Tasks, reflections, and learning paths</p>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">Tasks, reflections, and plans</p>
       </div>
 
       {/* Tab bar */}
@@ -153,10 +147,6 @@ export function Planner({
           onChangeMonth={onChangeJournalMonth}
           onClearSearch={onClearJournalSearch}
         />
-      )}
-
-      {activeTab === 'learning' && (
-        <Learning curriculums={learningCurriculums} loaded={learningLoaded} />
       )}
 
       {activeTab === 'plans' && (

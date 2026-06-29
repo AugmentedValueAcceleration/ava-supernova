@@ -30,6 +30,11 @@ export class OpenHealthRoomTool implements Tool {
           enum: ['fitness', 'meal', 'combined'],
           description: 'Which kind of plan they asked for, so the button can name it. Omit if unclear.',
         },
+        primer: {
+          type: 'string',
+          description:
+            "The user's specific request, written in the FIRST PERSON as their opening message to the Health room — capture the real detail they gave (goal, schedule, equipment, dietary needs, injuries), e.g. \"Build me a 4-day strength plan; I train at home with dumbbells and a pull-up bar, and I'm working around a dodgy left knee.\" When they tap through, the room sends this for them so Ava picks up the thread with full context instead of starting cold. Omit only if they gave no specifics.",
+        },
       },
       required: [],
     },

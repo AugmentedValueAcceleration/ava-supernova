@@ -8,7 +8,7 @@ import type { FunctionSchema } from '../providers/types.js';
 
 // ── Types ────────────────────────────────────────────────────────────
 
-interface QuizQuestion {
+export interface QuizQuestion {
   question: string;
   options?: string[];
   correct_answer: string;
@@ -30,7 +30,7 @@ interface QuizQuestion {
  * live grading of novel input is what Brilliant's fixed widgets can't do, and
  * what makes "a tutor for whatever you wish to learn" hold.
  */
-interface LessonStep {
+export interface LessonStep {
   id: string;
   /** The bite Ava presents before the learner acts — short concept, markdown. */
   teach: string;
@@ -58,7 +58,7 @@ interface LessonStep {
   last_attempt: string | null;
 }
 
-interface Lesson {
+export interface Lesson {
   id: string;
   title: string;
   content: string | null;
@@ -89,14 +89,14 @@ interface Lesson {
   started_at: string | null;
 }
 
-interface Milestone {
+export interface Milestone {
   title: string;
   at_percent: number;
   reached: boolean;
   reached_at: string | null;
 }
 
-interface Module {
+export interface Module {
   id: string;
   title: string;
   description: string | null;
@@ -107,7 +107,7 @@ interface Module {
   lessons: Lesson[];
 }
 
-interface Curriculum {
+export interface Curriculum {
   id: string;
   title: string;
   description: string | null;
@@ -130,7 +130,7 @@ interface Curriculum {
   target_audience: string;
 }
 
-interface LearningStore {
+export interface LearningStore {
   curriculums: Curriculum[];
   // v0.18 — Learning streaks
   streaks: {
@@ -206,30 +206,15 @@ async function saveStore(globalDir: string, store: LearningStore): Promise<void>
 async function persist(
   globalDir: string,
   store: LearningStore,
-  context: ToolExecutionContext,
+  _context: ToolExecutionContext,
 ): Promise<void> {
+  // Learning is LOCAL-ONLY by design — the user's curriculums + progress live
+  // only in ~/.ava/learning.json and never leave the device. No cloud push:
+  // local-first is sacred here, and cloud storage of user data is being sunset.
+  // (Previously this POSTed the full store to /api/learning/sync for signed-in
+  // users — removed; that contradicted "local only" and left orphaned cloud
+  // copies that re-appeared after a local delete.)
   await saveStore(globalDir, store);
-
-  const shared = context.sharedState ?? {};
-  const platformKey = shared.platformKey as string | undefined;
-  const localOnly = shared.learningLocalOnly as boolean | undefined;
-  if (!platformKey || localOnly) return;
-
-  // Fire-and-forget cloud push. The sync endpoint is idempotent (upsert
-  // on title) so calling it after every save is safe — no deduping
-  // ceremony required client-side.
-  void (async () => {
-    try {
-      await fetch('https://ava-supernova.com/api/learning/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${platformKey}`,
-        },
-        body: JSON.stringify({ curriculums: store.curriculums }),
-      });
-    } catch { /* non-critical — local copy is the source of truth */ }
-  })();
 }
 
 function generateId(): string {
@@ -680,8 +665,33 @@ export class LearningCreateTool implements Tool {
     // Recalculate module estimated times
     recalculateProgress(curriculum);
 
+    // Enforce single-active: a freshly created course becomes THE active one;
+    // pause any previously-active course (its progress is kept).
+    for (const c of store.curriculums) {
+      if (c.status === 'active') c.status = 'paused';
+    }
     store.curriculums.unshift(curriculum);
     await persist(globalDir, store, context);
+
+    // Record what they're learning to memory so Ava knows across EVERY mode —
+    // the main chat (which doesn't load the Teach learning-context) can recall
+    // "they're currently learning X" and weave it into help / brainstorming.
+    // Best-effort: never fail the course creation if memory is unavailable.
+    try {
+      const memoryManager = context.sharedState?.memoryManager as
+        | { saveEntry: (o: Record<string, unknown>) => Promise<unknown> }
+        | undefined;
+      if (memoryManager?.saveEntry) {
+        await memoryManager.saveEntry({
+          scope: 'global',
+          content: `Currently learning ${curriculum.subject} — taking the course "${curriculum.title}" (${curriculum.level})` +
+            (curriculum.goal ? `. Goal: ${curriculum.goal}` : '') + '.',
+          category: 'general',
+          tags: ['learning', curriculum.subject],
+          sourceConversationId: context.conversationId,
+        });
+      }
+    } catch { /* memory is additive — course creation must still succeed */ }
 
     const totalLessons = curriculum.modules.reduce((sum, m) => sum + m.lessons.length, 0);
     const totalQuizzes = curriculum.modules.reduce((sum, m) => sum + m.lessons.filter(l => l.type === 'quiz').length, 0);
@@ -733,8 +743,8 @@ export class LearningTeachTool implements Tool {
         lesson_id: { type: 'string', description: 'ID of the lesson to teach or update' },
         action: {
           type: 'string',
-          enum: ['assess', 'deliver', 'feedback', 'write_content', 'set_quiz', 'quiz', 'review'],
-          description: 'assess = diagnostic before curriculum creation (pass subject+assessment_level, no curriculum_id required), deliver = present lesson, feedback = pass/fail, write_content = author the lesson as interactive `steps` (preferred) or legacy `content`, set_quiz = persist quiz questions on a lesson, quiz = run quiz, review = spaced repetition',
+          enum: ['assess', 'set_active', 'deliver', 'feedback', 'write_content', 'set_quiz', 'quiz', 'review'],
+          description: 'assess = diagnostic before curriculum creation (pass subject+assessment_level, no curriculum_id required), set_active = make this the ONE active course Ava is teaching (pass curriculum_id only — pauses the others, keeps their progress; use when the learner wants to switch courses), deliver = present lesson, feedback = pass/fail, write_content = author the lesson as interactive `steps` (preferred) or legacy `content`, set_quiz = persist quiz questions on a lesson, quiz = run quiz, review = spaced repetition',
         },
         subject: { type: 'string', description: 'For assess: the subject to assess knowledge in' },
         assessment_level: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'For assess: claimed level to verify' },
@@ -833,6 +843,22 @@ export class LearningTeachTool implements Tool {
       const subject = args.subject as string || 'general';
       const claimedLevel = args.assessment_level as string || 'beginner';
       return runAssessment(subject, claimedLevel);
+    }
+
+    // set_active makes ONE course the active one Ava teaches — pauses the rest
+    // (their progress is kept). Needs only curriculum_id, so handle it before the
+    // lesson lookup. Completed courses stay completed.
+    if (action === 'set_active') {
+      if (!currId) return { success: false, output: 'curriculum_id is required for set_active' };
+      const target = store.curriculums.find(c => c.id === currId);
+      if (!target) return { success: false, output: `Curriculum not found: ${currId}` };
+      for (const c of store.curriculums) {
+        if (c.status === 'completed') continue;
+        c.status = c.id === currId ? 'active' : 'paused';
+      }
+      if (target.status === 'completed') target.status = 'active'; // re-activating a finished course to revisit
+      await persist(globalDir, store, context);
+      return { success: true, output: `Active course is now **${target.title}**. The others are paused (progress kept).` };
     }
 
     if (!currId || !lessonId) {

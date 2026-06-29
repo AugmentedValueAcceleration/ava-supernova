@@ -4,6 +4,7 @@ import { post } from '../App';
 import { Chat } from './Chat';
 import type { ExtToDashboardMessage } from '../types/messages';
 import { Skeleton } from '../components/Skeleton';
+import { Icon } from '../components/Icon';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
   HealthRecipeSummary, HealthRecipeDetail,
@@ -538,7 +539,7 @@ function ExerciseCard({ ex, view, onOpen }: { ex: HealthExerciseSummary; view: V
   const pending = ex.status && ex.status !== 'published';
   const thumb = ex.thumbnail_url
     ? <img src={ex.thumbnail_url} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-    : <div className="flex h-full w-full items-center justify-center text-2xl opacity-25" style={{ background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 100%)` }} aria-hidden>🏋</div>;
+    : <div className="flex h-full w-full items-center justify-center opacity-25" style={{ background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 100%)` }} aria-hidden><Icon.fitness size={28} /></div>;
 
   if (view === 'list') {
     return (
@@ -681,7 +682,7 @@ function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; o
   const footer = r.course || r.origin_country || r.cuisine_name || '';
   const thumb = r.hero_image_url
     ? <img src={r.hero_image_url} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-    : <div className="flex h-full w-full items-center justify-center text-2xl opacity-30" aria-hidden>🍽</div>;
+    : <div className="flex h-full w-full items-center justify-center opacity-30" aria-hidden><Icon.meal size={28} /></div>;
 
   if (view === 'list') {
     return (
@@ -1327,14 +1328,14 @@ export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
                 <div className="grid gap-3 sm:grid-cols-2">
                   {st.keeps_fridge_days != null && (
                     <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
-                      <div className="text-[18px]" aria-hidden>❄️</div>
+                      <div className="text-[var(--accent)]" aria-hidden><Icon.frozen size={18} /></div>
                       <div className="mt-1 text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{t('health.storage.fridge')}</div>
                       <div className="mt-0.5 text-[18px] font-light text-vscode-foreground">{st.keeps_fridge_days} {t(st.keeps_fridge_days === 1 ? 'health.storage.day' : 'health.storage.days')}</div>
                     </div>
                   )}
                   {st.keeps_freezer_months != null && (
                     <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
-                      <div className="text-[18px]" aria-hidden>🧊</div>
+                      <div className="text-[var(--accent)]" aria-hidden><Icon.frozen size={18} /></div>
                       <div className="mt-1 text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{t('health.storage.freezer')}</div>
                       <div className="mt-0.5 text-[18px] font-light text-vscode-foreground">{st.keeps_freezer_months} {t(st.keeps_freezer_months === 1 ? 'health.storage.month' : 'health.storage.months')}</div>
                     </div>

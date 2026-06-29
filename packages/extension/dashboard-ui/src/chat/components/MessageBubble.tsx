@@ -10,6 +10,7 @@ import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
 import { ProfileFieldCard } from './ProfileFieldCard';
 import { OpenHealthRoomCard } from './OpenHealthRoomCard';
+import { OpenLearningRoomCard } from './OpenLearningRoomCard';
 import { TaskSuggestCard } from './TaskSuggestCard';
 import { CopyButton } from './CopyButton';
 import { FeedbackButtons } from './FeedbackButtons';
@@ -459,6 +460,9 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
         }
         if (tc.name === 'open_health_room') {
           return <OpenHealthRoomCard key={tc.id} toolCall={tc} />;
+        }
+        if (tc.name === 'open_learning_room') {
+          return <OpenLearningRoomCard key={tc.id} toolCall={tc} />;
         }
         if (tc.name === 'task_suggest') {
           return <TaskSuggestCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;

@@ -4,6 +4,7 @@ import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
 import { Select } from '../components/Select';
+import { Icon } from '../components/Icon';
 import { Skeleton } from '../components/Skeleton';
 import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry, Page } from '../types/messages';
 
@@ -91,10 +92,10 @@ function SearchInput({ value, onChange, placeholder, compact, className }: {
 
 // Shared empty state — one solid-border look (the dashed variant read as
 // unfinished), used by every tab.
-function EmptyState({ icon, children }: { icon: string; children: ReactNode }) {
+function EmptyState({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-10 text-center">
-      <div className="mb-2 text-2xl opacity-30">{icon}</div>
+      <div className="mb-2 flex justify-center opacity-30">{icon}</div>
       <p className="text-xs text-[var(--text-muted)]">{children}</p>
     </div>
   );
@@ -292,7 +293,7 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
           {[0, 1, 2, 3].map(i => <Skeleton key={i} height={58} radius={10} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState icon="💬">
+        <EmptyState icon={<Icon.chat size={24} />}>
           {search ? t('dash.history.no_match') : t('dash.history.no_conversations')}
         </EmptyState>
       ) : (
@@ -320,7 +321,7 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      {conv.pinned && <span className="text-[10px] text-[var(--accent)]" title={t('history.pinned')}>📌</span>}
+                      {conv.pinned && <span className="text-[var(--accent)]" title={t('history.pinned')}><Icon.pin size={11} /></span>}
                       <span className="truncate text-sm font-semibold text-[#cdd6f4]">{conv.title || t('dash.chat.untitled')}</span>
                     </div>
                     {preview && (
@@ -530,7 +531,7 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
 
       {/* Empty state */}
       {filtered.length === 0 && (
-        <EmptyState icon="📋">
+        <EmptyState icon={<Icon.clipboard size={24} />}>
           {entries.length === 0 ? t('dash.audit.empty_none') : t('dash.audit.empty_filtered')}
         </EmptyState>
       )}

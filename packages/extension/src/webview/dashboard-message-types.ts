@@ -3,6 +3,10 @@
 // dashboard webview. The dashboard-ui webview imports this file directly via
 // a path alias (@ava-extension/messages) so drift is impossible.
 
+// Derived learner-progression types (skills/certs/achievements/stats). Type-only
+// import — erased at runtime, so the webview bundle stays free of node deps.
+import type { LearnerProgression } from '@ava/core/learning';
+
 export interface AccountInfo {
   id: string;
   email: string;
@@ -357,6 +361,40 @@ export interface DashboardLearningCurriculum {
   updated_at: string;
 }
 
+// ─── Learner Progression profile ────────────────────────────────────────────
+// The editable half of the learner profile (bio + self-added skills/achievements),
+// stored locally at <scopedDir>/learner.json. The earned half (skills/certs/etc.)
+// is DERIVED from learning.json by @ava/core/learning and never stored here, which
+// is what keeps the credential honest. The host merges both into the payload below.
+
+export interface LearnerSelfAchievement {
+  title: string;
+  date?: string | null;
+  evidenceUrl?: string | null;
+}
+
+export interface LearnerProfile {
+  schema_version: 1;
+  updated_at: string | null;
+  identity: {
+    display_name: string | null;
+    headline: string | null;
+    bio: string | null;
+    avatar_url: string | null;
+  };
+  self: {
+    /** Self-declared skill names (graduate to verified when they match an earned subject). */
+    skills: string[];
+    achievements: LearnerSelfAchievement[];
+  };
+}
+
+/** Combined payload sent to the Progression page: editable profile + derived progression. */
+export interface LearnerProfilePayload {
+  profile: LearnerProfile;
+  progression: LearnerProgression;
+}
+
 // ─── Learning Library Types ─────────────────────────────────────────────────
 
 export interface LibraryPath {
@@ -378,6 +416,7 @@ export interface LibraryPath {
   rating_sum: number;
   rating_count: number;
   average_rating: number | null;
+  cover_image_url?: string | null;
   created_at: string;
   published_at: string | null;
 }
@@ -1079,7 +1118,7 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'health' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
@@ -1391,6 +1430,9 @@ export type ExtToDashboardMessage =
   // Learning messages
   | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
   | { type: 'curriculum_deleted'; id: string }
+  // Learner Progression profile — derived (earned) ⊕ editable (learner.json)
+  | { type: 'learning_profile_loaded'; payload: LearnerProfilePayload }
+  | { type: 'progression_export_done'; kind: 'certificate' | 'cv'; ok: boolean; path?: string }
   // Learning Library messages
   | { type: 'library_paths_loaded'; paths: LibraryPath[]; total: number }
   | { type: 'papers_loaded'; tab: PapersTab; papers: LibraryPaper[] }
@@ -1682,6 +1724,13 @@ export type DashboardToExtMessage =
   // Learning messages
   | { type: 'load_learning' }
   | { type: 'delete_curriculum'; id: string }
+  | { type: 'set_active_course'; id: string }
+  // Learner Progression profile
+  | { type: 'load_learning_profile' }
+  | { type: 'save_learning_profile'; profile: LearnerProfile }
+  | { type: 'export_certificate'; certId: string }
+  | { type: 'export_cv' }
+  | { type: 'open_progression_folder' }
   // Interactive lesson player → persist progress back to the learning store
   | { type: 'learning_step_progress'; curriculumId: string; lessonId: string; stepId: string; status: 'attempted' | 'mastered'; lastAttempt: string | null }
   | { type: 'learning_lesson_complete'; curriculumId: string; lessonId: string; score: number }
@@ -1769,19 +1818,19 @@ export type DashboardToExtMessage =
   // completeEventId links back to the generation_complete event (shape-only).
   | { type: 'creative_user_action'; completeEventId: string; action: 'kept' | 'retried' | 'discarded' | 'edited' | 'unknown' }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning'; courseId?: string }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`
   // routes the turn to the focused Ava Health & Fitness room (its own thread).
-  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string; surface?: 'main' | 'health' }
+  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string; surface?: 'main' | 'health' | 'learning'; courseId?: string }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'set_category_permission'; category: string; permission: string }
   | { type: 'request_audit_log' }
   | { type: 'export_audit_log'; format: 'markdown' | 'json' }
   | { type: 'export_full_account_data' }
   | { type: 'switch_model'; modelId: string }
-  | { type: 'clear_chat'; surface?: 'main' | 'health' }
+  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning'; courseId?: string }
   | { type: 'cancel' }
   | { type: 'interrupt' }
   | { type: 'request_history' }

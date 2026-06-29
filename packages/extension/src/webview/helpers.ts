@@ -4,6 +4,8 @@
 import * as vscode from 'vscode';
 import { AVA_HOME, ProviderError } from '@ava/core';
 import type { Message, PermissionMode } from '@ava/core';
+import { formatLearnerContext, type LearningStore } from '@ava/core/learning';
+import { readLearnerProfile } from './learner-file-store.js';
 
 // ── Logging ────────────────────────────────────────────────────────────────
 
@@ -136,16 +138,9 @@ export function getLearningContext(globalDir: string = AVA_HOME): string | undef
     const fs = require('node:fs');
     const learningPath = require('node:path').join(globalDir, 'learning.json');
     if (!fs.existsSync(learningPath)) return undefined;
-    const store = JSON.parse(fs.readFileSync(learningPath, 'utf-8'));
-    const active = (store.curriculums || []).filter((c: { status: string }) => c.status === 'active');
-    if (active.length === 0) return undefined;
-    return active.map((c: { title: string; subject: string; level: string; progress_percent: number; modules: Array<{ title: string; status: string; lessons: Array<{ title: string; status: string; type: string }> }> }) => {
-      const currentModule = c.modules.find((m: { status: string }) => m.status === 'in_progress' || m.status === 'available');
-      const nextLesson = currentModule?.lessons.find((l: { status: string }) => l.status === 'not_started' || l.status === 'in_progress');
-      return `**${c.title}** (${c.subject}, ${c.level}, ${Math.round(c.progress_percent)}% complete)\n` +
-        (currentModule ? `  Current module: ${currentModule.title}\n` : '') +
-        (nextLesson ? `  Next lesson: ${nextLesson.title} (${nextLesson.type})` : '  All lessons in current module complete — ready to unlock next module');
-    }).join('\n\n');
+    const store = JSON.parse(fs.readFileSync(learningPath, 'utf-8')) as LearningStore;
+    const selfSkills = readLearnerProfile(globalDir).self.skills;
+    return formatLearnerContext(store, selfSkills);
   } catch {
     return undefined;
   }

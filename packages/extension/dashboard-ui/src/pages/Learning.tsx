@@ -1,67 +1,11 @@
 import { useState } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import type { DashboardLearningCurriculum } from '../types/messages';
-import { SectionGroup } from '../components/SectionGroup';
 import { Skeleton } from '../components/Skeleton';
+import { Icon } from '../components/Icon';
 import { LessonPlayer } from './LessonPlayer';
 
-// A built-in sample so the interactive player can be tried with zero setup —
-// the "Anatomy of a Good Prompt" lesson, authored as the teach→do→check loop.
-const SAMPLE_LESSON: DashboardLearningCurriculum['modules'][number]['lessons'][number] = {
-  id: 'sample-anatomy-prompt',
-  title: 'The Anatomy of a Good Prompt',
-  type: 'concept',
-  status: 'not_started',
-  score: null,
-  steps: [
-    {
-      id: 's1',
-      teach: 'A prompt with no context makes Ava guess. With context, she can actually act. Feel the difference first.',
-      interaction: {
-        kind: 'choice',
-        prompt: 'Which prompt can Ava act on without guessing?',
-        options: ['write me an email', 'write me an email apologising to a client for a late delivery'],
-        answer: 'write me an email apologising to a client for a late delivery',
-      },
-      feedback: {
-        correct: "Right — context kills the guessing. With the first she's guessing who, why and what tone.",
-        incorrect: 'The second — context tells her who, why and what tone, so she isn\'t guessing.',
-      },
-      status: 'not_started', attempts: 0, last_attempt: null,
-    },
-    {
-      id: 's2',
-      teach: 'Context sets the scene. The task says what to actually do with it. Your turn.',
-      interaction: {
-        kind: 'free_text',
-        prompt: "Context: you're a freelancer and a client ghosted you on an invoice. Write the task — what do you want Ava to do?",
-        evaluation: "A clear task with an action verb, e.g. 'write a firm but friendly follow-up'. Sharper if it names the tone or the outcome.",
-      },
-      status: 'not_started', attempts: 0, last_attempt: null,
-    },
-    {
-      id: 's3',
-      teach: 'Last part: constraints — length, tone, format. This turns a decent answer into a usable one.',
-      interaction: {
-        kind: 'free_text',
-        prompt: 'Add a constraint to your invoice email.',
-        evaluation: "A concrete constraint Ava can act on — a length ('under 80 words'), a tone, or a format. Vague ones like 'make it good' don't count.",
-      },
-      status: 'not_started', attempts: 0, last_attempt: null,
-    },
-    {
-      id: 's4',
-      teach: 'Now put all three together — on something real to you. This is the skill.',
-      interaction: {
-        kind: 'free_text',
-        prompt: "Write a complete prompt — context, task, constraint — for something you're actually dealing with this week.",
-        evaluation: 'Has all three parts: context (the situation), a clear task (action verb), and at least one constraint (length / tone / format), applied to a real situation.',
-      },
-      status: 'not_started', attempts: 0, last_attempt: null,
-    },
-  ],
-};
 
 const levelColors: Record<string, string> = {
   beginner: 'color: #34d399; background: rgba(52,211,153,0.1)',
@@ -77,29 +21,30 @@ const LEVEL_KEYS: Record<string, string> = {
   mixed: 'dash.learning.level_mixed',
 };
 
-const typeIcons: Record<string, string> = {
-  concept: '📖', exercise: '💻', project: '🛠', quiz: '❓', recap: '🔄',
-};
+const lessonTypeIcon = (type: string) =>
+  type === 'exercise' ? Icon.code
+  : type === 'project' ? Icon.project
+  : type === 'quiz' ? Icon.quiz
+  : type === 'recap' ? Icon.review
+  : Icon.book;
 
 interface Props {
   curriculums: DashboardLearningCurriculum[];
   /** True once the learning curriculums' first load has landed. */
   loaded: boolean;
+  /** Make this course the active one Ava teaches, then jump to the Ava tab. */
+  onSetActive?: (id: string) => void;
+  /** Jump to the Ava tab (the course is already active — "Continue"). */
+  onGoToAva?: () => void;
 }
 
-export function Learning({ curriculums, loaded }: Props) {
+export function Learning({ curriculums, loaded, onSetActive, onGoToAva }: Props) {
   useLocale();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [playingLessonId, setPlayingLessonId] = useState<string | null>(null);
-  const [playingSample, setPlayingSample] = useState(false);
 
   const selected = curriculums.find(c => c.id === selectedId);
-
-  // Sample lesson — playable with zero setup, from anywhere in the view.
-  if (playingSample) {
-    return <LessonPlayer lesson={SAMPLE_LESSON} onClose={() => setPlayingSample(false)} />;
-  }
 
   function deleteCurriculum(id: string) {
     post({ type: 'delete_curriculum', id });
@@ -185,8 +130,8 @@ export function Learning({ curriculums, loaded }: Props) {
                   <span className="text-xs font-medium text-white">{mod.title}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {mod.status === 'completed' && <span className="text-emerald-400 text-[10px]">✓</span>}
-                  {mod.status === 'locked' && <span className="text-[10px] text-[var(--text-muted)]">🔒</span>}
+                  {mod.status === 'completed' && <Icon.done size={13} className="text-emerald-400" />}
+                  {mod.status === 'locked' && <Icon.locked size={13} className="text-[var(--text-muted)]" />}
                   {mod.status === 'in_progress' && <span className="text-[10px] text-[var(--accent)]">{Math.round(mod.progress_percent)}%</span>}
                   <svg className={`w-3 h-3 text-[var(--text-muted)] transition ${expandedModules.has(mod.id) ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -204,14 +149,14 @@ export function Learning({ curriculums, loaded }: Props) {
                         onClick={() => setPlayingLessonId(lesson.id)}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] border-0 border-b border-[var(--border-card)] last:border-b-0 bg-transparent cursor-pointer text-left hover:bg-[var(--bg-input)] transition"
                       >
-                        <span>{typeIcons[lesson.type] || '📖'}</span>
+                        <span className="text-[var(--text-muted)]">{(() => { const L = lessonTypeIcon(lesson.type); return <L size={14} />; })()}</span>
                         <span className={`flex-1 ${lesson.status === 'completed' ? 'line-through text-[var(--text-muted)]' : 'text-white'}`}>
                           {lesson.title}
                         </span>
                         {interactive && <span className="text-[8px] font-bold uppercase tracking-wide text-[var(--accent)]">interactive</span>}
-                        {lesson.status === 'completed' && <span className="text-emerald-400">✓</span>}
+                        {lesson.status === 'completed' && <Icon.done size={13} className="text-emerald-400" />}
                         {lesson.score !== null && lesson.status !== 'completed' && <span className="text-[var(--text-muted)]">{lesson.score}%</span>}
-                        <span className="text-[var(--text-muted)] opacity-40">▶</span>
+                        <Icon.play size={12} className="text-[var(--text-muted)] opacity-40" />
                       </button>
                     );
                   })}
@@ -227,76 +172,65 @@ export function Learning({ curriculums, loaded }: Props) {
   // List view
   return (
     <div>
-      <div className="flex items-center gap-2.5 mb-1">
-        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.learning.title')}</h1>
-      </div>
-      <p className="text-[13px] text-[#6c7086] mb-4 mt-1.5">
-        {t('dash.learning.subtitle')}
-      </p>
-
-      <button
-        onClick={() => setPlayingSample(true)}
-        className="mb-6 w-full flex items-center gap-2.5 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-2.5 text-left cursor-pointer hover:bg-[var(--accent)]/10 transition"
-      >
-        <span className="text-base">▶</span>
-        <div>
-          <p className="text-xs font-medium text-white">Try a sample interactive lesson</p>
-          <p className="text-[10px] text-[var(--text-muted)]">See the new step-by-step format — teach, do, check.</p>
-        </div>
-      </button>
-
       {!loaded ? (
         <div className="space-y-2">
           {[0, 1, 2].map(i => <Skeleton key={i} height={78} radius={8} />)}
         </div>
       ) : curriculums.length === 0 ? (
         <>
-          <SectionGroup label={t('dash.learning.how_it_works')}>
-            <div className="space-y-3">
-              <Step icon="💬" title={t('dash.learning.step1')} desc={t('dash.learning.step1_desc')} />
-              <Step icon="🧠" title={t('dash.learning.step2')} desc={t('dash.learning.step2_desc')} />
-              <Step icon="📚" title={t('dash.learning.step3')} desc={t('dash.learning.step3_desc')} />
-              <Step icon="🎓" title={t('dash.learning.step4')} desc={t('dash.learning.step4_desc')} />
-            </div>
-          </SectionGroup>
-
-          <div className="mt-4 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 p-4 text-center">
-            <p className="text-xs text-[var(--text-muted)]">
-              {t('dash.learning.empty')}
+          {/* Empty manager — a clear "start your first course" CTA in the new
+              design language, then the how-it-works as secondary guidance. */}
+          <div className="rounded-xl border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] p-6 text-center">
+            <div className="mb-2 flex justify-center text-[var(--accent)]"><Icon.course size={36} /></div>
+            <div className="text-sm font-semibold text-[#cdd6f4]">{tt('learning.courses.empty_title', 'No courses yet')}</div>
+            <p className="mx-auto mt-1 max-w-md text-[12px] leading-relaxed text-[var(--text-muted)]">
+              {tt('learning.courses.empty_body', 'Ask Ava to build your first course — she assesses your level, builds a curriculum, and teaches it one concept at a time. It lands here as a course you can manage, set active, and track.')}
             </p>
+            <button
+              onClick={() => onGoToAva?.()}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2 text-[12px] font-semibold text-white transition hover:opacity-90"
+            >
+              {tt('learning.courses.start', 'Start a course with Ava')} →
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <Step icon={<Icon.chat size={20} />} title={tt('learning.courses.how1', 'Tell Ava')} desc={tt('learning.courses.how1_desc', 'Say what you want to learn.')} />
+            <Step icon={<Icon.books size={20} />} title={tt('learning.courses.how2', 'She builds it')} desc={tt('learning.courses.how2_desc', 'A real curriculum, set active here.')} />
+            <Step icon={<Icon.course size={20} />} title={tt('learning.courses.how3', 'Learn & earn')} desc={tt('learning.courses.how3_desc', 'Taught at your pace; skills land in Progression.')} />
           </div>
         </>
       ) : (
-        <div className="space-y-2">
-          {curriculums.map(curr => (
+        <div className="space-y-5">
+          <div className="flex justify-end">
             <button
-              key={curr.id}
-              onClick={() => { setSelectedId(curr.id); setExpandedModules(new Set()); }}
-              className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-3 text-left hover:border-[var(--accent)]/30 transition bg-transparent cursor-pointer"
+              type="button"
+              onClick={() => { post({ type: 'load_learning' }); post({ type: 'load_learning_profile' }); }}
+              className={`${cardBtn} inline-flex items-center gap-1.5`}
+              title={tt('learning.courses.refresh', 'Refresh')}
             >
-              <div className="flex items-center gap-2 mb-0.5">
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase"
-                  style={levelColors[curr.level] ? { ...Object.fromEntries(levelColors[curr.level].split(';').map(s => s.trim().split(':').map(v => v.trim()))) } : {}}
-                >
-                  {t(LEVEL_KEYS[curr.level] ?? 'dash.learning.level_mixed')}
-                </span>
-                <span className="text-[10px] text-[var(--text-muted)]">{curr.subject}</span>
-              </div>
-              <p className="text-sm font-medium text-white">{curr.title}</p>
-
-              <div className="mt-2">
-                <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-input)]">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${curr.progress_percent}%`, background: 'linear-gradient(to right, var(--gradient-start), var(--gradient-end))' }}
-                  />
-                </div>
-                <span className="text-[9px] text-[var(--text-muted)] mt-1 block">
-                  {curr.status === 'completed' ? t('dash.learning.completed') : t('dash.learning.pct_complete').replace('{pct}', String(Math.round(curr.progress_percent)))}
-                </span>
-              </div>
+              <Icon.review size={13} />{tt('learning.courses.refresh', 'Refresh')}
             </button>
+          </div>
+          {([
+            { key: 'active', label: tt('learning.courses.active', 'Active'), items: curriculums.filter(c => c.status === 'active') },
+            { key: 'paused', label: tt('learning.courses.in_progress', 'In progress'), items: curriculums.filter(c => c.status !== 'active' && c.status !== 'completed') },
+            { key: 'completed', label: tt('learning.courses.completed', 'Completed'), items: curriculums.filter(c => c.status === 'completed') },
+          ] as const).filter(g => g.items.length > 0).map(group => (
+            <div key={group.key}>
+              <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{group.label}</div>
+              <div className="space-y-2">
+                {group.items.map(curr => (
+                  <CourseCard
+                    key={curr.id}
+                    curr={curr}
+                    onOpen={() => { setSelectedId(curr.id); setExpandedModules(new Set()); }}
+                    onSetActive={onSetActive}
+                    onGoToAva={onGoToAva}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -304,14 +238,83 @@ export function Learning({ curriculums, loaded }: Props) {
   );
 }
 
-function Step({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+// One shared button style so every card action matches — outlined-accent pill.
+const cardBtn = 'rounded-md border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-3 py-1 text-[11px] font-medium text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]';
+// Same pill, danger-tinted — destructive but visually consistent.
+const dangerBtn = 'rounded-md border border-[#f38ba8]/40 bg-[#f38ba8]/10 px-3 py-1 text-[11px] font-medium text-[#f38ba8] transition hover:bg-[#f38ba8]/20';
+
+function CourseCard({ curr, onOpen, onSetActive, onGoToAva }: {
+  curr: DashboardLearningCurriculum;
+  onOpen: () => void;
+  onSetActive?: (id: string) => void;
+  onGoToAva?: () => void;
+}) {
+  const isActive = curr.status === 'active';
+  const [confirming, setConfirming] = useState(false);
   return (
-    <div className="flex gap-2 items-start">
-      <span className="text-base shrink-0">{icon}</span>
-      <div>
-        <p className="text-xs text-white font-medium">{title}</p>
-        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{desc}</p>
+    <div className={`rounded-lg border bg-[var(--bg-card)] p-3 transition ${isActive ? 'border-[var(--accent)]/40' : 'border-[var(--border-card)] hover:border-[var(--accent)]/30'}`}>
+      <div onClick={onOpen} className="cursor-pointer">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span
+            className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase"
+            style={levelColors[curr.level] ? { ...Object.fromEntries(levelColors[curr.level].split(';').map(s => s.trim().split(':').map(v => v.trim()))) } : {}}
+          >
+            {t(LEVEL_KEYS[curr.level] ?? 'dash.learning.level_mixed')}
+          </span>
+          <span className="text-[10px] text-[var(--text-muted)]">{curr.subject}</span>
+          {isActive && <span className="ml-auto flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-[var(--accent)]"><Icon.done size={12} /> {tt('learning.courses.active_tag', 'Active')}</span>}
+        </div>
+        <p className="text-sm font-medium text-white">{curr.title}</p>
+        <div className="mt-2">
+          <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-input)]">
+            <div className="h-full rounded-full" style={{ width: `${curr.progress_percent}%`, background: 'linear-gradient(to right, var(--gradient-start), var(--gradient-end))' }} />
+          </div>
+          <span className="text-[9px] text-[var(--text-muted)] mt-1 block">
+            {curr.status === 'completed' ? t('dash.learning.completed') : t('dash.learning.pct_complete').replace('{pct}', String(Math.round(curr.progress_percent)))}
+          </span>
+        </div>
       </div>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        {confirming ? (
+          <>
+            <span className="text-[11px] text-[var(--text-secondary)]">{tt('learning.courses.delete_confirm', 'Delete this course?')}</span>
+            <button onClick={() => { post({ type: 'delete_curriculum', id: curr.id }); setConfirming(false); }} className={dangerBtn}>
+              {tt('learning.courses.delete', 'Delete')}
+            </button>
+            <button onClick={() => setConfirming(false)} className={cardBtn}>
+              {tt('learning.courses.cancel', 'Cancel')}
+            </button>
+          </>
+        ) : (
+          <>
+            {isActive ? (
+              <button onClick={() => onGoToAva?.()} className={cardBtn}>
+                {tt('learning.courses.continue', 'Continue with Ava')} →
+              </button>
+            ) : (
+              <button onClick={() => onSetActive?.(curr.id)} className={cardBtn}>
+                {curr.status === 'completed' ? tt('learning.courses.revisit', 'Revisit') : tt('learning.courses.set_active', 'Set active')}
+              </button>
+            )}
+            <button onClick={onOpen} className={cardBtn}>
+              {tt('learning.courses.view', 'View path')}
+            </button>
+            <button onClick={() => setConfirming(true)} className={dangerBtn} title={tt('learning.courses.delete', 'Delete')}>
+              {tt('learning.courses.delete', 'Delete')}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Step({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
+      <span className="text-[var(--accent)]" aria-hidden>{icon}</span>
+      <p className="mt-1.5 text-xs font-medium text-white">{title}</p>
+      <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--text-muted)]">{desc}</p>
     </div>
   );
 }

@@ -45,6 +45,7 @@ import { HealthPlanUpdateDayTool } from './health-plan-update-day.js';
 import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
 import { HealthProfileAskTool } from './health-profile-ask.js';
 import { OpenHealthRoomTool } from './open-health-room.js';
+import { OpenLearningRoomTool } from './open-learning-room.js';
 import { DocumentManageTool } from './document-manage.js';
 import { DocumentAuthorTool } from './document-author.js';
 import { GitCommitTool } from './git-commit.js';
@@ -397,6 +398,7 @@ export class ToolRegistry {
       new HealthCatalogueSearchTool(),
       new HealthProfileAskTool(),
       new OpenHealthRoomTool(),
+      new OpenLearningRoomTool(),
       new HealthPlanCreateTool(),
       new HealthPlanUpdateDayTool(),
       new DocumentManageTool(),

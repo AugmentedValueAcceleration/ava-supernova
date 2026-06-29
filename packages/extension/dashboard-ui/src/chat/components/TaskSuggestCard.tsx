@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../../types/messages';
 import { tt, useLocale } from '../../i18n';
+import { Icon } from '../../components/Icon';
 
 /**
  * Task-suggestion card — "Ava suggests, you decide".
@@ -94,7 +95,7 @@ export function TaskSuggestCard({ toolCall, onConfirmation }: Props) {
   return (
     <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/[0.06] p-3.5">
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-[13px]">🗒️</span>
+        <span className="text-[var(--accent)]"><Icon.notepad size={14} /></span>
         <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
           {tt('tasks.suggest_title', 'Ava suggests a task')}
         </span>
@@ -111,7 +112,7 @@ export function TaskSuggestCard({ toolCall, onConfirmation }: Props) {
               {dueDate && <Chip>{dueDate}{dueTime ? ` · ${dueTime}` : ''}</Chip>}
               {!dueDate && dueTime && <Chip>{dueTime}</Chip>}
               {recurrence !== 'none' && <Chip>↻ {tt(`tasks.recurrence_${recurrence}`, recurrence)}</Chip>}
-              {reminderLead >= 0 && <Chip>🔔 {tt(`tasks.reminder_${reminderLead}`, reminderLabel || '')}</Chip>}
+              {reminderLead >= 0 && <Chip><span className="inline-flex items-center gap-1"><Icon.bell size={10} /> {tt(`tasks.reminder_${reminderLead}`, reminderLabel || '')}</span></Chip>}
               {subtasks.length > 0 && <Chip>☑ {subtasks.length}</Chip>}
             </div>
           )}

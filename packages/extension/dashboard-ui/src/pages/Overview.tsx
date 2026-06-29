@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { SectionGroup } from '../components/SectionGroup';
 import { Skeleton } from '../components/Skeleton';
+import { Icon } from '../components/Icon';
 import { post } from '../App';
 import {
   Lightning, ChartBar, Clock, CloudSun, Newspaper, Rocket,
@@ -759,7 +760,7 @@ function TasksWidget({ tasks: rawTasks, loaded, onNavigate }: { tasks: Dashboard
   return (
     <WidgetCard
       title={t('dash.cc.todays_tasks')}
-      icon="✅"
+      icon={<Icon.done size={16} />}
       action={tasks.length > 0 ? { label: t('dash.cc.view_all'), onClick: () => onNavigate('tasks') } : undefined}
       onRefresh={() => post({ type: 'load_tasks' })}
     >
@@ -769,7 +770,7 @@ function TasksWidget({ tasks: rawTasks, loaded, onNavigate }: { tasks: Dashboard
         </div>
       ) : todayTasks.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
-          <span className="mb-2 text-2xl opacity-30">{'🎉'}</span>
+          <span className="mb-2 opacity-30"><Icon.party size={24} /></span>
           <p className="text-xs text-[var(--text-muted)]">{t('dash.cc.no_tasks').replace('\n', ' ')}</p>
         </div>
       ) : (
@@ -826,7 +827,7 @@ function JournalWidget({ journalDay, loaded, onNavigate }: { journalDay: Dashboa
   return (
     <WidgetCard
       title={t('dash.cc.todays_journal')}
-      icon="📓"
+      icon={<Icon.note size={16} />}
       action={{ label: hasContent ? t('dash.cc.open_journal') : t('dash.cc.write_entry'), onClick: () => onNavigate('journal') }}
       onRefresh={() => post({ type: 'load_journal_day', date: new Date().toISOString().slice(0, 10) })}
     >
@@ -838,7 +839,7 @@ function JournalWidget({ journalDay, loaded, onNavigate }: { journalDay: Dashboa
         </div>
       ) : !hasContent ? (
         <div className="flex flex-col items-center py-4 text-center">
-          <span className="mb-2 text-2xl opacity-30">{'📝'}</span>
+          <span className="mb-2 opacity-30"><Icon.note size={24} /></span>
           <p className="text-xs text-[var(--text-muted)]">{t('dash.cc.no_journal').replace('\n', ' ')}</p>
         </div>
       ) : (
@@ -883,13 +884,13 @@ function LearningWidget({ curriculums: rawCurriculums, onNavigate }: { curriculu
   return (
     <WidgetCard
       title={t('dash.cc.learning')}
-      icon="🎓"
-      action={curriculums.length > 0 ? { label: t('dash.cc.continue_learning'), onClick: () => onNavigate('learning') } : undefined}
+      icon={<Icon.course size={16} />}
+      action={curriculums.length > 0 ? { label: t('dash.cc.continue_learning'), onClick: () => onNavigate('learning-room') } : undefined}
       onRefresh={() => post({ type: 'load_learning' })}
     >
       {active.length === 0 ? (
         <div className="flex flex-col items-center py-4 text-center">
-          <span className="mb-2 text-2xl opacity-30">{'📚'}</span>
+          <span className="mb-2 opacity-30"><Icon.books size={24} /></span>
           <p className="text-xs text-[var(--text-muted)]">{t('dash.cc.no_learning').replace('\n', ' ')}</p>
         </div>
       ) : (
@@ -936,7 +937,7 @@ function MemoryWidget({ memories: rawMemories, onNavigate, total }: { memories: 
   return (
     <WidgetCard
       title={t('dash.cc.memory')}
-      icon="🧠"
+      icon={<Icon.brain size={16} />}
       action={{ label: t('dash.cc.view_all'), onClick: () => onNavigate('memory') }}
       onRefresh={() => post({ type: 'load_memories' })}
     >

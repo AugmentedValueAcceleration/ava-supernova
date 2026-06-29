@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
+import { Icon } from '../components/Icon';
 import { Skeleton } from '../components/Skeleton';
 import { Select } from '../components/Select';
 import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon } from '../components/Icons';
@@ -342,7 +343,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
         return (
           <div className={`rounded-xl border p-4 ${allDone ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[var(--accent)]/20 bg-[var(--accent)]/5'}`}>
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-sm">{allDone ? '✅' : '⚡'}</span>
+              <span className="text-[var(--accent)]">{allDone ? <Icon.done size={14} /> : <Icon.lightning size={14} />}</span>
               <h2 className={`text-sm font-semibold ${allDone ? 'text-emerald-400' : 'text-[var(--accent)]'}`}>
                 {allDone ? t('dash.tasks.all_complete') : t('dash.tasks.ava_progress')}
               </h2>

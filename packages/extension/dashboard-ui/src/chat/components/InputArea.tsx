@@ -61,13 +61,14 @@ interface InputAreaProps {
   lockedModeLabel?: string;
 }
 
+// Teach is intentionally absent — it now lives in the focused Learning room
+// (its own lane), so it's no longer a selectable main-chat mode (same as Health).
 const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
   { id: 'code', labelKey: 'input.mode.code', icon: '>>' },
   { id: 'write', labelKey: 'input.mode.write', icon: '<<' },
   { id: 'plan', labelKey: 'input.mode.plan', icon: '::' },
   { id: 'brainstorm', labelKey: 'input.mode.brainstorm', icon: '**' },
   { id: 'chat', labelKey: 'input.mode.chat', icon: '..' },
-  { id: 'teach', labelKey: 'input.mode.teach', icon: '??' },
   { id: 'security', labelKey: 'input.mode.security', icon: '!!' },
 ];
 
@@ -93,7 +94,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
   const [mode, setMode] = useState<AvaMode>(() => {
     try {
       const stored = localStorage.getItem('ava-dashboard-chat-mode');
-      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'];
+      // 'teach' deliberately omitted — it moved to the Learning room, so a
+      // previously-persisted teach falls back to 'code' in the main chat.
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'security', 'brainstorm', 'write'];
       if (stored && (valid as string[]).includes(stored)) return stored as AvaMode;
     } catch { /* localStorage unavailable */ }
     return 'code';
@@ -630,6 +633,10 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               </svg>
             </button>
 
+            {/* Command palette + secret vault — hidden in the focused rooms
+                (Health / Learning), which set lockedModeLabel. Those rooms keep
+                a minimal composer: attach + send only. */}
+            {!lockedModeLabel && (<>
             {/* Command palette button — opens the slash-command dropdown */}
             <button
               ref={paletteBtnRef}
@@ -684,6 +691,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                 </span>
               )}
             </button>
+            </>)}
 
             {/* Credit balance — between Vault and Send, mirrors IDE
                 input bar at DashboardPages.tsx:5517-5529. Red/amber/

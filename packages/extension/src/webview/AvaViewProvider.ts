@@ -12,7 +12,6 @@ import {
   MemoryManager,
   TaskManager,
   migrateGlobalTasksToSubfolder,
-  PlatformMemorySync,
   PlatformTaskSyncImpl,
   JournalManager,
   ProviderHealthTracker,
@@ -168,11 +167,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  main chat and this lane both live in the dashboard webview; outbound
    *  events are tagged via activeLane so each surface renders only its own. */
   private healthConversation?: Conversation;
+  /** The focused Learning room's threads — ONE per course (keyed by course id,
+   *  or '__lobby__' before a course exists). Each course keeps its own saved
+   *  conversation, so switching the active course loads the right thread. Runs in
+   *  Teach mode; keeps learning turns out of the main thread. */
+  private learningConversations = new Map<string, Conversation>();
   /** Which surface the in-flight turn belongs to. Set at the top of
    *  handleUserMessage and read by postMessage to stamp outbound events so the
-   *  right surface (main chat vs Ava tab) renders them. One run pipeline (the
+   *  right surface (main chat vs Ava room) renders them. One run pipeline (the
    *  isRunning guard) → no concurrency, so a scalar is safe. */
-  private activeLane: 'main' | 'health' = 'main';
+  private activeLane: 'main' | 'health' | 'learning' = 'main';
   private toolRegistry?: ToolRegistry;
   private providerRegistry: ProviderRegistry;
   private healthTracker: ProviderHealthTracker;
@@ -453,8 +457,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
     this.projectRoot = detectProjectRoot(cwd) ?? undefined;
 
-    // Set up memory with optional platform sync
-    let sync: PlatformMemorySync | undefined;
+    // Set up memory — LOCAL-ONLY, always. Memory is never wired to the cloud
+    // (no PlatformMemorySync, no push, no pull): local-first is sacred here and
+    // cloud storage of user data is being sunset. Matches the IDE.
     const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
 
     // History is local-only, always. No sync, no pull, no cloud knob.
@@ -482,31 +487,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
     const cloudAllowed = cloudSyncEnabled(this.context);
-    if (platformKey) {
-      const projectId = this.projectRoot
-        ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
-        : undefined;
-      sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
-    }
-    // Memory is LOCAL-FIRST by default (cloud is sunsetting — see cloud-sunset
-    // notice). Memories live on-device; cloud sync only if the user explicitly
-    // opts in. Default → local. Gates both push (on save) and the pull below.
-    const memoryLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? true)
-      || syncPrefs.memory === false
-      || !cloudAllowed;
-    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly, embeddingService: this.resolveEmbeddingService() });
-
-    // Pull the latest memories from cloud on every session start where
-    // platform sync is active. Previously this only ran on sign-in /
-    // sign-out secret changes, which meant memories made on device A
-    // never appeared on device B until the user signed out and back
-    // in. Fire-and-forget — offline users and failures never block the
-    // session. Conflict resolution in pullLatest is remote-wins-on-
-    // newer-updatedAt, consistent with push semantics.
-    if (sync && !memoryLocalOnly) {
-      this.memoryManager.pullLatest('global').catch(() => {});
-      this.memoryManager.pullLatest('project').catch(() => {});
-    }
+    // No sync object is wired in, and localOnly is forced true — so even a
+    // Data-Mode flip can never push or pull memories. Memory stays on-device.
+    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, localOnly: true, embeddingService: this.resolveEmbeddingService() });
 
     // ── One-time memory reset for v0.37.0 ─────────────────────────────────
     // The memory extraction system was fundamentally improved: broadened
@@ -797,7 +780,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         const validAttachments = Array.isArray(rawAttachments)
           ? rawAttachments.filter((a: unknown) => a && typeof a === 'object' && typeof (a as Record<string, unknown>).data === 'string')
           : undefined;
-        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | undefined) };
+        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | undefined) };
       }
         break;
       case 'tool_confirmation_response':
@@ -817,7 +800,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         mapped = { type: 'switch_model', modelId: msg.modelId as string };
         break;
       case 'clear_chat':
-        mapped = { type: 'clear_chat', surface: msg.surface as ('main' | 'health' | undefined) };
+        mapped = { type: 'clear_chat', surface: msg.surface as ('main' | 'health' | 'learning' | undefined) };
         break;
       case 'cancel':
         mapped = { type: 'cancel' };
@@ -970,7 +953,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           tool: msg.tool as PaletteTool,
           action: msg.action as string,
           mode: (msg.mode ?? 'code') as AvaMode,
-          surface: msg.surface as ('main' | 'health' | undefined),
+          surface: msg.surface as ('main' | 'health' | 'learning' | undefined),
         };
         break;
       default:
@@ -1386,14 +1369,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 this.accountScopedDir = newScopedDir;
                 this.log(`Account-scoped data directory: ${newScopedDir}`);
 
-                // Re-create managers with account-scoped directory
-                const projectId = this.projectRoot
-                  ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
-                  : undefined;
-                const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
-                // Local-first default (see init above) — only sync if opted in.
-                const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? true;
-                this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly, embeddingService: this.resolveEmbeddingService() });
+                // Re-create managers with the account-scoped directory. Memory is
+                // the exception: it stays FLAT (~/.ava/memory/) — local-only, one
+                // store per machine, shared with the IDE + CLI. Account-scoping
+                // memory split it off from those and bought nothing once cloud
+                // sync was removed.
+                this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, localOnly: true, embeddingService: this.resolveEmbeddingService() });
                 const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
                 migrateGlobalTasksToSubfolder(newScopedDir);
                 this.taskManager = new TaskManager({ globalDir: join(newScopedDir, 'tasks'), projectRoot: this.projectRoot, sync: taskSync });
@@ -2668,11 +2649,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'send_message':
-        await this.handleUserMessage(message.text, message.mode, message.attachments, { surface: message.surface });
+        await this.handleUserMessage(message.text, message.mode, message.attachments, { surface: message.surface, courseId: message.courseId });
         break;
 
       case 'palette_intent':
-        await this.handlePaletteIntent(message.tool, message.action, message.mode, message.surface);
+        await this.handlePaletteIntent(message.tool, message.action, message.mode, message.surface, message.courseId);
         break;
 
       case 'retry_after_error':
@@ -2707,11 +2688,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'clear_chat':
-        // Lane-aware: the Health room clears ONLY its own thread (drop the
-        // healthConversation so the next health turn rebuilds it fresh); the
+        // Lane-aware: a room (Health / Learning) clears ONLY its own thread
+        // (drop its conversation so the next room turn rebuilds it fresh); the
         // main chat is untouched. Default (no surface) clears the main chat.
         if (message.surface === 'health') {
           this.healthConversation = undefined;
+        } else if (message.surface === 'learning') {
+          this.learningConversations.delete(message.courseId ?? '__lobby__');
         } else {
           this.clearChat();
         }
@@ -3034,21 +3017,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * receives the confirmed intent (no intent detection needed) while the
    * chat shows the user a short clean label instead of the raw directive.
    */
-  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode, surface?: 'main' | 'health'): Promise<void> {
+  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode, surface?: 'main' | 'health' | 'learning', courseId?: string): Promise<void> {
     const built = buildPaletteDirective(tool, action);
     if (!built) {
       this.log(`handlePaletteIntent: unknown palette intent "${tool}.${action}" — ignored`);
       return;
     }
     this.log(`handlePaletteIntent: ${tool}.${action} (mode=${mode}, surface=${surface ?? 'main'})`);
-    await this.handleUserMessage(built.directive, mode, undefined, { displayText: built.label, surface });
+    await this.handleUserMessage(built.directive, mode, undefined, { displayText: built.label, surface, courseId });
   }
 
   private async handleUserMessage(
     text: string,
     mode: AvaMode = 'code',
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
-    options?: { displayText?: string; surface?: 'main' | 'health' },
+    options?: { displayText?: string; surface?: 'main' | 'health' | 'learning'; courseId?: string },
   ): Promise<void> {
     this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}, providerSource=${this.providerSource}`);
 
@@ -3158,6 +3141,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.healthConversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
       }
       this.conversation = this.healthConversation;
+    } else if (surface === 'learning') {
+      const key = options?.courseId ?? '__lobby__';
+      let conv = this.learningConversations.get(key);
+      if (!conv) {
+        conv = new Conversation();
+        conv.setSystemPrompt(await this.buildCurrentSystemPrompt());
+        this.learningConversations.set(key, conv);
+      }
+      this.conversation = conv;
     }
 
     // Clear per-turn flags before the turn starts. The Conductor-gate
@@ -4552,7 +4544,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // every existing surface behaves exactly as before; the Ava tab opts in by
     // filtering for lane === 'health'. Additive field — non-chat consumers
     // ignore it.
-    (message as { lane?: 'main' | 'health' }).lane = this.activeLane;
+    (message as { lane?: 'main' | 'health' | 'learning' }).lane = this.activeLane;
 
     // Broadcast to all active webviews — keeps sidebar + editor panel in sync
     this.view?.webview.postMessage(message);

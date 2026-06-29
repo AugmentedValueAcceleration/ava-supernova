@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
-import type { LibraryImage, LibraryPath, LibraryPathDetail, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset, Page } from '../types/messages';
-import { LearningLibrary } from './LearningLibrary';
+import type { LibraryImage, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset } from '../types/messages';
 import { LibraryPapers } from './LibraryPapers';
 import { Skeleton } from '../components/Skeleton';
+import { Icon } from '../components/Icon';
 import { tabBar, tab as tabClass } from '../components/ui';
 
 /**
@@ -25,10 +25,6 @@ import { tabBar, tab as tabClass } from '../components/ui';
  */
 
 interface Props {
-  /** Courses from the Learning Library backend (/api/learning/library). */
-  paths: LibraryPath[];
-  pathDetail: LibraryPathDetail | null;
-  onNavigate: (page: Page) => void;
   /** Papers tab data — keyed by sub-tab. Pushed by the host on load_papers. */
   papersByTab: Record<PapersTab, LibraryPaper[]>;
   papersTabLoading: Record<PapersTab, boolean>;
@@ -70,7 +66,7 @@ interface Props {
   hasImagesFolder?: boolean;
 }
 
-type TopTab = 'courses' | 'papers' | 'assets' | 'documents';
+type TopTab = 'papers' | 'assets' | 'documents';
 type AssetTypeFilter = 'all' | 'image' | 'music' | 'video' | 'voice';
 type AssetSource = 'all' | 'cloud' | 'local';
 type DocTypeFilter = 'all' | 'document' | 'spreadsheet';
@@ -152,9 +148,6 @@ function unifyLocalImage(img: LibraryImage, projectRoot: string): UnifiedItem {
 }
 
 export function Library({
-  paths,
-  pathDetail,
-  onNavigate,
   papersByTab,
   papersTabLoading,
   paperSearchResults,
@@ -177,10 +170,10 @@ export function Library({
   hasImagesFolder = true,
 }: Props) {
   useLocale();
-  // Courses is the entry-point tab — Library is a learning-first
-  // surface, the curated material (courses + papers) is what makes
-  // it valuable. Assets / Documents are tertiary browse surfaces.
-  const [tab, setTab] = useState<TopTab>('courses');
+  // Papers is the entry-point tab — Library is a research/output surface
+  // (courses moved to the dedicated Learning room). Assets / Documents are
+  // the other browse surfaces.
+  const [tab, setTab] = useState<TopTab>('papers');
   const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [docType, setDocType] = useState<DocTypeFilter>('all');
@@ -256,7 +249,6 @@ export function Library({
           accent tracks the theme). No counts (IDE doesn't show them). */}
       <div className={`mb-6 ${tabBar}`}>
         {([
-          { key: 'courses',   label: t('library.tab.courses') },
           { key: 'papers',    label: t('library.tab.papers') },
           { key: 'assets',    label: t('library.tab.assets') },
           { key: 'documents', label: t('library.tab.documents') },
@@ -272,10 +264,6 @@ export function Library({
       </div>
 
       {/* Tab content */}
-      {tab === 'courses' && (
-        <LearningLibrary paths={paths} detail={pathDetail} onNavigate={onNavigate} />
-      )}
-
       {tab === 'papers' && (
         <LibraryPapers
           papersByTab={papersByTab}
@@ -667,7 +655,7 @@ function PreviewModal({
                 ? 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
                 : 'bg-[var(--accent)]/10 text-[var(--accent)]'
             }`}>
-              {isLocal ? '\u{1F4BE} local' : '☁ cloud'}
+              {isLocal ? <span className="inline-flex items-center gap-1"><Icon.local size={10} />local</span> : <span className="inline-flex items-center gap-1"><Icon.cloud size={10} />cloud</span>}
             </span>
             <span className="rounded px-1.5 py-0.5 font-medium bg-[var(--border)] text-[var(--text-secondary)]">
               {item.kind}
@@ -1043,7 +1031,7 @@ function AssetCard({
               ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
               : 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
           }`}>
-            {item.source === 'cloud' ? '☁ cloud' : '\u{1F4BE} local'}
+            {item.source === 'cloud' ? <span className="inline-flex items-center gap-1"><Icon.cloud size={10} />cloud</span> : <span className="inline-flex items-center gap-1"><Icon.local size={10} />local</span>}
           </span>
           <span className="text-[9px] text-[var(--text-muted)]">
             {item.kind}
@@ -1119,7 +1107,7 @@ function ViewToggle({
               : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
           }`}
         >
-          {v === 'grid' ? '▦' : '☰'}
+          {v === 'grid' ? <Icon.grid size={14} /> : <Icon.list size={14} />}
         </button>
       ))}
     </div>

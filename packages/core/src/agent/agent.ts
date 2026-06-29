@@ -253,8 +253,9 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'curator',
     // Utility
     'get_datetime', 'detect_language',
-    // Hand a fitness/meal plan request off to the focused Health room.
-    'open_health_room',
+    // Hand a fitness/meal plan request off to the focused Health room, or a
+    // learn-a-topic request off to the focused Learning room.
+    'open_health_room', 'open_learning_room',
     // Mode switch
     'switch_mode',
   ]),
@@ -282,8 +283,9 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // the user explicitly says "add X to my list" — create directly then.
     'todo_write', 'task_suggest', 'task_manage',
     'get_datetime', 'weather', 'news', 'ask_user',
-    // Hand a fitness/meal plan request off to the focused Health room.
-    'open_health_room',
+    // Hand a fitness/meal plan request off to the focused Health room, or a
+    // learn-a-topic request off to the focused Learning room.
+    'open_health_room', 'open_learning_room',
     'switch_mode',
   ]),
   brainstorm: new Set([
@@ -311,6 +313,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'web_search', 'http_request', 'browser',
     // Memory — update is in so the learner profile evolves across sessions
     'memory_save', 'memory_recall', 'memory_update',
+    // Journal — Ava reflects on the learner + their progress in her own voice
+    'journal_write',
     // Learning subsystem
     'learning_create', 'learning_teach', 'learning_progress',
     // Interaction + utilities
@@ -333,6 +337,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'health_plan_create', 'health_plan_update_day', 'health_catalogue_search',
     'health_profile_ask',
     'memory_save', 'memory_recall', 'memory_update',
+    // Journal — Ava reflects on the person + their health journey in her voice
+    'journal_write',
     'web_search', 'ask_user', 'get_datetime',
     'switch_mode',
   ]),

@@ -673,16 +673,21 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
  * chat needs neither — it's always-mounted at the App level. Cleared by the
  * room's Clear-chat button.
  */
-let healthRoomStateCache: ChatState | null = null;
-const HEALTH_ROOM_MSGS_KEY = 'ava-health-room-messages';
-function readHealthRoomMessages(): UIMessage[] | null {
-  try { const raw = sessionStorage.getItem(HEALTH_ROOM_MSGS_KEY); const v = raw ? JSON.parse(raw) : null; return Array.isArray(v) && v.length ? v : null; } catch { return null; }
+// Room lanes (everything except the always-mounted main chat) rehydrate so
+// their conversation survives navigation (module cache) + reload (sessionStorage).
+// Keyed by a room key so each focused room keeps its own thread — for the
+// learning lane the key includes the course id, so EVERY course has its own
+// saved conversation (switching the active course loads the right thread).
+const roomStateCache: Record<string, ChatState> = {};
+function roomMsgsKey(roomKey: string): string { return `ava-${roomKey}-room-messages`; }
+function readRoomMessages(roomKey: string): UIMessage[] | null {
+  try { const raw = sessionStorage.getItem(roomMsgsKey(roomKey)); const v = raw ? JSON.parse(raw) : null; return Array.isArray(v) && v.length ? v : null; } catch { return null; }
 }
-function writeHealthRoomMessages(messages: UIMessage[]): void {
-  try { sessionStorage.setItem(HEALTH_ROOM_MSGS_KEY, JSON.stringify(messages)); } catch { /* quota / unavailable */ }
+function writeRoomMessages(roomKey: string, messages: UIMessage[]): void {
+  try { sessionStorage.setItem(roomMsgsKey(roomKey), JSON.stringify(messages)); } catch { /* quota / unavailable */ }
 }
-function clearHealthRoomMessages(): void {
-  try { sessionStorage.removeItem(HEALTH_ROOM_MSGS_KEY); } catch { /* ignore */ }
+function clearRoomMessages(roomKey: string): void {
+  try { sessionStorage.removeItem(roomMsgsKey(roomKey)); } catch { /* ignore */ }
 }
 
 const initialState: ChatState = {
@@ -768,26 +773,35 @@ export interface ChatPageProps {
    *  instead of the generic gradient + person SVG. */
   userAvatarUrl?: string | null;
   /** Conversation lane this surface drives. 'main' (default) is the normal
-   *  chat. 'health' is the focused Ava Health & Fitness room — every send is
-   *  tagged surface:'health' so the host runs it on the separate health thread,
-   *  and forced into health mode so the room's briefing always applies. */
-  lane?: 'main' | 'health';
+   *  chat. 'health' is the focused Ava Health & Fitness room and 'learning' is
+   *  the focused Learning room — every send is tagged surface:<lane> so the host
+   *  runs it on the separate thread, and forced into the room's mode (health /
+   *  teach) so the room's briefing + tools always apply. */
+  lane?: 'main' | 'health' | 'learning';
+  /** For the learning lane: which course this thread belongs to. Drives the
+   *  per-course thread key (and is sent with every turn) so each course keeps
+   *  its own saved conversation. The caller remounts (via React `key`) when the
+   *  active course changes, so this is effectively fixed for a mounted instance. */
+  courseId?: string;
 }
 
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
 // for caller compatibility but are no longer consumed — the chat header
 // dropped its sidebar-toggle button to match the IDE chat header.
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main' }: ChatPageProps) {
-  // Health room rehydrates so its conversation survives both navigation (module
-  // cache) and a webview reload (sessionStorage messages). The main chat always
-  // starts fresh (it's never unmounted).
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId }: ChatPageProps) {
+  // Per-room thread key — for learning it includes the course id, so each course
+  // has its own saved conversation. 'main' never persists (always-mounted).
+  const roomKey = lane === 'main' ? '' : `${lane}${courseId ? ':' + courseId : ''}`;
+  // Rooms rehydrate so the conversation survives navigation (module cache) and a
+  // webview reload (sessionStorage). The main chat always starts fresh.
   const [state, dispatch] = useReducer(
     chatReducer,
     initialState,
     (init) => {
-      if (lane !== 'health') return init;
-      if (healthRoomStateCache) return healthRoomStateCache;
-      const saved = readHealthRoomMessages();
+      if (lane === 'main') return init;
+      const cached = roomStateCache[roomKey];
+      if (cached) return cached;
+      const saved = readRoomMessages(roomKey);
       return saved ? { ...init, messages: saved } : init;
     },
   );
@@ -797,10 +811,10 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
   // (gated on !isStreaming to avoid a serialize-per-token storm) so a refresh
   // restores them.
   useEffect(() => {
-    if (lane !== 'health') return;
-    healthRoomStateCache = state;
-    if (!state.isStreaming) writeHealthRoomMessages(state.messages);
-  }, [state, lane]);
+    if (lane === 'main') return;
+    roomStateCache[roomKey] = state;
+    if (!state.isStreaming) writeRoomMessages(roomKey, state.messages);
+  }, [state, lane, roomKey]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
 
@@ -933,12 +947,12 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     // In the health room every turn is health-scoped — force the mode so the
     // briefing always applies, and tag the lane so the host runs it on the
     // separate health thread.
-    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : mode, attachments, surface: lane });
-  }, [lane]);
+    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : mode, attachments, surface: lane, courseId });
+  }, [lane, courseId]);
 
   const handlePaletteAction = useCallback((tool: PaletteTool, action: string, mode: AvaMode) => {
-    post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : mode, surface: lane });
-  }, [lane]);
+    post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : mode, surface: lane, courseId });
+  }, [lane, courseId]);
 
   const handleModelSwitch = useCallback((modelId: string) => {
     post({ type: 'switch_model', modelId });
@@ -965,16 +979,18 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     post({ type: 'new_chat' });
   }, []);
 
-  /** Clear ONLY this room's conversation — the health thread. Resets the view +
-   *  the module cache, and tells the host to drop its healthConversation. The
-   *  main chat is untouched (separate lane). The room uses this in place of
-   *  New Chat. */
+  /** Clear ONLY this room's conversation (the health / learning thread). Resets
+   *  the view + the module cache, and tells the host to drop its room
+   *  conversation. The main chat is untouched (separate lane). The room uses
+   *  this in place of New Chat. */
   const handleClearChat = useCallback(() => {
     dispatch({ type: 'chat_cleared' } as ChatAction);
-    healthRoomStateCache = null;
-    clearHealthRoomMessages();
-    post({ type: 'clear_chat', surface: 'health' });
-  }, []);
+    if (lane !== 'main') {
+      delete roomStateCache[roomKey];
+      clearRoomMessages(roomKey);
+      post({ type: 'clear_chat', surface: lane, courseId });
+    }
+  }, [lane, roomKey, courseId]);
 
   // History panel handlers (handleLoadConversation / handleDeleteConversation
   // / handleSearchHistory / handleRenameConversation / handlePinConversation
@@ -989,11 +1005,11 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     if (lastUserMsg?.content) {
       // Remove the error message first so it doesn't accumulate
       dispatch({ type: 'remove_last_error' });
-      post({ type: 'send_message', text: lastUserMsg.content, mode: lane === 'health' ? 'health' : 'code', surface: lane });
+      post({ type: 'send_message', text: lastUserMsg.content, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : 'code', surface: lane, courseId });
     } else {
-      post({ type: 'send_message', text: t('app.continue'), mode: lane === 'health' ? 'health' : 'code', surface: lane });
+      post({ type: 'send_message', text: t('app.continue'), mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : 'code', surface: lane, courseId });
     }
-  }, [state.messages, lane]);
+  }, [state.messages, lane, courseId]);
 
   // Repurposed as a prefill hook for empty-state starter chips. Was
   // previously wired to immediately send. Prefilling lets the operator
@@ -1115,12 +1131,12 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             conversationTitle={state.conversationTitle}
             sessionCredits={state.sessionCredits}
             platformStatus={state.platformStatus}
-            showNewChat={lane !== 'health'}
+            showNewChat={lane === 'main'}
             showClearChat={lane === 'health'}
             onClearChat={handleClearChat}
           />
 
-          {(state.accountLoading || (lane !== 'health' && state.historyLoading)) ? (
+          {(state.accountLoading || (lane === 'main' && state.historyLoading)) ? (
             <div
               role="status"
               aria-live="polite"
@@ -1211,7 +1227,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
               state.models.find((m) => m.id === state.activeModel)?.supportsVision
             }
             prefill={pendingPrefill}
-            lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : undefined}
+            lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : lane === 'learning' ? t('learning.room.mode_label') : undefined}
           />
 
           {/* HistoryPanel slide-over removed — dashboard chat routes
@@ -1236,7 +1252,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
         {/* Tasks — always present: full panel when open, thin self-advertising
             spine when collapsed. The Ava Health room is focused on plans, not
             tasks, so the rail is omitted there entirely. */}
-        {lane !== 'health' && (state.tasksOpen ? (
+        {lane === 'main' && (state.tasksOpen ? (
           <TasksPanel
             todayTasks={state.todayTasks}
             allTasks={state.allTasks}

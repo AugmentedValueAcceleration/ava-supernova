@@ -21,6 +21,7 @@ import { DocumentationPage } from './pages/DocumentationPage';
 import { ArticleReader } from './pages/ArticleReader';
 import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import { Health } from './pages/Health';
+import { LearningRoom } from './pages/LearningRoom';
 import type {
   Page,
   AccountInfo,
@@ -41,6 +42,7 @@ import type {
   UsageLogEntry,
   ExtToDashboardMessage,
   DashboardLearningCurriculum,
+  LearnerProfilePayload,
   ReleaseNote,
   LibraryImage,
   LibraryPath,
@@ -106,6 +108,14 @@ export function App() {
   const registerHealthChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
     healthChatDispatchRef.current = fn;
     // Replay cached setup so the freshly-mounted room has account/provider/model.
+    for (const cached of lastChatSetupRef.current.values()) fn(cached);
+  }, []);
+  // Third chat dispatch — the focused Learning room. Same pattern as health:
+  // host events from a learning-lane turn are tagged lane:'learning' and routed
+  // here, never the main chat. Reuses the shared setup cache above.
+  const learningChatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
+  const registerLearningChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
+    learningChatDispatchRef.current = fn;
     for (const cached of lastChatSetupRef.current.values()) fn(cached);
   }, []);
 
@@ -205,6 +215,7 @@ export function App() {
   });
   const [libraryPaths, setLibraryPaths] = useState<LibraryPath[]>([]);
   const [libraryPathDetail, setLibraryPathDetail] = useState<LibraryPathDetail | null>(null);
+  const [learnerProfilePayload, setLearnerProfilePayload] = useState<LearnerProfilePayload | null>(null);
   // Library → Papers state. Three sub-tabs cached independently so
   // switching tabs doesn't refetch already-loaded data.
   const [papersByTab, setPapersByTab] = useState<Record<PapersTab, LibraryPaper[]>>({
@@ -291,6 +302,7 @@ export function App() {
   // navigates here wanting a specific tab; Health consumes it once on
   // mount then clears it so a later sidebar visit lands on the default.
   const [healthInitialTab, setHealthInitialTab] = useState<'exercises' | 'recipes' | 'ava' | null>(null);
+  const [learningInitialTab, setLearningInitialTab] = useState<'courses' | 'my-learning' | 'ava' | null>(null);
   // Multi-week Plans — the library (lightweight summaries) plus the one
   // full plan currently open in the editor. Loaded on dashboard mount.
   const [healthPlans, setHealthPlans] = useState<HealthPlanSummary[]>([]);
@@ -559,7 +571,9 @@ export function App() {
 
   // ── Local-first persistence ─────────────────────────────────────────────
   useEffect(() => { try { localStorage.setItem('ava-dash-tasks', JSON.stringify(tasks)); } catch {} }, [tasks]);
-  useEffect(() => { if (learningCurriculums.length > 0) { try { localStorage.setItem('ava-dash-learning', JSON.stringify(learningCurriculums)); } catch {} } }, [learningCurriculums]);
+  // Always persist (incl. an empty list) so deleting the last course clears the
+  // cache — the old `length > 0` guard left a stale course that re-appeared.
+  useEffect(() => { try { localStorage.setItem('ava-dash-learning', JSON.stringify(learningCurriculums)); } catch {} }, [learningCurriculums]);
   useEffect(() => { if (journalDay) { try { localStorage.setItem(`ava-dash-journal-${selectedJournalDate}`, JSON.stringify(journalDay)); } catch {} } }, [journalDay, selectedJournalDate]);
   useEffect(() => { if (personalityData) { try { localStorage.setItem('ava-dash-personality', JSON.stringify(personalityData)); } catch {} } }, [personalityData]);
 
@@ -583,19 +597,25 @@ export function App() {
     // health surface; everything else (incl. shared setup like chat_init) goes
     // to the main chat — and ALSO to the health surface so it has the same
     // model/account context. Each surface still filters CHAT_MESSAGE_TYPES.
-    const lane = (msg as { lane?: 'main' | 'health' }).lane;
+    const lane = (msg as { lane?: 'main' | 'health' | 'learning' }).lane;
     // The host remaps init → chat_init and platform_status → chat_platform_status
     // before they reach the dashboard, so those are the only setup types seen
-    // here. Mirror them to the health surface so its chat has model/account
+    // here. Mirror them to the room surfaces so their chats have model/account
     // context too — and cache the latest of each so a room mounted later (when
-    // the user first opens Health) gets them replayed on registration.
-    const isHealthSetup = msg.type === 'chat_init' || msg.type === 'chat_platform_status';
-    if (isHealthSetup) lastChatSetupRef.current.set(msg.type, msg);
+    // the user first opens Health / Learning) gets them replayed on registration.
+    const isChatSetup = msg.type === 'chat_init' || msg.type === 'chat_platform_status';
+    if (isChatSetup) lastChatSetupRef.current.set(msg.type, msg);
     if (lane === 'health') {
       healthChatDispatchRef.current?.(msg);
+    } else if (lane === 'learning') {
+      learningChatDispatchRef.current?.(msg);
+      // When a learning turn settles, refresh the course state so the course-path
+      // sidebar + My Courses + the active course (and any just-created course)
+      // reflect the progress Ava made in chat.
+      if (msg.type === 'done') { post({ type: 'load_learning' }); post({ type: 'load_learning_profile' }); }
     } else {
       chatDispatchRef.current?.(msg);
-      if (isHealthSetup) healthChatDispatchRef.current?.(msg);
+      if (isChatSetup) { healthChatDispatchRef.current?.(msg); learningChatDispatchRef.current?.(msg); }
     }
 
     // Auto-register every data source the moment its first load lands —
@@ -843,14 +863,16 @@ export function App() {
         setSupportUnread(msg.count);
         break;
       case 'learning_loaded':
-        setLearningCurriculums(prev => {
-          const cloudIds = new Set(msg.curriculums.map((c: any) => c.id));
-          const localOnly = prev.filter(c => !cloudIds.has(c.id));
-          return [...msg.curriculums, ...localOnly];
-        });
+        // The host reads the LOCAL learning.json (the single source of truth —
+        // learning is local-only). Replace wholesale; never merge in cached
+        // curricula, or a deleted course re-appears from the stale cache.
+        setLearningCurriculums(msg.curriculums);
         break;
       case 'curriculum_deleted':
         setLearningCurriculums(prev => prev.filter(c => c.id !== msg.id));
+        break;
+      case 'learning_profile_loaded':
+        setLearnerProfilePayload(msg.payload);
         break;
       case 'library_paths_loaded':
         setLibraryPaths(msg.paths);
@@ -1190,21 +1212,64 @@ export function App() {
     }
   }, [page]);
 
+  // Learning room data — the course catalogue + the user's curriculums. Both
+  // messages + their reducers already exist (load_library_paths / load_learning);
+  // cheap local-first reads, fires on entering the page.
+  useEffect(() => {
+    if (page === 'learning-room') {
+      post({ type: 'load_learning' });
+      post({ type: 'load_library_paths' });
+      post({ type: 'load_learning_profile' });
+    }
+  }, [page]);
+
   // Main-chat → Health room handoff. When Ava (in the main chat) calls
   // open_health_room for a plan request, the handoff button dispatches this
   // event; we jump to Health → the Ava room and seed it with the plan type so
   // she picks up building right where they left off. Same path as onAskAvaPlan.
   useEffect(() => {
     const onOpenRoom = (e: Event) => {
-      const planType = (e as CustomEvent).detail as string | undefined;
+      // detail is { planType, primer } (older callers may pass a bare string).
+      const raw = (e as CustomEvent).detail;
+      const planType: string | undefined = typeof raw === 'string' ? raw : raw?.planType;
+      const primer: string | undefined = typeof raw === 'string' ? undefined : raw?.primer;
       setHealthInitialTab('ava');
       setPagePersist('health');
-      if (planType === 'fitness' || planType === 'meal' || planType === 'combined') {
+      // Carry the user's specific request into the room so it continues the
+      // conversation. Falls back to the structured plan-kick when they gave no
+      // free-text detail.
+      if (primer && primer.trim()) {
+        post({ type: 'send_message', text: primer.trim(), mode: 'health', surface: 'health' });
+      } else if (planType === 'fitness' || planType === 'meal' || planType === 'combined') {
         post({ type: 'palette_intent', tool: 'plans', action: planType, mode: 'health', surface: 'health' });
       }
     };
     window.addEventListener('ava-open-health-room', onOpenRoom);
     return () => window.removeEventListener('ava-open-health-room', onOpenRoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Main-chat → Learning room handoff. When Ava (in the main chat) calls
+  // open_learning_room, the handoff button dispatches this event; we jump to the
+  // Learning room → the Ava tab and seed it with the topic so she starts building
+  // the course right there (mode 'teach', lane 'learning').
+  useEffect(() => {
+    const onOpenRoom = (e: Event) => {
+      // detail is { topic, primer } (older callers may pass a bare string).
+      const raw = (e as CustomEvent).detail;
+      const topic: string | undefined = typeof raw === 'string' ? raw : raw?.topic;
+      const primer: string | undefined = typeof raw === 'string' ? undefined : raw?.primer;
+      setLearningInitialTab('ava');
+      setPagePersist('learning-room');
+      // Prefer the user's own specific request (primer) so the room continues
+      // their conversation; fall back to a topic-shaped opener, then a generic.
+      const text = (primer && primer.trim())
+        ? primer.trim()
+        : topic ? `I'd like to learn ${topic}.` : `I'd like to start learning something.`;
+      post({ type: 'send_message', text, mode: 'teach', surface: 'learning' });
+    };
+    window.addEventListener('ava-open-learning-room', onOpenRoom);
+    return () => window.removeEventListener('ava-open-learning-room', onOpenRoom);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1304,6 +1369,11 @@ export function App() {
     if (page === 'learning-library') {
       setPagePersist('library');
     }
+    // Back-compat: 'learning' was the Planner's Learning tab; learning now has
+    // its own room. Redirect any stale persisted/deep-linked value there.
+    if (page === 'learning') {
+      setPagePersist('learning-room');
+    }
     // Load personality when navigating to personality page
     if (page === 'personality') {
       post({ type: 'load_personality' });
@@ -1382,10 +1452,13 @@ export function App() {
         return null; // Chat is rendered separately (always mounted)
 
       // ── Consolidated pages ──────────────────────────────────────────
+      // 'learning' is redirected to 'learning-room' in the page-change effect
+      // above (learning moved out of the Planner into its own room).
+      case 'learning':
+        return null;
       case 'planner':
       case 'tasks':
       case 'journal':
-      case 'learning':
         return (
           <Planner
             tasks={tasks}
@@ -1400,10 +1473,8 @@ export function App() {
             journalYearSummaries={journalYearSummaries}
             onChangeJournalMonth={(y, m) => { setJournalYear(y); setJournalMonth(m); post({ type: 'load_journal_month', year: y, month: m }); if (y !== journalYear) post({ type: 'load_journal_year', year: y }); }}
             onClearJournalSearch={() => setJournalSearchHits(null)}
-            learningCurriculums={learningCurriculums}
             tasksLoaded={isLoaded('tasks')}
             journalLoaded={isLoaded('journal_day')}
-            learningLoaded={isLoaded('learning')}
             healthPlans={healthPlans}
             activeHealthPlans={activeHealthPlans}
             healthPlanOpen={healthPlanOpen}
@@ -1548,9 +1619,6 @@ export function App() {
       case 'library':
         return (
           <Library
-            paths={libraryPaths}
-            pathDetail={libraryPathDetail}
-            onNavigate={setPagePersist}
             papersByTab={papersByTab}
             papersTabLoading={papersTabLoading}
             paperSearchResults={paperSearchResults}
@@ -1608,6 +1676,22 @@ export function App() {
             userAvatarUrl={account?.avatar_url ?? null}
             initialTab={healthInitialTab}
             onConsumeInitialTab={() => setHealthInitialTab(null)}
+          />
+        );
+      case 'learning-room':
+        return (
+          <LearningRoom
+            paths={libraryPaths}
+            pathDetail={libraryPathDetail}
+            onNavigate={setPagePersist}
+            learningCurriculums={learningCurriculums}
+            learningLoaded={isLoaded('learning')}
+            learnerProfile={learnerProfilePayload}
+            onRegisterLearningChatDispatch={registerLearningChatDispatch}
+            userName={account?.name?.split(' ')[0] ?? null}
+            userAvatarUrl={account?.avatar_url ?? null}
+            initialTab={learningInitialTab}
+            onConsumeInitialTab={() => setLearningInitialTab(null)}
           />
         );
     }

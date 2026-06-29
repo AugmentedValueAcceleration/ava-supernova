@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { t, tt, useLocale } from '../../i18n';
+import { Icon } from '../../components/Icon';
 import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI } from '../../types/messages';
 
 
@@ -847,7 +848,7 @@ function TaskItem({
                 <span className="text-[9px] text-[var(--text-muted)] opacity-70" title={tt('tasks.recurrence', 'Repeat')}>↻ {recurs}</span>
               )}
               {remind && (
-                <span className="text-[9px] text-[var(--text-muted)] opacity-70" title={tt('tasks.reminder', 'Reminder')}>🔔 {remind}</span>
+                <span className="inline-flex items-center gap-1 text-[9px] text-[var(--text-muted)] opacity-70" title={tt('tasks.reminder', 'Reminder')}><Icon.bell size={9} /> {remind}</span>
               )}
               {subs.length > 0 && (
                 <span className="text-[9px] text-[var(--text-muted)] opacity-70" title={tt('tasks.subtasks', 'Subtasks')}>
@@ -855,8 +856,8 @@ function TaskItem({
                 </span>
               )}
               {task.context && (
-                <span className="text-[9px] text-[var(--text-muted)] opacity-60 truncate max-w-[120px]" title={task.context.label || task.context.ref}>
-                  📎 {task.context.label || task.context.kind}
+                <span className="inline-flex items-center gap-1 text-[9px] text-[var(--text-muted)] opacity-60 truncate max-w-[120px]" title={task.context.label || task.context.ref}>
+                  <Icon.paperclip size={9} /> {task.context.label || task.context.kind}
                 </span>
               )}
             </div>
@@ -904,8 +905,8 @@ function TaskItem({
           )}
 
           {task.context && (
-            <div className="text-[10px] text-[var(--text-muted)] opacity-70">
-              📎 {tt('tasks.from', 'From')} {task.context.label || task.context.kind}
+            <div className="inline-flex items-center gap-1 text-[10px] text-[var(--text-muted)] opacity-70">
+              <Icon.paperclip size={10} /> {tt('tasks.from', 'From')} {task.context.label || task.context.kind}
             </div>
           )}
 

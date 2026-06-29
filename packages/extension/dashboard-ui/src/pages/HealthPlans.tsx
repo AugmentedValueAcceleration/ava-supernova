@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Icon } from '../components/Icon';
 import { t, tt, useLocale } from '../i18n';
 import { Select } from '../components/Select';
 // The rich, tabbed catalogue detail bodies — reused so a recipe/exercise opened
@@ -499,7 +500,7 @@ function planDayForDate(plan: HealthPlan, dateKey: string): HealthPlanDay | null
 }
 
 interface DayAgendaItem { id: string; kind: 'exercise' | 'recipe'; slug?: string; title: string; meta?: string; slot?: string; thumb?: string | null; planId: string; planTitle: string; itemId: string; dayIndex: number }
-interface DayAgendaSection { key: string; label: string; icon: string; accent: string; items: DayAgendaItem[] }
+interface DayAgendaSection { key: string; label: string; icon: React.ReactNode; accent: string; items: DayAgendaItem[] }
 
 function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onClose, onNewPlan,
   onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes }: {
@@ -658,8 +659,8 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
     }
     const { totals, estimated } = dayTotals({ day_index: 0, kind: 'rest', title: null, training: [], meals: allMeals, notes: null }, recipeDetails);
     const sections: DayAgendaSection[] = [
-      { key: 'training', label: t('health.plans.training'), icon: '🏋', accent: 'var(--accent)', items: training },
-      { key: 'meals', label: t('health.plans.meals'), icon: '🍽', accent: '#f59e0b', items: meals },
+      { key: 'training', label: t('health.plans.training'), icon: <Icon.fitness size={14} />, accent: 'var(--accent)', items: training },
+      { key: 'meals', label: t('health.plans.meals'), icon: <Icon.meal size={14} />, accent: '#f59e0b', items: meals },
     ];
     return { sections, mealTotals: totals, mealsEstimated: estimated, hasMeals: allMeals.length > 0 };
   }, [dateKey, editing, working, plans, exerciseDetails, recipeDetails]);
@@ -813,7 +814,7 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
 /** The thumbnail + title/meta/plan block — shared by the read card and the edit
  *  card so both look identical (image-1 design); only the trailing control
  *  differs (a chevron vs swap/delete). */
-function AgendaCardInner({ item, icon, accent }: { item: DayAgendaItem; icon: string; accent: string }) {
+function AgendaCardInner({ item, icon, accent }: { item: DayAgendaItem; icon: React.ReactNode; accent: string }) {
   return (
     <>
       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/[0.06]">
@@ -852,7 +853,7 @@ function InlineCatalogSearch({ kind, mode, accent, results, searching, onSearch,
     return () => clearTimeout(tmr);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
-  const icon = kind === 'exercise' ? '🏋' : '🍽';
+  const icon = kind === 'exercise' ? <Icon.fitness size={14} /> : <Icon.meal size={14} />;
   return (
     <div className="mb-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] p-2">
       <div className="mb-2 flex items-center gap-2">
@@ -1351,8 +1352,8 @@ function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelec
             const isSelected = key === selected;
             const hasContent = !!mk && (mk.training || mk.meals);
             const items = c ? [
-              ...c.training.map((name) => ({ icon: '🏋', name })),
-              ...c.meals.map((name) => ({ icon: '🍽', name })),
+              ...c.training.map((name) => ({ icon: <Icon.fitness size={11} />, name })),
+              ...c.meals.map((name) => ({ icon: <Icon.meal size={11} />, name })),
             ] : [];
             const shown = items.slice(0, fill ? 4 : 2);
             const extra = items.length - shown.length;

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
+import { Icon } from '../components/Icon';
 import type { LibraryPath, LibraryPathDetail, Page } from '../types/messages';
 
 type ColorPair = { color: string; background: string };
@@ -167,10 +168,10 @@ export function LearningLibrary({ paths, detail }: Props) {
           {/* Stats row */}
           <div style={{ display: 'flex', gap: 20, marginTop: 18, flexWrap: 'wrap' }}>
             {selected.estimated_hours ? <Stat icon={'⏱'} label={`${selected.estimated_hours}h`} sub={t('learning_library.stat_estimated')} /> : null}
-            <Stat icon={'👥'} label={String(selected.fork_count)} sub={t('dash.learning_library.learners')} />
-            {selected.average_rating ? <Stat icon={'⭐'} label={`${selected.average_rating}/5`} sub={t('learning_library.stat_rating')} /> : null}
-            {moduleCount > 0 ? <Stat icon={'📦'} label={String(moduleCount)} sub={`module${moduleCount !== 1 ? 's' : ''}`} /> : null}
-            {lessonCount > 0 ? <Stat icon={'📝'} label={String(lessonCount)} sub={`lesson${lessonCount !== 1 ? 's' : ''}`} /> : null}
+            <Stat icon={<Icon.users size={15} />} label={String(selected.fork_count)} sub={t('dash.learning_library.learners')} />
+            {selected.average_rating ? <Stat icon={<Icon.star size={15} />} label={`${selected.average_rating}/5`} sub={t('learning_library.stat_rating')} /> : null}
+            {moduleCount > 0 ? <Stat icon={<Icon.package size={15} />} label={String(moduleCount)} sub={`module${moduleCount !== 1 ? 's' : ''}`} /> : null}
+            {lessonCount > 0 ? <Stat icon={<Icon.note size={15} />} label={String(lessonCount)} sub={`lesson${lessonCount !== 1 ? 's' : ''}`} /> : null}
           </div>
         </div>
 
@@ -400,25 +401,30 @@ export function LearningLibrary({ paths, detail }: Props) {
                 e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              {/* Identity band */}
+              {/* Identity band — cover image when present, else gradient + icon */}
               <div
                 style={{
-                  height: 78, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '0 16px', position: 'relative',
-                  background: `linear-gradient(135deg, ${id.from}, ${id.to})`,
+                  height: 96, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                  padding: '12px 14px', position: 'relative',
+                  background: path.cover_image_url
+                    ? `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.45)), center/cover no-repeat url(${path.cover_image_url})`
+                    : `linear-gradient(135deg, ${id.from}, ${id.to})`,
                 }}
               >
-                <div
-                  style={{
-                    width: 42, height: 42, borderRadius: 12, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: 22, background: 'rgba(0,0,0,0.18)',
-                  }}
-                >
-                  {id.icon}
-                </div>
+                {!path.cover_image_url && (
+                  <div
+                    style={{
+                      width: 42, height: 42, borderRadius: 12, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', fontSize: 22, background: 'rgba(0,0,0,0.18)',
+                    }}
+                  >
+                    {id.icon}
+                  </div>
+                )}
                 <span style={{
+                  marginLeft: 'auto',
                   padding: '3px 9px', borderRadius: 999, fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px',
-                  background: 'rgba(0,0,0,0.22)', color: '#fff',
+                  background: 'rgba(0,0,0,0.32)', color: '#fff',
                 }}>
                   {path.source === 'curated' ? t('dash.learning_library.curated') : t('dash.learning_library.community')}
                 </span>
@@ -468,7 +474,7 @@ export function LearningLibrary({ paths, detail }: Props) {
 }
 
 // A small stat block for the course-detail hero — icon, bold value, quiet label.
-function Stat({ icon, label, sub }: { icon: string; label: string; sub: string }) {
+function Stat({ icon, label, sub }: { icon: React.ReactNode; label: string; sub: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>

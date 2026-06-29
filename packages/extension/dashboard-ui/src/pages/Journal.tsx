@@ -3,6 +3,7 @@ import { t, useLocale } from '../i18n';
 import { Skeleton } from '../components/Skeleton';
 import { Select } from '../components/Select';
 import { PlusIcon } from '../components/Icons';
+import { Icon } from '../components/Icon';
 import { MiniDatePicker } from '../components/MiniDatePicker';
 import { post } from '../vscode';
 import { MarkdownRenderer } from '../chat/components/MarkdownRenderer';
@@ -199,7 +200,7 @@ export function Journal({ year, month, monthEntries, kinds, searchHits, yearSumm
             {k.label}
           </button>
         ))}
-        <button onClick={() => setShowKinds(true)} title={t('dash.journal.manage_kinds')} className="px-2 py-1 rounded-full text-[11px] border border-[var(--border-card)] text-[var(--text-muted)] hover:text-white bg-transparent cursor-pointer transition">⚙</button>
+        <button onClick={() => setShowKinds(true)} title={t('dash.journal.manage_kinds')} className="flex items-center px-2 py-1 rounded-full text-[11px] border border-[var(--border-card)] text-[var(--text-muted)] hover:text-white bg-transparent cursor-pointer transition"><Icon.gear size={12} /></button>
         <span className="mx-1 w-px h-4 self-center" style={{ background: 'var(--border-card)' }} />
         {([['user', 'dash.journal.filter_you'], ['ava', 'dash.journal.filter_ava']] as const).map(([a, key]) => (
           <button

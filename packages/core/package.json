@@ -60,6 +60,16 @@
       "import": "./dist/health/index.js",
       "require": "./dist/health/index.js",
       "types": "./dist/health/index.d.ts"
+    },
+    "./learning": {
+      "import": "./dist/learning/index.js",
+      "require": "./dist/learning/index.js",
+      "types": "./dist/learning/index.d.ts"
+    },
+    "./learning/export": {
+      "import": "./dist/learning/progression-export.js",
+      "require": "./dist/learning/progression-export.js",
+      "types": "./dist/learning/progression-export.d.ts"
     }
   },
   "scripts": {

@@ -1118,6 +1118,12 @@ export class MemoryManager {
 
   /** Get all entries for a scope (for dashboard display). */
   async getEntries(scope: 'global' | 'project'): Promise<MemoryEntry[]> {
+    // Wait for the v3 graph to finish its async init before reading — otherwise
+    // a caller right after construction (e.g. the dashboard's get_memories) hits
+    // a null graph and silently falls back to the stale v2 store / empty list.
+    // recall() already guards this way; getEntries must too so the dashboard
+    // always sees the authoritative graph.
+    await this.ensureGraphReady();
     // v3: prefer graph nodes when available (MemoryNode extends MemoryEntry
     // so the return type is compatible). Falls back to v2 store if graph
     // isn't initialized yet.

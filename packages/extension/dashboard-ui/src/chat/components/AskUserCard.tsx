@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../../types/messages';
 import { t, useLocale } from '../../i18n';
+import { Icon } from '../../components/Icon';
 
 interface AskUserCardProps {
   toolCall: ToolCallDisplay;
@@ -35,7 +36,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2"
            style={{ backgroundColor: isPending ? 'rgba(55, 148, 255, 0.08)' : 'transparent' }}>
-        <span className="text-sm">💬</span>
+        <span className="text-[var(--accent)]"><Icon.chat size={14} /></span>
         <span className="text-xs font-semibold uppercase tracking-wide opacity-70">
           {t('ask.question')}
         </span>

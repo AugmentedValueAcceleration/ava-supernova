@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { t, useLocale } from '../i18n';
+import { Icon } from '../components/Icon';
 import type { HealthPlan } from '../types/messages';
 
 /**
@@ -68,7 +69,7 @@ export function WeeklyPlanView({ plans, view }: { plans: HealthPlan[]; view: 'to
   if (plans.length === 0) {
     return (
       <div className="mx-auto mt-2 max-w-[520px] rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/5 px-6 py-7 text-center">
-        <div className="mb-2 text-[28px]">🗓️</div>
+        <div className="mb-2 flex justify-center text-[var(--accent)]"><Icon.calendar size={28} /></div>
         <div className="mb-1.5 text-[14px] font-semibold text-[var(--text-primary)]">{t('health.week.empty.title')}</div>
         <p className="m-0 text-[12px] leading-relaxed text-[var(--text-muted)]">{t('health.week.empty.body')}</p>
       </div>
@@ -92,7 +93,7 @@ export function WeeklyPlanView({ plans, view }: { plans: HealthPlan[]; view: 'to
             <div className="flex flex-col gap-1.5">
               {tr.map((name, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-lg border border-[var(--accent)]/15 bg-[var(--accent)]/[0.06] px-3 py-2 text-[13px] text-[var(--text-primary)]">
-                  <span aria-hidden>🏋</span>{name}
+                  <span aria-hidden><Icon.fitness size={12} /></span>{name}
                 </div>
               ))}
             </div>
@@ -104,7 +105,7 @@ export function WeeklyPlanView({ plans, view }: { plans: HealthPlan[]; view: 'to
             <div className="flex flex-col gap-1.5">
               {ml.map((m, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-[13px] text-[var(--text-primary)]">
-                  <span aria-hidden>🍽</span><span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{m.slot}</span>{m.name}
+                  <span aria-hidden><Icon.meal size={12} /></span><span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{m.slot}</span>{m.name}
                 </div>
               ))}
             </div>
@@ -132,7 +133,7 @@ export function WeeklyPlanView({ plans, view }: { plans: HealthPlan[]; view: 'to
             {cell.training.length > 0 && (
               <div className="flex flex-col gap-[3px]">
                 {cell.training.slice(0, 4).map((name, i) => (
-                  <div key={i} className="flex gap-1 text-[10px] leading-tight text-[var(--text-secondary)]"><span aria-hidden className="opacity-70">🏋</span><span className="truncate">{name}</span></div>
+                  <div key={i} className="flex gap-1 text-[10px] leading-tight text-[var(--text-secondary)]"><span aria-hidden className="opacity-70"><Icon.fitness size={11} /></span><span className="truncate">{name}</span></div>
                 ))}
                 {cell.training.length > 4 && <div className="text-[9px] text-[var(--text-muted)]">+{cell.training.length - 4} more</div>}
               </div>
@@ -140,7 +141,7 @@ export function WeeklyPlanView({ plans, view }: { plans: HealthPlan[]; view: 'to
             {cell.meals.length > 0 && (
               <div className="mt-auto flex flex-col gap-[3px]">
                 {cell.meals.slice(0, 4).map((m, i) => (
-                  <div key={i} className="flex gap-1 text-[10px] leading-tight text-[var(--text-secondary)]"><span aria-hidden className="opacity-70">🍽</span><span className="truncate">{m.name}</span></div>
+                  <div key={i} className="flex gap-1 text-[10px] leading-tight text-[var(--text-secondary)]"><span aria-hidden className="opacity-70"><Icon.meal size={11} /></span><span className="truncate">{m.name}</span></div>
                 ))}
                 {cell.meals.length > 4 && <div className="text-[9px] text-[var(--text-muted)]">+{cell.meals.length - 4} more</div>}
               </div>

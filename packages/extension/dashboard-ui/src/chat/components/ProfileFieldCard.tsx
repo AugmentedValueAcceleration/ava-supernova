@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../../types/messages';
 import { t, useLocale } from '../../i18n';
+import { Icon } from '../../components/Icon';
 // Shared field registry — same source the host saves from, so "what Ava asks",
 // "what this card renders", and "where it saves" never drift. Imported from the
 // built core (mirrors the i18n import convention; keeps node-only deps out of
@@ -72,7 +73,7 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
       {/* Header */}
       <div className="flex items-center gap-2 px-3.5 py-2"
            style={{ background: isPending ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'transparent' }}>
-        <span className="text-[13px]">🧩</span>
+        <span className="text-[var(--accent)]"><Icon.puzzle size={14} /></span>
         <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
           {def ? t(def.labelKey) : t('health.fill.field.goal')}
         </span>

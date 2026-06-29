@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
+import { Icon } from '../components/Icon';
 
 interface SupportMessage {
   id: string;
@@ -29,13 +30,13 @@ interface SupportConversation {
 // Intent-based ticket reasons (migration 317) — same set as web + IDE.
 // label/placeholder carry i18n keys resolved with t() at render time.
 const SUPPORT_CATEGORIES = [
-  { slug: 'bug',      labelKey: 'support.cat.bug',      icon: '🐞', placeholderKey: 'support.cat.bug.placeholder' },
-  { slug: 'question', labelKey: 'support.cat.question', icon: '❓', placeholderKey: 'support.cat.question.placeholder' },
-  { slug: 'feature',  labelKey: 'support.cat.feature',  icon: '✨', placeholderKey: 'support.cat.feature.placeholder' },
-  { slug: 'billing',  labelKey: 'support.cat.billing',  icon: '💳', placeholderKey: 'support.cat.billing.placeholder' },
-  { slug: 'account',  labelKey: 'support.cat.account',  icon: '👤', placeholderKey: 'support.cat.account.placeholder' },
-  { slug: 'feedback', labelKey: 'support.cat.feedback', icon: '💬', placeholderKey: 'support.cat.feedback.placeholder' },
-  { slug: 'other',    labelKey: 'support.cat.other',    icon: '💭', placeholderKey: 'support.cat.other.placeholder' },
+  { slug: 'bug',      labelKey: 'support.cat.bug',      icon: <Icon.bug size={14} />, placeholderKey: 'support.cat.bug.placeholder' },
+  { slug: 'question', labelKey: 'support.cat.question', icon: <Icon.quiz size={14} />, placeholderKey: 'support.cat.question.placeholder' },
+  { slug: 'feature',  labelKey: 'support.cat.feature',  icon: <Icon.sparkle size={14} />, placeholderKey: 'support.cat.feature.placeholder' },
+  { slug: 'billing',  labelKey: 'support.cat.billing',  icon: <Icon.card size={14} />, placeholderKey: 'support.cat.billing.placeholder' },
+  { slug: 'account',  labelKey: 'support.cat.account',  icon: <Icon.user size={14} />, placeholderKey: 'support.cat.account.placeholder' },
+  { slug: 'feedback', labelKey: 'support.cat.feedback', icon: <Icon.chat size={14} />, placeholderKey: 'support.cat.feedback.placeholder' },
+  { slug: 'other',    labelKey: 'support.cat.other',    icon: <Icon.chat size={14} />, placeholderKey: 'support.cat.other.placeholder' },
 ] as const;
 const categoryMeta = (slug?: string | null) => SUPPORT_CATEGORIES.find(c => c.slug === slug) || null;
 
@@ -343,7 +344,7 @@ function ByokChat() {
           onClick={() => post({ type: 'open_url', url: 'https://github.com/AugmentedValueAcceleration/ava-supernova/issues' })}
           className="flex flex-col items-start gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition"
         >
-          <span className="text-2xl leading-none">🐙</span>
+          <span className="text-[var(--accent)] leading-none"><Icon.github size={22} /></span>
           <div>
             <p className="text-sm font-medium text-white">{t('support.byok.github')}</p>
             <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">{t('support.byok.github_desc')}</p>
@@ -354,7 +355,7 @@ function ByokChat() {
           onClick={() => post({ type: 'open_url', url: 'https://discord.gg/tuHZzUGxA6' })}
           className="flex flex-col items-start gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition"
         >
-          <span className="text-2xl leading-none">💬</span>
+          <span className="text-[var(--accent)] leading-none"><Icon.chat size={22} /></span>
           <div>
             <p className="text-sm font-medium text-white">{t('support.byok.community')}</p>
             <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">{t('support.byok.community_desc')}</p>
@@ -365,7 +366,7 @@ function ByokChat() {
           onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/docs' })}
           className="flex flex-col items-start gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition"
         >
-          <span className="text-2xl leading-none">📖</span>
+          <span className="text-[var(--accent)] leading-none"><Icon.book size={22} /></span>
           <div>
             <p className="text-sm font-medium text-white">{t('support.byok.docs')}</p>
             <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">{t('support.byok.docs_desc')}</p>

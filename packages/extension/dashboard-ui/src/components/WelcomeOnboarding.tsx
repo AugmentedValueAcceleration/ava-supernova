@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
+import { Icon } from './Icon';
 import { PATHS, MODES, BREADTH, stepsFor, pathById, type Destination, type OnboardingPath } from '../onboarding/flow';
 
 interface Props {
@@ -108,7 +109,7 @@ function IdentityStep() {
       <div className="w-24 h-24 rounded-full mb-6 overflow-hidden flex items-center justify-center text-3xl" style={{ background: 'linear-gradient(135deg, var(--accent), #6366f1)', border: '1px solid color-mix(in srgb, var(--accent) 33%, transparent)' }}>
         {avatarUri
           ? <img src={avatarUri} alt="Ava" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-          : '✨'}
+          : <Icon.sparkle size={30} />}
       </div>
       <h1 className="text-4xl font-semibold text-[var(--text-primary,#e5e5e5)] mb-4">{t('onboarding.identity.title')}</h1>
       <p className="text-base leading-relaxed text-[var(--text-secondary)]">{t('onboarding.identity.body')}</p>
@@ -199,7 +200,7 @@ function BreadthStep() {
 function ConnectStep({ isConnected, onConnect }: { isConnected: boolean; onConnect: () => void }) {
   return (
     <div className="h-full flex flex-col items-center justify-center text-center max-w-xl mx-auto">
-      <div className="w-16 h-16 rounded-full mb-5 flex items-center justify-center text-2xl" style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)' }}>{isConnected ? '✓' : '🔒'}</div>
+      <div className="w-16 h-16 rounded-full mb-5 flex items-center justify-center text-[var(--accent)]" style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)' }}>{isConnected ? <Icon.done size={26} /> : <Icon.locked size={26} />}</div>
       <h2 className="text-2xl font-semibold text-[var(--text-primary,#e5e5e5)] mb-2">{t('onboarding.connect.title')}</h2>
       <p className="text-sm text-[var(--text-muted)] mb-1">{t('onboarding.connect.subtitle')}</p>
       <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-6">{t('onboarding.connect.body')}</p>
@@ -212,14 +213,14 @@ function ConnectStep({ isConnected, onConnect }: { isConnected: boolean; onConne
 
 function ReadyStep({ path, onNavigate, onClose }: { path: OnboardingPath | undefined; onNavigate: (p: string) => void; onClose: () => void }) {
   const pathLabel = path ? t(path.labelKey) : t('onboarding.path.explore.label');
-  const cards: { icon: string; label: string; desc: string; page: string }[] = [
-    { icon: '📘', label: t('onboarding.ready.docs'), desc: t('onboarding.ready.docs_desc'), page: 'documentation' },
-    { icon: '🎨', label: t('onboarding.ready.create'), desc: t('onboarding.ready.create_desc'), page: 'creative-studio' },
-    { icon: '⚙️', label: t('onboarding.ready.settings'), desc: t('onboarding.ready.settings_desc'), page: 'account' },
+  const cards: { icon: React.ReactNode; label: string; desc: string; page: string }[] = [
+    { icon: <Icon.file size={18} />, label: t('onboarding.ready.docs'), desc: t('onboarding.ready.docs_desc'), page: 'documentation' },
+    { icon: <Icon.palette size={18} />, label: t('onboarding.ready.create'), desc: t('onboarding.ready.create_desc'), page: 'creative-studio' },
+    { icon: <Icon.gear size={18} />, label: t('onboarding.ready.settings'), desc: t('onboarding.ready.settings_desc'), page: 'account' },
   ];
   return (
     <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
-      <div className="text-4xl mb-4">🚀</div>
+      <div className="mb-4 flex justify-center text-[var(--accent)]"><Icon.rocket size={36} /></div>
       <h2 className="text-3xl font-semibold text-[var(--text-primary,#e5e5e5)] mb-3">{t('onboarding.ready.title')}</h2>
       <p className="text-sm text-[var(--text-secondary)] mb-8">{t('onboarding.ready.body').replace('{path}', pathLabel)}</p>
       <div className="grid grid-cols-3 gap-3 w-full">

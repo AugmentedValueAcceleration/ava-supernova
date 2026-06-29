@@ -3,6 +3,7 @@ import { t, tt, initLocale, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
+import { Icon } from '../components/Icon';
 import type { DashboardSettings, ProviderKeyStatus } from '../types/messages';
 
 interface SettingsProps {
@@ -512,16 +513,16 @@ export function Settings({
           </summary>
           <div className="mt-3 space-y-1.5">
             {([
-              { id: 'file_ops', icon: '📁', labelKey: 'dash.settings.cat_file_ops', desc: 'read, write, edit, glob, grep' },
-              { id: 'shell', icon: '💻', labelKey: 'dash.settings.cat_shell', desc: 'bash, test_run, test_generate' },
-              { id: 'git', icon: '🔀', labelKey: 'dash.settings.cat_git', desc: 'status, diff, commit, PR, rollback' },
-              { id: 'web', icon: '🌐', labelKey: 'dash.settings.cat_web', desc: 'search, http_request, browser' },
-              { id: 'media', icon: '🎨', labelKey: 'dash.settings.cat_media', desc: 'generate_image, generate_video, generate_voice, generate_music, remove_bg' },
-              { id: 'database', icon: '🗄️', labelKey: 'dash.settings.cat_database', desc: 'database_query' },
-              { id: 'system', icon: '🖥️', labelKey: 'dash.settings.cat_system', desc: 'desktop_*, browser_* (IDE only)' },
-              { id: 'documents', icon: '📄', labelKey: 'dash.settings.cat_documents', desc: 'docs, reports, emails' },
-              { id: 'memory', icon: '🧠', labelKey: 'dash.settings.cat_memory', desc: 'save, recall, update, delete' },
-              { id: 'learning', icon: '🎓', labelKey: 'dash.settings.cat_learning', desc: 'create, teach, progress' },
+              { id: 'file_ops', icon: <Icon.folder size={14} />, labelKey: 'dash.settings.cat_file_ops', desc: 'read, write, edit, glob, grep' },
+              { id: 'shell', icon: <Icon.code size={14} />, labelKey: 'dash.settings.cat_shell', desc: 'bash, test_run, test_generate' },
+              { id: 'git', icon: <Icon.git size={14} />, labelKey: 'dash.settings.cat_git', desc: 'status, diff, commit, PR, rollback' },
+              { id: 'web', icon: <Icon.globe size={14} />, labelKey: 'dash.settings.cat_web', desc: 'search, http_request, browser' },
+              { id: 'media', icon: <Icon.palette size={14} />, labelKey: 'dash.settings.cat_media', desc: 'generate_image, generate_video, generate_voice, generate_music, remove_bg' },
+              { id: 'database', icon: <Icon.database size={14} />, labelKey: 'dash.settings.cat_database', desc: 'database_query' },
+              { id: 'system', icon: <Icon.monitor size={14} />, labelKey: 'dash.settings.cat_system', desc: 'desktop_*, browser_* (IDE only)' },
+              { id: 'documents', icon: <Icon.file size={14} />, labelKey: 'dash.settings.cat_documents', desc: 'docs, reports, emails' },
+              { id: 'memory', icon: <Icon.brain size={14} />, labelKey: 'dash.settings.cat_memory', desc: 'save, recall, update, delete' },
+              { id: 'learning', icon: <Icon.course size={14} />, labelKey: 'dash.settings.cat_learning', desc: 'create, teach, progress' },
             ] as const).map(cat => {
               const currentPerm = (local.categoryPermissions || {})[cat.id] || 'auto';
               return (
