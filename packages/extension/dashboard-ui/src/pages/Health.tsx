@@ -302,14 +302,7 @@ export function Health({
           <div>
             <h1 className="text-[22px] font-light text-vscode-foreground">{t('health.browse.title')}</h1>
             <p className="mt-1 text-[12px] text-vscode-descriptionForeground">
-              {t('health.browse.summary', { exercises: exercisesError ? '—' : exercisesTotal, recipes: recipesError ? '—' : recipesTotal })}{' · '}
-              <button
-                type="button"
-                onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
-                className="cursor-pointer border-none bg-transparent p-0 text-vscode-descriptionForeground underline decoration-dotted underline-offset-2 transition hover:text-vscode-foreground"
-              >
-                {t('health.browse.safety_link')}
-              </button>
+              {t('health.browse.summary', { exercises: exercisesError ? '—' : exercisesTotal, recipes: recipesError ? '—' : recipesTotal })}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
