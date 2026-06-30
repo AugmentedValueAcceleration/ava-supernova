@@ -172,6 +172,32 @@ export class HealthPlanCreateTool implements Tool {
       if (days.length === 0) days = undefined;
     }
 
+    // No inline days → generate the whole plan server-side via the injected
+    // generator (the surface calls POST /api/health/generate/plan, which
+    // charges the flat per-plan fee — single 5 credits/week, combined 10/week
+    // — and returns the days). This replaces the old turn-by-turn fill. Falls
+    // back to a blank skeleton (agent fills with health_plan_update_day) if no
+    // generator is wired into shared state.
+    let creditsCharged = 0;
+    if (!days) {
+      const gen = context.sharedState?.generateHealthPlanDays as
+        | ((i: { type: HealthPlanType; duration_days: number; goal: string | null; title: string })
+            => Promise<{ days: HealthPlanDay[]; credits_charged?: number } | null>)
+        | undefined;
+      if (typeof gen === 'function') {
+        try {
+          const result = await gen({ type, duration_days, goal, title });
+          if (result?.days?.length) {
+            days = result.days;
+            creditsCharged = result.credits_charged ?? 0;
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return { success: false, output: `Couldn't build the plan: ${msg}` };
+        }
+      }
+    }
+
     const input: HealthPlanCreateInput = { type, title, goal, duration_days, status, days };
 
     try {
@@ -179,6 +205,7 @@ export class HealthPlanCreateTool implements Tool {
       const parts = [
         `Plan created: "${created.title}" (${created.type}, ${created.duration_days} days, ${created.status}).`,
       ];
+      if (creditsCharged > 0) parts.push(`${creditsCharged} credits.`);
       if (created.filled_days > 0) {
         parts.push(`${created.filled_days} day${created.filled_days === 1 ? '' : 's'} filled.`);
       }

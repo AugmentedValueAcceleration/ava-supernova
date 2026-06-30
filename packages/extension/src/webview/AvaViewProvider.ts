@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as crypto from 'node:crypto';
 import { join } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import {
   Agent,
   Conversation,
@@ -1857,6 +1858,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         () => join(this.accountScopedDir, 'health'),
         () => { DashboardPanel.currentPanel?.notifyHealthPlansUpdated(); },
       ),
+      // Server-side plan generation. health_plan_create calls this when the
+      // agent doesn't pass inline days — it hits /api/health/generate/plan,
+      // which charges the flat per-plan fee (single 5 credits/week, combined
+      // 10/week), builds the whole plan from the exercise/recipe library, and
+      // returns the days. Replaces the old turn-by-turn fill.
+      generateHealthPlanDays: async (i: { type: string; duration_days: number; goal: string | null; title: string }) => {
+        if (!platformKey) throw new Error('Sign in to your Ava account to generate a plan.');
+        let profile = '';
+        try {
+          const raw = await readFile(join(this.accountScopedDir, 'health', 'profile.json'), 'utf-8');
+          profile = JSON.stringify(JSON.parse(raw)).slice(0, 1500);
+        } catch { /* no local profile — the server handles its absence */ }
+        const res = await fetch('https://ava-supernova.com/api/health/generate/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformKey}` },
+          body: JSON.stringify({ type: i.type, duration_days: i.duration_days, goal: i.goal, title: i.title, profile }),
+        });
+        const data = await res.json().catch(() => ({} as Record<string, unknown>));
+        if (!res.ok) throw new Error((data as { error?: string })?.error || `Plan generation failed (${res.status})`);
+        return { days: (data as { days?: unknown[] }).days ?? [], credits_charged: (data as { credits_charged?: number }).credits_charged ?? 0 };
+      },
       platformKey,
       learningLocalOnly,
       generationLocalOnly,

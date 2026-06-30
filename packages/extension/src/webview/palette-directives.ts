@@ -113,33 +113,15 @@ export function buildPaletteDirective(tool: PaletteTool, action: string): Palett
 }
 
 /** Health-plan palette directives — three shapes sharing one template, with
- *  the plan type locked in by which button the user clicked. Workflow is
- *  catalogue-first: Ava searches the user's library via
- *  `health_catalogue_search` before creating, so every exercise / meal in
- *  the plan is linked to a real catalogue row by slug. The UI then derives
- *  live nutrition (recipes) and renders technique guides (exercises). */
+ *  the plan type locked in by which button the user clicked. Generation is
+ *  SERVER-SIDE: Ava gathers the inputs, confirms (with the credit cost), and
+ *  calls `health_plan_create` with NO inline days. The plan engine then
+ *  builds the whole plan from the exercise/recipe library (items link to
+ *  technique guides + live nutrition) and charges one flat fee. */
 function makeHealthPlanDirective(type: 'meal' | 'fitness' | 'combined'): PaletteDirective {
   const LABELS = { meal: 'Meal plan', fitness: 'Fitness plan', combined: 'Combined plan' } as const;
   const label = LABELS[type];
-
-  let surveyGuidance: string;
-  let buildGuidance: string;
-  if (type === 'fitness') {
-    surveyGuidance =
-      'search the exercise library with `health_catalogue_search` (kind="exercise") for the movement patterns, muscle groups, and goal this plan needs — so you know what is actually available before you commit to a structure.';
-    buildGuidance =
-      'compose the training from the exercises you found, passing each catalogue slug as `ref.slug` on its `training[]` entry.';
-  } else if (type === 'meal') {
-    surveyGuidance =
-      'search the recipe library with `health_catalogue_search` (kind="recipe") for the courses, cuisines, and goal this plan needs — so you know what is actually available before you commit to a structure.';
-    buildGuidance =
-      'compose the meals from the recipes you found, passing each catalogue slug as `ref.slug` on its `meals[]` entry.';
-  } else {
-    surveyGuidance =
-      'search BOTH libraries with `health_catalogue_search` — kind="exercise" for the training and kind="recipe" for the meals — for what this plan needs, so you know what is actually available before you commit to a structure.';
-    buildGuidance =
-      'compose training from the exercises and meals from the recipes you found, passing each catalogue slug as `ref.slug` on the matching `training[]` / `meals[]` entry.';
-  }
+  const perWeek = type === 'combined' ? 10 : 5;
 
   return {
     label,
@@ -147,29 +129,18 @@ function makeHealthPlanDirective(type: 'meal' | 'fitness' | 'combined'): Palette
       `[Palette action] The user clicked "${label}" in the command palette. ` +
       `Their intent is confirmed — do NOT ask whether they want a plan, and do NOT ask the type ` +
       `(${type} is locked in).\n\n` +
-      `You have three tools for this flow: \`health_catalogue_search\` (see what's in the library), ` +
-      `\`health_plan_create\` (save the plan), \`health_plan_update_day\` (fill one day at a time).\n\n` +
-      `WORKFLOW — survey the library FIRST, then build the plan from it. Do NOT invent the whole ` +
-      `plan from memory and then check; that is what produces free-text orphans with no technique ` +
-      `guide or nutrition.\n` +
+      `Ava's plan engine builds the whole plan for you from the user's exercise/recipe library and ` +
+      `charges one flat fee. You do NOT design the plan yourself, search the catalogue, or fill days — ` +
+      `just gather the inputs, confirm, and create.\n` +
       `1. Ask the user for: (a) a clear title; (b) duration in days — one of 1, 7, 28, 56, 84; ` +
       `(c) an optional free-text goal; (d) status — \`draft\` (save without starting) or ` +
-      `\`active\` (begin today; archives any existing active ${type} plan). Status has NO ` +
-      `DEFAULT — ask explicitly.\n` +
-      `2. SURVEY: before composing anything, ${surveyGuidance}\n` +
-      `3. BUILD FROM WHAT EXISTS: design a proper, well-structured plan — it still needs real ` +
-      `programming and sensible progression, not just whatever happened to turn up — but ` +
-      `${buildGuidance} Only free-text an entry (no \`ref\`) when the library genuinely has no fit ` +
-      `for something the plan needs, and tell the user that entry isn't library-linked.\n` +
-      `4. For 1- or 7-day plans, populate \`days[]\` in the same \`health_plan_create\` call. ` +
-      `For 28 / 56 / 84-day plans, create the skeleton first then iterate ` +
-      `\`health_plan_update_day\` per day with the plan_id from create — keeps each tool call bounded.\n` +
-      `5. CONFIRM the plan summary with the user before calling \`health_plan_create\`. When ` +
-      `status=active, name the plan that will be archived if any.\n\n` +
-      `For meal entries with a recipe \`ref.slug\`, the UI derives nutrition live from recipe ` +
-      `per-serving × \`servings\` — leave calories/protein_g/carbs_g/fat_g null in that case. ` +
-      `Free-text meals carry hand-entered macros. For exercise entries with a \`ref.slug\`, the ` +
-      `UI renders technique guides and demos automatically. ` +
+      `\`active\` (begin today; archives any existing active ${type} plan). Status has NO DEFAULT — ask explicitly.\n` +
+      `2. CONFIRM the summary before creating, and TELL THEM THE COST: this plan costs ${perWeek} credits ` +
+      `per week (e.g. a 4-week plan = ${perWeek * 4} credits). When status=active, name the plan that ` +
+      `will be archived if any.\n` +
+      `3. Call \`health_plan_create\` with \`type\`, \`title\`, \`goal\`, \`duration_days\` and \`status\` ` +
+      `and NO \`days\` array — the engine generates and prices the full plan from the library. Do NOT call ` +
+      `\`health_plan_update_day\` as part of creation; it is only for later manual edits.\n\n` +
       CONFIRM,
   };
 }
