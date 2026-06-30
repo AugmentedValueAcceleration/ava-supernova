@@ -42,7 +42,7 @@ const BYOK_PRIORITY = [
   { id: 'claude-fable-5',       reason: 'Claude Fable 5 — Anthropic Mythos-class flagship, strongest reasoning available, 1M context' },
   { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — SoTA agentic coding (SWE-Bench Pro 58.6), 256K context, built for orchestration' },
   { id: 'claude-opus-4-8',      reason: 'Claude Opus 4.8 — strongest general reasoning' },
-  { id: 'claude-sonnet-4-6',    reason: 'Claude Sonnet — fast reasoning' },
+  { id: 'claude-sonnet-5',      reason: 'Claude Sonnet 5 — fast, strong reasoning' },
   { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — legacy agentic fallback' },
   { id: 'deepseek-v4-pro',      reason: 'DeepSeek V4 Pro — frontier coding + long-context reasoning' },
   { id: 'qwen3.7-plus',         reason: 'Qwen 3.7 Plus — flagship Maestro coordinator: #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },

@@ -34,15 +34,18 @@ export const ANTHROPIC_MODELS: ModelDefinition[] = [
     pricing: { inputPerMillion: 5, outputPerMillion: 25 },
   },
   {
-    id: 'claude-sonnet-4-6',
-    name: 'Claude Sonnet 4.6',
+    id: 'claude-sonnet-5',
+    name: 'Claude Sonnet 5',
     provider: 'anthropic',
     contextWindow: 200000,
-    maxOutputTokens: 16384,
+    maxOutputTokens: 32768,
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsVision: true,
     desktopCapable: true,
+    // Released 2026-06. Latest-only policy: supersedes Sonnet 4.6. Adaptive
+    // thinking only — rejects temperature/top_p/top_k (see index.ts sampling
+    // strip). Standard pricing $3/$15; introductory $2/$10 through 2026-08-31.
     pricing: { inputPerMillion: 3, outputPerMillion: 15 },
   },
   {

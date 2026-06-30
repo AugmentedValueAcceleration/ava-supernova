@@ -226,7 +226,7 @@
               "mistral:codestral-latest",
               "mistral:devstral-latest",
               "anthropic:claude-opus-4-8",
-              "anthropic:claude-sonnet-4-6",
+              "anthropic:claude-sonnet-5",
               "anthropic:claude-haiku-4-5-20251001"
             ],
             "enumDescriptions": [
@@ -250,7 +250,7 @@
               "Codestral — code-specialized, 256K context, optimised for development",
               "Devstral 2 — 262K context, built for agentic coding workflows",
               "Claude Opus 4.8 — current Anthropic flagship, strongest reasoning, vision, 200K context",
-              "Claude Sonnet 4.6 — balanced speed and intelligence, vision",
+              "Claude Sonnet 5 — balanced speed and intelligence, vision",
               "Claude Haiku 4.5 — fastest Anthropic model, affordable"
             ],
             "description": "%setting.activeModel.description%"

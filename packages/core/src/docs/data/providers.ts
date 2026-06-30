@@ -114,7 +114,7 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'byok',
     models: [
       { id: 'claude-opus-4-8', displayName: 'Claude Opus 4.8', inputPricePerM: 5, outputPricePerM: 25, contextWindow: 200_000, capabilities: ['tools', 'vision', 'streaming'] },
-      { id: 'claude-sonnet-4-6', displayName: 'Claude Sonnet 4.6', inputPricePerM: 3, outputPricePerM: 15, contextWindow: 200_000, capabilities: ['tools', 'vision', 'streaming'] },
+      { id: 'claude-sonnet-5', displayName: 'Claude Sonnet 5', inputPricePerM: 3, outputPricePerM: 15, contextWindow: 200_000, capabilities: ['tools', 'vision', 'streaming'] },
       { id: 'claude-haiku-4-5-20251001', displayName: 'Claude Haiku 4.5', inputPricePerM: 1, outputPricePerM: 5, contextWindow: 200_000, capabilities: ['tools', 'vision', 'streaming'] },
     ],
   },

@@ -44,7 +44,7 @@ const PROVIDERS = [
   {
     key: 'anthropic',
     displayName: 'Anthropic (Claude)',
-    description: 'Claude Opus 4.6, Sonnet 4.6, Haiku 4.5',
+    description: 'Claude Opus 4.8, Sonnet 5, Haiku 4.5',
     keyUrl: 'https://console.anthropic.com/settings/keys',
     live: true,
   },

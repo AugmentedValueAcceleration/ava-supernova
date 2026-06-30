@@ -54,7 +54,7 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'claude-opus-4-8':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
     'claude-opus-4-7':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
     'claude-opus-4-6':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
-    'claude-sonnet-4-6':          { inputPerMillion: 3.00,  outputPerMillion: 15.00 },
+    'claude-sonnet-5':            { inputPerMillion: 3.00,  outputPerMillion: 15.00 },
     'claude-haiku-4-5-20251001':  { inputPerMillion: 1.00,  outputPerMillion: 5.00 },
   },
 };

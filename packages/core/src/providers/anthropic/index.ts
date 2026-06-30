@@ -263,10 +263,10 @@ export class AnthropicProvider extends BaseProvider {
       ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
       : undefined;
 
-    // Fable 5 and Opus 4.7+ removed sampling parameters — sending temperature
-    // or top_p returns a 400. Strip them for that family; older models keep
-    // honouring the caller's values.
-    const acceptsSampling = !/^claude-(fable-|opus-4-(7|8))/.test(request.model);
+    // Fable 5, Opus 4.7+ and Sonnet 5 removed sampling parameters — sending
+    // temperature or top_p returns a 400 (adaptive-thinking-only family). Strip
+    // them for that family; older models keep honouring the caller's values.
+    const acceptsSampling = !/^claude-(fable-|opus-4-(7|8)|sonnet-5)/.test(request.model);
 
     return {
       model: request.model,
