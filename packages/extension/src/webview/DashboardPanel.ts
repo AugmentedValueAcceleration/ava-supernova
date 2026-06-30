@@ -2147,6 +2147,14 @@ export class DashboardPanel {
             // first. Without this, sync status read the un-scoped dir
             // and reported 0 local items for signed-in users.
             this.accountScopedDir = path.join(AVA_HOME, 'users', account.id);
+            // The journal manager may have been cached against the un-scoped
+            // fallback dir (~/.ava) on dashboard mount — drop it so it rebuilds
+            // against the scoped dir, or a signed-in user's Ava-written entries
+            // (which land under ~/.ava/users/<id>/journal) never appear. Then
+            // re-emit this month so a Planner journal opened before the account
+            // resolved corrects itself (same fix the health re-emit below does).
+            this.journalManager = undefined;
+            { const now = new Date(); this.loadJournalMonth(now.getFullYear(), now.getMonth() + 1).catch(() => { /* non-fatal */ }); }
             // Memory load gated on account success — fire-and-forget too.
             this.loadMemories().catch(() => { /* non-fatal */ });
             // Re-emit sync status now the scoped path is known, so a
