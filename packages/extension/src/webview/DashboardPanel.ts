@@ -1916,6 +1916,20 @@ export class DashboardPanel {
         }
         break;
       }
+      case 'open_tasks_folder': {
+        // Open the account-scoped tasks folder on disk — same dir the dashboard
+        // TaskManager reads from. Handled locally here (not forwarded to the
+        // sidebar) so it works whether or not the chat view is alive.
+        try {
+          const dir = path.join(this.getUserDataDir(), 'tasks');
+          const fs = await import('node:fs/promises');
+          await fs.mkdir(dir, { recursive: true }).catch(() => {});
+          await vscode.env.openExternal(vscode.Uri.file(dir));
+        } catch (err: any) {
+          this.post({ type: 'error', message: `Open tasks folder failed: ${err?.message || err}` });
+        }
+        break;
+      }
       case 'open_external': {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders) {
