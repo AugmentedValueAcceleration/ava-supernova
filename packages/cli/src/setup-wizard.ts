@@ -49,6 +49,20 @@ const PROVIDERS = [
     live: true,
   },
   {
+    key: 'tencent',
+    displayName: 'Tencent Hunyuan',
+    description: 'Hunyuan Hy3 — open-weight MoE, agentic, very cheap',
+    keyUrl: 'https://tokenhub.tencentmaas.com',
+    live: true,
+  },
+  {
+    key: 'nvidia',
+    displayName: 'NVIDIA',
+    description: 'Nemotron 3 Ultra — open-weight, 1M context (BYOK)',
+    keyUrl: 'https://build.nvidia.com',
+    live: true,
+  },
+  {
     key: 'generic',
     displayName: 'Custom / Local (Ollama, LMStudio, etc.)',
     description: 'Any standard API format endpoint',

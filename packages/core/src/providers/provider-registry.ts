@@ -9,6 +9,8 @@ import { MistralProvider } from './mistral/index.js';
 import { AnthropicProvider } from './anthropic/index.js';
 import { MiniMaxProvider } from './minimax/index.js';
 import { XiaomiProvider } from './xiaomi/index.js';
+import { TencentProvider } from './tencent/index.js';
+import { NvidiaProvider } from './nvidia/index.js';
 // Single source of truth for the model catalogue — also exported browser-safe
 // via `@ava/core/models` so the IDE renderer shares the exact same list.
 import { ALL_MODELS } from './catalog.js';
@@ -24,6 +26,8 @@ const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
   anthropic: (config) => new AnthropicProvider(config),
   minimax: (config) => new MiniMaxProvider(config),
   xiaomi: (config) => new XiaomiProvider(config),
+  tencent: (config) => new TencentProvider(config),
+  nvidia: (config) => new NvidiaProvider(config),
 };
 
 export class ProviderRegistry {

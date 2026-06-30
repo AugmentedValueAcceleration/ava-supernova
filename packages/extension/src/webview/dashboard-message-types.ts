@@ -141,6 +141,8 @@ export interface ProviderKeyStatus {
   qwen: boolean;
   mistral: boolean;
   xiaomi: boolean;
+  tencent: boolean;
+  nvidia: boolean;
   [key: string]: boolean;
 }
 

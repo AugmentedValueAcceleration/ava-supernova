@@ -1261,10 +1261,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         mistral: 'ava-supernova.provider.mistral.apiKey',
         anthropic: 'ava-supernova.provider.anthropic.apiKey',
         xiaomi: 'ava-supernova.provider.xiaomi.apiKey',
+        tencent: 'ava-supernova.provider.tencent.apiKey',
+        nvidia: 'ava-supernova.provider.nvidia.apiKey',
       };
       // Config key → registry key mapping (glm config maps to zhipu provider)
       const configToRegistry: Record<string, string> = { glm: 'zhipu' };
-      const providerNames = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic', 'xiaomi'];
+      const providerNames = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic', 'xiaomi', 'tencent', 'nvidia'];
       // Run the legacy-plaintext migration sequentially (it writes to
       // settings + secrets and we don't want races), then read all
       // SecretStorage keys in parallel — sequential awaits used to add

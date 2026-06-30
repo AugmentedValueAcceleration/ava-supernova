@@ -57,6 +57,12 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'claude-sonnet-5':            { inputPerMillion: 3.00,  outputPerMillion: 15.00 },
     'claude-haiku-4-5-20251001':  { inputPerMillion: 1.00,  outputPerMillion: 5.00 },
   },
+  tencent: {
+    'hy3-preview': { inputPerMillion: 0.063, outputPerMillion: 0.210 },
+  },
+  nvidia: {
+    'nvidia/nemotron-3-ultra-550b-a55b': { inputPerMillion: 0.50, outputPerMillion: 2.20 },
+  },
 };
 
 /** Compute the cost record for an audit entry. Tools that don't carry

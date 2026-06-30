@@ -227,7 +227,9 @@
               "mistral:devstral-latest",
               "anthropic:claude-opus-4-8",
               "anthropic:claude-sonnet-5",
-              "anthropic:claude-haiku-4-5-20251001"
+              "anthropic:claude-haiku-4-5-20251001",
+              "tencent:hy3-preview",
+              "nvidia:nvidia/nemotron-3-ultra-550b-a55b"
             ],
             "enumDescriptions": [
               "No model selected — sign in for 300 free credits/month, or bring your own keys",
@@ -251,7 +253,9 @@
               "Devstral 2 — 262K context, built for agentic coding workflows",
               "Claude Opus 4.8 — current Anthropic flagship, strongest reasoning, vision, 200K context",
               "Claude Sonnet 5 — balanced speed and intelligence, vision",
-              "Claude Haiku 4.5 — fastest Anthropic model, affordable"
+              "Claude Haiku 4.5 — fastest Anthropic model, affordable",
+              "Hunyuan Hy3 — Tencent open-weight MoE, agentic, 262K, very cheap (BYOK)",
+              "Nemotron 3 Ultra — NVIDIA open-weight, 1M context, frontier reasoning (BYOK)"
             ],
             "description": "%setting.activeModel.description%"
           }

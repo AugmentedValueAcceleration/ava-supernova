@@ -66,6 +66,20 @@ const PROVIDERS = [
     signupUrl: 'https://platform.xiaomimimo.com',
     description: 'MiMo V2.5 and V2.5-Pro — 1M context, native multimodal',
   },
+  {
+    id: 'tencent' as const,
+    name: 'Tencent Hunyuan',
+    placeholder: '...',
+    signupUrl: 'https://tokenhub.tencentmaas.com',
+    description: 'Hunyuan Hy3 — open-weight MoE, agentic, 262K context, very cheap',
+  },
+  {
+    id: 'nvidia' as const,
+    name: 'NVIDIA',
+    placeholder: 'nvapi-...',
+    signupUrl: 'https://build.nvidia.com',
+    description: 'Nemotron 3 Ultra — open-weight, 1M context, frontier reasoning (BYOK)',
+  },
 ];
 
 const LANGUAGES = [

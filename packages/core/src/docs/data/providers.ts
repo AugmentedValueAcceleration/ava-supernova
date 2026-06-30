@@ -174,6 +174,24 @@ export const PROVIDERS: ProviderFact[] = [
     ],
   },
   {
+    id: 'tencent',
+    name: 'Tencent Hunyuan',
+    kind: 'byok',
+    notes: 'Hunyuan Hy3 — open-weight MoE (295B total / 21B active), hybrid fast/slow reasoning, built for agentic workflows. OpenAI-compatible, 262K context, very cheap. BYOK.',
+    models: [
+      { id: 'hy3-preview', displayName: 'Hunyuan Hy3', inputPricePerM: 0.063, outputPricePerM: 0.210, contextWindow: 262_144, capabilities: ['tools', 'thinking', 'streaming'] },
+    ],
+  },
+  {
+    id: 'nvidia',
+    name: 'NVIDIA',
+    kind: 'byok',
+    notes: 'Nemotron 3 Ultra — open-weight MoE (550B total / 55B active), hybrid Transformer-Mamba, frontier reasoning + agent orchestration, 1M context. NVIDIA Open Model License. BYOK only.',
+    models: [
+      { id: 'nvidia/nemotron-3-ultra-550b-a55b', displayName: 'Nemotron 3 Ultra', inputPricePerM: 0.50, outputPricePerM: 2.20, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+    ],
+  },
+  {
     id: 'custom',
     name: 'Custom (Ollama / LM Studio / vLLM / BYOM)',
     kind: 'byok',

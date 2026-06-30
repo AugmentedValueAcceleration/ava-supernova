@@ -123,6 +123,8 @@ const PROVIDER_KEY_SECRETS: Record<string, string> = {
   qwen: 'ava-supernova.provider.qwen.apiKey',
   mistral: 'ava-supernova.provider.mistral.apiKey',
   xiaomi: 'ava-supernova.provider.xiaomi.apiKey',
+  tencent: 'ava-supernova.provider.tencent.apiKey',
+  nvidia: 'ava-supernova.provider.nvidia.apiKey',
 };
 
 // Connection credential secret keys
@@ -2742,6 +2744,8 @@ export class DashboardPanel {
       qwen: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.qwen)),
       mistral: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.mistral)),
       xiaomi: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.xiaomi)),
+      tencent: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.tencent)),
+      nvidia: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.nvidia)),
     };
   }
 

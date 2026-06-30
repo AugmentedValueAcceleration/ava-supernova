@@ -7,6 +7,8 @@ import { MISTRAL_MODELS } from './mistral/models.js';
 import { ANTHROPIC_MODELS } from './anthropic/models.js';
 import { MINIMAX_MODELS } from './minimax/models.js';
 import { XIAOMI_MODELS } from './xiaomi/models.js';
+import { TENCENT_MODELS } from './tencent/models.js';
+import { NVIDIA_MODELS } from './nvidia/models.js';
 
 /**
  * Every model Ava supports, keyed by provider id.
@@ -26,6 +28,8 @@ export const ALL_MODELS: Record<string, ModelDefinition[]> = {
   anthropic: ANTHROPIC_MODELS,
   minimax: MINIMAX_MODELS,
   xiaomi: XIAOMI_MODELS,
+  tencent: TENCENT_MODELS,
+  nvidia: NVIDIA_MODELS,
 };
 
 /** Flat list of every non-disabled model (each carries its `provider` id). */

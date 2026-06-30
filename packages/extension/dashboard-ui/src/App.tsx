@@ -179,7 +179,7 @@ export function App() {
   const [memoryTotal, setMemoryTotal] = useState(0);
   const [memoryHasMore, setMemoryHasMore] = useState(false);
   const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
-    anthropic: false, deepseek: false, kimi: false, glm: false, qwen: false, mistral: false, xiaomi: false,
+    anthropic: false, deepseek: false, kimi: false, glm: false, qwen: false, mistral: false, xiaomi: false, tencent: false, nvidia: false,
   });
   const [usageLogs, setUsageLogs] = useState<UsageLogEntry[]>([]);
   const [conversations, setConversations] = useState<ConversationEntry[]>([]);
