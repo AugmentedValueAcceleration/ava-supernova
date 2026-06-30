@@ -1,6 +1,6 @@
 # Privacy Policy — Ava Supernova
 
-**Last updated:** 7 April 2026
+**Last updated:** 30 June 2026
 
 Ava Supernova is an open-source AI coding agent. This policy explains what data the extension collects, how it is used, and where it is sent.
 
@@ -63,7 +63,7 @@ We do not use Google Analytics, Mixpanel, Segment, or any third-party analytics 
 ## Contact
 
 For privacy questions or data deletion requests:
-- Email: stewart@augmentedvalueacceleration.com
+- Email: privacy@ava-supernova.com
 - GitHub: https://github.com/AugmentedValueAcceleration/ava-supernova/issues
 
 ## Changes

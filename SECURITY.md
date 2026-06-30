@@ -28,9 +28,9 @@ Instead, email **security@ava-supernova.com** or use [GitHub's private vulnerabi
 
 | Version | Supported |
 |---------|-----------|
-| 0.6.x   | Yes — current |
-| 0.5.x   | Security fixes only |
-| < 0.5   | No |
+| 0.81.x  | Yes — current |
+| 0.80.x  | Security fixes only |
+| < 0.80  | No |
 
 ## Security Model
 
