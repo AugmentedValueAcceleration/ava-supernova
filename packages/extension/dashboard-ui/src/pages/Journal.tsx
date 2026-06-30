@@ -607,8 +607,9 @@ function EmptyMonth({ onNew }: { onNew: () => void }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
       </svg>
       <p className="text-sm text-[var(--text-muted)] mb-4">{t('dash.journal.no_entries')}</p>
-      <button onClick={onNew} className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white border-none cursor-pointer transition" style={{ background: 'var(--accent)' }}>
-        + {t('dash.journal.write_entry')}
+      <button onClick={onNew} className="flex items-center gap-1.5 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-5 py-2.5 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20 cursor-pointer">
+        <PlusIcon className="h-4 w-4" />
+        {t('dash.journal.write_entry')}
       </button>
     </div>
   );
