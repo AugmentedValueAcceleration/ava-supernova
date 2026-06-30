@@ -385,15 +385,10 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                 className="group space-y-2"
                 style={{
                   maxWidth: '95%',
-                  padding: '10px 16px',
-                  borderRadius: '16px 16px 16px 4px',
-                  // Black gradient + thin electric purple border, tuned
-                  // slightly softer than the user side so the visual
-                  // hierarchy reads "I asked / Ava replied" without both
-                  // bubbles competing for the same attention.
-                  background: 'linear-gradient(135deg, #0f0f17 0%, #1a1625 100%)',
-                  border: '1px solid rgba(168, 85, 247, 0.55)',
-                  boxShadow: '0 0 10px rgba(168, 85, 247, 0.12)',
+                  // Clean accent left-rule — reads as part of the conversation
+                  // flow and matches the tool rows, instead of a boxed bubble.
+                  padding: '2px 0 2px 14px',
+                  borderLeft: '2px solid color-mix(in srgb, var(--accent) 38%, transparent)',
                   fontSize: 14, lineHeight: 1.65, color: '#cdd6f4',
                 }}
               >

@@ -351,10 +351,8 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                 className="group space-y-2"
                 style={{
                   maxWidth: '95%',
-                  padding: '10px 16px',
-                  borderRadius: '16px 16px 16px 4px',
-                  background: '#181825',
-                  border: '1px solid color-mix(in srgb, var(--accent) 12%, transparent)',
+                  padding: '2px 0 2px 14px',
+                  borderLeft: '2px solid color-mix(in srgb, var(--accent) 38%, transparent)',
                   fontSize: 14, lineHeight: 1.65, color: '#cdd6f4',
                 }}
               >

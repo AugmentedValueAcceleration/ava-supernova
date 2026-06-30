@@ -57,21 +57,23 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
   const resultLines = toolCall.result ? toolCall.result.split('\n').length : 0;
 
   return (
-    <div className="my-1.5">
+    <div className="my-1">
+      {/* Inline tool row — a thin accent left-rule instead of a boxed card, so
+          it reads as part of the conversation flow (one consistent log for
+          coding + every other tool), not a widget dropped on top. */}
       <div
-        className="border rounded-md overflow-hidden transition-colors"
+        className="overflow-hidden transition-colors"
         style={{
-          borderColor: isFailed
-            ? 'var(--vscode-inputValidation-errorBorder, rgba(248, 81, 73, 0.4))'
-            : 'var(--vscode-panel-border, rgba(168, 85, 247, 0.15))',
-          backgroundColor: 'var(--vscode-editor-background, rgba(30, 30, 30, 0.4))',
+          borderLeft: `2px solid ${isFailed
+            ? 'var(--vscode-inputValidation-errorBorder, #f85149)'
+            : 'color-mix(in srgb, var(--accent) 38%, transparent)'}`,
         }}
       >
         {/* Header row — clickable to toggle expansion */}
         <button
           aria-expanded={expanded}
           aria-label={`${verb}${target ? ' ' + target : ''} — ${toolCall.status}`}
-          className="w-full flex items-center gap-2 px-3 py-2 text-left
+          className="w-full flex items-center gap-2 pl-2.5 pr-2 py-1.5 text-left
                      hover:bg-[var(--vscode-list-hoverBackground)]
                      transition-colors border-none bg-transparent cursor-pointer
                      text-[var(--vscode-foreground)]"
@@ -106,7 +108,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
 
         {/* Confirmation bar — always visible for pending_confirmation */}
         {isPending && toolCall.confirmationId && (
-          <div className="px-3 py-2 border-t border-[var(--vscode-panel-border)] space-y-2">
+          <div className="pl-2.5 pr-2 py-2 space-y-2">
             <span className="opacity-70 block text-[11px]">
               {toolCall.summary || t('tool.allow_prompt', { tool: toolCall.name })}
             </span>
@@ -155,10 +157,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
 
         {/* Expanded preview */}
         {expanded && !isPending && (
-          <div
-            className="border-t px-0 py-0"
-            style={{ borderColor: 'var(--vscode-panel-border, rgba(168, 85, 247, 0.15))' }}
-          >
+          <div className="pl-2.5 pr-1 pb-1.5">
             {/* File diffs get a dedicated view */}
             {diffStats ? (
               <DiffView
@@ -167,14 +166,17 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
                 expanded={expanded}
               />
             ) : (
-              <div className="px-3 py-2 space-y-2">
+              <div
+                className="rounded-md px-2.5 py-2 space-y-2"
+                style={{ background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}
+              >
                 {/* Arguments — skipped for edits (diff view is the args) */}
                 {toolCall.arguments && toolCall.arguments !== '{}' && (
                   <details className="group">
-                    <summary className="opacity-40 cursor-pointer hover:opacity-60 text-[10px] uppercase tracking-wide">
+                    <summary className="opacity-40 cursor-pointer hover:opacity-60 text-[10px]">
                       {t('tool.arguments')}
                     </summary>
-                    <pre className="mt-1 text-[11px] overflow-x-auto whitespace-pre-wrap opacity-80 max-h-40 overflow-y-auto font-mono">
+                    <pre className="mt-1 text-[11px] overflow-x-auto whitespace-pre-wrap opacity-75 max-h-40 overflow-y-auto font-mono">
                       {formatArgs(toolCall.arguments)}
                     </pre>
                   </details>
@@ -182,22 +184,14 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
 
                 {/* Live streaming output (bash during run) */}
                 {isRunning && liveOutput && (
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide opacity-50 mb-1">
-                      live output
-                    </div>
-                    <pre className="text-[11px] overflow-x-auto whitespace-pre-wrap opacity-80 max-h-40 overflow-y-auto font-mono">
-                      {liveOutput}
-                    </pre>
-                  </div>
+                  <pre className="text-[11px] overflow-x-auto whitespace-pre-wrap opacity-80 max-h-40 overflow-y-auto font-mono">
+                    {liveOutput}
+                  </pre>
                 )}
 
                 {/* Final result */}
                 {toolCall.result && (
                   <div className="relative group/output">
-                    <div className="text-[10px] uppercase tracking-wide opacity-50 mb-1">
-                      {isFailed ? t('tool.error') : t('tool.output')}
-                    </div>
                     <pre
                       className={`text-[11px] overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto font-mono
                                   ${isFailed ? 'text-[var(--vscode-errorForeground)]' : 'opacity-85'}`}

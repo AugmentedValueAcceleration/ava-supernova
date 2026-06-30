@@ -14,9 +14,12 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
   const getContent = useCallback(() => content, [content]);
 
   return (
-    <div className="rounded border border-[var(--vscode-panel-border)] text-xs overflow-hidden mb-2">
+    <div
+      className="text-xs overflow-hidden mb-2"
+      style={{ borderLeft: '2px solid color-mix(in srgb, var(--accent) 38%, transparent)' }}
+    >
       <button
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-left
+        className="w-full flex items-center gap-2 pl-2.5 pr-2 py-1.5 text-left
                    hover:bg-[var(--vscode-list-hoverBackground)]
                    transition-colors border-none bg-transparent cursor-pointer
                    text-[var(--vscode-foreground)]"
@@ -52,7 +55,10 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
 
       {/* Expanded thinking content */}
       {expanded && (
-        <div className="px-3 py-2 border-t border-[var(--vscode-panel-border)] relative group/thinking">
+        <div
+          className="pl-2.5 pr-1 py-2 relative group/thinking"
+          style={{ background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}
+        >
           <pre className="text-xs whitespace-pre-wrap opacity-60 max-h-64 overflow-y-auto leading-relaxed">
             {content}
             {isStreaming && (
