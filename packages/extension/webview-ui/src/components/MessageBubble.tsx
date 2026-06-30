@@ -198,11 +198,11 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
           <div
             style={{
               padding: '10px 16px',
-              borderRadius: '16px 16px 4px 16px',
-              background: 'linear-gradient(135deg, #1a0f24 0%, #0a0712 100%)',
-              border: '1px solid #a855f7',
-              boxShadow: '0 0 14px rgba(168, 85, 247, 0.22)',
-              color: '#ffffff',
+              borderRadius: 10,
+              background: 'color-mix(in srgb, #60a5fa 13%, transparent)',
+              borderLeft: '2px solid color-mix(in srgb, #60a5fa 55%, transparent)',
+              borderRight: '2px solid color-mix(in srgb, #60a5fa 55%, transparent)',
+              color: '#cdd6f4',
               fontSize: 14, lineHeight: 1.65,
               whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             }}
@@ -385,10 +385,13 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                 className="group space-y-2"
                 style={{
                   maxWidth: '95%',
-                  // Clean accent left-rule — reads as part of the conversation
-                  // flow and matches the tool rows, instead of a boxed bubble.
-                  padding: '2px 0 2px 14px',
-                  borderLeft: '2px solid color-mix(in srgb, var(--accent) 38%, transparent)',
+                  // Clean container with the accent rule on both sides — matches
+                  // the tool rows' hue while reading as a contained reply.
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  background: 'color-mix(in srgb, var(--accent) 6%, transparent)',
+                  borderLeft: '2px solid color-mix(in srgb, var(--accent) 45%, transparent)',
+                  borderRight: '2px solid color-mix(in srgb, var(--accent) 45%, transparent)',
                   fontSize: 14, lineHeight: 1.65, color: '#cdd6f4',
                 }}
               >

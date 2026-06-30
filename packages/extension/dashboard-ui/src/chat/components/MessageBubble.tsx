@@ -194,9 +194,11 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
           <div
             style={{
               padding: '10px 16px',
-              borderRadius: '16px 16px 4px 16px',
-              background: '#7c3aed',
-              color: '#ffffff',
+              borderRadius: 10,
+              background: 'color-mix(in srgb, #60a5fa 13%, transparent)',
+              borderLeft: '2px solid color-mix(in srgb, #60a5fa 55%, transparent)',
+              borderRight: '2px solid color-mix(in srgb, #60a5fa 55%, transparent)',
+              color: '#cdd6f4',
               fontSize: 14, lineHeight: 1.65,
               whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             }}
@@ -351,8 +353,11 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                 className="group space-y-2"
                 style={{
                   maxWidth: '95%',
-                  padding: '2px 0 2px 14px',
-                  borderLeft: '2px solid color-mix(in srgb, var(--accent) 38%, transparent)',
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  background: 'color-mix(in srgb, var(--accent) 6%, transparent)',
+                  borderLeft: '2px solid color-mix(in srgb, var(--accent) 45%, transparent)',
+                  borderRight: '2px solid color-mix(in srgb, var(--accent) 45%, transparent)',
                   fontSize: 14, lineHeight: 1.65, color: '#cdd6f4',
                 }}
               >
