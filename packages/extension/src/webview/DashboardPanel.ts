@@ -4979,8 +4979,19 @@ export class DashboardPanel {
 
   /** Notify dashboard that journal data changed (called from AvaViewProvider). */
   public notifyJournalUpdated(date: string): void {
-    // loadJournalDay invalidates its own cache first, so this reads fresh.
-    this.loadJournalDay(date);
+    // The dashboard journal view renders from the MONTH's entries (+ the year
+    // summaries for the heatmap), NOT a single day — so reloading only the day
+    // meant a freshly-written entry never appeared in the list. Reload the
+    // month that contains `date` (and the year); both invalidate their caches
+    // first, so they read the new entry straight off disk. The webview's
+    // journal_month_loaded handler points the view at that month, so the entry
+    // shows up where it was written.
+    const [y, m] = date.split('-').map(Number);
+    if (y && m) {
+      void this.loadJournalMonth(y, m);
+      void this.loadJournalYear(y);
+    }
+    void this.loadJournalDay(date);
   }
 
   /** Notify dashboard that session tasks changed (called from AvaViewProvider after todo_write). */
