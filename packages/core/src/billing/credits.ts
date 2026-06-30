@@ -228,6 +228,33 @@ export function creditsFor(
   return Math.max(1, Math.round(scaled));
 }
 
+// ── Health-plan generation pricing ────────────────────────────────────────
+/** A generated multi-week health plan: training only, nutrition only, or both. */
+export type HealthPlanKind = 'fitness' | 'meal' | 'combined';
+
+/** Per-week credit rate for plan generation. Combined ≈ 2× single because it
+ *  weaves two domains (training + nutrition). Approved 2026-06-30. */
+export const PLAN_CREDITS_PER_WEEK: Record<'single' | 'combined', number> = {
+  single: 5,
+  combined: 10,
+};
+
+/**
+ * Flat credit cost to generate a health plan — the single, predictable price
+ * that REPLACES per-turn billing for plan generation (the route that builds
+ * the plan server-side charges this once instead of metering each turn).
+ *
+ * Scales by whole weeks (min 1), so a 1- or 7-day plan is one week and an
+ * 84-day plan is twelve. Single (fitness | meal) = 5 cr/week; combined = 10.
+ *   single 7d = 5 · 28d = 20 · 84d = 60
+ *   combined 7d = 10 · 28d = 40 · 84d = 120
+ */
+export function creditsForPlan(type: HealthPlanKind, durationDays: number): number {
+  const weeks = Math.max(1, Math.ceil((durationDays || 1) / 7));
+  const perWeek = type === 'combined' ? PLAN_CREDITS_PER_WEEK.combined : PLAN_CREDITS_PER_WEEK.single;
+  return weeks * perWeek;
+}
+
 // ── Token-bracket scaling (proposal H, 2026-04-25) ────────────────────────
 /** LLM-style actions that scale by token count. Media actions (image_gen,
  *  video_gen, etc.) keep flat charging since they have no token concept. */
