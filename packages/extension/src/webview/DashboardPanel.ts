@@ -94,7 +94,7 @@ import type {
 import * as healthStore from './health-file-store.js';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
-import { deriveProgression, type LearningStore } from '@ava/core/learning';
+import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { readLocalCreative, saveLocalCreative, deleteLocalCreative, type CreativeKind } from './creative-store.js';
 
@@ -819,17 +819,31 @@ export class DashboardPanel {
       }
 
       case 'fork_library_path': {
-        const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-        if (!platformKey) {
-          this.post({ type: 'error', message: 'Connect your Ava account to start learning paths from the library.' });
-          break;
-        }
+        // Local-first: the course CONTENT is public, so build the curriculum
+        // locally and write it to ~/.ava/learning.json — BYOK / not-signed-in
+        // users can start library courses too. The server fork (learner-count
+        // analytics) is a best-effort extra only when signed in. No gate.
         try {
-          const res = await apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', platformKey });
-          const forkData = (res.data ?? {}) as { curriculum_id?: string; message?: string };
-          this.post({ type: 'library_path_forked', curriculumId: forkData.curriculum_id ?? '', title: forkData.message || 'Started!' });
+          const res = await fetch(`https://ava-supernova.com/api/learning/library/${msg.id}`);
+          const detail = (await res.json()) as (LibraryPathInput & { id?: string }) | null;
+          if (!detail || !detail.title) {
+            this.post({ type: 'error', message: 'Could not load this course to start it.' });
+            break;
+          }
+          const curriculum = libraryPathToCurriculum(detail);
+          const store = await this.readLearningStore();
+          store.curriculums.unshift(curriculum);
+          const fs = await import('node:fs/promises');
+          await fs.mkdir(this.getUserDataDir(), { recursive: true }).catch(() => {});
+          await fs.writeFile(path.join(this.getUserDataDir(), 'learning.json'), JSON.stringify(store, null, 2), 'utf-8');
+          // Best-effort: bump the public library's learner count when signed in.
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          if (platformKey) {
+            apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', platformKey }).catch(() => { /* analytics only */ });
+          }
+          this.post({ type: 'library_path_forked', curriculumId: curriculum.id, title: 'Started!' });
         } catch (err: any) {
-          this.post({ type: 'error', message: err.message || 'Failed to fork learning path' });
+          this.post({ type: 'error', message: err?.message || 'Failed to start learning path' });
         }
         break;
       }

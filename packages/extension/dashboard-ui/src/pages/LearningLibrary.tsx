@@ -246,8 +246,8 @@ export function LearningLibrary({ paths, detail }: Props) {
         <div
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
-            borderRadius: 14, border: '1px solid var(--border-card)',
-            background: `linear-gradient(135deg, ${id.tint}, transparent), var(--bg-card)`,
+            borderRadius: 14, border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)',
+            background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent), var(--bg-card)',
             padding: 18, marginBottom: 12,
           }}
         >
@@ -255,8 +255,10 @@ export function LearningLibrary({ paths, detail }: Props) {
             onClick={() => handleFork(selected.id)}
             disabled={forking}
             style={{
-              padding: '11px 26px', borderRadius: 10, border: 'none', cursor: forking ? 'wait' : 'pointer',
-              background: `linear-gradient(135deg, ${id.from}, ${id.to})`, color: '#fff', fontSize: 14, fontWeight: 600,
+              padding: '11px 26px', borderRadius: 10, cursor: forking ? 'wait' : 'pointer',
+              border: '1px solid color-mix(in srgb, var(--accent) 45%, transparent)',
+              background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600,
+              opacity: forking ? 0.7 : 1, transition: 'opacity 0.15s',
             }}
           >
             {forking ? t('dash.learning_library.starting') : t('dash.learning_library.start_learning')}

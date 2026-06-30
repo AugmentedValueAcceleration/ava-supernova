@@ -5,4 +5,5 @@
 export * from './progression.js';
 export * from './progression-markdown.js';
 export * from './learner-context.js';
+export { libraryPathToCurriculum, type LibraryPathInput } from './library-fork.js';
 export type { LearningStore, Curriculum, Module, Lesson, Milestone } from '../tools/learning.js';
