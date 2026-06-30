@@ -60,7 +60,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
           aria-expanded={expanded}
           aria-label={`${verb}${target ? ' ' + target : ''} — ${toolCall.status}`}
           className="w-full flex items-center gap-2 pl-2.5 pr-2 py-1.5 text-left
-                     hover:bg-[var(--vscode-list-hoverBackground)]
+                     hover:bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]
                      transition-colors border-none bg-transparent cursor-pointer
                      text-[var(--vscode-foreground)]"
           onClick={() => setExpanded(!expanded)}
