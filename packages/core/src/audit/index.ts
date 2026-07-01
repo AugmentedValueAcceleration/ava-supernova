@@ -25,6 +25,11 @@ export {
 } from './integrity.js';
 
 export {
+  classifySecurity,
+  annotateSecurity,
+} from './security.js';
+
+export {
   buildExport,
 } from './export.js';
 export type { ExportBundle } from './export.js';
@@ -34,4 +39,5 @@ export type {
   AuditCost,
   AuditFilter,
   IntegrityStatus,
+  SecurityConcern,
 } from './types.js';

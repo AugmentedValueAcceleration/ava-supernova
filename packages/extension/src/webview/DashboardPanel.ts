@@ -472,8 +472,9 @@ export class DashboardPanel {
         // webview localises findings from `kind` and renders integrity badges.
         let findings: unknown[] = [];
         try {
-          const { annotateIntegrity, detectPatterns } = require('@ava/core/audit') as typeof import('@ava/core/audit');
-          entries = annotateIntegrity(entries as any);
+          const { annotateIntegrity, annotateSecurity, detectPatterns } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+          const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          entries = annotateSecurity(annotateIntegrity(entries as any), wsRoot);
           findings = detectPatterns(entries as any);
         } catch { findings = []; }
         this.post({ type: 'audit_log', entries, findings } as any);

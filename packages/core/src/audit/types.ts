@@ -63,9 +63,14 @@ export interface AuditEntry {
    *  'unchanged' = disk still matches Ava's edit; 'modified' = changed since;
    *  'deleted' = the file is gone; 'unverifiable' = no hash / too large. */
   integrity?: IntegrityStatus;
+  /** Security concerns for the audit "security lens" — which sandbox
+   *  boundaries this call crossed (network / out-of-workspace / secret /
+   *  dangerous). Set by annotateSecurity(); absent when nothing notable. */
+  security?: SecurityConcern[];
 }
 
 export type IntegrityStatus = 'unchanged' | 'modified' | 'deleted' | 'unverifiable';
+export type SecurityConcern = 'network' | 'out-of-workspace' | 'secret-access' | 'dangerous';
 
 export interface AuditCost {
   /** Which billing model this entry is on. */

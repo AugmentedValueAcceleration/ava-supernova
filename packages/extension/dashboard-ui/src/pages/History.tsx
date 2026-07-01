@@ -161,7 +161,19 @@ interface AuditEntry {
   /** Integrity verdict vs the file on disk now — set host-side by
    *  annotateIntegrity(). Absent for non-mutation / unverifiable entries. */
   integrity?: 'unchanged' | 'modified' | 'deleted' | 'unverifiable';
+  /** Security-lens concerns — which sandbox boundaries this call crossed.
+   *  Set host-side by annotateSecurity(); absent when nothing notable. */
+  security?: Array<'network' | 'out-of-workspace' | 'secret-access' | 'dangerous'>;
 }
+
+// Security-lens concern presentation — small chip per boundary crossed.
+type SecurityConcern = 'network' | 'out-of-workspace' | 'secret-access' | 'dangerous';
+const SECURITY_META: Record<SecurityConcern, { labelKey: string; badge: string }> = {
+  network:            { labelKey: 'dash.audit.sec_network',   badge: 'bg-blue-500/15 text-blue-400' },
+  'out-of-workspace': { labelKey: 'dash.audit.sec_outofws',   badge: 'bg-yellow-500/15 text-yellow-400' },
+  'secret-access':    { labelKey: 'dash.audit.sec_secret',    badge: 'bg-red-500/15 text-red-400' },
+  dangerous:          { labelKey: 'dash.audit.sec_dangerous', badge: 'bg-orange-500/15 text-orange-400' },
+};
 
 interface HistoryProps {
   sessionStats: SessionStats | null;
@@ -421,24 +433,27 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [securityOnly, setSecurityOnly] = useState(false);
+  const securityCount = useMemo(() => entries.filter(e => e.security && e.security.length > 0).length, [entries]);
 
   // Apply filters in memory — corpus is already capped at 1000
   // entries by the host, so this is fast.
   const filtered = useMemo(() => {
     return entries.filter(e => {
+      if (securityOnly && !(e.security && e.security.length > 0)) return false;
       if (search && !e.toolName.toLowerCase().includes(search.toLowerCase()) && !e.argsSummary.toLowerCase().includes(search.toLowerCase())) return false;
       if (riskFilter !== 'all' && e.riskLevel !== riskFilter) return false;
       if (statusFilter !== 'all' && e.status !== statusFilter) return false;
       return true;
     });
-  }, [entries, search, riskFilter, statusFilter]);
+  }, [entries, search, riskFilter, statusFilter, securityOnly]);
 
   // Pagination — audit logs grow fast (host caps at 1000); rendering
   // the full filtered list at once was janky. 25/page matches the IDE
   // audit view. Page resets to 0 whenever filters change so the user
   // isn't stranded on an empty page after narrowing the result set.
   const [page, setPage] = useState(0);
-  useEffect(() => { setPage(0); }, [search, riskFilter, statusFilter]);
+  useEffect(() => { setPage(0); }, [search, riskFilter, statusFilter, securityOnly]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / AUDIT_PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
   const pageStart = safePage * AUDIT_PAGE_SIZE;
@@ -519,6 +534,19 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
             ]}
           />
         </div>
+        {securityCount > 0 && (
+          <button
+            onClick={() => setSecurityOnly(v => !v)}
+            title={t('dash.audit.security_lens_title')}
+            className={`inline-flex items-center gap-1 rounded-md border h-[30px] px-2.5 text-[11px] transition ${
+              securityOnly
+                ? 'border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--accent)]'
+                : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-primary)] hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30'
+            }`}
+          >
+            <Icon.shield size={12} /> {t('dash.audit.security_lens')} <span className="opacity-70">({securityCount})</span>
+          </button>
+        )}
         <div className="ml-auto flex gap-1">
           <button
             onClick={() => post({ type: 'request_audit_log' })}
@@ -598,6 +626,9 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
                         {INTEGRITY_META[entry.integrity].glyph}
                       </span>
                     )}
+                    {securityOnly && entry.security?.map(c => (
+                      <span key={c} className={`shrink-0 rounded px-1 py-px text-[8px] font-medium ${SECURITY_META[c].badge}`}>{t(SECURITY_META[c].labelKey)}</span>
+                    ))}
                   </span>
                   <span className="text-[var(--text-secondary)] truncate">{CATEGORY_LABEL_KEYS[entry.category] ? t(CATEGORY_LABEL_KEYS[entry.category]) : entry.category}</span>
                   <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${TONE_BADGE[RISK_TONE[entry.riskLevel] ?? 'neutral']}`}>{entry.riskLevel}</span>
