@@ -1157,6 +1157,9 @@ export function App() {
         setAuditLog((msg as any).entries || []);
         setAuditFindings((msg as any).findings || []);
         break;
+      case 'audit_findings':
+        setAuditFindings((msg as any).findings || []);
+        break;
       case 'latest_release_loaded':
         setLatestRelease(msg.release);
         break;
@@ -1615,7 +1618,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':

@@ -479,6 +479,17 @@ export class DashboardPanel {
         this.post({ type: 'audit_log', entries, findings } as any);
         break;
       }
+      case 'request_audit_findings': {
+        // Lightweight path for the Command Centre trust-nudge card — computes
+        // just the findings (no 1000-entry payload, no integrity hashing).
+        let findings: unknown[] = [];
+        try {
+          const { readEntries, detectPatterns } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+          findings = detectPatterns(readEntries({ limit: 1000 }) as any);
+        } catch { findings = []; }
+        this.post({ type: 'audit_findings', findings } as any);
+        break;
+      }
 
       // ─── Creative Studio generation (proxied through extension host for CORS) ──
       case 'creative_generate': {

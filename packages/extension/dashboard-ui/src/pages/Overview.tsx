@@ -20,6 +20,7 @@ import type {
   UsageLogEntry,
 } from '../types/messages';
 import { HealthDashboard } from './HealthDashboard';
+import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
 
 // ── Weather data (from extension host via Open-Meteo) ────────────────────────
 
@@ -109,6 +110,10 @@ interface OverviewProps {
   onOpenArticle?: (slug: string) => void;
   // Command Center health tab — active plans for the Today / This-week glance.
   activeHealthPlans: HealthPlan[];
+  // Trust nudges from the audit engine (auto-approve-failing, retry loops,
+  // dangerous-succeeded) — surfaced here so users see them without opening
+  // the audit tab. Computed host-side; localised at render.
+  auditFindings?: AuditFinding[];
   // Per-source load signals — true once the first load has landed.
   // Drive the Daily widgets' skeleton-vs-content decision so they
   // never flash a misleading empty state before data arrives.
@@ -142,6 +147,7 @@ export function Overview({
   articleLoading,
   onOpenArticle,
   activeHealthPlans,
+  auditFindings,
   tasksLoaded,
   journalLoaded,
   weatherLoaded,
@@ -158,6 +164,9 @@ export function Overview({
     if (logs.length === 0 && account) {
       post({ type: 'load_usage_logs', period: '30d' });
     }
+    // Pull the audit trust-nudges (lightweight — findings only) so the
+    // Command Centre can flag them without the user opening the audit tab.
+    post({ type: 'request_audit_findings' });
   }, []);
 
   if (mode === 'byok' || !account) {
@@ -329,6 +338,7 @@ export function Overview({
       {/* ── Daily tab — Tasks + Journal, then Working Hours + Weather ── */}
       {tab === 'daily' && (
         <>
+          <TrustNudges findings={auditFindings ?? []} onReview={() => { try { localStorage.setItem('ava-analytics-tab', 'audit'); } catch { /* storage off */ } onNavigate('history'); }} />
           <div
             className="mb-4 grid gap-4"
             style={{ gridTemplateColumns: '2fr 1fr' }}
@@ -390,6 +400,62 @@ function TabBtn({ id: _id, label, active, onClick }: { id: string; label: string
     >
       {label}
     </button>
+  );
+}
+
+// ── Trust nudges ─────────────────────────────────────────────────────────────
+// Surfaces the audit engine's findings (auto-approve-failing, retry loops,
+// dangerous-succeeded) at the top of the Command Centre so a user sees what's
+// worth a second look without opening the audit tab. Renders nothing when the
+// log is clean — it's an attention signal, not a permanent widget.
+
+function TrustNudges({ findings, onReview }: { findings: AuditFinding[]; onReview: () => void }) {
+  if (!findings || findings.length === 0) return null;
+  const rank = { critical: 0, warning: 1, info: 2 } as const;
+  const sorted = [...findings].sort((a, b) => rank[a.severity] - rank[b.severity]);
+  const shown = sorted.slice(0, 3);
+  const extra = sorted.length - shown.length;
+  const worst = sorted[0].severity;
+
+  return (
+    <div className={`mb-4 rounded-xl border p-3.5 ${
+      worst === 'critical' ? 'border-red-500/40 bg-red-500/[0.06]'
+        : worst === 'warning' ? 'border-yellow-500/40 bg-yellow-500/[0.06]'
+        : 'border-[var(--border-card)] bg-[var(--bg-card)]'
+    }`}>
+      <div className="mb-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className={
+            worst === 'critical' ? 'text-red-400' : worst === 'warning' ? 'text-yellow-400' : 'text-[var(--accent)]'
+          }><Icon.shield size={15} /></span>
+          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{t('dash.cc.trust_title')}</span>
+        </div>
+        <button
+          onClick={onReview}
+          className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
+        >{t('dash.cc.trust_review')}</button>
+      </div>
+      <div className="space-y-1.5">
+        {shown.map((f, i) => {
+          const loc = localizeFinding(f);
+          const dot = f.severity === 'critical' ? 'bg-red-400' : f.severity === 'warning' ? 'bg-yellow-400' : 'bg-[var(--accent)]';
+          return (
+            <div key={i} className="flex gap-2 text-[11px] leading-relaxed">
+              <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+              <div>
+                <span className="text-[var(--text-secondary)]">{loc.message}</span>
+                {loc.suggestion && <span className="text-[var(--text-muted)]"> {loc.suggestion}</span>}
+              </div>
+            </div>
+          );
+        })}
+        {extra > 0 && (
+          <button onClick={onReview} className="text-[11px] text-[var(--accent)] hover:underline">
+            {t('dash.cc.trust_more', { n: extra })}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
