@@ -13,12 +13,35 @@
 
 import type { AuditEntry } from './types.js';
 
+/** Discriminator for the finding, so surfaces can localise the text
+ *  from structured params instead of parsing the English string. */
+export type FindingKind = 'auto-fail' | 'retry-loop' | 'dangerous-succeeded';
+
+/** Structured values behind a finding — everything a localised template
+ *  needs to render the message without re-deriving anything. */
+export interface FindingParams {
+  tool?: string;
+  /** Auto-approve failure rate, whole percent. */
+  pct?: number;
+  failed?: number;
+  total?: number;
+  /** Retry-cluster size / dangerous-call count. */
+  count?: number;
+  /** ISO timestamp of a retry cluster's first call, for locale-aware time. */
+  atISO?: string;
+}
+
 export interface Finding {
   /** Severity tier — drives chip colour in the UI. */
   severity: 'info' | 'warning' | 'critical';
-  /** One-line, plain-language. The thing the user reads. */
+  /** What kind of finding this is — the key surfaces localise from. */
+  kind: FindingKind;
+  /** Structured params for localised rendering (see FindingParams). */
+  params: FindingParams;
+  /** One-line, plain-language English. Fallback for non-localised
+   *  consumers (CLI, export, the IDE which renders English directly). */
   message: string;
-  /** Optional follow-up hint — what to do about it. */
+  /** Optional follow-up hint — what to do about it (English fallback). */
   suggestion?: string;
   /** Tool name(s) the finding relates to, for "show me these calls" filtering. */
   relatedTools?: string[];
@@ -49,9 +72,12 @@ export function detectPatterns(entries: AuditEntry[]): Finding[] {
   }
   for (const [tool, s] of byTool) {
     if (s.autoCount >= 5 && s.autoFailed / s.autoCount > 0.2) {
+      const pct = Math.round((s.autoFailed / s.autoCount) * 100);
       findings.push({
         severity: 'warning',
-        message: `You auto-approve ${tool} but ${Math.round((s.autoFailed / s.autoCount) * 100)}% of those calls fail (${s.autoFailed} of ${s.autoCount} this week).`,
+        kind: 'auto-fail',
+        params: { tool, pct, failed: s.autoFailed, total: s.autoCount },
+        message: `You auto-approve ${tool} but ${pct}% of those calls fail (${s.autoFailed} of ${s.autoCount} this week).`,
         suggestion: 'Consider tightening the approval rule to first-time, so failures get a second look.',
         relatedTools: [tool],
       });
@@ -82,6 +108,8 @@ export function detectPatterns(entries: AuditEntry[]): Finding[] {
     const tool = cluster[0].toolName;
     findings.push({
       severity: 'info',
+      kind: 'retry-loop',
+      params: { tool, count: cluster.length, atISO: cluster[0].timestamp },
       message: `${tool} was called ${cluster.length} times in a row at ${new Date(cluster[0].timestamp).toLocaleTimeString()} — possible retry loop.`,
       suggestion: "Open the row to compare arguments. If they're identical, this is usually a provider hiccup or a stale cache.",
       relatedTools: [tool],
@@ -96,6 +124,8 @@ export function detectPatterns(entries: AuditEntry[]): Finding[] {
   if (dangerousSucceeded.length > 0) {
     findings.push({
       severity: 'critical',
+      kind: 'dangerous-succeeded',
+      params: { count: dangerousSucceeded.length },
       message: `${dangerousSucceeded.length} dangerous tool call${dangerousSucceeded.length === 1 ? '' : 's'} succeeded this week.`,
       suggestion: 'Review these in the audit table to confirm they touched only what you expected.',
       relatedTools: [...new Set(dangerousSucceeded.map(e => e.toolName))],

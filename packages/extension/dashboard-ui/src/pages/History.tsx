@@ -156,6 +156,7 @@ interface HistoryProps {
   mode: 'platform' | 'byok';
   account: AccountInfo | null;
   auditLog?: AuditEntry[];
+  auditFindings?: AuditFinding[];
   /** Saved chat conversations from the host. Powers the Conversations
    *  tab — list, search, click-to-resume, delete. Mirrors IDE History
    *  page at DashboardPages.tsx:5807-6060. */
@@ -174,7 +175,7 @@ interface HistoryProps {
 // below — rather than a nested sub-toggle.
 type TopTab = 'conversations' | 'usage' | 'audit';
 
-export function History({ sessionStats, usageHistory, mode, account, auditLog, conversations, loaded, onNavigate }: HistoryProps) {
+export function History({ sessionStats, usageHistory, mode, account, auditLog, auditFindings, conversations, loaded, onNavigate }: HistoryProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<TopTab>(() => {
     const saved = localStorage.getItem('ava-analytics-tab');
@@ -244,7 +245,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
       )}
 
       {activeTab === 'audit' && (
-        <AuditView entries={auditLog || []} />
+        <AuditView entries={auditLog || []} findings={auditFindings || []} />
       )}
     </div>
   );
@@ -375,13 +376,47 @@ const CATEGORY_LABEL_KEYS: Record<string, string> = {
 };
 
 // Pattern finding shape — must match @ava/core/audit/patterns Finding.
-// Imported here as a structural type so we don't need a full
-// @ava/core/audit dependency in dashboard-ui at runtime.
+// Findings are computed host-side by the shared engine and sent with the
+// entries; we localise from `kind` + `params` so the copy honours the
+// user's locale (the English message/suggestion are the fallback).
+type AuditFindingKind = 'auto-fail' | 'retry-loop' | 'dangerous-succeeded';
 interface AuditFinding {
   severity: 'info' | 'warning' | 'critical';
+  kind?: AuditFindingKind;
+  params?: { tool?: string; pct?: number; failed?: number; total?: number; count?: number; atISO?: string };
   message: string;
   suggestion?: string;
   relatedTools?: string[];
+}
+
+// Localise a host-computed finding from its structured kind/params. Falls
+// back to the English message/suggestion the engine ships for any kind we
+// don't have a template for (forward-compatible with new engine checks).
+function localizeFinding(f: AuditFinding): { message: string; suggestion?: string } {
+  const p = f.params ?? {};
+  switch (f.kind) {
+    case 'auto-fail':
+      return {
+        message: t('dash.audit.finding_auto_fail', { tool: p.tool ?? '', pct: p.pct ?? 0, failed: p.failed ?? 0, total: p.total ?? 0 }),
+        suggestion: t('dash.audit.finding_auto_fail_hint'),
+      };
+    case 'retry-loop': {
+      const time = p.atISO ? new Date(p.atISO).toLocaleTimeString() : '';
+      return {
+        message: t('dash.audit.finding_retry', { tool: p.tool ?? '', count: p.count ?? 0, time }),
+        suggestion: t('dash.audit.finding_retry_hint'),
+      };
+    }
+    case 'dangerous-succeeded': {
+      const n = p.count ?? 0;
+      return {
+        message: n === 1 ? t('dash.audit.finding_dangerous_one', { n }) : t('dash.audit.finding_dangerous_other', { n }),
+        suggestion: t('dash.audit.finding_dangerous_hint'),
+      };
+    }
+    default:
+      return { message: f.message, suggestion: f.suggestion };
+  }
 }
 
 function formatAuditCost(cost: AuditEntry['cost']): string {
@@ -393,18 +428,12 @@ function formatAuditCost(cost: AuditEntry['cost']): string {
 
 const AUDIT_PAGE_SIZE = 25;
 
-function AuditView({ entries }: { entries: AuditEntry[] }) {
+function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: AuditFinding[] }) {
   useLocale();
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-
-  // Patterns are computed inline so the audit view can stay
-  // self-contained — no extra round-trip to the host. Keep this
-  // simple: only the three checks the core helper does, mirrored
-  // here so the UI works even before the host upgrade rolls out.
-  const findings: AuditFinding[] = useMemo(() => detectClientSidePatterns(entries), [entries]);
 
   // Apply filters in memory — corpus is already capped at 1000
   // entries by the host, so this is fast.
@@ -449,19 +478,22 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
           actionable nudges the user otherwise wouldn't think to look for. */}
       {findings.length > 0 && (
         <div className="space-y-2">
-          {findings.map((f, i) => (
-            <div
-              key={i}
-              className={`rounded-lg border px-3 py-2 text-[11px] leading-relaxed ${
-                f.severity === 'critical' ? 'border-red-500/40 bg-red-500/5 text-red-200'
-                  : f.severity === 'warning' ? 'border-yellow-500/40 bg-yellow-500/5 text-yellow-100'
-                  : 'border-[var(--border-card)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
-              }`}
-            >
-              <div className="font-medium">{f.message}</div>
-              {f.suggestion && <div className="mt-1 text-[10px] opacity-80">{f.suggestion}</div>}
-            </div>
-          ))}
+          {findings.map((f, i) => {
+            const loc = localizeFinding(f);
+            return (
+              <div
+                key={i}
+                className={`rounded-lg border px-3 py-2 text-[11px] leading-relaxed ${
+                  f.severity === 'critical' ? 'border-red-500/40 bg-red-500/5 text-red-200'
+                    : f.severity === 'warning' ? 'border-yellow-500/40 bg-yellow-500/5 text-yellow-100'
+                    : 'border-[var(--border-card)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                }`}
+              >
+                <div className="font-medium">{loc.message}</div>
+                {loc.suggestion && <div className="mt-1 text-[10px] opacity-80">{loc.suggestion}</div>}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -616,49 +648,6 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
       )}
     </div>
   );
-}
-
-// Lightweight client-side mirror of @ava/core/audit/patterns. Kept here
-// so the audit view doesn't need a runtime dep on the core audit module
-// (which is Node-only and won't bundle into the dashboard-ui webview).
-function detectClientSidePatterns(entries: AuditEntry[]): AuditFinding[] {
-  const findings: AuditFinding[] = [];
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const recent = entries.filter(e => e.timestamp >= sevenDaysAgo);
-  if (recent.length === 0) return [];
-
-  const byTool = new Map<string, { auto: number; autoFailed: number }>();
-  for (const e of recent) {
-    if (e.approvalMethod !== 'auto') continue;
-    const bt = byTool.get(e.toolName) ?? { auto: 0, autoFailed: 0 };
-    bt.auto++;
-    if (e.status === 'failed' || e.status === 'denied') bt.autoFailed++;
-    byTool.set(e.toolName, bt);
-  }
-  for (const [tool, s] of byTool) {
-    if (s.auto >= 5 && s.autoFailed / s.auto > 0.2) {
-      findings.push({
-        severity: 'warning',
-        message: t('dash.audit.finding_auto_fail', { tool, pct: Math.round((s.autoFailed / s.auto) * 100), failed: s.autoFailed, total: s.auto }),
-        suggestion: t('dash.audit.finding_auto_fail_hint'),
-        relatedTools: [tool],
-      });
-    }
-  }
-
-  const dangerousSucceeded = recent.filter(e => e.riskLevel === 'dangerous' && e.status === 'success');
-  if (dangerousSucceeded.length > 0) {
-    findings.push({
-      severity: 'critical',
-      message: dangerousSucceeded.length === 1
-        ? t('dash.audit.finding_dangerous_one', { n: dangerousSucceeded.length })
-        : t('dash.audit.finding_dangerous_other', { n: dangerousSucceeded.length }),
-      suggestion: t('dash.audit.finding_dangerous_hint'),
-      relatedTools: [...new Set(dangerousSucceeded.map(e => e.toolName))],
-    });
-  }
-
-  return findings;
 }
 
 // ─── Session View ────────────────────────────────────────────────────────────

@@ -2641,6 +2641,8 @@ export const enStrings = {
   'dash.audit.finding_dangerous_hint': 'Review these in the audit table to confirm they touched only what you expected.',
   'dash.audit.finding_dangerous_one': '{n} dangerous tool call succeeded this week.',
   'dash.audit.finding_dangerous_other': '{n} dangerous tool calls succeeded this week.',
+  'dash.audit.finding_retry': '{tool} was called {count} times in a row at {time} — possible retry loop.',
+  'dash.audit.finding_retry_hint': "Open the row to compare arguments. If they're identical, this is usually a provider hiccup or a stale cache.",
   'dash.audit.result': 'Result',
   'dash.audit.risk_all': 'All risk',
   'dash.audit.risk_dangerous': 'Dangerous',

@@ -466,7 +466,15 @@ export class DashboardPanel {
         if (!entries || entries.length === 0) {
           entries = (this.viewProvider as any)?.auditLog || [];
         }
-        this.post({ type: 'audit_log', entries } as any);
+        // Detect proactive-nudge findings host-side using the one shared
+        // @ava/core/audit engine, so the extension + IDE never drift on
+        // thresholds. The webview localises each finding from its `kind`.
+        let findings: unknown[] = [];
+        try {
+          const { detectPatterns } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+          findings = detectPatterns(entries as any);
+        } catch { findings = []; }
+        this.post({ type: 'audit_log', entries, findings } as any);
         break;
       }
 

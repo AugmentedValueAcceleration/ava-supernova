@@ -550,6 +550,9 @@ export function App() {
   const [latestRelease, setLatestRelease] = useState<{ version: string; title: string; published_at: string } | null>(null);
   // Audit log state
   const [auditLog, setAuditLog] = useState<Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }>>([]);
+  // Findings are computed host-side by the shared @ava/core/audit engine and
+  // sent alongside the entries; the audit view localises each from its `kind`.
+  const [auditFindings, setAuditFindings] = useState<any[]>([]);
   // Article reader state
   const [activeArticle, setActiveArticle] = useState<FullArticle | null>(null);
   const [activeArticleRelated, setActiveArticleRelated] = useState<RelatedArticle[]>([]);
@@ -1152,6 +1155,7 @@ export function App() {
         break;
       case 'audit_log':
         setAuditLog((msg as any).entries || []);
+        setAuditFindings((msg as any).findings || []);
         break;
       case 'latest_release_loaded':
         setLatestRelease(msg.release);
@@ -1615,7 +1619,7 @@ export function App() {
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':
-        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
+        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
       case 'library':
         return (
           <Library
