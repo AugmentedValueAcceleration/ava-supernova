@@ -1542,7 +1542,8 @@ export type ExtToDashboardMessage =
   | { type: 'tool_call_end'; toolCallId: string; result: string; success: boolean }
   | { type: 'tool_confirmation_request'; confirmationId: string; toolCallId?: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean; profileField?: { field: string; question: string; currentValue?: unknown } }
   | { type: 'category_permissions'; permissions: Record<string, string>; mode: string }
-  | { type: 'audit_log'; entries: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> }
+  | { type: 'audit_log'; entries: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }>; findings?: unknown[] }
+  | { type: 'audit_findings'; findings: unknown[] }
   | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cached_tokens?: number }; cost?: number; contextWindow?: number; credits?: number }
   | { type: 'done' }
   | { type: 'model_switched'; modelId: string; modelName: string }
@@ -1829,6 +1830,7 @@ export type DashboardToExtMessage =
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'set_category_permission'; category: string; permission: string }
   | { type: 'request_audit_log' }
+  | { type: 'request_audit_findings' }
   | { type: 'export_audit_log'; format: 'markdown' | 'json' }
   | { type: 'export_full_account_data' }
   | { type: 'switch_model'; modelId: string }
