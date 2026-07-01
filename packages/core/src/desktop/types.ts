@@ -60,6 +60,7 @@ export type ActionKind =
   | 'type'
   | 'key'
   | 'scroll'
+  | 'drag'
   | 'navigate'
   | 'launch'
   | 'wait'

@@ -175,9 +175,14 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       const element = action.target
         ? screenState.elements.find(e => e.id === action.target || e.name === action.target)
         : undefined;
+      // For a drag, the DROP target drives the risk (dragging a file onto
+      // "Trash" is irreversible even though the file itself is innocuous).
+      const dropRef = action.kind === 'drag' ? (action.params?.dropTarget ?? action.params?.to) : undefined;
+      const dropEl = dropRef ? screenState.elements.find(e => e.id === dropRef || e.name === dropRef) : undefined;
       const classification = classifyAction({
         kind: action.kind,
         targetName: element?.name,
+        dropTargetName: dropRef ? (dropEl?.name ?? String(dropRef)) : undefined,
         targetType: element?.kind,
         isMaskedField: element?.sensitive,
         appName: screenState.activeApp,
@@ -429,6 +434,11 @@ function validateAction(action: ProposedAction, screen?: ScreenState, visionAvai
       }
       return null;
     }
+    case 'drag': {
+      if (!action.target) return '"drag" requires "target" — the id/name of the element to drag';
+      if (!action.params?.dropTarget && !action.params?.to) return '"drag" requires params.dropTarget — the id/name of the element to drop onto';
+      return null;
+    }
     case 'type':
       return typeof action.params?.text === 'string' && String(action.params.text).length > 0
         ? null : '"type" requires params.text (the text to type)';
@@ -450,7 +460,7 @@ function validateAction(action: ProposedAction, screen?: ScreenState, visionAvai
  * Planner into an undo/redo loop of its own completed task.
  */
 const ACTING_KINDS: ReadonlySet<ActionKind> = new Set([
-  'click', 'double_click', 'right_click', 'type', 'key', 'scroll', 'navigate', 'launch',
+  'click', 'double_click', 'right_click', 'type', 'key', 'scroll', 'drag', 'navigate', 'launch',
 ]);
 
 function validatePrediction(action: ProposedAction): string | null {
@@ -571,6 +581,16 @@ async function runActor(
           break;
         }
         throw new Error('native scroll is not available yet — only the browser can scroll for now');
+      }
+      case 'drag': {
+        if (!input || typeof input.drag !== 'function') throw new Error('no drag provider');
+        const src = resolveTarget(action.target, raw);
+        if (!src) throw new Error(`drag source '${action.target ?? '?'}' not found on screen`);
+        const dropRef = String(action.params?.dropTarget ?? action.params?.to ?? '');
+        const dst = dropRef ? resolveTarget(dropRef, raw) : null;
+        if (!dst) throw new Error(`drop target '${dropRef || '?'}' not found on screen — pass params.dropTarget (the id/name of where to drop)`);
+        await input.drag(src.cx, src.cy, dst.cx, dst.cy);
+        break;
       }
       case 'navigate': {
         if (!providers.browser) throw new Error('no browser provider for navigate');
@@ -707,6 +727,7 @@ function describeAction(action: ProposedAction, element?: ScreenElement): string
     case 'type': return target ? `type into "${target}"` : 'type';
     case 'key': return `press ${String(action.params?.key ?? 'a key')}`;
     case 'scroll': return `scroll ${String(action.params?.direction ?? 'down')}`;
+    case 'drag': return target ? `drag "${target}" onto "${String(action.params?.dropTarget ?? action.params?.to ?? '?')}"` : 'drag an element';
     case 'navigate': return `open ${String(action.params?.url ?? 'a page')}`;
     case 'launch': return `open ${String(action.params?.app ?? action.target ?? 'an app')}`;
     case 'wait': return 'wait';
@@ -723,6 +744,7 @@ function pastTense(action: ProposedAction, element?: ScreenElement): string {
     case 'type': return target ? `typed into "${target}"` : 'typed';
     case 'key': return `pressed ${String(action.params?.key ?? 'a key')}`;
     case 'scroll': return `scrolled ${String(action.params?.direction ?? 'down')}`;
+    case 'drag': return target ? `dragged "${target}"` : 'dragged an element';
     case 'navigate': return `opened ${String(action.params?.url ?? 'a page')}`;
     case 'launch': return `opened ${String(action.params?.app ?? action.target ?? 'an app')}`;
     case 'wait': return 'waited';

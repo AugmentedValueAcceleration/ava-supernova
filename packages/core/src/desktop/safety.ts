@@ -91,6 +91,9 @@ export interface ActionClassificationInput {
   kind: string;
   /** UIA AutomationName or DOM accessible name of the target element */
   targetName?: string;
+  /** For drag: the name of the DROP target — a drag onto "Trash"/"Delete"
+   *  must escalate to irreversible even though the source is innocuous. */
+  dropTargetName?: string;
   /** UIA ControlType or DOM role (button, textbox, menuitem, etc.) */
   targetType?: string;
   /** Input field name/id attribute (for type actions) */
@@ -144,7 +147,7 @@ export function classifyAction(input: ActionClassificationInput): Classification
 
   const observationalKinds = new Set(['screenshot', 'observe', 'observe_more', 'snapshot', 'ping']);
   const navigationalKinds = new Set(['scroll', 'hover', 'focus', 'wait', 'mouse_move']);
-  const mutativeKinds = new Set(['click', 'double_click', 'right_click', 'type', 'key', 'navigate', 'launch', 'paste']);
+  const mutativeKinds = new Set(['click', 'double_click', 'right_click', 'type', 'key', 'drag', 'navigate', 'launch', 'paste']);
 
   if (observationalKinds.has(kind)) {
     escalate('observational', `kind '${kind}' is observational`);
@@ -160,6 +163,7 @@ export function classifyAction(input: ActionClassificationInput): Classification
   // ── Signal 1: target name against irreversible verb blocklist ───────
   const textSignals = [
     input.targetName,
+    input.dropTargetName,
     input.omniParserCaption,
   ].filter(Boolean).map(s => s!.toLowerCase());
 

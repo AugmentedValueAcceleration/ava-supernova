@@ -39,7 +39,7 @@ export interface DesktopPersonaDefinition {
 
 const ACTION_KINDS: ActionKind[] = [
   'click', 'double_click', 'right_click', 'type', 'key',
-  'scroll', 'navigate', 'launch', 'wait', 'observe_more', 'stuck', 'done',
+  'scroll', 'drag', 'navigate', 'launch', 'wait', 'observe_more', 'stuck', 'done',
 ];
 
 const ACTION_KINDS_LIST = ACTION_KINDS.map(k => `"${k}"`).join(', ');
@@ -103,6 +103,7 @@ Action reference:
 - "type" — type text into an element (target + params.text required)
 - "key" — press a key (params.key required, e.g. "Enter", "Tab")
 - "scroll" — scroll a region (params.direction + params.amount)
+- "drag" — drag one element onto another (target = the element to drag; params.dropTarget = the id/name of where to drop). Use for file drag-drop, reordering lists, sliders.
 - "navigate" — go to a URL in Ava's OWN built-in browser (params.url required). This launches the browser automatically if it isn't open — for ANY web task, use "navigate" directly. NEVER try to launch chrome/firefox/edge as applications; Ava does not use the system browsers.
 - "launch" — open / start a NATIVE application by name (params.app required, e.g. "notepad", "calc"). Not for browsers — web tasks go through "navigate". Use this when the app you need is not already open — check Scout's activeApp and the visible windows first. The host rejects shell interpreters and admin tools, so name the actual application, never a command line.
 - "wait" — pause briefly (params.ms, max 5000)
