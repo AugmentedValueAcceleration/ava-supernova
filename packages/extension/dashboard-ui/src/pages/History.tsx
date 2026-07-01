@@ -555,6 +555,13 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
         </div>
         <div className="ml-auto flex gap-1">
           <button
+            onClick={() => post({ type: 'request_audit_log' })}
+            title={t('dash.audit.refresh_title')}
+            className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
+          >
+            ↻ {t('dash.audit.refresh')}
+          </button>
+          <button
             onClick={() => exportLog('markdown')}
             title={t('dash.audit.export_md_title')}
             className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"

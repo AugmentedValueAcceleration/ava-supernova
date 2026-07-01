@@ -2653,6 +2653,8 @@ export const enStrings = {
   'dash.audit.finding_dangerous_other': '{n} dangerous tool calls succeeded this week.',
   'dash.audit.finding_retry': '{tool} was called {count} times in a row at {time} — possible retry loop.',
   'dash.audit.finding_retry_hint': "Open the row to compare arguments. If they're identical, this is usually a provider hiccup or a stale cache.",
+  'dash.audit.refresh': 'Refresh',
+  'dash.audit.refresh_title': 'Refresh — re-verify file integrity and load new entries',
   'dash.audit.integrity_title': 'File integrity',
   'dash.audit.integrity_unchanged': 'Unchanged — as Ava left it',
   'dash.audit.integrity_modified': 'Modified since',

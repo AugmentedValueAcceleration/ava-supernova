@@ -434,8 +434,8 @@ export class DashboardPanel {
         // JSON (structured / SIEM ingest).
         const fmt = (msg as { format?: 'markdown' | 'json' }).format ?? 'markdown';
         try {
-          const { readEntries, buildExport } = require('@ava/core/audit') as typeof import('@ava/core/audit');
-          const entries = readEntries({});
+          const { readEntries, annotateIntegrity, buildExport } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+          const entries = annotateIntegrity(readEntries({}));
           const bundle = buildExport(entries, fmt);
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file(bundle.filename),
