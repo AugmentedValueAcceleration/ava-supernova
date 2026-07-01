@@ -36,6 +36,13 @@ export interface InputProvider {
   scroll(direction: 'up' | 'down' | 'left' | 'right', amount?: number): Promise<void>;
   moveMouse(x: number, y: number): Promise<void>;
   drag(x: number, y: number, endX: number, endY: number): Promise<void>;
+  /**
+   * Flash a click-through highlight box on (x, y, w, h) for ~ms — the visual
+   * "here's where I'm about to act" preview shown before Drive-mode actions.
+   * Optional: hosts without an overlay omit it and Drive still confirms
+   * irreversible actions, so the preview is UX, never a safety guard.
+   */
+  highlight?(x: number, y: number, w: number, h: number, ms?: number): Promise<void>;
 }
 
 export interface BrowserSnapshotElement {

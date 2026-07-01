@@ -228,8 +228,10 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       // mutating action can't land after Ctrl+Alt+K.
       if (signal?.aborted) { trajectory.outcome = 'stopped'; emit({ type: 'narrate', line: 'Stopped.' }); break; }
 
-      // 4 — Actor: execute exactly (deterministic).
-      const executionResult = await runActor(providers, action, raw, screenState.elements);
+      // 4 — Actor: execute exactly (deterministic). In Drive, the Actor flashes
+      // a preview box on the target first (Phase 0D) — Ask/Watch already show
+      // the approval card, so the preview is Drive's "watch me work" signal.
+      const executionResult = await runActor(providers, action, raw, screenState.elements, permissionLevel === 'drive');
       log(`step ${stepNumber} · Actor: ${executionResult.ok ? `ok (${executionResult.latencyMs}ms)` : `FAILED — ${executionResult.error ?? 'unknown'}`}`);
 
       // 5 — Verifier: re-read the screen, judge against the prediction — WITH
@@ -517,10 +519,20 @@ async function runActor(
   action: ProposedAction,
   raw: UIAElement[],
   merged: ScreenElement[] = [],
+  preview = false,
 ): Promise<ExecutionResult> {
   const start = Date.now();
   try {
     const input = providers.input;
+    // Visual preview (Phase 0D) — in Drive, flash a click-through box on the
+    // target BEFORE acting so autonomous operation is legible. Best-effort:
+    // a host without an overlay (or a failed flash) never blocks the action,
+    // and this is never a safety guard — irreversible actions still confirm.
+    const PREVIEW_MS = 450;
+    const showPreview = async (bx: number, by: number, bw: number, bh: number) => {
+      if (!preview || !input?.highlight || bw <= 0 || bh <= 0) return;
+      try { await input.highlight(bx, by, bw, bh, PREVIEW_MS); } catch { /* preview is cosmetic */ }
+    };
     // Phase C2: a target grounded by the DOM tier carries a selector — those
     // actions route through the browser (exact under scroll/resize), while
     // UIA-grounded targets keep the native coordinate path.
@@ -533,6 +545,7 @@ async function runActor(
         }
         const el = resolveTarget(action.target, raw);
         if (el) {
+          await showPreview(el.x, el.y, el.width, el.height);
           // Native clicks go through UIA's name-based invoke (exact, and the
           // host may not wire coordinate input at all); coords are the fallback.
           if (providers.uia?.clickElement) {
@@ -551,6 +564,7 @@ async function runActor(
           const pt = await providers.vision.localize(action.target);
           if (!pt) throw new Error(`couldn't locate '${action.target}' visually on the screen`);
           if (!input || typeof input.click !== 'function') throw new Error('vision located the element but no coordinate click is available');
+          await showPreview(pt.x - 16, pt.y - 16, 32, 32); // no bbox from vision — box the point
           await input.click(pt.x, pt.y);
           return { ok: true, latencyMs: Date.now() - start, sideEffects: ['located visually'] };
         }
@@ -565,6 +579,7 @@ async function runActor(
             ? `'${action.target}' is a web element — ${action.kind} on web elements isn't supported yet; use click`
             : `target '${action.target ?? '?'}' not found on screen`);
         }
+        await showPreview(el.x, el.y, el.width, el.height);
         if (action.kind === 'double_click') await input.doubleClick(el.cx, el.cy);
         else await input.rightClick(el.cx, el.cy);
         break;
@@ -576,7 +591,10 @@ async function runActor(
         }
         if (!input) throw new Error('no input provider');
         const el = action.target ? resolveTarget(action.target, raw) : null;
-        if (el) await input.click(el.cx, el.cy); // focus the field first
+        if (el) {
+          await showPreview(el.x, el.y, el.width, el.height);
+          await input.click(el.cx, el.cy); // focus the field first
+        }
         await input.typeText(String(action.params?.text ?? ''));
         break;
       }
@@ -607,6 +625,7 @@ async function runActor(
         const dropRef = String(action.params?.dropTarget ?? action.params?.to ?? '');
         const dst = dropRef ? resolveTarget(dropRef, raw) : null;
         if (!dst) throw new Error(`drop target '${dropRef || '?'}' not found on screen — pass params.dropTarget (the id/name of where to drop)`);
+        await showPreview(src.x, src.y, src.width, src.height); // box the element being dragged
         await input.drag(src.cx, src.cy, dst.cx, dst.cy);
         break;
       }
