@@ -626,7 +626,7 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
                       </span>
                     )}
                   </span>
-                  <span className="text-[var(--text-secondary)]">{CATEGORY_LABEL_KEYS[entry.category] ? t(CATEGORY_LABEL_KEYS[entry.category]) : entry.category}</span>
+                  <span className="text-[var(--text-secondary)] truncate">{CATEGORY_LABEL_KEYS[entry.category] ? t(CATEGORY_LABEL_KEYS[entry.category]) : entry.category}</span>
                   <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${TONE_BADGE[RISK_TONE[entry.riskLevel] ?? 'neutral']}`}>{entry.riskLevel}</span>
                   <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${TONE_BADGE[APPROVAL_TONE[entry.approvalMethod] ?? 'neutral']}`}>{entry.approvalMethod}</span>
                   <span className="text-right font-mono text-[10px] text-[var(--text-secondary)]">{formatAuditCost(entry.cost)}</span>
