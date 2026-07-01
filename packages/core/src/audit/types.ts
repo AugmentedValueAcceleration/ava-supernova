@@ -57,7 +57,15 @@ export interface AuditEntry {
     sha256Before?: string; // sha256 of the file content before the change
     sha256After?: string;  // sha256 after
   };
+  /** Integrity verdict computed at read time by comparing the file on disk
+   *  now against `fileMutation.sha256After` (what Ava left it as). Set by
+   *  annotateIntegrity(); absent for non-mutation / unverifiable entries.
+   *  'unchanged' = disk still matches Ava's edit; 'modified' = changed since;
+   *  'deleted' = the file is gone; 'unverifiable' = no hash / too large. */
+  integrity?: IntegrityStatus;
 }
+
+export type IntegrityStatus = 'unchanged' | 'modified' | 'deleted' | 'unverifiable';
 
 export interface AuditCost {
   /** Which billing model this entry is on. */

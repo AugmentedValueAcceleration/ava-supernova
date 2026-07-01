@@ -466,12 +466,14 @@ export class DashboardPanel {
         if (!entries || entries.length === 0) {
           entries = (this.viewProvider as any)?.auditLog || [];
         }
-        // Detect proactive-nudge findings host-side using the one shared
-        // @ava/core/audit engine, so the extension + IDE never drift on
-        // thresholds. The webview localises each finding from its `kind`.
+        // Verify each file-mutation entry against the file on disk now, and
+        // detect proactive-nudge findings — both via the one shared
+        // @ava/core/audit engine so the extension + IDE never drift. The
+        // webview localises findings from `kind` and renders integrity badges.
         let findings: unknown[] = [];
         try {
-          const { detectPatterns } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+          const { annotateIntegrity, detectPatterns } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+          entries = annotateIntegrity(entries as any);
           findings = detectPatterns(entries as any);
         } catch { findings = []; }
         this.post({ type: 'audit_log', entries, findings } as any);

@@ -148,6 +148,18 @@ interface AuditEntry {
     provider?: string;
     model?: string;
   };
+  /** Forensic file-change record for file_write / file_edit / document_author. */
+  fileMutation?: {
+    path: string;
+    gitSha?: string;
+    bytesBefore?: number;
+    bytesAfter?: number;
+    sha256Before?: string;
+    sha256After?: string;
+  };
+  /** Integrity verdict vs the file on disk now — set host-side by
+   *  annotateIntegrity(). Absent for non-mutation / unverifiable entries. */
+  integrity?: 'unchanged' | 'modified' | 'deleted' | 'unverifiable';
 }
 
 interface HistoryProps {
@@ -426,6 +438,17 @@ function formatAuditCost(cost: AuditEntry['cost']): string {
   return '—';
 }
 
+// Integrity badge presentation — the same verdict the shared engine computes
+// (annotateIntegrity), rendered as a glyph + tint the user can read at a
+// glance and localise on hover.
+type IntegrityKey = NonNullable<AuditEntry['integrity']>;
+const INTEGRITY_META: Record<IntegrityKey, { glyph: string; text: string; badge: string; labelKey: string }> = {
+  unchanged:    { glyph: '✓', text: 'text-emerald-400', badge: 'bg-emerald-500/15 text-emerald-400', labelKey: 'dash.audit.integrity_unchanged' },
+  modified:     { glyph: '⚠', text: 'text-yellow-400',  badge: 'bg-yellow-500/15 text-yellow-400',  labelKey: 'dash.audit.integrity_modified' },
+  deleted:      { glyph: '🗑', text: 'text-red-400',     badge: 'bg-red-500/15 text-red-400',        labelKey: 'dash.audit.integrity_deleted' },
+  unverifiable: { glyph: '•', text: 'text-[var(--text-muted)]', badge: 'bg-[var(--bg-input)] text-[var(--text-muted)]', labelKey: 'dash.audit.integrity_unverifiable' },
+};
+
 const AUDIT_PAGE_SIZE = 25;
 
 function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: AuditFinding[] }) {
@@ -595,7 +618,14 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
                   className="grid grid-cols-[80px_1fr_80px_60px_90px_70px_60px] gap-2 w-full px-3 py-2 text-left text-[11px] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-input)]/30 transition"
                 >
                   <span className="text-[var(--text-muted)] font-mono text-[10px]">{time}</span>
-                  <span className="text-white font-medium truncate">{entry.toolName}</span>
+                  <span className="text-white font-medium truncate flex items-center gap-1">
+                    <span className="truncate">{entry.toolName}</span>
+                    {entry.fileMutation && entry.integrity && (
+                      <span className={`shrink-0 text-[10px] ${INTEGRITY_META[entry.integrity].text}`} title={t(INTEGRITY_META[entry.integrity].labelKey)}>
+                        {INTEGRITY_META[entry.integrity].glyph}
+                      </span>
+                    )}
+                  </span>
                   <span className="text-[var(--text-secondary)]">{CATEGORY_LABEL_KEYS[entry.category] ? t(CATEGORY_LABEL_KEYS[entry.category]) : entry.category}</span>
                   <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${TONE_BADGE[RISK_TONE[entry.riskLevel] ?? 'neutral']}`}>{entry.riskLevel}</span>
                   <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${TONE_BADGE[APPROVAL_TONE[entry.approvalMethod] ?? 'neutral']}`}>{entry.approvalMethod}</span>
@@ -604,6 +634,38 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
                 </button>
                 {isExpanded && (
                   <div className="px-3 pb-3 space-y-2">
+                    {entry.fileMutation && (
+                      <div className={`rounded-lg border p-2.5 text-[10px] ${
+                        entry.integrity === 'unchanged' ? 'border-emerald-500/30 bg-emerald-500/5'
+                          : entry.integrity === 'modified' ? 'border-yellow-500/30 bg-yellow-500/5'
+                          : entry.integrity === 'deleted' ? 'border-red-500/30 bg-red-500/5'
+                          : 'border-[var(--border-card)] bg-[var(--bg-input)]/50'
+                      }`}>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="font-semibold text-[var(--text-muted)] uppercase tracking-wider text-[9px]">{t('dash.audit.integrity_title')}</span>
+                          {entry.integrity && (
+                            <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${INTEGRITY_META[entry.integrity].badge}`}>
+                              {INTEGRITY_META[entry.integrity].glyph} {t(INTEGRITY_META[entry.integrity].labelKey)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-mono text-[var(--text-secondary)] break-all">{entry.fileMutation.path}</div>
+                        {entry.fileMutation.sha256After && (
+                          <div className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 font-mono text-[9px] text-[var(--text-muted)]">
+                            <span>{t('dash.audit.integrity_hash_after')}</span>
+                            <span className="break-all text-[var(--text-secondary)]">{entry.fileMutation.sha256After}</span>
+                            {entry.fileMutation.gitSha && (<>
+                              <span>{t('dash.audit.integrity_git_sha')}</span>
+                              <span className="break-all text-[var(--text-secondary)]">{entry.fileMutation.gitSha}</span>
+                            </>)}
+                            {typeof entry.fileMutation.bytesAfter === 'number' && (<>
+                              <span>{t('dash.audit.integrity_size')}</span>
+                              <span className="text-[var(--text-secondary)]">{entry.fileMutation.bytesAfter.toLocaleString()} B</span>
+                            </>)}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
                       <p className="font-semibold text-[var(--text-muted)] mb-1">{t('dash.audit.arguments')}</p>
                       <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">

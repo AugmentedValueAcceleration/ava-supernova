@@ -18,7 +18,11 @@ export {
 export {
   detectPatterns,
 } from './patterns.js';
-export type { Finding } from './patterns.js';
+export type { Finding, FindingKind, FindingParams } from './patterns.js';
+
+export {
+  annotateIntegrity,
+} from './integrity.js';
 
 export {
   buildExport,
@@ -29,4 +33,5 @@ export type {
   AuditEntry,
   AuditCost,
   AuditFilter,
+  IntegrityStatus,
 } from './types.js';
