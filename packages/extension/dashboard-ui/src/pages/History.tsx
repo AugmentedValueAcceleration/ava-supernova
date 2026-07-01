@@ -527,10 +527,11 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
           onChange={setSearch}
           placeholder={t('dash.audit.filter_placeholder')}
           compact
-          className="flex-1 min-w-[160px]"
+          className="flex-1 min-w-[160px] h-[30px]"
         />
         <div className="w-[120px] shrink-0">
           <Select
+            size="sm"
             value={riskFilter}
             onChange={setRiskFilter}
             options={[
@@ -543,6 +544,7 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
         </div>
         <div className="w-[120px] shrink-0">
           <Select
+            size="sm"
             value={statusFilter}
             onChange={setStatusFilter}
             options={[
@@ -557,21 +559,21 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
           <button
             onClick={() => post({ type: 'request_audit_log' })}
             title={t('dash.audit.refresh_title')}
-            className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
+            className="inline-flex items-center rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] h-[30px] px-2.5 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
           >
             ↻ {t('dash.audit.refresh')}
           </button>
           <button
             onClick={() => exportLog('markdown')}
             title={t('dash.audit.export_md_title')}
-            className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
+            className="inline-flex items-center rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] h-[30px] px-2.5 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
           >
             {t('dash.audit.export_md')}
           </button>
           <button
             onClick={() => exportLog('json')}
             title={t('dash.audit.export_json_title')}
-            className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
+            className="inline-flex items-center rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] h-[30px] px-2.5 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
           >
             {t('dash.audit.export_json')}
           </button>
