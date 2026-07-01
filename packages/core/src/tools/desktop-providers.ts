@@ -84,6 +84,11 @@ export interface VisionProvider {
   localize(targetDescription: string): Promise<{ x: number; y: number } | null>;
   /** Whether a vision lane is currently usable (setting + key/model present). */
   isAvailable(): boolean;
+  /** Structured capability — lane + whether it's a verified path — so Scout
+   *  can advertise vision honestly (e.g. "local vision, unverified"). Optional
+   *  for back-compat; hosts should implement it. Shape mirrors
+   *  `VisionCapability` from `@ava/core/desktop`. */
+  capability?(): { available: boolean; lane: 'off' | 'local' | 'cloud-byok' | 'cloud-platform'; verified: boolean; reason: string };
 }
 
 export interface AppLauncherProvider {

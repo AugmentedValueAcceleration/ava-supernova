@@ -55,6 +55,10 @@ export type {
 export { mergeTiers, browserSnapshotToTier } from './perception.js';
 export type { PerceptionTier } from './perception.js';
 
+// Vision capability probe (Phase C3) — structured lane + honesty (verified?)
+export { probeVisionCapability } from './capability.js';
+export type { VisionLane, VisionCapability, VisionProbeInput } from './capability.js';
+
 // Conductor — orchestrates the five-persona wave into a trajectory loop
 export { runDesktopTrajectory } from './conductor.js';
 export type {

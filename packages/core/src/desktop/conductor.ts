@@ -223,6 +223,11 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
         }
       }
 
+      // Kill-switch: never execute an action after the stop fired — this catches
+      // an abort during the (abortable) Planner call OR the approval wait, so a
+      // mutating action can't land after Ctrl+Alt+K.
+      if (signal?.aborted) { trajectory.outcome = 'stopped'; emit({ type: 'narrate', line: 'Stopped.' }); break; }
+
       // 4 — Actor: execute exactly (deterministic).
       const executionResult = await runActor(providers, action, raw, screenState.elements);
       log(`step ${stepNumber} · Actor: ${executionResult.ok ? `ok (${executionResult.latencyMs}ms)` : `FAILED — ${executionResult.error ?? 'unknown'}`}`);
@@ -286,8 +291,16 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       if (snap.breached) { trajectory.outcome = 'budget_exceeded'; break; }
     }
   } catch (err) {
-    trajectory.outcome = 'error';
-    emit({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+    const msg = err instanceof Error ? err.message : String(err);
+    // A request rejected by the kill-switch surfaces as a thrown 'aborted' —
+    // that's a clean stop, not an error to alarm the user with.
+    if (signal?.aborted || msg === 'aborted') {
+      trajectory.outcome = 'stopped';
+      emit({ type: 'narrate', line: 'Stopped.' });
+    } else {
+      trajectory.outcome = 'error';
+      emit({ type: 'error', message: msg });
+    }
   }
 
   trajectory.endedAt = new Date().toISOString();
@@ -334,10 +347,15 @@ async function scout(providers: DesktopProviders): Promise<{ state: ScreenState;
   const state = mergeTiers(tiers);
   // Phase C3 — when the structured tiers came back thin and a vision lane is
   // enabled, tell the Planner it can target by DESCRIPTION: the Actor will
-  // locate described elements visually.
-  if (state.elements.length < 3 && providers.vision?.isAvailable()) {
+  // locate described elements visually. Advertise the lane HONESTLY — if it's
+  // an unverified lane (local Holo, platform preview), say so, so the Planner
+  // leans on the accessibility tree first and treats visual hits with caution.
+  const cap = providers.vision?.capability?.();
+  const visionAvailable = cap ? cap.available : !!providers.vision?.isAvailable();
+  if (state.elements.length < 3 && visionAvailable) {
+    const caveat = cap && !cap.verified ? ' (this vision lane is unverified — prefer accessibility-tree targets, and treat visual results with a little caution)' : '';
     state.notes = [state.notes,
-      "Vision is available: you may 'click' elements by DESCRIBING them in plain words (e.g. \"the blue Save button\") — the system locates them visually on screen."]
+      `Vision is available${caveat}: you may 'click' elements by DESCRIBING them in plain words (e.g. "the blue Save button") — the system locates them visually on screen.`]
       .filter(Boolean).join(' ');
   }
   return { state, raw };
