@@ -61,6 +61,16 @@
       "require": "./dist/audit/patterns.js",
       "types": "./dist/audit/patterns.d.ts"
     },
+    "./audit/security": {
+      "import": "./dist/audit/security.js",
+      "require": "./dist/audit/security.js",
+      "types": "./dist/audit/security.d.ts"
+    },
+    "./audit/export": {
+      "import": "./dist/audit/export.js",
+      "require": "./dist/audit/export.js",
+      "types": "./dist/audit/export.d.ts"
+    },
     "./health": {
       "import": "./dist/health/index.js",
       "require": "./dist/health/index.js",

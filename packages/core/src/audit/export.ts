@@ -13,7 +13,7 @@
 
 import type { AuditEntry, IntegrityStatus } from './types.js';
 import { formatCost } from './cost.js';
-import { summarise } from './logger.js';
+import { summarise } from './summary.js';
 
 /** Roll up the file-integrity verdicts across a set of entries — the proof
  *  headline: of everything Ava changed, how much is still exactly as it left
