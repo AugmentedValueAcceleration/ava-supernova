@@ -56,6 +56,11 @@
       "require": "./dist/audit/index.js",
       "types": "./dist/audit/index.d.ts"
     },
+    "./audit/patterns": {
+      "import": "./dist/audit/patterns.js",
+      "require": "./dist/audit/patterns.js",
+      "types": "./dist/audit/patterns.d.ts"
+    },
     "./health": {
       "import": "./dist/health/index.js",
       "require": "./dist/health/index.js",
