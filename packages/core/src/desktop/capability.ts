@@ -62,7 +62,9 @@ export function probeVisionCapability(i: VisionProbeInput): VisionCapability {
   }
   if (i.hasPlatformKey) {
     // Platform-hosted vision is in preview until confirmed with H Company.
+    // (BYOK-only hosts pass hasPlatformKey: false — operator decision
+    // 2026-07-02 — so this lane is currently unreachable in the IDE.)
     return { available: true, lane: 'cloud-platform', verified: false, reason: 'Vision via your Ava account (preview — for verified vision, add your own H Company key).' };
   }
-  return { available: false, lane: 'off', verified: false, reason: 'Cloud vision is selected but no H Company key or Ava account is connected.' };
+  return { available: false, lane: 'off', verified: false, reason: 'Cloud vision needs your own H Company key (BYOK) — add it in Settings to enable it.' };
 }

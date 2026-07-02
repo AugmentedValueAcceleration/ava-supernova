@@ -87,6 +87,16 @@ export interface ProposedAction {
   reasoning: string;
   /** One-sentence prediction of what the screen should look like after this action */
   expectedPostState: string;
+  /**
+   * Where the impetus for this action came from (anti-prompt-injection spine):
+   * 'user' — carries out something the USER asked for in the task;
+   * 'observed' — prompted by text READ OFF THE SCREEN (a page/email/dialog
+   * saying "click X to continue"). Observed-origin mutative actions force a
+   * fresh confirm even in Drive, with a "this came from the page, not you"
+   * banner. Primary signal: the Planner self-declares; a conductor heuristic
+   * backstops it. Never the only guard — the irreversible floor stands.
+   */
+  origin?: 'user' | 'observed';
 }
 
 // ── Execution ─────────────────────────────────────────────────────────────

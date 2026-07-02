@@ -30,7 +30,7 @@ import {
   type DesktopPersonaName,
 } from './personas.js';
 import {
-  classifyAction, decideApproval, escalateRisk,
+  classifyAction, decideApproval, escalateRisk, IRREVERSIBLE_VERBS,
   type PermissionLevel, type RiskClass, type ClassificationResult,
 } from './safety.js';
 import { BudgetTracker, type BudgetConfig, type BudgetSnapshot, type StepTokens } from './budget.js';
@@ -200,6 +200,22 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
         classification.reasons.push(`escalated: the Planner itself declared this ${escalated}`);
       }
       const decision = decideApproval(classification.riskClass, permissionLevel, opts.privilegedOptIn ?? false);
+
+      // Screen-said-so containment (Phase 1): if the impetus for a mutative
+      // action came from CONTENT ON THE SCREEN rather than the user's task —
+      // Planner self-declared, or the backstop heuristic caught an
+      // irreversible verb in the target the task never mentioned — it always
+      // gets a fresh confirm, even in Drive. A webpage must never be able to
+      // drive Ava's hands unattended. Defence in depth: this stacks ON TOP of
+      // the irreversible floor, it never replaces it.
+      action.origin = inferObservedOrigin(action, task, element?.name);
+      const MUTATIVE = new Set<RiskClass>(['mutative-reversible', 'mutative-irreversible', 'privileged']);
+      if (action.origin === 'observed' && MUTATIVE.has(classification.riskClass)
+          && !decision.forbidden && !decision.requiresApproval) {
+        decision.requiresApproval = true;
+        decision.reason = 'This action was prompted by content on the screen (the page asked for it), not by your instructions — confirming with you first.';
+        classification.reasons.push('observed-origin: impetus came from screen content, not the user task');
+      }
 
       const inOwnBrowser = action.kind === 'navigate'
         || action.kind === 'scroll' && !!providers.browser?.isLive?.()
@@ -540,7 +556,32 @@ export function coerceAction(parsed: Partial<ProposedAction> | null): ProposedAc
     riskClass: (parsed.riskClass as RiskClass) ?? 'mutative-reversible',
     reasoning: parsed.reasoning ?? '',
     expectedPostState: parsed.expectedPostState ?? '',
+    // Anti-injection origin (Phase 1). Anything that isn't an explicit 'user'
+    // declaration stays 'observed'-eligible downstream — but we only trust an
+    // explicit value here; the conductor's heuristic may still override.
+    origin: parsed.origin === 'user' || parsed.origin === 'observed' ? parsed.origin : undefined,
   };
+}
+
+/**
+ * Backstop heuristic for the origin flag (Phase 1) — never the only guard.
+ * If the action's target text carries an irreversible verb that the USER'S
+ * OWN TASK never mentioned, the impetus likely came from the screen (a page
+ * saying "click Delete to continue"), whatever the Planner declared. We only
+ * ever UPGRADE user→observed, never launder observed→user.
+ * Exported for the regression suite.
+ */
+export function inferObservedOrigin(action: ProposedAction, task: string, elementName?: string): 'user' | 'observed' | undefined {
+  if (action.origin === 'observed') return 'observed';
+  const text = `${elementName ?? ''} ${action.target ?? ''}`.toLowerCase();
+  const taskLower = task.toLowerCase();
+  for (const verb of IRREVERSIBLE_VERBS) {
+    const pattern = new RegExp(`\\b${verb}\\b`, 'i');
+    if (pattern.test(text) && !pattern.test(taskLower)) {
+      return 'observed';
+    }
+  }
+  return action.origin;
 }
 
 // ── Actor (deterministic) ──────────────────────────────────────────────────
