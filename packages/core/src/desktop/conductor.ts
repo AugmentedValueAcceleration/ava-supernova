@@ -30,7 +30,7 @@ import {
   type DesktopPersonaName,
 } from './personas.js';
 import {
-  classifyAction, decideApproval,
+  classifyAction, decideApproval, escalateRisk,
   type PermissionLevel, type RiskClass, type ClassificationResult,
 } from './safety.js';
 import { BudgetTracker, type BudgetConfig, type BudgetSnapshot, type StepTokens } from './budget.js';
@@ -190,6 +190,15 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
         isMaskedField: element?.sensitive,
         appName: screenState.activeApp,
       });
+      // Defence in depth: the computed classification may only ESCALATE
+      // relative to what the Planner itself declared — never launder it down.
+      // (Observed: Planner said "Empty Recycle Bin" was irreversible, "empty"
+      // wasn't in the verb list, and the gate auto-ran it as reversible.)
+      const escalated = escalateRisk(classification.riskClass, action.riskClass);
+      if (escalated !== classification.riskClass) {
+        classification.riskClass = escalated;
+        classification.reasons.push(`escalated: the Planner itself declared this ${escalated}`);
+      }
       const decision = decideApproval(classification.riskClass, permissionLevel, opts.privilegedOptIn ?? false);
 
       const inOwnBrowser = action.kind === 'navigate'
@@ -504,6 +513,13 @@ function validatePrediction(action: ProposedAction): string | null {
 
 /** Defensive: a malformed Planner output becomes a controlled 'stuck', never a crash. */
 function coerceAction(parsed: Partial<ProposedAction> | null): ProposedAction {
+  // Some models wrap the action: {"action": {"kind": ...}, "riskClass": ...}
+  // — kind inside, siblings outside (observed live; it killed a perfectly
+  // good recovery plan as "invalid"). Unwrap and merge, inner fields winning.
+  const wrapped = (parsed as Record<string, unknown> | null)?.action;
+  if (parsed && typeof parsed.kind !== 'string' && wrapped && typeof wrapped === 'object') {
+    parsed = { ...parsed, ...(wrapped as Partial<ProposedAction>) };
+  }
   if (!parsed || typeof parsed.kind !== 'string' || !ACTION_KINDS.has(parsed.kind as ActionKind)) {
     return {
       kind: 'stuck',

@@ -7,6 +7,7 @@
 export {
   classifyAction,
   decideApproval,
+  escalateRisk,
   isWhitelisted,
   IRREVERSIBLE_VERBS,
 } from './safety.js';

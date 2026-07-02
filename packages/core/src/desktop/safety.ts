@@ -52,6 +52,10 @@ export const IRREVERSIBLE_VERBS = new Set([
   'remove',
   'destroy',
   'purge',
+  'empty',         // "Empty Recycle Bin" — permanent deletion
+  'erase',
+  'format',
+  'uninstall',
   'publish',
   'post',
   'tweet',
@@ -337,6 +341,21 @@ function riskOrdinal(cls: RiskClass): number {
     case 'mutative-irreversible': return 3;
     case 'privileged': return 4;
   }
+}
+
+/**
+ * Defence in depth: return the HIGHER of two risk classes. The approval gate
+ * uses this so the computed classification can only ESCALATE relative to the
+ * Planner's own declaration, never launder it down — observed failure: the
+ * Planner declared "Empty Recycle Bin" mutative-irreversible, the verb list
+ * didn't contain "empty", and the gate auto-ran an irreversible action as
+ * reversible. Unknown/garbage declarations are ignored (never de-escalate on
+ * bad input).
+ */
+export function escalateRisk(computed: RiskClass, declared: unknown): RiskClass {
+  const KNOWN: RiskClass[] = ['observational', 'navigational', 'mutative-reversible', 'mutative-irreversible', 'privileged'];
+  if (!KNOWN.includes(declared as RiskClass)) return computed;
+  return riskOrdinal(declared as RiskClass) > riskOrdinal(computed) ? declared as RiskClass : computed;
 }
 
 /**
