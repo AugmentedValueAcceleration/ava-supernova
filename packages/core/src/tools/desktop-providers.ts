@@ -21,6 +21,10 @@ export interface UIAElement {
   /** UIA IsEnabled — false = greyed out (a disabled "Empty Recycle Bin" means
    *  the bin is already empty). Absent on older hosts ⇒ treat as enabled. */
   enabled?: boolean;
+  /** Another window physically covers this element's centre — a click would
+   *  hit THAT window instead (desktop icons behind an app window). Absent on
+   *  older hosts ⇒ treat as not occluded. */
+  occluded?: boolean;
 }
 
 export interface UIAProvider {

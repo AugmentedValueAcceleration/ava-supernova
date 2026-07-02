@@ -27,6 +27,10 @@ export interface ScreenElement {
   source: GroundingSource;
   /** Whether the element is interactable (clickable, typeable) */
   interactable: boolean;
+  /** Another window is physically covering this element — a click would hit
+   *  the covering window instead. Clear the occlusion (minimize_all / focus)
+   *  before targeting it. */
+  occluded?: boolean;
   /** Whether this element contains sensitive content (password field, API key, etc.) */
   sensitive: boolean;
 }

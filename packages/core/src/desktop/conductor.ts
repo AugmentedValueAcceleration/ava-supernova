@@ -338,6 +338,9 @@ async function scout(providers: DesktopProviders): Promise<{ state: ScreenState;
       // interactable — and often the fact itself is the answer (a disabled
       // "Empty Recycle Bin" means the bin is already empty).
       interactable: e.enabled !== false,
+      // A covered element (desktop icon behind an app window) is enumerable
+      // but untouchable — the Planner must clear the occlusion first.
+      occluded: e.occluded === true || undefined,
       sensitive: SENSITIVE_NAME.test(e.name || ''),
     })),
   };
@@ -578,13 +581,24 @@ async function runActor(
           if (el.enabled === false) {
             throw new Error(`'${el.name}' is visible but DISABLED (greyed out) — Windows disables an action when there is nothing for it to do, so its purpose is likely already satisfied. Do not retry it; if the task's goal is already met, declare done.`);
           }
+          if (el.occluded === true) {
+            throw new Error(`'${el.name}' is COVERED by another window — a click would hit that window instead. Clear the occlusion first (minimize_all for desktop icons, or focus the right window), then retry.`);
+          }
           await showPreview(el.x, el.y, el.width, el.height);
           // Native clicks go through UIA's name-based invoke (exact, and the
           // host may not wire coordinate input at all); coords are the fallback.
           if (providers.uia?.clickElement) {
             const clicked = await providers.uia.clickElement(el.name);
-            if (!clicked) throw new Error(`could not click '${el.name}' via UIA`);
-            break;
+            if (clicked) break;
+            // The invoke does its OWN fresh lookup, which can land on a
+            // different surface if focus bounced (e.g. straight after an
+            // approval card closed). The coordinates from the planning scout
+            // still stand — fall back to them rather than stranding the step.
+            if (input && typeof input.click === 'function') {
+              await input.click(el.cx, el.cy);
+              break;
+            }
+            throw new Error(`could not click '${el.name}' via UIA`);
           }
           if (!input || typeof input.click !== 'function') throw new Error('no click provider');
           await input.click(el.cx, el.cy);
@@ -611,6 +625,9 @@ async function runActor(
           throw new Error(webEl
             ? `'${action.target}' is a web element — ${action.kind} on web elements isn't supported yet; use click`
             : `target '${action.target ?? '?'}' not found on screen`);
+        }
+        if (el.occluded === true) {
+          throw new Error(`'${el.name}' is COVERED by another window — the ${action.kind} would hit that window instead. Clear the occlusion first (minimize_all for desktop icons, or focus the right window), then retry.`);
         }
         await showPreview(el.x, el.y, el.width, el.height);
         if (action.kind === 'double_click') await input.doubleClick(el.cx, el.cy);
