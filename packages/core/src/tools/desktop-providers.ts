@@ -18,6 +18,9 @@ export interface UIAElement {
   y: number;
   width: number;
   height: number;
+  /** UIA IsEnabled — false = greyed out (a disabled "Empty Recycle Bin" means
+   *  the bin is already empty). Absent on older hosts ⇒ treat as enabled. */
+  enabled?: boolean;
 }
 
 export interface UIAProvider {

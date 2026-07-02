@@ -124,6 +124,7 @@ Rules:
 4. If the current ScreenState is missing something you need to choose (e.g. you want to click a "Submit" button but there isn't one visible), propose 'observe_more' with params.reason. Don't click a wrong target.
 5. If three of your recent steps have made no visible progress (check the trajectory), propose 'stuck' with a description of why. Don't loop.
 6. Before proposing any action, check whether the previous step already accomplished this same sub-goal. If yes, do NOT repeat it — either advance to the next sub-goal or output "done".
+6a. DISABLED ELEMENTS ARE INFORMATION. An element with interactable: false is greyed out — clicking it does nothing; never target it. Windows disables an action when there is nothing for it to do, so the disabled state often ANSWERS the task: a greyed-out "Empty Recycle Bin" means the bin is already empty; a greyed-out "Paste" means the clipboard is empty; a greyed-out "Save" means there are no unsaved changes. If the task's goal is exactly what the disabled control would have done, the goal is ALREADY satisfied — output "done" and say why (e.g. "The Recycle Bin is already empty — nothing to do."). If it blocks a sub-step instead, find the precondition it's waiting on.
 7. 'riskClass' must be one of: observational, navigational, mutative-reversible, mutative-irreversible, privileged. Classify based on the action's real-world effect, not its UI innocuousness.
 8. 'expectedPostState' must be a clear one-sentence prediction that Verifier can check against the next ScreenState.
 

@@ -325,7 +325,10 @@ async function scout(providers: DesktopProviders): Promise<{ state: ScreenState;
       kind: e.control_type || 'unknown',
       name: e.name || '',
       source: 'uia',
-      interactable: true,
+      // Real enabled-state from UIA: a greyed-out control is visible but NOT
+      // interactable — and often the fact itself is the answer (a disabled
+      // "Empty Recycle Bin" means the bin is already empty).
+      interactable: e.enabled !== false,
       sensitive: SENSITIVE_NAME.test(e.name || ''),
     })),
   };
@@ -553,6 +556,12 @@ async function runActor(
         }
         const el = resolveTarget(action.target, raw);
         if (el) {
+          // A greyed-out control can't be clicked — and the disabled state is
+          // usually the answer itself (disabled "Empty Recycle Bin" = already
+          // empty). Fail with the meaning so the Planner can conclude 'done'.
+          if (el.enabled === false) {
+            throw new Error(`'${el.name}' is visible but DISABLED (greyed out) — Windows disables an action when there is nothing for it to do, so its purpose is likely already satisfied. Do not retry it; if the task's goal is already met, declare done.`);
+          }
           await showPreview(el.x, el.y, el.width, el.height);
           // Native clicks go through UIA's name-based invoke (exact, and the
           // host may not wire coordinate input at all); coords are the fallback.
