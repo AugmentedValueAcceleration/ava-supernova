@@ -484,7 +484,7 @@ function validateAction(action: ProposedAction, screen?: ScreenState, visionAvai
  * Planner into an undo/redo loop of its own completed task.
  */
 const ACTING_KINDS: ReadonlySet<ActionKind> = new Set([
-  'click', 'double_click', 'right_click', 'type', 'key', 'scroll', 'drag', 'navigate', 'launch',
+  'click', 'double_click', 'right_click', 'type', 'key', 'scroll', 'drag', 'minimize_all', 'navigate', 'launch',
 ]);
 
 function validatePrediction(action: ProposedAction): string | null {
@@ -633,6 +633,13 @@ async function runActor(
         await input.drag(src.cx, src.cy, dst.cx, dst.cy);
         break;
       }
+      case 'minimize_all': {
+        // Reveal the desktop so its icons (Recycle Bin, This PC, files) become
+        // visible + clickable — the fix for "the icon's behind a window".
+        if (!input || typeof input.minimizeAll !== 'function') throw new Error('no minimize provider');
+        await input.minimizeAll();
+        break;
+      }
       case 'navigate': {
         if (!providers.browser) throw new Error('no browser provider for navigate');
         await providers.browser.navigate(String(action.params?.url ?? ''));
@@ -769,6 +776,7 @@ function describeAction(action: ProposedAction, element?: ScreenElement): string
     case 'key': return `press ${String(action.params?.key ?? 'a key')}`;
     case 'scroll': return `scroll ${String(action.params?.direction ?? 'down')}`;
     case 'drag': return target ? `drag "${target}" onto "${String(action.params?.dropTarget ?? action.params?.to ?? '?')}"` : 'drag an element';
+    case 'minimize_all': return 'minimize all windows to show the desktop';
     case 'navigate': return `open ${String(action.params?.url ?? 'a page')}`;
     case 'launch': return `open ${String(action.params?.app ?? action.target ?? 'an app')}`;
     case 'wait': return 'wait';
@@ -786,6 +794,7 @@ function pastTense(action: ProposedAction, element?: ScreenElement): string {
     case 'key': return `pressed ${String(action.params?.key ?? 'a key')}`;
     case 'scroll': return `scrolled ${String(action.params?.direction ?? 'down')}`;
     case 'drag': return target ? `dragged "${target}"` : 'dragged an element';
+    case 'minimize_all': return 'minimized all windows to show the desktop';
     case 'navigate': return `opened ${String(action.params?.url ?? 'a page')}`;
     case 'launch': return `opened ${String(action.params?.app ?? action.target ?? 'an app')}`;
     case 'wait': return 'waited';

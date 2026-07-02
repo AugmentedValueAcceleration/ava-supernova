@@ -43,6 +43,13 @@ export interface InputProvider {
    * irreversible actions, so the preview is UX, never a safety guard.
    */
   highlight?(x: number, y: number, w: number, h: number, ms?: number): Promise<void>;
+  /**
+   * Minimize every window to reveal the desktop — so desktop icons become
+   * visible in the accessibility tree and clickable. The fix for "the target
+   * icon is behind an open window". Optional; hosts without it simply can't
+   * clear occlusion.
+   */
+  minimizeAll?(): Promise<void>;
 }
 
 export interface BrowserSnapshotElement {

@@ -61,6 +61,7 @@ export type ActionKind =
   | 'key'
   | 'scroll'
   | 'drag'
+  | 'minimize_all'
   | 'navigate'
   | 'launch'
   | 'wait'
