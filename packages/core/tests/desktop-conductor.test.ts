@@ -194,6 +194,31 @@ describe('kill-switch (unstarvable)', () => {
   });
 });
 
+// ── Perception honesty flows through (Phase 2a) ────────────────────────────
+
+describe('element state provenance', () => {
+  it('surface / enabled / occluded flow from UIA into the ScreenState the personas read', async () => {
+    const m = makeMocks({
+      elements: [
+        el('Empty Recycle Bin', { surface: 'menu', enabled: false }),
+        el('Recycle Bin', { surface: 'desktop-icon', occluded: true }),
+      ],
+      plans: [
+        { kind: 'click', target: 'Recycle Bin', riskClass: 'mutative-reversible', reasoning: 'open', expectedPostState: 'The bin window opens.' },
+        DONE,
+      ],
+    });
+    const t = await run(m);
+    const els = t.steps[0].screenState.elements;
+    const menuItem = els.find(e => e.name === 'Empty Recycle Bin');
+    const icon = els.find(e => e.name === 'Recycle Bin');
+    expect(menuItem?.surface).toBe('menu');
+    expect(menuItem?.interactable).toBe(false); // enabled:false → not interactable
+    expect(icon?.surface).toBe('desktop-icon');
+    expect(icon?.occluded).toBe(true);
+  });
+});
+
 // ── Completion honesty ─────────────────────────────────────────────────────
 
 describe('completion', () => {

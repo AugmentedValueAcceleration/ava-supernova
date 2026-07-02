@@ -25,6 +25,11 @@ export interface UIAElement {
    *  hit THAT window instead (desktop icons behind an app window). Absent on
    *  older hosts ⇒ treat as not occluded. */
   occluded?: boolean;
+  /** Which surface the element came from: an open context menu/dropdown, the
+   *  shell's desktop icon list, or a normal app window. Lets the Planner and
+   *  Verifier reason about WHAT they're looking at (a menu is transient; the
+   *  icon list survives occlusion). Absent on older hosts ⇒ 'app'. */
+  surface?: 'menu' | 'desktop-icon' | 'app';
 }
 
 export interface UIAProvider {

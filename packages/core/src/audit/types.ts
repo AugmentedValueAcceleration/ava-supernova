@@ -67,6 +67,12 @@ export interface AuditEntry {
    *  boundaries this call crossed (network / out-of-workspace / secret /
    *  dangerous). Set by annotateSecurity(); absent when nothing notable. */
   security?: SecurityConcern[];
+  /** Memories this activity produced (Phase 2, desktop trajectories): ids of
+   *  memory-graph entries / procedural patterns / self-improvement learnings
+   *  distilled from the run this entry summarises. Lets the audit log answer
+   *  "what did Ava learn from doing this?" — and a memory be traced back to
+   *  the audited actions that taught it. */
+  memoryNodeIds?: string[];
 }
 
 export type IntegrityStatus = 'unchanged' | 'modified' | 'deleted' | 'unverifiable';

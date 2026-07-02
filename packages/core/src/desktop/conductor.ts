@@ -357,6 +357,9 @@ async function scout(providers: DesktopProviders): Promise<{ state: ScreenState;
       // A covered element (desktop icon behind an app window) is enumerable
       // but untouchable — the Planner must clear the occlusion first.
       occluded: e.occluded === true || undefined,
+      // Surface provenance: without it the Verifier reads an open context
+      // menu as "a list of search results" and misjudges the step.
+      surface: e.surface,
       sensitive: SENSITIVE_NAME.test(e.name || ''),
     })),
   };

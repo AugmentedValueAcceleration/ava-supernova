@@ -31,6 +31,9 @@ export interface ScreenElement {
    *  the covering window instead. Clear the occlusion (minimize_all / focus)
    *  before targeting it. */
   occluded?: boolean;
+  /** Which surface produced this element: an open context menu / dropdown,
+   *  the desktop's icon list, or a regular app window. */
+  surface?: 'menu' | 'desktop-icon' | 'app';
   /** Whether this element contains sensitive content (password field, API key, etc.) */
   sensitive: boolean;
 }
