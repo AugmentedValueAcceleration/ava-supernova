@@ -514,8 +514,9 @@ function validatePrediction(action: ProposedAction): string | null {
     : '"expectedPostState" is required — one concrete sentence describing what the screen should show after this action (the Verifier checks against it)';
 }
 
-/** Defensive: a malformed Planner output becomes a controlled 'stuck', never a crash. */
-function coerceAction(parsed: Partial<ProposedAction> | null): ProposedAction {
+/** Defensive: a malformed Planner output becomes a controlled 'stuck', never a crash.
+ *  Exported for the regression suite (0G) — pure function, no side effects. */
+export function coerceAction(parsed: Partial<ProposedAction> | null): ProposedAction {
   // Some models wrap the action: {"action": {"kind": ...}, "riskClass": ...}
   // — kind inside, siblings outside (observed live; it killed a perfectly
   // good recovery plan as "invalid"). Unwrap and merge, inner fields winning.
@@ -861,7 +862,8 @@ function summariseTrajectory(trajectory: Trajectory): Array<Record<string, unkno
   }));
 }
 
-function parseJson<T>(text: string): T | null {
+/** Exported for the regression suite (0G) — pure function, no side effects. */
+export function parseJson<T>(text: string): T | null {
   if (!text) return null;
   const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
   try {
