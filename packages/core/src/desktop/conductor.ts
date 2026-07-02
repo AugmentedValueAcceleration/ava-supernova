@@ -26,6 +26,7 @@ import type {
 import { mergeTiers, browserSnapshotToTier, type PerceptionTier } from './perception.js';
 import {
   DESKTOP_PLANNER, DESKTOP_VERIFIER,
+  ACTION_KINDS as PLANNER_ACTION_KINDS,
   type DesktopPersonaName,
 } from './personas.js';
 import {
@@ -92,10 +93,12 @@ export interface RunTrajectoryOptions {
 
 // ── Runtime constants ──────────────────────────────────────────────────────
 
-const ACTION_KINDS: ReadonlySet<ActionKind> = new Set([
-  'click', 'double_click', 'right_click', 'type', 'key',
-  'scroll', 'navigate', 'launch', 'wait', 'observe_more', 'stuck', 'done',
-]);
+// Single source of truth: the exact set of kinds the Planner is TOLD it can
+// use (personas.ts). Keeping a separate hand-maintained copy here is what let
+// 'drag' and 'minimize_all' be advertised to the model but rejected by
+// coerceAction as "invalid planner output" — derive it instead so it can never
+// drift again.
+const ACTION_KINDS: ReadonlySet<ActionKind> = new Set(PLANNER_ACTION_KINDS);
 
 // Advisory only — the authoritative credential gate is classifyAction(). This
 // just flags fields so the user sees the lock icon and the Planner is warned.
@@ -150,7 +153,7 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       log(`step ${stepNumber} · Scout: ${screenState.elements.length} elements, activeApp=${screenState.activeApp ?? '?'}, confidence=${screenState.confidence}`);
 
       // 2 — Planner: the one reasoning call. Decide the single next action.
-      const planned = await runPlanner(callModel, task, trajectory, screenState, providers.vision?.isAvailable() ?? false);
+      const planned = await runPlanner(callModel, task, trajectory, screenState, providers.vision?.isAvailable() ?? false, log);
       const action = planned.action;
       log(`step ${stepNumber} · Planner: ${action.kind}${action.target ? ` → "${action.target}"` : ''} [${action.riskClass}] — ${truncate(action.reasoning, 120)}`);
 
@@ -189,23 +192,9 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       });
       const decision = decideApproval(classification.riskClass, permissionLevel, opts.privilegedOptIn ?? false);
 
-      // Ava's own browser is her sandbox. In Ask mode, REVERSIBLE actions
-      // that stay inside it (navigate, selector-grounded click/type/scroll)
-      // auto-run — confirming every web click breaks the trajectory's focus
-      // (the approval card steals foreground from the browser) and gates
-      // nothing real. Irreversible verbs, sensitive fields and privileged
-      // contexts still classify higher and still confirm. Watch mode keeps
-      // every confirmation — that's what Watch is for.
       const inOwnBrowser = action.kind === 'navigate'
         || action.kind === 'scroll' && !!providers.browser?.isLive?.()
         || element?.source === 'playwright';
-      if (decision.requiresApproval && !decision.forbidden
-          && permissionLevel === 'ask'
-          && classification.riskClass === 'mutative-reversible'
-          && inOwnBrowser) {
-        decision.requiresApproval = false;
-        decision.reason = "Reversible action inside Ava's own browser — auto-allowed in Ask";
-      }
       log(`step ${stepNumber} · Gate: ${decision.forbidden ? 'FORBIDDEN' : decision.requiresApproval ? 'approval required' : 'auto-allowed'} (${classification.riskClass}${inOwnBrowser ? ', own-browser' : ''})`);
 
       if (decision.forbidden) {
@@ -375,6 +364,7 @@ async function runPlanner(
   trajectory: Trajectory,
   screen: ScreenState,
   visionAvailable = false,
+  log: (line: string) => void = () => {},
 ): Promise<{ action: ProposedAction; tokens: number }> {
   // Explicit completion ledger — a small model can't reliably infer "I already
   // did that" from raw step history, so we hand it the conclusion: a plain
@@ -401,6 +391,15 @@ async function runPlanner(
   });
   let tokens = tokensIn + tokensOut;
   let action = coerceAction(parseJson<ProposedAction>(text));
+
+  // Diagnostic: when the model's reply won't parse into an action, log what it
+  // actually returned. An empty reply almost always means the active model put
+  // everything into a reasoning channel (or ran out of tokens mid-think) and
+  // left `content` blank — the Planner needs plain JSON, not a thinking model.
+  if (action.kind === 'stuck' && action.params?.reason === 'invalid planner output') {
+    const raw = (text ?? '').trim();
+    log(`Planner RAW reply unparseable — len=${raw.length}, tokensOut=${tokensOut}, first200=${JSON.stringify(raw.slice(0, 200))}`);
+  }
 
   // Structural validation + ONE corrective retry. Smaller local models drop
   // required fields (a click with no target executes as a guaranteed miss and

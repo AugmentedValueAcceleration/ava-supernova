@@ -37,7 +37,7 @@ export interface DesktopPersonaDefinition {
 
 // ── Valid action kinds (for Planner prompt injection) ──────────────────────
 
-const ACTION_KINDS: ActionKind[] = [
+export const ACTION_KINDS: ActionKind[] = [
   'click', 'double_click', 'right_click', 'type', 'key',
   'scroll', 'drag', 'minimize_all', 'navigate', 'launch', 'wait', 'observe_more', 'stuck', 'done',
 ];

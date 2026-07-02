@@ -54,11 +54,10 @@ export interface SystemPromptOptions {
    * Active desktop permission level (when `desktopMode` is true). Read-only
    * surface for Ava — the operator chooses the level via the IDE; the agent
    * is told what level it's operating under so behaviour scales: 'watch'
-   * narrates intent only and never acts; 'ask' calls each mutative tool
-   * through the approval handler; 'drive' runs reversible plan steps
-   * silently after one approval, irreversible always re-prompts.
+   * confirms the task up front then runs it; 'drive' runs without the
+   * up-front card. Irreversible actions always re-prompt in both.
    */
-  desktopPermissionLevel?: 'watch' | 'ask' | 'drive';
+  desktopPermissionLevel?: 'watch' | 'drive';
 }
 
 // ---------------------------------------------------------------------------
@@ -204,13 +203,12 @@ Stay in the user's selected mode. Don't switch modes automatically.`);
   // reads the global rules and treats desktop tools as just-another-tool,
   // which is exactly the "Computer Use clone" failure mode we're avoiding.
   if (opts.desktopMode) {
-    const level = opts.desktopPermissionLevel ?? 'ask';
+    // Two levels (legacy 'ask' coerces to watch — they were identical).
+    const level = opts.desktopPermissionLevel === 'drive' ? 'drive' : 'watch';
     const levelDesc =
-      level === 'watch'
-        ? 'WATCH — narrate intent only, never call a mutative desktop tool. Observation tools (desktop_list_elements, desktop_focus_window) are fine; anything that types / clicks / launches is off-limits.'
-        : level === 'drive'
-          ? 'DRIVE — after one plan-approval the reversible steps run silently. Irreversible actions still re-prompt fresh every time. The trust ladder shortens, the safety floors do not.'
-          : 'ASK — every mutative action calls the approval handler. The operator confirms each click, keystroke, launch. Default level for new sessions.';
+      level === 'drive'
+        ? 'DRIVE — no up-front card; reversible steps run silently. Irreversible actions still re-prompt fresh every time. The trust ladder shortens, the safety floors do not.'
+        : 'WATCH — the operator approves the task once up front (desktop_plan_approve / the task card), then reversible steps run within that approval. Irreversible actions always re-prompt fresh. Default level for new sessions.';
 
     parts.push(`DESKTOP MODE — additional rules (do not relax the global rules; these stack on top)
 

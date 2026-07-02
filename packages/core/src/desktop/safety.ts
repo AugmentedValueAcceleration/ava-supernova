@@ -22,10 +22,15 @@ export type RiskClass =
 
 // ── Permission levels ─────────────────────────────────────────────────────
 
+// Two levels, deliberately. Per-step approval is self-defeating on desktop —
+// the approval card steals foreground from the very window being automated —
+// so every level runs the trajectory autonomously once started; hosts confirm
+// the TASK up front in Watch. A third "Ask" level shipped for a while but was
+// behaviourally identical to Watch (one up-front approval → run), and a
+// duplicate label implies a safety distinction that doesn't exist. Removed.
 export type PermissionLevel =
-  | 'watch'   // Ava narrates, user clicks. Safest.
-  | 'ask'     // Ava acts but confirms every mutative action.
-  | 'drive';  // Ava acts freely within whitelist. Irreversibles still confirm.
+  | 'watch'   // Host confirms the task up front, then Ava runs it. Default.
+  | 'drive';  // Ava just goes. Irreversibles still always confirm.
 
 // ── Irreversible verb blocklist ───────────────────────────────────────────
 // Matched against UIA AutomationName, DOM labels, button text, and
@@ -302,11 +307,11 @@ export function decideApproval(
       if (permissionLevel === 'watch') {
         return { requiresApproval: true, forbidden: false, cacheable: true, reason: 'Watch mode requires confirmation for navigation' };
       }
-      return { requiresApproval: false, forbidden: false, cacheable: true, reason: 'Navigational actions auto-allowed in Ask/Drive' };
+      return { requiresApproval: false, forbidden: false, cacheable: true, reason: 'Navigational actions auto-allowed in Drive' };
 
     case 'mutative-reversible':
-      if (permissionLevel === 'watch' || permissionLevel === 'ask') {
-        return { requiresApproval: true, forbidden: false, cacheable: true, reason: 'Mutative action requires confirmation in Watch/Ask mode' };
+      if (permissionLevel === 'watch') {
+        return { requiresApproval: true, forbidden: false, cacheable: true, reason: 'Mutative action requires confirmation in Watch mode' };
       }
       return { requiresApproval: false, forbidden: false, cacheable: true, reason: 'Mutative-reversible auto-allowed in Drive (within whitelist)' };
 

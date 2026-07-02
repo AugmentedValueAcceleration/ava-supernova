@@ -48,7 +48,8 @@ export interface ActivePlan {
 }
 
 export interface DesktopSafetyState {
-  /** 'watch' | 'ask' | 'drive'. Default 'ask' if absent. */
+  /** 'watch' | 'drive'. Default 'watch' if absent. (A legacy persisted 'ask'
+   *  is coerced to 'watch' — the two were behaviourally identical.) */
   desktopPermissionLevel?: PermissionLevel;
   /** User has explicitly opted in to allowing privileged/elevated actions this session. */
   desktopPrivilegedOptIn?: boolean;
@@ -94,7 +95,10 @@ export async function gateDesktopAction(
 ): Promise<GateOutcome> {
   const state = (context.sharedState || {}) as Record<string, unknown> & DesktopSafetyState;
   const classification = classifyAction(input);
-  const permissionLevel = state.desktopPermissionLevel ?? 'ask';
+  // Runtime coercion: configs written before the two-level collapse may still
+  // hold 'ask' — treat anything that isn't 'drive' as 'watch'.
+  const permissionLevel: PermissionLevel =
+    (state.desktopPermissionLevel as string) === 'drive' ? 'drive' : 'watch';
   const privilegedOptIn = state.desktopPrivilegedOptIn ?? false;
   const decision = decideApproval(classification.riskClass, permissionLevel, privilegedOptIn);
 

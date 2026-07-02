@@ -157,6 +157,6 @@ export interface Trajectory {
   endedAt?: string;
   steps: TrajectoryStep[];
   whitelist: string[];
-  permissionLevel: 'watch' | 'ask' | 'drive';
+  permissionLevel: 'watch' | 'drive';
   outcome: 'completed' | 'stopped' | 'stuck' | 'budget_exceeded' | 'error';
 }
