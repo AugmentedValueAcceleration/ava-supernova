@@ -234,6 +234,10 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       const executionResult = await runActor(providers, action, raw, screenState.elements, permissionLevel === 'drive');
       log(`step ${stepNumber} · Actor: ${executionResult.ok ? `ok (${executionResult.latencyMs}ms)` : `FAILED — ${executionResult.error ?? 'unknown'}`}`);
 
+      // Stop the instant the kill lands — don't scout/verify/plan another step.
+      // Bounds the residual after Ctrl+Alt+K to the one action just executed.
+      if (signal?.aborted) { trajectory.outcome = 'stopped'; emit({ type: 'narrate', line: 'Stopped.' }); break; }
+
       // 5 — Verifier: re-read the screen, judge against the prediction — WITH
       // measured evidence (URL/title/element-count deltas). The LLM's
       // impression of "did anything change" is unreliable; the deltas aren't.
