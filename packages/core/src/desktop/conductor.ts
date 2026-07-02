@@ -230,6 +230,11 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       // 5 — Verifier: re-read the screen, judge against the prediction — WITH
       // measured evidence (URL/title/element-count deltas). The LLM's
       // impression of "did anything change" is unreliable; the deltas aren't.
+      // Let the UI settle first: context menus, dialogs and window transitions
+      // take a few hundred ms to render, and a scout that races the animation
+      // hands the Verifier a half-drawn screen — the source of false
+      // "menu did not appear" / "0 elements" deviations on successful actions.
+      if (executionResult.ok) await delay(600);
       const { state: freshState } = await scout(providers);
       const evidence = {
         urlBefore: screenState.activeUrl ?? null,
