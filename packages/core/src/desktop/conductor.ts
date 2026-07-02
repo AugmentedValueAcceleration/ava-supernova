@@ -23,6 +23,7 @@ import type {
   ProposedAction, ActionKind, ExecutionResult,
   VerificationResult, UserUpdate, TrajectoryStep, Trajectory,
 } from './types.js';
+import { ctxKey, type ScreenKey } from './screen-key.js';
 import { mergeTiers, browserSnapshotToTier, type PerceptionTier } from './perception.js';
 import {
   DESKTOP_PLANNER, DESKTOP_VERIFIER,
@@ -89,6 +90,20 @@ export interface RunTrajectoryOptions {
    * log (stderr); never user-facing. No-op if omitted.
    */
   log?: (line: string) => void;
+  /**
+   * Phase 3: capture a small grayscale thumbnail key of the current screen.
+   * Hosts must return null when the user's vision setting forbids capture —
+   * keying then degrades honestly to a textual app+task key. Best-effort;
+   * errors are swallowed.
+   */
+  captureScreenKey?: () => Promise<ScreenKey | null>;
+  /**
+   * Phase 3: retrieve fork-point hindsight for the current screen key —
+   * "last time this screen looked like this, X failed; Z worked." Injected
+   * into the Planner's context as TEXT; every proposed action still passes
+   * the full safety gate. Best-effort; errors are swallowed.
+   */
+  forkPointHint?: (key: ScreenKey) => Promise<string | null>;
 }
 
 // ── Runtime constants ──────────────────────────────────────────────────────
@@ -152,8 +167,24 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       const { state: screenState, raw } = await scout(providers);
       log(`step ${stepNumber} · Scout: ${screenState.elements.length} elements, activeApp=${screenState.activeApp ?? '?'}, confidence=${screenState.confidence}`);
 
+      // Phase 3 — fingerprint the screen we're about to plan on. Image key
+      // when the host allows capture; honest textual app+task key when not.
+      // Then pull hindsight for this screen: "last time it looked like this,
+      // X failed; Z worked" — TEXT for the Planner, never an order.
+      let screenKey: ScreenKey;
+      try {
+        screenKey = (await opts.captureScreenKey?.()) ?? ctxKey(screenState.activeApp, task);
+      } catch {
+        screenKey = ctxKey(screenState.activeApp, task);
+      }
+      let forkHint: string | null = null;
+      if (opts.forkPointHint) {
+        try { forkHint = await opts.forkPointHint(screenKey); } catch { /* hindsight is optional */ }
+        if (forkHint) log(`step ${stepNumber} · Fork-point recall: hindsight available for this screen`);
+      }
+
       // 2 — Planner: the one reasoning call. Decide the single next action.
-      const planned = await runPlanner(callModel, task, trajectory, screenState, providers.vision?.isAvailable() ?? false, log);
+      const planned = await runPlanner(callModel, task, trajectory, screenState, providers.vision?.isAvailable() ?? false, log, forkHint);
       const action = planned.action;
       log(`step ${stepNumber} · Planner: ${action.kind}${action.target ? ` → "${action.target}"` : ''} [${action.riskClass}] — ${truncate(action.reasoning, 120)}`);
 
@@ -292,6 +323,7 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       const step: TrajectoryStep = {
         stepNumber, screenState, proposedAction: action,
         executionResult, verificationResult, userUpdate, tokensConsumed,
+        screenKey,
       };
       trajectory.steps.push(step);
       const snap = budget.recordStep(tokensConsumed);
@@ -404,6 +436,7 @@ async function runPlanner(
   screen: ScreenState,
   visionAvailable = false,
   log: (line: string) => void = () => {},
+  forkHint: string | null = null,
 ): Promise<{ action: ProposedAction; tokens: number }> {
   // Explicit completion ledger — a small model can't reliably infer "I already
   // did that" from raw step history, so we hand it the conclusion: a plain
@@ -416,6 +449,9 @@ async function runPlanner(
     alreadyCompletedThisRun: alreadyCompleted.length > 0
       ? { actions: alreadyCompleted, rule: 'These are DONE. Never repeat them. If they cover the whole task, output kind "done" now.' }
       : undefined,
+    // Phase 3 — fork-point hindsight for THIS screen. Weigh it, don't obey
+    // it: conditions change, and every action still passes the safety gate.
+    learnedAtThisScreen: forkHint ?? undefined,
     recentSteps: summariseTrajectory(trajectory),
     // activeUrl/activeTitle matter as much as the elements: without them the
     // Planner cannot recognise "the page I'm on IS the destination" and

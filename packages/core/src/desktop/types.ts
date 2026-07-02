@@ -76,6 +76,8 @@ export type ActionKind =
   | 'stuck'
   | 'done';
 
+import type { ScreenKey } from './screen-key.js';
+
 /** Planner's output — the single next action. */
 export interface ProposedAction {
   /** Exactly one action per step */
@@ -156,6 +158,10 @@ export interface TrajectoryStep {
   executionResult: ExecutionResult;
   verificationResult: VerificationResult;
   userUpdate: UserUpdate;
+  /** Phase 3: fingerprint of the screen this step acted on — SSIM thumbnail
+   *  key when the vision setting allows capture, textual app+task key when
+   *  not. What fork-point learning pairs failures/corrections by. */
+  screenKey?: ScreenKey;
   tokensConsumed: {
     scout: number;
     planner: number;
