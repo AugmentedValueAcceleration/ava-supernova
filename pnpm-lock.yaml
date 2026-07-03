@@ -90,36 +90,6 @@ importers:
       '@tauri-apps/plugin-shell':
         specifier: ^2.3.5
         version: 2.3.5
-      '@twick/2d':
-        specifier: ^0.15.27
-        version: 0.15.27
-      '@twick/browser-render':
-        specifier: ^0.15.27
-        version: 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react@19.2.4)(typescript@5.8.3)
-      '@twick/canvas':
-        specifier: ^0.15.27
-        version: 0.15.27(react@19.2.4)
-      '@twick/live-player':
-        specifier: ^0.15.27
-        version: 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react@19.2.4)(typescript@5.8.3)
-      '@twick/media-utils':
-        specifier: ^0.15.27
-        version: 0.15.27
-      '@twick/studio':
-        specifier: ^0.15.27
-        version: 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.8.3)
-      '@twick/timeline':
-        specifier: ^0.15.27
-        version: 0.15.27
-      '@twick/ui':
-        specifier: ^0.15.27
-        version: 0.15.27
-      '@twick/video-editor':
-        specifier: ^0.15.27
-        version: 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.8.3)
-      '@twick/vite-plugin':
-        specifier: ^0.15.27
-        version: 0.15.27
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
@@ -3059,9 +3029,6 @@ packages:
   '@twick/timeline@0.15.27':
     resolution: {integrity: sha512-q99rpKWkWBzPSaxJZuQqhOpHVS3NjIs8s9NgST8QJINoNij+Ikp0BzWvWhg7wZUhnhZKqR+6yXXJGln5dpg2eg==}
     engines: {node: '>=20.0.0'}
-
-  '@twick/ui@0.15.27':
-    resolution: {integrity: sha512-SMZD8AW8drPuTWIhyM1fmj/oGpNkLD5KxAnSMAXBM1pPTDUHG4AGteUzmGHJ+l8gXuVFtgwaJi5gSB0JFoZsRQ==}
 
   '@twick/video-editor@0.15.27':
     resolution: {integrity: sha512-7/67WAX2ndRsR6PxEPT1PnJwubfCEPwqXHPsKV2R+K5rZxvTa+qhqcBz8ysi+2rhyhjJ5WZzYo9Bv2NUU/1fTg==}
@@ -8659,38 +8626,6 @@ snapshots:
 
   '@twick/ai-models@0.15.27': {}
 
-  '@twick/browser-render@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react@19.2.4)(typescript@5.8.3)':
-    dependencies:
-      '@ffmpeg/core': 0.12.10
-      '@ffmpeg/util': 0.12.2
-      '@twick/core': 0.15.27
-      '@twick/effects': 0.15.27
-      '@twick/ffmpeg-web': 0.15.27
-      '@twick/gl-runtime': 0.15.27
-      '@twick/media-utils': 0.15.27
-      '@twick/visualizer': 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(typescript@5.8.3)
-      mediabunny: 1.40.1
-      mp4-wasm: 1.0.6
-      mp4box: 0.5.4
-    optionalDependencies:
-      react: 19.2.4
-    transitivePeerDependencies:
-      - '@types/node'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - less
-      - lightningcss
-      - react-native-b4a
-      - sass
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - typescript
-      - utf-8-validate
-
   '@twick/browser-render@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react@19.2.4)(typescript@5.9.3)':
     dependencies:
       '@ffmpeg/core': 0.12.10
@@ -8761,30 +8696,6 @@ snapshots:
 
   '@twick/gl-runtime@0.15.27': {}
 
-  '@twick/live-player@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react@19.2.4)(typescript@5.8.3)':
-    dependencies:
-      '@twick/core': 0.15.27
-      '@twick/effects': 0.15.27
-      '@twick/player-react': 0.15.27
-      '@twick/visualizer': 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(typescript@5.8.3)
-      react: 19.2.4
-    transitivePeerDependencies:
-      - '@types/node'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - less
-      - lightningcss
-      - react-native-b4a
-      - sass
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - typescript
-      - utf-8-validate
-
   '@twick/live-player@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react@19.2.4)(typescript@5.9.3)':
     dependencies:
       '@twick/core': 0.15.27
@@ -8821,31 +8732,6 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       uuid: 10.0.0
 
-  '@twick/renderer@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(typescript@5.8.3)':
-    dependencies:
-      '@twick/ffmpeg': 0.15.27
-      '@twick/telemetry': 0.15.27
-      '@twick/vite-plugin': 0.15.27
-      puppeteer: 23.11.1(typescript@5.8.3)
-      uuid: 10.0.0
-      vite: 4.5.2(@types/node@25.3.0)(lightningcss@1.32.0)
-    transitivePeerDependencies:
-      - '@types/node'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - less
-      - lightningcss
-      - react-native-b4a
-      - sass
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - typescript
-      - utf-8-validate
-
   '@twick/renderer@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(typescript@5.9.3)':
     dependencies:
       '@twick/ffmpeg': 0.15.27
@@ -8860,40 +8746,6 @@ snapshots:
       - bare-buffer
       - bufferutil
       - debug
-      - less
-      - lightningcss
-      - react-native-b4a
-      - sass
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - typescript
-      - utf-8-validate
-
-  '@twick/studio@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.8.3)':
-    dependencies:
-      '@twick/ai-models': 0.15.27
-      '@twick/canvas': 0.15.27(react@19.2.4)
-      '@twick/core': 0.15.27
-      '@twick/effects': 0.15.27
-      '@twick/live-player': 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react@19.2.4)(typescript@5.8.3)
-      '@twick/media-utils': 0.15.27
-      '@twick/player-react': 0.15.27
-      '@twick/timeline': 0.15.27
-      '@twick/video-editor': 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.8.3)
-      '@twick/visualizer': 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(typescript@5.8.3)
-      '@twick/workflow': 0.15.27
-      lucide-react: 0.511.0(react@19.2.4)
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
-    transitivePeerDependencies:
-      - '@types/node'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - encoding
       - less
       - lightningcss
       - react-native-b4a
@@ -8951,43 +8803,6 @@ snapshots:
       '@twick/media-utils': 0.15.27
       posthog-js: 1.364.7
 
-  '@twick/ui@0.15.27':
-    dependencies:
-      '@preact/signals': 1.3.4(preact@10.29.1)
-      '@twick/core': 0.15.27
-      preact: 10.29.1
-
-  '@twick/video-editor@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.8.3)':
-    dependencies:
-      '@emotion/is-prop-valid': 1.4.0
-      '@react-spring/web': 10.0.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@twick/canvas': 0.15.27(react@19.2.4)
-      '@twick/live-player': 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react@19.2.4)(typescript@5.8.3)
-      '@twick/media-utils': 0.15.27
-      '@twick/timeline': 0.15.27
-      '@use-gesture/react': 10.3.1(react@19.2.4)
-      framer-motion: 11.18.2(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      lucide-react: 0.511.0(react@19.2.4)
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
-    transitivePeerDependencies:
-      - '@types/node'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - encoding
-      - less
-      - lightningcss
-      - react-native-b4a
-      - sass
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - typescript
-      - utf-8-validate
-
   '@twick/video-editor@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)':
     dependencies:
       '@emotion/is-prop-valid': 1.4.0
@@ -9008,35 +8823,6 @@ snapshots:
       - bufferutil
       - debug
       - encoding
-      - less
-      - lightningcss
-      - react-native-b4a
-      - sass
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - typescript
-      - utf-8-validate
-
-  '@twick/visualizer@0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(typescript@5.8.3)':
-    dependencies:
-      '@preact/signals': 1.3.4(preact@10.29.1)
-      '@twick/2d': 0.15.27
-      '@twick/core': 0.15.27
-      '@twick/effects': 0.15.27
-      '@twick/media-utils': 0.15.27
-      '@twick/renderer': 0.15.27(@types/node@25.3.0)(lightningcss@1.32.0)(typescript@5.8.3)
-      '@twick/vite-plugin': 0.15.27
-      crelt: 1.0.6
-      date-fns: 4.1.0
-      preact: 10.29.1
-    transitivePeerDependencies:
-      - '@types/node'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
       - less
       - lightningcss
       - react-native-b4a
@@ -9909,15 +9695,6 @@ snapshots:
   core-js@3.49.0: {}
 
   core-util-is@1.0.3: {}
-
-  cosmiconfig@9.0.1(typescript@5.8.3):
-    dependencies:
-      env-paths: 2.2.1
-      import-fresh: 3.3.1
-      js-yaml: 4.1.0
-      parse-json: 5.2.0
-    optionalDependencies:
-      typescript: 5.8.3
 
   cosmiconfig@9.0.1(typescript@5.9.3):
     dependencies:
@@ -12291,23 +12068,6 @@ snapshots:
       - bufferutil
       - react-native-b4a
       - supports-color
-      - utf-8-validate
-
-  puppeteer@23.11.1(typescript@5.8.3):
-    dependencies:
-      '@puppeteer/browsers': 2.6.1
-      chromium-bidi: 0.11.0(devtools-protocol@0.0.1367902)
-      cosmiconfig: 9.0.1(typescript@5.8.3)
-      devtools-protocol: 0.0.1367902
-      puppeteer-core: 23.11.1
-      typed-query-selector: 2.12.1
-    transitivePeerDependencies:
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - react-native-b4a
-      - supports-color
-      - typescript
       - utf-8-validate
 
   puppeteer@23.11.1(typescript@5.9.3):
