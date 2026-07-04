@@ -11,7 +11,8 @@ import type { TaskCategory } from './types.js';
  *   - Qwen 3.7 Plus      — agent loops (Terminal-Bench leader), vision input,
  *                          MCP tool orchestration, production-tested
  *   - DeepSeek V4 Flash  — mid-tier review/verification, anomaly price/perf
- *   - Qwen 3.5 Plus      — cost-sensitive long-output writing
+ *   - Qwen 3.5 Plus      — OUTAGE FALLBACK ONLY (retired from primary routes,
+ *                          operator decision 2026-07-04)
  *   - Qwen 3.5 Flash     — light filtering / classification (cheapest input)
  *   - Qwen 3.5 Omni Plus — vision + audio (the only audio-capable model)
  *
@@ -105,7 +106,7 @@ export const SUPERNOVA_PERSONA_MODEL: Record<string, string> = {
   curator:             'deepseek-v4-flash',    // mid-tier reasoning, cost-effective
   researcher:          'deepseek-v4-pro',      // long-context synthesis
   cve_researcher:      'deepseek-v4-pro',      // deep reasoning over attack chain
-  content_writer:      'qwen3.5-plus',                  // cost-sensitive long output
+  content_writer:      'qwen3.7-plus',                  // flagship long output — 3.5 Plus retired from primaries (operator, 2026-07-04)
   tutor:               'deepseek-v4-flash',    // mid-depth, latency matters
   ideator:             'deepseek-v4-pro',      // reasoning depth 5 — Think-Max territory
 

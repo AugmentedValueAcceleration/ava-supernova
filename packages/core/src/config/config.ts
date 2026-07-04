@@ -50,15 +50,34 @@ function validateConfig(raw: unknown): AvaConfig {
     config.activeModel = obj.activeModel;
   }
 
+  // routingMode — the user's chosen Auto-Mode fleet. This was silently
+  // DROPPED here for months: /route saved it to disk, and the very next load
+  // reverted the fleet to 'auto' (model-persistence audit, 2026-07-04). The
+  // validator must faithfully carry every schema field a user can set.
+  if (obj.routingMode === 'auto' || obj.routingMode === 'supernova' || obj.routingMode === 'aurora') {
+    config.routingMode = obj.routingMode;
+  }
+
+  // knowledgePacks — enabled pack ids (was also dropped, same bug class)
+  if (typeof obj.knowledgePacks === 'object' && obj.knowledgePacks !== null) {
+    const kp = obj.knowledgePacks as Record<string, unknown>;
+    if (Array.isArray(kp.enabled)) {
+      config.knowledgePacks = { enabled: kp.enabled.filter((id: unknown): id is string => typeof id === 'string') };
+    }
+  }
+
   // platformKey — Ava platform account key
   if (typeof obj.platformKey === 'string' && obj.platformKey) {
     config.platformKey = obj.platformKey;
   }
 
-  // providers — validate structure, skip malformed entries
+  // providers — validate structure, skip malformed entries. The list must
+  // cover EVERY named provider in the schema: this allowlist previously only
+  // knew deepseek/kimi/qwen, so a saved anthropic/glm/minimax/mistral BYOK
+  // key silently vanished on the next load (same audit, same bug class).
   if (typeof obj.providers === 'object' && obj.providers !== null) {
     const providers = obj.providers as Record<string, unknown>;
-    const validProviders = ['deepseek', 'kimi', 'qwen'];
+    const validProviders = ['anthropic', 'deepseek', 'kimi', 'glm', 'qwen', 'minimax', 'mistral'];
 
     for (const name of validProviders) {
       const entry = providers[name];
@@ -85,13 +104,20 @@ function validateConfig(raw: unknown): AvaConfig {
     }
   }
 
-  // preferences — merge with defaults
+  // preferences — merge with defaults. Must carry every schema preference:
+  // language and the semantic-recall opt-in (useLocalEmbeddings + model +
+  // base URL) were previously dropped here, silently reverting the user's
+  // choices on every restart (same audit, same bug class).
   if (typeof obj.preferences === 'object' && obj.preferences !== null) {
     const prefs = obj.preferences as Record<string, unknown>;
     if (typeof prefs.temperature === 'number') config.preferences.temperature = prefs.temperature;
     if (typeof prefs.maxTokens === 'number') config.preferences.maxTokens = prefs.maxTokens;
     if (typeof prefs.markdownRendering === 'boolean') config.preferences.markdownRendering = prefs.markdownRendering;
     if (typeof prefs.autoMemory === 'boolean') config.preferences.autoMemory = prefs.autoMemory;
+    if (typeof prefs.language === 'string') config.preferences.language = prefs.language;
+    if (typeof prefs.useLocalEmbeddings === 'boolean') config.preferences.useLocalEmbeddings = prefs.useLocalEmbeddings;
+    if (typeof prefs.embeddingModel === 'string') config.preferences.embeddingModel = prefs.embeddingModel;
+    if (typeof prefs.embeddingBaseUrl === 'string') config.preferences.embeddingBaseUrl = prefs.embeddingBaseUrl;
   }
 
   return config;

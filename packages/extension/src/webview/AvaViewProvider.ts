@@ -160,6 +160,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  dedupe) without re-threading the object through more signatures. */
   private sharedState?: Record<string, unknown>;
   private activeModelDef?: ModelDefinition;
+  /** One-shot guard for the transient-platform-failure auto-retry: when the
+   *  account check or the stored model can't resolve because the platform is
+   *  unreachable, we schedule a single delayed re-init instead of (the old
+   *  bug) overwriting the user's stored model choice or deleting their key. */
+  private platformRetryScheduled = false;
+  /** True once we've told the user about the current transient-failure window —
+   *  the 60s auto-retry loop must not re-post the same notice every cycle.
+   *  Reset when a session init succeeds. */
+  private transientNotified = false;
   private conversation?: Conversation;
   /** Second conversation thread — the focused "Ava Health & Fitness" room.
    *  Same Ava: shares memoryManager, health profile, tools and model with the
@@ -1235,6 +1244,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Private Methods ────────────────────────────────────────────────────────
 
+  /** Schedule ONE delayed re-init after a transient platform failure (network
+   *  down / timeout / 5xx). Auto-heals the session when connectivity returns
+   *  without the user having to reload — and without ever touching their
+   *  stored key or model choice. One-shot per failure window: the guard only
+   *  resets when the retry actually runs, so retries never stack. */
+  private scheduleTransientRetry(): void {
+    if (this.platformRetryScheduled) return;
+    this.platformRetryScheduled = true;
+    setTimeout(() => {
+      this.platformRetryScheduled = false;
+      this.log('Retrying session init after transient platform failure…');
+      void this.initializeSession();
+    }, 60_000);
+  }
+
   private async initializeSession(): Promise<void> {
     try {
       // Ensure project context (memory, tasks, journal) is ready before proceeding
@@ -1350,8 +1374,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       try {
         const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
         if (platformKey) {
+          // Track HOW verification failed: 401/403 = the server rejected the
+          // key (genuinely invalid); anything else (status 0 network error,
+          // timeout, 5xx during a deploy) = we simply couldn't verify — which
+          // must never be treated as an invalid key.
+          let verifyStatus: number | null = null;
           if (!this.cachedAccount) {
             const res = await apiFetch('/account-info', { platformKey });
+            verifyStatus = res.status;
             this.cachedAccount = res.ok ? (res.data as AccountInfo) : null;
             if (this.cachedAccount?.usage) {
               this.log(`Account usage: free=${this.cachedAccount.usage.free_credits_used}/${this.cachedAccount.usage.free_credits_limit}`);
@@ -1361,6 +1391,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             const platform = new PlatformProvider({ apiKey: platformKey });
             this.providerRegistry.registerCustom('platform', platform);
             this.log(`Platform provider registered (tier: ${this.cachedAccount.tier})`);
+            this.transientNotified = false; // healthy again — a future outage should notify anew
 
             // Scope data directory per account — prevents memory leakage between accounts
             try {
@@ -1404,8 +1435,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             } catch (scopeErr) {
               this.log(`Account scoping failed, using default directory: ${scopeErr}`);
             }
-          } else {
-            this.log('Platform key present but account verification failed');
+          } else if (verifyStatus === 401 || verifyStatus === 403) {
+            // The server EXPLICITLY rejected the key — genuinely invalid or
+            // revoked. Only in this case do we clear it.
+            this.log(`Platform key rejected by the server (${verifyStatus}) — clearing it`);
             this.postMessage({
               type: 'system_message',
               content: 'Platform account verification failed. Your API key may be invalid or expired.',
@@ -1420,6 +1453,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             }
             // Clear the invalid key
             await this.context.secrets.delete('ava-supernova.platformKey');
+          } else {
+            // Transient failure — network down, timeout, or a 5xx while the
+            // platform deploys. We could not VERIFY the key; that is NOT the
+            // same as the key being invalid. Keep the key, keep the user's
+            // stored model choice, and quietly retry once shortly. (The old
+            // behaviour deleted the key and popped "no longer valid" here —
+            // a paying user's session nuked by a server blip.)
+            this.log(`Platform account check unavailable (status ${verifyStatus ?? 'n/a'}) — keeping key and settings, will retry`);
+            if (!this.transientNotified) {
+              this.transientNotified = true;
+              this.postMessage({
+                type: 'system_message',
+                content: 'Couldn\'t reach the Ava platform to verify your account — your settings are unchanged. Retrying shortly; if you\'re offline, everything reconnects next session.',
+              } as ExtToWebviewMessage);
+            }
+            this.scheduleTransientRetry();
           }
         }
       } catch (err) {
@@ -1523,20 +1572,40 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             // Route through setActiveModel so autoCoordinator state, status bar and webview
             // stay in sync — calling setupAgent() directly skips those resets.
             await this.setActiveModel(activeModelId);
-          } else {
-            // Auto-select a free model for new users
+          } else if (!activeModelId) {
+            // TRUE first run — no stored choice exists, so pick a starter
+            // model and persist it. This is the ONLY case where we're allowed
+            // to write activeModel on the user's behalf.
             const allModels = this.providerRegistry.listAllModels();
             const pick = allModels.find(m => m.pricing?.inputPerMillion === 0) || allModels[0];
             if (pick) {
               const autoResolved = this.providerRegistry.resolveModel(`${pick.provider}:${pick.id}`);
               if (autoResolved) {
-                this.log(`Auto-selected free model: ${pick.provider}:${pick.id}`);
+                this.log(`First run — auto-selected starter model: ${pick.provider}:${pick.id}`);
                 await this.setupAgent(autoResolved.provider, autoResolved.model);
                 config.update('activeModel', `${pick.provider}:${pick.id}`, vscode.ConfigurationTarget.Global);
               }
             } else {
-              this.log(`No model resolved for activeModel="${activeModelId}". Available: ${allModels.map(m => m.id).join(', ') || 'none'}`);
+              this.log(`No models available to auto-select. Available: ${allModels.map(m => m.id).join(', ') || 'none'}`);
             }
+          } else {
+            // A STORED choice failed to resolve — usually the platform being
+            // unreachable this instant (its provider only registers after a
+            // successful account check), or a BYOK provider that's been
+            // removed. NEVER overwrite the user's stored model here: the old
+            // code auto-picked a different model AND persisted it, silently
+            // and permanently changing the user's selection on any network
+            // blip — the exact bug class the model-persistence audit flagged.
+            // Keep the setting untouched, say so, and retry shortly.
+            this.log(`Stored model "${activeModelId}" is unavailable this session — keeping the user's choice untouched.`);
+            if (!this.transientNotified) {
+              this.transientNotified = true;
+              this.postMessage({
+                type: 'system_message',
+                content: `Your selected model (${activeModelId}) isn't reachable right now — this is usually a temporary connection issue. Your choice is unchanged; retrying shortly.`,
+              } as ExtToWebviewMessage);
+            }
+            this.scheduleTransientRetry();
           }
         }
       } catch (err) {

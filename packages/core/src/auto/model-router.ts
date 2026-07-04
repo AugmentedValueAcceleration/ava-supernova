@@ -25,12 +25,12 @@ interface RouteEntry {
   creationModelId?: string;
 }
 
-// Maestro routing — Qwen-only, tier-differentiated by task. Heavy reasoning
-// and long-context work go to Qwen 3.7 Plus (#1 on SWE-bench Pro, Terminal-
-// Bench 2.0, SkillsBench as of 2026-04-20). Light orchestration / chat go to
-// Qwen 3.5 Flash. Vision-input tasks land on Qwen 3.5 Omni Plus — the dedicated
-// vision+audio specialist. (Qwen 3.7 Plus is ALSO vision-capable; the Omni tier
-// is under modernisation review vs the newer Qwen 3.6 Flash.)
+// Maestro routing — Qwen-only, TWO tiers by operator decision (2026-07-04):
+// everything substantive runs on Qwen 3.7 Plus (#1 on SWE-bench Pro, Terminal-
+// Bench 2.0, SkillsBench as of 2026-04-20); light orchestration / chat lanes
+// stay on Qwen 3.5 Flash. Qwen 3.5 Plus is retired from primary routes and
+// survives only as the outage fallback for 3.7 Plus. Vision-input tasks land
+// on Qwen 3.7 Plus (native vision + video).
 // MiniMax reserved for creative generation (image/video/music/voice).
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   coding:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen3.5-plus' },
@@ -46,16 +46,13 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   // fallback if Flash is unavailable.
   chat:         { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — fast TTFT, cheapest input/output for typical chat turns', fallbackModelId: 'qwen3.7-plus' },
   long_context: { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — hybrid linear-attention + MoE efficient at 1M', fallbackModelId: 'qwen3.5-plus' },
-  // Teach leans on long-form coherent output more than frontier reasoning.
-  // 3.5 Plus is the cost-sensitive long-output tier.
-  teach:        { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — cost-sensitive long-form coherent output for tutorials', fallbackModelId: 'qwen3.7-plus', creationModelId: 'qwen3.7-plus' },
+  // Teach runs on the flagship — operator call (2026-07-04): 3.5 Plus retired
+  // from primary routes. 3.5 Plus remains as the outage fallback only.
+  teach:        { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — flagship-quality long-form tutorials, 1M context', fallbackModelId: 'qwen3.5-plus', creationModelId: 'qwen3.7-plus' },
   security:     { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — security analysis with full codebase context + depth', fallbackModelId: 'qwen3.5-plus' },
-  // Brainstorm = ideation, not depth-bound reasoning. Qwen 3.5 Plus is
-  // the right cognitive shape for breadth — cheaper, faster, creatively
-  // wider than 3.7 Plus, whose RLHF favours careful reasoning over the
-  // diverse-angles output ideation rewards. 3.7 Plus stays as the
-  // fallback for the rare deep-reasoning brainstorm workload.
-  brainstorm:   { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — breadth over depth for ideation, cheaper and creatively wider than 3.7 Plus', fallbackModelId: 'qwen3.7-plus' },
+  // Brainstorm on the flagship — operator call (2026-07-04): 3.5 Plus retired
+  // from primary routes. 3.5 Plus remains as the outage fallback only.
+  brainstorm:   { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — flagship ideation, 1M context', fallbackModelId: 'qwen3.5-plus' },
 };
 
 /**
