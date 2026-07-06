@@ -1604,7 +1604,10 @@ export type ExtToDashboardMessage =
       // discarded action can reference this exact generation. Null if capture
       // is off or the generation failed.
       completeEventId?: string | null;
-    };
+    }
+  // Asset Forge / Design Studio generation result (handleAssetForgeGenerate):
+  // the matted transparent PNG data URL (or the raw url if the matte fell back).
+  | { type: 'asset_forge_result'; success: boolean; dataUrl?: string; rawUrl?: string; error?: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
@@ -1817,6 +1820,8 @@ export type DashboardToExtMessage =
   | { type: 'load_latest_release' }
   // Creative Studio (proxied through extension host for CORS)
   | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
+  // Design Studio generate lane (shape-as-dial → Qwen → matte), host-proxied.
+  | { type: 'asset_forge_generate'; body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string } }
   // Creative Studio dataset signal: what the user did with a generated asset.
   // completeEventId links back to the generation_complete event (shape-only).
   | { type: 'creative_user_action'; completeEventId: string; action: 'kept' | 'retried' | 'discarded' | 'edited' | 'unknown' }

@@ -4,8 +4,9 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import {
   Image as ImageIcon, MusicNotes, Microphone, VideoCamera,
-  Gear, Paperclip, X as XIcon,
+  Gear, Paperclip, X as XIcon, PenNib,
 } from '@phosphor-icons/react';
+import { DesignStudio } from './DesignStudio';
 import {
   type GalleryItem, type GalleryMediumKind,
 } from '../components/CreativeOutputCard';
@@ -833,8 +834,46 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   ];
   const modeGlyphs = allModeGlyphs.filter(g => !HIDDEN_MODES.has(g.key));
 
+  // Which Studio surface is showing: the media composer or the Design workspace.
+  const [studioView, setStudioView] = useState<'compose' | 'design'>('compose');
+
+  // Studio view toggle — Compose (the media composer: image/audio/voice/video,
+  // entirely unchanged) vs Design (the asset workspace). Adds Design Studio as an
+  // option WITHOUT touching the working image gen; the old image mode stays live
+  // until Design Studio is complete.
+  const viewToggle = (
+    <div className="flex items-center gap-1 shrink-0 mb-3">
+      {([['compose', 'Compose'], ['design', 'Design Studio']] as const).map(([key, label]) => (
+        <button
+          key={key}
+          onClick={() => setStudioView(key)}
+          className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition border cursor-pointer inline-flex items-center gap-1.5 ${
+            studioView === key
+              ? 'bg-[var(--accent)]/15 border-[var(--accent)]/40 text-[var(--accent)]'
+              : 'bg-transparent border-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+          }`}
+        >
+          {key === 'design' && <PenNib weight="duotone" size={14} />}
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (studioView === 'design') {
+    // Break out of <main>'s p-8 and fill it exactly (h-full) so the design
+    // workspace is full-bleed and the page never scrolls — only the inspector.
+    return (
+      <div className="w-full flex flex-col -m-8 h-full min-h-0 overflow-hidden">
+        <div className="px-6 pt-4 shrink-0">{viewToggle}</div>
+        <DesignStudio account={account} />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full flex flex-col" style={{ height: 'calc(100vh - 80px)', minHeight: 0 }}>
+      {viewToggle}
       {/* Compact header — title + soft mauve subtitle that hints
           conversation, not "tool". Token bar collapses into a slim pill
           on the right when account is connected. */}

@@ -499,6 +499,13 @@ export class DashboardPanel {
         break;
       }
 
+      // ─── Design Studio generate lane (shape-as-dial → Qwen → server matte) ──
+      case 'asset_forge_generate': {
+        const m = msg as any;
+        this.handleAssetForgeGenerate(m.body).catch(() => {});
+        break;
+      }
+
       case 'creative_user_action': {
         const m = msg as any;
         this.handleCreativeUserAction(m.completeEventId, m.action);
@@ -5184,6 +5191,64 @@ export class DashboardPanel {
       });
     } catch {
       this.post({ type: 'news_article_loaded', post: null, related: [] });
+    }
+  }
+
+  /**
+   * Design Studio generate lane. Runs the same shape-as-dial pipeline the hub
+   * proved: Qwen-Image-edit-max (reference = the shape armature) → server
+   * white-threshold matte → transparent PNG. Host-proxied because the webview
+   * can't reach the platform (CORS + the key lives in SecretStorage).
+   * TODO(design-studio): credit metering before this goes fully user-facing
+   * (parity with the hub, which is admin-free, for now).
+   */
+  private async handleAssetForgeGenerate(body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string }): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'asset_forge_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
+      return;
+    }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${platformKey}`,
+      'X-Ava-Data-Mode': dataModeHeader(this.context),
+    };
+    try {
+      // 1) Generate — the reference image (the shape silhouette) guides the material.
+      const genRes = await fetch('https://ava-supernova.com/api/asset-forge/image', {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          engine: 'qwen', prompt: body.prompt, referenceImage: body.referenceImage,
+          size: body.size || '1024*1024', negativePrompt: body.negativePrompt,
+        }),
+      });
+      if (!genRes.ok) {
+        const e = (await genRes.json().catch(() => ({}))) as { error?: string };
+        this.post({ type: 'asset_forge_result', success: false, error: e.error || `Generation failed (${genRes.status})` } as any);
+        return;
+      }
+      const gen = await genRes.json() as { url?: string };
+      if (!gen.url) {
+        this.post({ type: 'asset_forge_result', success: false, error: 'No image returned' } as any);
+        return;
+      }
+
+      // 2) Matte on the server (white-threshold → transparent). Non-fatal: on
+      // failure we return the raw generated URL so the result is still usable.
+      let dataUrl = gen.url;
+      try {
+        const bgRes = await fetch('https://ava-supernova.com/api/asset-forge/remove-bg', {
+          method: 'POST', headers, body: JSON.stringify({ imageUrl: gen.url }),
+        });
+        if (bgRes.ok) {
+          const bg = await bgRes.json() as { dataUrl?: string };
+          if (bg.dataUrl) dataUrl = bg.dataUrl;
+        }
+      } catch { /* keep the raw url */ }
+
+      this.post({ type: 'asset_forge_result', success: true, dataUrl, rawUrl: gen.url } as any);
+    } catch (err) {
+      this.post({ type: 'asset_forge_result', success: false, error: err instanceof Error ? err.message : 'Generation failed' } as any);
     }
   }
 
