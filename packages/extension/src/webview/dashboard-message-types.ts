@@ -1342,6 +1342,7 @@ export interface CreativeAsset {
   type?: string;            // legacy column, historical values ('image' | 'post' | etc.)
   asset_type?: string;      // newer column, matches ALLOWED_ASSET_TYPES on the server
   design_type?: string | null;  // fine-grained Design Studio type ('icon'|'logo'|'game-sprite'…); Library sorts by this
+  size_bytes?: number;      // on-disk size (local creative assets); powers the Library storage view
   title?: string | null;
   prompt?: string | null;
   url?: string | null;         // public storage URL
@@ -1879,6 +1880,9 @@ export type DashboardToExtMessage =
   | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; designType?: string; prompt?: string }
   | { type: 'load_local_creative' }
   | { type: 'delete_local_creative'; id: string }
+  // Storage manager — bulk-delete local creative assets by id (the webview
+  // computes which items a "clear this type / older than N days" action covers).
+  | { type: 'prune_creative'; ids: string[] }
   | { type: 'open_creative_folder' }
   // Import-from-disk picker. Dashboard asks host to pop the VS Code open
   // dialog; host replies with an 'import_files_picked' listing files read.

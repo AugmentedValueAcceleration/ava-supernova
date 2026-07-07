@@ -81,7 +81,7 @@ import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
-import { readLocalCreative, saveLocalCreative, deleteLocalCreative, type CreativeKind } from './creative-store.js';
+import { readLocalCreative, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, type CreativeKind } from './creative-store.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
@@ -1725,6 +1725,13 @@ export class DashboardPanel {
         await this.loadLocalCreative();
         break;
 
+      case 'prune_creative': {
+        const removed = await pruneLocalCreative(this.getUserDataDir(), msg.ids);
+        this.log(`[Creative] Pruned ${removed} local asset(s)`);
+        await this.loadLocalCreative();
+        break;
+      }
+
       case 'open_creative_folder': {
         const dir = path.join(this.getUserDataDir(), 'creative');
         try { await (await import('node:fs/promises')).mkdir(dir, { recursive: true }); } catch { /* ignore */ }
@@ -3194,6 +3201,7 @@ export class DashboardPanel {
           id: it.id,
           asset_type: it.kind,
           design_type: it.designType,
+          size_bytes: it.bytes,
           title: it.title || 'Untitled',
           prompt: it.prompt || '',
           url: uri,

@@ -125,3 +125,17 @@ export async function deleteLocalCreative(scopedDir: string, id: string): Promis
   try { await rm(item.absolutePath, { force: true }); } catch { /* already gone */ }
   await writeLocalCreative(scopedDir, items.filter((i) => i.id !== id)).catch(() => {});
 }
+
+/** Bulk-delete stored assets by id (files + metadata entries). Best-effort per
+ *  file. Returns how many metadata entries were removed. */
+export async function pruneLocalCreative(scopedDir: string, ids: string[]): Promise<number> {
+  const kill = new Set(ids);
+  if (kill.size === 0) return 0;
+  const items = await readLocalCreative(scopedDir);
+  const doomed = items.filter((i) => kill.has(i.id));
+  for (const it of doomed) {
+    try { await rm(it.absolutePath, { force: true }); } catch { /* already gone */ }
+  }
+  await writeLocalCreative(scopedDir, items.filter((i) => !kill.has(i.id))).catch(() => {});
+  return doomed.length;
+}
