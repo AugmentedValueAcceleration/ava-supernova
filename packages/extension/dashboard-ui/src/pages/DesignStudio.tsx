@@ -516,14 +516,20 @@ function WaveformPlayer({ voiceName, title, durationSec, src, generating }: { vo
   );
 }
 
-type ViewId = 'icon' | 'iconset' | 'appicon' | 'logo' | 'badge' | 'avatar' | 'banner' | 'hero' | 'ogimage' | 'illustration' | 'pattern' | 'gamekit' | 'gamepiece' | 'image' | 'video' | 'voice' | 'brandkit';
+type ViewId = 'icon' | 'iconset' | 'appicon' | 'logo' | 'badge' | 'avatar' | 'banner' | 'hero' | 'ogimage' | 'illustration' | 'pattern'
+  | 'game-concept' | 'game-character' | 'game-creature' | 'game-ability' | 'game-item' | 'game-card' | 'game-env' | 'game-keyart' | 'game-map' | 'game-emblem' | 'game-texture' | 'game-tileset' | 'game-sprite'
+  | 'image' | 'video' | 'voice' | 'brandkit';
 
 // Left-nav group accent colours mirror the hub (Web/App purple, Game orange,
 // Open Canvas blue).
 const GROUPS: { label: string; accent: string; items: { id: ViewId; label: string; badge?: string }[] }[] = [
+  { label: 'Open Canvas', accent: '#6aa9ff', items: [
+    { id: 'video', label: 'Video' },
+    { id: 'voice', label: 'Voiceover' },
+    { id: 'image', label: 'Image' },
+  ] },
   { label: 'Web / App', accent: 'var(--accent)', items: [
     { id: 'icon', label: 'Icon' },
-    { id: 'iconset', label: 'Icon Set', badge: 'SOON' },
     { id: 'appicon', label: 'App Icon / Favicon', badge: 'SOON' },
     { id: 'logo', label: 'Logo', badge: 'NEXT' },
     { id: 'badge', label: 'Badge / Mark', badge: 'SOON' },
@@ -535,12 +541,19 @@ const GROUPS: { label: string; accent: string; items: { id: ViewId; label: strin
     { id: 'pattern', label: 'Pattern / Background', badge: 'SOON' },
   ] },
   { label: 'Game', accent: '#f0a24b', items: [
-    { id: 'gamekit', label: 'UI Kit', badge: 'SOON' }, { id: 'gamepiece', label: 'Single Piece', badge: 'SOON' },
-  ] },
-  { label: 'Open Canvas', accent: '#6aa9ff', items: [
-    { id: 'video', label: 'Video' },
-    { id: 'voice', label: 'Voiceover' },
-    { id: 'image', label: 'Image' },
+    { id: 'game-concept', label: 'Concept Art', badge: 'SOON' },
+    { id: 'game-character', label: 'Character / Portrait', badge: 'SOON' },
+    { id: 'game-creature', label: 'Creature / Enemy', badge: 'SOON' },
+    { id: 'game-ability', label: 'Ability Icons', badge: 'SOON' },
+    { id: 'game-item', label: 'Item / Prop', badge: 'SOON' },
+    { id: 'game-card', label: 'Card', badge: 'SOON' },
+    { id: 'game-env', label: 'Environment / Background', badge: 'SOON' },
+    { id: 'game-keyart', label: 'Key Art / Splash', badge: 'SOON' },
+    { id: 'game-map', label: 'World Map', badge: 'SOON' },
+    { id: 'game-emblem', label: 'Emblem / Crest', badge: 'SOON' },
+    { id: 'game-texture', label: 'Texture / Material', badge: 'SOON' },
+    { id: 'game-tileset', label: 'Tileset', badge: 'SOON' },
+    { id: 'game-sprite', label: 'Sprite', badge: 'SOON' },
   ] },
 ];
 
