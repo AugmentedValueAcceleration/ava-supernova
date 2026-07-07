@@ -1337,6 +1337,12 @@ export interface LibraryImage {
 
 /** Cloud-synced creative asset row returned by /api/creative-assets GET.
  *  Shape matches the select in packages/web/src/app/api/creative-assets/route.ts. */
+// Local-footprint storage scan (Command Center + Library storage bar). Whole
+// ~/.ava usage grouped into categories, plus safely-reclaimable backups.
+export interface StorageCategory { key: string; label: string; bytes: number }
+export interface StorageReclaim { label: string; bytes: number; paths: string[] }
+export interface StorageScan { totalBytes: number; categories: StorageCategory[]; reclaim: StorageReclaim[] }
+
 export interface CreativeAsset {
   id: string;
   type?: string;            // legacy column, historical values ('image' | 'post' | etc.)
@@ -1505,6 +1511,7 @@ export type ExtToDashboardMessage =
   | { type: 'library_image_deleted'; path: string }
   | { type: 'cloud_assets_loaded'; assets: CreativeAsset[] }
   | { type: 'local_creative_loaded'; assets: CreativeAsset[] }
+  | { type: 'storage_scan_loaded'; scan: StorageScan }
   | { type: 'cloud_assets_error'; message: string }
   | { type: 'cloud_asset_deleted'; id: string }
   // Personality
@@ -1883,6 +1890,9 @@ export type DashboardToExtMessage =
   // Storage manager — bulk-delete local creative assets by id (the webview
   // computes which items a "clear this type / older than N days" action covers).
   | { type: 'prune_creative'; ids: string[] }
+  // Whole-footprint storage scan (~/.ava usage by category) + reclaim backups.
+  | { type: 'get_storage_scan' }
+  | { type: 'reclaim_storage'; paths: string[] }
   | { type: 'open_creative_folder' }
   // Import-from-disk picker. Dashboard asks host to pop the VS Code open
   // dialog; host replies with an 'import_files_picked' listing files read.

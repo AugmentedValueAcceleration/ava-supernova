@@ -70,6 +70,7 @@ import type {
   HealthGenerateExerciseIntake,
   HealthGenerateRecipeIntake,
   CreativeAsset,
+  StorageScan,
   PersonalityData,
   RoadmapTheme,
 } from './types/messages';
@@ -523,6 +524,9 @@ export function App() {
   // Local-first creative gallery (~/.ava/users/<id>/creative) — what the Assets
   // tab shows now. Cloud assets are kept only for the Documents tab.
   const [libraryLocalCreative, setLibraryLocalCreative] = useState<CreativeAsset[]>([]);
+  // Whole-footprint storage scan (~/.ava by category) — powers the storage bar
+  // in the Command Center header and the Library. Refreshed on those pages.
+  const [storageScan, setStorageScan] = useState<StorageScan | null>(null);
   // Non-blocking loading indicator. The Library grid renders whatever
   // it has immediately and shows an inline "Pulling cloud assets…" pill
   // alongside while the fetch is in flight. Hard 15s safety timeout
@@ -1102,6 +1106,9 @@ export function App() {
         setLibraryLocalCreative(msg.assets);
         finishLibraryLoad();
         break;
+      case 'storage_scan_loaded':
+        setStorageScan(msg.scan);
+        break;
       case 'cloud_assets_error':
         // Logged on the host side; UI keeps whatever it had and the
         // pill goes away.
@@ -1378,7 +1385,7 @@ export function App() {
       post({ type: 'load_weather' });
       post({ type: 'load_news' });
       post({ type: 'load_latest_release' });
-      post({ type: 'load_local_creative' });  // powers the header storage bar
+      post({ type: 'get_storage_scan' });  // powers the header storage bar
       if (account) {
         post({ type: 'load_memories' });
       } else {
@@ -1398,6 +1405,7 @@ export function App() {
       post({ type: 'load_cloud_assets' });
       post({ type: 'load_local_creative' });
       post({ type: 'load_library_paths' });
+      post({ type: 'get_storage_scan' });
     }
     // Back-compat: 'learning-library' is the legacy nav target. Any
     // bookmarked / persisted page value that still points here redirects
@@ -1648,7 +1656,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} localCreative={libraryLocalCreative} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} storageScan={storageScan} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':
@@ -1671,6 +1679,7 @@ export function App() {
             onClearPaperDetail={handleClearPaperDetail}
             cloudAssets={libraryCloudAssets}
             localCreative={libraryLocalCreative}
+            storageScan={storageScan}
             cloudAssetsLoading={libraryCloudAssetsLoading}
             onReloadCloudAssets={handleReloadCloudAssets}
             images={libraryImages}

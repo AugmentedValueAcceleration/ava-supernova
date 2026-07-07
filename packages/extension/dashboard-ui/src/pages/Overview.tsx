@@ -18,7 +18,7 @@ import type {
   Page,
   SessionStats,
   UsageLogEntry,
-  CreativeAsset,
+  StorageScan,
 } from '../types/messages';
 import { HealthDashboard } from './HealthDashboard';
 import { StorageBar } from '../components/StorageBar';
@@ -122,8 +122,8 @@ interface OverviewProps {
   tasksLoaded: boolean;
   journalLoaded: boolean;
   weatherLoaded: boolean;
-  // Local creative gallery — powers the storage bar under the header.
-  localCreative: CreativeAsset[];
+  // Whole-footprint storage scan — powers the storage bar under the header.
+  storageScan: StorageScan | null;
 }
 
 // ── Inner-tab type — mirrors the IDE Command Centre's lenses, plus
@@ -155,7 +155,7 @@ export function Overview({
   tasksLoaded,
   journalLoaded,
   weatherLoaded,
-  localCreative,
+  storageScan,
 }: OverviewProps) {
   useLocale();
   // Inner tab state — Command Centre always opens on Daily. The previous
@@ -337,7 +337,7 @@ export function Overview({
           nothing until something has been saved. */}
       <div className="mb-4 flex">
         <div className="ml-auto w-full max-w-xs">
-          <StorageBar assets={localCreative} label="Creative storage" />
+          <StorageBar scan={storageScan} label="Storage" />
         </div>
       </div>
 

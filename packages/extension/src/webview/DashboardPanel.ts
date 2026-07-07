@@ -82,6 +82,7 @@ import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, type CreativeKind } from './creative-store.js';
+import { scanStorage, reclaimStorage } from './storage-scan.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
@@ -1729,6 +1730,20 @@ export class DashboardPanel {
         const removed = await pruneLocalCreative(this.getUserDataDir(), msg.ids);
         this.log(`[Creative] Pruned ${removed} local asset(s)`);
         await this.loadLocalCreative();
+        break;
+      }
+
+      case 'get_storage_scan': {
+        const scan = await scanStorage(AVA_HOME);
+        this.post({ type: 'storage_scan_loaded', scan });
+        break;
+      }
+
+      case 'reclaim_storage': {
+        const freed = await reclaimStorage(msg.paths, AVA_HOME);
+        this.log(`[Storage] Reclaimed ${(freed / 1_048_576).toFixed(1)} MB`);
+        const scan = await scanStorage(AVA_HOME);
+        this.post({ type: 'storage_scan_loaded', scan });
         break;
       }
 

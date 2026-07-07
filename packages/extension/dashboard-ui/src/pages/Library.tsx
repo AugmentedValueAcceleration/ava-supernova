@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
-import type { LibraryImage, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset } from '../types/messages';
+import type { LibraryImage, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset, StorageScan } from '../types/messages';
 import { LibraryPapers } from './LibraryPapers';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
@@ -50,6 +50,8 @@ interface Props {
   /** Local-first creative gallery (~/.ava/users/<id>/creative) — the source the
    *  Assets tab reads. No cloud; everything Creative Studio makes is saved here. */
   localCreative: CreativeAsset[];
+  /** Whole-footprint storage scan (~/.ava by category) — powers the storage bar. */
+  storageScan: StorageScan | null;
   /** True while the host is fetching the cloud asset list. Drives a
    *  non-blocking "Pulling cloud assets…" pill above the grid so the
    *  user understands incomplete-looking thumbnails are still in
@@ -174,6 +176,7 @@ export function Library({
   onClearPaperDetail,
   cloudAssets,
   localCreative,
+  storageScan,
   cloudAssetsLoading,
   onReloadCloudAssets,
   images,
@@ -409,10 +412,11 @@ export function Library({
             </div>
           )}
 
-          {/* Storage usage — colour-coded bar of the local creative gallery,
-              click to manage/prune. Shared with the Command Center header. */}
+          {/* Storage usage — colour-coded bar of Ava's whole local footprint,
+              click for the breakdown + backup reclaim. Shared with the Command
+              Center header. */}
           <div className="mb-3 max-w-md">
-            <StorageBar assets={localCreative} />
+            <StorageBar scan={storageScan} label="Storage" />
           </div>
 
           {/* Inline loading pill — non-blocking. Stays visible while
