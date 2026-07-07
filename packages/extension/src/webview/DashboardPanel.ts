@@ -81,7 +81,7 @@ import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
-import { readLocalCreative, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, type CreativeKind } from './creative-store.js';
+import { readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, type CreativeKind } from './creative-store.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
@@ -3194,7 +3194,7 @@ export class DashboardPanel {
    *  served to the webview via asWebviewUri (AVA_HOME is in localResourceRoots). */
   private async loadLocalCreative(): Promise<void> {
     try {
-      const items = await readLocalCreative(this.getUserDataDir());
+      const items = await readLocalCreativeSized(this.getUserDataDir());
       const assets = items.map((it) => {
         const uri = this.panel.webview.asWebviewUri(vscode.Uri.file(it.absolutePath)).toString();
         return {

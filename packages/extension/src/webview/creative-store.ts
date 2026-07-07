@@ -8,7 +8,7 @@
 // machine, account-scoped (~/.ava/users/<id>/creative/), so it travels with the
 // local data export and never touches a bucket.
 
-import { writeFile, readFile, mkdir, rm } from 'node:fs/promises';
+import { writeFile, readFile, mkdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export type CreativeKind = 'image' | 'video' | 'music' | 'voice' | 'sfx';
@@ -71,6 +71,20 @@ export async function readLocalCreative(scopedDir: string): Promise<LocalCreativ
 async function writeLocalCreative(scopedDir: string, items: LocalCreativeItem[]): Promise<void> {
   await mkdir(creativeDir(scopedDir), { recursive: true });
   await writeFile(metadataPath(scopedDir), JSON.stringify(items, null, 2), 'utf-8');
+}
+
+/** Read the gallery, backfilling on-disk byte sizes for any item saved before
+ *  sizes were stamped (stat the file once, then persist so it's a one-time cost).
+ *  This is what the storage view reads, so pre-existing assets count correctly. */
+export async function readLocalCreativeSized(scopedDir: string): Promise<LocalCreativeItem[]> {
+  const items = await readLocalCreative(scopedDir);
+  let changed = false;
+  for (const it of items) {
+    if (typeof it.bytes === 'number') continue;
+    try { it.bytes = (await stat(it.absolutePath)).size; changed = true; } catch { /* file gone */ }
+  }
+  if (changed) await writeLocalCreative(scopedDir, items).catch(() => {});
+  return items;
 }
 
 /** Save a freshly-generated asset locally: decode/download the bytes, write the
