@@ -11,6 +11,7 @@ import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
 import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-library';
 import { activeKit, loadKits, upsertKit, type BrandKit } from '../lib/asset-forge/brand-kit';
 import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE } from '../lib/asset-forge/generate';
+import { DESIGN_GROUPS, type ViewId } from '../lib/design-types';
 
 type GenOutcome = { ok: boolean; dataUrl?: string; error?: string };
 
@@ -516,47 +517,6 @@ function WaveformPlayer({ voiceName, title, durationSec, src, generating }: { vo
   );
 }
 
-type ViewId = 'icon' | 'iconset' | 'appicon' | 'logo' | 'badge' | 'avatar' | 'banner' | 'hero' | 'ogimage' | 'illustration' | 'pattern'
-  | 'game-concept' | 'game-character' | 'game-creature' | 'game-ability' | 'game-item' | 'game-card' | 'game-env' | 'game-keyart' | 'game-map' | 'game-emblem' | 'game-texture' | 'game-tileset' | 'game-sprite'
-  | 'image' | 'video' | 'voice' | 'brandkit';
-
-// Left-nav group accent colours mirror the hub (Web/App purple, Game orange,
-// Open Canvas blue).
-const GROUPS: { label: string; accent: string; items: { id: ViewId; label: string; badge?: string }[] }[] = [
-  { label: 'Open Canvas', accent: '#6aa9ff', items: [
-    { id: 'video', label: 'Video' },
-    { id: 'voice', label: 'Voiceover' },
-    { id: 'image', label: 'Image' },
-  ] },
-  { label: 'Web / App', accent: 'var(--accent)', items: [
-    { id: 'icon', label: 'Icon' },
-    { id: 'appicon', label: 'App Icon / Favicon', badge: 'SOON' },
-    { id: 'logo', label: 'Logo', badge: 'NEXT' },
-    { id: 'badge', label: 'Badge / Mark', badge: 'SOON' },
-    { id: 'avatar', label: 'Avatar', badge: 'SOON' },
-    { id: 'banner', label: 'Banner', badge: 'SOON' },
-    { id: 'hero', label: 'Hero', badge: 'SOON' },
-    { id: 'ogimage', label: 'Social / OG Image', badge: 'SOON' },
-    { id: 'illustration', label: 'Illustration', badge: 'SOON' },
-    { id: 'pattern', label: 'Pattern / Background', badge: 'SOON' },
-  ] },
-  { label: 'Game', accent: '#f0a24b', items: [
-    { id: 'game-concept', label: 'Concept Art', badge: 'SOON' },
-    { id: 'game-character', label: 'Character / Portrait', badge: 'SOON' },
-    { id: 'game-creature', label: 'Creature / Enemy', badge: 'SOON' },
-    { id: 'game-ability', label: 'Ability Icons', badge: 'SOON' },
-    { id: 'game-item', label: 'Item / Prop', badge: 'SOON' },
-    { id: 'game-card', label: 'Card', badge: 'SOON' },
-    { id: 'game-env', label: 'Environment / Background', badge: 'SOON' },
-    { id: 'game-keyart', label: 'Key Art / Splash', badge: 'SOON' },
-    { id: 'game-map', label: 'World Map', badge: 'SOON' },
-    { id: 'game-emblem', label: 'Emblem / Crest', badge: 'SOON' },
-    { id: 'game-texture', label: 'Texture / Material', badge: 'SOON' },
-    { id: 'game-tileset', label: 'Tileset', badge: 'SOON' },
-    { id: 'game-sprite', label: 'Sprite', badge: 'SOON' },
-  ] },
-];
-
 // Qwen3-TTS curated voice roster — the exact Qwen voice ids the platform route
 // speaks. Ava picks one from here; the user can override in the inspector.
 const VOICES = ['Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona', 'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai'];
@@ -803,9 +763,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     return getShape(s) ?? searchShapes(s, 1)[0] ?? null;
   };
 
-  // Save a matted PNG to the local creative library (transparent icon).
-  const saveToLibrary = (dataUrl: string, title: string) => {
-    post({ type: 'save_creative_to_disk', url: dataUrl, filename: `${title}.png`, assetType: 'image', prompt: title } as any);
+  // Save a matted PNG to the local creative library (transparent icon). Tagged
+  // with the active view's design type (icon / image / logo / …) so the Library
+  // can sort it into the same bucket the user made it in. Defaults to the
+  // current canvas — every save happens while its own lane is active.
+  const saveToLibrary = (dataUrl: string, title: string, designType: ViewId = view) => {
+    post({ type: 'save_creative_to_disk', url: dataUrl, filename: `${title}.png`, assetType: 'image', designType, prompt: title } as any);
   };
 
   // ── Design Architect tool bridge ──────────────────────────────────────────
@@ -964,7 +927,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* LEFT RAIL — the three areas, permanently separate */}
       <nav className="w-[220px] shrink-0 border-r border-[var(--border-card)] flex flex-col p-3 overflow-y-auto">
-        {GROUPS.map(g => (
+        {DESIGN_GROUPS.map(g => (
           <div key={g.label} className="mb-3.5">
             <div className="flex items-center gap-1.5 px-2.5 pb-1.5 text-[10px] tracking-[1.4px] uppercase font-semibold" style={{ color: g.accent }}>
               <span className="w-[3px] h-3 rounded" style={{ background: g.accent }} />{g.label}
@@ -1129,7 +1092,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-2.5 text-center px-10 text-[var(--text-muted)]">
             <PenNib weight="duotone" size={26} style={{ color: 'var(--accent)' }} />
-            <span className="text-[15px] text-[var(--text-secondary)]">{GROUPS.flatMap(g => g.items).find(i => i.id === view)?.label}</span>
+            <span className="text-[15px] text-[var(--text-secondary)]">{DESIGN_GROUPS.flatMap(g => g.items).find(i => i.id === view)?.label}</span>
             <span className="max-w-[420px] text-[13px] leading-relaxed">Being brought over from the hub. The Icon lane is live — this one lands in an upcoming slice.</span>
           </div>
         )}

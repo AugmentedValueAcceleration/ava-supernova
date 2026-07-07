@@ -18,6 +18,10 @@ export type CreativeKind = 'image' | 'video' | 'music' | 'voice' | 'sfx';
 export interface LocalCreativeItem {
   id: string;
   kind: CreativeKind;
+  // Fine-grained Design Studio type ('icon' | 'image' | 'logo' | 'game-sprite'
+  // …). Optional — legacy assets and non-studio saves have only `kind`. The
+  // Library uses it to sort assets into the same bucket they were made in.
+  designType?: string;
   path: string;          // e.g. "images/image_123.jpg"
   absolutePath: string;
   prompt: string;
@@ -56,7 +60,7 @@ async function writeLocalCreative(scopedDir: string, items: LocalCreativeItem[])
  *  Returns the stored item, or null on failure. */
 export async function saveLocalCreative(
   scopedDir: string,
-  args: { url: string; kind: CreativeKind; prompt?: string; title?: string; id?: string },
+  args: { url: string; kind: CreativeKind; prompt?: string; title?: string; id?: string; designType?: string },
 ): Promise<LocalCreativeItem | null> {
   try {
     const kind = (KIND_DIR[args.kind] ? args.kind : 'image') as CreativeKind;
@@ -78,6 +82,7 @@ export async function saveLocalCreative(
     const item: LocalCreativeItem = {
       id,
       kind,
+      designType: args.designType,
       path: rel,
       absolutePath: abs,
       prompt: args.prompt ?? '',

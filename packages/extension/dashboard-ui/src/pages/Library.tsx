@@ -6,6 +6,7 @@ import { LibraryPapers } from './LibraryPapers';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
 import { tabBar, tab as tabClass } from '../components/ui';
+import { DESIGN_GROUPS, designTypeMeta, coarseKindToType } from '../lib/design-types';
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -67,7 +68,6 @@ interface Props {
 }
 
 type TopTab = 'papers' | 'assets' | 'documents';
-type AssetTypeFilter = 'all' | 'image' | 'music' | 'video' | 'voice';
 type AssetSource = 'all' | 'cloud' | 'local';
 type DocTypeFilter = 'all' | 'document' | 'spreadsheet';
 type BlankFormat = 'docx' | 'xlsx' | 'csv' | 'md' | 'pdf';
@@ -104,6 +104,9 @@ interface UnifiedItem {
   id: string;
   source: 'cloud' | 'local';
   kind: string;
+  // Fine-grained Design Studio type ('icon'|'logo'|'game-sprite'…), when the
+  // asset carries one. Undefined for workspace files and legacy assets.
+  designType?: string;
   title: string;
   subtitle: string;
   thumbnail?: string;
@@ -115,12 +118,19 @@ function cloudAssetKind(a: CreativeAsset): string {
   return (a.asset_type || a.type || 'image').toLowerCase();
 }
 
+/** The bucket an item sorts into: its fine-grained designType if tagged, else
+ *  derived from the coarse kind so legacy / workspace files still bucket. */
+function effectiveType(i: UnifiedItem): string {
+  return i.designType || coarseKindToType(i.kind);
+}
+
 function unifyCloudAsset(a: CreativeAsset): UnifiedItem {
   const kind = cloudAssetKind(a);
   return {
     id: `cloud:${a.id}`,
     source: 'cloud',
     kind,
+    designType: a.design_type || undefined,
     title: a.title || 'Untitled',
     subtitle: a.prompt?.slice(0, 80) || '',
     thumbnail: (kind === 'image' ? (a.thumbnail_url || a.url) : undefined) || undefined,
@@ -174,7 +184,11 @@ export function Library({
   // (courses moved to the dedicated Learning room). Assets / Documents are
   // the other browse surfaces.
   const [tab, setTab] = useState<TopTab>('papers');
-  const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>('all');
+  // Two-tier Assets filter: group (Open Canvas / Web / App / Game) then a
+  // specific type within it. Both are data-driven — see groupChips/typeChips.
+  const [assetGroup, setAssetGroup] = useState<string>('all');
+  const [assetType, setAssetType] = useState<string>('all');
+  const selectAssetGroup = (g: string) => { setAssetGroup(g); setAssetType('all'); };
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [docType, setDocType] = useState<DocTypeFilter>('all');
   const [docSource, setDocSource] = useState<AssetSource>('all');
@@ -191,9 +205,9 @@ export function Library({
     }
   }, [tab, onReloadCloudAssets]);
 
-  // Unified item list for Assets tab — excludes office documents, those
-  // live on the Documents tab to match what the user expects.
-  const assetItems = useMemo(() => {
+  // Full unified list for the Assets tab (before the group/type filter) —
+  // excludes office documents, which live on the Documents tab.
+  const allAssetItems = useMemo(() => {
     const list: UnifiedItem[] = [];
     // Local-first creative gallery is the primary source. Voice/music/sfx are
     // hidden — Creative Studio no longer produces audio, so only image + video.
@@ -208,10 +222,42 @@ export function Library({
       const k = localFileKind(img);
       if (['image', 'video'].includes(k)) list.push(unifyLocalImage(img, projectRoot));
     }
-    return typeFilter === 'all'
-      ? list
-      : list.filter(i => i.kind === typeFilter || (typeFilter === 'image' && i.kind === 'graphic'));
-  }, [localCreative, images, projectRoot, typeFilter]);
+    return list;
+  }, [localCreative, images, projectRoot]);
+
+  // Data-driven filter buckets — count assets per group and per type so the
+  // filter only ever offers buckets that hold something. Empty + SOON types
+  // stay hidden until they produce their first asset, then appear automatically.
+  const { groupCounts, typeCounts } = useMemo(() => {
+    const groupCounts = new Map<string, number>();
+    const typeCounts = new Map<string, number>();
+    for (const it of allAssetItems) {
+      const et = effectiveType(it);
+      const group = designTypeMeta(et)?.group ?? 'Other';
+      groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);
+      typeCounts.set(et, (typeCounts.get(et) ?? 0) + 1);
+    }
+    return { groupCounts, typeCounts };
+  }, [allAssetItems]);
+
+  // Group chips in nav order, only groups that have assets.
+  const groupChips = useMemo(
+    () => DESIGN_GROUPS.filter(g => groupCounts.has(g.label)).map(g => g.label),
+    [groupCounts],
+  );
+  // Type chips for the selected group, in nav order, only types with assets.
+  const typeChips = useMemo(() => {
+    const g = DESIGN_GROUPS.find(x => x.label === assetGroup);
+    return g ? g.items.filter(it => typeCounts.has(it.id)) : [];
+  }, [assetGroup, typeCounts]);
+
+  const assetItems = useMemo(() => allAssetItems.filter(it => {
+    const et = effectiveType(it);
+    const group = designTypeMeta(et)?.group ?? 'Other';
+    if (assetGroup !== 'all' && group !== assetGroup) return false;
+    if (assetType !== 'all' && et !== assetType) return false;
+    return true;
+  }), [allAssetItems, assetGroup, assetType]);
 
   // Documents tab — office docs from both sources, filterable by source
   // (cloud/local) and kind (document/spreadsheet). Matches the Assets tab
@@ -284,23 +330,26 @@ export function Library({
 
       {tab === 'assets' && (
         <div>
-          {/* Sub-filters: source + type — match house tab style (underlined
-              bottom border, accent colour on active). Smaller text than the
-              top-level tabs so hierarchy stays clear: primary nav ≠ filter. */}
-          <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--border-card)]">
+          {/* Two-tier Assets filter — mirrors the Design Studio nav so the
+              Library reads like the same map the asset was made in. Row 1 is
+              the group (Open Canvas / Web / App / Game), underlined-tab house
+              style; row 2 (a specific type within the group) appears only when
+              the group holds more than one type. Both are data-driven: only
+              buckets that actually hold assets are offered. */}
+          <div className="mb-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--border-card)]">
             <div className="flex items-center gap-1">
               <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">{t('library.filter.type')}</span>
-              {(['all', 'image', 'video'] as AssetTypeFilter[]).map(f => (
+              {['all', ...groupChips].map(g => (
                 <button
-                  key={f}
-                  onClick={() => setTypeFilter(f)}
+                  key={g}
+                  onClick={() => selectAssetGroup(g)}
                   className={`px-2.5 py-2 text-[11px] font-medium border-b-2 transition ${
-                    typeFilter === f
+                    assetGroup === g
                       ? 'border-[var(--accent)] text-[var(--accent)]'
                       : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                 >
-                  {f === 'all' ? t('dash.library.all') : f === 'image' ? t('library.kind.image') : t('library.kind.video')}
+                  {g === 'all' ? t('dash.library.all') : g}
                 </button>
               ))}
             </div>
@@ -315,6 +364,36 @@ export function Library({
               </button>
             </div>
           </div>
+
+          {/* Row 2 — specific types within the selected group (pill chips with
+              counts). Hidden on "All" and when the group has a single type. */}
+          {typeChips.length > 1 && (
+            <div className="mb-4 flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() => setAssetType('all')}
+                className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
+                  assetType === 'all'
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                    : 'border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                {t('dash.library.all')}
+              </button>
+              {typeChips.map(it => (
+                <button
+                  key={it.id}
+                  onClick={() => setAssetType(it.id)}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
+                    assetType === it.id
+                      ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                      : 'border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  {it.label} <span className="opacity-60">{typeCounts.get(it.id)}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Inline loading pill — non-blocking. Stays visible while
               the host is still pulling cloud assets so the user knows

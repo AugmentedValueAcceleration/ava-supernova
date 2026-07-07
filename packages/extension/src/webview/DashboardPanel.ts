@@ -1779,6 +1779,7 @@ export class DashboardPanel {
           const saved = await saveLocalCreative(this.getUserDataDir(), {
             url: msg.url,
             kind,
+            designType: msg.designType,
             prompt: msg.prompt ?? '',
             title: msg.filename ?? '',
           });
@@ -3192,6 +3193,7 @@ export class DashboardPanel {
         return {
           id: it.id,
           asset_type: it.kind,
+          design_type: it.designType,
           title: it.title || 'Untitled',
           prompt: it.prompt || '',
           url: uri,

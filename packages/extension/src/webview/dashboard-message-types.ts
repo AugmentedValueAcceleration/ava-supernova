@@ -1341,6 +1341,7 @@ export interface CreativeAsset {
   id: string;
   type?: string;            // legacy column, historical values ('image' | 'post' | etc.)
   asset_type?: string;      // newer column, matches ALLOWED_ASSET_TYPES on the server
+  design_type?: string | null;  // fine-grained Design Studio type ('icon'|'logo'|'game-sprite'…); Library sorts by this
   title?: string | null;
   prompt?: string | null;
   url?: string | null;         // public storage URL
@@ -1875,7 +1876,7 @@ export type DashboardToExtMessage =
   | { type: 'open_docs' }
   // Creative Studio — persist a generated asset URL to disk under the
   // user's project root. Host downloads the URL and writes the bytes.
-  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; prompt?: string }
+  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; designType?: string; prompt?: string }
   | { type: 'load_local_creative' }
   | { type: 'delete_local_creative'; id: string }
   | { type: 'open_creative_folder' }
