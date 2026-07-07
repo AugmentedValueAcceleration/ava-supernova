@@ -546,7 +546,7 @@ const GROUPS: { label: string; accent: string; items: { id: ViewId; label: strin
 
 // Qwen3-TTS curated voice roster — the exact Qwen voice ids the platform route
 // speaks. Ava picks one from here; the user can override in the inspector.
-const VOICES = ['Jennifer', 'Katerina', 'Cherry', 'Serena', 'Andre', 'Ryan', 'Neil', 'Ethan'];
+const VOICES = ['Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona', 'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai'];
 // The 10 spoken languages Qwen3-TTS supports. Ava translates the script herself
 // and sets the language; the SAME voice speaks the translated words.
 const VOICE_LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Japanese', 'Korean', 'Italian', 'Portuguese', 'Chinese', 'Russian'];

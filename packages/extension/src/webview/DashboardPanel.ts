@@ -5408,11 +5408,26 @@ export class DashboardPanel {
         return;
       }
       const data = await res.json() as { url?: string };
-      if (data.url) {
-        this.post({ type: 'asset_forge_voice_result', success: true, url: data.url } as any);
-      } else {
+      if (!data.url) {
         this.post({ type: 'asset_forge_voice_result', success: false, error: 'No audio returned' } as any);
+        return;
       }
+      // Proxy the audio to a data: URL. The Qwen/DashScope url is cross-origin with
+      // no CORS headers, which breaks the webview's Web Audio decode (the waveform)
+      // and can block playback. A same-origin data: URL always plays + decodes —
+      // this is what the previous provider effectively returned.
+      let audioUrl = data.url;
+      if (/^https?:/i.test(audioUrl)) {
+        try {
+          const audioRes = await fetch(audioUrl);
+          if (audioRes.ok) {
+            const buf = Buffer.from(await audioRes.arrayBuffer());
+            const mime = audioRes.headers.get('content-type') || 'audio/wav';
+            audioUrl = `data:${mime};base64,${buf.toString('base64')}`;
+          }
+        } catch { /* fall back to the raw url */ }
+      }
+      this.post({ type: 'asset_forge_voice_result', success: true, url: audioUrl } as any);
     } catch (err) {
       this.post({ type: 'asset_forge_voice_result', success: false, error: err instanceof Error ? err.message : 'Voice generation failed' } as any);
     }

@@ -507,11 +507,12 @@ export class DesignGenerateVoiceTool implements Tool {
         },
         voice: {
           type: 'string',
-          enum: ['Jennifer', 'Katerina', 'Cherry', 'Serena', 'Andre', 'Ryan', 'Neil', 'Ethan'],
+          enum: ['Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona', 'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai'],
           description:
-            'The voice from the curated roster. Jennifer (F, premium cinematic American), Katerina (F, mature, rich), ' +
-            'Cherry (F, sunny, friendly), Serena (F, gentle, warm), Andre (M, magnetic narration), Ryan (M, dramatic, ' +
-            'trailer), Neil (M, news-anchor precision), Ethan (M, warm, energetic). Default Jennifer.',
+            'The voice from the curated roster (all work on qwen3-tts-instruct-flash). Cherry (F, sunny, friendly — ' +
+            'DEFAULT), Serena (F, gentle, warm), Vivian (F, confident, feisty), Maia (F, intellect + gentleness), ' +
+            'Bellona (F, powerful, heroic), Ethan (M, warm, energetic), Moon (M, bold, handsome), Vincent (M, raspy, ' +
+            'cinematic), Neil (M, news-anchor precision), Kai (M, soothing). Default Cherry.',
         },
         language: {
           type: 'string',
