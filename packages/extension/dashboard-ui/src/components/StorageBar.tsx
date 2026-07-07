@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { StorageScan } from '../types/messages';
 import { post } from '../App';
 
@@ -6,10 +6,11 @@ import { post } from '../App';
 //
 // A slim, colour-coded bar of Ava's WHOLE local footprint (~/.ava), segmented by
 // category — Models, Runtime, Creative, Memory, Journal, Datasets, Old backups,
-// Other. Hover a segment for a tooltip; click for the full breakdown + one-tap
-// reclaim of stale backups. Shared by the Command Center header and the Library
-// so both tell the same, honest story. Data comes from the host footprint scan
-// (get_storage_scan); the webview can't read the disk itself.
+// Other. HOVER shows a detailed breakdown card (quick peek, read-only); CLICK
+// opens the manager, which stays open until the ✕ (or Esc) — so a reclaim is
+// never dismissed by a stray click. Shared by the Command Center header and the
+// Library so both tell the same, honest story. Data comes from the host
+// footprint scan (get_storage_scan); the webview can't read the disk itself.
 
 const CAT_COLOR: Record<string, string> = {
   models: '#a78bfa', runtime: '#64748b', creative: '#6aa9ff', memory: '#34d399',
@@ -25,47 +26,81 @@ function formatBytes(n: number): string {
   return `${v >= 10 || i === 0 ? Math.round(v) : v.toFixed(1)} ${u[i]}`;
 }
 
+/** Small colour-dot + label + size row, reused by the hover card + the modal. */
+function CatRow({ color, label, bytes }: { color: string; label: string; bytes: number }) {
+  return (
+    <div className="flex items-center gap-2 text-[11px]">
+      <span className="inline-block h-2 w-2 flex-shrink-0 rounded-full" style={{ background: color }} />
+      <span className="flex-1 truncate text-[var(--text-secondary)]">{label}</span>
+      <span className="flex-shrink-0 text-[var(--text-muted)]">{formatBytes(bytes)}</span>
+    </div>
+  );
+}
+
 /** The compact bar. Renders nothing until the scan has landed. */
 export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | null; label?: string }) {
   const [open, setOpen] = useState(false);
   const [armed, setArmed] = useState(false);
+
+  // Persistent panel: closes only on ✕ or Esc, never on an outside click.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setArmed(false); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
   if (!scan || scan.totalBytes <= 0) return null;
   const { totalBytes, categories, reclaim } = scan;
 
   const reclaimPaths = reclaim.flatMap(r => r.paths);
   const reclaimBytes = reclaim.reduce((a, r) => a + r.bytes, 0);
   const doReclaim = () => { if (reclaimPaths.length) post({ type: 'reclaim_storage', paths: reclaimPaths }); setArmed(false); setOpen(false); };
+  const closePanel = () => { setOpen(false); setArmed(false); };
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => { setArmed(false); setOpen(true); }}
-        className="group block w-full text-left"
-        title="Storage — click for the breakdown"
-      >
-        <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-          <span>{label}</span>
-          <span className="text-[var(--text-secondary)]">{formatBytes(totalBytes)}</span>
+      <div className="group relative">
+        <button
+          type="button"
+          onClick={() => { setArmed(false); setOpen(true); }}
+          className="block w-full text-left"
+        >
+          <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+            <span>{label}</span>
+            <span className="text-[var(--text-secondary)]">{formatBytes(totalBytes)}</span>
+          </div>
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/5">
+            {categories.map(c => (
+              <div
+                key={c.key}
+                style={{ width: `${Math.max(0.5, (c.bytes / totalBytes) * 100)}%`, background: colorOf(c.key) }}
+                className="h-full transition-opacity group-hover:opacity-90"
+              />
+            ))}
+          </div>
+        </button>
+
+        {/* Hover detail — full breakdown, read-only. Doesn't intercept the click
+            (pointer-events-none) so the bar underneath still opens the manager. */}
+        <div className="pointer-events-none absolute right-0 top-full z-50 mt-2 w-64 translate-y-1 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3 opacity-0 shadow-2xl transition-all duration-150 invisible group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
+            <span className="text-[11px] text-[var(--text-muted)]">{formatBytes(totalBytes)}</span>
+          </div>
+          <div className="space-y-1">
+            {categories.map(c => <CatRow key={c.key} color={colorOf(c.key)} label={c.label} bytes={c.bytes} />)}
+          </div>
+          <div className="mt-2 border-t border-[var(--border-card)] pt-2 text-[10px] text-[var(--text-muted)]">Click to manage</div>
         </div>
-        <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/5">
-          {categories.map(c => (
-            <div
-              key={c.key}
-              title={`${c.label} · ${formatBytes(c.bytes)}`}
-              style={{ width: `${Math.max(0.5, (c.bytes / totalBytes) * 100)}%`, background: colorOf(c.key) }}
-              className="h-full transition-opacity group-hover:opacity-90"
-            />
-          ))}
-        </div>
-      </button>
+      </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={() => { setOpen(false); setArmed(false); }}>
-          <div className="w-full max-w-md rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5 shadow-2xl">
             <div className="mb-1 flex items-center justify-between">
               <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Storage</h3>
-              <button onClick={() => { setOpen(false); setArmed(false); }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition" aria-label="Close">✕</button>
+              <button onClick={closePanel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition" aria-label="Close">✕</button>
             </div>
             <p className="mb-4 text-[12px] text-[var(--text-muted)]">
               Ava is using <span className="text-[var(--text-secondary)]">{formatBytes(totalBytes)}</span> on this machine
@@ -73,18 +108,10 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
 
             <div className="space-y-2">
               {categories.map(c => (
-                <div key={c.key} className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[12px] text-[var(--text-secondary)]">
-                        <span className="mr-1.5 inline-block h-2 w-2 rounded-full align-middle" style={{ background: colorOf(c.key) }} />
-                        {c.label}
-                      </span>
-                      <span className="flex-shrink-0 text-[11px] text-[var(--text-muted)]">{formatBytes(c.bytes)}</span>
-                    </div>
-                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                      <div className="h-full rounded-full" style={{ width: `${Math.max(1, (c.bytes / totalBytes) * 100)}%`, background: colorOf(c.key) }} />
-                    </div>
+                <div key={c.key}>
+                  <CatRow color={colorOf(c.key)} label={c.label} bytes={c.bytes} />
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                    <div className="h-full rounded-full" style={{ width: `${Math.max(1, (c.bytes / totalBytes) * 100)}%`, background: colorOf(c.key) }} />
                   </div>
                 </div>
               ))}
