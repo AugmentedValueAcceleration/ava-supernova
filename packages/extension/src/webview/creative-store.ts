@@ -22,11 +22,14 @@ export interface LocalCreativeItem {
   // …). Optional — legacy assets and non-studio saves have only `kind`. The
   // Library uses it to sort assets into the same bucket they were made in.
   designType?: string;
-  path: string;          // e.g. "images/image_123.jpg"
+  path: string;          // e.g. "images/image_123.webp"
   absolutePath: string;
   prompt: string;
   title: string;
   createdAt: string;
+  // On-disk size in bytes. Stamped at save so the Library storage view can
+  // total usage per type without stat-ing every file. Optional for legacy items.
+  bytes?: number;
 }
 
 const KIND_DIR: Record<CreativeKind, string> = {
@@ -35,6 +38,21 @@ const KIND_DIR: Record<CreativeKind, string> = {
 const KIND_EXT: Record<CreativeKind, string> = {
   image: 'jpg', video: 'mp4', music: 'mp3', voice: 'mp3', sfx: 'mp3',
 };
+
+// Map a data-URL mime to a file extension so the on-disk name matches the
+// actual bytes (WebP saves land as .webp, not a mislabelled .jpg). Returns null
+// for remote urls / unknown mimes, in which case the caller falls back to the
+// kind's default extension.
+const MIME_EXT: Record<string, string> = {
+  'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/jpg': 'jpg',
+  'image/gif': 'gif', 'image/svg+xml': 'svg',
+  'video/mp4': 'mp4', 'video/webm': 'webm',
+  'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/wav': 'wav', 'audio/ogg': 'ogg',
+};
+function dataUrlExt(url: string): string | null {
+  const m = /^data:([a-z0-9.+/-]+)[;,]/i.exec(url);
+  return m ? (MIME_EXT[m[1].toLowerCase()] ?? null) : null;
+}
 
 const creativeDir = (scopedDir: string): string => join(scopedDir, 'creative');
 const metadataPath = (scopedDir: string): string => join(creativeDir(scopedDir), 'metadata.json');
@@ -65,7 +83,8 @@ export async function saveLocalCreative(
   try {
     const kind = (KIND_DIR[args.kind] ? args.kind : 'image') as CreativeKind;
     const id = args.id ?? `${kind}_${Date.now()}`;
-    const rel = `${KIND_DIR[kind]}/${id}.${KIND_EXT[kind]}`;
+    const ext = dataUrlExt(args.url) ?? KIND_EXT[kind];
+    const rel = `${KIND_DIR[kind]}/${id}.${ext}`;
     const abs = join(creativeDir(scopedDir), rel);
     await mkdir(join(creativeDir(scopedDir), KIND_DIR[kind]), { recursive: true });
 
@@ -88,6 +107,7 @@ export async function saveLocalCreative(
       prompt: args.prompt ?? '',
       title: args.title ?? '',
       createdAt: new Date().toISOString(),
+      bytes: bytes.length,
     };
     const items = await readLocalCreative(scopedDir);
     await writeLocalCreative(scopedDir, [item, ...items.filter((i) => i.id !== id)]);

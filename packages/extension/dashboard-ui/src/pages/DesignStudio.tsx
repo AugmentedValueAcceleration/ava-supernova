@@ -12,6 +12,7 @@ import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-
 import { activeKit, loadKits, upsertKit, type BrandKit } from '../lib/asset-forge/brand-kit';
 import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE } from '../lib/asset-forge/generate';
 import { DESIGN_GROUPS, type ViewId } from '../lib/design-types';
+import { toWebp } from '../lib/compress';
 
 type GenOutcome = { ok: boolean; dataUrl?: string; error?: string };
 
@@ -763,12 +764,16 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     return getShape(s) ?? searchShapes(s, 1)[0] ?? null;
   };
 
-  // Save a matted PNG to the local creative library (transparent icon). Tagged
-  // with the active view's design type (icon / image / logo / …) so the Library
-  // can sort it into the same bucket the user made it in. Defaults to the
-  // current canvas — every save happens while its own lane is active.
-  const saveToLibrary = (dataUrl: string, title: string, designType: ViewId = view) => {
-    post({ type: 'save_creative_to_disk', url: dataUrl, filename: `${title}.png`, assetType: 'image', designType, prompt: title } as any);
+  // Save an image to the local creative library. WebP-compress it first — lossless
+  // (q1.0, alpha-safe) for icons/flat art, high-quality lossy (q0.9) for photos —
+  // then hand the host the smaller bytes. toWebp falls back to the original on any
+  // failure, so a save never breaks. Tagged with the active view's design type
+  // (icon / image / logo / …) so the Library sorts it into the bucket it was made
+  // in. Defaults to the current canvas — every save happens while its lane is active.
+  const saveToLibrary = async (dataUrl: string, title: string, designType: ViewId = view) => {
+    const encoded = await toWebp(dataUrl, designType === 'image' ? 0.9 : 1.0);
+    const ext = encoded.startsWith('data:image/webp') ? 'webp' : 'png';
+    post({ type: 'save_creative_to_disk', url: encoded, filename: `${title}.${ext}`, assetType: 'image', designType, prompt: title } as any);
   };
 
   // ── Design Architect tool bridge ──────────────────────────────────────────
@@ -897,7 +902,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const title = (typeof args.title === 'string' && args.title.trim())
           ? args.title.trim()
           : `${(getShape(shapeId)?.label ?? 'icon')}-${material.label}`.toLowerCase().replace(/\s+/g, '-');
-        saveToLibrary(url, title);
+        await saveToLibrary(url, title);
         reply(true, { title });
         return;
       }

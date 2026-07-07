@@ -5292,6 +5292,18 @@ export class DashboardPanel {
             if (bg.dataUrl) dataUrl = bg.dataUrl;
           }
         } catch { /* keep the raw url */ }
+      } else {
+        // Free-form image (no matte): proxy the remote url to a data URL so the
+        // webview can WebP-compress it before saving (canvas can't read a
+        // cross-origin url) — and so it lands offline-clean. Non-fatal.
+        try {
+          const imgRes = await fetch(gen.url);
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            const mime = imgRes.headers.get('content-type') || 'image/png';
+            dataUrl = `data:${mime};base64,${buf.toString('base64')}`;
+          }
+        } catch { /* keep the raw url */ }
       }
 
       this.post({ type: 'asset_forge_result', success: true, dataUrl, rawUrl: gen.url } as any);
