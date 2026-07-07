@@ -4,20 +4,6 @@ import * as path from 'node:path';
 import * as https from 'node:https';
 import * as http from 'node:http';
 
-/** Shape-only summary of creative-generation params for the dataset event —
- *  never the prompt or other free-text fields. Numeric/boolean params (size,
- *  duration, variations…) are kept as values; string params as char counts. */
-function creativeParamsSummary(body: Record<string, unknown>): string {
-  const SKIP = new Set(['prompt', 'lyrics', 'negative_prompt', 'first_frame_image', 'model']);
-  const parts: string[] = [];
-  for (const [k, v] of Object.entries(body ?? {})) {
-    if (SKIP.has(k)) continue;
-    if (typeof v === 'string') parts.push(`${k}=${v.length}ch`);
-    else if (typeof v === 'number' || typeof v === 'boolean') parts.push(`${k}=${v}`);
-  }
-  return parts.join(', ');
-}
-
 /** Normalise a Creative Studio asset type to a local-store CreativeKind. */
 function normaliseCreativeKind(raw?: string): CreativeKind {
   const k = (raw ?? '').toLowerCase();
@@ -48,8 +34,7 @@ import {
   loadPersonality, savePersonality, resetPersonality,
   loadDatasetConfig, saveDatasetConfig, configPathFor,
   exportEncryptedBackup, importEncryptedBackup, gatherBundle,
-  trackUiGeneration, emitGenerationUserAction,
-  type DatasetConfig, type GenerationUserAction,
+  type DatasetConfig,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -501,13 +486,6 @@ export class DashboardPanel {
         break;
       }
 
-      // ─── Creative Studio generation (proxied through extension host for CORS) ──
-      case 'creative_generate': {
-        const m = msg as any;
-        this.handleCreativeGenerate(m.endpoint, m.body).catch(() => {});
-        break;
-      }
-
       // ─── Design Studio generate lane (shape-as-dial → Qwen → server matte) ──
       case 'asset_forge_generate': {
         const m = msg as any;
@@ -533,12 +511,6 @@ export class DashboardPanel {
       case 'design_tool_result': {
         const m = msg as any;
         this.handleDesignToolResult(m.requestId, { ok: !!m.ok, data: m.data, error: m.error });
-        break;
-      }
-
-      case 'creative_user_action': {
-        const m = msg as any;
-        this.handleCreativeUserAction(m.completeEventId, m.action);
         break;
       }
 
@@ -5431,82 +5403,6 @@ export class DashboardPanel {
     } catch (err) {
       this.post({ type: 'asset_forge_voice_result', success: false, error: err instanceof Error ? err.message : 'Voice generation failed' } as any);
     }
-  }
-
-  private async handleCreativeGenerate(endpoint: string, body: Record<string, unknown>): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'creative_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
-      return;
-    }
-
-    // Dataset tracking metadata (shape-only). Creative Studio bypasses the
-    // agent's generate_* tools, so we open a synthetic trajectory here and
-    // hand the completeEventId back so the webview can link a later
-    // kept/retried/discarded action to this exact generation.
-    const genType: 'image' | 'music' | 'voice' | 'video' =
-      endpoint.includes('music') ? 'music'
-      : endpoint.includes('voice') ? 'voice'
-      : endpoint.includes('video') ? 'video'
-      : 'image';
-    const model = typeof body.model === 'string' ? body.model : 'unknown';
-    const prompt = typeof body.prompt === 'string' ? body.prompt : '';
-    const paramsSummary = creativeParamsSummary(body);
-
-    try {
-      const { result, completeEventId } = await trackUiGeneration(
-        { type: genType, model, prompt, paramsSummary, surface: 'extension' },
-        async (tracker): Promise<{ success: boolean; data?: unknown; error?: string }> => {
-          // Cloud-sync hard gate — when sync is off the server skips the
-          // Storage bucket upload + creative_assets insert and returns a
-          // short-lived provider URL. The client is expected to save to
-          // disk before the URL expires (see Creative Studio local save path).
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${platformKey}`,
-            'X-Ava-Data-Mode': dataModeHeader(this.context),
-          };
-          const res = await fetch(`https://ava-supernova.com/api/${endpoint}`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body),
-          });
-          if (!res.ok) {
-            const errData = (await res.json().catch(() => ({ error: `Request failed (${res.status})` }))) as { error?: string };
-            const error = errData.error || `Request failed (${res.status})`;
-            tracker.fail(error);
-            return { success: false, error };
-          }
-          const data = await res.json() as { task_id?: string; url?: string; [k: string]: unknown };
-
-          // Video generation is async — the submit endpoint returns a task_id and
-          // the clip (with Wan's auto-dubbed audio) is produced over the next
-          // 1–6 minutes. We poll the status route here in the extension host,
-          // which has no serverless timeout, until the job reaches a terminal
-          // state, then hand the webview the finished { url }. Images / music /
-          // voice come back synchronously and fall through unchanged.
-          if (endpoint === 'generate-video' && data?.task_id && !data?.url) {
-            const final = await this.pollVideoStatus(String(data.task_id), platformKey);
-            if (final.success) tracker.complete(); else tracker.fail(final.error || 'Video generation failed');
-            return { success: final.success, data: final.data, error: final.error };
-          }
-
-          tracker.complete();
-          return { success: true, data };
-        },
-      );
-      this.post({ type: 'creative_result', ...result, completeEventId } as any);
-    } catch (err) {
-      this.post({ type: 'creative_result', success: false, error: err instanceof Error ? err.message : 'Generation failed' } as any);
-    }
-  }
-
-  /** Webview reports what the user did with a generated asset (kept/retried/
-   *  discarded/edited). Linked to the generation via the completeEventId the
-   *  host returned at creation time. Shape-only dataset signal. */
-  private handleCreativeUserAction(completeEventId: string, action: GenerationUserAction): void {
-    if (!completeEventId) return;
-    emitGenerationUserAction({ completeEventId, action, surface: 'extension' });
   }
 
   /**

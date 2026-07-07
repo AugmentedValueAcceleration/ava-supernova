@@ -1593,18 +1593,6 @@ export type ExtToDashboardMessage =
       type: 'import_files_picked';
       files: Array<{ name: string; content: string; size: number }>;
     }
-  // Creative generation result streamed from the host (handleCreativeGenerate).
-  | {
-      type: 'creative_result';
-      success: boolean;
-      error?: string;
-      data?: unknown;
-      // Dataset link: the generation_complete event_id (shape-only capture).
-      // The webview stores this on the gallery item so a later kept/retried/
-      // discarded action can reference this exact generation. Null if capture
-      // is off or the generation failed.
-      completeEventId?: string | null;
-    }
   // Asset Forge / Design Studio generation result (handleAssetForgeGenerate):
   // the matted transparent PNG data URL (or the raw url if the matte fell back).
   | { type: 'asset_forge_result'; success: boolean; dataUrl?: string; rawUrl?: string; error?: string }
@@ -1824,8 +1812,6 @@ export type DashboardToExtMessage =
   | { type: 'load_news'; category?: string }
   | { type: 'load_news_article'; slug: string }
   | { type: 'load_latest_release' }
-  // Creative Studio (proxied through extension host for CORS)
-  | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
   // Design Studio generate lane (shape-as-dial → Qwen → matte), host-proxied.
   | { type: 'asset_forge_generate'; body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string; matte?: boolean } }
   // Design Studio video lane (submit to Wan 2.5 + poll status, host-proxied).
@@ -1834,9 +1820,6 @@ export type DashboardToExtMessage =
   | { type: 'asset_forge_voice'; body: { text: string; voice?: string; language_type?: string; instructions?: string } }
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
-  // Creative Studio dataset signal: what the user did with a generated asset.
-  // completeEventId links back to the generation_complete event (shape-only).
-  | { type: 'creative_user_action'; completeEventId: string; action: 'kept' | 'retried' | 'discarded' | 'edited' | 'unknown' }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
   | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' }
   // Command palette — a pre-classified user-aid intent fired by a palette
