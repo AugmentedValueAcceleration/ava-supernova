@@ -1893,6 +1893,8 @@ export type DashboardToExtMessage =
   // Whole-footprint storage scan (~/.ava usage by category) + reclaim backups.
   | { type: 'get_storage_scan' }
   | { type: 'reclaim_storage'; paths: string[] }
+  // Reveal the whole ~/.ava data folder in the OS file explorer.
+  | { type: 'open_storage_folder' }
   | { type: 'open_creative_folder' }
   // Import-from-disk picker. Dashboard asks host to pop the VS Code open
   // dialog; host replies with an 'import_files_picked' listing files read.

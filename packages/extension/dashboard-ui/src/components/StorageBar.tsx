@@ -100,7 +100,16 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
           <div className="w-full max-w-md rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5 shadow-2xl">
             <div className="mb-1 flex items-center justify-between">
               <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Storage</h3>
-              <button onClick={closePanel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition" aria-label="Close">✕</button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => post({ type: 'open_storage_folder' })}
+                  title="Reveal the ~/.ava data folder"
+                  className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+                >
+                  Open folder
+                </button>
+                <button onClick={closePanel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition" aria-label="Close">✕</button>
+              </div>
             </div>
             <p className="mb-4 text-[12px] text-[var(--text-muted)]">
               Ava is using <span className="text-[var(--text-secondary)]">{formatBytes(totalBytes)}</span> on this machine

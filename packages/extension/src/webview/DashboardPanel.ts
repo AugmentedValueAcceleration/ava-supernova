@@ -1747,6 +1747,11 @@ export class DashboardPanel {
         break;
       }
 
+      case 'open_storage_folder': {
+        try { await vscode.env.openExternal(vscode.Uri.file(AVA_HOME)); } catch { /* ignore */ }
+        break;
+      }
+
       case 'open_creative_folder': {
         const dir = path.join(this.getUserDataDir(), 'creative');
         try { await (await import('node:fs/promises')).mkdir(dir, { recursive: true }); } catch { /* ignore */ }
