@@ -33,7 +33,7 @@ export const DESIGN_GROUPS: DesignGroup[] = [
     { id: 'illustration', label: 'Illustration', badge: 'SOON' },
     { id: 'pattern', label: 'Pattern / Background', badge: 'SOON' },
   ] },
-  { label: 'Game', accent: '#f0a24b', items: [
+  { label: 'Game Dev', accent: '#f0a24b', items: [
     { id: 'game-concept', label: 'Concept Art', badge: 'SOON' },
     { id: 'game-character', label: 'Character / Portrait', badge: 'SOON' },
     { id: 'game-creature', label: 'Creature / Enemy', badge: 'SOON' },
