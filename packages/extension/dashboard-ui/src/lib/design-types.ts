@@ -63,6 +63,13 @@ export function designTypeMeta(id?: string | null): { label: string; group: stri
   return id ? (TYPE_INDEX[id] ?? null) : null;
 }
 
+/** The group accent colour for a type id (for storage bars / colour-coding),
+ *  falling back to the app accent for unknown/legacy ids. */
+export function accentOfType(id?: string | null): string {
+  if (id) for (const g of DESIGN_GROUPS) if (g.items.some(it => it.id === id)) return g.accent;
+  return 'var(--accent)';
+}
+
 /** Map a coarse creative kind (image/video/voice/music) to the Open-Canvas type
  *  id used when an asset has no fine-grained designType (legacy / workspace
  *  files). Everything that isn't clearly video or audio is treated as an image. */

@@ -7,6 +7,7 @@ import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
 import { tabBar, tab as tabClass } from '../components/ui';
 import { DESIGN_GROUPS, designTypeMeta, coarseKindToType } from '../lib/design-types';
+import { StorageBar } from '../components/StorageBar';
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -253,42 +254,6 @@ export function Library({
     return true;
   }), [allAssetItems, assetGroup, assetType]);
 
-  // ── Storage manager ────────────────────────────────────────────────────────
-  // Usage of the LOCAL creative gallery (what Ava generated + we manage), broken
-  // down by fine type — computed straight from localCreative's size_bytes, no
-  // extra host call. Workspace-scanned files are excluded: they're the user's
-  // own files, not ours to prune. `ids` are the raw store ids for prune_creative.
-  const storage = useMemo(() => {
-    let totalBytes = 0;
-    const byType = new Map<string, { bytes: number; count: number; ids: string[]; createdAt: string[] }>();
-    for (const a of localCreative) {
-      const k = cloudAssetKind(a);
-      if (!['image', 'video', 'graphic'].includes(k)) continue;
-      const bytes = a.size_bytes ?? 0;
-      totalBytes += bytes;
-      const et = a.design_type || coarseKindToType(k);
-      const cur = byType.get(et) ?? { bytes: 0, count: 0, ids: [], createdAt: [] };
-      cur.bytes += bytes; cur.count++; cur.ids.push(a.id); cur.createdAt.push(a.created_at);
-      byType.set(et, cur);
-    }
-    // Order rows by the taxonomy (nav order), unknowns last.
-    const order: string[] = DESIGN_GROUPS.flatMap(g => g.items.map(i => i.id));
-    const rows = [...byType.entries()]
-      .map(([type, v]) => ({ type, label: designTypeMeta(type)?.label ?? type, ...v }))
-      .sort((a, b) => (order.indexOf(a.type) + 1 || 999) - (order.indexOf(b.type) + 1 || 999));
-    return { totalBytes, rows };
-  }, [localCreative]);
-
-  const [storageOpen, setStorageOpen] = useState(false);
-  const [confirmClear, setConfirmClear] = useState<string | null>(null);
-
-  // Delete a set of local assets by id. Two-tap confirm (window.confirm is
-  // unreliable in webviews) — the caller flips confirmClear to arm the action.
-  const pruneIds = (ids: string[]) => {
-    if (ids.length) post({ type: 'prune_creative', ids });
-    setConfirmClear(null);
-  };
-
   // Documents tab — office docs from both sources, filterable by source
   // (cloud/local) and kind (document/spreadsheet). Matches the Assets tab
   // filter shape so users learn one pattern.
@@ -444,31 +409,11 @@ export function Library({
             </div>
           )}
 
-          {/* Storage usage — what the local creative gallery is using on disk,
-              with a one-click way into the manager. Only shown once something
-              has actually been saved. */}
-          {storage.totalBytes > 0 && (
-            <div className="mb-3 flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
-              <span>Local library · <span className="text-[var(--text-secondary)]">{formatSize(storage.totalBytes)}</span></span>
-              <button
-                onClick={() => { setConfirmClear(null); setStorageOpen(true); }}
-                className="rounded-full border border-[var(--border-card)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition"
-              >
-                Manage storage
-              </button>
-            </div>
-          )}
-
-          {storageOpen && (
-            <StorageManager
-              rows={storage.rows}
-              totalBytes={storage.totalBytes}
-              confirmKey={confirmClear}
-              onArm={setConfirmClear}
-              onPrune={pruneIds}
-              onClose={() => { setStorageOpen(false); setConfirmClear(null); }}
-            />
-          )}
+          {/* Storage usage — colour-coded bar of the local creative gallery,
+              click to manage/prune. Shared with the Command Center header. */}
+          <div className="mb-3 max-w-md">
+            <StorageBar assets={localCreative} />
+          </div>
 
           {/* Inline loading pill — non-blocking. Stays visible while
               the host is still pulling cloud assets so the user knows
@@ -1236,85 +1181,6 @@ function AssetRow({
       </span>
       <span className="flex-shrink-0 text-[9px] text-[var(--text-muted)]">{item.kind}</span>
     </button>
-  );
-}
-
-interface StorageRow { type: string; label: string; bytes: number; count: number; ids: string[]; createdAt: string[] }
-
-/** Storage manager modal — usage of the local creative gallery broken down by
- *  type, with one-tap pruning (by type, or by age across all types). Deletes are
- *  two-tap (arm → confirm) since window.confirm is unreliable in webviews. All
- *  local: this only ever touches ~/.ava/…/creative, never workspace files. */
-function StorageManager({ rows, totalBytes, confirmKey, onArm, onPrune, onClose }: {
-  rows: StorageRow[];
-  totalBytes: number;
-  confirmKey: string | null;
-  onArm: (key: string | null) => void;
-  onPrune: (ids: string[]) => void;
-  onClose: () => void;
-}) {
-  const idsOlderThan = (days: number): string[] => {
-    const cutoff = Date.now() - days * 86_400_000;
-    const ids: string[] = [];
-    for (const r of rows) r.createdAt.forEach((c, i) => {
-      const t = Date.parse(c);
-      if (!Number.isNaN(t) && t < cutoff) ids.push(r.ids[i]);
-    });
-    return ids;
-  };
-  // Arm-then-confirm button: first click arms (onArm), second runs (onPrune).
-  const ClearBtn = ({ k, ids, label = 'Clear' }: { k: string; ids: string[]; label?: string }) => (
-    confirmKey === k
-      ? <button onClick={() => onPrune(ids)} className="rounded-md border border-red-500/50 bg-red-500/15 px-2 py-0.5 text-[10px] font-medium text-red-300 hover:bg-red-500/25 transition">Confirm ({ids.length})</button>
-      : <button onClick={() => onArm(k)} disabled={!ids.length} className="rounded-md border border-[var(--border-card)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)] hover:border-red-500/50 hover:text-red-300 disabled:opacity-40 disabled:pointer-events-none transition">{label}</button>
-  );
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Storage</h3>
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition" aria-label="Close">✕</button>
-        </div>
-        <p className="mb-4 text-[12px] text-[var(--text-muted)]">
-          Local creative library · <span className="text-[var(--text-secondary)]">{formatSize(totalBytes)}</span> across {rows.reduce((n, r) => n + r.count, 0)} asset{rows.reduce((n, r) => n + r.count, 0) === 1 ? '' : 's'}
-        </p>
-
-        <div className="space-y-2">
-          {rows.map(r => (
-            <div key={r.type} className="flex items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-[12px] text-[var(--text-secondary)]">{r.label} <span className="text-[var(--text-muted)]">· {r.count}</span></span>
-                  <span className="flex-shrink-0 text-[11px] text-[var(--text-muted)]">{formatSize(r.bytes)}</span>
-                </div>
-                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                  <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${totalBytes ? Math.max(3, (r.bytes / totalBytes) * 100) : 0}%` }} />
-                </div>
-              </div>
-              <ClearBtn k={`type:${r.type}`} ids={r.ids} />
-            </div>
-          ))}
-        </div>
-
-        {/* Age-based cleanup across every type. */}
-        <div className="mt-5 border-t border-[var(--border-card)] pt-3">
-          <div className="mb-2 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Clear older than</div>
-          <div className="flex items-center gap-2">
-            {[30, 90].map(days => {
-              const ids = idsOlderThan(days);
-              return (
-                <div key={days} className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-[var(--text-secondary)]">{days} days</span>
-                  <ClearBtn k={`age:${days}`} ids={ids} label={ids.length ? `Clear ${ids.length}` : 'None'} />
-                </div>
-              );
-            })}
-          </div>
-          <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">Only affects assets in your local creative library. Deletes are permanent.</p>
-        </div>
-      </div>
-    </div>
   );
 }
 

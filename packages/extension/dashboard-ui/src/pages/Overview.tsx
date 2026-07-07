@@ -18,8 +18,10 @@ import type {
   Page,
   SessionStats,
   UsageLogEntry,
+  CreativeAsset,
 } from '../types/messages';
 import { HealthDashboard } from './HealthDashboard';
+import { StorageBar } from '../components/StorageBar';
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
 
 // ── Weather data (from extension host via Open-Meteo) ────────────────────────
@@ -120,6 +122,8 @@ interface OverviewProps {
   tasksLoaded: boolean;
   journalLoaded: boolean;
   weatherLoaded: boolean;
+  // Local creative gallery — powers the storage bar under the header.
+  localCreative: CreativeAsset[];
 }
 
 // ── Inner-tab type — mirrors the IDE Command Centre's lenses, plus
@@ -151,6 +155,7 @@ export function Overview({
   tasksLoaded,
   journalLoaded,
   weatherLoaded,
+  localCreative,
 }: OverviewProps) {
   useLocale();
   // Inner tab state — Command Centre always opens on Daily. The previous
@@ -324,6 +329,15 @@ export function Overview({
               title={t('dash.cc.latest_release') || 'Latest release'}
             />
           )}
+        </div>
+      </div>
+
+      {/* Creative storage — colour-coded usage of the local gallery, click to
+          manage/prune. Sits under the weather; mirrors the Library bar. Renders
+          nothing until something has been saved. */}
+      <div className="mb-4 flex">
+        <div className="ml-auto w-full max-w-xs">
+          <StorageBar assets={localCreative} label="Creative storage" />
         </div>
       </div>
 
