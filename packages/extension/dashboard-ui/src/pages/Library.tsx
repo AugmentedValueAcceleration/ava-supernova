@@ -225,31 +225,25 @@ export function Library({
     return list;
   }, [localCreative, images, projectRoot]);
 
-  // Data-driven filter buckets — count assets per group and per type so the
-  // filter only ever offers buckets that hold something. Empty + SOON types
-  // stay hidden until they produce their first asset, then appear automatically.
-  const { groupCounts, typeCounts } = useMemo(() => {
-    const groupCounts = new Map<string, number>();
-    const typeCounts = new Map<string, number>();
+  // Asset count per fine type — drives the count badge on live filter chips.
+  const typeCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     for (const it of allAssetItems) {
       const et = effectiveType(it);
-      const group = designTypeMeta(et)?.group ?? 'Other';
-      groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);
-      typeCounts.set(et, (typeCounts.get(et) ?? 0) + 1);
+      counts.set(et, (counts.get(et) ?? 0) + 1);
     }
-    return { groupCounts, typeCounts };
+    return counts;
   }, [allAssetItems]);
 
-  // Group chips in nav order, only groups that have assets.
-  const groupChips = useMemo(
-    () => DESIGN_GROUPS.filter(g => groupCounts.has(g.label)).map(g => g.label),
-    [groupCounts],
+  // The full taxonomy is always shown — a complete menu promotes everything
+  // that can be created, so the chips come from the catalogue, not from what
+  // happens to have been made yet. Live types are clickable (with a count when
+  // they hold assets); SOON / NEXT types show as promotion of what's coming.
+  const groupChips = useMemo(() => DESIGN_GROUPS.map(g => g.label), []);
+  const typeChips = useMemo(
+    () => DESIGN_GROUPS.find(x => x.label === assetGroup)?.items ?? [],
+    [assetGroup],
   );
-  // Type chips for the selected group, in nav order, only types with assets.
-  const typeChips = useMemo(() => {
-    const g = DESIGN_GROUPS.find(x => x.label === assetGroup);
-    return g ? g.items.filter(it => typeCounts.has(it.id)) : [];
-  }, [assetGroup, typeCounts]);
 
   const assetItems = useMemo(() => allAssetItems.filter(it => {
     const et = effectiveType(it);
@@ -365,9 +359,11 @@ export function Library({
             </div>
           </div>
 
-          {/* Row 2 — specific types within the selected group (pill chips with
-              counts). Hidden on "All" and when the group has a single type. */}
-          {typeChips.length > 1 && (
+          {/* Row 2 — the full menu of types within the selected group (pill
+              chips). Live types are clickable and show a count once they hold
+              assets; SOON / NEXT types show dashed + badged as promotion of
+              what's coming. Hidden only on the aggregate "All" group. */}
+          {assetGroup !== 'all' && (
             <div className="mb-4 flex flex-wrap items-center gap-1.5">
               <button
                 onClick={() => setAssetType('all')}
@@ -379,19 +375,36 @@ export function Library({
               >
                 {t('dash.library.all')}
               </button>
-              {typeChips.map(it => (
-                <button
-                  key={it.id}
-                  onClick={() => setAssetType(it.id)}
-                  className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
-                    assetType === it.id
-                      ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-                      : 'border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-                >
-                  {it.label} <span className="opacity-60">{typeCounts.get(it.id)}</span>
-                </button>
-              ))}
+              {typeChips.map(it => {
+                const count = typeCounts.get(it.id);
+                // Not live yet — a promo chip, not a filter. Dashed + badged so
+                // the user sees it's on the way, matching the Design Studio nav.
+                if (it.badge) {
+                  return (
+                    <span
+                      key={it.id}
+                      title={`${it.label} — coming soon`}
+                      className="inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--border-card)] px-2.5 py-1 text-[11px] text-[var(--text-muted)] opacity-60"
+                    >
+                      {it.label}
+                      <span className="text-[8px] font-semibold tracking-wide">{it.badge}</span>
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    key={it.id}
+                    onClick={() => setAssetType(it.id)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
+                      assetType === it.id
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                        : 'border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {it.label}{count ? <span className="opacity-60"> {count}</span> : null}
+                  </button>
+                );
+              })}
             </div>
           )}
 
