@@ -62,6 +62,10 @@ interface InputAreaProps {
   /** Fires when the composer gains focus — the Design Studio uses it to slide
    *  the chat dock up when the user starts typing. Optional; no-op elsewhere. */
   onFocusInput?: () => void;
+  /** Design dock: don't PROGRAMMATICALLY focus the textarea (on mount or when
+   *  streaming ends) — that fires onFocusInput and would force the collapsed
+   *  dock open on Ava's activity. User-initiated focus/prefill still works. */
+  suppressAutoFocus?: boolean;
 }
 
 // Teach is intentionally absent — it now lives in the focused Learning room
@@ -87,7 +91,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   write: 'input.placeholder.write',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel, onFocusInput }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel, onFocusInput, suppressAutoFocus }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across page reload — same shape as webview-ui.
@@ -121,20 +125,22 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const wasStreamingRef = useRef(false);
 
-  // Auto-focus textarea on mount
+  // Auto-focus textarea on mount (skipped for the Design dock — it would force
+  // the collapsed dock open).
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    if (!suppressAutoFocus) textareaRef.current?.focus();
+  }, [suppressAutoFocus]);
 
-  // Auto-focus textarea when streaming ends
+  // Auto-focus textarea when streaming ends (skipped for the Design dock — this
+  // was the force-open: every Ava reply re-focused the composer and opened it).
   useEffect(() => {
     if (isStreaming) {
       wasStreamingRef.current = true;
     } else if (wasStreamingRef.current) {
       wasStreamingRef.current = false;
-      textareaRef.current?.focus();
+      if (!suppressAutoFocus) textareaRef.current?.focus();
     }
-  }, [isStreaming]);
+  }, [isStreaming, suppressAutoFocus]);
 
   // Prefill from starter chips on the empty-state helper. Mirrors
   // webview-ui InputArea — replaces text, focuses textarea, places

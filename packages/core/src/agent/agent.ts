@@ -351,7 +351,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // it doesn't touch the codebase. Scope is icons for now.
   design: new Set([
     'design_find_shape', 'design_generate_icon', 'design_generate_set',
-    'design_generate_video',
+    'design_generate_video', 'design_generate_image', 'design_generate_voice',
     'design_brand_kit', 'design_save',
     'memory_save', 'memory_recall', 'memory_update',
     // Journal — Ava reflects on the person + their taste in her own voice

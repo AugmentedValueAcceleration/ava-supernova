@@ -410,3 +410,148 @@ export class DesignGenerateVideoTool implements Tool {
     }
   }
 }
+
+// ── design_generate_image ────────────────────────────────────────────────────
+// A free-form image via the same qwen-image route the icons use, but full-frame
+// (NO matte, no armature). YOU author the whole prompt — subject, style,
+// composition, lighting, mood — from what you gauged the user wants. It renders
+// to the Open Canvas Image stage. This is NOT the icon pipeline.
+export class DesignGenerateImageTool implements Tool {
+  readonly name = 'design_generate_image';
+  readonly description =
+    'Generate a free-form image on the Open Canvas from an authored prompt (subject / style / composition / lighting / mood). YOU write the full prompt from what you gauged the user wants. This is NOT an icon — no armature, no matte. Uses credits — confirm cost first.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'design_generate_image',
+    description:
+      'Generate a single free-form image on the canvas (a hero shot, illustration, background, scene) — NOT an icon. ' +
+      'YOU author the full prompt: describe the subject, style, composition, lighting and mood the way a designer briefs ' +
+      'an image, drawn from what you gauged the user wants. It renders full-frame with no matte and no shape armature. ' +
+      'Uses credits (~12) — state that and get a yes before calling. BYOK users generate on their own Qwen key.',
+    parameters: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description:
+            'YOU author this — the creative heart. Describe the image fully: subject, style, composition, lighting, ' +
+            'mood. e.g. "a sleek matte-black product on a soft purple gradient studio backdrop, cinematic side lighting, ' +
+            'shallow depth of field, premium and minimal".',
+        },
+        size: {
+          type: 'string',
+          enum: ['1024*1024', '1280*720', '720*1280'],
+          description: 'Output dimensions. 1024*1024 square, 1280*720 landscape (16:9), 720*1280 portrait (9:16). Default 1024*1024.',
+        },
+      },
+      required: ['prompt'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const control = getControl(context);
+    if (!control) return { success: false, output: NO_CANVAS };
+    const prompt = (args.prompt as string | undefined)?.trim();
+    if (!prompt) return { success: false, output: 'Missing `prompt` — the image you want, authored by you.' };
+    try {
+      const res = await control('generate_image', {
+        prompt,
+        size: args.size,
+      });
+      if (!res.ok) return { success: false, output: res.error || 'Image generation failed.' };
+      const d = res.data as { credits?: number } | undefined;
+      const credits = d?.credits ? ` ${d.credits} credits.` : '';
+      return {
+        success: true,
+        output: `Generated the image — it's on the canvas.${credits} Ask if they want it saved or a different take.`.replace(/\s+/g, ' ').trim(),
+        metadata: d,
+      };
+    } catch (err) {
+      return { success: false, output: `Image generation failed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  }
+}
+
+// ── design_generate_voice ────────────────────────────────────────────────────
+// A voiceover via Qwen3-TTS. YOU author BOTH the script (the exact words) and
+// the delivery `instructions` (tone / pace / emotion) from what you gauged. Pick
+// a voice from the curated roster. To voice a translated read, translate the
+// script yourself and set `language` — the same voice speaks it. Renders
+// synchronously to the Open Canvas as a scrubable waveform.
+export class DesignGenerateVoiceTool implements Tool {
+  readonly name = 'design_generate_voice';
+  readonly description =
+    'Generate a voiceover on the Open Canvas via Qwen3-TTS. YOU author the script (the exact words) AND the delivery (tone / pace / emotion) from what you gauged. Pick a voice from the roster; translate the script yourself and set the language to voice it in another language in the SAME voice. Uses credits — confirm cost first.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'design_generate_voice',
+    description:
+      'Generate a spoken voiceover on the canvas. YOU author the script (the exact words to speak, verbatim) AND the ' +
+      'delivery instructions (tone, pace, emotion) — drawn from what you gauged the user wants. Pick a voice from the ' +
+      'roster. To voice a TRANSLATED read, translate the script YOURSELF into the target language and set `language` — ' +
+      'the same voice speaks it. There is no numeric speed/pitch; you shape the read in words. It renders ' +
+      'synchronously and appears as a scrubable waveform. Uses credits — state that and get a yes before calling. ' +
+      'BYOK users generate on their own Qwen key.',
+    parameters: {
+      type: 'object',
+      properties: {
+        script: {
+          type: 'string',
+          description:
+            'YOU author this — the exact words to be spoken, verbatim. Write the read the way a scriptwriter would: ' +
+            'natural, paced for the ear, with punctuation that shapes the delivery.',
+        },
+        voice: {
+          type: 'string',
+          enum: ['Jennifer', 'Katerina', 'Cherry', 'Serena', 'Andre', 'Ryan', 'Neil', 'Ethan'],
+          description:
+            'The voice from the curated roster. Jennifer (F, premium cinematic American), Katerina (F, mature, rich), ' +
+            'Cherry (F, sunny, friendly), Serena (F, gentle, warm), Andre (M, magnetic narration), Ryan (M, dramatic, ' +
+            'trailer), Neil (M, news-anchor precision), Ethan (M, warm, energetic). Default Jennifer.',
+        },
+        language: {
+          type: 'string',
+          description:
+            'The SPOKEN language (e.g. "English", "French", "Japanese"). Default "English". When the user wants a ' +
+            'translated voiceover, translate the script YOURSELF into that language and set this — the SAME voice speaks it.',
+        },
+        instructions: {
+          type: 'string',
+          description:
+            'YOU author this — the delivery direction: tone, pace, emotion, energy, e.g. "warm, unhurried, reassuring" ' +
+            'or "bright and punchy, trailer energy". This is how you shape pace — there is no numeric speed knob.',
+        },
+      },
+      required: ['script'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const control = getControl(context);
+    if (!control) return { success: false, output: NO_CANVAS };
+    const script = (args.script as string | undefined)?.trim();
+    if (!script) return { success: false, output: 'Missing `script` — the words to speak, authored by you.' };
+    try {
+      const res = await control('generate_voice', {
+        script,
+        voice: args.voice,
+        language: args.language,
+        instructions: args.instructions,
+      });
+      if (!res.ok) return { success: false, output: res.error || 'Voice generation failed.' };
+      const d = res.data as { voice?: string; credits?: number } | undefined;
+      const credits = d?.credits ? ` ${d.credits} credits.` : '';
+      return {
+        success: true,
+        output: `Voiced it — it's on the canvas.${credits} Ask if they want it saved or a different read.`.replace(/\s+/g, ' ').trim(),
+        metadata: d,
+      };
+    } catch (err) {
+      return { success: false, output: `Voice generation failed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  }
+}

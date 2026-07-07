@@ -49,7 +49,7 @@ interface ChatContainerProps {
    *  Drives the room-aware greeting, starter chips and heading so the Design
    *  Architect reflects the active Open-Canvas view (Video / Voiceover) instead
    *  of always greeting about icons. Defaults to 'icon'. */
-  designRoom?: 'icon' | 'video' | 'voice';
+  designRoom?: 'icon' | 'video' | 'voice' | 'image';
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed
@@ -149,7 +149,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
  * Date is appended in conversational form ("Tuesday") rather than full
  * ISO so it reads like a human picking up a conversation.
  */
-function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' = 'icon'): string {
+function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' = 'icon'): string {
   const now = new Date();
   const h = now.getHours();
   const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -171,7 +171,10 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
       return `Hey${name} — Design Architect here, and we're on the Open Canvas. What are we filming? Give me the shot — subject, mood, the motion you want — and I'll direct it and render it right here.`;
     }
     if (designRoom === 'voice') {
-      return `Hey${name} — Design Architect here, on the Open Canvas. What are we voicing? Tell me the script and the kind of voice you want, and I'll narrate it for you.`;
+      return `Hey${name} — Design Architect here, on the Open Canvas. What are we voicing? Tell me the read and the voice you want — I'll write the script, direct the delivery, and voice it. I can translate it too, in the same voice.`;
+    }
+    if (designRoom === 'image') {
+      return `Hey${name} — Design Architect here, on the Open Canvas. What are we making? Describe the image — subject, style, mood — and I'll compose it and render it right here.`;
     }
     return `Hey${name} — your Design Architect here. What are we making? An icon, a whole set, a logo? Tell me the vibe and I'll design it with you, on brand.`;
   }
@@ -203,7 +206,7 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
  * chips with prefix-coloured tokens so the modes are recognisable on
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
-function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' }) {
+function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' }) {
   useLocale();
   const isHealth = lane === 'health';
   const isLearning = lane === 'learning';
@@ -224,12 +227,18 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
     { label: 'Vertical for social',prefix: '✦', prompt: 'A punchy vertical 9:16 clip for social, bright and energetic',                             color: '#94e2d5' },
   ];
   const voiceChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
-    { label: 'Narrate a script',  prefix: '✦', prompt: 'Narrate this in a warm, calm voice: ',                                        color: 'var(--accent)' },
-    { label: 'Which voice fits?', prefix: '✦', prompt: 'What voices do you have, and which suits a premium, trustworthy brand?',       color: '#f9e2af' },
-    { label: 'An intro read',     prefix: '✦', prompt: 'A short, upbeat intro read for my product video',                             color: '#60a5fa' },
-    { label: 'A calm read',       prefix: '✦', prompt: 'A slow, reassuring read for a meditation clip',                               color: '#94e2d5' },
+    { label: 'Narrate a script', prefix: '✦', prompt: 'Narrate this in a warm, calm voice: ',                     color: 'var(--accent)' },
+    { label: 'A warm read',      prefix: '✦', prompt: 'A warm, unhurried, reassuring intro read for my product',  color: '#f9e2af' },
+    { label: 'A trailer VO',     prefix: '✦', prompt: 'A dramatic, high-energy trailer voiceover',                color: '#60a5fa' },
+    { label: 'Translate a VO',   prefix: '✦', prompt: 'Voice this in French, in the same voice: ',                color: '#94e2d5' },
   ];
-  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : iconChips;
+  const imageChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: 'A hero image',   prefix: '✦', prompt: 'Compose a hero image: a sleek product on a gradient studio backdrop, cinematic lighting', color: 'var(--accent)' },
+    { label: 'An illustration', prefix: '✦', prompt: 'A flat vector illustration of a rocket launching, bold and playful',                       color: '#f9e2af' },
+    { label: 'A background',   prefix: '✦', prompt: 'An abstract gradient background, deep purples and blues, subtle grain',                    color: '#60a5fa' },
+    { label: 'A scene',        prefix: '✦', prompt: 'A cozy reading nook by a rainy window, warm light, photorealistic',                        color: '#94e2d5' },
+  ];
+  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : designRoom === 'image' ? imageChips : iconChips;
   // Health room: plain-prompt chips (no mode prefix — the room is locked to
   // health). They prefill the composer so the user can edit before sending.
   const healthChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
@@ -258,7 +267,7 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
   ];
   const chips = isHealth ? healthChips : isLearning ? learningChips : isDesign ? designChips : codeChips;
   // Design heading follows the room: Direct (video) / Voice (voiceover) / Design (icon).
-  const designHeading = designRoom === 'video' ? 'Direct with Ava' : designRoom === 'voice' ? 'Voice with Ava' : 'Design with Ava';
+  const designHeading = designRoom === 'video' ? 'Direct with Ava' : designRoom === 'voice' ? 'Voice with Ava' : designRoom === 'image' ? 'Compose with Ava' : 'Design with Ava';
 
   return (
     <div

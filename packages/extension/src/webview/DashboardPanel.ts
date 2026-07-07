@@ -522,6 +522,13 @@ export class DashboardPanel {
         break;
       }
 
+      // ─── Design Studio voice lane (Qwen3-TTS synchronous, host-proxied) ─────
+      case 'asset_forge_voice': {
+        const m = msg as any;
+        this.handleAssetForgeVoice(m.body).catch(() => {});
+        break;
+      }
+
       // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
       case 'design_tool_result': {
         const m = msg as any;
@@ -5238,7 +5245,7 @@ export class DashboardPanel {
     args: Record<string, unknown>,
   ): Promise<{ ok: boolean; data?: unknown; error?: string }> {
     const requestId = `dtr-${++this.designReqSeq}`;
-    const slow = command === 'generate_icon' || command === 'generate_set';
+    const slow = command === 'generate_icon' || command === 'generate_set' || command === 'generate_image';
     // A set can be many icons back-to-back — scale the ceiling with count.
     const setCount = command === 'generate_set' && Array.isArray(args.shapes) ? (args.shapes as unknown[]).length : 1;
     // Video is async on Wan (1–6 min per clip, ~8-min poll ceiling host-side) —
@@ -5265,7 +5272,7 @@ export class DashboardPanel {
     pending.resolve(result);
   }
 
-  private async handleAssetForgeGenerate(body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string }): Promise<void> {
+  private async handleAssetForgeGenerate(body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string; matte?: boolean }): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) {
       this.post({ type: 'asset_forge_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
@@ -5298,16 +5305,20 @@ export class DashboardPanel {
 
       // 2) Matte on the server (white-threshold → transparent). Non-fatal: on
       // failure we return the raw generated URL so the result is still usable.
+      // The free-form image lane sets matte:false — a photo/illustration/scene
+      // must stay full-frame, so we SKIP the matte and return the raw url.
       let dataUrl = gen.url;
-      try {
-        const bgRes = await fetch('https://ava-supernova.com/api/asset-forge/remove-bg', {
-          method: 'POST', headers, body: JSON.stringify({ imageUrl: gen.url }),
-        });
-        if (bgRes.ok) {
-          const bg = await bgRes.json() as { dataUrl?: string };
-          if (bg.dataUrl) dataUrl = bg.dataUrl;
-        }
-      } catch { /* keep the raw url */ }
+      if (body.matte !== false) {
+        try {
+          const bgRes = await fetch('https://ava-supernova.com/api/asset-forge/remove-bg', {
+            method: 'POST', headers, body: JSON.stringify({ imageUrl: gen.url }),
+          });
+          if (bgRes.ok) {
+            const bg = await bgRes.json() as { dataUrl?: string };
+            if (bg.dataUrl) dataUrl = bg.dataUrl;
+          }
+        } catch { /* keep the raw url */ }
+      }
 
       this.post({ type: 'asset_forge_result', success: true, dataUrl, rawUrl: gen.url } as any);
     } catch (err) {
@@ -5365,6 +5376,45 @@ export class DashboardPanel {
       }
     } catch (err) {
       this.post({ type: 'asset_forge_video_result', success: false, error: err instanceof Error ? err.message : 'Video generation failed' } as any);
+    }
+  }
+
+  /**
+   * Design Studio voice lane — mirror of handleAssetForgeVideo but SYNCHRONOUS.
+   * Qwen3-TTS returns the finished audio URL in a single POST response (no
+   * task_id / poll), so we make one request and post the clip straight back to
+   * the canvas as `asset_forge_voice_result`. Auth/headers match the other
+   * lanes (platform key + data-mode header).
+   */
+  private async handleAssetForgeVoice(body: { text: string; voice?: string; language_type?: string; instructions?: string }): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'asset_forge_voice_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
+      return;
+    }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${platformKey}`,
+      'X-Ava-Data-Mode': dataModeHeader(this.context),
+    };
+    try {
+      const res = await fetch('https://ava-supernova.com/api/generate-voice', {
+        method: 'POST', headers,
+        body: JSON.stringify({ text: body.text, voice: body.voice, language_type: body.language_type, instructions: body.instructions }),
+      });
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string };
+        this.post({ type: 'asset_forge_voice_result', success: false, error: e.error || `Voice generation failed (${res.status})` } as any);
+        return;
+      }
+      const data = await res.json() as { url?: string };
+      if (data.url) {
+        this.post({ type: 'asset_forge_voice_result', success: true, url: data.url } as any);
+      } else {
+        this.post({ type: 'asset_forge_voice_result', success: false, error: 'No audio returned' } as any);
+      }
+    } catch (err) {
+      this.post({ type: 'asset_forge_voice_result', success: false, error: err instanceof Error ? err.message : 'Voice generation failed' } as any);
     }
   }
 

@@ -345,15 +345,31 @@ function deterministicAmp(i: number): number {
   return clamp(0.12 + (a * 0.55 + b * 0.3 + c * 0.15) * 0.88, 0.06, 1);
 }
 
-function WaveformPlayer({ voiceName, durationSec }: { voiceName: string; durationSec: number }) {
+// A short display name for a generated voiceover, derived from its script.
+function deriveVoiceTitle(script: string): string {
+  const clean = script.replace(/\s+/g, ' ').trim();
+  if (!clean) return 'Voiceover';
+  const words = clean.split(' ');
+  return words.length > 6 ? words.slice(0, 6).join(' ') + '…' : words.join(' ');
+}
+
+function WaveformPlayer({ voiceName, title, durationSec, src, generating }: { voiceName: string; title?: string; durationSec: number; src?: string; generating?: boolean }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [realDur, setRealDur] = useState(0); // real <audio> duration once loaded (0 = not yet)
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const rafRef = useRef<number>(0);
   const lastRef = useRef<number>(0);
   const progressRef = useRef(0);
   useEffect(() => { progressRef.current = progress; }, [progress]);
+
+  // True once a real clip is loaded — then the <audio> drives progress and the
+  // fake sweep stays off (mirror of VideoStage.hasSrc).
+  const hasSrc = () => !!audioRef.current?.currentSrc;
+  // A fresh clip arrived → rewind the transport so it plays the new one from 0.
+  useEffect(() => { setPlaying(false); setProgress(0); setRealDur(0); }, [src]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -406,9 +422,10 @@ function WaveformPlayer({ voiceName, durationSec }: { voiceName: string; duratio
     return () => ro.disconnect();
   }, [draw]);
 
-  // Fake playhead sweep on play.
+  // Fake playhead sweep on play — ONLY when no real clip is loaded. With real
+  // audio, onTimeUpdate drives progress instead (mirror of VideoStage).
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || hasSrc()) return;
     lastRef.current = performance.now();
     const tick = (now: number) => {
       const dt = (now - lastRef.current) / 1000; lastRef.current = now;
@@ -423,23 +440,57 @@ function WaveformPlayer({ voiceName, durationSec }: { voiceName: string; duratio
     return () => cancelAnimationFrame(rafRef.current);
   }, [playing, durationSec]);
 
-  const toggle = () => setPlaying(prev => { const next = !prev; if (next && progressRef.current >= 1) setProgress(0); return next; });
+  // The real duration once loaded wins over the placeholder so the clock + scrub
+  // math track actual playback.
+  const dur = realDur > 0 ? realDur : durationSec;
+
+  const toggle = () => {
+    const a = audioRef.current;
+    setPlaying(prev => {
+      const next = !prev;
+      if (next && progressRef.current >= 1) setProgress(0);
+      if (a && hasSrc()) {
+        if (next) { if (progressRef.current >= 1) a.currentTime = 0; void a.play().catch(() => {}); }
+        else a.pause();
+      }
+      return next;
+    });
+  };
   const seek = (clientX: number) => {
     const r = canvasRef.current?.getBoundingClientRect(); if (!r) return;
-    setProgress(clamp((clientX - r.left) / r.width, 0, 1));
+    const frac = clamp((clientX - r.left) / r.width, 0, 1);
+    setProgress(frac);
+    const a = audioRef.current;
+    if (a && hasSrc() && Number.isFinite(a.duration)) a.currentTime = frac * a.duration;
+  };
+  const onTimeUpdate = () => {
+    const a = audioRef.current;
+    if (a && hasSrc() && Number.isFinite(a.duration) && a.duration > 0) setProgress(a.currentTime / a.duration);
+  };
+  const onLoadedMeta = () => {
+    const a = audioRef.current;
+    if (a && Number.isFinite(a.duration) && a.duration > 0) setRealDur(a.duration);
   };
 
-  const cur = progress * durationSec;
+  const cur = progress * dur;
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'center' }}>
+      {/* Real audio — hidden; the bespoke transport below drives it. */}
+      <audio ref={audioRef} src={src || undefined} onLoadedMetadata={onLoadedMeta} onTimeUpdate={onTimeUpdate} onEnded={() => setPlaying(false)} style={{ display: 'none' }} />
       <div style={{ borderRadius: 14, border: `1px solid ${CARD_BORDER}`, background: 'radial-gradient(120% 140% at 50% 0%, #171021, #0c0814)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Waveform = scrubber */}
+        {/* Waveform = scrubber. A generating overlay dims it while Ava synthesises. */}
         <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: 120 }}>
           <canvas ref={canvasRef}
             onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); seek(e.clientX); }}
             onPointerMove={e => { if (e.buttons) seek(e.clientX); }}
-            style={{ width: '100%', height: '100%', display: 'block', cursor: 'pointer', touchAction: 'none' }} />
+            style={{ width: '100%', height: '100%', display: 'block', cursor: src ? 'pointer' : 'default', touchAction: 'none' }} />
+          {generating && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(12,8,20,0.66)', backdropFilter: 'blur(2px)', borderRadius: 10 }}>
+              <div className="animate-spin" style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-card)', borderTopColor: 'var(--accent)' }} />
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Voicing your read…</div>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <TransportButton onClick={toggle} title={playing ? 'Pause' : 'Play'} accent>
@@ -448,11 +499,11 @@ function WaveformPlayer({ voiceName, durationSec }: { voiceName: string; duratio
               : <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>}
           </TransportButton>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{voiceName}</span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Voiceover preview</span>
+            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title || voiceName}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{title ? voiceName : 'Voiceover preview'}</span>
           </div>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{fmtTime(cur)} / {fmtTime(durationSec)}</span>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{fmtTime(cur)} / {fmtTime(dur)}</span>
           <button type="button" onClick={() => {}} title="Save (coming soon)" aria-label="Save"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
@@ -460,12 +511,12 @@ function WaveformPlayer({ voiceName, durationSec }: { voiceName: string; duratio
           </button>
         </div>
       </div>
-      <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>No audio yet — this is the transport. Write a script on the right and Ava speaks it here.</div>
+      <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>{src ? 'Play or scrub the waveform to hear the read.' : 'No audio yet — ask Ava for a voiceover and it plays here.'}</div>
     </div>
   );
 }
 
-type ViewId = 'icon' | 'iconset' | 'appicon' | 'logo' | 'badge' | 'avatar' | 'banner' | 'hero' | 'ogimage' | 'illustration' | 'pattern' | 'gamekit' | 'gamepiece' | 'canvas' | 'video' | 'voice' | 'brandkit';
+type ViewId = 'icon' | 'iconset' | 'appicon' | 'logo' | 'badge' | 'avatar' | 'banner' | 'hero' | 'ogimage' | 'illustration' | 'pattern' | 'gamekit' | 'gamepiece' | 'image' | 'video' | 'voice' | 'brandkit';
 
 // Left-nav group accent colours mirror the hub (Web/App purple, Game orange,
 // Open Canvas blue).
@@ -489,12 +540,16 @@ const GROUPS: { label: string; accent: string; items: { id: ViewId; label: strin
   { label: 'Open Canvas', accent: '#6aa9ff', items: [
     { id: 'video', label: 'Video' },
     { id: 'voice', label: 'Voiceover' },
-    { id: 'canvas', label: 'Image', badge: 'SOON' },
+    { id: 'image', label: 'Image' },
   ] },
 ];
 
-// Qwen3-TTS built-in voice roster — PLACEHOLDER names for the shell (no wiring).
-const VOICES = ['Aria', 'Ovis', 'Nofish', 'Cherry', 'Ember', 'Sunny', 'Marcus', 'Willow', 'Koda'];
+// Qwen3-TTS curated voice roster — the exact Qwen voice ids the platform route
+// speaks. Ava picks one from here; the user can override in the inspector.
+const VOICES = ['Jennifer', 'Katerina', 'Cherry', 'Serena', 'Andre', 'Ryan', 'Neil', 'Ethan'];
+// The 10 spoken languages Qwen3-TTS supports. Ava translates the script herself
+// and sets the language; the SAME voice speaks the translated words.
+const VOICE_LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Japanese', 'Korean', 'Italian', 'Portuguese', 'Chinese', 'Russian'];
 
 export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, onSwitchDesignModel, userName, userAvatarUrl }: {
   account?: AccountInfo | null;
@@ -509,7 +564,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // Which room the Design Architect chat should reflect. The Open-Canvas Video
   // and Voiceover views map to their own rooms; everything else is the icon
   // studio (greeting / chips / heading / persona all follow this).
-  const designRoom: 'icon' | 'video' | 'voice' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : 'icon';
+  const designRoom: 'icon' | 'video' | 'voice' | 'image' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : view === 'image' ? 'image' : 'icon';
 
   const [query, setQuery] = useState('');
   const [shapeId, setShapeId] = useState('Bell');
@@ -523,11 +578,19 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [videoGenerating, setVideoGenerating] = useState(false);
 
-  // ── Voice lane (UI shell — local state only) ──
-  const [voiceName, setVoiceName] = useState(VOICES[0]);
-  const [voiceScript, setVoiceScript] = useState('');
-  const [voiceEmotion, setVoiceEmotion] = useState('neutral');
-  const [voiceSpeed, setVoiceSpeed] = useState('1.0');
+  // ── Image lane (free-form, reuses the icon /api/asset-forge/image route but
+  // full-frame — NO matte, NO armature) ──
+  const [imageSize, setImageSize] = useState('1024*1024'); // '1024*1024' | '1280*720' | '720*1280'
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [imageGenerating, setImageGenerating] = useState(false);
+
+  // ── Voice lane (Qwen3-TTS via host: synchronous synth → audio URL) ──
+  const [voiceName, setVoiceName] = useState(VOICES[0]); // 'Jennifer' — live inspector selection
+  const [voiceUsed, setVoiceUsed] = useState(VOICES[0]); // voice captured at generation (stable in the player)
+  const [voiceTitle, setVoiceTitle] = useState(''); // the generated voiceover's name (from its script)
+  const [voiceLanguage, setVoiceLanguage] = useState('English');
+  const [voiceSrc, setVoiceSrc] = useState<string | null>(null);
+  const [voiceGenerating, setVoiceGenerating] = useState(false);
 
   // Design Studio is a GENERATION surface — the free deterministic vector-icon
   // styling moves to the Library tab (all the free icon packs, usable in any
@@ -538,6 +601,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const [genError, setGenError] = useState<string | null>(null);
   const [genSize, setGenSize] = useState(512);
   const [dockOpen, setDockOpen] = useState(false);
+  // Unread badge: Ava produced content while the dock was collapsed. We never
+  // force the dock open on her activity — we flag it and let the operator open it.
+  const [unread, setUnread] = useState(false);
+  const dockOpenRef = useRef(dockOpen);
+  dockOpenRef.current = dockOpen;
+  useEffect(() => { if (dockOpen) setUnread(false); }, [dockOpen]);
   // Keep the conversation mounted through the slide-down so the collapse
   // animates too (not just the expand): true while open, and for one transition
   // after it closes, then it unmounts leaving the static composer.
@@ -566,12 +635,34 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const genResultRef = useRef<string | null>(null);
   useEffect(() => { genResultRef.current = genResult; }, [genResult]);
 
+  // ── Image lane resolver — shares the `asset_forge_result` message with the
+  // icon lane, so route by a flag. pendingImageRef is set true while a free-form
+  // image gen is in flight; the shared listener below hands that result to the
+  // image lane (imageResolverRef) instead of the icon lane.
+  type ImageOutcome = { ok: boolean; dataUrl?: string; error?: string };
+  const imageResolverRef = useRef<((r: ImageOutcome) => void) | null>(null);
+  const pendingImageRef = useRef(false);
+
   // The host runs the pipeline and posts the matted PNG back here. We update the
   // canvas AND resolve whatever generation is awaiting (button or tool).
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const m = e.data as { type?: string; success?: boolean; dataUrl?: string; error?: string };
       if (!m || m.type !== 'asset_forge_result') return;
+      // Route to the free-form image lane when an image gen is in flight (it
+      // reuses this same message, but full-frame — no matte, its own stage).
+      if (pendingImageRef.current) {
+        pendingImageRef.current = false;
+        setImageGenerating(false);
+        const ok = !!m.success && !!m.dataUrl;
+        if (ok) { setImageSrc(m.dataUrl!); setDockOpen(false); } // image ready → slide the chat down, reveal it
+        const resolveImg = imageResolverRef.current;
+        if (resolveImg) {
+          imageResolverRef.current = null;
+          resolveImg(ok ? { ok: true, dataUrl: m.dataUrl } : { ok: false, error: m.error || 'Image generation failed' });
+        }
+        return;
+      }
       if (m.success && m.dataUrl) { setGenResult(m.dataUrl); setDockOpen(false); } // icon's ready → slide the chat down, reveal it on the canvas
       else setGenError(m.error || 'Generation failed');
       setGenStatus(null);
@@ -638,6 +729,54 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       if (resolve) {
         videoResolverRef.current = null;
         resolve(ok ? { ok: true, url: m.url } : { ok: false, error: m.error || 'Video generation failed' });
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  // ── Image lane wiring (mirror of runVideoGeneration) ──
+  // Park a resolver + raise pendingImageRef, then post an asset_forge_generate
+  // with matte:false and NO referenceImage (free-form, no armature, no matte).
+  // The shared asset_forge_result listener above routes the result back here.
+  const runImageGeneration = (prompt: string, size: string): Promise<ImageOutcome> => {
+    return new Promise<ImageOutcome>((resolve) => {
+      imageResolverRef.current = resolve;
+      pendingImageRef.current = true;
+      setImageSrc(null);
+      setImageGenerating(true);
+      post({ type: 'asset_forge_generate', body: { prompt, size, matte: false } } as any);
+    });
+  };
+
+  // ── Voice lane wiring (mirror of runVideoGeneration — its OWN resolver, no
+  // collision with icon/image/video) ──
+  // One voiceover in flight → one parked resolver. runVoiceGeneration posts to
+  // the host and awaits `asset_forge_voice_result`; the listener below fulfils
+  // it. Qwen3-TTS is synchronous host-side, so this returns in a few seconds.
+  type VoiceOutcome = { ok: boolean; url?: string; error?: string };
+  const voiceResolverRef = useRef<((r: VoiceOutcome) => void) | null>(null);
+  const runVoiceGeneration = (script: string, voice: string, language: string, instructions?: string): Promise<VoiceOutcome> => {
+    return new Promise<VoiceOutcome>((resolve) => {
+      voiceResolverRef.current = resolve;
+      setVoiceSrc(null);
+      setVoiceGenerating(true);
+      post({ type: 'asset_forge_voice', body: { text: script, voice, language_type: language, instructions } } as any);
+    });
+  };
+  // The host synthesises and posts the finished audio URL back. We drop it on the
+  // waveform stage AND resolve whatever generation is awaiting (the design tool).
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const m = e.data as { type?: string; success?: boolean; url?: string; error?: string };
+      if (!m || m.type !== 'asset_forge_voice_result') return;
+      setVoiceGenerating(false);
+      const ok = !!m.success && !!m.url;
+      if (ok) { setVoiceSrc(m.url!); setDockOpen(false); } // audio ready → slide the chat down, reveal it
+      const resolve = voiceResolverRef.current;
+      if (resolve) {
+        voiceResolverRef.current = null;
+        resolve(ok ? { ok: true, url: m.url } : { ok: false, error: m.error || 'Voice generation failed' });
       }
     };
     window.addEventListener('message', handler);
@@ -746,6 +885,34 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const out = await runVideoGeneration(prompt, dur, asp, wanRes);
         if (out.ok) reply(true, { duration: Number(dur), credits: wanRes === '1080P' ? 300 : 150 });
         else reply(false, undefined, out.error || 'Video generation failed.');
+        return;
+      }
+      if (m.command === 'generate_image') {
+        const prompt = typeof args.prompt === 'string' ? args.prompt.trim() : '';
+        if (!prompt) { reply(false, undefined, 'A prompt is required to generate an image.'); return; }
+        setView('image');
+        const size = typeof args.size === 'string' && ['1024*1024', '1280*720', '720*1280'].includes(args.size) ? args.size : imageSize;
+        setImageSize(size);
+        const out = await runImageGeneration(prompt, size);
+        if (out.ok) reply(true, { credits: 12 });
+        else reply(false, undefined, out.error || 'Image generation failed.');
+        return;
+      }
+      if (m.command === 'generate_voice') {
+        const script = typeof args.script === 'string' ? args.script.trim() : '';
+        if (!script) { reply(false, undefined, 'A script is required to generate a voiceover.'); return; }
+        setView('voice');
+        // Sync the inspector to what she's voicing (voice + spoken language).
+        const voice = typeof args.voice === 'string' && VOICES.includes(args.voice) ? args.voice : voiceName;
+        setVoiceName(voice);
+        setVoiceUsed(voice);          // freeze the voice shown in the player
+        setVoiceTitle(deriveVoiceTitle(script)); // name the voiceover from its script
+        const language = typeof args.language === 'string' && args.language.trim() ? args.language.trim() : voiceLanguage;
+        setVoiceLanguage(language);
+        const instructions = typeof args.instructions === 'string' && args.instructions.trim() ? args.instructions.trim() : undefined;
+        const out = await runVoiceGeneration(script, voice, language, instructions);
+        if (out.ok) reply(true, { voice, credits: 10 });
+        else reply(false, undefined, out.error || 'Voice generation failed.');
         return;
       }
       if (m.command === 'save') {
@@ -893,9 +1060,43 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
             <div className="mb-3.5">
               <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Voiceover</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Pick a voice, write the line — Ava speaks it and it renders as a waveform you can scrub.</p>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Talk to Ava — she writes the read, directs the delivery, and voices it as a waveform you can scrub.</p>
             </div>
-            <WaveformPlayer voiceName={voiceName} durationSec={8} />
+            <WaveformPlayer voiceName={voiceUsed} title={voiceTitle} durationSec={8} src={voiceSrc ?? undefined} generating={voiceGenerating} />
+          </div>
+        ) : view === 'image' ? (
+          <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
+            <div className="mb-3.5">
+              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Image</h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Free-form — a hero shot, illustration, background or scene. Describe it; Ava composes it and it appears here.</p>
+            </div>
+            <div className="flex-1 min-h-[240px] rounded-xl border border-[var(--border-card)] flex items-center justify-center relative overflow-hidden" style={{ background: 'radial-gradient(120% 120% at 50% 30%, #171021, #0c0814)' }}>
+              {imageSrc && <img src={imageSrc} alt="Generated image" className="max-w-full max-h-full object-contain" />}
+              {!imageSrc && !imageGenerating && (
+                <div className="flex flex-col items-center gap-2.5 text-center px-8 pointer-events-none">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.5-3.5a2 2 0 0 0-3 0L5 21" />
+                  </svg>
+                  <div className="text-[13.5px] text-[var(--text-secondary)]">Your image will appear here</div>
+                  <div className="text-[12px] text-[var(--text-muted)] max-w-[320px] leading-relaxed">Describe it — Ava composes it and it appears here.</div>
+                </div>
+              )}
+              {imageGenerating && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: 'rgba(12,8,20,0.74)', backdropFilter: 'blur(2px)' }}>
+                  <div className="w-[26px] h-[26px] rounded-full border-2 border-[var(--border-card)] border-t-[var(--accent)] animate-spin" />
+                  <div className="text-[12.5px] text-[var(--text-secondary)]">Composing your image…</div>
+                </div>
+              )}
+            </div>
+            {imageSrc && (
+              <div className="flex justify-end mt-3">
+                <button type="button" onClick={() => saveToLibrary(imageSrc, `image-${Date.now()}`)} title="Save" aria-label="Save"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
+                  Save
+                </button>
+              </div>
+            )}
           </div>
         ) : view === 'brandkit' ? (
           <div className="flex-1 overflow-y-auto px-6 py-5">
@@ -932,12 +1133,13 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           {/* one clean expand/hide handle, just above the static composer */}
           <div className="shrink-0 flex justify-center pt-1.5 pb-1 border-t border-[var(--accent)]/25">
             <button onClick={() => setDockOpen(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--border-card)] text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition"
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] transition ${unread && !dockOpen ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
               style={{ background: 'rgba(13,9,22,0.92)' }}>
               <span className="w-[14px] h-[14px] rounded-full overflow-hidden inline-flex items-center justify-center text-[8px] font-semibold text-white" style={{ background: 'linear-gradient(135deg, var(--accent), #6366f1)' }}>
                 {avaAvatarUri ? <img src={avaAvatarUri} alt="" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} /> : 'A'}
               </span>
-              Design Architect
+              {unread && !dockOpen ? 'Ava replied' : 'Design Architect'}
+              {unread && !dockOpen && <span className="w-[6px] h-[6px] rounded-full animate-pulse" style={{ background: 'var(--accent)' }} aria-hidden="true" />}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: dockOpen ? 'rotate(180deg)' : 'none' }} aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
             </button>
           </div>
@@ -954,6 +1156,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               hideMessages={!renderConv}
               onRegisterDispatch={onRegisterDesignChatDispatch ?? (() => {})}
               onComposerFocus={() => setDockOpen(true)}
+              suppressAutoFocus
+              onActivity={() => { if (!dockOpenRef.current) setUnread(true); }}
               userName={userName ?? null}
               userAvatarUrl={userAvatarUrl ?? null}
             />
@@ -1052,42 +1256,37 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
             <Section title="Voice">
-              <div className="grid grid-cols-3 gap-2">
-                {VOICES.map(v => {
-                  const on = v === voiceName;
-                  return (
-                    <button key={v} onClick={() => setVoiceName(v)} title={v}
-                      className={`px-1.5 py-2 rounded-lg cursor-pointer text-[11.5px] text-center overflow-hidden text-ellipsis whitespace-nowrap border ${
-                        on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'
-                      }`}>{v}</button>
-                  );
-                })}
-              </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-2">Qwen3-TTS built-in voices. Placeholder names — the real roster lands with wiring.</p>
-            </Section>
-
-            <Section title="Script">
-              <textarea value={voiceScript} onChange={e => setVoiceScript(e.target.value)}
-                placeholder="Type the line for Ava to speak…"
-                rows={4}
-                className="w-full resize-y min-h-[80px] px-3 py-2.5 rounded-lg text-[12px] leading-normal outline-none bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border-card)] box-border"
-                style={{ fontFamily: 'inherit' }} />
-            </Section>
-
-            <Section title="Delivery">
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Emotion</span>
-                <Select size="sm" className="w-[130px]" value={voiceEmotion} onChange={v => setVoiceEmotion(v)}
-                  options={[{ value: 'neutral', label: 'Neutral' }, { value: 'warm', label: 'Warm' }, { value: 'bright', label: 'Bright' }, { value: 'calm', label: 'Calm' }, { value: 'excited', label: 'Excited' }]} />
+                <span>Voice</span>
+                <Select size="sm" className="w-[150px]" value={voiceName} onChange={v => setVoiceName(v)}
+                  options={VOICES.map(v => ({ value: v, label: v }))} />
               </div>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Speed</span>
-                <Select size="sm" className="w-[130px]" value={voiceSpeed} onChange={v => setVoiceSpeed(v)}
-                  options={[{ value: '0.75', label: '0.75×' }, { value: '1.0', label: '1.0×' }, { value: '1.25', label: '1.25×' }]} />
+                <span>Language</span>
+                <Select size="sm" className="w-[150px]" value={voiceLanguage} onChange={v => setVoiceLanguage(v)}
+                  options={VOICE_LANGUAGES.map(l => ({ value: l, label: l }))} />
+              </div>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-2">Qwen3-TTS voices. Pace and emotion are directed in words — Ava has no speed knob.</p>
+            </Section>
+
+            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she writes the read, directs the delivery, and voices it.</p>
+          </div>
+        </aside>
+      )}
+
+      {/* RIGHT RAIL — the inspector (image lane) */}
+      {view === 'image' && (
+        <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
+            <Section title="Output">
+              <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
+                <span>Size</span>
+                <Select size="sm" className="w-[130px]" value={imageSize} onChange={v => setImageSize(v)}
+                  options={[{ value: '1024*1024', label: '1:1 square' }, { value: '1280*720', label: '16:9' }, { value: '720*1280', label: '9:16' }]} />
               </div>
             </Section>
 
-            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she writes the read and voices it.</p>
+            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she composes the image and renders it.</p>
           </div>
         </aside>
       )}

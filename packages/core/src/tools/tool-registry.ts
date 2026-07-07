@@ -52,6 +52,8 @@ import {
   DesignGenerateIconTool,
   DesignGenerateSetTool,
   DesignGenerateVideoTool,
+  DesignGenerateImageTool,
+  DesignGenerateVoiceTool,
   DesignBrandKitTool,
   DesignSaveTool,
 } from './design-studio-tools.js';
@@ -161,6 +163,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // Design Studio — icon generation (shape-as-dial), brand kit, save
   design_find_shape: 'media', design_generate_icon: 'media',
   design_generate_set: 'media', design_generate_video: 'media',
+  design_generate_image: 'media', design_generate_voice: 'media',
   design_brand_kit: 'media', design_save: 'media',
   // Database
   database_query: 'database',
@@ -417,6 +420,8 @@ export class ToolRegistry {
       new DesignGenerateIconTool(),
       new DesignGenerateSetTool(),
       new DesignGenerateVideoTool(),
+      new DesignGenerateImageTool(),
+      new DesignGenerateVoiceTool(),
       new DesignBrandKitTool(),
       new DesignSaveTool(),
       new HealthPlanCreateTool(),

@@ -1610,7 +1610,10 @@ export type ExtToDashboardMessage =
   | { type: 'asset_forge_result'; success: boolean; dataUrl?: string; rawUrl?: string; error?: string }
   // Design Studio video lane (Wan 2.5 async → poll → finished clip URL). Mirror
   // of asset_forge_result but for the video pipeline: `url` is the finished clip.
-  | { type: 'asset_forge_video_result'; success: boolean; url?: string; error?: string };
+  | { type: 'asset_forge_video_result'; success: boolean; url?: string; error?: string }
+  // Design Studio voice lane (Qwen3-TTS synchronous → finished audio URL). Mirror
+  // of asset_forge_video_result but for the voice pipeline: `url` is the audio.
+  | { type: 'asset_forge_voice_result'; success: boolean; url?: string; error?: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
@@ -1824,16 +1827,18 @@ export type DashboardToExtMessage =
   // Creative Studio (proxied through extension host for CORS)
   | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
   // Design Studio generate lane (shape-as-dial → Qwen → matte), host-proxied.
-  | { type: 'asset_forge_generate'; body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string } }
+  | { type: 'asset_forge_generate'; body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string; matte?: boolean } }
   // Design Studio video lane (submit to Wan 2.5 + poll status, host-proxied).
   | { type: 'asset_forge_video'; body: { prompt: string; duration?: number | string; resolution?: string } }
+  // Design Studio voice lane (Qwen3-TTS synchronous synth, host-proxied).
+  | { type: 'asset_forge_voice'; body: { text: string; voice?: string; language_type?: string; instructions?: string } }
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // Creative Studio dataset signal: what the user did with a generated asset.
   // completeEventId links back to the generation_complete event (shape-only).
   | { type: 'creative_user_action'; completeEventId: string; action: 'kept' | 'retried' | 'discarded' | 'edited' | 'unknown' }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`

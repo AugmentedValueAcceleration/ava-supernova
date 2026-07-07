@@ -797,14 +797,22 @@ export interface ChatPageProps {
   /** Design lane only: which Design Studio room the operator is standing in.
    *  Drives the room-aware greeting / chips / heading and is tagged on every
    *  design-lane send so the host runs Ava with the matching Design Architect
-   *  persona (icon / video / voice). Ignored on other lanes. */
-  designRoom?: 'icon' | 'video' | 'voice';
+   *  persona (icon / video / voice / image). Ignored on other lanes. */
+  designRoom?: 'icon' | 'video' | 'voice' | 'image';
+  /** Design dock: don't PROGRAMMATICALLY steal composer focus (on activation or
+   *  a focus_input message). Programmatic focus fires onComposerFocus and would
+   *  force the collapsed dock open on Ava's activity; genuine user focus still
+   *  opens it. */
+  suppressAutoFocus?: boolean;
+  /** Fires when Ava produces content (stream/thinking delta). The collapsed
+   *  Design dock uses this to show an unread badge instead of force-opening. */
+  onActivity?: () => void;
 }
 
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
 // for caller compatibility but are no longer consumed — the chat header
 // dropped its sidebar-toggle button to match the IDE chat header.
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon' }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', suppressAutoFocus, onActivity }: ChatPageProps) {
   // Per-room thread key — for learning it includes the course id, so each course
   // has its own saved conversation. 'main' never persists (always-mounted).
   const roomKey = lane === 'main' ? '' : `${lane}${courseId ? ':' + courseId : ''}`;
@@ -882,6 +890,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
       // Buffer stream + thinking deltas
       if (msg.type === 'stream_delta' || msg.type === 'thinking_delta') {
+        onActivity?.();
         deltaBuffer.current.push({ type: msg.type, content: msg.content });
         startFlushLoop();
         return;
@@ -897,7 +906,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
       }
 
       if (msg.type === 'focus_input') {
-        setTimeout(() => document.getElementById('chat-input')?.focus(), 100);
+        if (!suppressAutoFocus) setTimeout(() => document.getElementById('chat-input')?.focus(), 100);
         return;
       }
 
@@ -922,15 +931,16 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     return () => clearTimeout(watchdog);
   }, [state.isStreaming, state.messages]);
 
-  // Auto-focus chat input when page becomes active
+  // Auto-focus chat input when page becomes active. Skipped for the Design dock
+  // (suppressAutoFocus) so activation can't force the collapsed dock open.
   useEffect(() => {
-    if (isActive) {
+    if (isActive && !suppressAutoFocus) {
       setTimeout(() => {
         const input = document.getElementById('chat-input');
         if (input) input.focus();
       }, 100);
     }
-  }, [isActive]);
+  }, [isActive, suppressAutoFocus]);
 
   // Preload tasks on mount — the collapsed spine shows a live active-count, so
   // the data must be there even before the panel is first opened.
@@ -1265,6 +1275,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             prefill={pendingPrefill}
             lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : lane === 'learning' ? t('learning.room.mode_label') : lane === 'design' ? 'Design' : undefined}
             onFocusInput={onComposerFocus}
+            suppressAutoFocus={suppressAutoFocus}
           />
 
           {/* HistoryPanel slide-over removed — dashboard chat routes

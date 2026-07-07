@@ -165,7 +165,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  Design Architect ('icon' | 'video' | 'voice'). Threaded from the dashboard
    *  send_message payload so getDesignStudioPrefix leads with the active room.
    *  Defaults to 'icon' (the Web/App lane). */
-  private activeDesignRoom: 'icon' | 'video' | 'voice' = 'icon';
+  private activeDesignRoom: 'icon' | 'video' | 'voice' | 'image' = 'icon';
   /** One-shot guard for the transient-platform-failure auto-retry: when the
    *  account check or the stored model can't resolve because the platform is
    *  unreachable, we schedule a single delayed re-init instead of (the old
@@ -801,7 +801,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           : undefined;
         // Remember which Design Studio room the design-lane turn came from so the
         // Design Architect prefix reflects where the operator is standing.
-        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon') {
+        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon' || msg.designRoom === 'image') {
           this.activeDesignRoom = msg.designRoom;
         }
         mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined) };
