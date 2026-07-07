@@ -41,6 +41,8 @@ import type {
   ProviderKeyStatus,
   UsageLogEntry,
   ExtToDashboardMessage,
+  ChatModel,
+  ChatPlatformStatus,
   DashboardLearningCurriculum,
   LearnerProfilePayload,
   ReleaseNote,
@@ -117,6 +119,24 @@ export function App() {
   const registerLearningChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
     learningChatDispatchRef.current = fn;
     for (const cached of lastChatSetupRef.current.values()) fn(cached);
+  }, []);
+
+  // Fourth chat dispatch — the Design Studio room (Ava's Design Architect hat).
+  // Host events from a design-lane turn are tagged lane:'design' and routed
+  // here, never the main chat. Same setup-cache reuse as the other rooms.
+  const designChatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
+  const registerDesignChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
+    designChatDispatchRef.current = fn;
+    for (const cached of lastChatSetupRef.current.values()) fn(cached);
+  }, []);
+
+  // Model + credit state for the Design Studio's OWN top bar (so it shows the
+  // model dropdown + credits even when the chat overlay is closed). Fed from the
+  // same chat_init / chat_platform_status the host already sends.
+  const [designModel, setDesignModel] = useState<{ models: ChatModel[]; activeModel: string | null; needsSetup: boolean; platformStatus: ChatPlatformStatus | null }>({ models: [], activeModel: null, needsSetup: false, platformStatus: null });
+  const switchDesignModel = useCallback((id: string) => {
+    post({ type: 'switch_model', modelId: id });
+    setDesignModel(s => ({ ...s, activeModel: id }));
   }, []);
 
   // Sidebar collapse state
@@ -600,7 +620,7 @@ export function App() {
     // health surface; everything else (incl. shared setup like chat_init) goes
     // to the main chat — and ALSO to the health surface so it has the same
     // model/account context. Each surface still filters CHAT_MESSAGE_TYPES.
-    const lane = (msg as { lane?: 'main' | 'health' | 'learning' }).lane;
+    const lane = (msg as { lane?: 'main' | 'health' | 'learning' | 'design' }).lane;
     // The host remaps init → chat_init and platform_status → chat_platform_status
     // before they reach the dashboard, so those are the only setup types seen
     // here. Mirror them to the room surfaces so their chats have model/account
@@ -608,6 +628,13 @@ export function App() {
     // the user first opens Health / Learning) gets them replayed on registration.
     const isChatSetup = msg.type === 'chat_init' || msg.type === 'chat_platform_status';
     if (isChatSetup) lastChatSetupRef.current.set(msg.type, msg);
+    // Keep the Design Studio top-bar model/credit state in sync.
+    if (msg.type === 'chat_init') {
+      setDesignModel({ models: msg.models, activeModel: msg.activeModel, needsSetup: msg.needsSetup, platformStatus: msg.platformStatus ?? null });
+    } else if (msg.type === 'chat_platform_status') {
+      const { type: _t, ...ps } = msg;
+      setDesignModel(s => ({ ...s, platformStatus: ps as ChatPlatformStatus }));
+    }
     if (lane === 'health') {
       healthChatDispatchRef.current?.(msg);
     } else if (lane === 'learning') {
@@ -616,9 +643,11 @@ export function App() {
       // sidebar + My Courses + the active course (and any just-created course)
       // reflect the progress Ava made in chat.
       if (msg.type === 'done') { post({ type: 'load_learning' }); post({ type: 'load_learning_profile' }); }
+    } else if (lane === 'design') {
+      designChatDispatchRef.current?.(msg);
     } else {
       chatDispatchRef.current?.(msg);
-      if (isChatSetup) { healthChatDispatchRef.current?.(msg); learningChatDispatchRef.current?.(msg); }
+      if (isChatSetup) { healthChatDispatchRef.current?.(msg); learningChatDispatchRef.current?.(msg); designChatDispatchRef.current?.(msg); }
     }
 
     // Auto-register every data source the moment its first load lands —
@@ -1654,7 +1683,12 @@ export function App() {
       case 'learning-library':
         return null;
       case 'creative-studio':
-        return <CreativeStudio account={account} />;
+        return <CreativeStudio account={account}
+          onRegisterDesignChatDispatch={registerDesignChatDispatch}
+          designModelState={designModel}
+          onSwitchDesignModel={switchDesignModel}
+          userName={account?.name?.split(' ')[0] ?? null}
+          userAvatarUrl={account?.avatar_url ?? null} />;
       case 'health':
         return (
           <Health

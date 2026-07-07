@@ -25,6 +25,7 @@ import {
   getBrainstormModePrefix,
   getWriteModePrefix,
   getHealthRoomPrefix,
+  getDesignStudioPrefix,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -160,6 +161,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  dedupe) without re-threading the object through more signatures. */
   private sharedState?: Record<string, unknown>;
   private activeModelDef?: ModelDefinition;
+  /** Which Design Studio room the operator is standing in when they message the
+   *  Design Architect ('icon' | 'video' | 'voice'). Threaded from the dashboard
+   *  send_message payload so getDesignStudioPrefix leads with the active room.
+   *  Defaults to 'icon' (the Web/App lane). */
+  private activeDesignRoom: 'icon' | 'video' | 'voice' = 'icon';
   /** One-shot guard for the transient-platform-failure auto-retry: when the
    *  account check or the stored model can't resolve because the platform is
    *  unreachable, we schedule a single delayed re-init instead of (the old
@@ -182,11 +188,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  conversation, so switching the active course loads the right thread. Runs in
    *  Teach mode; keeps learning turns out of the main thread. */
   private learningConversations = new Map<string, Conversation>();
+  /** The Design Studio room's thread — the Design Architect (Ava's design hat).
+   *  Local-only, and shares Ava's global memory (never a walled-off chatbot). */
+  private designConversation?: Conversation;
   /** Which surface the in-flight turn belongs to. Set at the top of
    *  handleUserMessage and read by postMessage to stamp outbound events so the
    *  right surface (main chat vs Ava room) renders them. One run pipeline (the
    *  isRunning guard) → no concurrency, so a scalar is safe. */
-  private activeLane: 'main' | 'health' | 'learning' = 'main';
+  private activeLane: 'main' | 'health' | 'learning' | 'design' = 'main';
   private toolRegistry?: ToolRegistry;
   private providerRegistry: ProviderRegistry;
   private healthTracker: ProviderHealthTracker;
@@ -790,7 +799,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         const validAttachments = Array.isArray(rawAttachments)
           ? rawAttachments.filter((a: unknown) => a && typeof a === 'object' && typeof (a as Record<string, unknown>).data === 'string')
           : undefined;
-        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | undefined) };
+        // Remember which Design Studio room the design-lane turn came from so the
+        // Design Architect prefix reflects where the operator is standing.
+        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon') {
+          this.activeDesignRoom = msg.designRoom;
+        }
+        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined) };
       }
         break;
       case 'tool_confirmation_response':
@@ -810,7 +824,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         mapped = { type: 'switch_model', modelId: msg.modelId as string };
         break;
       case 'clear_chat':
-        mapped = { type: 'clear_chat', surface: msg.surface as ('main' | 'health' | 'learning' | undefined) };
+        mapped = { type: 'clear_chat', surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined) };
         break;
       case 'cancel':
         mapped = { type: 'cancel' };
@@ -963,7 +977,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           tool: msg.tool as PaletteTool,
           action: msg.action as string,
           mode: (msg.mode ?? 'code') as AvaMode,
-          surface: msg.surface as ('main' | 'health' | 'learning' | undefined),
+          surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined),
         };
         break;
       default:
@@ -1460,7 +1474,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             // stored model choice, and quietly retry once shortly. (The old
             // behaviour deleted the key and popped "no longer valid" here —
             // a paying user's session nuked by a server blip.)
-            this.log(`Platform account check unavailable (status ${verifyStatus ?? 'n/a'}) — keeping key and settings, will retry`);
+            //
+            // CRITICAL: register the platform provider from the stored key
+            // ANYWAY. Provider registration used to be gated on a successful
+            // verify (cachedAccount != null), so a blip on load left a signed-in
+            // user with NO platform provider → resolveCoordinatorModel returned
+            // null → "needs at least one configured provider. Add an API key or
+            // sign in." — locking a paying, signed-in user out of their own
+            // models over a momentary reachability miss. The key isn't rejected
+            // (that's the 401/403 branch above), so we trust it: the per-request
+            // platform calls validate, and Supernova's coordinator resolves
+            // offline-of-verify. Account scoping still waits for a real verify
+            // (it needs the account id/tier) — the default dir is used until then.
+            const platform = new PlatformProvider({ apiKey: platformKey });
+            this.providerRegistry.registerCustom('platform', platform);
+            this.log(`Platform account check unavailable (status ${verifyStatus ?? 'n/a'}) — registered platform provider from stored key; keeping settings, will retry`);
             if (!this.transientNotified) {
               this.transientNotified = true;
               this.postMessage({
@@ -1949,6 +1977,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         const data = await res.json().catch(() => ({} as Record<string, unknown>));
         if (!res.ok) throw new Error((data as { error?: string })?.error || `Plan generation failed (${res.status})`);
         return { days: (data as { days?: unknown[] }).days ?? [], credits_charged: (data as { credits_charged?: number }).credits_charged ?? 0 };
+      },
+      // Design Studio control — the Design Architect's tools (design_find_shape,
+      // design_generate_icon, …) drive the open Design Studio canvas through
+      // this callback. It relays the command to the dashboard webview (which
+      // owns the shape library, brand kit, and the shape-as-dial generate path)
+      // and resolves with what the canvas did. Absent → the tool says the canvas
+      // isn't open rather than pretending. Mirror of generateHealthPlanDays.
+      designControl: async (command: string, cargs: Record<string, unknown>) => {
+        const panel = DashboardPanel.currentPanel;
+        if (!panel) return { ok: false, error: 'The Design Studio isn\'t open. Open it in Creative Studio → Design Studio.' };
+        return panel.requestFromDesign(command, cargs);
       },
       platformKey,
       learningLocalOnly,
@@ -2788,6 +2827,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.healthConversation = undefined;
         } else if (message.surface === 'learning') {
           this.learningConversations.delete(message.courseId ?? '__lobby__');
+        } else if (message.surface === 'design') {
+          this.designConversation = undefined;
         } else {
           this.clearChat();
         }
@@ -3110,7 +3151,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * receives the confirmed intent (no intent detection needed) while the
    * chat shows the user a short clean label instead of the raw directive.
    */
-  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode, surface?: 'main' | 'health' | 'learning', courseId?: string): Promise<void> {
+  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode, surface?: 'main' | 'health' | 'learning' | 'design', courseId?: string): Promise<void> {
     const built = buildPaletteDirective(tool, action);
     if (!built) {
       this.log(`handlePaletteIntent: unknown palette intent "${tool}.${action}" — ignored`);
@@ -3124,7 +3165,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     text: string,
     mode: AvaMode = 'code',
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
-    options?: { displayText?: string; surface?: 'main' | 'health' | 'learning'; courseId?: string },
+    options?: { displayText?: string; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string },
   ): Promise<void> {
     this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}, providerSource=${this.providerSource}`);
 
@@ -3243,6 +3284,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.learningConversations.set(key, conv);
       }
       this.conversation = conv;
+    } else if (surface === 'design') {
+      // The Design Architect thread. Shares the same agent + global memory as
+      // the main chat (so Ava is never blind to design work), just its own
+      // conversation so design turns stay out of the main thread.
+      if (!this.designConversation) {
+        this.designConversation = new Conversation();
+        this.designConversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
+      }
+      this.conversation = this.designConversation;
     }
 
     // Clear per-turn flags before the turn starts. The Conductor-gate
@@ -4165,6 +4215,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return getWriteModePrefix(text || 'What would you like to write?');
       case 'health':
         return getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary());
+      case 'design':
+        return getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom);
       default:
         return text;
     }
@@ -4637,7 +4689,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // every existing surface behaves exactly as before; the Ava tab opts in by
     // filtering for lane === 'health'. Additive field — non-chat consumers
     // ignore it.
-    (message as { lane?: 'main' | 'health' | 'learning' }).lane = this.activeLane;
+    (message as { lane?: 'main' | 'health' | 'learning' | 'design' }).lane = this.activeLane;
 
     // Broadcast to all active webviews — keeps sidebar + editor panel in sync
     this.view?.webview.postMessage(message);

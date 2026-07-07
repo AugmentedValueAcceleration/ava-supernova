@@ -1125,7 +1125,7 @@ export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' |
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
 export type ProviderSource = 'platform' | 'byok';
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'health';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'health' | 'design';
 
 export interface ChatPlatformStatus {
   connected: boolean;
@@ -1607,7 +1607,10 @@ export type ExtToDashboardMessage =
     }
   // Asset Forge / Design Studio generation result (handleAssetForgeGenerate):
   // the matted transparent PNG data URL (or the raw url if the matte fell back).
-  | { type: 'asset_forge_result'; success: boolean; dataUrl?: string; rawUrl?: string; error?: string };
+  | { type: 'asset_forge_result'; success: boolean; dataUrl?: string; rawUrl?: string; error?: string }
+  // Design Studio video lane (Wan 2.5 async → poll → finished clip URL). Mirror
+  // of asset_forge_result but for the video pipeline: `url` is the finished clip.
+  | { type: 'asset_forge_video_result'; success: boolean; url?: string; error?: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
@@ -1822,16 +1825,20 @@ export type DashboardToExtMessage =
   | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
   // Design Studio generate lane (shape-as-dial → Qwen → matte), host-proxied.
   | { type: 'asset_forge_generate'; body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string } }
+  // Design Studio video lane (submit to Wan 2.5 + poll status, host-proxied).
+  | { type: 'asset_forge_video'; body: { prompt: string; duration?: number | string; resolution?: string } }
+  // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
+  | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // Creative Studio dataset signal: what the user did with a generated asset.
   // completeEventId links back to the generation_complete event (shape-only).
   | { type: 'creative_user_action'; completeEventId: string; action: 'kept' | 'retried' | 'discarded' | 'edited' | 'unknown' }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning'; courseId?: string }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`
   // routes the turn to the focused Ava Health & Fitness room (its own thread).
-  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string; surface?: 'main' | 'health' | 'learning'; courseId?: string }
+  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'set_category_permission'; category: string; permission: string }
   | { type: 'request_audit_log' }
@@ -1839,7 +1846,7 @@ export type DashboardToExtMessage =
   | { type: 'export_audit_log'; format: 'markdown' | 'json' }
   | { type: 'export_full_account_data' }
   | { type: 'switch_model'; modelId: string }
-  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning'; courseId?: string }
+  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
   | { type: 'cancel' }
   | { type: 'interrupt' }
   | { type: 'request_history' }

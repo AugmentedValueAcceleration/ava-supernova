@@ -59,6 +59,9 @@ interface InputAreaProps {
    *  Ava Health & Fitness room, which is locked to health and must not offer
    *  Code/Plan/etc. The caller forces the actual mode on send. */
   lockedModeLabel?: string;
+  /** Fires when the composer gains focus — the Design Studio uses it to slide
+   *  the chat dock up when the user starts typing. Optional; no-op elsewhere. */
+  onFocusInput?: () => void;
 }
 
 // Teach is intentionally absent — it now lives in the focused Learning room
@@ -84,7 +87,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   write: 'input.placeholder.write',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel, onFocusInput }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across page reload — same shape as webview-ui.
@@ -590,7 +593,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
             }}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            onFocus={() => setIsFocused(true)}
+            onFocus={() => { setIsFocused(true); onFocusInput?.(); }}
             onBlur={() => setIsFocused(false)}
             placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
             disabled={disabled}

@@ -153,6 +153,15 @@ export class DashboardPanel {
   private journalManager?: JournalManager;
   private viewProvider?: AvaViewProvider;
 
+  // Design Studio tool bridge — the Design Architect's tools (run in the agent)
+  // send a command here; we relay it to the Design Studio webview and resolve
+  // when it replies. Keyed by requestId. See requestFromDesign / handleDesignToolResult.
+  private designToolPending = new Map<string, {
+    resolve: (r: { ok: boolean; data?: unknown; error?: string }) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }>();
+  private designReqSeq = 0;
+
   // Weather cache (30 minutes)
   private weatherCache: { data: ExtToDashboardMessage & { type: 'weather_loaded' }; timestamp: number } | null = null;
   private static readonly WEATHER_CACHE_TTL = 30 * 60 * 1000;
@@ -503,6 +512,20 @@ export class DashboardPanel {
       case 'asset_forge_generate': {
         const m = msg as any;
         this.handleAssetForgeGenerate(m.body).catch(() => {});
+        break;
+      }
+
+      // ─── Design Studio video lane (Wan 2.5 submit + poll, host-proxied) ─────
+      case 'asset_forge_video': {
+        const m = msg as any;
+        this.handleAssetForgeVideo(m.body).catch(() => {});
+        break;
+      }
+
+      // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
+      case 'design_tool_result': {
+        const m = msg as any;
+        this.handleDesignToolResult(m.requestId, { ok: !!m.ok, data: m.data, error: m.error });
         break;
       }
 
@@ -5202,6 +5225,46 @@ export class DashboardPanel {
    * TODO(design-studio): credit metering before this goes fully user-facing
    * (parity with the hub, which is admin-free, for now).
    */
+  /**
+   * Design Architect tool → canvas bridge. The design_* tools (running in the
+   * agent) call this via sharedState.designControl. We post the command to the
+   * Design Studio webview and resolve when it replies with design_tool_result.
+   * generate_icon / generate_set are slow (Qwen + matte), so the timeout is
+   * generous; reads are quick. If the canvas isn't mounted, nothing replies and
+   * we resolve with a clear "open the Studio" message when the timer fires.
+   */
+  public requestFromDesign(
+    command: string,
+    args: Record<string, unknown>,
+  ): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+    const requestId = `dtr-${++this.designReqSeq}`;
+    const slow = command === 'generate_icon' || command === 'generate_set';
+    // A set can be many icons back-to-back — scale the ceiling with count.
+    const setCount = command === 'generate_set' && Array.isArray(args.shapes) ? (args.shapes as unknown[]).length : 1;
+    // Video is async on Wan (1–6 min per clip, ~8-min poll ceiling host-side) —
+    // give it the full ceiling so the tool doesn't time out before the clip lands.
+    const timeoutMs =
+      command === 'generate_video' ? 600_000
+      : slow ? Math.min(600_000, 90_000 * Math.max(1, setCount))
+      : 12_000;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.designToolPending.delete(requestId);
+        resolve({ ok: false, error: 'The Design Studio canvas didn\'t respond. Open it in Creative Studio → Design Studio and try again.' });
+      }, timeoutMs);
+      this.designToolPending.set(requestId, { resolve, timer });
+      this.post({ type: 'design_tool', requestId, command, args } as any);
+    });
+  }
+
+  private handleDesignToolResult(requestId: string, result: { ok: boolean; data?: unknown; error?: string }): void {
+    const pending = this.designToolPending.get(requestId);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    this.designToolPending.delete(requestId);
+    pending.resolve(result);
+  }
+
   private async handleAssetForgeGenerate(body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string }): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) {
@@ -5249,6 +5312,59 @@ export class DashboardPanel {
       this.post({ type: 'asset_forge_result', success: true, dataUrl, rawUrl: gen.url } as any);
     } catch (err) {
       this.post({ type: 'asset_forge_result', success: false, error: err instanceof Error ? err.message : 'Generation failed' } as any);
+    }
+  }
+
+  /**
+   * Design Studio video lane — mirror of handleAssetForgeGenerate for the async
+   * Wan 2.5 pipeline. Submit to POST /api/generate-video (returns a task_id),
+   * then poll the status route (reusing pollVideoStatus — the host has no
+   * serverless timeout) until the finished clip URL lands, and post it back to
+   * the canvas as `asset_forge_video_result`. Auth/headers match the generate
+   * lane (platform key + data-mode header).
+   */
+  private async handleAssetForgeVideo(body: { prompt: string; duration?: number | string; resolution?: string; aspect?: string }): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'asset_forge_video_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
+      return;
+    }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${platformKey}`,
+      'X-Ava-Data-Mode': dataModeHeader(this.context),
+    };
+    try {
+      // 1) Submit — the route accepts the job (X-DashScope-Async) and hands back a task_id.
+      const submitRes = await fetch('https://ava-supernova.com/api/generate-video', {
+        method: 'POST', headers,
+        body: JSON.stringify({ prompt: body.prompt, duration: body.duration, resolution: body.resolution, aspect: body.aspect }),
+      });
+      if (!submitRes.ok) {
+        const e = (await submitRes.json().catch(() => ({}))) as { error?: string };
+        this.post({ type: 'asset_forge_video_result', success: false, error: e.error || `Video generation failed (${submitRes.status})` } as any);
+        return;
+      }
+      const data = await submitRes.json() as { task_id?: string; url?: string };
+      // A synchronous URL (some paths) short-circuits the poll.
+      if (data.url) {
+        this.post({ type: 'asset_forge_video_result', success: true, url: data.url } as any);
+        return;
+      }
+      if (!data.task_id) {
+        this.post({ type: 'asset_forge_video_result', success: false, error: 'No task_id returned' } as any);
+        return;
+      }
+      // 2) Poll until terminal (reuses the existing 5s-cadence / ~8-min-ceiling loop).
+      const final = await this.pollVideoStatus(String(data.task_id), platformKey);
+      if (final.success) {
+        const url = (final.data as { url?: string } | undefined)?.url;
+        this.post({ type: 'asset_forge_video_result', success: true, url } as any);
+      } else {
+        this.post({ type: 'asset_forge_video_result', success: false, error: final.error || 'Video generation failed' } as any);
+      }
+    } catch (err) {
+      this.post({ type: 'asset_forge_video_result', success: false, error: err instanceof Error ? err.message : 'Video generation failed' } as any);
     }
   }
 

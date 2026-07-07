@@ -18,7 +18,7 @@ export { IntentClassifier } from './agent/intent-classifier.js';
 export type { UserIntent, IntentClassifierOptions } from './agent/intent-classifier.js';
 
 export type { SystemPromptOptions } from './agent/system-prompt.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix } from './agent/system-prompt.js';
 
 // Health profile-fill registry (the "Ava fills your profile" flow)
 export {

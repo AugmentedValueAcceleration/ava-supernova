@@ -777,18 +777,34 @@ export interface ChatPageProps {
    *  the focused Learning room — every send is tagged surface:<lane> so the host
    *  runs it on the separate thread, and forced into the room's mode (health /
    *  teach) so the room's briefing + tools always apply. */
-  lane?: 'main' | 'health' | 'learning';
+  lane?: 'main' | 'health' | 'learning' | 'design';
   /** For the learning lane: which course this thread belongs to. Drives the
    *  per-course thread key (and is sent with every turn) so each course keeps
    *  its own saved conversation. The caller remounts (via React `key`) when the
    *  active course changes, so this is effectively fixed for a mounted instance. */
   courseId?: string;
+  /** Hide the chat's built-in header (model dropdown + credit). The Design
+   *  Studio embeds this in its dock and shows the model + credit in its OWN
+   *  top bar, so the header would be a duplicate. */
+  hideHeader?: boolean;
+  /** Hide the message list, leaving ONLY the composer. The Design Studio keeps
+   *  the composer static at the bottom and toggles this to slide the
+   *  conversation up/down above it — one composer, never a second bar. */
+  hideMessages?: boolean;
+  /** Fires when the composer gains focus. The Design Studio slides its dock up
+   *  when the user starts typing. Optional; no-op on other lanes. */
+  onComposerFocus?: () => void;
+  /** Design lane only: which Design Studio room the operator is standing in.
+   *  Drives the room-aware greeting / chips / heading and is tagged on every
+   *  design-lane send so the host runs Ava with the matching Design Architect
+   *  persona (icon / video / voice). Ignored on other lanes. */
+  designRoom?: 'icon' | 'video' | 'voice';
 }
 
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
 // for caller compatibility but are no longer consumed — the chat header
 // dropped its sidebar-toggle button to match the IDE chat header.
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon' }: ChatPageProps) {
   // Per-room thread key — for learning it includes the course id, so each course
   // has its own saved conversation. 'main' never persists (always-mounted).
   const roomKey = lane === 'main' ? '' : `${lane}${courseId ? ':' + courseId : ''}`;
@@ -947,11 +963,11 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     // In the health room every turn is health-scoped — force the mode so the
     // briefing always applies, and tag the lane so the host runs it on the
     // separate health thread.
-    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : mode, attachments, surface: lane, courseId });
-  }, [lane, courseId]);
+    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, attachments, surface: lane, courseId, ...(lane === 'design' ? { designRoom } : {}) });
+  }, [lane, courseId, designRoom]);
 
   const handlePaletteAction = useCallback((tool: PaletteTool, action: string, mode: AvaMode) => {
-    post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : mode, surface: lane, courseId });
+    post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, surface: lane, courseId });
   }, [lane, courseId]);
 
   const handleModelSwitch = useCallback((modelId: string) => {
@@ -1005,9 +1021,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     if (lastUserMsg?.content) {
       // Remove the error message first so it doesn't accumulate
       dispatch({ type: 'remove_last_error' });
-      post({ type: 'send_message', text: lastUserMsg.content, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : 'code', surface: lane, courseId });
+      post({ type: 'send_message', text: lastUserMsg.content, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : 'code', surface: lane, courseId });
     } else {
-      post({ type: 'send_message', text: t('app.continue'), mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : 'code', surface: lane, courseId });
+      post({ type: 'send_message', text: t('app.continue'), mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : 'code', surface: lane, courseId });
     }
   }, [state.messages, lane, courseId]);
 
@@ -1100,9 +1116,11 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
   return (
     <SecretsProvider>
-      <div className="relative flex flex-row h-full">
-        {/* Main chat column */}
-        <div className="relative flex flex-col flex-1 min-w-0 h-full">
+      <div className={`relative flex flex-row ${hideMessages ? '' : 'h-full'}`}>
+        {/* Main chat column. When the conversation is hidden (Design Studio's
+            collapsed dock), size to the composer only — no full-height stretch,
+            so the composer sits flush with no dead space below it. */}
+        <div className={`relative flex flex-col flex-1 min-w-0 ${hideMessages ? '' : 'h-full'}`}>
           {/* Skip navigation */}
           <a
             href="#chat-input"
@@ -1117,6 +1135,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             {lastError?.content ?? ''}
           </div>
 
+          {!hideHeader && (
           <Header
             models={state.models}
             activeModel={state.activeModel}
@@ -1135,8 +1154,24 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             showClearChat={lane === 'health'}
             onClearChat={handleClearChat}
           />
+          )}
 
-          {(state.accountLoading || (lane === 'main' && state.historyLoading)) ? (
+          {/* Design dock has no header (model + credit live in the studio top
+              bar), so its Clear-chat control lives here — a thin strip at the
+              top of the conversation. Clears this room's thread only. */}
+          {hideHeader && !hideMessages && lane === 'design' && (
+            <div className="shrink-0 flex items-center justify-between px-3 py-1.5 border-b"
+                 style={{ borderColor: 'var(--border-card, rgba(128,128,128,0.2))' }}>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50">Design chat</span>
+              <button onClick={handleClearChat} title="Clear the design chat"
+                className="text-[11px] px-2 py-0.5 rounded-md opacity-70 hover:opacity-100 transition cursor-pointer border"
+                style={{ borderColor: 'var(--border-card, rgba(128,128,128,0.25))' }}>
+                Clear chat
+              </button>
+            </div>
+          )}
+
+          {!hideMessages && ((state.accountLoading || (lane === 'main' && state.historyLoading)) ? (
             <div
               role="status"
               aria-live="polite"
@@ -1185,8 +1220,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             userName={userName}
             userAvatarUrl={userAvatarUrl}
             lane={lane}
+            designRoom={designRoom}
           />
-          )}
+          ))}
 
           {/* Compression indicator */}
           {state.isCompressing && (
@@ -1227,7 +1263,8 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
               state.models.find((m) => m.id === state.activeModel)?.supportsVision
             }
             prefill={pendingPrefill}
-            lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : lane === 'learning' ? t('learning.room.mode_label') : undefined}
+            lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : lane === 'learning' ? t('learning.room.mode_label') : lane === 'design' ? 'Design' : undefined}
+            onFocusInput={onComposerFocus}
           />
 
           {/* HistoryPanel slide-over removed — dashboard chat routes

@@ -44,7 +44,12 @@ interface ChatContainerProps {
   /** Conversation lane — 'health' swaps the empty-state greeting + starter
    *  chips for the Ava Health & Fitness room (plans/training/nutrition), and
    *  drops the mode-switch tip (the room is locked to health). */
-  lane?: 'main' | 'health' | 'learning';
+  lane?: 'main' | 'health' | 'learning' | 'design';
+  /** For the design lane: which Design Studio room the operator is standing in.
+   *  Drives the room-aware greeting, starter chips and heading so the Design
+   *  Architect reflects the active Open-Canvas view (Video / Voiceover) instead
+   *  of always greeting about icons. Defaults to 'icon'. */
+  designRoom?: 'icon' | 'video' | 'voice';
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed
@@ -53,7 +58,7 @@ interface ChatContainerProps {
 // / activeModel / models stay in ChatContainerProps for caller
 // compatibility but are no longer destructured here.
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, initialized, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl, lane = 'main' }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, initialized, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl, lane = 'main', designRoom = 'icon' }: ChatContainerProps) {
   useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
@@ -70,7 +75,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
     const seededWelcome = {
       id: 'welcome-seed',
       role: 'assistant' as const,
-      content: buildSeededWelcome(userName ?? null, lane),
+      content: buildSeededWelcome(userName ?? null, lane, designRoom),
       isStreaming: false,
       timestamp: Date.now(),
     } as unknown as typeof messages[number];
@@ -96,7 +101,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
               userName={userName}
             />
           ))}
-          <StarterHelper onSuggestion={onSuggestion} lane={lane} />
+          <StarterHelper onSuggestion={onSuggestion} lane={lane} designRoom={designRoom} />
         </div>
       </div>
     );
@@ -144,7 +149,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
  * Date is appended in conversational form ("Tuesday") rather than full
  * ISO so it reads like a human picking up a conversation.
  */
-function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' = 'main'): string {
+function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' = 'icon'): string {
   const now = new Date();
   const h = now.getHours();
   const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -157,6 +162,18 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
   // The Learning room greets around what they want to learn — no code talk.
   if (lane === 'learning') {
     return t('learning.room.greeting', { name });
+  }
+  // The Design Studio room — Ava as the Design Architect. No code talk. The
+  // greeting follows the operator into the Open Canvas: filming in the Video
+  // room, voicing in the Voiceover room, else the default icon studio.
+  if (lane === 'design') {
+    if (designRoom === 'video') {
+      return `Hey${name} — Design Architect here, and we're on the Open Canvas. What are we filming? Give me the shot — subject, mood, the motion you want — and I'll direct it and render it right here.`;
+    }
+    if (designRoom === 'voice') {
+      return `Hey${name} — Design Architect here, on the Open Canvas. What are we voicing? Tell me the script and the kind of voice you want, and I'll narrate it for you.`;
+    }
+    return `Hey${name} — your Design Architect here. What are we making? An icon, a whole set, a logo? Tell me the vibe and I'll design it with you, on brand.`;
   }
 
   if (h >= 5 && h < 12) {
@@ -186,10 +203,33 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
  * chips with prefix-coloured tokens so the modes are recognisable on
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
-function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' }) {
+function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' }) {
   useLocale();
   const isHealth = lane === 'health';
   const isLearning = lane === 'learning';
+  const isDesign = lane === 'design';
+  // Design room: plain-prompt chips (no mode prefix — the room is Ava's design
+  // hat). They prefill the composer so the user can edit before sending. The
+  // set follows the operator into the Open Canvas (Video / Voiceover).
+  const iconChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: 'Make an icon',     prefix: '✦', prompt: 'Design a bell icon in glass, in my brand colours',   color: 'var(--accent)' },
+    { label: 'A whole set',      prefix: '✦', prompt: 'Make me a matching icon set for my app',             color: '#f9e2af' },
+    { label: 'Logo ideas',       prefix: '✦', prompt: 'Give me a few logo directions for my brand',         color: '#60a5fa' },
+    { label: 'Which material?',  prefix: '✦', prompt: 'What material suits a premium, trustworthy brand?',   color: '#94e2d5' },
+  ];
+  const videoChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: 'Film a scene',       prefix: '✦', prompt: 'Create a video: a slow cinematic dolly-in down a neon-lit, rain-slicked street at night', color: 'var(--accent)' },
+    { label: 'Product in motion',  prefix: '✦', prompt: 'A short clip of my product turning slowly on a clean studio backdrop, soft key light',    color: '#f9e2af' },
+    { label: 'Set a mood',         prefix: '✦', prompt: 'A calm 5-second atmospheric clip — soft morning light, gentle drifting motion',           color: '#60a5fa' },
+    { label: 'Vertical for social',prefix: '✦', prompt: 'A punchy vertical 9:16 clip for social, bright and energetic',                             color: '#94e2d5' },
+  ];
+  const voiceChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: 'Narrate a script',  prefix: '✦', prompt: 'Narrate this in a warm, calm voice: ',                                        color: 'var(--accent)' },
+    { label: 'Which voice fits?', prefix: '✦', prompt: 'What voices do you have, and which suits a premium, trustworthy brand?',       color: '#f9e2af' },
+    { label: 'An intro read',     prefix: '✦', prompt: 'A short, upbeat intro read for my product video',                             color: '#60a5fa' },
+    { label: 'A calm read',       prefix: '✦', prompt: 'A slow, reassuring read for a meditation clip',                               color: '#94e2d5' },
+  ];
+  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : iconChips;
   // Health room: plain-prompt chips (no mode prefix — the room is locked to
   // health). They prefill the composer so the user can edit before sending.
   const healthChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
@@ -216,7 +256,9 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
     { label: t('dash.chat.starter.brainstorm'),  prefix: '**', prompt: t('dash.chat.starter.brainstorm_prompt'),  color: '#94e2d5' },
     { label: t('dash.chat.starter.chat'),        prefix: '..', prompt: '.. ',                                     color: '#a6adc8' },
   ];
-  const chips = isHealth ? healthChips : isLearning ? learningChips : codeChips;
+  const chips = isHealth ? healthChips : isLearning ? learningChips : isDesign ? designChips : codeChips;
+  // Design heading follows the room: Direct (video) / Voice (voiceover) / Design (icon).
+  const designHeading = designRoom === 'video' ? 'Direct with Ava' : designRoom === 'voice' ? 'Voice with Ava' : 'Design with Ava';
 
   return (
     <div
@@ -229,10 +271,10 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
     >
       <div className="flex items-center gap-2 mb-1.5">
         <span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span>
-        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>{isHealth ? t('health.room.starter.heading') : isLearning ? t('learning.room.starter.heading') : t('dash.chat.starter.heading')}</div>
+        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>{isHealth ? t('health.room.starter.heading') : isLearning ? t('learning.room.starter.heading') : isDesign ? designHeading : t('dash.chat.starter.heading')}</div>
       </div>
       <p className="text-[12px] leading-relaxed mb-4" style={{ color: '#a6adc8' }}>
-        {isHealth ? t('health.room.starter.subheading') : isLearning ? t('learning.room.starter.subheading') : t('dash.chat.starter.subheading')}
+        {isHealth ? t('health.room.starter.subheading') : isLearning ? t('learning.room.starter.subheading') : isDesign ? "Tell me what you're making and your brand — I'll design it with you." : t('dash.chat.starter.subheading')}
       </p>
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
@@ -262,7 +304,7 @@ function StarterHelper({ onSuggestion, lane = 'main' }: { onSuggestion: (prompt:
           </button>
         ))}
       </div>
-      {!isHealth && !isLearning && (
+      {!isHealth && !isLearning && !isDesign && (
         <p className="text-[10px] mt-4" style={{ color: '#6c7086' }}>
           {t('dash.chat.starter.tip_prefix')} <code style={{ color: 'var(--accent)' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> {t('dash.chat.starter.tip_suffix')}
         </p>

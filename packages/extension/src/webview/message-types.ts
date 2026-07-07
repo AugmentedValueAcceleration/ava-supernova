@@ -210,7 +210,7 @@ export interface MemoryEntryUI {
 
 // ─── Webview → Extension Host ────────────────────────────────────────────────
 
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'health';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'health' | 'design';
 
 /**
  * Command palette — the user-aid tool categories a palette button can target.
@@ -221,7 +221,7 @@ export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainst
 export type PaletteTool = 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans';
 
 export type WebviewToExtMessage =
-  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning'; courseId?: string }
+  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' }
   /**
    * Fired by a command-palette button. Carries the pre-classified intent
    * (tool + action) and the mode the input is currently in. The host turns
@@ -232,7 +232,7 @@ export type WebviewToExtMessage =
    * focused Ava Health & Fitness room (its own thread); default/'main' is the
    * main chat.
    */
-  | { type: 'palette_intent'; tool: PaletteTool; action: string; mode: AvaMode; surface?: 'main' | 'health' | 'learning'; courseId?: string }
+  | { type: 'palette_intent'; tool: PaletteTool; action: string; mode: AvaMode; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
   /**
    * Sent by the error-message Retry button. Unlike send_message, the
    * extension first runs a conversation repair pass (fix orphan tool
@@ -251,7 +251,7 @@ export type WebviewToExtMessage =
       alwaysForProject?: boolean;
     }
   | { type: 'switch_model'; modelId: string }
-  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning'; courseId?: string }
+  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
   | { type: 'cancel' }
   | { type: 'interrupt' }
   | { type: 'open_dashboard' }

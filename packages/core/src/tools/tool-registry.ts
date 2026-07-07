@@ -46,6 +46,15 @@ import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
 import { HealthProfileAskTool } from './health-profile-ask.js';
 import { OpenHealthRoomTool } from './open-health-room.js';
 import { OpenLearningRoomTool } from './open-learning-room.js';
+import { OpenDesignStudioTool } from './open-design-studio.js';
+import {
+  DesignFindShapeTool,
+  DesignGenerateIconTool,
+  DesignGenerateSetTool,
+  DesignGenerateVideoTool,
+  DesignBrandKitTool,
+  DesignSaveTool,
+} from './design-studio-tools.js';
 import { DocumentManageTool } from './document-manage.js';
 import { DocumentAuthorTool } from './document-author.js';
 import { GitCommitTool } from './git-commit.js';
@@ -149,6 +158,10 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // Media — images, audio, video
   generate_image: 'media', generate_music: 'media',
   generate_video: 'media', generate_voice: 'media', remove_background: 'media',
+  // Design Studio — icon generation (shape-as-dial), brand kit, save
+  design_find_shape: 'media', design_generate_icon: 'media',
+  design_generate_set: 'media', design_generate_video: 'media',
+  design_brand_kit: 'media', design_save: 'media',
   // Database
   database_query: 'database',
   // System — desktop control, utilities, security
@@ -399,6 +412,13 @@ export class ToolRegistry {
       new HealthProfileAskTool(),
       new OpenHealthRoomTool(),
       new OpenLearningRoomTool(),
+      new OpenDesignStudioTool(),
+      new DesignFindShapeTool(),
+      new DesignGenerateIconTool(),
+      new DesignGenerateSetTool(),
+      new DesignGenerateVideoTool(),
+      new DesignBrandKitTool(),
+      new DesignSaveTool(),
       new HealthPlanCreateTool(),
       new HealthPlanUpdateDayTool(),
       new DocumentManageTool(),

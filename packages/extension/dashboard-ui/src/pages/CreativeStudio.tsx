@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
-import type { AccountInfo } from '../types/messages';
+import type { AccountInfo, ExtToDashboardMessage, ChatModel, ChatPlatformStatus } from '../types/messages';
+
+export type DesignModelState = { models: ChatModel[]; activeModel: string | null; needsSetup: boolean; platformStatus: ChatPlatformStatus | null };
 import {
   Image as ImageIcon, MusicNotes, Microphone, VideoCamera,
   Gear, Paperclip, X as XIcon, PenNib,
@@ -363,7 +365,17 @@ function postCreativeUserAction(itemId: string, action: 'kept' | 'retried' | 'di
    Creative Studio
    ══════════════════════════════════════════════════════════════════════ */
 
-export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
+export function CreativeStudio({ account, onRegisterDesignChatDispatch, designModelState, onSwitchDesignModel, userName, userAvatarUrl }: {
+  account?: AccountInfo | null;
+  // Threaded to the Design Studio dock's <Chat lane="design">: App routes
+  // design-lane host events here, and passes the operator name/avatar. The
+  // model/credit state feeds Design Studio's own top bar.
+  onRegisterDesignChatDispatch?: (dispatch: (msg: ExtToDashboardMessage) => void) => void;
+  designModelState?: DesignModelState;
+  onSwitchDesignModel?: (id: string) => void;
+  userName?: string | null;
+  userAvatarUrl?: string | null;
+}) {
   useLocale();
 
   const usage = account?.usage;
@@ -864,9 +876,9 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     // Break out of <main>'s p-8 and fill it exactly (h-full) so the design
     // workspace is full-bleed and the page never scrolls — only the inspector.
     return (
-      <div className="w-full flex flex-col -m-8 h-full min-h-0 overflow-hidden">
+      <div className="w-[calc(100%+4rem)] flex flex-col -m-8 h-[calc(100%+4rem)] min-h-0 overflow-hidden">
         <div className="px-6 pt-4 shrink-0">{viewToggle}</div>
-        <DesignStudio account={account} />
+        <DesignStudio account={account} onRegisterDesignChatDispatch={onRegisterDesignChatDispatch} designModelState={designModelState} onSwitchDesignModel={onSwitchDesignModel} userName={userName} userAvatarUrl={userAvatarUrl} />
       </div>
     );
   }

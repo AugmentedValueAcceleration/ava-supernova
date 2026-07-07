@@ -253,9 +253,10 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'curator',
     // Utility
     'get_datetime', 'detect_language',
-    // Hand a fitness/meal plan request off to the focused Health room, or a
-    // learn-a-topic request off to the focused Learning room.
-    'open_health_room', 'open_learning_room',
+    // Hand a fitness/meal plan request off to the focused Health room, a
+    // learn-a-topic request off to the focused Learning room, or an icon /
+    // on-brand asset request off to the focused Design Studio.
+    'open_health_room', 'open_learning_room', 'open_design_studio',
     // Mode switch
     'switch_mode',
   ]),
@@ -283,9 +284,10 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // the user explicitly says "add X to my list" — create directly then.
     'todo_write', 'task_suggest', 'task_manage',
     'get_datetime', 'weather', 'news', 'ask_user',
-    // Hand a fitness/meal plan request off to the focused Health room, or a
-    // learn-a-topic request off to the focused Learning room.
-    'open_health_room', 'open_learning_room',
+    // Hand a fitness/meal plan request off to the focused Health room, a
+    // learn-a-topic request off to the focused Learning room, or an icon /
+    // on-brand asset request off to the focused Design Studio.
+    'open_health_room', 'open_learning_room', 'open_design_studio',
     'switch_mode',
   ]),
   brainstorm: new Set([
@@ -340,6 +342,23 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Journal — Ava reflects on the person + their health journey in her voice
     'journal_write',
     'web_search', 'ask_user', 'get_datetime',
+    'switch_mode',
+  ]),
+  // Design Studio — Ava the Design Architect, focused entirely on making the
+  // user on-brand icons. Same Ava, design-scoped: the shape/generate/brand/save
+  // tools are her kit, memory carries their taste, journal her read on their eye.
+  // Coding / file / shell tools are deliberately OUT — this room makes assets,
+  // it doesn't touch the codebase. Scope is icons for now.
+  design: new Set([
+    'design_find_shape', 'design_generate_icon', 'design_generate_set',
+    'design_generate_video',
+    'design_brand_kit', 'design_save',
+    'memory_save', 'memory_recall', 'memory_update',
+    // Journal — Ava reflects on the person + their taste in her own voice
+    'journal_write',
+    // Research — ground a look in current design references / trends before authoring it
+    'web_search',
+    'ask_user', 'get_datetime',
     'switch_mode',
   ]),
   // Write mode — the author's surface. Markdown is the editable source;
@@ -414,6 +433,7 @@ function detectModeFromMessages(messages: Message[]): string | null {
     if (text.startsWith('[Security Audit Mode]')) return 'security';
     if (text.startsWith('[Desktop Automation Mode]')) return 'desktop';
     if (text.startsWith('[Health Room]')) return 'health';
+    if (text.startsWith('[Design Studio]')) return 'design';
     break;
   }
   return null;
