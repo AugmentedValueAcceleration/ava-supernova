@@ -18,7 +18,7 @@ export const START_PAGES: DocPage[] = [
         'Yours by default. Your work stays on your own machine. No tracking, no telemetry — ever.',
         'Open for anyone to see. Every line of Ava is public. Nothing to take on trust.',
         'Free to start. 300 credits every month, no card, no catch — or plug in your own AI keys and pay us nothing at all.',
-        'Teaching is free, forever. Learning shouldn\'t have a price tag.',
+        'Teaching built in. Ask Ava to teach you any subject and she builds you a real course — lessons, examples, and quizzes.',
       ]},
       { type: 'paragraph', text: 'Never written code? The next page is written just for you. Already technical? Skip ahead — she\'ll keep up.' },
     ],
@@ -46,7 +46,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'What you can do today, with no experience' },
       { type: 'list', ordered: false, items: [
         'Ask her anything, in normal words — "what does this file do?", "why is my page blank?", "what even is a database?" She answers in plain language and remembers the conversation.',
-        'Learn something from scratch — say "teach me Python from zero" and she builds you a proper course with lessons and quizzes. This is always free.',
+        'Learn something from scratch — say "teach me Python from zero" and she builds you a proper course with lessons and quizzes.',
         'Get something built — describe what you want ("a button that downloads my notes") and she writes it, showing you every change before it happens.',
       ]},
       { type: 'heading', level: 3, text: "You don't need to understand everything" },
@@ -118,7 +118,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'A question — "why is my page blank?", "what does this file do?"',
         'Something built — "make me a simple to-do list page".',
-        'To learn something — "teach me Python from scratch". (Always free.)',
+        'To learn something — "teach me Python from scratch". She builds you a real course, step by step.',
         'A document — "write me a one-page project proposal". She\'ll hand you a Word file or PDF.',
       ]},
       { type: 'callout', variant: 'tip', text: 'Not sure what to type? Talk to her like a knowledgeable friend. Plain words are exactly right — you never need the technical terms to get going.' },
@@ -169,8 +169,8 @@ export const START_PAGES: DocPage[] = [
     deeper: [
       { type: 'heading', level: 3, text: 'What\'s actually in each style' },
       { type: 'paragraph', text: 'Maestro — one conductor (Qwen 3.7 Plus) handles every step. Production-tuned, proven, predictable cost.' },
-      { type: 'paragraph', text: 'Supernova — a frontier coordinator (DeepSeek V4 Pro, 1.6T parameters / 49B active, 1M context) hands each subtask to a specialist: V4 Flash for high-volume builds, Qwen 3.7 Plus as fallback, Qwen Omni for vision.' },
-      { type: 'paragraph', text: 'Aurora — Mistral only, in three tiers led by the frontier model. Mistral Medium 3.5 (128B dense, 256K context, native vision, 77.6% SWE-Bench Verified) is the coordinator + heavy specialists + Builder + vision. Mistral Small 4 is the high-volume workhorse (chat, intent gate, light specialists) — cheaper and, on the benchmarks, smarter than Large 3. Mistral Large 3 (675B/41B MoE, Apache-2.0) is the broad-knowledge heavy reserve. Open weights end to end, never leaves EU infrastructure.' },
+      { type: 'paragraph', text: 'Supernova — a frontier coordinator (DeepSeek V4 Pro, 1.6T parameters / 49B active, 1M context) hands each subtask to a specialist: V4 Flash for high-volume review, Qwen 3.7 Plus for building and for vision (it sees images and video natively).' },
+      { type: 'paragraph', text: 'Aurora — Mistral only, in three tiers led by the frontier model. Mistral Medium 3.5 (128B dense, 256K context, native vision; 77.6% on SWE-Bench Verified, per Mistral) is the coordinator + heavy specialists + Builder + vision. Mistral Small 4 is the high-volume workhorse (chat, intent gate, light specialists), cheaper than Large 3. Mistral Large 3 (675B/41B MoE, Apache-2.0) is the broad-knowledge heavy reserve. Open weights end to end, never leaves EU infrastructure.' },
       { type: 'heading', level: 3, text: 'Bring your own model (BYOK)' },
       { type: 'paragraph', text: 'Prefer to use your own AI account? Paste your provider key in settings and you get both — the three routing styles, plus the option to pick a single model and skip routing entirely. Useful for a strong preference, a strict budget, or testing a specific model. The full provider list is in the Reference section.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'managed' } },

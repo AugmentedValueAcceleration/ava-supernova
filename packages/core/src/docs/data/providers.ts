@@ -55,10 +55,10 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'aurora',
     name: '✦ Aurora — European AI stack',
     kind: 'orchestration',
-    notes: 'Mistral-only routing. Every call lands on a Mistral model — Aurora deployments never leave European infrastructure. For GDPR-strict deployments, AI Act compliance, sovereignty mandates. Apache-2.0 open weights end-to-end. No cross-routing fallback — that is the EU-stack guarantee.',
+    notes: 'Mistral-only routing. Every call lands on a Mistral model — Aurora deployments never leave European infrastructure. For GDPR-strict deployments, AI Act compliance, sovereignty mandates. Open weights end-to-end. No cross-routing fallback — that is the EU-stack guarantee.',
     models: [
-      { id: 'mistral-medium-3.5-platform', displayName: 'Mistral Medium 3.5 — lead seat: coordinator + Builder + vision + deep specialists (Researcher, Challenger, CVE Researcher, Fact Checker, Security Verifier, Architect, Tutor, Content Writer). Frontier flagship, AA Index 39', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4 — high-volume workhorse: chat, intent gate, image-gen orchestration, long-context, brainstorm; light specialists (Verifier, Sequencer, Recon, Scanner, Reporter, Quiz Master). Cheaper and smarter than Large 3', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-medium-3.5-platform', displayName: 'Mistral Medium 3.5 — lead seat: coordinator + Builder + vision + deep specialists (Researcher, Challenger, CVE Researcher, Fact Checker, Security Verifier, Architect, Tutor, Content Writer). Frontier flagship', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4 — high-volume workhorse: chat, intent gate, image-gen orchestration, long-context, brainstorm; light specialists (Verifier, Sequencer, Recon, Scanner, Reporter, Quiz Master). Cheaper than Large 3', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-large-3-platform', displayName: 'Mistral Large 3 — heavy reserve / fallback (675B/41B MoE, Apache-2.0, broad knowledge, multimodal; non-reasoning today)', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
@@ -101,7 +101,7 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'mistral-managed',
     name: 'Mistral AI (Aurora orchestration)',
     kind: 'managed',
-    notes: 'Powers Aurora routing mode. EU-based, Apache-2.0 open weights, never leaves European infrastructure. Medium 3.5 (frontier flagship) leads; Small 4 carries volume; Large 3 is the heavy reserve.',
+    notes: 'Powers Aurora routing mode. EU-based, open weights, never leaves European infrastructure. Medium 3.5 (frontier flagship) leads; Small 4 carries volume; Large 3 is the heavy reserve.',
     models: [
       { id: 'mistral-medium-3.5-platform', displayName: 'Mistral Medium 3.5', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
@@ -132,7 +132,7 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'kimi',
     name: 'Kimi (Moonshot AI)',
     kind: 'byok',
-    notes: 'K2.6 is SoTA on agentic coding — 58.6 on SWE-Bench Pro (beats Opus 4.6), built for 300-sub-agent orchestration. 256K context.',
+    notes: 'K2.6 scores 58.6 on SWE-Bench Pro (Moonshot, averaged over 10 runs) — a strong open-weight agentic-coding model built for large sub-agent orchestration. 256K context.',
     models: [
       { id: 'kimi-k2.6', displayName: 'Kimi K2.6', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.5', displayName: 'Kimi K2.5', inputPricePerM: 0.60, outputPricePerM: 3.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
@@ -142,7 +142,7 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'mistral',
     name: 'Mistral AI',
     kind: 'byok',
-    notes: 'Same models the Aurora routing mode uses — pick them directly with your own Mistral key, or let Aurora orchestrate. EU infrastructure, Apache-2.0 open weights.',
+    notes: 'Same models the Aurora routing mode uses — pick them directly with your own Mistral key, or let Aurora orchestrate. EU infrastructure, open weights (Large 3 and Small 4 Apache-2.0; Medium 3.5 Modified MIT).',
     models: [
       { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5 (frontier flagship)', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
@@ -155,7 +155,7 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'zhipu',
     name: 'Zhipu AI',
     kind: 'byok',
-    notes: 'GLM-5 reports 77.8% on SWE-Bench.',
+    notes: 'GLM-5 posts 77.8% on SWE-Bench Verified.',
     models: [
       { id: 'glm-5.1', displayName: 'GLM-5.1', inputPricePerM: 1.40, outputPricePerM: 4.40, contextWindow: 200_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'glm-5', displayName: 'GLM-5', inputPricePerM: 1.00, outputPricePerM: 3.20, contextWindow: 200_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
@@ -167,7 +167,7 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'xiaomi',
     name: 'Xiaomi',
     kind: 'byok',
-    notes: 'MiMo V2.5 — matches Claude Sonnet 4.6 on agentic multimodal, Gemini 3 Pro on Video-MME. Sustains 1,000+ sequential tool calls. Released 2026-04-22.',
+    notes: 'MiMo V2.5 — open-weight multimodal model tuned for agentic work and long tool-call chains (sustains 1,000+ sequential calls). Released 2026-04-22.',
     models: [
       { id: 'mimo-v2.5-pro', displayName: 'MiMo V2.5-Pro', inputPricePerM: 1.00, outputPricePerM: 3.00, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mimo-v2.5',     displayName: 'MiMo V2.5',     inputPricePerM: 0.40, outputPricePerM: 2.00, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'streaming'] },
