@@ -1,8 +1,9 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { getPages } from '../docs/corpus.js';
-import { SECTION_LABELS, SECTION_ORDER, type DocPage, type DocBlock, type Section } from '../docs/types.js';
+import { SECTION_LABELS, SECTION_ORDER, type DocPage, type DocBlock, type Section, type Capability } from '../docs/types.js';
 import { commonSurfaces } from '../docs/data/capabilities.js';
+import { searchDocs, type DocHit } from './product-knowledge.js';
 
 // Friendly names for the surface-availability note, so Ava can say where a
 // capability-gated feature actually works.
@@ -23,7 +24,7 @@ const SURFACE_NAME: Record<string, string> = {
  */
 export class DocsLookupTool implements Tool {
   readonly name = 'docs_lookup';
-  readonly description = 'Search Ava\'s documentation to help users with features, setup, and troubleshooting';
+  readonly description = 'Search Ava\'s own documentation (her product knowledge) to answer questions about features, setup, and troubleshooting — returns focused, cited excerpts';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
@@ -33,7 +34,8 @@ export class DocsLookupTool implements Tool {
       'Search Ava\'s own documentation to answer user questions about features, setup, configuration, ' +
       'troubleshooting, models, tools, modes, permissions, memory, keyboard shortcuts, billing, and more. ' +
       'Use this when a user asks "how do I...", "what is...", "how does... work", or needs help with any ' +
-      'Ava feature. Returns the relevant documentation section(s).',
+      'Ava feature. Returns focused, cited excerpts from the relevant pages — answer grounded in them and ' +
+      'name the source page so the user can verify.',
     parameters: {
       type: 'object',
       properties: {
@@ -86,32 +88,34 @@ export class DocsLookupTool implements Tool {
       };
     }
 
-    // Search: score each page by relevance.
-    const scored = pages
-      .map(page => ({ page, score: this.scorePage(page, query) }))
-      .filter(s => s.score > 0)
-      .sort((a, b) => b.score - a.score);
-
-    if (scored.length === 0) {
+    // Search: grounded, block-level TF-IDF retrieval with citations. Returns the
+    // most relevant blocks (not whole pages), grouped by source page and
+    // attributed, so Ava can answer grounded and say where it came from.
+    const hits = searchDocs(query, 10);
+    if (hits.length === 0) {
       return {
         success: true,
         output: `No documentation found matching "${query}". Sections: ${SECTION_ORDER.join(', ')}`,
       };
     }
-
-    const top = scored.slice(0, 3);
-    // A clearly dominant match is returned on its own; otherwise the top few.
-    if (top.length > 1 && top[0].score > top[1].score * 2) {
-      return { success: true, output: this.pageToText(top[0].page, surface) };
-    }
-    return { success: true, output: top.map(m => this.pageToText(m.page, surface)).join('\n\n---\n\n') };
+    // Keep only clearly-relevant hits — drop the tangential tail below 35% of the
+    // top score so the grounding stays focused.
+    const floor = hits[0].score * 0.35;
+    const relevant = hits.filter(h => h.score >= floor);
+    return { success: true, output: this.renderHits(relevant, surface) };
   }
 
   /** A surface-availability footnote for capability-gated features, so Ava can
    *  say where a feature works and whether it's usable on the current surface. */
   private availabilityNote(page: DocPage, surface?: string): string {
-    if (!page.requires || page.requires.length === 0) return '';
-    const surfaces = commonSurfaces(page.requires);
+    return this.availabilityNoteFor(page.requires, surface);
+  }
+
+  /** Availability footnote from a page's required capabilities — so Ava can say
+   *  where a feature works and whether it's usable on the current surface. */
+  private availabilityNoteFor(requires: Capability[] | undefined, surface?: string): string {
+    if (!requires || requires.length === 0) return '';
+    const surfaces = commonSurfaces(requires);
     if (surfaces.length === 0) return '';
     const names = surfaces.map(s => SURFACE_NAME[s] ?? s).join(', ');
     let note = `\n\n_Availability: this feature works in ${names}._`;
@@ -119,6 +123,24 @@ export class DocsLookupTool implements Tool {
       note += ` _It is not available on your current surface (${SURFACE_NAME[surface] ?? surface})._`;
     }
     return note;
+  }
+
+  /** Render retrieved blocks grouped by their source page, each cited so Ava can
+   *  attribute the answer. Focused evidence, not whole pages. */
+  private renderHits(hits: DocHit[], surface?: string): string {
+    const byPage = new Map<string, { title: string; section: Section; requires?: Capability[]; blocks: string[] }>();
+    for (const h of hits) {
+      let g = byPage.get(h.pageId);
+      if (!g) { g = { title: h.pageTitle, section: h.section, requires: h.requires, blocks: [] }; byPage.set(h.pageId, g); }
+      if (!g.blocks.includes(h.text)) g.blocks.push(h.text);
+    }
+    const out: string[] = [];
+    for (const g of byPage.values()) {
+      const cite = `_Source: ${SECTION_LABELS[g.section]} → ${g.title}_`;
+      out.push(`## ${g.title}\n\n${g.blocks.join('\n\n')}\n\n${cite}${this.availabilityNoteFor(g.requires, surface)}`);
+      if (out.length >= 5) break; // cap distinct source pages for a focused answer
+    }
+    return out.join('\n\n---\n\n');
   }
 
   /** Flatten a DocPage's blocks into plain searchable/printable text. Includes
@@ -146,24 +168,5 @@ export class DocsLookupTool implements Tool {
       case 'facts': return `(live ${b.kind} table — rendered in-app from current data)`;
       default: return '';
     }
-  }
-
-  /** Relevance score for a page against the query. Higher = better. */
-  private scorePage(page: DocPage, query: string): number {
-    let score = 0;
-    const words = query.split(/\s+/).filter(w => w.length > 1);
-    const title = page.title.toLowerCase();
-    const id = page.id.toLowerCase();
-    const body = this.pageToText(page).toLowerCase();
-
-    if (id === query || page.section === query) score += 100;
-    if (title === query) score += 60;
-    if (title.includes(query)) score += 30;
-    for (const w of words) {
-      if (id.includes(w)) score += 10;
-      if (title.includes(w)) score += 8;
-      if (w.length > 2 && body.includes(w)) score += 2;
-    }
-    return score;
   }
 }
