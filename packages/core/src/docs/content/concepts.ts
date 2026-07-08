@@ -74,9 +74,9 @@ export const CONCEPT_PAGES: DocPage[] = [
         'Heavy persona — 3 credits. Architect, Researcher, CVE Researcher, Ideator (depth ≥ 4).',
         'Light persona — 1 credit. Scout, Verifier, Sequencer, Challenger (depth ≤ 2).',
         'Orchestration — 10 credits. Full persona pipeline spawn (Conductor + multi-persona task).',
-        'Image generation — 12 credits. Hailuo image-01 via Creative Studio.',
-        'Video generation — 150 credits. Hailuo 02 Pro 1080p 6s clip.',
-        'Voice generation — 10 credits. Speech 2.8 HD synthesis.',
+        'Image generation — 12 credits. Creative Studio.',
+        'Video generation — 150 credits (720p), 300 at 1080p. Creative Studio, via Wan.',
+        'Voice generation — 10 credits. Creative Studio, via Qwen3-TTS.',
         'Background removal — 2 credits.',
       ]},
 

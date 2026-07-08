@@ -36,7 +36,7 @@ export type CreditAction =
   | 'light_persona'   // Scout / Verifier / Challenger on Flash
   | 'orchestration'   // Conductor full run — charged once per orchestrate()
   | 'image_gen'       // Creative Studio — image generation
-  | 'video_gen'       // Creative Studio — video generation (6s clip)
+  | 'video_gen'       // Creative Studio — video generation (5s/10s clip)
   | 'voice_gen'       // Creative Studio — TTS
   | 'music_gen'       // Creative Studio — music generation
   | 'bg_removal';     // Creative Studio — background removal
@@ -55,10 +55,10 @@ export const CREDIT_COST: Record<CreditAction, number> = {
   heavy_persona:  3,   // ~$0.0009 raw
   light_persona:  1,   // ~$0.0001 raw
   orchestration: 10,   // ~$0.003 raw (4-6 personas combined)
-  image_gen:     12,   // ~$0.04 raw (Hailuo image-01) — bumped 10→12 (2026-04-25 calibration)
-  video_gen:    150,   // 720p base tier — see VIDEO_GEN_CREDITS for resolution tiers
-  voice_gen:     10,   // ~$0.03 raw (Speech 2.8 HD ~500 chars) — bumped 3→10 (2026-04-25)
-  music_gen:     50,   // ~$0.15 raw (Music 2.5 / 2.6 paid; Free pinned to Music 2.0 ~$0.03)
+  image_gen:     12,   // ~$0.04 raw (Wan) — bumped 10→12 (2026-04-25 calibration)
+  video_gen:    150,   // 720p base tier (Wan) — see VIDEO_GEN_CREDITS for resolution tiers
+  voice_gen:     10,   // ~$0.03 raw (Qwen3-TTS ~500 chars) — bumped 3→10 (2026-04-25)
+  music_gen:     50,   // retired — no non-MiniMax music model; kept for billing plumbing
   bg_removal:     2,   // ~$0.002 raw
 };
 
