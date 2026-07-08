@@ -3,7 +3,7 @@ import type { FunctionSchema } from '../providers/types.js';
 import { getPages } from '../docs/corpus.js';
 import { SECTION_LABELS, SECTION_ORDER, type DocPage, type DocBlock, type Section, type Capability } from '../docs/types.js';
 import { commonSurfaces } from '../docs/data/capabilities.js';
-import { searchDocs, type DocHit } from './product-knowledge.js';
+import { searchDocs, type DocHit } from '../docs/product-knowledge.js';
 
 // Friendly names for the surface-availability note, so Ava can say where a
 // capability-gated feature actually works.
