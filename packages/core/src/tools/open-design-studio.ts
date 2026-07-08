@@ -2,27 +2,29 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 
 /**
- * Hand off an icon / design request from the MAIN chat to the focused Design
- * Studio. Icon generation is done in the Design Studio — the dedicated space
- * with the shape library, brand kit, canvas and the Design Architect. When the
- * user asks for an icon in the main chat, Ava calls this instead of trying to
- * generate it here; the surface renders a button that takes them straight to
- * the Design Studio. Mirror of OpenHealthRoomTool / OpenLearningRoomTool.
+ * Hand off any creative request from the MAIN chat to the focused Creative
+ * Studio. Creative generation — icons, images, short videos, voiceovers — is
+ * done in the Studio, the dedicated space with the shape library, brand kit,
+ * canvas, Open Canvas and the Design Architect. When the user asks for one of
+ * these in the main chat, Ava calls this instead of generating it here; the
+ * surface renders a button that takes them straight there. Mirror of
+ * OpenHealthRoomTool / OpenLearningRoomTool.
  */
 export class OpenDesignStudioTool implements Tool {
   readonly name = 'open_design_studio';
   readonly description =
-    'Hand the user to the focused Design Studio to make an icon. Use in the main chat when they ask for an icon / on-brand asset — it shows a button that takes them there; do not try to generate it in the main chat.';
+    'Hand the user to the focused Creative Studio to make a creative asset — an icon, image, short video, or voiceover. Use in the main chat when they ask for any of these; it shows a button that takes them there. Do not try to generate it in the main chat.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'open_design_studio',
     description:
-      'Offer the user a one-tap jump to the Design Studio (the focused space for icons, with the shape library, ' +
-      'brand kit, canvas and the Design Architect). Call this in the main chat when they ask you to make an icon ' +
-      'or on-brand asset — the Studio is where icons are built. Pair it with a short, warm one-liner; do NOT ' +
-      'attempt to generate the icon yourself in the main chat.',
+      'Offer the user a one-tap jump to the Creative Studio (the focused space for creative work — icons with the ' +
+      'shape library and brand kit, plus images, short videos and voiceovers on the Open Canvas, with the Design ' +
+      'Architect). Call this in the main chat when they ask you to make an icon, image, video or voiceover — the ' +
+      'Studio is where these are built. Pair it with a short, warm one-liner; do NOT attempt to generate the asset ' +
+      'yourself in the main chat.',
     parameters: {
       type: 'object',
       properties: {
