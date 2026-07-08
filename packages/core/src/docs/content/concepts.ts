@@ -213,6 +213,7 @@ export const CONCEPT_PAGES: DocPage[] = [
 
   {
     id: 'concepts.desktop-personas',
+    status: 'preview',
     title: 'Desktop personas',
     audience: ['power'],
     surfaces: ['web', 'ext', 'ide', 'companion'],
@@ -237,6 +238,7 @@ export const CONCEPT_PAGES: DocPage[] = [
 
   {
     id: 'concepts.desktop-safety',
+    status: 'preview',
     title: 'Desktop safety ontology',
     audience: ['power'],
     surfaces: ['web', 'ext', 'ide', 'companion'],
@@ -263,6 +265,7 @@ export const CONCEPT_PAGES: DocPage[] = [
 
   {
     id: 'concepts.desktop-grounding',
+    status: 'preview',
     title: 'Desktop grounding hierarchy (Preview)',
     audience: ['power'],
     surfaces: ['web', 'ide'],
@@ -285,6 +288,7 @@ export const CONCEPT_PAGES: DocPage[] = [
 
   {
     id: 'concepts.desktop-kill-switches',
+    status: 'preview',
     title: 'Desktop kill switches (Preview)',
     audience: ['both'],
     surfaces: ['web', 'ide'],

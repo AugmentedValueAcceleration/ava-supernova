@@ -33,6 +33,8 @@ export interface DocHit {
   surfaces: Surface[];
   /** Capabilities gating the page, if any (drives availability notes). */
   requires?: Capability[];
+  /** Shipping status of the source feature (omitted = shipped). */
+  status?: 'shipped' | 'preview' | 'planned';
   /** The matched block's plain text. */
   text: string;
   /** TF-IDF cosine score (higher = more relevant). */
@@ -69,6 +71,7 @@ export class ProductKnowledgeIndex {
       const meta = {
         pageId: p.id, pageTitle: p.title, section: p.section,
         anchor: anchorFor(p.id), surfaces: p.surfaces, requires: p.requires,
+        status: p.status,
       };
       p.body.forEach((b, i) => {
         const t = blockToSearchText(b);

@@ -128,19 +128,27 @@ export class DocsLookupTool implements Tool {
   /** Render retrieved blocks grouped by their source page, each cited so Ava can
    *  attribute the answer. Focused evidence, not whole pages. */
   private renderHits(hits: DocHit[], surface?: string): string {
-    const byPage = new Map<string, { title: string; section: Section; requires?: Capability[]; blocks: string[] }>();
+    const byPage = new Map<string, { title: string; section: Section; requires?: Capability[]; status?: DocHit['status']; blocks: string[] }>();
     for (const h of hits) {
       let g = byPage.get(h.pageId);
-      if (!g) { g = { title: h.pageTitle, section: h.section, requires: h.requires, blocks: [] }; byPage.set(h.pageId, g); }
+      if (!g) { g = { title: h.pageTitle, section: h.section, requires: h.requires, status: h.status, blocks: [] }; byPage.set(h.pageId, g); }
       if (!g.blocks.includes(h.text)) g.blocks.push(h.text);
     }
     const out: string[] = [];
     for (const g of byPage.values()) {
       const cite = `_Source: ${SECTION_LABELS[g.section]} → ${g.title}_`;
-      out.push(`## ${g.title}\n\n${g.blocks.join('\n\n')}\n\n${cite}${this.availabilityNoteFor(g.requires, surface)}`);
+      out.push(`## ${g.title}\n\n${g.blocks.join('\n\n')}\n\n${cite}${this.statusNote(g.status)}${this.availabilityNoteFor(g.requires, surface)}`);
       if (out.length >= 5) break; // cap distinct source pages for a focused answer
     }
     return out.join('\n\n---\n\n');
+  }
+
+  /** Shipping-status note so Ava never presents an unshipped feature as usable
+   *  right now. Shipped (the default) is silent — the prose already implies it. */
+  private statusNote(status?: 'shipped' | 'preview' | 'planned'): string {
+    if (status === 'preview') return '\n\n_Status: in preview — limited/gated rollout, not yet generally available._';
+    if (status === 'planned') return '\n\n_Status: on the roadmap — not shipped yet._';
+    return '';
   }
 
   /** Flatten a DocPage's blocks into plain searchable/printable text. Includes

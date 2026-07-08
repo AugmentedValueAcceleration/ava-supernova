@@ -71,6 +71,11 @@ export interface DocPage {
    * lacks them (per `data/capabilities.ts`). 'web' always shows it (badged).
    */
   requires?: Capability[];
+  /** Shipping status for Ava's product-knowledge answers. Omitted = shipped (the
+   *  default). 'preview' = built but gated / limited rollout; 'planned' = on the
+   *  roadmap, not built yet. Minimal + local so answers never claim an unshipped
+   *  feature is available. */
+  status?: 'shipped' | 'preview' | 'planned';
   /** Body blocks parsed from the markdown file. */
   body: DocBlock[];
   /**

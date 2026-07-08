@@ -226,6 +226,7 @@ export const FEATURE_PAGES: DocPage[] = [
   },
   {
     id: 'features.desktop-automation',
+    status: 'preview',
     title: 'Desktop Automation',
     audience: ['both'],
     surfaces: ['web', 'ext', 'ide', 'companion'],
