@@ -112,7 +112,8 @@ type ChatAction =
   | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
   | { type: 'clear_sign_in_error' }
   | { type: 'dismiss_welcome' }
-  | { type: 'start_sign_in_local'; method: 'github' | 'email' };
+  | { type: 'start_sign_in_local'; method: 'github' | 'email' }
+  | { type: 'history_watchdog' };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -663,6 +664,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         currentConversationId: action.conversationId,
         conversationTitle: action.title || null,
         historyOpen: false,
+        // A restored conversation means history loaded — drop the gate even if
+        // the separate history_list event is delayed or never arrives.
+        historyLoading: false,
       };
     }
 
@@ -677,6 +681,14 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'close_history':
       return { ...state, historyOpen: false };
+
+    case 'history_watchdog':
+      // Recovery net: if the loading gates are still up after the watchdog
+      // window (the host never sent platform_status / history_list — e.g. a
+      // failed history read), force them down so the chat is never trapped
+      // spinning. No-op once the real events have arrived.
+      if (!state.accountLoading && !state.historyLoading) return state;
+      return { ...state, accountLoading: false, historyLoading: false };
 
     // ── Memory ──────────────────────────────────────────────────────────
 
@@ -1088,6 +1100,15 @@ export function App() {
   const handleOpenDashboard = useCallback(() => {
     postMessage({ type: 'open_dashboard' });
   }, [postMessage]);
+
+  // Recovery watchdog: never let the chat sit locked behind the loading gates.
+  // If account/history data hasn't arrived within the window (e.g. a failed
+  // history read the host swallowed), force-unlock so the user can always type.
+  // Fires once on mount; a no-op if the data already arrived.
+  useEffect(() => {
+    const t = setTimeout(() => dispatch({ type: 'history_watchdog' }), 8000);
+    return () => clearTimeout(t);
+  }, []);
 
   const handleOpenHistory = useCallback(() => {
     postMessage({ type: 'request_history' });

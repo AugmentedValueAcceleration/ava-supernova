@@ -90,8 +90,18 @@ export class HistoryCoordinator {
   }
 
   async sendList(): Promise<void> {
-    const conversations = await this.deps.historyManager.listConversations(false);
-    this.deps.postMessage({ type: 'history_list', conversations });
+    try {
+      const conversations = await this.deps.historyManager.listConversations(false);
+      this.deps.postMessage({ type: 'history_list', conversations });
+    } catch (err) {
+      // Never leave the chat's historyLoading gate stuck: a failed list read must
+      // STILL send history_list (empty) so the panel unlocks. Conversations aren't
+      // lost — the user can reopen the sidebar to retry once the transient error
+      // clears. Previously this threw and the caller swallowed it, trapping the
+      // chat on the "Loading your account and chat history…" spinner forever.
+      console.warn(`[history] sendList failed, sending empty list to unblock the chat: ${err instanceof Error ? err.message : err}`);
+      this.deps.postMessage({ type: 'history_list', conversations: [] });
+    }
   }
 
   async load(conversationId: string): Promise<void> {
