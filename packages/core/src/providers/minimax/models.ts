@@ -19,31 +19,4 @@ export const MINIMAX_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 2.40 },
   },
-  // MiniMax M2.7 — current standard, cheapest of the line.
-  {
-    id: 'MiniMax-M2.7',
-    name: 'MiniMax M2.7',
-    provider: 'minimax',
-    contextWindow: 204800,
-    maxOutputTokens: 128000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: false,
-    pricing: { inputPerMillion: 0.30, outputPerMillion: 1.20 },
-  },
-  // MiniMax M2.7 HighSpeed — speed-optimised serving of M2.7. Same model,
-  // faster inference, premium rate.
-  {
-    id: 'MiniMax-M2.7-highspeed',
-    name: 'MiniMax M2.7 HighSpeed',
-    provider: 'minimax',
-    contextWindow: 204800,
-    maxOutputTokens: 128000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: false,
-    pricing: { inputPerMillion: 0.60, outputPerMillion: 2.40 },
-  },
 ];

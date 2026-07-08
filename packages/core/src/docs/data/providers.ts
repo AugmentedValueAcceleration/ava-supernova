@@ -80,11 +80,9 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'minimax',
     name: 'MiniMax',
     kind: 'byok',
-    notes: 'BYOK chat models — bring your own MiniMax API key. (MiniMax also powers Creative Studio voice.)',
+    notes: 'BYOK chat — bring your own MiniMax API key. M3 only.',
     models: [
       { id: 'MiniMax-M3', displayName: 'MiniMax M3', inputPricePerM: 0.60, outputPricePerM: 2.40, contextWindow: 1_048_576, capabilities: ['tools', 'thinking', 'streaming', 'vision'] },
-      { id: 'MiniMax-M2.7', displayName: 'MiniMax M2.7', inputPricePerM: 0.30, outputPricePerM: 1.20, contextWindow: 204_800, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'MiniMax-M2.7-highspeed', displayName: 'MiniMax M2.7 HighSpeed', inputPricePerM: 0.60, outputPricePerM: 2.40, contextWindow: 204_800, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
   {
@@ -132,8 +130,9 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'kimi',
     name: 'Kimi (Moonshot AI)',
     kind: 'byok',
-    notes: 'K2.6 scores 58.6 on SWE-Bench Pro (Moonshot, averaged over 10 runs) — a strong open-weight agentic-coding model built for large sub-agent orchestration. 256K context.',
+    notes: 'K2.7 Code is Moonshot\'s current flagship agentic coder (Modified MIT, 256K context; benchmarks Moonshot-reported). The prior K2.6 scored 58.6 on SWE-Bench Pro (Moonshot, 10-run average).',
     models: [
+      { id: 'kimi-k2.7-code', displayName: 'Kimi K2.7 Code', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.6', displayName: 'Kimi K2.6', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.5', displayName: 'Kimi K2.5', inputPricePerM: 0.60, outputPricePerM: 3.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],

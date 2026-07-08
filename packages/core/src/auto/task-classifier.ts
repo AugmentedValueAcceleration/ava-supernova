@@ -4,18 +4,17 @@ import type { ClassificationResult } from './types.js';
 // ─── Model name patterns for user inline overrides ───────────────────────────
 
 const MODEL_ALIASES: Record<string, string> = {
-  // Kimi / Moonshot — 'kimi' / 'k2' / 'moonshot' route to the current flagship K2.6;
-  // legacy 'k2.5' alias kept for users who want to pin the older model explicitly.
-  'kimi': 'kimi-k2.6',
-  'k2': 'kimi-k2.6',
+  // Kimi / Moonshot — 'kimi' / 'k2' / 'moonshot' route to the current flagship
+  // K2.7 Code; 'k2.6'/'k2.5' aliases kept to pin the older models explicitly.
+  'kimi': 'kimi-k2.7-code',
+  'k2': 'kimi-k2.7-code',
+  'k2.7': 'kimi-k2.7-code',
   'k2.6': 'kimi-k2.6',
   'k2.5': 'kimi-k2.5',
-  'moonshot': 'kimi-k2.6',
-  // MiniMax (BYOK) — bare 'minimax'/'m3' route to the current flagship M3;
-  // 'm2.7' pins the older standard model.
+  'moonshot': 'kimi-k2.7-code',
+  // MiniMax (BYOK chat, M3 only) — bare 'minimax'/'m3' route to M3.
   'minimax': 'MiniMax-M3',
   'm3': 'MiniMax-M3',
-  'm2.7': 'MiniMax-M2.7',
   // Qwen
   'qwen': 'qwen3.7-plus',
   'qwen flash': 'qwen3.5-flash',

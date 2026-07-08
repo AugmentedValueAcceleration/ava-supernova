@@ -8,7 +8,7 @@ import type { ModelDefinition } from '../core/types.js';
  * The coordinator is the persistent model that classifies tasks and routes them.
  * It must be the best reasoning model available — not whatever the user has selected.
  *
- * MiniMax is NEVER used as a coordinator — it is reserved exclusively for Creative Studio.
+ * MiniMax is NEVER used as a coordinator — it is BYOK chat only (M3), not an orchestration model.
  *
  * Priority (all coordinator-eligible Plus models are 1M context; Flash tiers are 256K).
  * Every plan has access to every model — tier differs by token allowance, not model access.
@@ -31,7 +31,7 @@ export interface CoordinatorModelResult {
 }
 
 // Ordered by reasoning capability — best first.
-// Both Plus tiers are 1M context — no cliff on fallback. MiniMax excluded (creative-only, 200K).
+// Both Plus tiers are 1M context — no cliff on fallback. MiniMax excluded — BYOK chat only, never a coordinator.
 const PLATFORM_PRIORITY = [
   { id: 'qwen3.7-plus',     reason: 'Qwen 3.7 Plus — best agentic coding, 1M context, native function calling' },
   { id: 'qwen3.5-plus',     reason: 'Qwen 3.5 Plus — 1M context fallback conductor' },
@@ -40,7 +40,8 @@ const PLATFORM_PRIORITY = [
 
 const BYOK_PRIORITY = [
   { id: 'claude-fable-5',       reason: 'Claude Fable 5 — Anthropic Mythos-class flagship, strongest reasoning available, 1M context' },
-  { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — SoTA agentic coding (SWE-Bench Pro 58.6), 256K context, built for orchestration' },
+  { id: 'kimi-k2.7-code',       reason: 'Kimi K2.7 Code — Moonshot flagship agentic coder, ~30% fewer reasoning tokens than K2.6, 256K context' },
+  { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — agentic coding fallback (SWE-Bench Pro 58.6), 256K context' },
   { id: 'claude-opus-4-8',      reason: 'Claude Opus 4.8 — strongest general reasoning' },
   { id: 'claude-sonnet-5',      reason: 'Claude Sonnet 5 — fast, strong reasoning' },
   { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — legacy agentic fallback' },

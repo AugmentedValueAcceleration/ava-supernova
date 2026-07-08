@@ -30,6 +30,7 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'deepseek-v4-flash': { inputPerMillion: 0.14,  outputPerMillion: 0.28 },
   },
   kimi: {
+    'kimi-k2.7-code': { inputPerMillion: 0.95, outputPerMillion: 4.00 },
     'kimi-k2.6': { inputPerMillion: 0.60,  outputPerMillion: 2.40 },
     'kimi-k2.5': { inputPerMillion: 0.55,  outputPerMillion: 2.20 },
   },

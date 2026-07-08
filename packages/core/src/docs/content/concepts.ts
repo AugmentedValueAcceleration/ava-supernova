@@ -77,7 +77,6 @@ export const CONCEPT_PAGES: DocPage[] = [
         'Image generation — 12 credits. Hailuo image-01 via Creative Studio.',
         'Video generation — 150 credits. Hailuo 02 Pro 1080p 6s clip.',
         'Voice generation — 10 credits. Speech 2.8 HD synthesis.',
-        'Music generation — 50 credits. MiniMax Music 2.5/2.6.',
         'Background removal — 2 credits.',
       ]},
 
@@ -94,7 +93,7 @@ export const CONCEPT_PAGES: DocPage[] = [
         '0.5× — DeepSeek V4 Flash.',
         '0.4× — Qwen 3.5 Omni Flash.',
         '0.3× — Qwen 3.5 Flash.',
-        '1.0× — MiniMax and any other model without a listed multiplier. Base rate.',
+        '1.0× — any model without a listed multiplier. Base rate.',
       ]},
       { type: 'callout', variant: 'note', text: 'Anthropic models (Claude Opus / Sonnet / Haiku) skip credit billing entirely — they are BYOK only and you pay Anthropic directly. Same for any other BYOK provider when used with your own key.' },
 

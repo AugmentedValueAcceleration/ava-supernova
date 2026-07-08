@@ -31,12 +31,12 @@ interface RouteEntry {
 // stay on Qwen 3.5 Flash. Qwen 3.5 Plus is retired from primary routes and
 // survives only as the outage fallback for 3.7 Plus. Vision-input tasks land
 // on Qwen 3.7 Plus (native vision + video).
-// MiniMax reserved for creative generation (image/video/music/voice).
+// MiniMax is BYOK chat only (M3) — never a platform route; creative generation uses Qwen-Image / Wan / Qwen3-TTS.
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   coding:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen3.5-plus' },
   // Vision — Qwen 3.7 Plus sees images + video natively (1M context).
   vision:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — native vision + video, 1M context', fallbackModelId: 'qwen3.5-plus', requiresVision: true },
-  // image_gen orchestrates the generate_image tool call to Wan/MiniMax —
+  // image_gen orchestrates the generate_image tool call to Wan —
   // no agentic depth needed at this layer. Flash is ~6× cheaper.
   image_gen:    { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
   // computer_use route retired alongside the Holo3 integration.
@@ -197,7 +197,7 @@ export class ModelRouter {
   private resolveAnyModel(reason: string): RouteResult | null {
     // Platform models (preferred order: coding-capable first).
     // Kimi removed — Kimi is BYOK only, so `platform:kimi-*` never resolved.
-    // MiniMax excluded from reasoning fallback — reserved for creative generation.
+    // MiniMax excluded from reasoning fallback — it is BYOK chat only, never a coordinator.
     if (this.hasPlatform) {
       const platformModels = ['qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
       for (const id of platformModels) {
@@ -207,9 +207,9 @@ export class ModelRouter {
     }
 
     // BYOK models (dynamic — try whatever providers are available, best first).
-    // Fable 5 first: Anthropic's Mythos-class flagship. K2.6 next: SoTA
-    // agentic coding. K2.5 kept as legacy fallback. MiniMax excluded — creative only.
-    const byokModels = ['claude-fable-5', 'kimi-k2.6', 'claude-opus-4-8', 'claude-sonnet-5', 'kimi-k2.5', 'deepseek-chat', 'glm-5.2', 'mistral-medium-3.5', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
+    // Fable 5 first: Anthropic's Mythos-class flagship. K2.7 Code next: SoTA
+    // agentic coding. K2.6/K2.5 kept as fallbacks. MiniMax excluded — BYOK chat only.
+    const byokModels = ['claude-fable-5', 'kimi-k2.7-code', 'kimi-k2.6', 'claude-opus-4-8', 'claude-sonnet-5', 'kimi-k2.5', 'deepseek-chat', 'glm-5.2', 'mistral-medium-3.5', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {

@@ -69,7 +69,6 @@ import { DocGenerateTool } from './doc-generate.js';
 import { EmailDraftTool } from './email-draft.js';
 import { ReportGenerateTool } from './report-generate.js';
 import { GenerateImageTool } from './generate-image.js';
-import { GenerateMusicTool } from './generate-music.js';
 import { GenerateVideoTool } from './generate-video.js';
 import { GenerateVoiceTool } from './generate-voice.js';
 import { RemoveBackgroundTool } from './remove-background.js';
@@ -158,7 +157,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   browser_navigate: 'web', browser_snapshot: 'web', browser_click: 'web',
   browser_type: 'web', browser_close: 'web',
   // Media — images, audio, video
-  generate_image: 'media', generate_music: 'media',
+  generate_image: 'media',
   generate_video: 'media', generate_voice: 'media', remove_background: 'media',
   // Design Studio — icon generation (shape-as-dial), brand kit, save
   design_find_shape: 'media', design_generate_icon: 'media',
@@ -450,7 +449,6 @@ export class ToolRegistry {
       new EmailDraftTool(),
       new ReportGenerateTool(),
       new GenerateImageTool(),
-      new GenerateMusicTool(),
       new GenerateVideoTool(),
       new GenerateVoiceTool(),
       new RemoveBackgroundTool(),

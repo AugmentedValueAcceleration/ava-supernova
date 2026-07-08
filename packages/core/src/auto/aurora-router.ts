@@ -95,7 +95,7 @@ export const AURORA_ROUTES: Record<TaskCategory, AuroraRouteEntry> = {
   teach:        { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — coherent long-form output for tutorials and lesson plans',           fallbackModelId: 'mistral-large-3', creationModelId: 'mistral-medium-3.5' },
 
   // ── High-volume routes → Small 4 (cheap + capable), Medium 3.5 ceiling ──
-  // image_gen routes a generate_image tool call to Wan / MiniMax — the
+  // image_gen routes a generate_image tool call to Wan — the
   // Mistral model just orchestrates; depth not required, Small 4 is cheapest.
   image_gen:    { modelId: 'mistral-small-4',    reason: 'Mistral Small 4 — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'mistral-medium-3.5' },
   // computer_use route retired alongside the Holo3 integration.

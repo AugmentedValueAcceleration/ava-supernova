@@ -143,7 +143,7 @@ export const START_PAGES: DocPage[] = [
     section: 'start',
     body: [
       { type: 'paragraph', text: 'Everything Ava does is local unless you explicitly opt in. Memory, tasks, journal, personality, settings — all stored on your machine in ~/.ava/ and .ava/ (per project). She talks to model providers over HTTPS to run your request, then returns home. She does not phone home. She does not collect telemetry. She does not train on your code.' },
-      { type: 'paragraph', text: 'If you sign in, you get 300 free credits a month on platform-managed models (Qwen, MiniMax) and optional cloud sync for memory and settings across machines. Sync is per-feature, revocable anytime. Bring your own API key and Ava works fully without an account.' },
+      { type: 'paragraph', text: 'If you sign in, you get 300 free credits a month on platform-managed models (Qwen, DeepSeek, Mistral) and optional cloud sync for memory and settings across machines. Sync is per-feature, revocable anytime. Bring your own API key and Ava works fully without an account.' },
       { type: 'callout', variant: 'tip', text: 'The rule: local is sacred. Cloud is additive.' },
     ],
   },

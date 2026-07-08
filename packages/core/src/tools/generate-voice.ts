@@ -7,17 +7,17 @@ import { startGenerationTracking } from '../dataset/generation-emit.js';
 import { chargeCredits } from '../billing/meter.js';
 
 /**
- * Generate AI voice/speech from text using MiniMax TTS.
+ * Generate AI voice/speech from text via Qwen3-TTS.
  *
- * Multiple voice options available with configurable speed.
- * Routes through the Ava platform API.
+ * You author the script and the delivery; pick a voice from the roster and set
+ * the spoken language. Routes through the Ava platform API.
  */
 
 const PLATFORM_URL = 'https://ava-supernova.com/api';
 
 export class GenerateVoiceTool implements Tool {
   readonly name = 'generate_voice';
-  readonly description = 'Generate AI voice/speech from text using MiniMax TTS.';
+  readonly description = 'Generate AI voice/speech from text via Qwen3-TTS.';
   readonly riskLevel: ToolRiskLevel = 'write';
   // Media generation costs credits — confirm before running so Ava never
   // spends the user's balance without an explicit yes (palette click or
@@ -27,37 +27,32 @@ export class GenerateVoiceTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'generate_voice',
     description:
-      'Generate AI voice/speech from text and save to project. Multiple voice options available.',
+      'Generate AI voice/speech from text and save to project. Pick a voice from the roster; set the spoken language and delivery instructions.',
     parameters: {
       type: 'object',
       properties: {
         text: {
           type: 'string',
-          description: 'Text to speak',
+          description: 'The exact words to speak, verbatim.',
         },
         filename: {
           type: 'string',
           description: 'Output filename without extension (e.g. "intro-narration")',
         },
-        voice_id: {
+        voice: {
           type: 'string',
-          enum: [
-            'Calm_Woman',
-            'Wise_Woman',
-            'Friendly_Person',
-            'Inspirational_girl',
-            'Deep_Voice_Man',
-            'Calm_Man',
-            'Newsman',
-            'Lively_Girl',
-            'Patient_Man',
-            'Determined_Man',
-          ],
-          description: 'Voice to use. Default: Calm_Woman.',
+          enum: ['Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona', 'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai'],
+          description: 'Voice from the Qwen3-TTS roster. Default: Cherry.',
         },
-        speed: {
-          type: 'number',
-          description: 'Speech speed multiplier. Default: 1.0. Range: 0.5-2.0.',
+        language: {
+          type: 'string',
+          description:
+            'The spoken language (e.g. "English", "French", "Japanese"). Default "English". To voice a translated read, translate the text yourself and set this — the same voice speaks it.',
+        },
+        instructions: {
+          type: 'string',
+          description:
+            'Delivery direction: tone, pace, emotion, energy (e.g. "warm, unhurried, reassuring"). There is no numeric speed knob — shape the read here.',
         },
       },
       required: ['text', 'filename'],
@@ -67,8 +62,9 @@ export class GenerateVoiceTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const text = args.text as string;
     const filename = (args.filename as string).replace(/\.\w+$/, '');
-    const voiceId = (args.voice_id as string) || 'Calm_Woman';
-    const speed = (args.speed as number) || 1.0;
+    const voice = (args.voice as string) || 'Cherry';
+    const language = (args.language as string) || 'English';
+    const instructions = (args.instructions as string) || undefined;
     const targetPath = args.target_path as string | undefined;
 
     const genManager = (context.sharedState as Record<string, unknown>)?.generationManager as
@@ -82,7 +78,7 @@ export class GenerateVoiceTool implements Tool {
       genManager?.fail(jobId, 'No API key');
       return {
         success: false,
-        output: 'Voice generation requires a MiniMax API key (BYOK) or platform account.',
+        output: 'Voice generation requires a Qwen API key (BYOK) or platform account.',
       };
     }
 
@@ -91,9 +87,9 @@ export class GenerateVoiceTool implements Tool {
 
     const tracker = startGenerationTracking({
       type: 'voice',
-      model: 'minimax-voice',
+      model: 'qwen3-tts',
       prompt: text,
-      paramsSummary: `voice=${voiceId}, speed=${speed}`,
+      paramsSummary: `voice=${voice}, language=${language}`,
     });
 
     try {
@@ -103,7 +99,7 @@ export class GenerateVoiceTool implements Tool {
           'Authorization': `Bearer ${resolved.key}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text, voice_id: voiceId, speed }),
+        body: JSON.stringify({ text, voice, language_type: language, instructions }),
       });
 
       if (!res.ok) {
@@ -128,7 +124,7 @@ export class GenerateVoiceTool implements Tool {
       const sizeKb = (audioBuffer.length / 1024).toFixed(1);
       context.onOutput?.(`Voice saved: ${relativePath} (${sizeKb} KB)\n`);
 
-      const meta = { path: relativePath, absolutePath: savePath, size: audioBuffer.length, voiceId, speed, textLength: text.length };
+      const meta = { path: relativePath, absolutePath: savePath, size: audioBuffer.length, voice, language, textLength: text.length };
       genManager?.complete(jobId, meta);
       tracker.complete({ fileSizeBytes: audioBuffer.length });
 
@@ -166,11 +162,11 @@ export class GenerateVoiceTool implements Tool {
     return Buffer.from(await res.arrayBuffer());
   }
 
-  private resolveKey(context: ToolExecutionContext): { key: string; via: 'minimax' | 'platform' } | null {
+  private resolveKey(context: ToolExecutionContext): { key: string; via: 'qwen' | 'platform' } | null {
     const state = context.sharedState as Record<string, unknown> | undefined;
     const getKey = state?.getProviderKey as ((p: string) => string | undefined) | undefined;
-    const minimaxKey = getKey?.('minimax');
-    if (minimaxKey) return { key: minimaxKey, via: 'minimax' };
+    const qwenKey = getKey?.('qwen');
+    if (qwenKey) return { key: qwenKey, via: 'qwen' };
     const platformKey = state?.platformKey as string | undefined;
     if (platformKey) return { key: platformKey, via: 'platform' };
     return null;

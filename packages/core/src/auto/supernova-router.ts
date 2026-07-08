@@ -59,7 +59,7 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   coding:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-v4-flash' },
   // Vision input → Qwen 3.7 Plus (native vision + video).
   vision:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — native vision + video, 1M context', fallbackModelId: 'qwen3.5-plus', requiresVision: true },
-  // image_gen orchestrates a generate_image tool call to Wan / MiniMax —
+  // image_gen orchestrates a generate_image tool call to Wan —
   // no agentic depth needed at this layer. Flash is cheapest.
   image_gen:    { modelId: 'qwen3.5-flash',               reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
   // computer_use route retired alongside the Holo3 integration.
