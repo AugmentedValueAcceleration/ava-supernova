@@ -361,6 +361,25 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'ask_user', 'get_datetime',
     'switch_mode',
   ]),
+  // Social Studio — Ava as the social-media & marketing lead, driving the
+  // Posts floor. Same Ava, marketing-scoped: research/hook/write/performance
+  // tools are her kit, docs_lookup grounds every product claim, generate_image
+  // makes visuals, memory carries the mission's voice, journal her read on the
+  // brand's public presence. Coding / file / shell tools are deliberately OUT —
+  // this room ships posts, it doesn't touch the codebase.
+  social: new Set([
+    'research_post', 'propose_hooks', 'write_post', 'post_performance', 'suggest_beats',
+    // Ground every product claim in the real docs, never training memory
+    'docs_lookup', 'release_notes',
+    // Visuals for posts
+    'generate_image',
+    // Research to make the angle current
+    'web_search',
+    // Memory carries the mission voice; journal her read on the brand
+    'memory_save', 'memory_recall', 'memory_update', 'journal_write',
+    'ask_user', 'get_datetime',
+    'switch_mode',
+  ]),
   // Write mode — the author's surface. Markdown is the editable source;
   // Word/PDF are exports. Ships the authoring tool + the supporting cast a
   // writer reaches for (research, images for covers, the file ops the .md
@@ -434,6 +453,7 @@ function detectModeFromMessages(messages: Message[]): string | null {
     if (text.startsWith('[Desktop Automation Mode]')) return 'desktop';
     if (text.startsWith('[Health Room]')) return 'health';
     if (text.startsWith('[Design Studio]')) return 'design';
+    if (text.startsWith('[Social Studio]')) return 'social';
     break;
   }
   return null;
