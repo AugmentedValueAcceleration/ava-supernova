@@ -12,11 +12,26 @@
 export const LOGO_SYMBOL_NEGATIVE =
   'text, letters, words, numbers, typography, wordmark, gradient, gradients, drop shadow, 3D, bevel, realistic shading, photorealistic, texture, grain, noise, busy detail, fine detail, multiple objects, collage, scene, environment, background pattern, frame, border, mockup, low quality, blurry';
 
-/** Compose the image-model prompt for a brand SYMBOL. `direction` is Ava's
- *  authored concept (what the mark should evoke — "a rising arc, momentum");
- *  everything else is the locked frame that keeps it flat, single-subject and
- *  clean enough to matte + trace. `color` seeds the mark; kept a single solid
- *  colour so the mono/light-dark variants come out cleanly on recolour. */
+/** Reference-GUIDED mark prompt — the logo equivalent of composeIconPrompt. A
+ *  clean Lucide vector (rendered to an armature) anchors the geometry, exactly
+ *  like the icon lane; qwen-image-edit REFINES it into a bold, FLAT logomark
+ *  (no glossy/3D material — a logo must stay flat, single-colour and scalable).
+ *  This is the fix for "generic sparkle": the shape is real, not invented. */
+export function composeLogoMarkPrompt(opts: { label: string; styleTags?: string[]; color?: string }): string {
+  const feel = (opts.styleTags ?? []).map((t) => t.trim()).filter(Boolean);
+  const feelClause = feel.length ? ` Brand feel: ${feel.join(', ')}.` : '';
+  const colorClause = opts.color ? ` Single solid colour ${opts.color}.` : ' Single solid colour.';
+  return (
+    `A single minimal FLAT vector logo mark, refined from the reference drawing of "${opts.label}" into a bold, iconic brand symbol.${feelClause}` +
+    ` Keep the reference's core geometry but SIMPLIFY and STRENGTHEN it into a clean logomark: solid flat shapes, even confident weight, deliberate negative space, crisp edges, perfectly flat (SVG-like), radically simple and memorable as a silhouette.${colorClause}` +
+    ` One centered mark filling most of the frame, isolated on a flat pure-white #ffffff background.` +
+    ` No text, no gradient, no shadow, no 3D, no bevel, no texture, no fine detail, no background scene.`
+  );
+}
+
+/** Free-form (no reference) symbol prompt — kept for fallback / experimentation.
+ *  `direction` is Ava's concept. Reference-guided (composeLogoMarkPrompt) is the
+ *  primary path now. */
 export function composeSymbolPrompt(opts: { direction: string; styleTags?: string[]; color?: string }): string {
   const concept = opts.direction.trim() || 'a simple, distinctive abstract brand mark';
   const feel = (opts.styleTags ?? []).map((t) => t.trim()).filter(Boolean);

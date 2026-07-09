@@ -11,7 +11,7 @@ import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
 import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-library';
 import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, type BrandKit } from '../lib/asset-forge/brand-kit';
 import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE, withBrandDirection } from '../lib/asset-forge/generate';
-import { composeSymbolPrompt, LOGO_SYMBOL_NEGATIVE } from '../lib/asset-forge/logo/prompt';
+import { composeLogoMarkPrompt, LOGO_SYMBOL_NEGATIVE } from '../lib/asset-forge/logo/prompt';
 import { typesetWordmark } from '../lib/asset-forge/logo/wordmark';
 import { composeLogoSystem } from '../lib/asset-forge/logo/compose';
 import { fontById, suggestFont, WORDMARK_FONTS } from '../lib/asset-forge/logo/fonts';
@@ -819,28 +819,33 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   };
 
   // ── Logo lane ──────────────────────────────────────────────────────────
-  // Generate the SYMBOL on white (matte:false), routed to the logo resolver so
-  // it never touches the icon/image stage or auto-saves.
-  const runLogoSymbol = (prompt: string): Promise<ImageOutcome> =>
+  // The SYMBOL is REFERENCE-GUIDED, exactly like the icon lane: a clean Lucide
+  // vector anchors the geometry, qwen-image-edit refines it into a bold FLAT
+  // mark. That's why icons look good and free-form logos didn't. Routed to the
+  // logo resolver so it never touches the icon/image stage or auto-saves. Near-
+  // black for a clean matte + trace; compose recolours to the brand.
+  const runLogoSymbol = (shapeHit: ShapeHit, styleTags: string[]): Promise<ImageOutcome> =>
     new Promise<ImageOutcome>((resolve) => {
       logoResolverRef.current = resolve;
       pendingLogoRef.current = true;
-      // matte: true runs the SAME background-removal the icon lane uses
-      // (server remove-bg → clean transparent), so vtracer traces a clean mark
-      // instead of Qwen's near-white noise (the speckles).
-      post({ type: 'asset_forge_generate', body: { prompt, size: '1024*1024', matte: true, negativePrompt: LOGO_SYMBOL_NEGATIVE } } as any);
+      svgToPngDataUrl(armatureSvg(shapeHit), 1024, 1024)
+        .then((armature) => {
+          const prompt = composeLogoMarkPrompt({ label: shapeHit.label, styleTags, color: '#111111' });
+          // matte: true reuses the icon lane's remove-bg → clean transparent, so
+          // vtracer traces a clean mark, not Qwen's near-white noise.
+          post({ type: 'asset_forge_generate', body: { prompt, referenceImage: armature, size: '1024*1024', matte: true, negativePrompt: LOGO_SYMBOL_NEGATIVE } } as any);
+        })
+        .catch((e) => { pendingLogoRef.current = false; logoResolverRef.current = null; resolve({ ok: false, error: e instanceof Error ? e.message : 'Symbol generation failed' }); });
     });
 
-  // The full make: brief → symbol (Qwen) → vectorize (server) → wordmark (real
-  // font) → compose the variant system. Each step is awaited; the symbol raster
-  // is an intermediate that's traced and discarded.
+  // The full make: brief → symbol (reference-guided Qwen) → vectorize (server) →
+  // wordmark (real font) → compose the variant system. The symbol raster is an
+  // intermediate that's traced and discarded.
   const runLogoGeneration = async (brief: LogoBrief): Promise<{ ok: boolean; system?: LogoSystem; error?: string }> => {
     try {
-      // Generate the mark in solid near-black for a clean, high-contrast matte +
-      // trace — compose recolours it to the brand palette afterwards, so the
-      // generation colour doesn't reach the final logo.
-      const prompt = composeSymbolPrompt({ direction: brief.symbolDirection, styleTags: brief.styleTags, color: '#111111' });
-      const sym = await runLogoSymbol(prompt);
+      const shape = resolveShape(brief.mark || brief.symbolDirection || brief.brandName);
+      if (!shape) return { ok: false, error: 'No mark to build from — pick a shape for the symbol (design_find_shape) and pass it as `mark`.' };
+      const sym = await runLogoSymbol(shape, brief.styleTags ?? []);
       if (!sym.ok || !sym.dataUrl) return { ok: false, error: sym.error || 'Symbol generation failed' };
       const symbolSvg = await vectorizeSymbol(sym.dataUrl, 'bw');
       const font = fontById(brief.fontId);
@@ -983,6 +988,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const brief: LogoBrief = {
           brandName: (typeof args.brand_name === 'string' && args.brand_name.trim()) ? args.brand_name.trim() : kit.name,
           fontId: (typeof args.font === 'string' && args.font) ? args.font : (logoFontId || suggestFont(kit.styleTags).id),
+          mark: typeof args.mark === 'string' ? args.mark : '',
           symbolDirection: typeof args.direction === 'string' ? args.direction : '',
           palette: { primary: kit.palette.primary, accent: kit.palette.accent },
           styleTags: kit.styleTags,

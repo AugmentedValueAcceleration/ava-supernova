@@ -21,7 +21,10 @@ export type LogoVariant =
 export interface LogoBrief {
   brandName: string;
   fontId: string;            // a WORDMARK_FONTS id
-  symbolDirection: string;   // Ava's concept for the mark ("a rising arc — momentum")
+  /** The mark's armature — a Lucide shape id or subject ("star", "arc"). The
+   *  symbol is reference-guided off this (like icons), not free-generated. */
+  mark: string;
+  symbolDirection: string;   // Ava's concept / rationale ("a rising arc — momentum")
   palette: { primary: string; secondary?: string; accent?: string };
   styleTags?: string[];
 }

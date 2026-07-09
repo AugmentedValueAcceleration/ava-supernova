@@ -540,10 +540,15 @@ export class DesignGenerateLogoTool implements Tool {
     parameters: {
       type: 'object',
       properties: {
+        mark: {
+          type: 'string',
+          description:
+            'The mark\'s SHAPE — a Lucide id from design_find_shape, or a subject ("star", "arc", "hexagon", "leaf"). This anchors the symbol\'s geometry (it\'s refined into a flat logomark), so the result is clean and distinctive instead of generic. Call design_find_shape first, pick the shape that best embodies your concept — laterally, not the literal one — and pass it here.',
+        },
         direction: {
           type: 'string',
           description:
-            'YOU author this — the SYMBOL concept a designer would brief: what the mark evokes, abstractly. e.g. "a rising arc suggesting momentum", "two leaves forming a heart", "a geometric fox head". Keep it a single simple idea — great marks are minimal.',
+            'YOU author this — the SYMBOL concept / rationale a designer would brief: what the mark evokes and why. e.g. "a rising arc suggesting momentum", "two leaves forming a heart". Keep it a single simple idea — great marks are minimal.',
         },
         font: {
           type: 'string',
@@ -562,7 +567,7 @@ export class DesignGenerateLogoTool implements Tool {
     const direction = (args.direction as string | undefined)?.trim();
     if (!direction) return { success: false, output: 'Missing `direction` — the symbol concept, authored by you.' };
     try {
-      const res = await control('generate_logo', { direction, font: args.font, brand_name: args.brand_name });
+      const res = await control('generate_logo', { direction, mark: args.mark, font: args.font, brand_name: args.brand_name });
       if (!res.ok) return { success: false, output: res.error || 'Logo generation failed.' };
       const d = res.data as { brandName?: string; font?: string; variants?: number } | undefined;
       return {
