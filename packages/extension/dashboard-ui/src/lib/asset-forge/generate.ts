@@ -40,7 +40,31 @@ export function armatureSvg(shape: ShapeHit): string {
  *  from what she gauged); everything else is the LOCKED, matte-critical frame
  *  (silhouette-lock, isolation, white background, no text) she can't break, so
  *  transparency always works. The reference image carries the shape. */
-export function composeIconPrompt(label: string, look: string, color: string): string {
+export function composeIconPrompt(label: string, look: string, color: string, styleTags?: string[]): string {
   const art = look.trim() || 'clean, well-crafted icon finish';
-  return `A single "${label}" icon — ${art}. Follow the reference drawing exactly: keep its shape, proportions and ALL internal detail — render every element it shows (never simplify it into a plain blob, never drop the inner parts). Restyle only its surface, material and lighting. Primary colour ${color}. One single centered icon filling most of the frame, isolated on a completely flat solid pure-white #ffffff background, crisp clean edges, no background scene, no cast shadow on the background, no glow bleeding to the edges, no text, no letters, no numbers.`;
+  return `A single "${label}" icon — ${art}.${brandFeel(styleTags)} Follow the reference drawing exactly: keep its shape, proportions and ALL internal detail — render every element it shows (never simplify it into a plain blob, never drop the inner parts). Restyle only its surface, material and lighting. Primary colour ${color}. One single centered icon filling most of the frame, isolated on a completely flat solid pure-white #ffffff background, crisp clean edges, no background scene, no cast shadow on the background, no glow bleeding to the edges, no text, no letters, no numbers.`;
+}
+
+/** The active brand kit's persistent style words, as a short clause to weave into
+ *  a prompt. Empty tags → empty string (no-op). Kept separate so it never
+ *  overrides the caller's explicit art direction — it sits alongside it. */
+export function brandFeel(styleTags?: string[]): string {
+  const tags = (styleTags ?? []).map((t) => t.trim()).filter(Boolean);
+  return tags.length ? ` Brand feel: ${tags.join(', ')}.` : '';
+}
+
+/** Layer the active brand — style words + palette — onto a free-form image
+ *  prompt. Light touch: appended as direction so the model applies the brand
+ *  feel/colours where they fit rather than overriding the subject. Returns the
+ *  prompt unchanged when the kit carries neither. */
+export function withBrandDirection(
+  prompt: string,
+  opts: { styleTags?: string[]; palette?: { primary?: string; accent?: string } },
+): string {
+  const tags = (opts.styleTags ?? []).map((t) => t.trim()).filter(Boolean);
+  const bits: string[] = [];
+  if (tags.length) bits.push(`style: ${tags.join(', ')}`);
+  const pal = [opts.palette?.primary, opts.palette?.accent].filter(Boolean);
+  if (pal.length) bits.push(`brand palette ${pal.join(' and ')} where it fits`);
+  return bits.length ? `${prompt.trim()} — ${bits.join('; ')}.` : prompt;
 }

@@ -10,7 +10,7 @@ import { Select } from '../components/Select';
 import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
 import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-library';
 import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, type BrandKit } from '../lib/asset-forge/brand-kit';
-import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE } from '../lib/asset-forge/generate';
+import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE, withBrandDirection } from '../lib/asset-forge/generate';
 import { DESIGN_GROUPS, type ViewId } from '../lib/design-types';
 import { toWebp } from '../lib/compress';
 
@@ -690,7 +690,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       setGenStatus('Preparing…');
       svgToPngDataUrl(armatureSvg(shapeHit), 1024, 1024)
         .then((armature) => {
-          const prompt = composeIconPrompt(shapeHit.label, look, colorHex);
+          const prompt = composeIconPrompt(shapeHit.label, look, colorHex, kit.styleTags);
           setGenStatus('Generating with Qwen-Image…');
           post({ type: 'asset_forge_generate', body: { prompt, referenceImage: armature, size: '1024*1024', negativePrompt: ICON_NEGATIVE } });
         })
@@ -763,7 +763,11 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       pendingImageRef.current = true;
       setImageSrc(null);
       setImageGenerating(true);
-      post({ type: 'asset_forge_generate', body: { prompt, size, matte: false } } as any);
+      // Layer the active brand (style words + palette) onto the free-form prompt
+      // — the active kit shapes everything the studio makes. Title stays off the
+      // user's original words, above.
+      const branded = withBrandDirection(prompt, { styleTags: kit.styleTags, palette: kit.palette });
+      post({ type: 'asset_forge_generate', body: { prompt: branded, size, matte: false } } as any);
     });
   };
 
