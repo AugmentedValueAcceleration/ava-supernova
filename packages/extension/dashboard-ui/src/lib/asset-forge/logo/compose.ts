@@ -12,7 +12,18 @@
 import type { LogoAsset, LogoVariant } from './types';
 import type { Wordmark } from './wordmark';
 
-const INK = '#14121a'; // near-black wordmark ink for colour lockups (on light/transparent)
+/** A deep, near-black ink DERIVED from the brand colour (keeps the brand hue in
+ *  the wordmark instead of pure black) so the whole lockup reads on-palette. */
+function brandInk(primary: string): string {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(primary.trim());
+  if (!m) return '#14121a';
+  const n = parseInt(m[1], 16);
+  const k = 0.16; // keep ~16% of the brand colour → a rich, near-black tint
+  const r = Math.round(((n >> 16) & 255) * k);
+  const g = Math.round(((n >> 8) & 255) * k);
+  const b = Math.round((n & 255) * k);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
 
 interface SymbolSvg {
   inner: string;
@@ -81,6 +92,7 @@ export interface ComposeOptions {
 export function composeLogoSystem(opts: ComposeOptions): LogoAsset[] {
   const sym = parseSymbol(opts.symbolSvg);
   const wm = opts.wordmark;
+  const INK = brandInk(opts.primary); // wordmark ink, tinted with the brand hue
 
   const S = 100;                 // symbol box size (the layout unit)
   const CAP = S * 0.72;          // wordmark visual height paired to the mark

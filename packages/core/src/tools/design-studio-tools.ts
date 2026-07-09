@@ -100,7 +100,7 @@ export class DesignGenerateIconTool implements Tool {
       'Generate a single icon on the canvas. YOU write the look (art_direction); the shape becomes a reference the ' +
       'model paints onto, then the result is matted to a clean transparent PNG. The system locks the matte-critical ' +
       'rules (silhouette, white background, isolation, no text) — you own the finish, material, lighting and mood. ' +
-      'Costs 20 credits — state that and get a yes before calling. BYOK users generate on their own Qwen key.',
+      'Costs 20 credits — state that and get a yes before calling.',
     parameters: {
       type: 'object',
       properties: {
@@ -400,7 +400,7 @@ export class DesignGenerateVideoTool implements Tool {
       'Generate a short video clip on the canvas. YOU author the prompt: describe the shot, subject, camera motion, ' +
       'mood and lighting the way a director briefs a shot — drawn from what you gauged the user wants. Wan runs it ' +
       '(a few minutes; it auto-dubs a soundtrack). Clips are 5 or 10 seconds only. Uses credits (more than an icon) — ' +
-      'state that and get a yes before calling. BYOK users generate on their own Qwen key.',
+      'state that and get a yes before calling.',
     parameters: {
       type: 'object',
       properties: {
@@ -476,7 +476,7 @@ export class DesignGenerateImageTool implements Tool {
       'Generate a single free-form image on the canvas (a hero shot, illustration, background, scene) — NOT an icon. ' +
       'YOU author the full prompt: describe the subject, style, composition, lighting and mood the way a designer briefs ' +
       'an image, drawn from what you gauged the user wants. It renders full-frame with no matte and no shape armature. ' +
-      'Uses credits (~12) — state that and get a yes before calling. BYOK users generate on their own Qwen key.',
+      'Uses credits (~12) — state that and get a yes before calling.',
     parameters: {
       type: 'object',
       properties: {
@@ -597,7 +597,7 @@ export class DesignGenerateVoiceTool implements Tool {
       'roster. To voice a TRANSLATED read, translate the script YOURSELF into the target language and set `language` — ' +
       'the same voice speaks it. There is no numeric speed/pitch; you shape the read in words. It renders ' +
       'synchronously and appears as a scrubable waveform. Uses credits — state that and get a yes before calling. ' +
-      'BYOK users generate on their own Qwen key.',
+      '',
     parameters: {
       type: 'object',
       properties: {
