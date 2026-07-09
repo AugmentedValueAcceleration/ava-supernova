@@ -46,6 +46,7 @@ type ChatAction =
   | { type: 'set_tasks_width'; width: number }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string }
   | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
+  | { type: 'local_thinking' }
   | { type: 'remove_last_error' };
 
 let messageIdCounter = 0;
@@ -180,6 +181,13 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         isStreaming: true,
       };
     }
+
+    case 'local_thinking':
+      // Optimistic: the instant the user sends, show the thinking indicator —
+      // don't wait for the host's stream_start (which lands only after provider
+      // setup + the model's time-to-first-token). Reconciled by stream_start /
+      // done / error. No bubble is created; the standalone indicator suffices.
+      return { ...state, isThinking: true };
 
     case 'stream_start': {
       // One assistant bubble per user turn. If a bubble already exists for
@@ -970,6 +978,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
   // ── Callbacks ──────────────────────────────────────────────────────────────
 
   const handleSend = useCallback((text: string, mode: AvaMode, attachments?: ImageAttachment[]) => {
+    // Show the thinking indicator immediately — matches the status bar, closes the
+    // gap before the host's stream_start (see the 'local_thinking' reducer note).
+    dispatch({ type: 'local_thinking' });
     // In the health room every turn is health-scoped — force the mode so the
     // briefing always applies, and tag the lane so the host runs it on the
     // separate health thread.
