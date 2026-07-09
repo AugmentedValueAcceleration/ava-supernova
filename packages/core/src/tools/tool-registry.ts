@@ -43,6 +43,9 @@ import { JournalWriteTool } from './journal.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
 import { WritePostTool } from './write-post.js';
 import { ProposeHooksTool } from './propose-hooks.js';
+import { ResearchPostTool } from './research-post.js';
+import { PostPerformanceTool } from './post-performance.js';
+import { SuggestBeatsTool } from './suggest-beats.js';
 import { HealthPlanUpdateDayTool } from './health-plan-update-day.js';
 import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
 import { HealthProfileAskTool } from './health-profile-ask.js';
@@ -425,6 +428,9 @@ export class ToolRegistry {
       new HealthPlanUpdateDayTool(),
       new WritePostTool(),
       new ProposeHooksTool(),
+      new ResearchPostTool(),
+      new PostPerformanceTool(),
+      new SuggestBeatsTool(),
       new DocumentManageTool(),
       new DocumentAuthorTool(),
       new GitCommitTool(),

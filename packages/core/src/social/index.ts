@@ -82,3 +82,72 @@ export const POST_HARD_LIMITS: Readonly<Record<string, number>> = {
   tiktok: 4000,
   facebook: 63206,
 };
+
+/** Per-platform hashtag/link policy — returned by research_post so Ava picks
+ *  tags within the platform's real conventions. Single source of truth. */
+export const PLATFORM_TAG_POLICY: Readonly<Record<string, string>> = {
+  tweet: 'X: ~6 hashtags. Bimodal crowd — mix genre/theme tags with dev tags (#buildinpublic #IndieDev #aitools). URL allowed.',
+  thread: 'X thread: hashtags on the final tweet only, ~3-4. URL on the last tweet.',
+  tiktok: 'TikTok: 5 hashtags HARD CAP, genre/theme-only — mixing dev tags splits the algo signal. No URL. Avoid #fyp #foryou #foryoupage (oversaturated).',
+  youtube: 'YouTube Shorts: #Shorts always FIRST, top 3 show above the title. 15 max but >15 = ALL ignored. No URL surfaced in the Shorts feed.',
+  linkedin: 'LinkedIn: 3 hashtags max, professional. Link at the end is fine.',
+  bluesky: 'Bluesky: 1-2 hashtags max — technical / open-source / federated crowd, low tolerance for tag stacks. 300 char cap.',
+  facebook: 'Facebook dev groups: 0-2 hashtags max — peer-to-peer dev space, tag stacks read as spam. Link at the end is fine. Write like a builder posting in a group of builders, not a brand page.',
+  instagram: 'Instagram: ~8-12 relevant tags, niche over generic; first few matter most.',
+  blog: 'Blog: no hashtags.',
+};
+
+/** A single web-search hit. */
+export interface WebSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+/**
+ * Surface-injected web-search backend (the web supplies Brave, key server-side).
+ * research_post / suggest_beats call it to ground a post in the present.
+ * `freshness` biases toward recent results (pd/pw/pm/py = past day/week/month/year).
+ */
+export type WebSearchFn = (
+  query: string,
+  max?: number,
+  freshness?: 'pd' | 'pw' | 'pm' | 'py',
+) => Promise<WebSearchResult[]>;
+
+/** One tracked post's engagement (Bluesky — the platform we auto-track). */
+export interface PostMetric {
+  content: string;
+  likes: number | null;
+  reposts: number | null;
+  replies: number | null;
+  quotes: number | null;
+}
+
+/**
+ * Surface-injected reader for post performance. The web/hub implementation binds
+ * the user + queries `scheduled_posts` (Bluesky, posted, metrics synced); core
+ * does the sort/format. Returns up to ~50 recent tracked posts, newest first.
+ */
+export interface PostMetricsReader {
+  recent(): Promise<PostMetric[]>;
+}
+
+/** One suggested angle for the day's briefing. */
+export interface Beat {
+  /** The angle/idea for a post. */
+  angle: string;
+  /** Suggested platform for it. */
+  platform: string;
+  /** One line on why it fits the mission / the moment. */
+  why: string;
+}
+
+/**
+ * Surface-injected sink for the day's suggested beats. The web/hub
+ * implementation collects them for the post-run drain → `beats` SSE the client
+ * renders as the briefing (a menu the operator picks from).
+ */
+export interface BeatStore {
+  suggest(beats: Beat[]): Promise<void>;
+}
