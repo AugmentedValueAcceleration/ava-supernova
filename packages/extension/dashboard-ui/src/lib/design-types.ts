@@ -24,7 +24,7 @@ export const DESIGN_GROUPS: DesignGroup[] = [
   { label: 'Web / App', accent: 'var(--accent)', items: [
     { id: 'icon', label: 'Icon' },
     { id: 'appicon', label: 'App Icon / Favicon', badge: 'SOON' },
-    { id: 'logo', label: 'Logo', badge: 'NEXT' },
+    { id: 'logo', label: 'Logo' },
     { id: 'badge', label: 'Badge / Mark', badge: 'SOON' },
     { id: 'avatar', label: 'Avatar', badge: 'SOON' },
     { id: 'banner', label: 'Banner', badge: 'SOON' },
