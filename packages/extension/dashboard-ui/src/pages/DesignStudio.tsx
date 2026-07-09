@@ -883,11 +883,13 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           const name = find(targetId).name;
           if (targetId) deleteKit(targetId);
           setKit(activeKit());
+          if (panelKit && targetId && panelKit.id === targetId) closePanel(); // she deleted the kit we had open
           reply(true, { name, deleted: true });
         } else if (a === 'rename' || a === 'update') {
           const next = withFields(find(targetId));
           upsertKit(next);
           if (next.id === activeKit().id) setKit(next);
+          if (panelKit && panelKit.id === next.id) setPanelKit(next); // live-refresh the open drawer
           reply(true, next);
         } else {
           reply(true, find(targetId));
