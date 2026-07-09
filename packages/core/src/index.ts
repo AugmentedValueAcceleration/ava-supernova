@@ -22,7 +22,7 @@ export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeac
 
 // Social Studio contracts — the surface-injected stores the Posts-floor tools
 // (write_post, propose_hooks) write through, plus the shared char-limit map.
-export type { SocialPostInput, SocialPostWritten, PostStore, HookOption, HookStore } from './social/index.js';
+export type { SocialPostInput, SocialPostWritten, PostStore, HookOption, HookProposal, HookStore } from './social/index.js';
 export { POST_HARD_LIMITS } from './social/index.js';
 
 // Health profile-fill registry (the "Ava fills your profile" flow)

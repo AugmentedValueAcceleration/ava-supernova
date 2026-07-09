@@ -49,12 +49,22 @@ export interface HookOption {
   angle?: string | null;
 }
 
+/** A set of candidate hooks for one subject, for the client to render as a picker. */
+export interface HookProposal {
+  /** The subject the hooks are for — echoed so the follow-up turn has context. */
+  subject: string;
+  /** Target platform for the eventual post. */
+  platform: string;
+  /** 1–3 candidate opening lines. */
+  hooks: HookOption[];
+}
+
 /**
  * Surface-injected sink for proposed hooks. The web/hub implementation collects
- * them for the post-run drain → `hooks` SSE the client renders as a picker.
+ * the proposal for the post-run drain → `hooks` SSE the client renders as a picker.
  */
 export interface HookStore {
-  propose(hooks: HookOption[]): Promise<void>;
+  propose(proposal: HookProposal): Promise<void>;
 }
 
 /**
