@@ -11,7 +11,7 @@ import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
 import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-library';
 import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, type BrandKit } from '../lib/asset-forge/brand-kit';
 import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE, withBrandDirection } from '../lib/asset-forge/generate';
-import { composeSymbolPrompt } from '../lib/asset-forge/logo/prompt';
+import { composeSymbolPrompt, LOGO_SYMBOL_NEGATIVE } from '../lib/asset-forge/logo/prompt';
 import { typesetWordmark } from '../lib/asset-forge/logo/wordmark';
 import { composeLogoSystem } from '../lib/asset-forge/logo/compose';
 import { fontById, suggestFont, WORDMARK_FONTS } from '../lib/asset-forge/logo/fonts';
@@ -825,7 +825,10 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     new Promise<ImageOutcome>((resolve) => {
       logoResolverRef.current = resolve;
       pendingLogoRef.current = true;
-      post({ type: 'asset_forge_generate', body: { prompt, size: '1024*1024', matte: false, negativePrompt: '' } } as any);
+      // matte: true runs the SAME background-removal the icon lane uses
+      // (server remove-bg → clean transparent), so vtracer traces a clean mark
+      // instead of Qwen's near-white noise (the speckles).
+      post({ type: 'asset_forge_generate', body: { prompt, size: '1024*1024', matte: true, negativePrompt: LOGO_SYMBOL_NEGATIVE } } as any);
     });
 
   // The full make: brief → symbol (Qwen) → vectorize (server) → wordmark (real
@@ -833,7 +836,10 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // is an intermediate that's traced and discarded.
   const runLogoGeneration = async (brief: LogoBrief): Promise<{ ok: boolean; system?: LogoSystem; error?: string }> => {
     try {
-      const prompt = composeSymbolPrompt({ direction: brief.symbolDirection, styleTags: brief.styleTags, color: brief.palette.primary });
+      // Generate the mark in solid near-black for a clean, high-contrast matte +
+      // trace — compose recolours it to the brand palette afterwards, so the
+      // generation colour doesn't reach the final logo.
+      const prompt = composeSymbolPrompt({ direction: brief.symbolDirection, styleTags: brief.styleTags, color: '#111111' });
       const sym = await runLogoSymbol(prompt);
       if (!sym.ok || !sym.dataUrl) return { ok: false, error: sym.error || 'Symbol generation failed' };
       const symbolSvg = await vectorizeSymbol(sym.dataUrl, 'bw');
