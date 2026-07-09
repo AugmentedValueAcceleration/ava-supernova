@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { LibraryImage, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset, StorageScan } from '../types/messages';
@@ -742,12 +742,7 @@ function PreviewModal({
         ) : isVideo && mediaSrc ? (
           <MediaPlayer src={mediaSrc} kind="video" />
         ) : isAudio && mediaSrc ? (
-          <div className="flex flex-col items-center gap-5 py-10 bg-[var(--bg-input)]">
-            <span className="text-5xl opacity-60">{ASSET_TYPE_ICONS[item.kind] || '\u{1F3B5}'}</span>
-            <div className="w-[min(92%,480px)]">
-              <MediaPlayer src={mediaSrc} kind="audio" />
-            </div>
-          </div>
+          <LibraryWaveform src={mediaSrc} />
         ) : isVideo || isAudio ? (
           // Media item without an inline source — local video (skipped by
           // the scan for size) or a cloud asset whose URL didn't come back.
@@ -869,6 +864,151 @@ function formatClockTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+// Deterministic decorative waveform envelope — layered sines over the bar index.
+// The SAME curve Creative Studio's WaveformPlayer uses, so voiceovers read
+// identically across the two surfaces. We don't decode the real audio; the bars
+// are a stable visual (a click opens the interactive player below).
+function waveAmp(i: number): number {
+  const cl = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+  const a = Math.sin(i * 0.45) * 0.5 + 0.5;
+  const b = Math.sin(i * 0.13 + 1.7) * 0.5 + 0.5;
+  const c = Math.sin(i * 0.9 + 0.3) * 0.25 + 0.25;
+  return cl(0.12 + (a * 0.55 + b * 0.3 + c * 0.15) * 0.88, 0.06, 1);
+}
+
+const WAVE_PANEL_BG = 'radial-gradient(120% 140% at 50% 0%, #171021, #0c0814)';
+
+// Static mini-waveform for audio cards in the grid — cheap (no <audio>, no
+// canvas), just accent bars. Mirrors the Creative Studio waveform look so a
+// voiceover card reads as audio at a glance instead of a generic mic icon.
+function MiniWaveform() {
+  const bars = 30;
+  return (
+    <div className="flex h-28 w-full items-center justify-center gap-[3px] px-4" style={{ background: WAVE_PANEL_BG }}>
+      {Array.from({ length: bars }).map((_, i) => (
+        <span
+          key={i}
+          style={{ height: `${Math.round(waveAmp(i) * 72) + 6}%`, width: 3, borderRadius: 2, background: 'var(--accent)', opacity: 0.4 + waveAmp(i) * 0.5 }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Interactive waveform player for the preview modal (audio kinds). Canvas
+// waveform doubles as the scrubber; a hidden <audio> drives progress. This is
+// the Creative Studio WaveformPlayer's design, Library-styled and read-only
+// (no generating overlay / fake sweep — a saved clip always has a src).
+function LibraryWaveform({ src }: { src: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0); // 0..1
+  const [duration, setDuration] = useState(0);
+  const progressRef = useRef(0);
+  useEffect(() => { progressRef.current = progress; }, [progress]);
+  useEffect(() => { setPlaying(false); setProgress(0); setDuration(0); }, [src]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+    if (!cssW || !cssH) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    const accent = getComputedStyle(canvas).getPropertyValue('--accent').trim() || '#c9a2ff';
+    const barW = 3, gap = 2, step = barW + gap;
+    const count = Math.max(1, Math.floor(cssW / step));
+    const mid = cssH / 2;
+    const p = progressRef.current;
+    for (let i = 0; i < count; i++) {
+      const h = Math.max(2, waveAmp(i) * (cssH * 0.86));
+      const x = i * step;
+      const played = (i + 0.5) / count <= p;
+      ctx.globalAlpha = played ? 1 : 0.26;
+      ctx.fillStyle = accent;
+      const y = mid - h / 2;
+      const r = Math.min(1.5, barW / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + barW, y, x + barW, y + h, r);
+      ctx.arcTo(x + barW, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + barW, y, r);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(Math.max(0, Math.min(1, p)) * cssW - 0.75, 0, 1.5, cssH);
+  }, []);
+
+  useEffect(() => { draw(); }, [progress, draw]);
+  useEffect(() => {
+    draw();
+    const el = wrapRef.current; if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [draw]);
+
+  const toggle = () => {
+    const a = audioRef.current; if (!a) return;
+    if (playing) a.pause();
+    else { if (progressRef.current >= 1) a.currentTime = 0; void a.play().catch(() => {}); }
+  };
+  const seek = (clientX: number) => {
+    const r = canvasRef.current?.getBoundingClientRect(); if (!r) return;
+    const frac = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    setProgress(frac);
+    const a = audioRef.current;
+    if (a && Number.isFinite(a.duration)) a.currentTime = frac * a.duration;
+  };
+
+  return (
+    <div className="flex flex-col items-center py-8 bg-[var(--bg-input)]">
+      <div className="w-[min(92%,480px)] rounded-2xl border border-[var(--border-card)] p-5 flex flex-col gap-4" style={{ background: WAVE_PANEL_BG }}>
+        <audio
+          ref={audioRef}
+          src={src}
+          preload="metadata"
+          onLoadedMetadata={e => setDuration(e.currentTarget.duration || 0)}
+          onTimeUpdate={e => { const a = e.currentTarget; if (a.duration > 0) setProgress(a.currentTime / a.duration); }}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          className="hidden"
+        />
+        <div ref={wrapRef} className="relative w-full h-[110px]">
+          <canvas
+            ref={canvasRef}
+            onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); seek(e.clientX); }}
+            onPointerMove={e => { if (e.buttons) seek(e.clientX); }}
+            className="w-full h-full block cursor-pointer touch-none"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggle}
+            aria-label={playing ? t('input.pause_aria') : t('library.play')}
+            className="flex-shrink-0 w-9 h-9 rounded-full bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white flex items-center justify-center border-none cursor-pointer transition"
+          >
+            {playing
+              ? <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>}
+          </button>
+          <span className="tabular-nums text-[11px] text-[var(--text-muted)]">
+            {formatClockTime(progress * duration)} / {formatClockTime(duration)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function MediaPlayer({ src, kind }: { src: string; kind: 'audio' | 'video' }) {
@@ -1124,6 +1264,10 @@ function AssetCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const rawAny = item.raw as Partial<CreativeAsset & LibraryImage>;
+  const mediaUrl = rawAny.url || rawAny.webviewUri || rawAny.dataUri || undefined;
+  const isVideo = item.kind === 'video';
+  const isAudio = item.kind === 'voice' || item.kind === 'music' || item.kind === 'sfx';
   return (
     <button
       onClick={onSelect}
@@ -1138,6 +1282,18 @@ function AssetCard({
           className="h-28 w-full object-cover"
           loading="lazy"
         />
+      ) : isVideo && mediaUrl ? (
+        // First frame as a poster + a play glyph — reads as a video, not a 🎬 icon.
+        <div className="relative h-28 w-full bg-black">
+          <video src={mediaUrl} preload="metadata" muted className="h-28 w-full object-cover pointer-events-none" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff" aria-hidden><path d="M8 5v14l11-7z" /></svg>
+            </span>
+          </div>
+        </div>
+      ) : isAudio ? (
+        <MiniWaveform />
       ) : (
         <div className="flex h-28 w-full items-center justify-center text-4xl opacity-40">
           {ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}
