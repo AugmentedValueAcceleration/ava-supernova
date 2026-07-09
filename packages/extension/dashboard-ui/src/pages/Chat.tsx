@@ -820,6 +820,27 @@ export interface ChatPageProps {
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
 // for caller compatibility but are no longer consumed — the chat header
 // dropped its sidebar-toggle button to match the IDE chat header.
+/** Inline answer box — surfaces the instant Ava asks a question in a room, right
+ *  under her message, so you reply there instead of hunting for the composer. */
+function QuestionReply({ onAnswer }: { onAnswer: (text: string) => void }) {
+  const [text, setText] = useState('');
+  const submit = () => { const t = text.trim(); if (!t) return; onAnswer(t); setText(''); };
+  return (
+    <div className="mx-4 mb-3 mt-1 flex items-center gap-2 rounded-xl border border-[var(--accent)]/40 bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] px-3 py-2">
+      <span className="shrink-0 text-[11px] font-semibold text-[var(--accent)]">Your answer</span>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
+        autoFocus
+        placeholder="Reply to Ava…"
+        className="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+      />
+      <button onClick={submit} disabled={!text.trim()} className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1 text-[12px] font-medium text-white transition hover:brightness-110 disabled:opacity-40">Send</button>
+    </div>
+  );
+}
+
 export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', suppressAutoFocus, onActivity }: ChatPageProps) {
   // Per-room thread key — for learning it includes the course id, so each course
   // has its own saved conversation. 'main' never persists (always-mounted).
@@ -1256,6 +1277,15 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
               <span className="opacity-40">Ava is summarising older messages to free up space</span>
             </div>
           )}
+
+          {/* Inline answer box — when Ava ends her turn with a question (in a
+              room), show a reply box right under it so you answer there. Rooms
+              force the mode, so the value passed to handleSend is overridden. */}
+          {!hideMessages && !state.isStreaming && !state.isThinking && lane !== 'main' && (() => {
+            const last = state.messages[state.messages.length - 1];
+            const asked = !!last && last.role === 'assistant' && !last.isStreaming && (last.content || '').includes('?');
+            return asked ? <QuestionReply onAnswer={(t) => handleSend(t, 'design' as AvaMode)} /> : null;
+          })()}
 
           {/* Context usage — sits flush above the composer so the bar lives
               right where the next turn is being written. Click-to-compress
