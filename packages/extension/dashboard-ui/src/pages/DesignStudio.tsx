@@ -9,7 +9,7 @@ type DesignModelState = { models: ChatModel[]; activeModel: string | null; needs
 import { Select } from '../components/Select';
 import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
 import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-library';
-import { activeKit, loadKits, upsertKit, type BrandKit } from '../lib/asset-forge/brand-kit';
+import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, type BrandKit } from '../lib/asset-forge/brand-kit';
 import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE } from '../lib/asset-forge/generate';
 import { DESIGN_GROUPS, type ViewId } from '../lib/design-types';
 import { toWebp } from '../lib/compress';
@@ -533,7 +533,13 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   userName?: string | null;
   userAvatarUrl?: string | null;
 }) {
-  const kit = useMemo(() => activeKit(), []);
+  const [kit, setKit] = useState<BrandKit>(() => activeKit());
+  // Brand-kit mutations from the editor UI — persist + refresh the active kit.
+  const saveKit = (patch: Partial<BrandKit>) => { const next = { ...kit, ...patch, updatedAt: Date.now() }; upsertKit(next); setKit(next); };
+  const switchKit = (id: string) => { setActiveKit(id); setKit(activeKit()); };
+  const newKit = () => { createKit('New brand'); setKit(activeKit()); };
+  const removeKit = (id: string) => { deleteKit(id); setKit(activeKit()); };
+  const KIT_INP = 'w-full bg-[rgba(255,255,255,0.03)] border border-[var(--border-card)] rounded px-2.5 py-1.5 text-[12.5px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]';
   const [view, setView] = useState<ViewId>('icon');
   // Which room the Design Architect chat should reflect. The Open-Canvas Video
   // and Voiceover views map to their own rooms; everything else is the icon
@@ -829,21 +835,49 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         return;
       }
       if (m.command === 'brand_kit') {
-        if (args.action === 'update') {
-          const kits = loadKits();
-          const active = activeKit();
-          const next: BrandKit = {
-            ...active,
-            name: typeof args.name === 'string' && args.name.trim() ? args.name.trim() : active.name,
-            palette: { ...active.palette, ...(args.palette as Partial<BrandKit['palette']> | undefined ?? {}) },
-            styleTags: Array.isArray(args.styleTags) ? (args.styleTags as unknown[]).map(String) : active.styleTags,
-          };
-          upsertKit(next);
-          void kits;
-          reply(true, { name: next.name, palette: next.palette, styleTags: next.styleTags });
-        } else {
+        const a = String(args.action || 'read');
+        const targetId = typeof args.kit_id === 'string' ? args.kit_id : undefined;
+        const find = (id?: string): BrandKit => (id ? loadKits().find(k => k.id === id) : undefined) ?? activeKit();
+        // Fold any provided fields onto a base kit (only the ones passed change).
+        const withFields = (base: BrandKit): BrandKit => ({
+          ...base,
+          name: typeof args.name === 'string' && args.name.trim() ? args.name.trim() : base.name,
+          tagline: typeof args.tagline === 'string' ? args.tagline : base.tagline,
+          positioning: typeof args.positioning === 'string' ? args.positioning : base.positioning,
+          palette: { ...base.palette, ...(args.palette as Partial<BrandKit['palette']> | undefined ?? {}) },
+          styleTags: Array.isArray(args.styleTags) ? (args.styleTags as unknown[]).map(String) : base.styleTags,
+          voice: typeof args.voice === 'string' ? args.voice : base.voice,
+          doRules: Array.isArray(args.doRules) ? (args.doRules as unknown[]).map(String) : base.doRules,
+          dontRules: Array.isArray(args.dontRules) ? (args.dontRules as unknown[]).map(String) : base.dontRules,
+          defaultHashtags: Array.isArray(args.defaultHashtags) ? (args.defaultHashtags as unknown[]).map(String) : base.defaultHashtags,
+          defaultLink: typeof args.defaultLink === 'string' ? args.defaultLink : base.defaultLink,
+        });
+
+        if (a === 'list') {
+          const activeId = activeKit().id;
+          reply(true, { kits: loadKits().map(k => ({ id: k.id, name: k.name, active: k.id === activeId })) });
+        } else if (a === 'create') {
+          const created = withFields(createKit(typeof args.name === 'string' ? args.name : 'New brand'));
+          upsertKit(created);
+          setKit(activeKit());
+          reply(true, created);
+        } else if (a === 'set_active') {
+          if (targetId) setActiveKit(targetId);
           const k = activeKit();
-          reply(true, { name: k.name, palette: k.palette, styleTags: k.styleTags });
+          setKit(k);
+          reply(true, k);
+        } else if (a === 'delete') {
+          const name = find(targetId).name;
+          if (targetId) deleteKit(targetId);
+          setKit(activeKit());
+          reply(true, { name, deleted: true });
+        } else if (a === 'rename' || a === 'update') {
+          const next = withFields(find(targetId));
+          upsertKit(next);
+          if (next.id === activeKit().id) setKit(next);
+          reply(true, next);
+        } else {
+          reply(true, find(targetId));
         }
         return;
       }
@@ -1081,17 +1115,57 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           </div>
         ) : view === 'brandkit' ? (
           <div className="flex-1 overflow-y-auto px-6 py-5">
-            <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Brand Kit</h2>
-            <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-4">Set once — every tool reads it. The Design Architect will propose updates when she arrives.</p>
-            <div className="max-w-[460px]">
-              <label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Palette</label>
-              {(Object.keys(kit.palette) as (keyof typeof kit.palette)[]).map(role => (
-                <div key={role} className="flex items-center gap-2.5 py-1 text-[12.5px] text-[var(--text-secondary)]">
-                  <span className="w-6 h-6 rounded" style={{ background: kit.palette[role] }} />
-                  <span className="capitalize">{role}</span>
-                  <code className="ml-auto text-[11px] text-[var(--text-muted)]">{kit.palette[role].toUpperCase()}</code>
-                </div>
+            <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Brand Kits</h2>
+            <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-4">Multiple brands, one active. The active kit is what every icon, image, and post comes out on — switch it to switch brands.</p>
+
+            {/* Kit picker — switch active, or add a new brand */}
+            <div className="flex flex-wrap items-center gap-2 mb-5 max-w-[560px]">
+              {loadKits().map(k => (
+                <button key={k.id} onClick={() => switchKit(k.id)}
+                  className={`px-3 py-1.5 rounded-lg border text-[12px] transition ${k.id === kit.id ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+                  {k.name}{k.id === kit.id ? ' · active' : ''}
+                </button>
               ))}
+              <button onClick={newKit} className="px-3 py-1.5 rounded-lg border border-dashed border-[var(--border-card)] text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)]">+ New kit</button>
+            </div>
+
+            <div className="max-w-[560px] flex flex-col gap-5">
+              {/* Identity */}
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Brand name</label><input value={kit.name} onChange={e => saveKit({ name: e.target.value })} className={KIT_INP} /></div>
+                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Tagline</label><input value={kit.tagline ?? ''} onChange={e => saveKit({ tagline: e.target.value })} className={KIT_INP} placeholder="one-liner" /></div>
+              </div>
+              <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Positioning</label><input value={kit.positioning ?? ''} onChange={e => saveKit({ positioning: e.target.value })} className={KIT_INP} placeholder="what it is + who it's for" /></div>
+
+              {/* Look */}
+              <div>
+                <label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Palette</label>
+                <div className="grid grid-cols-5 gap-2 max-w-[300px]">
+                  {(Object.keys(kit.palette) as (keyof typeof kit.palette)[]).map(role => (
+                    <label key={role} className="flex flex-col items-center gap-1 text-[10px] text-[var(--text-muted)]">
+                      <input type="color" value={kit.palette[role]} onChange={e => saveKit({ palette: { ...kit.palette, [role]: e.target.value } })}
+                        className="w-9 h-9 rounded cursor-pointer bg-transparent border border-[var(--border-card)] p-0" />
+                      <span className="capitalize">{role}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Style words (comma-separated)</label><input value={(kit.styleTags ?? []).join(', ')} onChange={e => saveKit({ styleTags: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })} className={KIT_INP} placeholder="minimal, premium, bold" /></div>
+
+              {/* Voice */}
+              <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Voice / tone — how this brand writes (flows into posts)</label><textarea value={kit.voice ?? ''} onChange={e => saveKit({ voice: e.target.value })} className={`${KIT_INP} h-20 resize-none`} placeholder="First person, punchy, honest, no hype…" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Do (one per line)</label><textarea value={(kit.doRules ?? []).join('\n')} onChange={e => saveKit({ doRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-20 resize-none`} /></div>
+                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Don't (one per line)</label><textarea value={(kit.dontRules ?? []).join('\n')} onChange={e => saveKit({ dontRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-20 resize-none`} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Default hashtags (comma-separated)</label><input value={(kit.defaultHashtags ?? []).join(', ')} onChange={e => saveKit({ defaultHashtags: e.target.value.split(',').map(x => x.trim().replace(/^#/, '')).filter(Boolean) })} className={KIT_INP} placeholder="buildinpublic, localfirst" /></div>
+                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Default link</label><input value={kit.defaultLink ?? ''} onChange={e => saveKit({ defaultLink: e.target.value })} className={KIT_INP} placeholder="ava-supernova.com" /></div>
+              </div>
+
+              {loadKits().length > 1 && (
+                <button onClick={() => removeKit(kit.id)} className="self-start text-[11px] text-[var(--text-muted)] hover:text-red-400 transition mt-1">Delete this kit</button>
+              )}
             </div>
           </div>
         ) : (

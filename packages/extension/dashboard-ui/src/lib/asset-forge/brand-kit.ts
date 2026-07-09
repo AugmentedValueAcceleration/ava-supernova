@@ -1,20 +1,24 @@
 /**
- * Brand Kit — the persistent design context every Forge tool reads
- * (Recraft/Canva pattern, locked in the Studio rework plan 2026-07-05).
- * Set once: name, palette, style tags. Icon colours default from it; the
- * designer persona will read AND propose updates to it (Phase E); kit-mode
- * composes with it.
+ * Brand Kit — a full brand identity every tool reads: Identity + Look + Voice.
+ * Multiple named kits, one active; switch the active kit and design AND posts
+ * come out on that brand. See BRAND_KITS_PLAN.md.
  *
- * Storage: localStorage in the hub (operator tool). When this ships in the
- * extension/IDE it becomes a local file (and can read the project's real
- * design tokens). Multiple kits, one active — the designer conversation is
- * keyed per kit.
+ * Storage: localStorage today (already local). Moving to a shared local file
+ * `~/.ava/brand-kits.json` (host/Tauri) so the same kits are seen across the
+ * extension, IDE, and hub on one machine — same home as memory. All local; the
+ * cloud (Supabase) kit is being retired.
  */
 
 export interface BrandKit {
   id: string;
   name: string;
+
+  // ── Identity ──────────────────────────────────────────────────────────
   tagline?: string;
+  /** One line: what the brand is + who it's for. Sharpens everything downstream. */
+  positioning?: string;
+
+  // ── Look (drives icons / images / graphics) ──────────────────────────
   palette: {
     primary: string;
     secondary: string;
@@ -24,6 +28,28 @@ export interface BrandKit {
   };
   /** Free-form direction words ("calm", "premium") — the persona's brief. */
   styleTags: string[];
+  /** Logo references — local file paths or data URIs. */
+  logo?: {
+    primary?: string;
+    mark?: string;
+    light?: string;
+    dark?: string;
+  };
+
+  // ── Voice (drives posts / copy) ──────────────────────────────────────
+  /** Tone — how this brand writes. Flows into the Social Media Manager. */
+  voice?: string;
+  /** Red lines — "always first person". */
+  doRules?: string[];
+  /** Red lines — "never 'excited to announce'". */
+  dontRules?: string[];
+  defaultHashtags?: string[];
+  defaultLink?: string;
+
+  // ── Audio (optional — only if they use voice/music) ──────────────────
+  defaultVoiceId?: string;
+  musicPrompt?: string;
+
   createdAt: number;
   updatedAt: number;
 }
@@ -80,4 +106,29 @@ export function upsertKit(kit: BrandKit): BrandKit[] {
   if (i >= 0) kits[i] = next; else kits.push(next);
   saveKits(kits);
   return kits;
+}
+
+/** Create a new kit (seeded from the default look), save it, make it active. */
+export function createKit(name: string): BrandKit {
+  const now = Date.now();
+  const kit: BrandKit = {
+    ...defaultKit(),
+    id: 'kit-' + now + '-' + Math.random().toString(36).slice(2, 7),
+    name: name.trim() || 'New brand',
+    createdAt: now,
+    updatedAt: now,
+  };
+  upsertKit(kit);
+  setActiveKit(kit.id);
+  return kit;
+}
+
+/** Delete a kit. Never leaves zero kits (falls back to a fresh default). If the
+ *  deleted kit was active, the first remaining kit becomes active. */
+export function deleteKit(id: string): BrandKit[] {
+  const remaining = loadKits().filter(k => k.id !== id);
+  const next = remaining.length ? remaining : [defaultKit()];
+  saveKits(next);
+  if (localStorage.getItem(ACTIVE_KEY) === id) setActiveKit(next[0].id);
+  return next;
 }

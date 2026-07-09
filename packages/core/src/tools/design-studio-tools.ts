@@ -236,37 +236,48 @@ export class DesignGenerateSetTool implements Tool {
 export class DesignBrandKitTool implements Tool {
   readonly name = 'design_brand_kit';
   readonly description =
-    'Read the user\'s brand kit (palette + style words) so every icon is on-brand, or update it when they set/change a brand colour. Read before generating.';
+    'Manage the user\'s brand kits — multiple named identities, one active. Each kit carries Look (palette + style) AND Voice (tone, do/don\'t, hashtags). List, read, create, switch the active kit, update, rename, or delete. The active kit is what design AND posts come out on.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'design_brand_kit',
     description:
-      'The persistent brand kit the Design Studio composes from. action="read" returns the current palette and ' +
-      'style words — do this before generating so icons are on-palette. action="update" changes it (a standing ' +
-      'brand colour belongs here; a one-off colour goes on design_generate_icon instead).',
+      'The user\'s brand kits — MULTIPLE named identities (e.g. one per business), ONE active. The active kit ' +
+      'is what design and posts come out on, so read it before generating. Each kit holds Look (palette + style ' +
+      'words + logo) and Voice (tone, do/don\'t rules, default hashtags/link). Actions: "list" all kits; "read" ' +
+      'a kit (the active one, or a given kit_id); "create" a new kit; "set_active" to switch which kit is in use; ' +
+      '"update" a kit\'s fields; "rename"; "delete". A standing brand colour belongs in a kit; a one-off colour ' +
+      'goes on design_generate_icon instead.',
     parameters: {
       type: 'object',
       properties: {
-        action: { type: 'string', enum: ['read', 'update'], description: 'read the kit, or update it.' },
+        action: {
+          type: 'string',
+          enum: ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete'],
+          description: 'list all kits · read one · create a new kit · update fields · set_active (switch) · rename · delete.',
+        },
+        kit_id: { type: 'string', description: 'Target kit id (from "list"). Omit for read/update to mean the ACTIVE kit. Required for set_active / delete / a specific rename.' },
+        name: { type: 'string', description: 'The kit/brand name — for create, rename, or update.' },
+        // ── Look ──
         palette: {
           type: 'object',
           description: 'For update — any of the five roles as hex. Only pass the ones changing.',
           properties: {
-            primary: { type: 'string' },
-            secondary: { type: 'string' },
-            accent: { type: 'string' },
-            neutral: { type: 'string' },
-            surface: { type: 'string' },
+            primary: { type: 'string' }, secondary: { type: 'string' }, accent: { type: 'string' },
+            neutral: { type: 'string' }, surface: { type: 'string' },
           },
         },
-        name: { type: 'string', description: 'For update — the brand name.' },
-        styleTags: {
-          type: 'array',
-          description: 'For update — direction words ("calm", "premium", "playful").',
-          items: { type: 'string' },
-        },
+        styleTags: { type: 'array', items: { type: 'string' }, description: 'For update — direction words ("calm", "premium", "playful").' },
+        // ── Identity ──
+        tagline: { type: 'string', description: 'For update — the brand tagline / one-liner.' },
+        positioning: { type: 'string', description: 'For update — one line: what the brand is + who it\'s for.' },
+        // ── Voice ──
+        voice: { type: 'string', description: 'For update — the brand\'s voice/tone (how it writes). Flows into posts.' },
+        doRules: { type: 'array', items: { type: 'string' }, description: 'For update — voice red lines to always follow.' },
+        dontRules: { type: 'array', items: { type: 'string' }, description: 'For update — voice red lines to never break.' },
+        defaultHashtags: { type: 'array', items: { type: 'string' }, description: 'For update — default post hashtags (no leading #).' },
+        defaultLink: { type: 'string', description: 'For update — the brand\'s default link/URL.' },
       },
       required: ['action'],
     },
@@ -275,23 +286,56 @@ export class DesignBrandKitTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
-    const action = args.action === 'update' ? 'update' : 'read';
+
+    const allowed = ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete'];
+    const action = allowed.includes(args.action as string) ? (args.action as string) : 'read';
+
     try {
       const res = await control('brand_kit', {
         action,
-        palette: args.palette,
+        kit_id: args.kit_id,
         name: args.name,
+        palette: args.palette,
         styleTags: args.styleTags,
+        tagline: args.tagline,
+        positioning: args.positioning,
+        voice: args.voice,
+        doRules: args.doRules,
+        dontRules: args.dontRules,
+        defaultHashtags: args.defaultHashtags,
+        defaultLink: args.defaultLink,
       });
       if (!res.ok) return { success: false, output: res.error || 'Brand kit unavailable.' };
-      const kit = res.data as { name?: string; palette?: Record<string, string>; styleTags?: string[] } | undefined;
+
+      // list → a roster of kits with the active one flagged.
+      if (action === 'list') {
+        const kits = (res.data as { kits?: Array<{ id: string; name: string; active?: boolean }> })?.kits ?? [];
+        if (!kits.length) return { success: true, output: 'No brand kits yet — create one with action="create".', metadata: res.data as Record<string, unknown> | undefined };
+        const roster = kits.map(k => `${k.name}${k.active ? ' (active)' : ''}`).join(', ');
+        return { success: true, output: `Brand kits: ${roster}.`, metadata: res.data as Record<string, unknown> | undefined };
+      }
+
+      // Everything else returns the affected kit.
+      const kit = res.data as {
+        name?: string; palette?: Record<string, string>; styleTags?: string[];
+        voice?: string; tagline?: string;
+      } | undefined;
       const pal = kit?.palette ? Object.entries(kit.palette).map(([k, v]) => `${k} ${String(v).toUpperCase()}`).join(', ') : '';
       const tags = kit?.styleTags?.length ? ` · style: ${kit.styleTags.join(', ')}` : '';
-      const verb = action === 'update' ? 'Updated' : 'Brand kit';
+      const voice = kit?.voice ? ` · voice set` : '';
+      const verb =
+        action === 'create' ? 'Created' :
+        action === 'set_active' ? 'Now active' :
+        action === 'rename' ? 'Renamed' :
+        action === 'delete' ? 'Deleted' :
+        action === 'update' ? 'Updated' : 'Brand kit';
+      const body = action === 'delete'
+        ? `Deleted "${kit?.name || 'kit'}".`
+        : `"${kit?.name || 'brand'}"${pal ? ': ' + pal : ''}${tags}${voice}.`;
       return {
         success: true,
-        output: `${verb} — "${kit?.name || 'brand'}": ${pal}${tags}. Compose icons in this palette by default.`,
-        metadata: kit,
+        output: `${verb} — ${body}${action === 'set_active' ? ' Design and posts now come out on this brand.' : ''}`,
+        metadata: kit as Record<string, unknown> | undefined,
       };
     } catch (err) {
       return { success: false, output: `Brand kit failed: ${err instanceof Error ? err.message : String(err)}` };
