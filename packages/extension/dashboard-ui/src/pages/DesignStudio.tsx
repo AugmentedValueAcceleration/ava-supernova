@@ -643,6 +643,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   type ImageOutcome = { ok: boolean; dataUrl?: string; error?: string };
   const imageResolverRef = useRef<((r: ImageOutcome) => void) | null>(null);
   const pendingImageRef = useRef(false);
+  const lastImageTitleRef = useRef('Image'); // names the "Download a copy" file for the current image
 
   // The host runs the pipeline and posts the matted PNG back here. We update the
   // canvas AND resolve whatever generation is awaiting (button or tool).
@@ -751,7 +752,14 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // The shared asset_forge_result listener above routes the result back here.
   const runImageGeneration = (prompt: string, size: string): Promise<ImageOutcome> => {
     return new Promise<ImageOutcome>((resolve) => {
-      imageResolverRef.current = resolve;
+      // Auto-save to the local library on success, like video/voice — every caller
+      // (Ava's tool + the UI Generate button) persists it into creative/images/.
+      const title = deriveMediaTitle(prompt, 'Image');
+      lastImageTitleRef.current = title;
+      imageResolverRef.current = (r) => {
+        if (r.ok && r.dataUrl) saveToLibrary(r.dataUrl, title, 'image');
+        resolve(r);
+      };
       pendingImageRef.current = true;
       setImageSrc(null);
       setImageGenerating(true);
@@ -1156,10 +1164,10 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
             </div>
             {imageSrc && (
               <div className="flex justify-end mt-3">
-                <button type="button" onClick={() => saveToLibrary(imageSrc, `image-${Date.now()}`)} title="Save" aria-label="Save"
+                <button type="button" onClick={() => saveAssetCopy(imageSrc, `${lastImageTitleRef.current || 'image'}.${imageSrc.startsWith('data:image/webp') ? 'webp' : 'png'}`)} title="Download a copy" aria-label="Download a copy"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-                  Save
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
+                  Download
                 </button>
               </div>
             )}
