@@ -46,6 +46,7 @@ import { ProposeHooksTool } from './propose-hooks.js';
 import { ResearchPostTool } from './research-post.js';
 import { PostPerformanceTool } from './post-performance.js';
 import { SuggestBeatsTool } from './suggest-beats.js';
+import { ScanIndustryTool } from './scan-industry.js';
 import { HealthPlanUpdateDayTool } from './health-plan-update-day.js';
 import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
 import { HealthProfileAskTool } from './health-profile-ask.js';
@@ -431,6 +432,7 @@ export class ToolRegistry {
       new ResearchPostTool(),
       new PostPerformanceTool(),
       new SuggestBeatsTool(),
+      new ScanIndustryTool(),
       new DocumentManageTool(),
       new DocumentAuthorTool(),
       new GitCommitTool(),

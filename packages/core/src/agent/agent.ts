@@ -369,6 +369,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // this room ships posts, it doesn't touch the codebase.
   social: new Set([
     'research_post', 'propose_hooks', 'write_post', 'post_performance', 'suggest_beats',
+    // Industry radar — what AI leaders/labs actually said this week (sourced)
+    'scan_industry',
     // Ground every product claim in the real docs, never training memory
     'docs_lookup', 'release_notes',
     // Visuals for posts
