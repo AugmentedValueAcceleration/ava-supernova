@@ -11,6 +11,12 @@ import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
 import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-library';
 import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, type BrandKit } from '../lib/asset-forge/brand-kit';
 import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE, withBrandDirection } from '../lib/asset-forge/generate';
+import { composeSymbolPrompt } from '../lib/asset-forge/logo/prompt';
+import { typesetWordmark } from '../lib/asset-forge/logo/wordmark';
+import { composeLogoSystem } from '../lib/asset-forge/logo/compose';
+import { fontById, suggestFont } from '../lib/asset-forge/logo/fonts';
+import { vectorizeSymbol, loadFont } from '../lib/asset-forge/logo/pipeline';
+import type { LogoBrief, LogoSystem } from '../lib/asset-forge/logo/types';
 import { DESIGN_GROUPS, type ViewId } from '../lib/design-types';
 import { toWebp } from '../lib/compress';
 
@@ -651,6 +657,13 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const imageResolverRef = useRef<((r: ImageOutcome) => void) | null>(null);
   const pendingImageRef = useRef(false);
   const lastImageTitleRef = useRef('Image'); // names the "Download a copy" file for the current image
+  // Logo symbol lane — reuses the asset_forge_result message but with its OWN
+  // pending flag so the raw symbol never lands on the icon/image stage or
+  // auto-saves (it's an intermediate that gets traced + composed).
+  const logoResolverRef = useRef<((r: ImageOutcome) => void) | null>(null);
+  const pendingLogoRef = useRef(false);
+  const [logoSystem, setLogoSystem] = useState<LogoSystem | null>(null);
+  const [logoBusy, setLogoBusy] = useState(false);
 
   // The host runs the pipeline and posts the matted PNG back here. We update the
   // canvas AND resolve whatever generation is awaiting (button or tool).
@@ -658,6 +671,17 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     const handler = (e: MessageEvent) => {
       const m = e.data as { type?: string; success?: boolean; dataUrl?: string; error?: string };
       if (!m || m.type !== 'asset_forge_result') return;
+      // Logo symbol lane first — resolve silently, no canvas/state/save side effects.
+      if (pendingLogoRef.current) {
+        pendingLogoRef.current = false;
+        const ok = !!m.success && !!m.dataUrl;
+        const resolveLogo = logoResolverRef.current;
+        if (resolveLogo) {
+          logoResolverRef.current = null;
+          resolveLogo(ok ? { ok: true, dataUrl: m.dataUrl } : { ok: false, error: m.error || 'Symbol generation failed' });
+        }
+        return;
+      }
       // Route to the free-form image lane when an image gen is in flight (it
       // reuses this same message, but full-frame — no matte, its own stage).
       if (pendingImageRef.current) {
@@ -776,6 +800,35 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       const branded = withBrandDirection(prompt, { styleTags: kit.styleTags, palette: kit.palette });
       post({ type: 'asset_forge_generate', body: { prompt: branded, size, matte: false } } as any);
     });
+  };
+
+  // ── Logo lane ──────────────────────────────────────────────────────────
+  // Generate the SYMBOL on white (matte:false), routed to the logo resolver so
+  // it never touches the icon/image stage or auto-saves.
+  const runLogoSymbol = (prompt: string): Promise<ImageOutcome> =>
+    new Promise<ImageOutcome>((resolve) => {
+      logoResolverRef.current = resolve;
+      pendingLogoRef.current = true;
+      post({ type: 'asset_forge_generate', body: { prompt, size: '1024*1024', matte: false, negativePrompt: '' } } as any);
+    });
+
+  // The full make: brief → symbol (Qwen) → vectorize (server) → wordmark (real
+  // font) → compose the variant system. Each step is awaited; the symbol raster
+  // is an intermediate that's traced and discarded.
+  const runLogoGeneration = async (brief: LogoBrief): Promise<{ ok: boolean; system?: LogoSystem; error?: string }> => {
+    try {
+      const prompt = composeSymbolPrompt({ direction: brief.symbolDirection, styleTags: brief.styleTags, color: brief.palette.primary });
+      const sym = await runLogoSymbol(prompt);
+      if (!sym.ok || !sym.dataUrl) return { ok: false, error: sym.error || 'Symbol generation failed' };
+      const symbolSvg = await vectorizeSymbol(sym.dataUrl, 'bw');
+      const font = fontById(brief.fontId);
+      const otf = await loadFont(font.file);
+      const wordmark = typesetWordmark(otf, brief.brandName);
+      const assets = composeLogoSystem({ symbolSvg, wordmark, primary: brief.palette.primary });
+      return { ok: true, system: { brandName: brief.brandName, fontId: brief.fontId, symbolSvg, assets } };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Logo generation failed' };
+    }
   };
 
   // ── Voice lane wiring (mirror of runVideoGeneration — its OWN resolver, no
@@ -900,6 +953,23 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           else failed.push(resolved.label);
         }
         reply(true, { made, failed, credits: made * 20 });
+        return;
+      }
+      if (m.command === 'generate_logo') {
+        // Full logo make. Brief is drawn from the active brand kit; Ava can
+        // override the name/font/direction. Produces the whole variant system.
+        const brief: LogoBrief = {
+          brandName: (typeof args.brand_name === 'string' && args.brand_name.trim()) ? args.brand_name.trim() : kit.name,
+          fontId: (typeof args.font === 'string' && args.font) ? args.font : suggestFont(kit.styleTags).id,
+          symbolDirection: typeof args.direction === 'string' ? args.direction : '',
+          palette: { primary: kit.palette.primary, accent: kit.palette.accent },
+          styleTags: kit.styleTags,
+        };
+        setLogoBusy(true); setLogoSystem(null);
+        const out = await runLogoGeneration(brief);
+        setLogoBusy(false);
+        if (out.ok && out.system) { setLogoSystem(out.system); reply(true, { brandName: brief.brandName, font: brief.fontId, variants: out.system.assets.length }); }
+        else reply(false, undefined, out.error || 'Logo generation failed.');
         return;
       }
       if (m.command === 'brand_kit') {
@@ -1483,6 +1553,36 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
             <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she composes the image and renders it.</p>
           </div>
         </aside>
+      )}
+
+      {/* Logo results — minimal preview of the generated system (Stage 3 makes
+          this a proper studio view with export + save + assign). */}
+      {(logoBusy || logoSystem) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(3px)' }} onClick={() => { if (!logoBusy) setLogoSystem(null); }}>
+          <style>{`.logo-tile svg{max-height:80px;max-width:100%;width:auto;height:auto;display:block}`}</style>
+          <div className="relative w-full max-w-3xl max-h-[88vh] overflow-y-auto rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setLogoSystem(null)} disabled={logoBusy} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center border-none cursor-pointer disabled:opacity-40">×</button>
+            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">{logoSystem ? `Logo — ${logoSystem.brandName}` : 'Designing your logo…'}</h3>
+            <p className="text-xs text-[var(--text-muted)] mb-4">{logoBusy ? 'Symbol → trace → wordmark → variants.' : 'The full system — lockups, symbol, wordmark, mono, favicon.'}</p>
+            {logoBusy && (
+              <div className="flex flex-col items-center justify-center gap-3 py-16">
+                <div className="w-7 h-7 rounded-full border-2 border-[var(--border-card)] border-t-[var(--accent)] animate-spin" />
+                <span className="text-xs text-[var(--text-secondary)]">Composing…</span>
+              </div>
+            )}
+            {logoSystem && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {logoSystem.assets.map(a => (
+                  <div key={a.variant} className="rounded-xl border border-[var(--border-card)] overflow-hidden">
+                    <div className="logo-tile flex items-center justify-center p-4 h-28" style={{ background: a.variant === 'mono-light' ? '#1b1b22' : '#ffffff' }}
+                      dangerouslySetInnerHTML={{ __html: a.svg.replace(/\s(width|height)="[^"]*"/g, '') }} />
+                    <div className="px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] border-t border-[var(--border-card)]">{a.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

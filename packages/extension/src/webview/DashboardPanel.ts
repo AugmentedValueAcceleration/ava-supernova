@@ -494,6 +494,30 @@ export class DashboardPanel {
         break;
       }
 
+      // ─── Logo lane: trace a symbol raster → SVG (server vtracer) ────────────
+      case 'asset_forge_vectorize': {
+        const m = msg as any;
+        this.handleAssetForgeVectorize(m.imageUrl, m.mode).catch(() => {});
+        break;
+      }
+
+      // ─── Logo lane: read a bundled wordmark font off disk → base64 (CSP-free)
+      case 'load_logo_font': {
+        const m = msg as any;
+        void (async () => {
+          const file = String(m.file || '').replace(/[^A-Za-z0-9._-]/g, ''); // basename-safe
+          try {
+            const p = vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'fonts', file).fsPath;
+            const fs = await import('node:fs/promises');
+            const buf = await fs.readFile(p);
+            this.post({ type: 'logo_font_loaded', file, success: true, base64: buf.toString('base64') });
+          } catch (err) {
+            this.post({ type: 'logo_font_loaded', file, success: false, error: err instanceof Error ? err.message : 'font read failed' });
+          }
+        })();
+        break;
+      }
+
       // ─── Design Studio video lane (Wan 2.5 submit + poll, host-proxied) ─────
       case 'asset_forge_video': {
         const m = msg as any;
@@ -5390,6 +5414,43 @@ export class DashboardPanel {
       this.post({ type: 'asset_forge_result', success: true, dataUrl, rawUrl: gen.url } as any);
     } catch (err) {
       this.post({ type: 'asset_forge_result', success: false, error: err instanceof Error ? err.message : 'Generation failed' } as any);
+    }
+  }
+
+  /**
+   * Logo lane — proxy a symbol raster to the server vectorizer (vtracer) and
+   * hand back a clean SVG. Host-proxied because the webview has no platform key
+   * (same reason generation goes through the host).
+   */
+  private async handleAssetForgeVectorize(imageUrl: string, mode?: 'bw' | 'color'): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'asset_forge_vectorize_result', success: false, error: 'Not connected. Add your account in Settings.' });
+      return;
+    }
+    try {
+      const res = await fetch('https://ava-supernova.com/api/asset-forge/vectorize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${platformKey}`,
+          'X-Ava-Data-Mode': dataModeHeader(this.context),
+        },
+        body: JSON.stringify({ imageUrl, mode: mode || 'bw' }),
+      });
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string };
+        this.post({ type: 'asset_forge_vectorize_result', success: false, error: e.error || `Vectorize failed (${res.status})` });
+        return;
+      }
+      const out = (await res.json()) as { svg?: string };
+      if (!out.svg) {
+        this.post({ type: 'asset_forge_vectorize_result', success: false, error: 'No SVG returned' });
+        return;
+      }
+      this.post({ type: 'asset_forge_vectorize_result', success: true, svg: out.svg });
+    } catch (err) {
+      this.post({ type: 'asset_forge_vectorize_result', success: false, error: err instanceof Error ? err.message : 'Vectorize failed' });
     }
   }
 

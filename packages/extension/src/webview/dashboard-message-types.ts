@@ -1605,6 +1605,10 @@ export type ExtToDashboardMessage =
   // Asset Forge / Design Studio generation result (handleAssetForgeGenerate):
   // the matted transparent PNG data URL (or the raw url if the matte fell back).
   | { type: 'asset_forge_result'; success: boolean; dataUrl?: string; rawUrl?: string; error?: string }
+  // Logo lane: a traced symbol SVG back from the server vectorizer, and a bundled
+  // wordmark font's bytes (base64) read off disk by the host (CSP-free — no fetch).
+  | { type: 'asset_forge_vectorize_result'; success: boolean; svg?: string; error?: string }
+  | { type: 'logo_font_loaded'; file: string; success: boolean; base64?: string; error?: string }
   // Design Studio video lane (Wan 2.5 async → poll → finished clip URL). Mirror
   // of asset_forge_result but for the video pipeline: `url` is the finished clip.
   | { type: 'asset_forge_video_result'; success: boolean; url?: string; error?: string }
@@ -1823,6 +1827,10 @@ export type DashboardToExtMessage =
   | { type: 'load_latest_release' }
   // Design Studio generate lane (shape-as-dial → Qwen → matte), host-proxied.
   | { type: 'asset_forge_generate'; body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string; matte?: boolean } }
+  // Logo lane: trace a flat symbol raster → SVG (server vtracer), and load a
+  // bundled wordmark font by filename (host reads dist/dashboard/fonts/<file>).
+  | { type: 'asset_forge_vectorize'; imageUrl: string; mode?: 'bw' | 'color' }
+  | { type: 'load_logo_font'; file: string }
   // Design Studio video lane (submit to Wan 2.5 + poll status, host-proxied).
   | { type: 'asset_forge_video'; body: { prompt: string; duration?: number | string; resolution?: string } }
   // Design Studio voice lane (Qwen3-TTS synchronous synth, host-proxied).

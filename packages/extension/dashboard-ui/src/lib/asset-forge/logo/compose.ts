@@ -19,13 +19,21 @@ interface SymbolSvg {
   vb: { x: number; y: number; w: number; h: number };
 }
 
-/** Pull the inner markup + viewBox out of a symbol SVG string. */
+/** Pull the inner markup + coordinate box out of a symbol SVG string. Prefers
+ *  viewBox; falls back to width/height (vtracer emits those, no viewBox). */
 function parseSymbol(svg: string): SymbolSvg {
   const vbMatch = /viewBox\s*=\s*["']([\d.\-\s]+)["']/i.exec(svg);
-  const nums = vbMatch ? vbMatch[1].trim().split(/\s+/).map(Number) : [0, 0, 100, 100];
-  const [x, y, w, h] = nums.length === 4 && nums.every((n) => Number.isFinite(n)) ? nums : [0, 0, 100, 100];
+  let vb = { x: 0, y: 0, w: 100, h: 100 };
+  if (vbMatch) {
+    const nums = vbMatch[1].trim().split(/\s+/).map(Number);
+    if (nums.length === 4 && nums.every((n) => Number.isFinite(n))) vb = { x: nums[0], y: nums[1], w: nums[2], h: nums[3] };
+  } else {
+    const wM = /\bwidth\s*=\s*["']?([\d.]+)/i.exec(svg);
+    const hM = /\bheight\s*=\s*["']?([\d.]+)/i.exec(svg);
+    vb = { x: 0, y: 0, w: wM ? Number(wM[1]) : 100, h: hM ? Number(hM[1]) : 100 };
+  }
   const inner = svg.replace(/^[\s\S]*?<svg[^>]*>/i, '').replace(/<\/svg>\s*$/i, '').trim();
-  return { inner, vb: { x, y, w, h } };
+  return { inner, vb };
 }
 
 /** Remove per-element fills/strokes so a parent <g fill> colours the whole mark

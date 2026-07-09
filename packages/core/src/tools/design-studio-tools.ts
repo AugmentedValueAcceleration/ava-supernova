@@ -521,6 +521,61 @@ export class DesignGenerateImageTool implements Tool {
   }
 }
 
+// ── design_generate_logo ─────────────────────────────────────────────────────
+// A full logo SYSTEM: a generative symbol (traced to clean vector) paired with a
+// real-font wordmark, composed into the pro variant set. Brand name, palette and
+// feel come from the ACTIVE brand kit; Ava authors the symbol concept + font.
+export class DesignGenerateLogoTool implements Tool {
+  readonly name = 'design_generate_logo';
+  readonly description =
+    'Design a full LOGO SYSTEM for the active brand — a generative symbol traced to clean vector + a real-font wordmark, composed into lockups, symbol-only, wordmark-only, mono (light/dark) and favicon. Name/palette/feel come from the active brand kit; YOU author the symbol concept and pick a font. Uses credits — confirm first. After it renders, offer to set it as the brand logo (design_brand_kit set_logo).';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'design_generate_logo',
+    description:
+      'Design a complete logo system for the active brand kit. A generative brand SYMBOL (no text) is traced to a crisp SVG, and the brand NAME is typeset in a real bundled font (never generated pixels), then composed into the full variant set. ' +
+      'YOU author the symbol `direction` (the concept the mark evokes) and choose a `font` by brand feel. Name, palette and style come from the active kit unless overridden. Uses credits — state it and get a yes. After it renders, offer to make it the brand logo.',
+    parameters: {
+      type: 'object',
+      properties: {
+        direction: {
+          type: 'string',
+          description:
+            'YOU author this — the SYMBOL concept a designer would brief: what the mark evokes, abstractly. e.g. "a rising arc suggesting momentum", "two leaves forming a heart", "a geometric fox head". Keep it a single simple idea — great marks are minimal.',
+        },
+        font: {
+          type: 'string',
+          description:
+            'Wordmark font, chosen by brand feel. One of: Montserrat, Sora, Inter, Space Grotesk, Archivo, Work Sans, DM Sans, Fraunces, Playfair Display, Zilla Slab, Bitter, Bricolage Grotesque. Omit to auto-pick from the brand style words.',
+        },
+        brand_name: { type: 'string', description: "The name to typeset. Omit to use the active brand kit's name." },
+      },
+      required: ['direction'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const control = getControl(context);
+    if (!control) return { success: false, output: NO_CANVAS };
+    const direction = (args.direction as string | undefined)?.trim();
+    if (!direction) return { success: false, output: 'Missing `direction` — the symbol concept, authored by you.' };
+    try {
+      const res = await control('generate_logo', { direction, font: args.font, brand_name: args.brand_name });
+      if (!res.ok) return { success: false, output: res.error || 'Logo generation failed.' };
+      const d = res.data as { brandName?: string; font?: string; variants?: number } | undefined;
+      return {
+        success: true,
+        output: `Designed the logo for "${d?.brandName ?? 'the brand'}" — ${d?.variants ?? 'several'} variants (lockups, symbol, wordmark, mono, favicon) set in ${d?.font ?? 'a real font'}. Offer to set it as the brand logo, or try a different mark.`.replace(/\s+/g, ' ').trim(),
+        metadata: d as Record<string, unknown> | undefined,
+      };
+    } catch (err) {
+      return { success: false, output: `Logo generation failed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  }
+}
+
 // ── design_generate_voice ────────────────────────────────────────────────────
 // A voiceover via Qwen3-TTS. YOU author BOTH the script (the exact words) and
 // the delivery `instructions` (tone / pace / emotion) from what you gauged. Pick
