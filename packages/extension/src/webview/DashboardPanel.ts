@@ -1763,6 +1763,10 @@ export class DashboardPanel {
         await this.downloadCloudAsset(msg.url, msg.filename);
         break;
 
+      case 'save_asset_copy':
+        await this.saveAssetCopy(msg.url, msg.filename);
+        break;
+
       case 'delete_cloud_asset':
         await this.deleteCloudAsset(msg.id);
         break;
@@ -4329,6 +4333,55 @@ export class DashboardPanel {
       );
       if (action === 'Reveal') {
         await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(savePath));
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.post({ type: 'error', message: `Download failed: ${message}` });
+    }
+  }
+
+  /**
+   * "Download a copy" for a freshly-generated asset. Unlike downloadCloudAsset
+   * (hostname-locked to our storage), this exports the user's OWN generated
+   * output — a data: URL (image bytes we already hold) or a remote provider URL
+   * (video/voice clip) — to a location they pick via the native Save dialog.
+   */
+  private async saveAssetCopy(url: string, filename: string): Promise<void> {
+    try {
+      const safeName = (filename || 'download')
+        .replace(/[\\/]/g, '_')
+        .replace(/[^a-zA-Z0-9._ -]/g, '_')
+        .slice(0, 200) || 'download';
+
+      // Resolve the bytes: decode data: inline, else fetch the remote clip.
+      let bytes: Buffer;
+      if (url.startsWith('data:')) {
+        bytes = Buffer.from(url.split(',')[1] ?? '', 'base64');
+      } else {
+        let parsed: URL;
+        try { parsed = new URL(url); }
+        catch { this.post({ type: 'error', message: 'Invalid URL' }); return; }
+        if (!/^https?:$/.test(parsed.protocol)) {
+          this.post({ type: 'error', message: 'Download blocked: unsupported URL scheme.' });
+          return;
+        }
+        const res = await fetch(url);
+        if (!res.ok) { this.post({ type: 'error', message: `Download failed: HTTP ${res.status}` }); return; }
+        bytes = Buffer.from(await res.arrayBuffer());
+      }
+
+      const os = await import('node:os');
+      const dest = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file(path.join(os.homedir(), 'Downloads', safeName)),
+        filters: { 'All Files': ['*'] },
+      });
+      if (!dest) return; // user cancelled
+
+      const fs = await import('node:fs/promises');
+      await fs.writeFile(dest.fsPath, bytes);
+      const action = await vscode.window.showInformationMessage(`Saved: ${path.basename(dest.fsPath)}`, 'Reveal');
+      if (action === 'Reveal') {
+        await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(dest.fsPath));
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

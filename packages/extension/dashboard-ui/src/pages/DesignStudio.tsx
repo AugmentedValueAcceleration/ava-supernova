@@ -201,7 +201,7 @@ const iconBtnStyle: CSSProperties = { display: 'inline-flex', alignItems: 'cente
 // is wired so the controls "just work" the day a real src is set; with no src we
 // drive a fake playhead over the chosen placeholder duration so the design is
 // fully feelable. Scrubber = DragBar (ColorField pointer technique).
-function VideoStage({ durationSec, src, generating }: { durationSec: number; src?: string; generating?: boolean }) {
+function VideoStage({ durationSec, src, generating, onDownload }: { durationSec: number; src?: string; generating?: boolean; onDownload?: () => void }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1
   const [volume, setVolume] = useState(0.8);
@@ -322,10 +322,10 @@ function VideoStage({ durationSec, src, generating }: { durationSec: number; src
               ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" /></svg>
               : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /></svg>}
           </button>
-          <button type="button" onClick={() => {}} title="Save (coming soon)" aria-label="Save"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-            Save
+          <button type="button" onClick={onDownload} disabled={!src || !onDownload} title="Download a copy" aria-label="Download a copy"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: src && onDownload ? 'pointer' : 'default', opacity: src && onDownload ? 1 : 0.45, fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
+            Download
           </button>
         </div>
       </div>
@@ -363,7 +363,7 @@ function deriveMediaTitle(text: string, fallback = 'Clip'): string {
   return words.length > 6 ? words.slice(0, 6).join(' ') + '…' : words.join(' ');
 }
 
-function WaveformPlayer({ voiceName, title, durationSec, src, generating }: { voiceName: string; title?: string; durationSec: number; src?: string; generating?: boolean }) {
+function WaveformPlayer({ voiceName, title, durationSec, src, generating, onDownload }: { voiceName: string; title?: string; durationSec: number; src?: string; generating?: boolean; onDownload?: () => void }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [realDur, setRealDur] = useState(0); // real <audio> duration once loaded (0 = not yet)
@@ -514,10 +514,10 @@ function WaveformPlayer({ voiceName, title, durationSec, src, generating }: { vo
           </div>
           <div style={{ flex: 1 }} />
           <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{fmtTime(cur)} / {fmtTime(dur)}</span>
-          <button type="button" onClick={() => {}} title="Save (coming soon)" aria-label="Save"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-            Save
+          <button type="button" onClick={onDownload} disabled={!src || !onDownload} title="Download a copy" aria-label="Download a copy"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: src && onDownload ? 'pointer' : 'default', opacity: src && onDownload ? 1 : 0.45, fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
+            Download
           </button>
         </div>
       </div>
@@ -707,6 +707,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // host and awaits `asset_forge_video_result`; the listener below fulfils it.
   type VideoOutcome = { ok: boolean; url?: string; error?: string };
   const videoResolverRef = useRef<((r: VideoOutcome) => void) | null>(null);
+  const lastVideoTitleRef = useRef('Video'); // names the "Download a copy" file for the current clip
   // Submit a Wan 2.5 job to the host (POST + poll) and await the finished clip.
   // `resolution` is the exact route value ('720P' | '1080P'); duration is 5 | 10.
   const runVideoGeneration = (prompt: string, duration: string, aspect: string, resolution: string): Promise<VideoOutcome> => {
@@ -714,8 +715,10 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       // Persist the finished clip to the local gallery before resolving, so every
       // caller (Ava's tool + the UI Generate button) saves it — video is costly
       // and used to evaporate on navigation. Lands in the Library's Video section.
+      const title = deriveMediaTitle(prompt, 'Video');
+      lastVideoTitleRef.current = title;
       videoResolverRef.current = (r) => {
-        if (r.ok && r.url) saveMediaToLibrary(r.url, deriveMediaTitle(prompt, 'Video'), 'video', 'video');
+        if (r.ok && r.url) saveMediaToLibrary(r.url, title, 'video', 'video');
         resolve(r);
       };
       setVideoSrc(null);
@@ -820,6 +823,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // voice → Voiceover under Open Canvas). See creative-store.ts / design-types.ts.
   const saveMediaToLibrary = (url: string, title: string, kind: 'video' | 'voice', designType: ViewId) => {
     post({ type: 'save_creative_to_disk', url, filename: title, assetType: kind, designType, prompt: title } as any);
+  };
+  // "Download a copy" — export a generated asset (data: or remote URL) to a
+  // location the user picks. Library-save is automatic; this button is only for
+  // getting a copy out to disk. The host decodes/fetches and pops a Save dialog.
+  const saveAssetCopy = (url: string, filename: string) => {
+    post({ type: 'save_asset_copy', url, filename } as any);
   };
 
   // ── Design Architect tool bridge ──────────────────────────────────────────
@@ -1111,7 +1120,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Video</h2>
               <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Describe a shot — Ava generates a short clip and it plays in this bespoke stage.</p>
             </div>
-            <VideoStage durationSec={Number(videoDuration)} src={videoSrc ?? undefined} generating={videoGenerating} />
+            <VideoStage durationSec={Number(videoDuration)} src={videoSrc ?? undefined} generating={videoGenerating} onDownload={videoSrc ? () => saveAssetCopy(videoSrc, `${lastVideoTitleRef.current || 'video'}.mp4`) : undefined} />
           </div>
         ) : view === 'voice' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
@@ -1119,7 +1128,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Voiceover</h2>
               <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Talk to Ava — she writes the read, directs the delivery, and voices it as a waveform you can scrub.</p>
             </div>
-            <WaveformPlayer voiceName={voiceUsed} title={voiceTitle} durationSec={8} src={voiceSrc ?? undefined} generating={voiceGenerating} />
+            <WaveformPlayer voiceName={voiceUsed} title={voiceTitle} durationSec={8} src={voiceSrc ?? undefined} generating={voiceGenerating} onDownload={voiceSrc ? () => saveAssetCopy(voiceSrc, `${voiceTitle || 'voiceover'}.mp3`) : undefined} />
           </div>
         ) : view === 'image' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
