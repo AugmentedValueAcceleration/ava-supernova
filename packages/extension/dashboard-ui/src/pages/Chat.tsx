@@ -797,8 +797,8 @@ export interface ChatPageProps {
   /** Design lane only: which Design Studio room the operator is standing in.
    *  Drives the room-aware greeting / chips / heading and is tagged on every
    *  design-lane send so the host runs Ava with the matching Design Architect
-   *  persona (icon / video / voice / image). Ignored on other lanes. */
-  designRoom?: 'icon' | 'video' | 'voice' | 'image';
+   *  persona (icon / video / voice / image / logo). Ignored on other lanes. */
+  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo';
   /** Design dock: don't PROGRAMMATICALLY steal composer focus (on activation or
    *  a focus_input message). Programmatic focus fires onComposerFocus and would
    *  force the collapsed dock open on Ava's activity; genuine user focus still

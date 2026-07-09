@@ -49,7 +49,7 @@ interface ChatContainerProps {
    *  Drives the room-aware greeting, starter chips and heading so the Design
    *  Architect reflects the active Open-Canvas view (Video / Voiceover) instead
    *  of always greeting about icons. Defaults to 'icon'. */
-  designRoom?: 'icon' | 'video' | 'voice' | 'image';
+  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo';
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed
@@ -149,7 +149,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
  * Date is appended in conversational form ("Tuesday") rather than full
  * ISO so it reads like a human picking up a conversation.
  */
-function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' = 'icon'): string {
+function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' = 'icon'): string {
   const now = new Date();
   const h = now.getHours();
   const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -175,6 +175,9 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
     }
     if (designRoom === 'image') {
       return `Hey${name} — Design Architect here, on the Open Canvas. What are we making? Describe the image — subject, style, mood — and I'll compose it and render it right here.`;
+    }
+    if (designRoom === 'logo') {
+      return `Hey${name} — Design Architect here, and this is the big one: your brand's identity. A logo isn't one picture, it's a system — so let's design it properly. Tell me about the brand: what does it do, who's it for, and what should it feel like? Or just say the word and I'll work from your brand kit. And here's the real question — what's the one idea the mark should carry? The best ones say a lot with a little.`;
     }
     return `Hey${name} — your Design Architect here. What are we making? An icon, a whole set, a logo? Tell me the vibe and I'll design it with you, on brand.`;
   }
@@ -206,7 +209,7 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
  * chips with prefix-coloured tokens so the modes are recognisable on
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
-function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' }) {
+function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' }) {
   useLocale();
   const isHealth = lane === 'health';
   const isLearning = lane === 'learning';
@@ -238,7 +241,13 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
     { label: 'A background',   prefix: '✦', prompt: 'An abstract gradient background, deep purples and blues, subtle grain',                    color: '#60a5fa' },
     { label: 'A scene',        prefix: '✦', prompt: 'A cozy reading nook by a rainy window, warm light, photorealistic',                        color: '#94e2d5' },
   ];
-  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : designRoom === 'image' ? imageChips : iconChips;
+  const logoChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: 'Design my logo',   prefix: '✦', prompt: 'Design a logo for my brand — work from my brand kit', color: 'var(--accent)' },
+    { label: 'From an idea',     prefix: '✦', prompt: 'Design a logo around this idea: ',                     color: '#f9e2af' },
+    { label: 'A few directions', prefix: '✦', prompt: 'Give me a few different logo directions for my brand', color: '#60a5fa' },
+    { label: 'Which font fits?', prefix: '✦', prompt: 'What wordmark font suits a premium, trustworthy brand?', color: '#94e2d5' },
+  ];
+  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : designRoom === 'image' ? imageChips : designRoom === 'logo' ? logoChips : iconChips;
   // Health room: plain-prompt chips (no mode prefix — the room is locked to
   // health). They prefill the composer so the user can edit before sending.
   const healthChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
@@ -267,7 +276,7 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
   ];
   const chips = isHealth ? healthChips : isLearning ? learningChips : isDesign ? designChips : codeChips;
   // Design heading follows the room: Direct (video) / Voice (voiceover) / Design (icon).
-  const designHeading = designRoom === 'video' ? 'Direct with Ava' : designRoom === 'voice' ? 'Voice with Ava' : designRoom === 'image' ? 'Compose with Ava' : 'Design with Ava';
+  const designHeading = designRoom === 'video' ? 'Direct with Ava' : designRoom === 'voice' ? 'Voice with Ava' : designRoom === 'image' ? 'Compose with Ava' : designRoom === 'logo' ? 'Design your logo with Ava' : 'Design with Ava';
 
   return (
     <div

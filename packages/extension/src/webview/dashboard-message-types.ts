@@ -1838,7 +1838,7 @@ export type DashboardToExtMessage =
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`
