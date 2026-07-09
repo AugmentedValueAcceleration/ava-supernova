@@ -5,6 +5,9 @@ import { CheckIcon, ChevronDownIcon } from './Icons';
 interface SelectOption {
   value: string;
   label: string;
+  /** Render this option's label in a specific font family (e.g. a font picker
+   *  that previews each typeface). The family must be loaded/registered. */
+  fontFamily?: string;
 }
 
 interface SelectProps {
@@ -91,7 +94,7 @@ export function Select({ value, onChange, options, size = 'md', className = '', 
         title={title}
         className={`flex w-full items-center justify-between rounded-lg border border-[var(--border-input)] bg-[#1a1028] ${btnSize} text-left text-white outline-none transition focus:border-[var(--accent)]`}
       >
-        <span className="truncate">{selected?.label ?? value}</span>
+        <span className="truncate" style={selected?.fontFamily ? { fontFamily: selected.fontFamily } : undefined}>{selected?.label ?? value}</span>
         <ChevronDownIcon className={`ml-2 h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
@@ -121,7 +124,7 @@ export function Select({ value, onChange, options, size = 'md', className = '', 
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white'
                 }`}
               >
-                <span className="whitespace-nowrap">{option.label}</span>
+                <span className="whitespace-nowrap" style={option.fontFamily ? { fontFamily: option.fontFamily } : undefined}>{option.label}</span>
                 {isSelected && <CheckIcon className="ml-2 h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />}
               </button>
             );

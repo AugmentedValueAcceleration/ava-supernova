@@ -15,7 +15,7 @@ import { composeSymbolPrompt } from '../lib/asset-forge/logo/prompt';
 import { typesetWordmark } from '../lib/asset-forge/logo/wordmark';
 import { composeLogoSystem } from '../lib/asset-forge/logo/compose';
 import { fontById, suggestFont, WORDMARK_FONTS } from '../lib/asset-forge/logo/fonts';
-import { vectorizeSymbol, loadFont } from '../lib/asset-forge/logo/pipeline';
+import { vectorizeSymbol, loadFont, registerWordmarkFonts } from '../lib/asset-forge/logo/pipeline';
 import type { LogoBrief, LogoSystem, LogoVariant } from '../lib/asset-forge/logo/types';
 import { DESIGN_GROUPS, type ViewId } from '../lib/design-types';
 import { toWebp } from '../lib/compress';
@@ -666,6 +666,9 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoFontId, setLogoFontId] = useState('');                          // font OPTION Ava respects
   const [logoVariant, setLogoVariant] = useState<LogoVariant>('primary');    // which variant is on the board
+  // Register the bundled wordmark fonts (from bytes) when the Logo room opens, so
+  // the font picker previews each name in its own typeface.
+  useEffect(() => { if (view === 'logo') void registerWordmarkFonts(); }, [view]);
   // Set the generated logo as the active brand's logo (its primary lockup, as an
   // SVG data URL). Manual mirror of Ava's set_logo.
   const setLogoAsBrand = () => {
@@ -1625,7 +1628,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
                 <span>Wordmark font</span>
                 <Select size="sm" className="w-[150px]" value={logoFontId || suggestFont(kit.styleTags).id} onChange={v => setLogoFontId(v)}
-                  options={WORDMARK_FONTS.map(f => ({ value: f.id, label: f.label }))} />
+                  options={WORDMARK_FONTS.map(f => ({ value: f.id, label: f.label, fontFamily: f.id }))} />
               </div>
               <p className="text-[10.5px] text-[var(--text-muted)] mt-1">Ava chooses a font by feel — set one here to lock it for the next design.</p>
             </Section>

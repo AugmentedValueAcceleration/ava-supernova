@@ -9,6 +9,7 @@
 import { post } from '../../../App';
 import * as opentype from 'opentype.js';
 import { parseFont } from './wordmark';
+import { WORDMARK_FONTS } from './fonts';
 
 /** One-shot request/response over the window message channel. */
 function once<T>(
@@ -40,12 +41,11 @@ export function vectorizeSymbol(imageUrl: string, mode: 'bw' | 'color' = 'bw'): 
   );
 }
 
-const fontCache = new Map<string, opentype.Font>();
+const bytesCache = new Map<string, Uint8Array>();
 
-/** Load a bundled wordmark font by filename (host reads it → base64). Cached so a
- *  re-run with the same font is instant. */
-export async function loadFont(file: string): Promise<opentype.Font> {
-  const cached = fontCache.get(file);
+/** Fetch a bundled font's raw bytes (host reads the file → base64). Cached. */
+async function loadFontBytes(file: string): Promise<Uint8Array> {
+  const cached = bytesCache.get(file);
   if (cached) return cached;
   const base64 = await once<string>(
     (m) => m.type === 'logo_font_loaded' && m.file === file,
@@ -53,7 +53,36 @@ export async function loadFont(file: string): Promise<opentype.Font> {
     () => post({ type: 'load_logo_font', file } as never),
   );
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  const font = parseFont(bytes.buffer);
+  bytesCache.set(file, bytes);
+  return bytes;
+}
+
+const fontCache = new Map<string, opentype.Font>();
+
+/** Load a bundled wordmark font by filename as a parsed opentype Font. Cached. */
+export async function loadFont(file: string): Promise<opentype.Font> {
+  const cached = fontCache.get(file);
+  if (cached) return cached;
+  const bytes = await loadFontBytes(file);
+  const font = parseFont(bytes.buffer as ArrayBuffer);
   fontCache.set(file, font);
   return font;
+}
+
+const registeredFaces = new Set<string>();
+
+/** Register the bundled wordmark fonts as FontFaces — straight from bytes, so no
+ *  url()/font-src and no CSP change. Lets the font picker render each name IN its
+ *  own typeface. Best-effort per font; a failure just falls back to system text. */
+export async function registerWordmarkFonts(): Promise<void> {
+  await Promise.all(WORDMARK_FONTS.map(async (f) => {
+    if (registeredFaces.has(f.id)) return;
+    try {
+      const bytes = await loadFontBytes(f.file);
+      const face = new FontFace(f.id, bytes as BufferSource);
+      await face.load();
+      (document as unknown as { fonts: FontFaceSet }).fonts.add(face);
+      registeredFaces.add(f.id);
+    } catch { /* skip a font that won't register */ }
+  }));
 }
