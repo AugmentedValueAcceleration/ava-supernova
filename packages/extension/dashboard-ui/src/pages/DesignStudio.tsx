@@ -552,6 +552,13 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     upsertKit(next); setPanelKit(next);
     if (next.id === kit.id) setKit(next);
   };
+  // Read a picked logo file → data URL → into the kit's primary logo slot.
+  const onLogoFile = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { if (typeof reader.result === 'string') saveKit({ logo: { ...(panelKit?.logo ?? {}), primary: reader.result } }); };
+    reader.readAsDataURL(file);
+  };
   const openKit = (id: string) => { setPanelKit(loadKits().find(k => k.id === id) ?? null); setPanelOpen(true); };
   const addKit = () => { setPanelKit(createKit('New brand')); setPanelOpen(true); };
   const closePanel = () => setPanelOpen(false);
@@ -939,6 +946,17 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           if (next.id === activeKit().id) setKit(next);
           if (panelKit && panelKit.id === next.id) setPanelKit(next); // live-refresh the open drawer
           reply(true, next);
+        } else if (a === 'set_logo') {
+          // Assign whatever's on the canvas (a fresh image/icon) as this kit's logo.
+          const slot = (['primary', 'mark', 'light', 'dark'] as const).find(s => s === args.slot) ?? 'primary';
+          const asset = imageSrc || genResultRef.current || null;
+          if (!asset) { reply(false, undefined, 'Nothing on the canvas to assign — make or open an image or icon first, then set it as the logo.'); return; }
+          const target = find(targetId);
+          const next: BrandKit = { ...target, logo: { ...(target.logo ?? {}), [slot]: asset } };
+          upsertKit(next);
+          if (next.id === activeKit().id) setKit(next);
+          if (panelKit && panelKit.id === next.id) setPanelKit(next);
+          reply(true, { name: next.name, slot });
         } else {
           reply(true, find(targetId));
         }
@@ -1241,6 +1259,25 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                     </div>
                   </div>
                   <div><label className={KIT_LBL}>Style words (comma-separated)</label><input value={(panelKit.styleTags ?? []).join(', ')} onChange={e => saveKit({ styleTags: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })} className={KIT_INP} placeholder="minimal, premium, bold" /></div>
+
+                  <div>
+                    <label className={KIT_LBL}>Logo</label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-lg border border-[var(--border-card)] flex items-center justify-center overflow-hidden shrink-0" style={{ background: 'var(--bg-input)' }}>
+                        {panelKit.logo?.primary
+                          ? <img src={panelKit.logo.primary} alt="Logo" className="w-full h-full object-contain" />
+                          : <span className="text-[9px] text-[var(--text-muted)]">None</span>}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={`${KIT_BTN_GHOST} cursor-pointer text-center`}>
+                          {panelKit.logo?.primary ? 'Replace' : 'Upload'}
+                          <input type="file" accept="image/*" className="hidden" onChange={e => { onLogoFile(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+                        </label>
+                        {panelKit.logo?.primary && <button onClick={() => saveKit({ logo: { ...panelKit.logo, primary: undefined } })} className={KIT_BTN_GHOST}>Remove</button>}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-[var(--text-muted)] mt-1">Upload one, or ask Ava to set the image she just made as your logo.</p>
+                  </div>
 
                   <div><label className={KIT_LBL}>Voice / tone (flows into posts)</label><textarea value={panelKit.voice ?? ''} onChange={e => saveKit({ voice: e.target.value })} className={`${KIT_INP} h-20 resize-none`} placeholder="First person, punchy, honest, no hype…" /></div>
                   <div><label className={KIT_LBL}>Do (one per line)</label><textarea value={(panelKit.doRules ?? []).join('\n')} onChange={e => saveKit({ doRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-16 resize-none`} /></div>

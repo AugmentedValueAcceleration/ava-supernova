@@ -254,10 +254,11 @@ export class DesignBrandKitTool implements Tool {
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete'],
-          description: 'list all kits · read one · create a new kit · update fields · set_active (switch) · rename · delete.',
+          enum: ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete', 'set_logo'],
+          description: 'list all kits · read one · create a new kit · update fields · set_active (switch) · rename · delete · set_logo (assign the asset currently on the canvas as this kit\'s logo).',
         },
-        kit_id: { type: 'string', description: 'Target kit id (from "list"). Omit for read/update to mean the ACTIVE kit. Required for set_active / delete / a specific rename.' },
+        kit_id: { type: 'string', description: 'Target kit id (from "list"). Omit for read/update/set_logo to mean the ACTIVE kit. Required for set_active / delete / a specific rename.' },
+        slot: { type: 'string', enum: ['primary', 'mark', 'light', 'dark'], description: 'For set_logo — which logo slot to assign the current canvas asset to. Defaults to "primary".' },
         name: { type: 'string', description: 'The kit/brand name — for create, rename, or update.' },
         // ── Look ──
         palette: {
@@ -287,13 +288,14 @@ export class DesignBrandKitTool implements Tool {
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
 
-    const allowed = ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete'];
+    const allowed = ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete', 'set_logo'];
     const action = allowed.includes(args.action as string) ? (args.action as string) : 'read';
 
     try {
       const res = await control('brand_kit', {
         action,
         kit_id: args.kit_id,
+        slot: args.slot,
         name: args.name,
         palette: args.palette,
         styleTags: args.styleTags,
@@ -328,6 +330,7 @@ export class DesignBrandKitTool implements Tool {
         action === 'set_active' ? 'Now active' :
         action === 'rename' ? 'Renamed' :
         action === 'delete' ? 'Deleted' :
+        action === 'set_logo' ? 'Logo set' :
         action === 'update' ? 'Updated' : 'Brand kit';
       const body = action === 'delete'
         ? `Deleted "${kit?.name || 'kit'}".`
