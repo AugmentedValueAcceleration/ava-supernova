@@ -533,13 +533,26 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   userName?: string | null;
   userAvatarUrl?: string | null;
 }) {
-  const [kit, setKit] = useState<BrandKit>(() => activeKit());
-  // Brand-kit mutations from the editor UI — persist + refresh the active kit.
-  const saveKit = (patch: Partial<BrandKit>) => { const next = { ...kit, ...patch, updatedAt: Date.now() }; upsertKit(next); setKit(next); };
-  const switchKit = (id: string) => { setActiveKit(id); setKit(activeKit()); };
-  const newKit = () => { createKit('New brand'); setKit(activeKit()); };
-  const removeKit = (id: string) => { deleteKit(id); setKit(activeKit()); };
+  const [kit, setKit] = useState<BrandKit>(() => activeKit());     // the ACTIVE kit
+  const [panelKit, setPanelKit] = useState<BrandKit | null>(null);  // kit shown in the right drawer
+  const [panelOpen, setPanelOpen] = useState(false);                // drawer slid in?
+  const [confirmDelete, setConfirmDelete] = useState<BrandKit | null>(null); // kit pending delete-confirm
+  // Edit the kit in the drawer — persist live; keep the active copy in sync if it's the one.
+  const saveKit = (patch: Partial<BrandKit>) => {
+    if (!panelKit) return;
+    const next = { ...panelKit, ...patch, updatedAt: Date.now() };
+    upsertKit(next); setPanelKit(next);
+    if (next.id === kit.id) setKit(next);
+  };
+  const openKit = (id: string) => { setPanelKit(loadKits().find(k => k.id === id) ?? null); setPanelOpen(true); };
+  const addKit = () => { setPanelKit(createKit('New brand')); setPanelOpen(true); };
+  const closePanel = () => setPanelOpen(false);
+  const makeActiveId = (id: string) => { setActiveKit(id); setKit(activeKit()); };
+  const doDelete = (id: string) => { deleteKit(id); if (panelKit?.id === id) setPanelOpen(false); setKit(activeKit()); setConfirmDelete(null); };
   const KIT_INP = 'w-full bg-[rgba(255,255,255,0.03)] border border-[var(--border-card)] rounded px-2.5 py-1.5 text-[12.5px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]';
+  const KIT_LBL = 'text-[11px] text-[var(--text-muted)] block mb-1.5';
+  const KIT_BTN_PRIMARY = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-white transition hover:brightness-110';
+  const KIT_BTN_GHOST = 'px-2.5 py-1 rounded-md text-[11px] border border-[var(--border-card)] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]';
   const [view, setView] = useState<ViewId>('icon');
   // Which room the Design Architect chat should reflect. The Open-Canvas Video
   // and Voiceover views map to their own rooms; everything else is the icon
@@ -1114,59 +1127,98 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
             )}
           </div>
         ) : view === 'brandkit' ? (
-          <div className="flex-1 overflow-y-auto px-6 py-5">
-            <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Brand Kits</h2>
-            <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-4">Multiple brands, one active. The active kit is what every icon, image, and post comes out on — switch it to switch brands.</p>
-
-            {/* Kit picker — switch active, or add a new brand */}
-            <div className="flex flex-wrap items-center gap-2 mb-5 max-w-[560px]">
-              {loadKits().map(k => (
-                <button key={k.id} onClick={() => switchKit(k.id)}
-                  className={`px-3 py-1.5 rounded-lg border text-[12px] transition ${k.id === kit.id ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                  {k.name}{k.id === kit.id ? ' · active' : ''}
+          <div className="flex-1 overflow-hidden relative">
+            {/* Overview — all brand kits at a glance */}
+            <div className="h-full overflow-y-auto px-6 py-5">
+              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Brand Kits</h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-4">Multiple brands, one active. The active kit is what every icon, image, and post comes out on. Click a kit to edit it.</p>
+              <div className="grid gap-3 max-w-[760px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))' }}>
+                {loadKits().map(k => (
+                  <div key={k.id} onClick={() => openKit(k.id)}
+                    className={`rounded-xl border p-3.5 cursor-pointer transition flex flex-col ${k.id === kit.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.06]' : panelOpen && panelKit?.id === k.id ? 'border-[var(--text-muted)]' : 'border-[var(--border-card)] hover:border-[var(--text-muted)]'}`}>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[13px] text-[var(--text-primary)] truncate">{k.name}</span>
+                      {k.id === kit.id && <span className="text-[8.5px] uppercase tracking-wider text-[var(--accent)] border border-[var(--accent)]/40 rounded px-1.5 py-0.5 shrink-0">Active</span>}
+                    </div>
+                    {k.tagline ? <div className="text-[11px] text-[var(--text-muted)] mb-2.5 truncate">{k.tagline}</div> : <div className="h-[16px]" />}
+                    <div className="flex gap-1 mb-3">
+                      {Object.values(k.palette).map((c, i) => <span key={i} className="w-5 h-5 rounded" style={{ background: c }} />)}
+                    </div>
+                    <div className="flex items-center gap-2 mt-auto">
+                      {k.id !== kit.id && (
+                        <button onClick={e => { e.stopPropagation(); makeActiveId(k.id); }} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>Make active</button>
+                      )}
+                      {loadKits().length > 1 && (
+                        <button onClick={e => { e.stopPropagation(); setConfirmDelete(k); }} className={`${KIT_BTN_GHOST} ml-auto`}>Delete</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <button onClick={addKit}
+                  className="rounded-xl border border-dashed border-[var(--border-card)] text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)] flex items-center justify-center min-h-[128px] transition">
+                  + Add brand
                 </button>
-              ))}
-              <button onClick={newKit} className="px-3 py-1.5 rounded-lg border border-dashed border-[var(--border-card)] text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)]">+ New kit</button>
+              </div>
             </div>
 
-            <div className="max-w-[560px] flex flex-col gap-5">
-              {/* Identity */}
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Brand name</label><input value={kit.name} onChange={e => saveKit({ name: e.target.value })} className={KIT_INP} /></div>
-                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Tagline</label><input value={kit.tagline ?? ''} onChange={e => saveKit({ tagline: e.target.value })} className={KIT_INP} placeholder="one-liner" /></div>
-              </div>
-              <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Positioning</label><input value={kit.positioning ?? ''} onChange={e => saveKit({ positioning: e.target.value })} className={KIT_INP} placeholder="what it is + who it's for" /></div>
+            {/* Right drawer — slides in to edit / create the selected kit */}
+            <div className={`absolute top-0 right-0 bottom-0 w-[380px] border-l border-[var(--border-card)] overflow-y-auto px-5 py-5 transition-transform duration-300 ease-out ${panelOpen ? 'translate-x-0' : 'translate-x-full'}`}
+              style={{ background: 'rgba(17,12,26,0.98)', boxShadow: panelOpen ? '-16px 0 44px rgba(0,0,0,0.45)' : 'none' }}>
+              {panelKit && (<>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <h3 className="text-[14px] font-normal text-[var(--text-primary)] truncate">{panelKit.name || 'New brand'}</h3>
+                    {panelKit.id === kit.id && <span className="text-[8.5px] uppercase tracking-wider text-[var(--accent)] shrink-0">active</span>}
+                  </div>
+                  <button onClick={closePanel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[15px] leading-none shrink-0" title="Close">✕</button>
+                </div>
 
-              {/* Look */}
-              <div>
-                <label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Palette</label>
-                <div className="grid grid-cols-5 gap-2 max-w-[300px]">
-                  {(Object.keys(kit.palette) as (keyof typeof kit.palette)[]).map(role => (
-                    <label key={role} className="flex flex-col items-center gap-1 text-[10px] text-[var(--text-muted)]">
-                      <input type="color" value={kit.palette[role]} onChange={e => saveKit({ palette: { ...kit.palette, [role]: e.target.value } })}
-                        className="w-9 h-9 rounded cursor-pointer bg-transparent border border-[var(--border-card)] p-0" />
-                      <span className="capitalize">{role}</span>
-                    </label>
-                  ))}
+                <div className="flex flex-col gap-4">
+                  <div><label className={KIT_LBL}>Brand name</label><input value={panelKit.name} onChange={e => saveKit({ name: e.target.value })} className={KIT_INP} /></div>
+                  <div><label className={KIT_LBL}>Tagline</label><input value={panelKit.tagline ?? ''} onChange={e => saveKit({ tagline: e.target.value })} className={KIT_INP} placeholder="one-liner" /></div>
+                  <div><label className={KIT_LBL}>Positioning</label><input value={panelKit.positioning ?? ''} onChange={e => saveKit({ positioning: e.target.value })} className={KIT_INP} placeholder="what it is + who it's for" /></div>
+
+                  <div>
+                    <label className={KIT_LBL}>Palette</label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {(Object.keys(panelKit.palette) as (keyof BrandKit['palette'])[]).map(role => (
+                        <label key={role} className="flex flex-col items-center gap-1 text-[10px] text-[var(--text-muted)]">
+                          <input type="color" value={panelKit.palette[role]} onChange={e => saveKit({ palette: { ...panelKit.palette, [role]: e.target.value } })}
+                            className="w-8 h-8 rounded cursor-pointer bg-transparent border border-[var(--border-card)] p-0" />
+                          <span className="capitalize">{role}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div><label className={KIT_LBL}>Style words (comma-separated)</label><input value={(panelKit.styleTags ?? []).join(', ')} onChange={e => saveKit({ styleTags: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })} className={KIT_INP} placeholder="minimal, premium, bold" /></div>
+
+                  <div><label className={KIT_LBL}>Voice / tone (flows into posts)</label><textarea value={panelKit.voice ?? ''} onChange={e => saveKit({ voice: e.target.value })} className={`${KIT_INP} h-20 resize-none`} placeholder="First person, punchy, honest, no hype…" /></div>
+                  <div><label className={KIT_LBL}>Do (one per line)</label><textarea value={(panelKit.doRules ?? []).join('\n')} onChange={e => saveKit({ doRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-16 resize-none`} /></div>
+                  <div><label className={KIT_LBL}>Don't (one per line)</label><textarea value={(panelKit.dontRules ?? []).join('\n')} onChange={e => saveKit({ dontRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-16 resize-none`} /></div>
+                  <div><label className={KIT_LBL}>Default hashtags (comma-separated)</label><input value={(panelKit.defaultHashtags ?? []).join(', ')} onChange={e => saveKit({ defaultHashtags: e.target.value.split(',').map(x => x.trim().replace(/^#/, '')).filter(Boolean) })} className={KIT_INP} placeholder="buildinpublic, localfirst" /></div>
+                  <div><label className={KIT_LBL}>Default link</label><input value={panelKit.defaultLink ?? ''} onChange={e => saveKit({ defaultLink: e.target.value })} className={KIT_INP} placeholder="ava-supernova.com" /></div>
+
+                  <div className="flex items-center gap-3 pt-1">
+                    {panelKit.id !== kit.id && <button onClick={() => makeActiveId(panelKit.id)} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>Make active</button>}
+                    {loadKits().length > 1 && <button onClick={() => setConfirmDelete(panelKit)} className={`${KIT_BTN_GHOST} ml-auto`}>Delete</button>}
+                  </div>
+                </div>
+              </>)}
+            </div>
+
+            {/* Delete confirmation overlay */}
+            {confirmDelete && (
+              <div className="absolute inset-0 z-40 flex items-center justify-center px-6" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={() => setConfirmDelete(null)}>
+                <div className="rounded-xl border border-[var(--border-card)] p-5 w-[320px]" style={{ background: 'rgba(17,12,26,0.99)' }} onClick={e => e.stopPropagation()}>
+                  <h3 className="text-[14px] text-[var(--text-primary)] mb-1.5">Delete &ldquo;{confirmDelete.name}&rdquo;?</h3>
+                  <p className="text-[12px] text-[var(--text-muted)] mb-4">This brand kit will be removed. This can&rsquo;t be undone.</p>
+                  <div className="flex items-center justify-end gap-2.5">
+                    <button onClick={() => setConfirmDelete(null)} className={KIT_BTN_GHOST}>Cancel</button>
+                    <button onClick={() => doDelete(confirmDelete.id)} className="px-2.5 py-1 rounded-md text-[11px] font-medium text-white transition hover:brightness-110" style={{ background: '#ef4444' }}>Delete</button>
+                  </div>
                 </div>
               </div>
-              <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Style words (comma-separated)</label><input value={(kit.styleTags ?? []).join(', ')} onChange={e => saveKit({ styleTags: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })} className={KIT_INP} placeholder="minimal, premium, bold" /></div>
-
-              {/* Voice */}
-              <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Voice / tone — how this brand writes (flows into posts)</label><textarea value={kit.voice ?? ''} onChange={e => saveKit({ voice: e.target.value })} className={`${KIT_INP} h-20 resize-none`} placeholder="First person, punchy, honest, no hype…" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Do (one per line)</label><textarea value={(kit.doRules ?? []).join('\n')} onChange={e => saveKit({ doRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-20 resize-none`} /></div>
-                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Don't (one per line)</label><textarea value={(kit.dontRules ?? []).join('\n')} onChange={e => saveKit({ dontRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-20 resize-none`} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Default hashtags (comma-separated)</label><input value={(kit.defaultHashtags ?? []).join(', ')} onChange={e => saveKit({ defaultHashtags: e.target.value.split(',').map(x => x.trim().replace(/^#/, '')).filter(Boolean) })} className={KIT_INP} placeholder="buildinpublic, localfirst" /></div>
-                <div><label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Default link</label><input value={kit.defaultLink ?? ''} onChange={e => saveKit({ defaultLink: e.target.value })} className={KIT_INP} placeholder="ava-supernova.com" /></div>
-              </div>
-
-              {loadKits().length > 1 && (
-                <button onClick={() => removeKit(kit.id)} className="self-start text-[11px] text-[var(--text-muted)] hover:text-red-400 transition mt-1">Delete this kit</button>
-              )}
-            </div>
+            )}
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-2.5 text-center px-10 text-[var(--text-muted)]">

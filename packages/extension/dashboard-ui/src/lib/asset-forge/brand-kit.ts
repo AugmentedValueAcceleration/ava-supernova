@@ -108,7 +108,9 @@ export function upsertKit(kit: BrandKit): BrandKit[] {
   return kits;
 }
 
-/** Create a new kit (seeded from the default look), save it, make it active. */
+/** Create a new kit (seeded from the default look) and save it. Does NOT change
+ *  the active kit — creating a brand shouldn't switch the one you're working in;
+ *  activate explicitly with setActiveKit. */
 export function createKit(name: string): BrandKit {
   const now = Date.now();
   const kit: BrandKit = {
@@ -119,7 +121,6 @@ export function createKit(name: string): BrandKit {
     updatedAt: now,
   };
   upsertKit(kit);
-  setActiveKit(kit.id);
   return kit;
 }
 
