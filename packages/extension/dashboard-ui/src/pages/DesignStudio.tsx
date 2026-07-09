@@ -16,7 +16,7 @@ import { typesetWordmark } from '../lib/asset-forge/logo/wordmark';
 import { composeLogoSystem } from '../lib/asset-forge/logo/compose';
 import { fontById, suggestFont, WORDMARK_FONTS } from '../lib/asset-forge/logo/fonts';
 import { vectorizeSymbol, loadFont } from '../lib/asset-forge/logo/pipeline';
-import type { LogoBrief, LogoSystem } from '../lib/asset-forge/logo/types';
+import type { LogoBrief, LogoSystem, LogoVariant } from '../lib/asset-forge/logo/types';
 import { DESIGN_GROUPS, type ViewId } from '../lib/design-types';
 import { toWebp } from '../lib/compress';
 
@@ -664,25 +664,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const pendingLogoRef = useRef(false);
   const [logoSystem, setLogoSystem] = useState<LogoSystem | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
-  const [logoName, setLogoName] = useState('');
-  const [logoDirection, setLogoDirection] = useState('');
-  const [logoFontId, setLogoFontId] = useState('');
-  const [logoErr, setLogoErr] = useState<string | null>(null);
-  // Run the logo make from the studio form (Ava's tool uses the command bridge).
-  const doGenerateLogo = async () => {
-    const brief: LogoBrief = {
-      brandName: (logoName || kit.name).trim() || 'Brand',
-      fontId: logoFontId || suggestFont(kit.styleTags).id,
-      symbolDirection: logoDirection.trim(),
-      palette: { primary: kit.palette.primary, accent: kit.palette.accent },
-      styleTags: kit.styleTags,
-    };
-    setLogoErr(null); setLogoBusy(true); setLogoSystem(null);
-    const out = await runLogoGeneration(brief);
-    setLogoBusy(false);
-    if (out.ok && out.system) setLogoSystem(out.system);
-    else setLogoErr(out.error || 'Logo generation failed.');
-  };
+  const [logoFontId, setLogoFontId] = useState('');                          // font OPTION Ava respects
+  const [logoVariant, setLogoVariant] = useState<LogoVariant>('primary');    // which variant is on the board
   // Set the generated logo as the active brand's logo (its primary lockup, as an
   // SVG data URL). Manual mirror of Ava's set_logo.
   const setLogoAsBrand = () => {
@@ -990,12 +973,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         // override the name/font/direction. Produces the whole variant system.
         const brief: LogoBrief = {
           brandName: (typeof args.brand_name === 'string' && args.brand_name.trim()) ? args.brand_name.trim() : kit.name,
-          fontId: (typeof args.font === 'string' && args.font) ? args.font : suggestFont(kit.styleTags).id,
+          fontId: (typeof args.font === 'string' && args.font) ? args.font : (logoFontId || suggestFont(kit.styleTags).id),
           symbolDirection: typeof args.direction === 'string' ? args.direction : '',
           palette: { primary: kit.palette.primary, accent: kit.palette.accent },
           styleTags: kit.styleTags,
         };
-        setLogoBusy(true); setLogoSystem(null);
+        setLogoBusy(true); setLogoSystem(null); setLogoVariant('primary');
         const out = await runLogoGeneration(brief);
         setLogoBusy(false);
         if (out.ok && out.system) { setLogoSystem(out.system); reply(true, { brandName: brief.brandName, font: brief.fontId, variants: out.system.assets.length }); }
@@ -1296,40 +1279,50 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           </div>
         ) : view === 'logo' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
-            <div className="mb-3.5">
+            <div className="mb-3">
               <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Logo</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Your brand's full identity — a symbol traced to clean vector, your name in a real font, composed into lockups, mono light/dark and a favicon. Ask Ava, or set the brief on the right.</p>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Your brand's whole identity — one system, all its forms. Talk to Ava to design it; check every form against light and dark right here.</p>
             </div>
-            <style>{`.logo-tile svg{max-height:88px;max-width:100%;width:auto;height:auto;display:block}`}</style>
-            <div className="flex-1 min-h-[240px] rounded-xl border border-[var(--border-card)] relative overflow-hidden">
+            {/* Check against — the same board the icon canvas uses; a logo has to hold on light AND dark. */}
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="text-[11px] text-[var(--text-muted)]">Check against</span>
+              {boards.map(b => (
+                <button key={b.label} onClick={() => setBoardBg(b.bg)} title={b.label} aria-label={b.label}
+                  className="w-5 h-5 rounded cursor-pointer" style={{ background: b.bg, border: `1px solid ${boardBg === b.bg ? '#fff' : 'var(--border-card)'}` }} />
+              ))}
+            </div>
+            <style>{`.logo-stage svg{max-height:150px;max-width:82%;width:auto;height:auto;display:block}.logo-chip svg{max-height:34px;max-width:100%;width:auto;height:auto;display:block}`}</style>
+            <div className="flex-1 min-h-[220px] rounded-xl border border-[var(--border-card)] flex items-center justify-center relative overflow-hidden" style={{ background: boardBg }}>
+              {logoSystem && !logoBusy && (() => {
+                const a = logoSystem.assets.find(x => x.variant === logoVariant) ?? logoSystem.assets[0];
+                return <div className="logo-stage flex items-center justify-center w-full h-full p-8" dangerouslySetInnerHTML={{ __html: a.svg.replace(/\s(width|height)="[^"]*"/g, '') }} />;
+              })()}
               {!logoSystem && !logoBusy && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-8" style={{ background: 'radial-gradient(120% 120% at 50% 30%, #171021, #0c0814)' }}>
+                <div className="flex flex-col items-center gap-2.5 text-center px-8 pointer-events-none">
                   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v10M7 12h10" opacity="0.5" /></svg>
                   <div className="text-[13.5px] text-[var(--text-secondary)]">Let's design a logo for {kit.name}</div>
-                  <div className="text-[12px] text-[var(--text-muted)] max-w-[360px] leading-relaxed">Tell Ava about the brand — what it does, who it's for, the one idea the mark should carry — or set the brief on the right and hit Design.</div>
+                  <div className="text-[12px] text-[var(--text-muted)] max-w-[360px] leading-relaxed">Tell Ava about the brand — what it does, who it's for, the one idea the mark should carry. She'll design it and it lands here.</div>
                 </div>
               )}
               {logoBusy && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: 'radial-gradient(120% 120% at 50% 30%, #171021, #0c0814)' }}>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: 'rgba(12,8,20,0.6)' }}>
                   <div className="w-[26px] h-[26px] rounded-full border-2 border-[var(--border-card)] border-t-[var(--accent)] animate-spin" />
                   <div className="text-[12.5px] text-[var(--text-secondary)]">Symbol → trace → wordmark → variants…</div>
                 </div>
               )}
-              {logoSystem && !logoBusy && (
-                <div className="absolute inset-0 overflow-y-auto p-5" style={{ background: '#0c0814' }}>
-                  <h3 className="text-[13px] text-[var(--text-primary)] mb-3">{logoSystem.brandName} — the system</h3>
-                  <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
-                    {logoSystem.assets.map(a => (
-                      <div key={a.variant} className="rounded-xl border border-[var(--border-card)] overflow-hidden">
-                        <div className="logo-tile flex items-center justify-center p-4 h-28" style={{ background: a.variant === 'mono-light' ? '#1b1b22' : '#ffffff' }} dangerouslySetInnerHTML={{ __html: a.svg.replace(/\s(width|height)="[^"]*"/g, '') }} />
-                        <div className="px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] border-t border-[var(--border-card)]">{a.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-            {logoErr && <p className="text-[12px] text-red-400 mt-2.5">{logoErr}</p>}
+            {/* Variant strip — pick which form sits on the board. */}
+            {logoSystem && !logoBusy && (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {logoSystem.assets.map(a => (
+                  <button key={a.variant} onClick={() => setLogoVariant(a.variant)} title={a.label}
+                    className={`shrink-0 w-[76px] rounded-lg border overflow-hidden transition ${logoVariant === a.variant ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]/40' : 'border-[var(--border-card)] hover:border-[var(--text-muted)]'}`}>
+                    <div className="logo-chip flex items-center justify-center h-11 px-2" style={{ background: a.variant === 'mono-light' ? '#1b1b22' : '#ffffff' }} dangerouslySetInnerHTML={{ __html: a.svg.replace(/\s(width|height)="[^"]*"/g, '') }} />
+                    <div className="px-1 py-1 text-[8.5px] text-[var(--text-muted)] border-t border-[var(--border-card)] truncate text-center">{a.label}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : view === 'brandkit' ? (
           <div className="flex-1 overflow-hidden relative">
@@ -1622,36 +1615,34 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         </aside>
       )}
 
-      {/* RIGHT RAIL — the inspector (logo lane). The manual mirror; Ava in the
-          dock is the way you actually do it — she gauges, designs, explains. */}
+      {/* RIGHT RAIL — the inspector (logo lane). Options + finish ONLY. You
+          design by talking to Ava in the dock — she gauges and proposes; this
+          panel just tunes and exports (no prompt box, like every other lane). */}
       {view === 'logo' && (
         <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
-            <Section title="Brief">
-              <div className="flex flex-col gap-1.5 py-[5px]">
-                <label className="text-[11px] text-[var(--text-muted)]">Brand name</label>
-                <input value={logoName || kit.name} onChange={e => setLogoName(e.target.value)} className={KIT_INP} placeholder={kit.name} />
-              </div>
-              <div className="flex flex-col gap-1.5 py-[5px]">
-                <label className="text-[11px] text-[var(--text-muted)]">The mark — what should it evoke?</label>
-                <textarea value={logoDirection} onChange={e => setLogoDirection(e.target.value)} className={`${KIT_INP} h-[68px] resize-none`} placeholder="A rising arc — momentum. One simple idea." />
-              </div>
+            <Section title="Options">
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Font</span>
+                <span>Wordmark font</span>
                 <Select size="sm" className="w-[150px]" value={logoFontId || suggestFont(kit.styleTags).id} onChange={v => setLogoFontId(v)}
                   options={WORDMARK_FONTS.map(f => ({ value: f.id, label: f.label }))} />
               </div>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-1">Ava chooses a font by feel — set one here to lock it for the next design.</p>
             </Section>
-
-            <button onClick={doGenerateLogo} disabled={logoBusy} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)', opacity: logoBusy ? 0.6 : 1, cursor: logoBusy ? 'default' : 'pointer' }}>{logoBusy ? 'Designing…' : logoSystem ? 'Regenerate' : 'Design logo'}</button>
 
             {logoSystem && !logoBusy && (
               <Section title="Finish">
-                <button onClick={setLogoAsBrand} className={KIT_BTN_GHOST}>Set as {kit.name}&apos;s logo</button>
+                <button onClick={setLogoAsBrand} className={`${KIT_BTN_GHOST} w-full`}>Set as {kit.name}&apos;s logo</button>
+                <button
+                  onClick={() => { const a = logoSystem.assets.find(x => x.variant === logoVariant) ?? logoSystem.assets[0]; saveAssetCopy('data:image/svg+xml,' + encodeURIComponent(a.svg), `${logoSystem.brandName}-${a.variant}.svg`); }}
+                  className={`${KIT_BTN_GHOST} w-full mt-1.5`}
+                >
+                  Download {logoSystem.assets.find(x => x.variant === logoVariant)?.label ?? 'SVG'} (SVG)
+                </button>
               </Section>
             )}
 
-            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she gauges the brand, designs the mark, and tells you why. This panel is just the manual mirror.</p>
+            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she gauges the brand, proposes the mark, designs it and tells you why.</p>
           </div>
         </aside>
       )}
