@@ -355,6 +355,14 @@ function deriveVoiceTitle(script: string): string {
   return words.length > 6 ? words.slice(0, 6).join(' ') + '…' : words.join(' ');
 }
 
+// Short display name for any generated clip, derived from its prompt.
+function deriveMediaTitle(text: string, fallback = 'Clip'): string {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  if (!clean) return fallback;
+  const words = clean.split(' ');
+  return words.length > 6 ? words.slice(0, 6).join(' ') + '…' : words.join(' ');
+}
+
 function WaveformPlayer({ voiceName, title, durationSec, src, generating }: { voiceName: string; title?: string; durationSec: number; src?: string; generating?: boolean }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -703,7 +711,13 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // `resolution` is the exact route value ('720P' | '1080P'); duration is 5 | 10.
   const runVideoGeneration = (prompt: string, duration: string, aspect: string, resolution: string): Promise<VideoOutcome> => {
     return new Promise<VideoOutcome>((resolve) => {
-      videoResolverRef.current = resolve;
+      // Persist the finished clip to the local gallery before resolving, so every
+      // caller (Ava's tool + the UI Generate button) saves it — video is costly
+      // and used to evaporate on navigation. Lands in the Library's Video section.
+      videoResolverRef.current = (r) => {
+        if (r.ok && r.url) saveMediaToLibrary(r.url, deriveMediaTitle(prompt, 'Video'), 'video', 'video');
+        resolve(r);
+      };
       setVideoSrc(null);
       setVideoGenerating(true);
       post({ type: 'asset_forge_video', body: { prompt, duration: Number(duration), aspect, resolution } } as any);
@@ -751,7 +765,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const voiceResolverRef = useRef<((r: VoiceOutcome) => void) | null>(null);
   const runVoiceGeneration = (script: string, voice: string, language: string, instructions?: string): Promise<VoiceOutcome> => {
     return new Promise<VoiceOutcome>((resolve) => {
-      voiceResolverRef.current = resolve;
+      // Same as video: persist the read before resolving so every caller saves it.
+      // Lands in the Library's Voiceover section (Open Canvas).
+      voiceResolverRef.current = (r) => {
+        if (r.ok && r.url) saveMediaToLibrary(r.url, deriveVoiceTitle(script), 'voice', 'voice');
+        resolve(r);
+      };
       setVoiceSrc(null);
       setVoiceGenerating(true);
       post({ type: 'asset_forge_voice', body: { text: script, voice, language_type: language, instructions } } as any);
@@ -793,6 +812,14 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     const encoded = await toWebp(dataUrl, designType === 'image' ? 0.9 : 1.0);
     const ext = encoded.startsWith('data:image/webp') ? 'webp' : 'png';
     post({ type: 'save_creative_to_disk', url: encoded, filename: `${title}.${ext}`, assetType: 'image', designType, prompt: title } as any);
+  };
+  // Media (video / voiceover) save straight to the local creative gallery — no
+  // webp re-encode (that's image-only). The host fetches the URL (remote or
+  // data:) and writes the real bytes. `assetType` maps to the on-disk kind and
+  // `designType` decides which Library section it lands in (video → Video,
+  // voice → Voiceover under Open Canvas). See creative-store.ts / design-types.ts.
+  const saveMediaToLibrary = (url: string, title: string, kind: 'video' | 'voice', designType: ViewId) => {
+    post({ type: 'save_creative_to_disk', url, filename: title, assetType: kind, designType, prompt: title } as any);
   };
 
   // ── Design Architect tool bridge ──────────────────────────────────────────

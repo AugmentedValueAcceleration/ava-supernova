@@ -213,11 +213,12 @@ export function Library({
   // excludes office documents, which live on the Documents tab.
   const allAssetItems = useMemo(() => {
     const list: UnifiedItem[] = [];
-    // Local-first creative gallery is the primary source. Voice/music/sfx are
-    // hidden — Creative Studio no longer produces audio, so only image + video.
+    // Local-first creative gallery is the primary source — everything Creative
+    // Studio makes: images, video, and voiceovers (Qwen3-TTS). Audio kinds bucket
+    // into the Voiceover section via their design_type (see design-types.ts).
     for (const a of localCreative) {
       const k = cloudAssetKind(a);
-      if (['image', 'video', 'graphic'].includes(k)) {
+      if (['image', 'video', 'graphic', 'voice', 'music', 'sfx'].includes(k)) {
         list.push({ ...unifyCloudAsset(a), source: 'local' });
       }
     }
@@ -626,7 +627,14 @@ function PreviewModal({
   const isVoice = item.kind === 'voice';
   const isAudio = isMusic || isVoice;
 
-  const localPath = isLocal ? (item.raw as LibraryImage).path : undefined;
+  // Two kinds of "local": workspace files (LibraryImage, carry a `path`) and
+  // local-creative gallery items (CreativeAsset saved by Creative Studio — a
+  // webview `url`, no `path`). They need different plumbing for playback/delete.
+  const rawImg = item.raw as Partial<LibraryImage>;
+  const rawCreative = item.raw as Partial<CreativeAsset>;
+  const isLocalCreative = isLocal && !rawImg.path && typeof rawCreative.url === 'string';
+
+  const localPath = isLocal ? rawImg.path : undefined;
   const cloudUrl = !isLocal ? (item.raw as CreativeAsset).url ?? undefined : undefined;
 
   // Playback source — cloud assets use their public URL; local files
@@ -635,7 +643,9 @@ function PreviewModal({
   // legacy dataUri for in-flight messages from older hosts. Webview CSP
   // allows vscode-webview-resource:, data:, https:, blob: for media-src.
   const localRaw = isLocal ? (item.raw as LibraryImage) : undefined;
-  const localPlaybackUrl = localRaw?.webviewUri || localRaw?.dataUri;
+  // Local-creative items stream from disk via their webview `url`; workspace
+  // files use webviewUri/dataUri. Fall through so both play inline.
+  const localPlaybackUrl = localRaw?.webviewUri || localRaw?.dataUri || (isLocalCreative ? rawCreative.url ?? undefined : undefined);
   const mediaSrc: string | undefined = isLocal ? localPlaybackUrl : cloudUrl ?? undefined;
 
   const handleOpen = () => {
@@ -679,6 +689,11 @@ function PreviewModal({
 
   const handleDelete = () => {
     if (!confirmDelete) { setConfirmDelete(true); return; }
+    if (isLocalCreative && rawCreative.id) {
+      post({ type: 'delete_local_creative', id: rawCreative.id });
+      onClose();
+      return;
+    }
     if (isLocal && localPath) {
       post({ type: 'delete_library_image', path: localPath });
       onClose();
@@ -784,7 +799,7 @@ function PreviewModal({
                 a copy. Raw Supabase URLs are only exposed via Copy URL
                 when the user explicitly asks for them. */}
           <div className="mt-5 flex flex-wrap gap-2">
-            {isLocal && (
+            {isLocal && localPath && (
               <button
                 onClick={handleOpen}
                 className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
@@ -792,7 +807,7 @@ function PreviewModal({
                 {isOfficeDoc ? t('library.open_libreoffice') : t('dash.library.open')}
               </button>
             )}
-            {isLocal && (
+            {isLocal && localPath && (
               <button
                 onClick={handleReveal}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
@@ -800,16 +815,18 @@ function PreviewModal({
                 {t('library.reveal')}
               </button>
             )}
-            <button
-              onClick={handleDownload}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                !isLocal
-                  ? 'border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20'
-                  : 'border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-              }`}
-            >
-              {t('library.download')}
-            </button>
+            {((isLocal && localPath) || cloudUrl) && (
+              <button
+                onClick={handleDownload}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  !isLocal
+                    ? 'border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20'
+                    : 'border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                }`}
+              >
+                {t('library.download')}
+              </button>
+            )}
             {!isLocal && cloudUrl && (
               <button
                 onClick={handleCopyUrl}
