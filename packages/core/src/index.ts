@@ -20,6 +20,11 @@ export type { UserIntent, IntentClassifierOptions } from './agent/intent-classif
 export type { SystemPromptOptions } from './agent/system-prompt.js';
 export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix } from './agent/system-prompt.js';
 
+// Social Studio contracts — the surface-injected stores the Posts-floor tools
+// (write_post, propose_hooks) write through, plus the shared char-limit map.
+export type { SocialPostInput, SocialPostWritten, PostStore, HookOption, HookStore } from './social/index.js';
+export { POST_HARD_LIMITS } from './social/index.js';
+
 // Health profile-fill registry (the "Ava fills your profile" flow)
 export {
   HEALTH_PROFILE_FIELDS,

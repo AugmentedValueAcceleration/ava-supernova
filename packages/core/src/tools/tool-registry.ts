@@ -41,6 +41,7 @@ import { TaskManageTool } from './task-manage.js';
 import { TaskSuggestTool } from './task-suggest.js';
 import { JournalWriteTool } from './journal.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
+import { WritePostTool } from './write-post.js';
 import { HealthPlanUpdateDayTool } from './health-plan-update-day.js';
 import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
 import { HealthProfileAskTool } from './health-profile-ask.js';
@@ -421,6 +422,7 @@ export class ToolRegistry {
       new DesignSaveTool(),
       new HealthPlanCreateTool(),
       new HealthPlanUpdateDayTool(),
+      new WritePostTool(),
       new DocumentManageTool(),
       new DocumentAuthorTool(),
       new GitCommitTool(),
