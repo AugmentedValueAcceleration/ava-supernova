@@ -1281,10 +1281,15 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
           {/* Inline answer box — when Ava ends her turn with a question (in a
               room), show a reply box right under it so you answer there. Rooms
               force the mode, so the value passed to handleSend is overridden. */}
-          {!hideMessages && !state.isStreaming && !state.isThinking && lane !== 'main' && (() => {
+          {!hideMessages && !state.isThinking && lane !== 'main' && (() => {
             const last = state.messages[state.messages.length - 1];
-            const asked = !!last && last.role === 'assistant' && !last.isStreaming && (last.content || '').includes('?');
-            return asked ? <QuestionReply onAnswer={(t) => handleSend(t, 'design' as AvaMode)} /> : null;
+            if (!last || last.role !== 'assistant' || last.isStreaming) return null;
+            // Ava's visible text lives in her 'text' events, NOT message.content —
+            // read the question from there.
+            const text = (last.events ?? [])
+              .filter((e): e is Extract<MessageEvent, { kind: 'text' }> => e.kind === 'text')
+              .map((e) => e.content).join('') || last.content || '';
+            return text.includes('?') ? <QuestionReply onAnswer={(t) => handleSend(t, 'design' as AvaMode)} /> : null;
           })()}
 
           {/* Context usage — sits flush above the composer so the bar lives
