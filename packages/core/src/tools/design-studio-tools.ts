@@ -540,10 +540,20 @@ export class DesignGenerateLogoTool implements Tool {
     parameters: {
       type: 'object',
       properties: {
+        mark_type: {
+          type: 'string',
+          enum: ['letter', 'symbol'],
+          description: 'How the mark is made. "letter" = a LETTERMARK built from the brand\'s initial in its font — clean, distinctively theirs, no credits (the strong default for most brands). "symbol" = a pictorial mark generated from a shape (uses credits). Prefer letter unless a pictorial symbol genuinely serves the brand better.',
+        },
+        container: {
+          type: 'string',
+          enum: ['none', 'ring'],
+          description: 'For a lettermark only: "none" (the letter alone) or "ring" (the letter set inside an emblem ring).',
+        },
         mark: {
           type: 'string',
           description:
-            'The mark\'s SHAPE — a Lucide id from design_find_shape, or a subject ("star", "arc", "hexagon", "leaf"). This anchors the symbol\'s geometry (it\'s refined into a flat logomark), so the result is clean and distinctive instead of generic. Call design_find_shape first, pick the shape that best embodies your concept — laterally, not the literal one — and pass it here.',
+            'For a SYMBOL mark only — its SHAPE: a Lucide id from design_find_shape, or a subject ("star", "arc", "hexagon", "leaf"). Anchors the geometry (refined into a flat logomark). Call design_find_shape first and pick laterally, not the literal one.',
         },
         direction: {
           type: 'string',
@@ -572,7 +582,7 @@ export class DesignGenerateLogoTool implements Tool {
     const direction = (args.direction as string | undefined)?.trim();
     if (!direction) return { success: false, output: 'Missing `direction` — the symbol concept, authored by you.' };
     try {
-      const res = await control('generate_logo', { direction, mark: args.mark, style: args.style, font: args.font, brand_name: args.brand_name });
+      const res = await control('generate_logo', { direction, mark_type: args.mark_type, container: args.container, mark: args.mark, style: args.style, font: args.font, brand_name: args.brand_name });
       if (!res.ok) return { success: false, output: res.error || 'Logo generation failed.' };
       const d = res.data as { brandName?: string; font?: string; variants?: number } | undefined;
       return {

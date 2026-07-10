@@ -12,6 +12,7 @@ import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-
 import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, type BrandKit } from '../lib/asset-forge/brand-kit';
 import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE, withBrandDirection } from '../lib/asset-forge/generate';
 import { composeLogoMarkPrompt, LOGO_SYMBOL_NEGATIVE } from '../lib/asset-forge/logo/prompt';
+import { buildLettermark } from '../lib/asset-forge/logo/lettermark';
 import { typesetWordmark } from '../lib/asset-forge/logo/wordmark';
 import { composeLogoSystem } from '../lib/asset-forge/logo/compose';
 import { fontById, suggestFont, WORDMARK_FONTS } from '../lib/asset-forge/logo/fonts';
@@ -680,6 +681,9 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const [logoQuery, setLogoQuery] = useState('');                            // shape search
   const [logoStyle, setLogoStyle] = useState('solid');                       // flat style id
   const [logoColour, setLogoColour] = useState<string>(kit.palette.primary); // the mark's brand colour
+  const [logoMarkType, setLogoMarkType] = useState<'letter' | 'symbol'>('letter'); // lettermark by default — brand-specific
+  const [logoContainer, setLogoContainer] = useState<'none' | 'ring'>('none');
+  const [logoBoard, setLogoBoard] = useState('#ffffff'); // logo's own check-against board (light default so lockups read)
   const logoHits = useMemo(() => searchShapes(logoQuery, 24), [logoQuery]);
   // Register the bundled wordmark fonts (from bytes) when the Logo room opens, so
   // the font picker previews each name in its own typeface.
@@ -853,20 +857,25 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         .catch((e) => { pendingLogoRef.current = false; logoResolverRef.current = null; resolve({ ok: false, error: e instanceof Error ? e.message : 'Symbol generation failed' }); });
     });
 
-  // The full make: brief → symbol (reference-guided Qwen) → vectorize (server) →
-  // wordmark (real font) → compose the variant system. The symbol raster is an
-  // intermediate that's traced and discarded.
+  // The full make: brief → mark → wordmark (real font) → compose the variant
+  // system. A LETTERMARK is built straight from the brand initial in the font
+  // (clean vector, no model). A SYMBOL is reference-guided Qwen → server trace.
   const runLogoGeneration = async (brief: LogoBrief): Promise<{ ok: boolean; system?: LogoSystem; error?: string }> => {
     try {
-      const shape = resolveShape(brief.mark || brief.symbolDirection || brief.brandName);
-      if (!shape) return { ok: false, error: 'No mark to build from — pick a shape for the symbol (design_find_shape) and pass it as `mark`.' };
-      const styleHint = LOGO_STYLES.find(s => s.id === brief.style)?.hint;
-      const sym = await runLogoSymbol(shape, brief.styleTags ?? [], styleHint);
-      if (!sym.ok || !sym.dataUrl) return { ok: false, error: sym.error || 'Symbol generation failed' };
-      const symbolSvg = await vectorizeSymbol(sym.dataUrl, 'bw');
       const font = fontById(brief.fontId);
       const otf = await loadFont(font.file);
       const wordmark = typesetWordmark(otf, brief.brandName);
+      let symbolSvg: string;
+      if (brief.markType === 'letter') {
+        symbolSvg = buildLettermark({ font: otf, text: brief.brandName, container: brief.container ?? 'none' });
+      } else {
+        const shape = resolveShape(brief.mark || brief.symbolDirection || brief.brandName);
+        if (!shape) return { ok: false, error: 'No mark to build from — pick a shape (design_find_shape) or use a lettermark.' };
+        const styleHint = LOGO_STYLES.find(s => s.id === brief.style)?.hint;
+        const sym = await runLogoSymbol(shape, brief.styleTags ?? [], styleHint);
+        if (!sym.ok || !sym.dataUrl) return { ok: false, error: sym.error || 'Symbol generation failed' };
+        symbolSvg = await vectorizeSymbol(sym.dataUrl, 'bw');
+      }
       const assets = composeLogoSystem({ symbolSvg, wordmark, primary: brief.palette.primary });
       return { ok: true, system: { brandName: brief.brandName, fontId: brief.fontId, symbolSvg, assets } };
     } catch (err) {
@@ -1004,6 +1013,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const brief: LogoBrief = {
           brandName: (typeof args.brand_name === 'string' && args.brand_name.trim()) ? args.brand_name.trim() : kit.name,
           fontId: (typeof args.font === 'string' && args.font) ? args.font : (logoFontId || suggestFont(kit.styleTags).id),
+          markType: (args.mark_type === 'letter' || args.mark_type === 'symbol') ? args.mark_type : logoMarkType,
+          container: (args.container === 'ring' || args.container === 'none') ? args.container : logoContainer,
           mark: (typeof args.mark === 'string' && args.mark.trim()) ? args.mark.trim() : logoMark,
           style: (typeof args.style === 'string' && args.style) ? args.style : logoStyle,
           symbolDirection: typeof args.direction === 'string' ? args.direction : '',
@@ -1315,16 +1326,16 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Logo</h2>
               <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Your brand's whole identity — one system, all its forms. Talk to Ava to design it; check every form against light and dark right here.</p>
             </div>
-            {/* Check against — the same board the icon canvas uses; a logo has to hold on light AND dark. */}
+            {/* Check against — the logo's own board (light by default so the dark-ink lockup reads); a logo must hold on light AND dark. */}
             <div className="flex items-center gap-2 mb-2.5">
               <span className="text-[11px] text-[var(--text-muted)]">Check against</span>
               {boards.map(b => (
-                <button key={b.label} onClick={() => setBoardBg(b.bg)} title={b.label} aria-label={b.label}
-                  className="w-5 h-5 rounded cursor-pointer" style={{ background: b.bg, border: `1px solid ${boardBg === b.bg ? '#fff' : 'var(--border-card)'}` }} />
+                <button key={b.label} onClick={() => setLogoBoard(b.bg)} title={b.label} aria-label={b.label}
+                  className="w-5 h-5 rounded cursor-pointer" style={{ background: b.bg, border: `1px solid ${logoBoard === b.bg ? '#fff' : 'var(--border-card)'}` }} />
               ))}
             </div>
             <style>{`.logo-stage svg{max-height:150px;max-width:82%;width:auto;height:auto;display:block}.logo-chip svg{max-height:34px;max-width:100%;width:auto;height:auto;display:block}`}</style>
-            <div className="flex-1 min-h-[220px] rounded-xl border border-[var(--border-card)] flex items-center justify-center relative overflow-hidden" style={{ background: boardBg }}>
+            <div className="flex-1 min-h-[220px] rounded-xl border border-[var(--border-card)] flex items-center justify-center relative overflow-hidden" style={{ background: logoBoard }}>
               {logoSystem && !logoBusy && (() => {
                 const a = logoSystem.assets.find(x => x.variant === logoVariant) ?? logoSystem.assets[0];
                 return <div className="logo-stage flex items-center justify-center w-full h-full p-8" dangerouslySetInnerHTML={{ __html: a.svg.replace(/\s(width|height)="[^"]*"/g, '') }} />;
@@ -1653,34 +1664,62 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       {view === 'logo' && (
         <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
-            <Section title="Mark">
-              <input value={logoQuery} onChange={e => setLogoQuery(e.target.value)} placeholder={'Search 1,990 shapes… "star"'}
-                className="w-full px-3 py-2 rounded-lg text-[12px] outline-none bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border-card)] box-border" />
-              <div className="grid grid-cols-4 gap-[7px] mt-2.5">
-                {logoHits.map((h: ShapeHit) => {
-                  const on = h.id === logoMark;
+            <Section title="Mark type">
+              <div className="grid grid-cols-2 gap-2">
+                {(['letter', 'symbol'] as const).map(mt => {
+                  const on = logoMarkType === mt;
                   return (
-                    <button key={h.id} onClick={() => setLogoMark(h.id)} title={h.label} aria-label={h.label}
-                      className="aspect-square rounded-lg cursor-pointer p-[9px]" style={{ background: on ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-input)', border: `1px solid ${on ? 'var(--accent)' : 'var(--border-card)'}` }}
-                      dangerouslySetInnerHTML={{ __html: buildShapeSvg(h.elements, 'line', [on ? '#c9a2ff' : '#8b93b8']) }} />
+                    <button key={mt} onClick={() => setLogoMarkType(mt)}
+                      className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{mt === 'letter' ? 'Lettermark' : 'Symbol'}</button>
                   );
                 })}
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">Ava picks the mark from her concept — set one here to lock it. It's refined into a flat logomark.</p>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">{logoMarkType === 'letter' ? 'Your initial, built from the wordmark font — clean and distinctively yours. No credits.' : 'A mark refined from a shape. Uses credits.'}</p>
             </Section>
 
-            <Section title="Style — flat (Qwen-Image)">
-              <div className="grid grid-cols-3 gap-2">
-                {LOGO_STYLES.map(s => {
-                  const on = logoStyle === s.id;
-                  return (
-                    <button key={s.id} onClick={() => setLogoStyle(s.id)} title={s.label}
-                      className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{s.label}</button>
-                  );
-                })}
-              </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">Flat, scalable finishes — a logo stays flat (no glossy/3D). Uses credits.</p>
-            </Section>
+            {logoMarkType === 'letter' ? (
+              <Section title="Emblem">
+                <div className="grid grid-cols-2 gap-2">
+                  {(['none', 'ring'] as const).map(c => {
+                    const on = logoContainer === c;
+                    return (
+                      <button key={c} onClick={() => setLogoContainer(c)}
+                        className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{c === 'none' ? 'Letter' : 'In a ring'}</button>
+                    );
+                  })}
+                </div>
+              </Section>
+            ) : (
+              <>
+                <Section title="Mark shape">
+                  <input value={logoQuery} onChange={e => setLogoQuery(e.target.value)} placeholder={'Search 1,990 shapes… "star"'}
+                    className="w-full px-3 py-2 rounded-lg text-[12px] outline-none bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border-card)] box-border" />
+                  <div className="grid grid-cols-4 gap-[7px] mt-2.5">
+                    {logoHits.map((h: ShapeHit) => {
+                      const on = h.id === logoMark;
+                      return (
+                        <button key={h.id} onClick={() => setLogoMark(h.id)} title={h.label} aria-label={h.label}
+                          className="aspect-square rounded-lg cursor-pointer p-[9px]" style={{ background: on ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-input)', border: `1px solid ${on ? 'var(--accent)' : 'var(--border-card)'}` }}
+                          dangerouslySetInnerHTML={{ __html: buildShapeSvg(h.elements, 'line', [on ? '#c9a2ff' : '#8b93b8']) }} />
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">The shape Ava refines into the mark — set one to lock it.</p>
+                </Section>
+
+                <Section title="Style — flat (Qwen-Image)">
+                  <div className="grid grid-cols-3 gap-2">
+                    {LOGO_STYLES.map(s => {
+                      const on = logoStyle === s.id;
+                      return (
+                        <button key={s.id} onClick={() => setLogoStyle(s.id)} title={s.label}
+                          className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{s.label}</button>
+                      );
+                    })}
+                  </div>
+                </Section>
+              </>
+            )}
 
             <Section title="Colour — from Brand Kit">
               <div className="flex items-center gap-2.5 py-1 text-[12px] text-[var(--text-secondary)]">

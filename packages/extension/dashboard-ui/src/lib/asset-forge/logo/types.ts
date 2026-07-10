@@ -21,6 +21,11 @@ export type LogoVariant =
 export interface LogoBrief {
   brandName: string;
   fontId: string;            // a WORDMARK_FONTS id
+  /** How the mark is made: 'letter' = a lettermark from the brand initial (clean,
+   *  brand-specific, no model); 'symbol' = reference-guided Lucide → Qwen. */
+  markType?: 'symbol' | 'letter';
+  /** Lettermark container: 'none' (letter alone) or 'ring' (emblem). */
+  container?: 'none' | 'ring';
   /** The mark's armature — a Lucide shape id or subject ("star", "arc"). The
    *  symbol is reference-guided off this (like icons), not free-generated. */
   mark: string;
