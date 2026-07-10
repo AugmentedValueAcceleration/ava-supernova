@@ -17,13 +17,14 @@ export const LOGO_SYMBOL_NEGATIVE =
  *  like the icon lane; qwen-image-edit REFINES it into a bold, FLAT logomark
  *  (no glossy/3D material — a logo must stay flat, single-colour and scalable).
  *  This is the fix for "generic sparkle": the shape is real, not invented. */
-export function composeLogoMarkPrompt(opts: { label: string; styleTags?: string[]; color?: string }): string {
+export function composeLogoMarkPrompt(opts: { label: string; styleTags?: string[]; color?: string; styleHint?: string }): string {
   const feel = (opts.styleTags ?? []).map((t) => t.trim()).filter(Boolean);
   const feelClause = feel.length ? ` Brand feel: ${feel.join(', ')}.` : '';
   const colorClause = opts.color ? ` Single solid colour ${opts.color}.` : ' Single solid colour.';
+  const styleClause = opts.styleHint ? ` Style: ${opts.styleHint}.` : ' Solid filled flat shapes.';
   return (
-    `A single minimal FLAT vector logo mark, refined from the reference drawing of "${opts.label}" into a bold, iconic brand symbol.${feelClause}` +
-    ` Keep the reference's core geometry but SIMPLIFY and STRENGTHEN it into a clean logomark: solid flat shapes, even confident weight, deliberate negative space, crisp edges, perfectly flat (SVG-like), radically simple and memorable as a silhouette.${colorClause}` +
+    `A single minimal FLAT vector logo mark, refined from the reference drawing of "${opts.label}" into a bold, iconic brand symbol.${feelClause}${styleClause}` +
+    ` Keep the reference's core geometry but SIMPLIFY and STRENGTHEN it into a clean logomark: even confident weight, deliberate negative space, crisp edges, perfectly flat (SVG-like), radically simple and memorable as a silhouette.${colorClause}` +
     ` One centered mark filling most of the frame, isolated on a flat pure-white #ffffff background.` +
     ` No text, no gradient, no shadow, no 3D, no bevel, no texture, no fine detail, no background scene.`
   );

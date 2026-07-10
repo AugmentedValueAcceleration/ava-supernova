@@ -550,6 +550,11 @@ export class DesignGenerateLogoTool implements Tool {
           description:
             'YOU author this — the SYMBOL concept / rationale a designer would brief: what the mark evokes and why. e.g. "a rising arc suggesting momentum", "two leaves forming a heart". Keep it a single simple idea — great marks are minimal.',
         },
+        style: {
+          type: 'string',
+          enum: ['solid', 'monoline', 'geometric'],
+          description: 'The mark\'s flat finish: solid (filled shapes), monoline (an even outline stroke), geometric (precise circles/arcs/angles). Omit to use the panel default.',
+        },
         font: {
           type: 'string',
           description:
@@ -567,7 +572,7 @@ export class DesignGenerateLogoTool implements Tool {
     const direction = (args.direction as string | undefined)?.trim();
     if (!direction) return { success: false, output: 'Missing `direction` — the symbol concept, authored by you.' };
     try {
-      const res = await control('generate_logo', { direction, mark: args.mark, font: args.font, brand_name: args.brand_name });
+      const res = await control('generate_logo', { direction, mark: args.mark, style: args.style, font: args.font, brand_name: args.brand_name });
       if (!res.ok) return { success: false, output: res.error || 'Logo generation failed.' };
       const d = res.data as { brandName?: string; font?: string; variants?: number } | undefined;
       return {

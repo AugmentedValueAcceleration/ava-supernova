@@ -24,6 +24,9 @@ export interface LogoBrief {
   /** The mark's armature — a Lucide shape id or subject ("star", "arc"). The
    *  symbol is reference-guided off this (like icons), not free-generated. */
   mark: string;
+  /** Flat style id — solid | monoline | geometric (the logo-appropriate swap for
+   *  the icon lane's glossy materials). */
+  style?: string;
   symbolDirection: string;   // Ava's concept / rationale ("a rising arc — momentum")
   palette: { primary: string; secondary?: string; accent?: string };
   styleTags?: string[];
