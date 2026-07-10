@@ -1,10 +1,17 @@
 // ─── Logo system types ───────────────────────────────────────────────────────
 //
-// A logo is a SYSTEM, not one picture (validated by research). Ava produces a
-// generative symbol (Qwen → matte → vtracer → SVG), a real-font wordmark
-// (typeset, never generated pixels), and composes them into the variants a real
-// business needs — primary/stacked lockups, symbol-only, wordmark-only, mono,
-// light/dark, favicon. See the logo build plan.
+// A logo is a SYSTEM, not one picture. Ava CONSTRUCTS the mark — parametric
+// vector geometry she composes herself (see mark-primitives) — pairs it with a
+// real-font wordmark (typeset, never generated pixels), and composes them into
+// the variants a real business needs: primary/stacked lockups, symbol-only,
+// wordmark-only, mono light/dark, favicon.
+//
+// No image model touches the mark. It was tried: an image model can render a
+// surface but cannot design a shape, and the logo lane asked it to do exactly
+// the wrong one of those while forbidding the right one. Construction is exact,
+// instant, free, and vector from birth — nothing to matte, nothing to trace.
+
+import type { MarkSpec, MarkStyle } from './mark-primitives';
 
 /** The variants a complete logo system ships. */
 export type LogoVariant =
@@ -17,22 +24,37 @@ export type LogoVariant =
   | 'favicon';   // symbol optimised/cropped for tiny sizes (16px legible)
 
 /** The brief Ava designs from — pulled from the active brand kit, with the
- *  couple of logo-specific choices (font + the mark's concept) on top. */
+ *  logo-specific choices (how the mark is made, its style, the font) on top. */
 export interface LogoBrief {
   brandName: string;
   fontId: string;            // a WORDMARK_FONTS id
-  /** How the mark is made: 'letter' = a lettermark from the brand initial (clean,
-   *  brand-specific, no model); 'symbol' = reference-guided Lucide → Qwen. */
-  markType?: 'symbol' | 'letter';
+  /** The logo's FORM — its overall archetype:
+   *  - 'combination' the mark beside/above the wordmark (the default)
+   *  - 'emblem'      everything enclosed in a ring, name curved on top, tagline
+   *                  curved on the bottom, mark centred (a badge/crest) */
+  form?: 'combination' | 'emblem';
+  /** Emblem only — the small curved text under the bottom (a tagline, a date,
+   *  a locale): "ROASTERS", "EST 2026", "LONDON". Optional. */
+  tagline?: string;
+  /** How the mark is made:
+   *  - 'letter'   the brand initial, set in the wordmark's own font
+   *  - 'geometry' Ava constructs it from primitives — where distinctiveness lives
+   *  - 'icon'     a Lucide shape, for when a literal object genuinely fits */
+  markType: 'letter' | 'geometry' | 'icon';
   /** Lettermark container: 'none' (letter alone) or 'ring' (emblem). */
   container?: 'none' | 'ring';
-  /** The mark's armature — a Lucide shape id or subject ("star", "arc"). The
-   *  symbol is reference-guided off this (like icons), not free-generated. */
-  mark: string;
-  /** Flat style id — solid | monoline | geometric (the logo-appropriate swap for
-   *  the icon lane's glossy materials). */
-  style?: string;
-  symbolDirection: string;   // Ava's concept / rationale ("a rising arc — momentum")
+  /** For markType 'icon' — the Lucide shape id. */
+  mark?: string;
+  /** For markType 'geometry' — the construction Ava authored. */
+  markSpec?: MarkSpec;
+  /** How the mark is painted. Every one is true vector — a gradient logo never
+   *  goes near an image model. */
+  style: MarkStyle;
+  /** The wordmark's colour: 'ink' (a deep tint of the brand hue), 'brand' (the
+   *  brand colour itself) or an explicit #rrggbb. */
+  wordmarkColor: 'ink' | 'brand' | string;
+  /** Ava's concept, in words — the rationale shown to the user. */
+  symbolDirection: string;
   palette: { primary: string; secondary?: string; accent?: string };
   styleTags?: string[];
 }
@@ -50,7 +72,11 @@ export interface LogoAsset {
 export interface LogoSystem {
   brandName: string;
   fontId: string;
-  symbolSvg: string;   // the traced mark (single source, recoloured per variant)
+  symbolSvg: string;      // the constructed mark, as designed
+  markType: LogoBrief['markType'];
+  form: NonNullable<LogoBrief['form']>;
+  style: MarkStyle;
+  markSpec?: MarkSpec;    // kept so a mark can be re-styled or re-coloured without redesigning it
   assets: LogoAsset[];
-  rationale?: string;  // Ava's designer note — the "why", the trust layer
+  rationale?: string;     // Ava's designer note — the "why", the trust layer
 }

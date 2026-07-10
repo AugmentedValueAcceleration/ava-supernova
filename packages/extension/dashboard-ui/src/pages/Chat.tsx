@@ -807,6 +807,10 @@ export interface ChatPageProps {
    *  design-lane send so the host runs Ava with the matching Design Architect
    *  persona (icon / video / voice / image / logo). Ignored on other lanes. */
   designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo';
+  /** What the room's right-hand panel is set to right now, in one line. Ava
+   *  designs FROM these rather than guessing — and may change them, with a
+   *  reason, when the design calls for it. Sent with every design-lane turn. */
+  designPanel?: string;
   /** Design dock: don't PROGRAMMATICALLY steal composer focus (on activation or
    *  a focus_input message). Programmatic focus fires onComposerFocus and would
    *  force the collapsed dock open on Ava's activity; genuine user focus still
@@ -841,7 +845,7 @@ function QuestionReply({ onAnswer }: { onAnswer: (text: string) => void }) {
   );
 }
 
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', suppressAutoFocus, onActivity }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', designPanel, suppressAutoFocus, onActivity }: ChatPageProps) {
   // Per-room thread key — for learning it includes the course id, so each course
   // has its own saved conversation. 'main' never persists (always-mounted).
   const roomKey = lane === 'main' ? '' : `${lane}${courseId ? ':' + courseId : ''}`;
@@ -1005,8 +1009,8 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     // In the health room every turn is health-scoped — force the mode so the
     // briefing always applies, and tag the lane so the host runs it on the
     // separate health thread.
-    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, attachments, surface: lane, courseId, ...(lane === 'design' ? { designRoom } : {}) });
-  }, [lane, courseId, designRoom]);
+    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, attachments, surface: lane, courseId, ...(lane === 'design' ? { designRoom, designPanel } : {}) });
+  }, [lane, courseId, designRoom, designPanel]);
 
   const handlePaletteAction = useCallback((tool: PaletteTool, action: string, mode: AvaMode) => {
     post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, surface: lane, courseId });

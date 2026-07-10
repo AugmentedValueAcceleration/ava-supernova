@@ -10,9 +10,9 @@ import * as opentype from 'opentype.js';
 const r = (n: number) => Math.round(n * 100) / 100;
 
 /** A lettermark SVG (100×100 viewBox) — the initial, optionally inside a ring so
- *  it reads as an emblem. No fills set → compose wraps it in the brand colour;
- *  the ring keeps its evenodd rule so the letter sits in the hole. */
-export function buildLettermark(opts: { font: opentype.Font; text: string; container?: 'none' | 'ring' }): string {
+ *  it reads as an emblem. Carries its own paint (compose no longer repaints the
+ *  mark); the ring keeps its evenodd rule so the letter sits in the hole. */
+export function buildLettermark(opts: { font: opentype.Font; text: string; container?: 'none' | 'ring'; color?: string }): string {
   const initial = ((opts.text || 'A').trim()[0] || 'A').toUpperCase();
   const S = 100;
   const ring = opts.container === 'ring';
@@ -29,5 +29,5 @@ export function buildLettermark(opts: { font: opentype.Font; text: string; conta
   const donut = ring
     ? `<path fill-rule="evenodd" d="M50 3 A47 47 0 1 0 50 97 A47 47 0 1 0 50 3 Z M50 15 A35 35 0 1 1 50 85 A35 35 0 1 1 50 15 Z"/>`
     : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}">${donut}${letter}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}"><g fill="${opts.color ?? '#111111'}">${donut}${letter}</g></svg>`;
 }

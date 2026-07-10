@@ -1892,7 +1892,7 @@ export type DashboardToExtMessage =
   | { type: 'open_docs' }
   // Creative Studio — persist a generated asset URL to disk under the
   // user's project root. Host downloads the URL and writes the bytes.
-  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; designType?: string; prompt?: string }
+  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; designType?: string; prompt?: string; id?: string }
   // Creative Studio — "Download a copy": export a generated asset (data: URL or
   // remote) to a location the user picks via the native Save dialog. Separate
   // from download_cloud_asset (which is hostname-locked to our storage).

@@ -166,6 +166,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  send_message payload so getDesignStudioPrefix leads with the active room.
    *  Defaults to 'icon' (the Web/App lane). */
   private activeDesignRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' = 'icon';
+  /** What the room's right-hand panel is set to — so Ava designs from the dials
+   *  the operator actually set, instead of guessing and overriding them. */
+  private activeDesignPanel: string | undefined;
   /** One-shot guard for the transient-platform-failure auto-retry: when the
    *  account check or the stored model can't resolve because the platform is
    *  unreachable, we schedule a single delayed re-init instead of (the old
@@ -804,6 +807,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon' || msg.designRoom === 'image' || msg.designRoom === 'logo') {
           this.activeDesignRoom = msg.designRoom;
         }
+        this.activeDesignPanel = typeof msg.designPanel === 'string' && msg.designPanel.trim() ? msg.designPanel.trim() : undefined;
         mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined) };
       }
         break;
@@ -4216,7 +4220,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'health':
         return getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary());
       case 'design':
-        return getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom);
+        return getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom, this.activeDesignPanel);
       default:
         return text;
     }

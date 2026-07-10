@@ -1,24 +1,27 @@
 // ─── Logo compose engine ─────────────────────────────────────────────────────
 //
-// Assembles the full logo SYSTEM from two inputs — a traced symbol SVG (the
-// generative mark) and a typeset wordmark path (real font) — plus the palette.
-// Pure string/geometry: produces each variant as a standalone SVG. Rasterising
-// to PNG is the caller's job (needs canvas). The mark is forced to a single
-// colour per variant so mono / light-dark come out clean — v1 targets
-// single-colour marks (the symbol prompt asks for exactly that).
+// Assembles the full logo SYSTEM from a constructed mark (SVG, exact by birth)
+// and a typeset wordmark path (real font), plus the palette. Pure string/geometry:
+// each variant is a standalone SVG. Rasterising to PNG is the caller's job.
 //
-// Heuristic by nature (traced SVGs vary); expect a tuning pass on real output.
+// The mark keeps the paint it was DESIGNED with — a gradient stays a gradient.
+// Earlier this engine stripped every fill and refilled the whole mark one flat
+// colour for every variant, which deleted the design and made the "mono test"
+// something that could never fail. Mono is now a separate render of the same
+// geometry, so it tells us something true.
 
 import type { LogoAsset, LogoVariant } from './types';
 import type { Wordmark } from './wordmark';
 
-/** A deep, near-black ink DERIVED from the brand colour (keeps the brand hue in
- *  the wordmark instead of pure black) so the whole lockup reads on-palette. */
-function brandInk(primary: string): string {
+/** A deep ink DERIVED from the brand colour — scaling the channels keeps the hue
+ *  and saturation and only drops the lightness, so the wordmark reads as ink but
+ *  on-palette. At 0.16 the tint was so dark it read as flat black; 0.24 lets the
+ *  hue actually show while staying subordinate to the mark. */
+export function brandInk(primary: string): string {
   const m = /^#?([0-9a-fA-F]{6})$/.exec(primary.trim());
   if (!m) return '#14121a';
   const n = parseInt(m[1], 16);
-  const k = 0.16; // keep ~16% of the brand colour → a rich, near-black tint
+  const k = 0.24;
   const r = Math.round(((n >> 16) & 255) * k);
   const g = Math.round(((n >> 8) & 255) * k);
   const b = Math.round((n & 255) * k);
@@ -58,23 +61,40 @@ function stripPaint(inner: string): string {
 
 const r = (n: number) => Math.round(n * 100) / 100;
 
-/** Place the symbol into a `size`×`size` box at (x,y), recoloured to `color`. */
-function symbolGroup(sym: SymbolSvg, x: number, y: number, size: number, color: string): string {
+/** The transform that fits a symbol's coordinate box into a `size`×`size` box at (x,y). */
+function fit(sym: SymbolSvg, x: number, y: number, size: number): string {
   const scale = size / Math.max(sym.vb.w, sym.vb.h || 1);
   const ox = x + (size - sym.vb.w * scale) / 2 - sym.vb.x * scale;
   const oy = y + (size - sym.vb.h * scale) / 2 - sym.vb.y * scale;
-  return `<g transform="translate(${r(ox)} ${r(oy)}) scale(${r(scale)})" fill="${color}">${stripPaint(sym.inner)}</g>`;
+  return `translate(${r(ox)} ${r(oy)}) scale(${r(scale)})`;
 }
 
-/** Place the wordmark so its bbox top-left sits at (x, topY), scaled to a cap
- *  height of `targetHeight`, in `color`. */
-function wordmarkGroup(wm: Wordmark, x: number, topY: number, targetHeight: number, color: string): { g: string; width: number } {
-  const k = targetHeight / (wm.height || 1);
-  const tx = x - wm.bbox.x1 * k;
-  const ty = topY - wm.bbox.y1 * k;
+/** Place the symbol AS DESIGNED — its own paint survives, so a gradient stays a
+ *  gradient and a duotone stays two-tone. */
+function symbolGroup(sym: SymbolSvg, x: number, y: number, size: number): string {
+  return `<g transform="${fit(sym, x, y, size)}">${sym.inner}</g>`;
+}
+
+/** Place the symbol forced to ONE colour — the genuine one-colour test. Fed the
+ *  mono render of the same geometry, so `fill-rule` (and therefore every
+ *  negative-space cut) survives while the paint is replaced. */
+function symbolGroupMono(sym: SymbolSvg, x: number, y: number, size: number, color: string): string {
+  return `<g transform="${fit(sym, x, y, size)}" fill="${color}">${stripPaint(sym.inner)}</g>`;
+}
+
+/** Place the wordmark with its LEFT edge at `x` and BASELINE at `baselineY`,
+ *  scaled so its CAP HEIGHT is `capTarget`. Scaling by cap height (not the bbox
+ *  height, which grows and shrinks with ascenders/descenders) keeps the caps a
+ *  constant visual size across any word. Returns the outline's true top/bottom
+ *  so the caller can compute a tight, clip-free canvas. */
+function wordmarkGroup(wm: Wordmark, x: number, baselineY: number, capTarget: number, color: string): { g: string; width: number; top: number; bottom: number } {
+  const k = capTarget / (wm.capHeight || wm.height || 1);
+  const tx = x - wm.bbox.x1 * k;      // outline's left edge → x
   return {
-    g: `<path transform="translate(${r(tx)} ${r(ty)}) scale(${r(k)})" fill="${color}" d="${wm.pathD}"/>`,
+    g: `<path transform="translate(${r(tx)} ${r(baselineY)}) scale(${r(k)})" fill="${color}" d="${wm.pathD}"/>`,
     width: wm.width * k,
+    top: baselineY + wm.bbox.y1 * k,   // y1 is negative (above baseline)
+    bottom: baselineY + wm.bbox.y2 * k,
   };
 }
 
@@ -82,55 +102,83 @@ function svg(w: number, h: number, body: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r(w)} ${r(h)}" width="${r(w)}" height="${r(h)}">${body}</svg>`;
 }
 
+/** Wrap markup in a translation — used to drop the whole lockup so its top edge
+ *  sits at y=0 after the pieces were laid out around a shared baseline. */
+function shift(markup: string, dx: number, dy: number): string {
+  return `<g transform="translate(${r(dx)} ${r(dy)})">${markup}</g>`;
+}
+
 export interface ComposeOptions {
+  /** The mark AS DESIGNED — keeps its own paint (gradient, duotone, line). */
   symbolSvg: string;
+  /** The SAME geometry rendered single-colour. Drives the mono lockups, which
+   *  are a real test the mark can fail — not a repaint of the coloured one. */
+  symbolMonoSvg: string;
   wordmark: Wordmark;
-  primary: string;      // brand colour for the mark
+  primary: string;      // brand colour — the mark's, and the favicon/symbol crops
+  /** The wordmark's own colour. Its own decision: ink, the brand colour, or a
+   *  chosen one. Not derivable from the mark — a gradient mark has no single hue
+   *  a word could borrow. */
+  wordmarkColor: string;
 }
 
 /** Build the full variant set. Returns SVGs; the caller rasterises to PNG. */
 export function composeLogoSystem(opts: ComposeOptions): LogoAsset[] {
   const sym = parseSymbol(opts.symbolSvg);
+  const mono = parseSymbol(opts.symbolMonoSvg);
   const wm = opts.wordmark;
-  const INK = brandInk(opts.primary); // wordmark ink, tinted with the brand hue
+  const INK = opts.wordmarkColor;
 
-  const S = 100;                 // symbol box size (the layout unit)
-  const CAP = S * 0.72;          // wordmark visual height paired to the mark
-  const GAP = S * 0.3;           // space between mark and word
-  const PAD = S * 0.12;          // outer padding for square/favicon crops
+  // Everything is expressed in CAP-HEIGHT units so the type sets the scale and
+  // the mark is sized RELATIVE to it — the way a designer pairs them.
+  const CAP = 100;
+  const MARK_H = CAP * 1.58;      // mark taller than the caps in a row — reads as the lead element
+  const MARK_V = CAP * 1.92;      // taller still when stacked, to hold its own above a wide word
+  const GAP_H = CAP * 0.5;        // optical space between mark and word (horizontal)
+  const GAP_V = CAP * 0.42;       // space between mark and word (stacked)
+  const PAD = CAP * 0.16;         // clearspace around the symbol crop
+  const FAV = CAP * 0.05;         // favicon crops tight — at 16px, padding is wasted pixels
 
-  // Horizontal lockup at a given pair of colours.
-  const horizontal = (symColor: string, wordColor: string): string => {
-    const word = wordmarkGroup(wm, S + GAP, (S - CAP) / 2, CAP, wordColor);
-    const totalW = S + GAP + word.width;
-    return svg(totalW, S, symbolGroup(sym, 0, 0, S, symColor) + word.g);
+  // placeMark: (x, y, size) => markup for the mark in that box (colour baked in).
+  type PlaceMark = (x: number, y: number, size: number) => string;
+
+  // Horizontal lockup: mark left, word right, the mark's optical centre aligned
+  // to the cap-band centre (baseline−CAP/2) so the row reads on one axis.
+  const horizontal = (placeMark: PlaceMark, wordColor: string): string => {
+    const markCentreY = MARK_H / 2;
+    const baselineY = markCentreY + CAP / 2;
+    const word = wordmarkGroup(wm, MARK_H + GAP_H, baselineY, CAP, wordColor);
+    const top = Math.min(0, word.top);
+    const bottom = Math.max(MARK_H, word.bottom);
+    const body = placeMark(0, -top, MARK_H) + shift(word.g, 0, -top);
+    return svg(MARK_H + GAP_H + word.width, bottom - top, body);
   };
-  // Vertical (stacked) lockup: mark centred over centred word.
-  const stacked = (symColor: string, wordColor: string): string => {
-    const word = wordmarkGroup(wm, 0, S + GAP, CAP, wordColor);
-    const totalW = Math.max(S, word.width);
-    const symX = (totalW - S) / 2;
-    const wordX = (totalW - word.width) / 2;
-    const sg = symbolGroup(sym, symX, 0, S, symColor);
-    const wg = wordmarkGroup(wm, wordX, S + GAP, CAP, wordColor);
-    return svg(totalW, S + GAP + CAP, sg + wg.g);
+  // Stacked lockup: mark centred over the centred word.
+  const stacked = (placeMark: PlaceMark, wordColor: string): string => {
+    const capTop = MARK_V + GAP_V;          // caps start below the mark
+    const baselineY = capTop + CAP;
+    const wordProbe = wordmarkGroup(wm, 0, baselineY, CAP, wordColor);
+    const totalW = Math.max(MARK_V, wordProbe.width);
+    const word = wordmarkGroup(wm, (totalW - wordProbe.width) / 2, baselineY, CAP, wordColor);
+    const bottom = Math.max(MARK_V, word.bottom);
+    return svg(totalW, bottom, placeMark((totalW - MARK_V) / 2, 0, MARK_V) + word.g);
   };
-  // Symbol alone in a padded square.
-  const symbolOnly = (color: string): string =>
-    svg(S + PAD * 2, S + PAD * 2, symbolGroup(sym, PAD, PAD, S, color));
-  // Wordmark alone.
+  // Wordmark alone — trimmed to the real ink box (ascender top to descender bottom).
   const wordOnly = (color: string): string => {
-    const word = wordmarkGroup(wm, 0, 0, CAP, color);
-    return svg(word.width, CAP, word.g);
+    const word = wordmarkGroup(wm, 0, -wm.bbox.y1 * (CAP / (wm.capHeight || 1)), CAP, color);
+    return svg(word.width, word.bottom - word.top, word.g);
   };
+
+  const inkMark: PlaceMark = (x, y, size) => symbolGroup(sym, x, y, size);
+  const monoMark = (color: string): PlaceMark => (x, y, size) => symbolGroupMono(mono, x, y, size, color);
 
   return [
-    { variant: 'primary',    label: 'Primary lockup',   svg: horizontal(opts.primary, INK) },
-    { variant: 'stacked',    label: 'Stacked lockup',   svg: stacked(opts.primary, INK) },
-    { variant: 'symbol',     label: 'Symbol',           svg: symbolOnly(opts.primary) },
+    { variant: 'primary',    label: 'Primary lockup',   svg: horizontal(inkMark, INK) },
+    { variant: 'stacked',    label: 'Stacked lockup',   svg: stacked(inkMark, INK) },
+    { variant: 'symbol',     label: 'Symbol',           svg: svg(MARK_H + PAD * 2, MARK_H + PAD * 2, symbolGroup(sym, PAD, PAD, MARK_H)) },
     { variant: 'wordmark',   label: 'Wordmark',         svg: wordOnly(INK) },
-    { variant: 'mono-dark',  label: 'Mono (on light)',  svg: horizontal('#111111', '#111111') },
-    { variant: 'mono-light', label: 'Mono (on dark)',   svg: horizontal('#ffffff', '#ffffff') },
-    { variant: 'favicon',    label: 'Favicon',          svg: symbolOnly(opts.primary) },
+    { variant: 'mono-dark',  label: 'Mono (on light)',  svg: horizontal(monoMark('#111111'), '#111111') },
+    { variant: 'mono-light', label: 'Mono (on dark)',   svg: horizontal(monoMark('#ffffff'), '#ffffff') },
+    { variant: 'favicon',    label: 'Favicon',          svg: svg(MARK_H + FAV * 2, MARK_H + FAV * 2, symbolGroup(sym, FAV, FAV, MARK_H)) },
   ] satisfies { variant: LogoVariant; label: string; svg: string }[];
 }

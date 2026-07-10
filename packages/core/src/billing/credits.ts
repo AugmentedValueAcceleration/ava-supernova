@@ -39,6 +39,7 @@ export type CreditAction =
   | 'video_gen'       // Creative Studio — video generation (5s/10s clip)
   | 'voice_gen'       // Creative Studio — TTS
   | 'music_gen'       // Creative Studio — music generation
+  | 'logo_gen'        // Creative Studio — logo (construction, no model cost; value-priced)
   | 'bg_removal';     // Creative Studio — background removal
 // Teach mode bills as normal chat_turn — no special session-based action.
 // The prior design carved out teach_session here but no call site ever
@@ -59,6 +60,7 @@ export const CREDIT_COST: Record<CreditAction, number> = {
   video_gen:    150,   // 720p base tier (Wan) — see VIDEO_GEN_CREDITS for resolution tiers
   voice_gen:     10,   // ~$0.03 raw (Qwen3-TTS ~500 chars) — bumped 3→10 (2026-04-25)
   music_gen:     50,   // retired — no non-MiniMax music model; kept for billing plumbing
+  logo_gen:      20,   // $0 raw (pure construction) — value-priced at parity with an icon
   bg_removal:     2,   // ~$0.002 raw
 };
 

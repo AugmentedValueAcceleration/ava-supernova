@@ -1,5 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { chargeCredits } from '../billing/meter.js';
 
 /**
  * Design Studio tools — Ava the Design Architect's kit. Same shape-as-dial
@@ -528,22 +529,37 @@ export class DesignGenerateImageTool implements Tool {
 export class DesignGenerateLogoTool implements Tool {
   readonly name = 'design_generate_logo';
   readonly description =
-    'Design a full LOGO SYSTEM for the active brand — a generative symbol traced to clean vector + a real-font wordmark, composed into lockups, symbol-only, wordmark-only, mono (light/dark) and favicon. Name/palette/feel come from the active brand kit; YOU author the symbol concept and pick a font. Uses credits — confirm first. After it renders, offer to set it as the brand logo (design_brand_kit set_logo).';
+    'Design a full LOGO SYSTEM for the active brand — a mark YOU construct as exact vector geometry, plus a real-font wordmark, composed into lockups, symbol-only, wordmark-only, mono (light/dark) and favicon. No image model, instant; 20 credits (same as an icon). Name/palette/feel come from the active brand kit. After it renders, offer to set it as the brand logo (design_brand_kit set_logo).';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'design_generate_logo',
     description:
-      'Design a complete logo system for the active brand kit. A generative brand SYMBOL (no text) is traced to a crisp SVG, and the brand NAME is typeset in a real bundled font (never generated pixels), then composed into the full variant set. ' +
-      'YOU author the symbol `direction` (the concept the mark evokes) and choose a `font` by brand feel. Name, palette and style come from the active kit unless overridden. Uses credits — state it and get a yes. After it renders, offer to make it the brand logo.',
+      'Design a complete logo system for the active brand kit. YOU construct the mark — parametric vector geometry you compose yourself (see the mark primitives in your Logo-room brief) — and the brand NAME is typeset in a real bundled font. Both are exact vector: nothing is generated as pixels, nothing is traced, and it renders instantly. Costs 20 credits (icon parity). ' +
+      'Whatever you leave out, the operator\'s panel supplies. Author the `direction` (what the mark means) and choose a `font` by brand feel. After it renders, offer to make it the brand logo.',
     parameters: {
       type: 'object',
       properties: {
+        form: {
+          type: 'string',
+          enum: ['combination', 'emblem'],
+          description: 'The logo\'s FORM. "combination" = the mark beside/above the name (the default). "emblem" = a badge: everything enclosed in a ring, the name curved over the top, the mark centred, an optional tagline curved under the bottom — right for coffee, breweries, craft, heritage, institutions. Choose the form deliberately; it is a big part of a logo\'s character. Omit to use the panel.',
+        },
+        tagline: {
+          type: 'string',
+          description: 'Emblem only — the small curved text under the bottom: a tagline, date or locale ("ROASTERS", "EST 2026", "LONDON"). Optional.',
+        },
         mark_type: {
           type: 'string',
-          enum: ['letter', 'symbol'],
-          description: 'How the mark is made. "letter" = a LETTERMARK built from the brand\'s initial in its font — clean, distinctively theirs, no credits (the strong default for most brands). "symbol" = a pictorial mark generated from a shape (uses credits). Prefer letter unless a pictorial symbol genuinely serves the brand better.',
+          enum: ['geometry', 'letter', 'icon'],
+          description:
+            '"geometry" = a mark YOU construct via mark_spec — where distinctiveness lives, and the preferred choice. "letter" = a lettermark from the brand initial in its own font (always clean, always safe). "icon" = a Lucide shape (find it with design_find_shape first) for when a literal object genuinely fits. Omit to use the panel.',
+        },
+        mark_spec: {
+          type: 'string',
+          description:
+            'For mark_type "geometry" — a JSON string: {"concept":"one line on what the mark means","elements":[ ... ]}. Elements are the primitives from your Logo-room brief (disc, ring, polygon, star, arc, leaf, chevron, bar, drop, cut, radial). Everything sits in a 24x24 box centred on (12,12). Reach for "cut" — negative space is the single strongest device you have. Two or three elements, never five.',
         },
         container: {
           type: 'string',
@@ -552,23 +568,28 @@ export class DesignGenerateLogoTool implements Tool {
         },
         mark: {
           type: 'string',
-          description:
-            'For a SYMBOL mark only — its SHAPE: a Lucide id from design_find_shape, or a subject ("star", "arc", "hexagon", "leaf"). Anchors the geometry (refined into a flat logomark). Call design_find_shape first and pick laterally, not the literal one.',
+          description: 'For mark_type "icon" only — a Lucide id from design_find_shape. Pick laterally, not literally.',
         },
         direction: {
           type: 'string',
           description:
-            'YOU author this — the SYMBOL concept / rationale a designer would brief: what the mark evokes and why. e.g. "a rising arc suggesting momentum", "two leaves forming a heart". Keep it a single simple idea — great marks are minimal.',
+            'YOU author this — the concept a designer would brief: what the mark evokes and why. e.g. "a rising arc suggesting momentum", "a leaf cut from a disc — growth, and the space it grows into". One simple idea; great marks are minimal.',
         },
         style: {
           type: 'string',
-          enum: ['solid', 'monoline', 'geometric'],
-          description: 'The mark\'s flat finish: solid (filled shapes), monoline (an even outline stroke), geometric (precise circles/arcs/angles). Omit to use the panel default.',
+          enum: ['flat', 'gradient', 'line', 'duotone'],
+          description: 'How the mark is painted — a real vector paint, not a prompt word. "flat" (solid fill), "gradient" (a true SVG gradient between the two colours), "line" (an even monoline outline), "duotone" (two-tone). Omit to use the panel.',
+        },
+        colour: { type: 'string', description: 'The mark\'s colour as #rrggbb. Omit to use the panel / brand primary.' },
+        secondary: { type: 'string', description: 'Second colour as #rrggbb — used by the gradient and duotone styles. Omit to use the panel / brand accent.' },
+        wordmark_colour: {
+          type: 'string',
+          description: 'The WORDMARK\'s colour, which is its own decision: "ink" (a deep tint of the brand hue — the usual choice, keeps the mark dominant), "brand" (the brand colour itself — bolder, can fight the mark), or an explicit #rrggbb. Omit to use the panel.',
         },
         font: {
           type: 'string',
           description:
-            'Wordmark font, chosen by brand feel. One of: Montserrat, Sora, Inter, Space Grotesk, Archivo, Work Sans, DM Sans, Fraunces, Playfair Display, Zilla Slab, Bitter, Bricolage Grotesque. Omit to auto-pick from the brand style words.',
+            'Wordmark font, chosen by brand feel. Sans: Montserrat, Sora, Inter, Space Grotesk, Archivo, Work Sans, DM Sans. Serif/slab: Fraunces, Playfair Display, Zilla Slab, Bitter. Display: Bricolage Grotesque, Anton, Bebas Neue (CAPS ONLY), Righteous. Script/cursive: Great Vibes (formal calligraphy), Lobster (retro sign-painter), Pacifico (casual brush), Sacramento (delicate monoline — weak at small sizes). Mono: Space Mono. A script or display face is a real commitment — pick one when the brand genuinely calls for it, not by default. Omit to auto-pick from the brand style words.',
         },
         brand_name: { type: 'string', description: "The name to typeset. Omit to use the active brand kit's name." },
       },
@@ -580,18 +601,130 @@ export class DesignGenerateLogoTool implements Tool {
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
     const direction = (args.direction as string | undefined)?.trim();
-    if (!direction) return { success: false, output: 'Missing `direction` — the symbol concept, authored by you.' };
+    if (!direction) return { success: false, output: 'Missing `direction` — the concept of the mark, authored by you.' };
+    // Fail here rather than in the canvas: a bad spec should tell her exactly what broke.
+    if (args.mark_type === 'geometry' && typeof args.mark_spec === 'string') {
+      try {
+        const parsed = JSON.parse(args.mark_spec) as { elements?: unknown };
+        if (!Array.isArray(parsed.elements) || parsed.elements.length === 0) {
+          return { success: false, output: 'mark_spec parsed but has no `elements` array. Compose the mark from the primitives — two or three elements.' };
+        }
+      } catch (err) {
+        return { success: false, output: `mark_spec is not valid JSON (${err instanceof Error ? err.message : String(err)}). Send it as a JSON string: {"concept":"…","elements":[…]}` };
+      }
+    }
     try {
-      const res = await control('generate_logo', { direction, mark_type: args.mark_type, container: args.container, mark: args.mark, style: args.style, font: args.font, brand_name: args.brand_name });
+      const res = await control('generate_logo', {
+        direction, form: args.form, tagline: args.tagline, mark_type: args.mark_type, mark_spec: args.mark_spec,
+        container: args.container, mark: args.mark, style: args.style, colour: args.colour, secondary: args.secondary,
+        wordmark_colour: args.wordmark_colour, font: args.font, brand_name: args.brand_name,
+      });
       if (!res.ok) return { success: false, output: res.error || 'Logo generation failed.' };
-      const d = res.data as { brandName?: string; font?: string; variants?: number } | undefined;
+      chargeCredits('logo_gen'); // a made logo — 20 credits (construction, value-priced at icon parity)
+      const d = res.data as { brandName?: string; font?: string; variants?: number; markType?: string; style?: string; concept?: string; preview?: string } | undefined;
+      // The rendered lockup comes back as base64 so the agent's vision pipeline
+      // feeds it to Ava as an image — she SEES what she made instead of designing
+      // blind, which is the whole difference between iterating and re-describing.
+      const { preview, ...meta } = d ?? {};
       return {
         success: true,
-        output: `Designed the logo for "${d?.brandName ?? 'the brand'}" — ${d?.variants ?? 'several'} variants (lockups, symbol, wordmark, mono, favicon) set in ${d?.font ?? 'a real font'}. Offer to set it as the brand logo, or try a different mark.`.replace(/\s+/g, ' ').trim(),
-        metadata: d as Record<string, unknown> | undefined,
+        output: `Designed the logo for "${d?.brandName ?? 'the brand'}" — ${d?.markType ?? 'a'} mark${d?.concept ? ` (${d.concept})` : ''}, ${d?.style ?? 'flat'} style, set in ${d?.font ?? 'a real font'}; ${d?.variants ?? 'several'} variants on the canvas.` +
+          (preview
+            ? ` LOOK at the image of the primary lockup now. Judge it honestly as a designer would: does the mark read and feel distinctive (not a generic star/blob)? Does the TYPE suit the brand's emotion, or is it a safe default? Do the mark and word sit well together? If any of that is weak, say so plainly and remake it BETTER — a different font register, a stronger mark idea — don't just re-describe the same thing. If it genuinely works, say why, then offer to set it as the brand logo.`
+            : ` Describe what you made and why, then offer to set it as the brand logo or try another direction.`),
+        metadata: {
+          ...meta,
+          ...(preview ? { base64_image: preview, mime_type: 'image/png' } : {}),
+        } as Record<string, unknown>,
       };
     } catch (err) {
       return { success: false, output: `Logo generation failed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  }
+}
+
+// ── design_explore_logos ─────────────────────────────────────────────────────
+// Best-of-N. YOU author several DISTINCT directions; this renders them all into
+// one numbered contact sheet and returns it as an image so you can SEE them side
+// by side and pick — the way a designer works, not one blind shot.
+export class DesignExploreLogosTool implements Tool {
+  readonly name = 'design_explore_logos';
+  readonly description =
+    'Explore several logo DIRECTIONS at once. You author 3–4 genuinely different candidates (different mark ideas, forms, fonts); it renders them all into one numbered grid and returns it as an image so you can compare and pick the strongest. Instant; 20 credits for the whole batch (picking one from it is then free — great value). Use this to lead with real options instead of one guess.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'design_explore_logos',
+    description:
+      'Render 2–5 DISTINCT logo directions into one numbered contact sheet (returned as an image) so you can compare them and pick. Author candidates that genuinely differ — vary the mark concept, the form (combination vs emblem), and the font — don\'t submit five near-identical marks. After you see them, pick the strongest, say why, and make it with design_generate_logo. Brand name/palette come from the active kit unless a candidate overrides.',
+    parameters: {
+      type: 'object',
+      properties: {
+        brand_name: { type: 'string', description: "The name to typeset across all candidates. Omit to use the active brand kit's name." },
+        candidates: {
+          type: 'array',
+          description: '2–5 distinct directions. Each is the same shape as a design_generate_logo call: { direction, form?, tagline?, mark_type?, mark_spec?, container?, mark?, style?, colour?, secondary?, wordmark_colour?, font? }. Make them genuinely different from each other.',
+          items: {
+            type: 'object',
+            properties: {
+              direction: { type: 'string', description: 'The concept of this candidate — what the mark means.' },
+              form: { type: 'string', enum: ['combination', 'emblem'] },
+              tagline: { type: 'string' },
+              mark_type: { type: 'string', enum: ['geometry', 'letter', 'icon'] },
+              mark_spec: { type: 'string', description: 'For geometry — the JSON mark spec string.' },
+              container: { type: 'string', enum: ['none', 'ring'] },
+              mark: { type: 'string' },
+              style: { type: 'string', enum: ['flat', 'gradient', 'line', 'duotone'] },
+              colour: { type: 'string' },
+              secondary: { type: 'string' },
+              wordmark_colour: { type: 'string' },
+              font: { type: 'string' },
+            },
+            required: ['direction'],
+          },
+        },
+      },
+      required: ['candidates'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const control = getControl(context);
+    if (!control) return { success: false, output: NO_CANVAS };
+    const candidates = Array.isArray(args.candidates) ? args.candidates as Record<string, unknown>[] : [];
+    if (candidates.length < 2) return { success: false, output: 'Give at least two distinct candidates to explore.' };
+    // Validate any geometry specs up front so a bad one names itself.
+    for (let i = 0; i < candidates.length; i++) {
+      const c = candidates[i];
+      if (c.mark_type === 'geometry' && typeof c.mark_spec === 'string') {
+        try {
+          const parsed = JSON.parse(c.mark_spec) as { elements?: unknown };
+          if (!Array.isArray(parsed.elements) || parsed.elements.length === 0) return { success: false, output: `Candidate ${i + 1}: mark_spec has no elements.` };
+        } catch (err) {
+          return { success: false, output: `Candidate ${i + 1}: mark_spec is not valid JSON (${err instanceof Error ? err.message : String(err)}).` };
+        }
+      }
+    }
+    try {
+      const res = await control('explore_logos', { brand_name: args.brand_name, candidates });
+      if (!res.ok) return { success: false, output: res.error || 'Exploration failed.' };
+      chargeCredits('logo_gen'); // one logo charge for the exploration batch — picking from it is free
+      const d = res.data as { count?: number; preview?: string } | undefined;
+      const { preview, ...meta } = d ?? {};
+      return {
+        success: true,
+        output: `Rendered ${d?.count ?? 'several'} directions into one grid, numbered left to right, top to bottom.` +
+          (preview
+            ? ` LOOK at the image now and judge them as a designer: which mark is most distinctive, which type best fits the brand's emotion, which lockup sits best? Pick the strongest (or the best parts of two), say plainly WHY it wins over the others, then make it properly with design_generate_logo. If none are good enough, say so and explore a fresh set.`
+            : ` Compare them, pick the strongest, and make it with design_generate_logo.`),
+        metadata: {
+          ...meta,
+          ...(preview ? { base64_image: preview, mime_type: 'image/png' } : {}),
+        } as Record<string, unknown>,
+      };
+    } catch (err) {
+      return { success: false, output: `Exploration failed: ${err instanceof Error ? err.message : String(err)}` };
     }
   }
 }

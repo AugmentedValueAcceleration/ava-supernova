@@ -8,7 +8,7 @@
 // OFL.txt; opentype.js reads them to convert a wordmark to paths so exported
 // SVGs need no font installed.
 
-export type FontCategory = 'geometric' | 'grotesque' | 'humanist' | 'serif' | 'slab' | 'display';
+export type FontCategory = 'geometric' | 'grotesque' | 'humanist' | 'serif' | 'slab' | 'display' | 'script' | 'mono';
 
 export interface WordmarkFont {
   /** CSS family name AND registry id. */
@@ -36,6 +36,16 @@ export const WORDMARK_FONTS: WordmarkFont[] = [
   { id: 'Zilla Slab',          label: 'Zilla Slab',          category: 'slab',      weight: 600, file: 'ZillaSlab-SemiBold.ttf',        feel: 'sturdy, modern, confident — weight without shouting' },
   { id: 'Bitter',              label: 'Bitter',              category: 'slab',      weight: 600, file: 'Bitter-SemiBold.ttf',           feel: 'warm slab, friendly but solid — craft, coffee, blogs' },
   { id: 'Bricolage Grotesque', label: 'Bricolage Grotesque', category: 'display',   weight: 700, file: 'BricolageGrotesque-Bold.ttf',   feel: 'contemporary, art-directed, slightly imperfect — personality-forward creative' },
+  // Display, script and mono — the range the set was missing. Seven grotesques
+  // is not a choice, it's the same choice seven times.
+  { id: 'Anton',               label: 'Anton',               category: 'display',   weight: 400, file: 'Anton-Regular.ttf',             feel: 'heavy condensed poster type — loud, immovable; sport, music, news' },
+  { id: 'Bebas Neue',          label: 'Bebas Neue',          category: 'display',   weight: 400, file: 'BebasNeue-Regular.ttf',         feel: 'tall condensed CAPS ONLY — confident and urban; streetwear, film, gyms' },
+  { id: 'Righteous',           label: 'Righteous',           category: 'display',   weight: 400, file: 'Righteous-Regular.ttf',         feel: 'rounded art-deco geometry — retro-futurist, friendly, distinctive' },
+  { id: 'Great Vibes',         label: 'Great Vibes',         category: 'script',    weight: 400, file: 'GreatVibes-Regular.ttf',        feel: 'formal flowing calligraphy — weddings, patisserie, luxury boutique' },
+  { id: 'Lobster',             label: 'Lobster',             category: 'script',    weight: 400, file: 'Lobster-Regular.ttf',           feel: 'bold retro sign-painter script — diners, breweries, barbers' },
+  { id: 'Pacifico',            label: 'Pacifico',            category: 'script',    weight: 400, file: 'Pacifico-Regular.ttf',          feel: 'relaxed surf-shop brush script — warm, casual, unserious' },
+  { id: 'Sacramento',          label: 'Sacramento',          category: 'script',    weight: 400, file: 'Sacramento-Regular.ttf',        feel: 'delicate monoline handwriting — personal, feminine; NOTE: very light, weak at small sizes' },
+  { id: 'Space Mono',          label: 'Space Mono',          category: 'mono',      weight: 700, file: 'SpaceMono-Bold.ttf',            feel: 'fixed-width machine type — dev tools, security, deliberately technical' },
 ];
 
 export function fontById(id: string): WordmarkFont {
@@ -47,6 +57,14 @@ export function fontById(id: string): WordmarkFont {
 export function suggestFont(styleTags?: string[]): WordmarkFont {
   const tags = (styleTags ?? []).map((t) => t.toLowerCase());
   const has = (...words: string[]) => words.some((w) => tags.some((t) => t.includes(w)));
+  // Most specific first — a script or a display face is a real commitment, so it
+  // only wins on words that genuinely ask for one.
+  if (has('script', 'cursive', 'handwritten', 'calligraph', 'signature')) return fontById('Great Vibes');
+  if (has('retro', 'vintage', 'nostalgic', 'diner', 'brewery')) return fontById('Lobster');
+  if (has('casual', 'surf', 'relaxed', 'fun', 'unserious')) return fontById('Pacifico');
+  if (has('condensed', 'poster', 'loud', 'sport', 'urban', 'streetwear')) return fontById('Bebas Neue');
+  if (has('deco', 'futurist', 'rounded')) return fontById('Righteous');
+  if (has('mono', 'code', 'developer', 'terminal', 'security', 'hacker')) return fontById('Space Mono');
   if (has('luxury', 'elegant', 'premium', 'fashion', 'editorial')) return fontById('Playfair Display');
   if (has('warm', 'friendly', 'approachable', 'wellness', 'calm', 'gentle')) return fontById('DM Sans');
   if (has('tech', 'ai', 'engineer', 'precise', 'fintech', 'web3')) return fontById('Sora');

@@ -61,6 +61,7 @@ import {
   DesignGenerateImageTool,
   DesignGenerateVoiceTool,
   DesignGenerateLogoTool,
+  DesignExploreLogosTool,
   DesignBrandKitTool,
   DesignSaveTool,
 } from './design-studio-tools.js';
@@ -425,6 +426,7 @@ export class ToolRegistry {
       new DesignGenerateImageTool(),
       new DesignGenerateVoiceTool(),
       new DesignGenerateLogoTool(),
+      new DesignExploreLogosTool(),
       new DesignBrandKitTool(),
       new DesignSaveTool(),
       new HealthPlanCreateTool(),

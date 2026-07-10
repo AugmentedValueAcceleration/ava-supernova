@@ -1837,6 +1837,7 @@ export class DashboardPanel {
             designType: msg.designType,
             prompt: msg.prompt ?? '',
             title: msg.filename ?? '',
+            id: msg.id,   // logo variants pass a shared-prefix id so the Library groups them
           });
           if (saved) {
             this.log(`[Creative] Saved ${kind} locally (${saved.path})`);
@@ -5334,6 +5335,7 @@ export class DashboardPanel {
       // Logo chains symbol-gen (Qwen) → server vectorize → compose — well past
       // the 12s default, so give it a generous ceiling like the other slow lanes.
       : command === 'generate_logo' ? 240_000
+      : command === 'explore_logos' ? 240_000   // renders up to 5 candidates
       : slow ? Math.min(600_000, 90_000 * Math.max(1, setCount))
       : 12_000;
     return new Promise((resolve) => {

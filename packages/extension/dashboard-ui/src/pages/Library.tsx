@@ -115,7 +115,13 @@ interface UnifiedItem {
   thumbnail?: string;
   createdAt?: string;
   raw: CreativeAsset | LibraryImage;
+  // A logo is a SYSTEM — its variants are saved as one group and collapsed into a
+  // single card. Present only on the grouped logo card.
+  logoGroup?: { variants: { id: string; url: string; label: string; variant: string }[] };
 }
+
+const LOGO_VARIANT_ORDER = ['primary', 'stacked', 'symbol', 'wordmark', 'mono-dark', 'mono-light', 'favicon'];
+const LOGO_ID_RE = /^(logo_\d+)_(primary|stacked|symbol|wordmark|mono-dark|mono-light|favicon)$/;
 
 function cloudAssetKind(a: CreativeAsset): string {
   return (a.asset_type || a.type || 'image').toLowerCase();
@@ -216,11 +222,39 @@ export function Library({
     // Local-first creative gallery is the primary source — everything Creative
     // Studio makes: images, video, and voiceovers (Qwen3-TTS). Audio kinds bucket
     // into the Voiceover section via their design_type (see design-types.ts).
+    // Logo variants (design_type 'logo', shared-prefix id) collapse into ONE card.
+    const logoGroups = new Map<string, { primary?: CreativeAsset; variants: { id: string; url: string; label: string; variant: string; raw: CreativeAsset }[] }>();
     for (const a of localCreative) {
       const k = cloudAssetKind(a);
+      const m = a.design_type === 'logo' && typeof a.id === 'string' ? a.id.match(LOGO_ID_RE) : null;
+      if (m) {
+        const [, key, variant] = m;
+        let g = logoGroups.get(key);
+        if (!g) { g = { variants: [] }; logoGroups.set(key, g); }
+        g.variants.push({ id: a.id, url: a.url ?? '', label: (a.title ?? variant).replace(/^.* — /, ''), variant, raw: a });
+        if (variant === 'primary') g.primary = a;
+        continue;
+      }
       if (['image', 'video', 'graphic', 'voice', 'music', 'sfx'].includes(k)) {
         list.push({ ...unifyCloudAsset(a), source: 'local' });
       }
+    }
+    for (const [key, g] of logoGroups) {
+      const primary = g.primary ?? g.variants[0]?.raw;
+      if (!primary) continue;
+      const variants = g.variants.slice().sort((x, y) => LOGO_VARIANT_ORDER.indexOf(x.variant) - LOGO_VARIANT_ORDER.indexOf(y.variant));
+      list.push({
+        id: `local:${key}`,
+        source: 'local',
+        kind: 'image',
+        designType: 'logo',
+        title: (primary.title ?? 'Logo').replace(/ — .*$/, ''),
+        subtitle: `${variants.length} forms`,
+        thumbnail: primary.url ?? undefined,
+        createdAt: primary.created_at,
+        raw: primary,
+        logoGroup: { variants: variants.map(({ id, url, label, variant }) => ({ id, url, label, variant })) },
+      });
     }
     // Plus image/video files scanned from the open workspace.
     for (const img of images) {
@@ -689,6 +723,12 @@ function PreviewModal({
 
   const handleDelete = () => {
     if (!confirmDelete) { setConfirmDelete(true); return; }
+    if (item.logoGroup) {
+      // Delete every form of the logo, not just the primary.
+      for (const v of item.logoGroup.variants) post({ type: 'delete_local_creative', id: v.id });
+      onClose();
+      return;
+    }
     if (isLocalCreative && rawCreative.id) {
       post({ type: 'delete_local_creative', id: rawCreative.id });
       onClose();
@@ -737,7 +777,21 @@ function PreviewModal({
 
         {/* Preview area — images render inline, audio/video get playback
             controls, office docs + unknowns show the type icon. */}
-        {isImage && item.thumbnail ? (
+        {item.logoGroup ? (
+          <div className="bg-white p-5">
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+              {item.logoGroup.variants.map(v => (
+                <div key={v.id} className="rounded-lg border border-[var(--border-card)] bg-white p-2 flex flex-col items-center gap-1.5">
+                  <div className="h-[70px] w-full flex items-center justify-center" style={{ background: v.variant === 'mono-light' ? '#1b1b22' : '#fff' }}>
+                    <img src={v.url} alt={v.label} className="max-h-[60px] max-w-[90%] object-contain" />
+                  </div>
+                  <div className="text-[10px] text-[#555] text-center truncate w-full">{v.label}</div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-[var(--text-muted)] mt-3 text-center">All {item.logoGroup.variants.length} forms are saved as vector SVG — use “Open folder” to get the files.</p>
+          </div>
+        ) : isImage && item.thumbnail ? (
           <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20" />
         ) : isVideo && mediaSrc ? (
           <MediaPlayer src={mediaSrc} kind="video" />
