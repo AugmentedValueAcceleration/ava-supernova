@@ -2392,14 +2392,19 @@ export class Agent {
         // Thinking/reasoning content (DeepSeek R1, GLM, Kimi, Mistral Magistral)
         const thinking = delta.reasoning_content ?? delta.reasoning;
         if (thinking) {
-          reasoningContent += thinking;
-          onEvent({ type: 'thinking_delta', content: thinking });
+          // Some models leak literal <think>/</think> markers into the reasoning
+          // field — strip them so they never render as raw text in the thought bubble.
+          const cleaned = thinking.replace(/<\/?think>/g, '');
+          if (cleaned) {
+            reasoningContent += cleaned;
+            onEvent({ type: 'thinking_delta', content: cleaned });
+          }
         }
 
         if (delta.content) {
           // Strip <think>...</think> tags — some models (MiniMax) embed thinking inline
           let visibleContent = delta.content;
-          if (visibleContent.includes('<think>') || this._inThinkTag) {
+          if (visibleContent.includes('<think>') || visibleContent.includes('</think>') || this._inThinkTag) {
             // Track if we're inside a think tag across chunks
             const parts = visibleContent.split(/(<\/?think>)/);
             let visible = '';
