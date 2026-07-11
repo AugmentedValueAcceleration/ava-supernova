@@ -13,7 +13,7 @@ Ava is the AI coding agent that does everything between the idea and the ship �
 Ava isn't a single tool. She's a partner who plays multiple roles depending on what you need:
 
 - **Engineer** — plans the work, executes task by task, ships code you can stand behind
-- **Designer** — generates images and video and uses them directly in your projects
+- **Designer** — designs whole brand identities: real logo systems, icons, images, video and voiceovers, wired straight into your project
 - **Tutor** — builds personalised learning paths from scratch and teaches them like a real teacher
 - **Strategist** — plans features, audits architecture, researches your competitors
 - **Security auditor** — full OWASP-aligned scan with verified findings, not noise
@@ -96,15 +96,20 @@ Ava ships with a **Creative Studio** that generates real assets and integrates t
 
 | Type | What |
 |---|---|
-| **Image** | Icons, illustrations, banners, backgrounds, concept art, hero imagery |
+| **Logo** | Complete logo systems — **constructed as true vectors (SVG), not pixels**: primary, stacked, symbol, wordmark, monochrome, and favicon, all from one brief |
+| **Icon** | Crisp vector icons and marks, built from primitives and coloured to your brand kit |
+| **Image** | Illustrations, banners, backgrounds, concept art, hero imagery |
 | **Video** | Short clips with synchronised audio |
+| **Voice** | Voiceovers and narration — same voice, any of 19 languages |
 | **Background removal** | Cut out subjects from existing images |
 
-**Image and video run on Wan** — Alibaba's open-weight models, built for graphic-design output (icons, banners, thumbnails, vector marks) and short clips with synchronised audio.
+**Logos and icons are built, not guessed.** Ava composes them from geometric primitives and real fonts into clean, resolution-independent SVG — so a mark stays razor-sharp at any size and drops straight into your favicon or JSX. She'll show you **several directions and let you pick** the one that fits.
 
-**The integration is the point.** When Ava generates a logo, she can drop it into your `public/` folder and reference it in your JSX. When she generates a hero video, she can wire it into your landing page. **The Creative Studio isn't a separate app — it's a tool Ava uses in the middle of building your project.**
+**Brand kits tie it together.** Set your name, palette and fonts once, and every asset Ava makes inherits them. **Image and video run on Wan**, voice on **Qwen3-TTS** — Alibaba's open-weight models.
 
-Every asset is tracked in the **Library** tab — grid or list view, filter by type, preview, copy paths, and reuse across projects.
+**The integration is the point.** When Ava designs a logo, she can drop it into your `public/` folder and reference it in your JSX. When she generates a hero video, she can wire it into your landing page. **The Creative Studio isn't a separate app — it's a tool Ava uses in the middle of building your project.**
+
+Every asset is tracked in the **Library** tab — grid or list view, filter by type, preview, copy paths, and reuse across projects. A full logo system saves as one grouped card, so all its variants stay together.
 
 ---
 
@@ -231,7 +236,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 | **Shell** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
 | **Web** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
-| **Creative Studio** | `generate_image`, `generate_video`, `remove_background` |
+| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `remove_background` |
 | **Office & Authoring** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
 | **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan`, `switch_mode` |

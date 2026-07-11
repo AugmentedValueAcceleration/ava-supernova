@@ -157,7 +157,7 @@ pnpm build
 | **Shell** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
 | **Web** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
-| **Media** | `generate_image`, `generate_video`, `remove_background` |
+| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `remove_background` |
 | **Documents** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate`, `present_plan`, `apply_plan`, `todo_write`, `task_manage`, `journal_write`, `switch_mode` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
 | **Learning** | `learning_create`, `learning_teach`, `learning_progress` |
@@ -166,10 +166,12 @@ pnpm build
 
 ## Creative Studio
 
-Ava generates real assets and wires them straight into your project — a logo into `public/`, a hero clip into your landing page.
+Ava designs whole brand identities and wires them straight into your project — a logo into `public/`, a hero clip into your landing page.
 
-- **Images & video** run on **Wan** (Alibaba's open-weight models), built for clean graphic-design output and short clips with synchronised audio.
-- Every asset is tracked in the **Library** — grid or list view, filter by type, preview, reuse across projects.
+- **Logos & icons** are **constructed as true vectors (SVG), not pixels** — composed from geometric primitives and real fonts, so they stay razor-sharp at any size. A logo brief yields a full system: primary, stacked, symbol, wordmark, monochrome and favicon. Ava shows several directions and lets you pick.
+- **Brand kits** tie it together — set your name, palette and fonts once, and every asset inherits them.
+- **Images & video** run on **Wan**, **voiceovers** on **Qwen3-TTS** (Alibaba's open-weight models) — same voice, any of 19 languages.
+- Every asset is tracked in the **Library** — grid or list view, filter by type, preview, reuse across projects. A full logo system saves as one grouped card.
 
 ## Privacy
 
