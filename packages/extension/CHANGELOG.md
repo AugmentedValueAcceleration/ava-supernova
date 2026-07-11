@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.82.0 — 2026-07-11 — Ava designs your brand: real logos, in your language
+
+### Added
+- **Logo design, done properly — a whole system, not one picture.** Tell Ava about your brand and she designs a complete logo: a mark, your name set in a real font, and every lockup you actually need — mark-and-name (side by side or stacked), the symbol on its own, the wordmark on its own, one-colour versions for light and dark, and a favicon. She builds the mark herself out of real geometry rather than a fuzzy AI image, so it stays crisp vector at any size — from a 16px favicon to a billboard.
+- **Two forms, and she picks the right one.** A clean mark-and-name lockup for most brands, or a full **emblem** — a badge with your name curved over the top, the mark centred, and a tagline curved underneath — for coffee, craft and heritage brands. Ava chooses the form that fits.
+- **Real type, chosen by feel.** Twenty licence-clean fonts across sans, serif, script, display and monospace — Ava picks the one that matches your brand's character (elegant, warm, technical, hand-written) instead of defaulting to the same safe font every time.
+- **She shows you options, then you choose.** Ava lays out several genuinely different directions side by side; click the one you love, or ask which she'd pick and why. And she can *see* what she made — so she judges it honestly and makes it better, rather than guessing.
+- **Logos live in the Library.** Every logo saves as one tidy card holding all its forms, in its own **Logo** section — ready to download.
+- **News and hints, right in the header.** A quiet ticker across the top now shows announcements — new features, tips, things worth knowing — so you catch what's new without leaving the app. It stays out of the way and you can dismiss it.
+
+### Changed
+- **Ava speaks your language across Creative Studio.** Choose a language and Ava replies in it in every room — icons, logos, images, video and voice — and the Studio's own labels are now translated across all 20 languages, not just the chat.
+- **The language setting now lives under Advanced** in Settings, where it belongs.
+- **Everything you make gets its own folder.** Icons, logos, images, video and voiceovers each save into their own clearly-named folder on your machine — no more everything piling into one.
+
+### Fixed
+- **Everything you make now actually saves.** A single icon and a finished logo weren't reliably landing in the Library before — now every icon, logo, image, video and voiceover auto-saves the moment it's made, into the right Library section.
+- **Logos save as clean vector.** Fixed a bug that could write a corrupt logo file, and made picking a direction show exactly the lockup you chose.
+- **Icons follow your brand.** Making an icon now uses your active brand kit's colour, and updates when you switch kits.
+- **"Always allow" sticks.** Approving a task type as "always allow" now persists — Ava won't ask again this session or the next, and it shows in Settings → Permissions. The permission prompt also got a cleaner look that matches the rest of the app.
+- **Tidier storage view.** The Command Centre storage breakdown is now a solid panel, sorted largest-first, with engine and backup internals folded away.
+
 ## 0.80.1 — 2026-06-28 — One consistent look, and a day you can shape
 
 ### Added

@@ -1821,7 +1821,7 @@ export function App() {
       {/* Other pages */}
       {effectivePage !== 'chat' && (
         <div className="flex-1 flex flex-col overflow-hidden" style={{ order: 1 }}>
-          <DashboardTopBar account={account} />
+          <DashboardTopBar account={account} announcement={announcement} />
           <main className="flex-1 overflow-y-auto p-8">
             {errorMsg && (
               <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
