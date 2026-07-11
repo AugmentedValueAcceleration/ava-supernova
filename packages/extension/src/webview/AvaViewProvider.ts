@@ -32,6 +32,7 @@ import {
   loadDecisionsState,
   setLocaleSync,
   resolveLocale,
+  getLanguageName,
   Conductor,
   AutoCoordinator,
   MemoryAgent,
@@ -4204,26 +4205,42 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   // ── Mode Handling ──────────────────────────────────────────────────────────
 
   private applyModePrefix(text: string, mode: AvaMode): string {
+    let prefixed: string;
     switch (mode) {
       case 'plan':
-        return getPlanModePrefix(text || 'What should we focus on next?');
+        prefixed = getPlanModePrefix(text || 'What should we focus on next?'); break;
       case 'chat':
-        return getChatModePrefix(text);
+        prefixed = getChatModePrefix(text); break;
       case 'teach':
-        return getTeachModePrefix(text || 'What would you like to learn?', this.getLearningContext());
+        prefixed = getTeachModePrefix(text || 'What would you like to learn?', this.getLearningContext()); break;
       case 'security':
-        return getSecurityModePrefix(text || 'Perform a comprehensive security audit of this project.');
+        prefixed = getSecurityModePrefix(text || 'Perform a comprehensive security audit of this project.'); break;
       case 'brainstorm':
-        return getBrainstormModePrefix(text || 'Help me brainstorm ideas.');
+        prefixed = getBrainstormModePrefix(text || 'Help me brainstorm ideas.'); break;
       case 'write':
-        return getWriteModePrefix(text || 'What would you like to write?');
+        prefixed = getWriteModePrefix(text || 'What would you like to write?'); break;
       case 'health':
-        return getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary());
+        prefixed = getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary()); break;
       case 'design':
-        return getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom, this.activeDesignPanel);
+        prefixed = getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom, this.activeDesignPanel); break;
       default:
-        return text;
+        prefixed = text;
     }
+    return this.withLanguageDirective(prefixed);
+  }
+
+  /**
+   * Prepend a language directive when a non-English locale is set. A room prefix
+   * is a large English persona block that can anchor Ava to English even though
+   * the system prompt asks for the user's language — this reinforces it at the
+   * top of the turn, so Ava speaks the operator's language in EVERY room. Code,
+   * tool arguments, identifiers and hex colours are explicitly left as-is.
+   */
+  private withLanguageDirective(text: string): string {
+    const loc = this.currentLocale;
+    if (!loc || loc === 'en' || loc === 'auto') return text;
+    const name = getLanguageName(loc) || loc;
+    return `[Language] Reply to the user in ${name} — every word you say to them, in every room and mode. Leave code, tool arguments, identifiers, font names and hex colours exactly as they are.\n\n${text}`;
   }
 
   /** Compact summary of the local HealthProfile for the Health Room prefix

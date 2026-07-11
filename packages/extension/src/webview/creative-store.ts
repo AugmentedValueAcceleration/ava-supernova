@@ -33,8 +33,24 @@ export interface LocalCreativeItem {
 }
 
 const KIND_DIR: Record<CreativeKind, string> = {
-  image: 'images', video: 'video', music: 'audio', voice: 'voice', sfx: 'sfx',
+  image: 'images', video: 'video', music: 'music', voice: 'voice', sfx: 'sfx',
 };
+
+// Each asset TYPE gets its own folder in the creative dir — icons, logos, and
+// every design type live apart instead of piling into a generic images/ folder,
+// so browsing the folder on disk mirrors the Library. Falls back to the kind's
+// folder for non-Studio saves (legacy, chat images).
+const DESIGN_DIR: Record<string, string> = {
+  icon: 'icons', iconset: 'icons', appicon: 'app-icons', logo: 'logos',
+  badge: 'badges', avatar: 'avatars', banner: 'banners', hero: 'hero',
+  ogimage: 'social-images', illustration: 'illustrations', pattern: 'patterns',
+  image: 'images', video: 'video', voice: 'voice',
+};
+function folderFor(kind: CreativeKind, designType?: string): string {
+  const dt = (designType || '').toLowerCase().trim();
+  if (dt) return DESIGN_DIR[dt] ?? dt.replace(/[^a-z0-9-]+/g, '-'); // game-* etc. get their own folder by id
+  return KIND_DIR[kind] || 'images';
+}
 const KIND_EXT: Record<CreativeKind, string> = {
   image: 'jpg', video: 'mp4', music: 'mp3', voice: 'mp3', sfx: 'mp3',
 };
@@ -98,13 +114,22 @@ export async function saveLocalCreative(
     const kind = (KIND_DIR[args.kind] ? args.kind : 'image') as CreativeKind;
     const id = args.id ?? `${kind}_${Date.now()}`;
     const ext = dataUrlExt(args.url) ?? KIND_EXT[kind];
-    const rel = `${KIND_DIR[kind]}/${id}.${ext}`;
+    const dir = folderFor(kind, args.designType);   // per-type folder (icons/, logos/, …)
+    const rel = `${dir}/${id}.${ext}`;
     const abs = join(creativeDir(scopedDir), rel);
-    await mkdir(join(creativeDir(scopedDir), KIND_DIR[kind]), { recursive: true });
+    await mkdir(join(creativeDir(scopedDir), dir), { recursive: true });
 
     let bytes: Buffer;
     if (args.url.startsWith('data:')) {
-      bytes = Buffer.from(args.url.split(',')[1] ?? '', 'base64');
+      // Data URLs come two ways: `;base64,<b64>` (raster) OR `,<url-encoded>`
+      // (SVG logos are URL-encoded text, not base64). Decode by which it is —
+      // base64-decoding URL-encoded text silently produced a corrupt file.
+      const comma = args.url.indexOf(',');
+      const meta = args.url.slice(5, comma);
+      const payload = args.url.slice(comma + 1);
+      bytes = /;base64/i.test(meta)
+        ? Buffer.from(payload, 'base64')
+        : Buffer.from(decodeURIComponent(payload), 'utf-8');
     } else {
       const res = await fetch(args.url);
       if (!res.ok) return null;

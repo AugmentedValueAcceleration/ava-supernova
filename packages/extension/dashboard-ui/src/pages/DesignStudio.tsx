@@ -7,6 +7,7 @@ import { ModelSelector } from '../chat/components/ModelSelector';
 
 type DesignModelState = { models: ChatModel[]; activeModel: string | null; needsSetup: boolean; platformStatus: ChatPlatformStatus | null };
 import { Select } from '../components/Select';
+import { tt, useLocale } from '../i18n';
 import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
 import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-library';
 import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, type BrandKit } from '../lib/asset-forge/brand-kit';
@@ -592,6 +593,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   userName?: string | null;
   userAvatarUrl?: string | null;
 }) {
+  useLocale();  // re-render Studio labels when the language changes
   const [kit, setKit] = useState<BrandKit>(() => activeKit());     // the ACTIVE kit
   const [panelKit, setPanelKit] = useState<BrandKit | null>(null);  // kit shown in the right drawer
   const [panelOpen, setPanelOpen] = useState(false);                // drawer slid in?
@@ -1111,8 +1113,11 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         setView('icon'); setShapeId(resolved.id); if (matArg) setMaterialId(matArg.id);
         setColor(col); if (typeof args.size === 'number') setGenSize(args.size);
         const out = await runGeneration(resolved, look, col);
-        if (out.ok) reply(true, { label: resolved.label, material: artDir ? 'custom-direction' : mat.label, credits: 20 });
-        else reply(false, undefined, out.error || 'Generation failed.');
+        if (out.ok && out.dataUrl) {
+          // Auto-save to the Library, like every other lane (the set already does).
+          saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-'), 'icon');
+          reply(true, { label: resolved.label, material: artDir ? 'custom-direction' : mat.label, credits: 20 });
+        } else reply(false, undefined, out.error || 'Generation failed.');
         return;
       }
       if (m.command === 'generate_set') {
@@ -1129,7 +1134,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           if (!resolved) { failed.push(s); continue; }
           setShapeId(resolved.id);
           const out = await runGeneration(resolved, look, col);
-          if (out.ok && out.dataUrl) { made++; saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-')); }
+          if (out.ok && out.dataUrl) { made++; saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-'), 'icon'); }
           else failed.push(resolved.label);
         }
         reply(true, { made, failed, credits: made * 20 });
@@ -1152,6 +1157,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         setLogoBusy(false);
         if (out.ok && out.system) {
           setLogoSystem(out.system);
+          saveLogoSystemToLibrary(out.system);        // auto-save to the Library, like every other lane
           if (view === 'logo') setDockOpen(false);   // reveal the result on the canvas, like every other lane
           // Sync the dials to what Ava actually built — the icon lane's pattern.
           setLogoMarkType(brief.markType);
@@ -1450,11 +1456,11 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         {view === 'icon' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
             <div className="mb-3">
-              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Icon</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Your shape, your brand, any material — generated and matted to a clean transparent icon.</p>
+              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('dash.studio.icon.title', 'Icon')}</h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{tt('dash.studio.icon.subtitle', 'Your shape, your brand, any material — generated and matted to a clean transparent icon.')}</p>
             </div>
             <div className="flex items-center gap-2 mb-2.5">
-              <span className="text-[11px] text-[var(--text-muted)]">Check against</span>
+              <span className="text-[11px] text-[var(--text-muted)]">{tt('dash.studio.check_against', 'Check against')}</span>
               {boards.map(b => (
                 <button key={b.label} onClick={() => setBoardBg(b.bg)} title={b.label} aria-label={b.label}
                   className="w-5 h-5 rounded cursor-pointer" style={{ background: b.bg, border: `1px solid ${boardBg === b.bg ? '#fff' : 'var(--border-card)'}` }} />
@@ -1480,24 +1486,24 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         ) : view === 'video' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
             <div className="mb-3.5">
-              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Video</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Describe a shot — Ava generates a short clip and it plays in this bespoke stage.</p>
+              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('dash.studio.video.title', 'Video')}</h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{tt('dash.studio.video.subtitle', 'Describe a shot — Ava generates a short clip and it plays in this bespoke stage.')}</p>
             </div>
             <VideoStage durationSec={Number(videoDuration)} src={videoSrc ?? undefined} generating={videoGenerating} onDownload={videoSrc ? () => saveAssetCopy(videoSrc, `${lastVideoTitleRef.current || 'video'}.mp4`) : undefined} />
           </div>
         ) : view === 'voice' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
             <div className="mb-3.5">
-              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Voiceover</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Talk to Ava — she writes the read, directs the delivery, and voices it as a waveform you can scrub.</p>
+              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('dash.studio.voice.title', 'Voiceover')}</h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{tt('dash.studio.voice.subtitle', 'Talk to Ava — she writes the read, directs the delivery, and voices it as a waveform you can scrub.')}</p>
             </div>
             <WaveformPlayer voiceName={voiceUsed} title={voiceTitle} durationSec={8} src={voiceSrc ?? undefined} generating={voiceGenerating} onDownload={voiceSrc ? () => saveAssetCopy(voiceSrc, `${voiceTitle || 'voiceover'}.mp3`) : undefined} />
           </div>
         ) : view === 'image' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
             <div className="mb-3.5">
-              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Image</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Free-form — a hero shot, illustration, background or scene. Describe it; Ava composes it and it appears here.</p>
+              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('dash.studio.image.title', 'Image')}</h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{tt('dash.studio.image.subtitle', 'Free-form — a hero shot, illustration, background or scene. Describe it; Ava composes it and it appears here.')}</p>
             </div>
             <div className="flex-1 min-h-[240px] rounded-xl border border-[var(--border-card)] flex items-center justify-center relative overflow-hidden" style={{ background: 'radial-gradient(120% 120% at 50% 30%, #171021, #0c0814)' }}>
               {imageSrc && <img src={imageSrc} alt="Generated image" className="max-w-full max-h-full object-contain" />}
@@ -1530,12 +1536,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         ) : view === 'logo' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
             <div className="mb-3">
-              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Logo</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Your brand's whole identity — one system, all its forms. Talk to Ava to design it; check every form against light and dark right here.</p>
+              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('dash.studio.logo.title', 'Logo')}</h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{tt('dash.studio.logo.subtitle', "Your brand's whole identity — one system, all its forms. Talk to Ava to design it; check every form against light and dark right here.")}</p>
             </div>
             {/* Check against — the logo's own board (light by default so the dark-ink lockup reads); a logo must hold on light AND dark. */}
             <div className="flex items-center gap-2 mb-2.5">
-              <span className="text-[11px] text-[var(--text-muted)]">Check against</span>
+              <span className="text-[11px] text-[var(--text-muted)]">{tt('dash.studio.check_against', 'Check against')}</span>
               {boards.map(b => (
                 <button key={b.label} onClick={() => setLogoBoard(b.bg)} title={b.label} aria-label={b.label}
                   className="w-5 h-5 rounded cursor-pointer" style={{ background: b.bg, border: `1px solid ${logoBoard === b.bg ? '#fff' : 'var(--border-card)'}` }} />
@@ -1552,7 +1558,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                       const shown = s.assets.some(x => x.variant === 'stacked') ? 'stacked' as const : 'primary' as const;
                       const a = s.assets.find(x => x.variant === shown)!;
                       return (
-                        <button key={i} onClick={() => { setLogoSystem(s); setLogoVariant(shown); setLogoExplore(null); }} title={`Pick ${i + 1}`}
+                        <button key={i} onClick={() => { setLogoSystem(s); setLogoVariant(shown); setLogoExplore(null); saveLogoSystemToLibrary(s); }} title={`Pick ${i + 1}`}
                           style={{ background: logoBoard }}
                           className="group rounded-lg border border-[var(--border-card)] hover:border-[var(--accent)] cursor-pointer p-4 flex flex-col items-center gap-2 transition">
                           <div className="logo-cand flex items-center justify-center w-full h-[150px]" dangerouslySetInnerHTML={{ __html: a.svg.replace(/\s(width|height)="[^"]*"/g, '') }} />
@@ -1561,7 +1567,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                       );
                     })}
                   </div>
-                  <p className="text-center text-[11px] text-[var(--text-muted)] mt-3">Click a direction to pick it — or ask Ava which she'd choose.</p>
+                  <p className="text-center text-[11px] text-[var(--text-muted)] mt-3">{tt('dash.studio.logo.pick_hint', "Click a direction to pick it — or ask Ava which she'd choose.")}</p>
                 </div>
               )}
               {logoSystem && !logoExplore && !logoBusy && (() => {
@@ -1571,14 +1577,14 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               {!logoSystem && !logoExplore && !logoBusy && (
                 <div className="flex flex-col items-center gap-2.5 text-center px-8 pointer-events-none">
                   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v10M7 12h10" opacity="0.5" /></svg>
-                  <div className="text-[13.5px] text-[var(--text-secondary)]">Let's design a logo for {kit.name}</div>
-                  <div className="text-[12px] text-[var(--text-muted)] max-w-[360px] leading-relaxed">Tell Ava about the brand — what it does, who it's for, the one idea the mark should carry. She'll design it and it lands here.</div>
+                  <div className="text-[13.5px] text-[var(--text-secondary)]">{tt('dash.studio.logo.empty_title', "Let's design a logo for")} {kit.name}</div>
+                  <div className="text-[12px] text-[var(--text-muted)] max-w-[360px] leading-relaxed">{tt('dash.studio.logo.empty_desc', "Tell Ava about the brand — what it does, who it's for, the one idea the mark should carry. She'll design it and it lands here.")}</div>
                 </div>
               )}
               {logoBusy && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: 'rgba(12,8,20,0.6)' }}>
                   <div className="w-[26px] h-[26px] rounded-full border-2 border-[var(--border-card)] border-t-[var(--accent)] animate-spin" />
-                  <div className="text-[12.5px] text-[var(--text-secondary)]">Constructing the mark → wordmark → variants…</div>
+                  <div className="text-[12.5px] text-[var(--text-secondary)]">{tt('dash.studio.logo.busy', 'Constructing the mark → wordmark → variants…')}</div>
                 </div>
               )}
             </div>
@@ -1765,8 +1771,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       {view === 'icon' && (
         <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
-            <Section title="Shape">
-              <input value={query} onChange={e => setQuery(e.target.value)} placeholder={'Search 1,990 shapes… "bell"'}
+            <Section title={tt('dash.studio.icon.shape', 'Shape')}>
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder={tt('dash.studio.icon.shape_search_ph', 'Search 1,990 shapes… "bell"')}
                 className="w-full px-3 py-2 rounded-lg text-[12px] outline-none bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border-card)] box-border" />
               <div className="grid grid-cols-4 gap-[7px] mt-2.5">
                 {hits.map((h: ShapeHit) => {
@@ -1778,10 +1784,10 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                   );
                 })}
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">Lucide · 1,990 shapes · licence-clean (ISC)</p>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">{tt('dash.studio.icon.shape_credit', 'Lucide · 1,990 shapes · licence-clean (ISC)')}</p>
             </Section>
 
-            <Section title="Material — generated (Qwen-Image)">
+            <Section title={tt('dash.studio.icon.material', 'Material — generated (Qwen-Image)')}>
               <div className="grid grid-cols-2 gap-2">
                 {MATERIALS.map(m => {
                   const on = materialId === m.id;
@@ -1789,29 +1795,29 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                     <button key={m.id} onClick={() => setMaterialId(m.id)} title={m.label}
                       className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${
                         on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'
-                      }`}>{m.label}</button>
+                      }`}>{tt('dash.studio.material.' + m.id, m.label)}</button>
                   );
                 })}
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">The shape becomes a reference the model paints onto — then matted to a transparent icon. Uses credits.</p>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">{tt('dash.studio.icon.material_hint', 'The shape becomes a reference the model paints onto — then matted to a transparent icon. Uses credits.')}</p>
             </Section>
 
-            <Section title="Colour — from Brand Kit">
+            <Section title={tt('dash.studio.colour_brand', 'Colour — from Brand Kit')}>
               <div className="flex items-center gap-2.5 py-1 text-[12px] text-[var(--text-secondary)]">
                 <ColorField value={color} onChange={setColor} swatches={Object.values(kit.palette)} />
-                Icon colour
+                {tt('dash.studio.icon.icon_colour', 'Icon colour')}
                 <code className="ml-auto text-[10.5px] text-[var(--text-muted)]">{color.toUpperCase()}</code>
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-1">The material is rendered in this colour.</p>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-1">{tt('dash.studio.icon.colour_hint', 'The material is rendered in this colour.')}</p>
             </Section>
 
-            <Section title="Output">
+            <Section title={tt('dash.studio.output', 'Output')}>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Icon size</span>
+                <span>{tt('dash.studio.icon.size', 'Icon size')}</span>
                 <Select size="sm" className="w-[118px]" value={String(genSize)} onChange={v => setGenSize(Number(v))}
                   options={PNG_SIZES.map(s => ({ value: String(s), label: `${s} × ${s}` }))} />
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)]">Generated at a 1024 master, exported at your chosen size. Save / export land next.</p>
+              <p className="text-[10.5px] text-[var(--text-muted)]">{tt('dash.studio.icon.output_hint', 'Generated at a 1024 master, exported at your chosen size. Save / export land next.')}</p>
             </Section>
           </div>
 
@@ -1824,25 +1830,25 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       {view === 'video' && (
         <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
-            <Section title="Output">
+            <Section title={tt('dash.studio.output', 'Output')}>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Duration</span>
+                <span>{tt('dash.studio.video.duration', 'Duration')}</span>
                 <Select size="sm" className="w-[118px]" value={videoDuration} onChange={v => setVideoDuration(v)}
                   options={[{ value: '5', label: '5s' }, { value: '10', label: '10s' }]} />
               </div>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Aspect ratio</span>
+                <span>{tt('dash.studio.video.aspect', 'Aspect ratio')}</span>
                 <Select size="sm" className="w-[118px]" value={videoAspect} onChange={v => setVideoAspect(v)}
                   options={[{ value: '16:9', label: '16:9' }, { value: '9:16', label: '9:16' }, { value: '1:1', label: '1:1' }]} />
               </div>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Resolution</span>
+                <span>{tt('dash.studio.video.resolution', 'Resolution')}</span>
                 <Select size="sm" className="w-[118px]" value={videoResolution} onChange={v => setVideoResolution(v)}
                   options={[{ value: '720p', label: '720p' }, { value: '1080p', label: '1080p' }]} />
               </div>
             </Section>
 
-            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she directs the shot and generates it.</p>
+            <p className="text-[10.5px] text-[var(--text-muted)] m-0">{tt('dash.studio.video.hint', 'Talk to Ava — she directs the shot and generates it.')}</p>
           </div>
         </aside>
       )}
@@ -1851,21 +1857,21 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       {view === 'voice' && (
         <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
-            <Section title="Voice">
+            <Section title={tt('dash.studio.voice.voice', 'Voice')}>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Voice</span>
+                <span>{tt('dash.studio.voice.voice', 'Voice')}</span>
                 <Select size="sm" className="w-[150px]" value={voiceName} onChange={v => setVoiceName(v)}
                   options={VOICES.map(v => ({ value: v, label: v }))} />
               </div>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Language</span>
+                <span>{tt('dash.studio.voice.language', 'Language')}</span>
                 <Select size="sm" className="w-[150px]" value={voiceLanguage} onChange={v => setVoiceLanguage(v)}
                   options={VOICE_LANGUAGES.map(l => ({ value: l, label: l }))} />
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-2">Qwen3-TTS voices. Pace and emotion are directed in words — Ava has no speed knob.</p>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-2">{tt('dash.studio.voice.hint', 'Qwen3-TTS voices. Pace and emotion are directed in words — Ava has no speed knob.')}</p>
             </Section>
 
-            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she writes the read, directs the delivery, and voices it.</p>
+            <p className="text-[10.5px] text-[var(--text-muted)] m-0">{tt('dash.studio.voice.foot', 'Talk to Ava — she writes the read, directs the delivery, and voices it.')}</p>
           </div>
         </aside>
       )}
@@ -1874,15 +1880,15 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       {view === 'image' && (
         <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
-            <Section title="Output">
+            <Section title={tt('dash.studio.output', 'Output')}>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Size</span>
+                <span>{tt('dash.studio.image.size', 'Size')}</span>
                 <Select size="sm" className="w-[130px]" value={imageSize} onChange={v => setImageSize(v)}
-                  options={[{ value: '1024*1024', label: '1:1 square' }, { value: '1280*720', label: '16:9' }, { value: '720*1280', label: '9:16' }]} />
+                  options={[{ value: '1024*1024', label: tt('dash.studio.image.square', '1:1 square') }, { value: '1280*720', label: '16:9' }, { value: '720*1280', label: '9:16' }]} />
               </div>
             </Section>
 
-            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she composes the image and renders it.</p>
+            <p className="text-[10.5px] text-[var(--text-muted)] m-0">{tt('dash.studio.image.hint', 'Talk to Ava — she composes the image and renders it.')}</p>
           </div>
         </aside>
       )}
@@ -1893,59 +1899,59 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       {view === 'logo' && (
         <aside className="w-[320px] shrink-0 border-l border-[var(--border-card)] flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-[18px]">
-            <Section title="Form">
+            <Section title={tt('dash.studio.logo.form', 'Form')}>
               <div className="grid grid-cols-2 gap-2">
-                {([['combination', 'Mark + name'], ['emblem', 'Emblem']] as const).map(([id, label]) => {
+                {([['combination', tt('dash.studio.logo.form.combination', 'Mark + name')], ['emblem', tt('dash.studio.logo.form.emblem', 'Emblem')]] as const).map(([id, label]) => {
                   const on = logoForm === id;
                   return (
-                    <button key={id} onClick={() => setLogoForm(id)}
+                    <button key={id} onClick={() => setLogoForm(id as 'combination' | 'emblem')}
                       className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{label}</button>
                   );
                 })}
               </div>
               <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">
-                {logoForm === 'emblem' ? 'A badge — name curved over the top, mark centred, tagline under the bottom.' : 'The mark beside or above the name.'}
+                {logoForm === 'emblem' ? tt('dash.studio.logo.form.emblem_desc', 'A badge — name curved over the top, mark centred, tagline under the bottom.') : tt('dash.studio.logo.form.combination_desc', 'The mark beside or above the name.')}
               </p>
               {logoForm === 'emblem' && (
-                <input value={logoTagline} onChange={e => setLogoTagline(e.target.value)} placeholder={'Tagline / date — "EST 2026", "ROASTERS"'}
+                <input value={logoTagline} onChange={e => setLogoTagline(e.target.value)} placeholder={tt('dash.studio.logo.tagline_ph', 'Tagline / date — "EST 2026", "ROASTERS"')}
                   className="w-full mt-2 px-3 py-2 rounded-lg text-[12px] outline-none bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border-card)] box-border" />
               )}
             </Section>
 
-            <Section title="Mark type">
+            <Section title={tt('dash.studio.logo.mark_type', 'Mark type')}>
               <div className="grid grid-cols-3 gap-2">
                 {MARK_TYPES.map(mt => {
                   const on = logoMarkType === mt.id;
                   return (
                     <button key={mt.id} onClick={() => setLogoMarkType(mt.id)}
-                      className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{mt.label}</button>
+                      className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{tt('dash.studio.marktype.' + mt.id, mt.label)}</button>
                   );
                 })}
               </div>
               <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">
                 {logoMarkType === 'letter'
-                  ? 'Your initial, built from the wordmark font — clean and distinctively yours.'
+                  ? tt('dash.studio.marktype.letter_desc', 'Your initial, built from the wordmark font — clean and distinctively yours.')
                   : logoMarkType === 'icon'
-                  ? 'A shape from the icon library, for when a literal object fits.'
-                  : 'Ava draws the mark herself, as exact vector geometry. Where the good ones come from.'}
+                  ? tt('dash.studio.marktype.icon_desc', 'A shape from the icon library, for when a literal object fits.')
+                  : tt('dash.studio.marktype.geometry_desc', 'Ava draws the mark herself, as exact vector geometry. Where the good ones come from.')}
               </p>
             </Section>
 
             {logoMarkType === 'letter' ? (
-              <Section title="Emblem">
+              <Section title={tt('dash.studio.logo.emblem_ring', 'Emblem')}>
                 <div className="grid grid-cols-2 gap-2">
                   {(['none', 'ring'] as const).map(c => {
                     const on = logoContainer === c;
                     return (
                       <button key={c} onClick={() => setLogoContainer(c)}
-                        className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{c === 'none' ? 'Letter' : 'In a ring'}</button>
+                        className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{c === 'none' ? tt('dash.studio.logo.container.none', 'Letter') : tt('dash.studio.logo.container.ring', 'In a ring')}</button>
                     );
                   })}
                 </div>
               </Section>
             ) : logoMarkType === 'icon' ? (
-              <Section title="Mark shape">
-                <input value={logoQuery} onChange={e => setLogoQuery(e.target.value)} placeholder={'Search 1,990 shapes… "star"'}
+              <Section title={tt('dash.studio.logo.mark_shape', 'Mark shape')}>
+                <input value={logoQuery} onChange={e => setLogoQuery(e.target.value)} placeholder={tt('dash.studio.logo.shape_search_ph', 'Search 1,990 shapes… "star"')}
                   className="w-full px-3 py-2 rounded-lg text-[12px] outline-none bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border-card)] box-border" />
                 <div className="grid grid-cols-4 gap-[7px] mt-2.5">
                   {logoHits.map((h: ShapeHit) => {
@@ -1957,52 +1963,52 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                     );
                   })}
                 </div>
-                <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">The shape Ava builds the mark from — set one to lock it.</p>
+                <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">{tt('dash.studio.logo.shape_hint', 'The shape Ava builds the mark from — set one to lock it.')}</p>
               </Section>
             ) : (
-              <Section title="Construction">
+              <Section title={tt('dash.studio.logo.construction', 'Construction')}>
                 <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">
-                  {logoSpec ? logoSpec.concept : 'Ask Ava for a direction — she composes the geometry herself, and it lands here.'}
+                  {logoSpec ? logoSpec.concept : tt('dash.studio.logo.construction_hint', 'Ask Ava for a direction — she composes the geometry herself, and it lands here.')}
                 </p>
               </Section>
             )}
 
-            <Section title="Style">
+            <Section title={tt('dash.studio.logo.style', 'Style')}>
               <div className="grid grid-cols-2 gap-2">
                 {LOGO_STYLES.map(s => {
                   const on = logoStyle === s.id;
                   return (
                     <button key={s.id} onClick={() => setLogoStyle(s.id)} title={s.label}
-                      className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{s.label}</button>
+                      className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{tt('dash.studio.style.' + s.id, s.label)}</button>
                   );
                 })}
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">True vector, every one — a gradient logo stays infinitely scalable.</p>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">{tt('dash.studio.logo.style_hint', 'True vector, every one — a gradient logo stays infinitely scalable.')}</p>
             </Section>
 
-            <Section title="Colour — from Brand Kit">
+            <Section title={tt('dash.studio.colour_brand', 'Colour — from Brand Kit')}>
               <div className="flex items-center gap-2.5 py-1 text-[12px] text-[var(--text-secondary)]">
                 <ColorField value={logoColour} onChange={setLogoColour} swatches={Object.values(kit.palette)} />
-                Mark colour
+                {tt('dash.studio.logo.mark_colour', 'Mark colour')}
                 <code className="ml-auto text-[10.5px] text-[var(--text-muted)]">{logoColour.toUpperCase()}</code>
               </div>
               {TWO_TONE(logoStyle) && (
                 <div className="flex items-center gap-2.5 py-1 text-[12px] text-[var(--text-secondary)]">
                   <ColorField value={logoSecondary} onChange={setLogoSecondary} swatches={Object.values(kit.palette)} />
-                  Second colour
+                  {tt('dash.studio.logo.second_colour', 'Second colour')}
                   <code className="ml-auto text-[10.5px] text-[var(--text-muted)]">{logoSecondary.toUpperCase()}</code>
                 </div>
               )}
             </Section>
 
-            <Section title="Wordmark">
+            <Section title={tt('dash.studio.logo.wordmark', 'Wordmark')}>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
-                <span>Font</span>
+                <span>{tt('dash.studio.logo.font', 'Font')}</span>
                 <Select size="sm" className="w-[150px]" value={logoFontId || suggestFont(kit.styleTags).id} onChange={v => setLogoFontId(v)}
                   options={WORDMARK_FONTS.map(f => ({ value: f.id, label: f.label, fontFamily: f.id }))} />
               </div>
               <div className="grid grid-cols-3 gap-2 mt-1.5">
-                {([['ink', 'Ink'], ['brand', 'Brand'], ['custom', 'Custom']] as const).map(([id, label]) => {
+                {([['ink', tt('dash.studio.logo.wc.ink', 'Ink')], ['brand', tt('dash.studio.logo.wc.brand', 'Brand')], ['custom', tt('dash.studio.logo.wc.custom', 'Custom')]] as const).map(([id, label]) => {
                   const isCustom = logoWordColour !== 'ink' && logoWordColour !== 'brand';
                   const on = id === 'custom' ? isCustom : logoWordColour === id;
                   return (
@@ -2014,26 +2020,26 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               {logoWordColour !== 'ink' && logoWordColour !== 'brand' && (
                 <div className="flex items-center gap-2.5 py-1 mt-1 text-[12px] text-[var(--text-secondary)]">
                   <ColorField value={logoWordColour} onChange={setLogoWordColour} swatches={Object.values(kit.palette)} />
-                  Wordmark colour
+                  {tt('dash.studio.logo.wordmark_colour', 'Wordmark colour')}
                   <code className="ml-auto text-[10.5px] text-[var(--text-muted)]">{logoWordColour.toUpperCase()}</code>
                 </div>
               )}
               <p className="text-[10.5px] text-[var(--text-muted)] mt-1">
-                {logoWordColour === 'ink' ? 'A deep tint of your brand colour — reads as ink, stays on-palette.' : logoWordColour === 'brand' ? 'The wordmark in the brand colour itself.' : 'A colour of your choosing.'}
+                {logoWordColour === 'ink' ? tt('dash.studio.logo.wc.ink_desc', 'A deep tint of your brand colour — reads as ink, stays on-palette.') : logoWordColour === 'brand' ? tt('dash.studio.logo.wc.brand_desc', 'The wordmark in the brand colour itself.') : tt('dash.studio.logo.wc.custom_desc', 'A colour of your choosing.')}
               </p>
             </Section>
 
             {logoSystem && !logoBusy && (
-              <Section title="Finish">
-                <button onClick={setLogoAsBrand} className={`${KIT_BTN_GHOST} w-full`}>Set as {kit.name}&apos;s logo</button>
+              <Section title={tt('dash.studio.finish', 'Finish')}>
+                <button onClick={setLogoAsBrand} className={`${KIT_BTN_GHOST} w-full`}>{tt('dash.studio.logo.set_as_logo', 'Set as {name}’s logo').replace('{name}', kit.name)}</button>
                 <button onClick={() => { saveLogoSystemToLibrary(logoSystem); }} className={`${KIT_BTN_GHOST} w-full mt-1.5`}>
-                  Save all forms to Library
+                  {tt('dash.studio.logo.save_all', 'Save all forms to Library')}
                 </button>
                 <button
                   onClick={() => { const a = logoSystem.assets.find(x => x.variant === logoVariant) ?? logoSystem.assets[0]; saveAssetCopy('data:image/svg+xml,' + encodeURIComponent(a.svg), `${logoSystem.brandName}-${a.variant}.svg`); }}
                   className={`${KIT_BTN_GHOST} w-full mt-1.5`}
                 >
-                  Download {logoSystem.assets.find(x => x.variant === logoVariant)?.label ?? 'SVG'} (SVG)
+                  {tt('dash.studio.logo.download', 'Download {label} (SVG)').replace('{label}', logoSystem.assets.find(x => x.variant === logoVariant)?.label ?? 'SVG')}
                 </button>
               </Section>
             )}

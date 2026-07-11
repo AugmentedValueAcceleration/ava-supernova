@@ -373,9 +373,7 @@ export function Settings({
         ))}
       </div>
 
-      {/* ── Data tab — Privacy + Help train Ava (Language renders below
-            Behavior since it shares the same tab but the page order
-            keeps the legacy section sequence) ──────────────────────── */}
+      {/* ── Data tab — Privacy + Help train Ava ──────────────────────── */}
       {tab === 'data' && <>
       <SectionLabel>{t('dash.settings.section.privacy')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
@@ -579,18 +577,6 @@ export function Settings({
           description={t('dash.settings.stream_responses_desc')}
           value={local.streamResponses}
           onChange={v => saveImmediate('streamResponses', v)}
-        />
-      </div>
-
-      </>}
-      {/* ── Data tab continued — Language ────────────────────────────── */}
-      {tab === 'data' && <>
-      <SectionLabel>{t('dash.settings.language')}</SectionLabel>
-      <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <Select
-          value={local.language}
-          onChange={v => saveImmediate('language', v)}
-          options={LANGUAGES.map(l => l.value === 'auto' ? { ...l, label: t('dash.settings.auto_detect') } : l)}
         />
       </div>
 
@@ -849,8 +835,16 @@ export function Settings({
       )}
 
       </>}
-      {/* ── Advanced tab — Advanced + Danger Zone ────────────────────── */}
+      {/* ── Advanced tab — Language + Advanced + Danger Zone ─────────── */}
       {tab === 'advanced' && <>
+      <SectionLabel>{t('dash.settings.language')}</SectionLabel>
+      <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+        <Select
+          value={local.language}
+          onChange={v => saveImmediate('language', v)}
+          options={LANGUAGES.map(l => l.value === 'auto' ? { ...l, label: t('dash.settings.auto_detect') } : l)}
+        />
+      </div>
       <SectionLabel>{t('dash.settings.section.advanced')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)]">
         <button
