@@ -631,6 +631,10 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const [shapeId, setShapeId] = useState('Bell');
   const [color, setColor] = useState<string>(kit.palette.primary);
   const [boardBg, setBoardBg] = useState(CHECKER);
+  // Icons follow the ACTIVE brand: the icon lane predates brand kits, so its
+  // colour was set once at mount and never tracked the kit. Re-sync to the brand
+  // primary whenever the active kit switches or its palette is edited.
+  useEffect(() => { setColor(kit.palette.primary); }, [kit.id, kit.palette.primary]);
 
   // ── Video lane (Wan 2.5 via host: submit → poll → clip) ──
   const [videoDuration, setVideoDuration] = useState('5'); // Wan: '5' | '10' seconds only

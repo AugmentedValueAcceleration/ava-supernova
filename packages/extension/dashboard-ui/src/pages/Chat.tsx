@@ -811,6 +811,8 @@ export interface ChatPageProps {
    *  designs FROM these rather than guessing — and may change them, with a
    *  reason, when the design calls for it. Sent with every design-lane turn. */
   designPanel?: string;
+  /** Hub-set announcement messages, threaded to the chat Header ticker. */
+  announcement?: string[];
   /** Design dock: don't PROGRAMMATICALLY steal composer focus (on activation or
    *  a focus_input message). Programmatic focus fires onComposerFocus and would
    *  force the collapsed dock open on Ava's activity; genuine user focus still
@@ -845,7 +847,7 @@ function QuestionReply({ onAnswer }: { onAnswer: (text: string) => void }) {
   );
 }
 
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', designPanel, suppressAutoFocus, onActivity }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', designPanel, announcement, suppressAutoFocus, onActivity }: ChatPageProps) {
   // Per-room thread key — for learning it includes the course id, so each course
   // has its own saved conversation. 'main' never persists (always-mounted).
   const roomKey = lane === 'main' ? '' : `${lane}${courseId ? ':' + courseId : ''}`;
@@ -1186,6 +1188,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             models={state.models}
             activeModel={state.activeModel}
             needsSetup={state.needsSetup}
+            announcement={announcement}
             onSwitch={handleModelSwitch}
             onOpenDashboard={() => onNavigate?.('settings')}
             onOpenHistory={handleOpenHistory}

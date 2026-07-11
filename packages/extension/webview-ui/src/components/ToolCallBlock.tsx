@@ -119,34 +119,30 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
                 {toolCall.toolDescription}
               </span>
             )}
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
-                className="px-3 py-1 rounded text-xs font-medium
-                           bg-[var(--vscode-button-background)]
-                           text-[var(--vscode-button-foreground)]
-                           hover:bg-[var(--vscode-button-hoverBackground)]
-                           border-none cursor-pointer"
+                className="px-3 py-1 rounded-md text-xs font-medium border border-transparent
+                           bg-[var(--color-accent)] text-white
+                           hover:brightness-110 cursor-pointer transition"
                 onClick={() => onConfirmation(toolCall.confirmationId!, true)}
               >
                 {t('tool.allow')}
               </button>
               <button
-                className="px-3 py-1 rounded text-xs font-medium
-                           bg-[var(--color-accent,var(--vscode-button-background))]
-                           text-[var(--vscode-button-foreground)]
-                           hover:opacity-80
-                           border-none cursor-pointer transition-opacity"
+                className="px-3 py-1 rounded-md text-xs font-medium bg-transparent
+                           border border-[var(--color-accent)] text-[var(--color-accent)]
+                           hover:bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)]
+                           cursor-pointer transition"
                 onClick={() => onConfirmation(toolCall.confirmationId!, true, true)}
                 title={t('tool.always_allow_category_tip')}
               >
                 {t('tool.always_allow')}
               </button>
               <button
-                className="px-3 py-1 rounded text-xs font-medium
-                           bg-[var(--vscode-button-secondaryBackground)]
-                           text-[var(--vscode-button-secondaryForeground)]
-                           hover:bg-[var(--vscode-button-secondaryHoverBackground)]
-                           border-none cursor-pointer ml-auto"
+                className="px-3 py-1 rounded-md text-xs font-medium bg-transparent ml-auto
+                           border border-[color-mix(in_srgb,currentColor_18%,transparent)]
+                           text-[var(--vscode-descriptionForeground)]
+                           hover:text-[var(--vscode-foreground)] cursor-pointer transition"
                 onClick={() => onConfirmation(toolCall.confirmationId!, false)}
               >
                 {t('tool.deny')}

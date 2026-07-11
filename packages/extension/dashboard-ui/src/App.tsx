@@ -527,6 +527,7 @@ export function App() {
   // Whole-footprint storage scan (~/.ava by category) — powers the storage bar
   // in the Command Center header and the Library. Refreshed on those pages.
   const [storageScan, setStorageScan] = useState<StorageScan | null>(null);
+  const [announcement, setAnnouncement] = useState<string[]>([]);
   // Non-blocking loading indicator. The Library grid renders whatever
   // it has immediately and shows an inline "Pulling cloud assets…" pill
   // alongside while the fetch is in flight. Hard 15s safety timeout
@@ -1108,6 +1109,9 @@ export function App() {
         break;
       case 'storage_scan_loaded':
         setStorageScan(msg.scan);
+        break;
+      case 'announcement_loaded':
+        setAnnouncement(Array.isArray(msg.messages) ? msg.messages : []);
         break;
       case 'cloud_assets_error':
         // Logged on the host side; UI keeps whatever it had and the
@@ -1802,6 +1806,7 @@ export function App() {
           <Chat
             onRegisterDispatch={registerChatDispatch}
             isActive={page === 'chat'}
+            announcement={announcement}
             onToggleSidebar={toggleSidebar}
             sidebarCollapsed={sidebarCollapsed}
             onFlipSidebar={flipSidebar}

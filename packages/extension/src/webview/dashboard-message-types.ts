@@ -1580,6 +1580,8 @@ export type ExtToDashboardMessage =
   | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number }
   | { type: 'data_exported'; dataType: string; content: string; filename: string }
   | { type: 'data_imported'; dataType: string; count: number }
+  // Hub-set announcement messages for the header ticker (same feed as the site).
+  | { type: 'announcement_loaded'; messages: string[] }
   // Encrypted backup / restore results (data sovereignty).
   | { type: 'backup_done'; ok: boolean; message?: string }
   | { type: 'backup_imported'; ok: boolean; written?: number; skipped?: number; message?: string }

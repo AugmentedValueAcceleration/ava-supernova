@@ -48,6 +48,25 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
   const doReclaim = () => { if (reclaimPaths.length) post({ type: 'reclaim_storage', paths: reclaimPaths }); setArmed(false); };
   const close = () => { setPinned(false); setArmed(false); };
 
+  // Display list: fold Runtime into Models and Old backups into Other (both are
+  // engine/plumbing, not something to surface as its own line), keeping totals
+  // correct. The Reclaim button below still frees the backups. Then sort
+  // biggest-first with the catch-all "Other" pinned last.
+  const displayCats = (() => {
+    const byKey = new Map(categories.map(c => [c.key, { ...c }]));
+    const fold = (from: string, to: string) => {
+      const f = byKey.get(from);
+      if (!f) return;
+      const t = byKey.get(to);
+      if (t) t.bytes += f.bytes;              // roll bytes into the target (no gap)
+      byKey.delete(from);                     // else drop the line (tiny gap on the bar)
+    };
+    fold('runtime', 'models');
+    fold('backups', 'other');
+    return [...byKey.values()].sort((a, b) =>
+      a.key === 'other' ? 1 : b.key === 'other' ? -1 : b.bytes - a.bytes);
+  })();
+
   // Visible on hover (read-only) OR when pinned (interactive).
   const cardVis = pinned
     ? 'visible translate-y-0 opacity-100 pointer-events-auto'
@@ -65,7 +84,7 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
           <span className="text-[var(--text-secondary)]">{formatBytes(totalBytes)}</span>
         </div>
         <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/5">
-          {categories.map(c => (
+          {displayCats.map(c => (
             <div
               key={c.key}
               style={{ width: `${Math.max(0.5, (c.bytes / totalBytes) * 100)}%`, background: colorOf(c.key) }}
@@ -75,7 +94,7 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
         </div>
       </button>
 
-      <div className={`absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3 shadow-2xl transition-all duration-150 ${cardVis}`}>
+      <div className={`absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-[var(--border-card)] bg-[#1a1028] p-3 shadow-2xl transition-all duration-150 ${cardVis}`}>
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
           <div className="flex items-center gap-2">
@@ -87,7 +106,7 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
         </div>
 
         <div className="space-y-1">
-          {categories.map(c => (
+          {displayCats.map(c => (
             <div key={c.key} className="flex items-center gap-2 text-[11px]">
               <span className="inline-block h-2 w-2 flex-shrink-0 rounded-full" style={{ background: colorOf(c.key) }} />
               <span className="flex-1 truncate text-[var(--text-secondary)]">{c.label}</span>
@@ -110,7 +129,7 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
                 ? <button onClick={doReclaim} className="flex-shrink-0 rounded-lg border border-red-500/50 bg-red-500/15 px-2.5 py-1 text-[11px] font-medium text-red-300 hover:bg-red-500/25 transition">Free {formatBytes(reclaimBytes)}</button>
                 : <button onClick={() => setArmed(true)} className="flex-shrink-0 rounded-lg border border-[var(--border-card)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-red-500/50 hover:text-red-300 transition">Reclaim</button>)}
             </div>
-            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">Reclaim removes only stale backups. Models and runtime are Ava's local AI engine, managed in Desktop / Vision.</p>
+            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">Reclaim removes only stale backups. Models are Ava's local AI engine, managed in Desktop / Vision.</p>
           </div>
         ) : (
           <div className="mt-2 border-t border-[var(--border-card)] pt-2 text-[10px] text-[var(--text-muted)]">Click to manage</div>

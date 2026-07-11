@@ -208,6 +208,22 @@ export class DashboardPanel {
 
   /** Show the welcome once the webview signals ready (for freshly-opened panels). */
   private welcomeTourQueued = false;
+  private announcementTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Fetch the hub-set announcement messages (same feed as the website banner)
+   *  and push them to the header ticker. Public endpoint, no key; silent on
+   *  failure (offline / not signed in → no ticker). */
+  private async fetchAnnouncement(): Promise<void> {
+    try {
+      const res = await fetch('https://ava-supernova.com/api/announcement', { headers: { accept: 'application/json' } });
+      if (!res.ok) return;
+      const data = (await res.json()) as { messages?: unknown };
+      const messages = Array.isArray(data.messages)
+        ? data.messages.filter((m): m is string => typeof m === 'string' && m.trim().length > 0)
+        : [];
+      this.post({ type: 'announcement_loaded', messages } as never);
+    } catch { /* offline / blocked — no ticker, no noise */ }
+  }
   private queueWelcomeTour(): void {
     this.welcomeTourQueued = true;
   }
@@ -273,6 +289,10 @@ export class DashboardPanel {
         this.log(`[health-perf] HOST recv webview_ready at ${tReady}`);
         await this.sendInit();
         this.log(`[health-perf] HOST sendInit done ${Date.now() - tReady}ms`);
+        // Hub-set announcement ticker — same feed as the website banner. Fetch
+        // now and refresh every 10 min so hub updates reach users in-app.
+        void this.fetchAnnouncement();
+        if (!this.announcementTimer) this.announcementTimer = setInterval(() => void this.fetchAnnouncement(), 10 * 60_000);
         // A "Show Welcome Tour" command opened this fresh panel — force-show
         // the overlay now that the webview is ready (covers the setting-off case).
         if (this.welcomeTourQueued) {
@@ -417,8 +437,9 @@ export class DashboardPanel {
       }
 
       case 'set_category_permission':
-        if ((this.viewProvider as any)?.toolRegistry && (msg as any).category && (msg as any).permission) {
-          (this.viewProvider as any).toolRegistry.setCategoryPermission((msg as any).category, (msg as any).permission);
+        // Persist locally + apply to the registry (was session-only before).
+        if ((this.viewProvider as any)?.setSavedCategoryPermission && (msg as any).category && (msg as any).permission) {
+          (this.viewProvider as any).setSavedCategoryPermission((msg as any).category, (msg as any).permission);
         }
         break;
 
@@ -4913,6 +4934,9 @@ export class DashboardPanel {
       contributeSharedLearning: cfg.get<boolean>('contributeSharedLearning') ?? false,
       streamResponses: cfg.get<boolean>('preferences.streamResponses') ?? true,
       loopPreventionEnabled: cfg.get<boolean>('loopPrevention.enabled') ?? true,
+      // Per-category permissions live in globalState (local), not config — read
+      // them from the view provider so the Settings list shows the saved state.
+      categoryPermissions: (this.viewProvider as any)?.getSavedCategoryPermissions?.() ?? {},
     };
   }
 
@@ -5634,6 +5658,7 @@ export class DashboardPanel {
   private dispose(): void {
     DashboardPanel.currentPanel = undefined;
     DashboardPanel.onDisposeCallback?.();
+    if (this.announcementTimer) { clearInterval(this.announcementTimer); this.announcementTimer = null; }
     this.panel.dispose();
     for (const d of this.disposables) d.dispose();
     this.disposables = [];

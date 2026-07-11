@@ -1825,6 +1825,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const permissionMode = (config.get<string>('preferences.permissionMode') || 'strict') as PermissionMode;
     this.toolRegistry.setPermissionMode(permissionMode);
 
+    // Restore saved per-category permissions (local, in globalState) so an
+    // "Always allow" or a Settings toggle STICKS across sessions — the registry
+    // is rebuilt each session, so without this it always reverted to asking.
+    const savedCatPerms = this.getSavedCategoryPermissions();
+    if (Object.keys(savedCatPerms).length) this.toolRegistry.setCategoryPermissions(savedCatPerms as never);
+
     this.toolRegistry.setConfirmationHandler(
       (toolName, args, toolCallId) => this.requestConfirmation(toolName, args, toolCallId),
     );
@@ -4534,6 +4540,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     return value;
   }
 
+  /** Per-category tool permissions, persisted locally in globalState (never
+   *  cloud). The registry is rebuilt each session; this is the durable store. */
+  public getSavedCategoryPermissions(): Record<string, string> {
+    return this.context.globalState.get<Record<string, string>>('ava.categoryPermissions') ?? {};
+  }
+
+  /** Save one category's permission and apply it to the live registry. Persisted
+   *  in globalState, so the Settings list reflects it on next open and it holds
+   *  across sessions. */
+  public setSavedCategoryPermission(category: string, permission: string): void {
+    const next = { ...this.getSavedCategoryPermissions(), [category]: permission };
+    void this.context.globalState.update('ava.categoryPermissions', next);
+    if (this.toolRegistry) this.toolRegistry.setCategoryPermission(category as never, permission as never);
+  }
+
   private handleConfirmationResponse(
     confirmationId: string,
     approved: boolean,
@@ -4548,12 +4569,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     this.pendingConfirmations.delete(confirmationId);
 
-    // "Always Allow" — approve this category for the rest of the session
+    // "Always Allow" — approve this category AND persist it, so it sticks across
+    // sessions and the Settings per-category list reflects it (previously
+    // session-only, which is why it "didn't update").
     if (approved && alwaysAllowCategory && this.toolRegistry) {
       const category = this.toolRegistry.getCategoryForTool(pending.toolName);
       this.toolRegistry.approveCategory(category as any);
-      this.toolRegistry.setCategoryPermission(category as any, 'auto');
-      this.log(`Category auto-approved for session: ${category}`);
+      this.setSavedCategoryPermission(String(category), 'auto');
+      this.log(`Category auto-approved and saved: ${category}`);
     }
 
     // For present_plan, return a descriptive string and create session tasks from plan steps

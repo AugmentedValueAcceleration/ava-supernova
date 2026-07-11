@@ -1,4 +1,5 @@
 import { ModelSelector } from './ModelSelector';
+import { AnnouncementTicker } from '../../components/AnnouncementTicker';
 import { t, tt, useLocale } from '../../i18n';
 import type { ProviderSource } from '../../types/messages';
 
@@ -37,6 +38,8 @@ interface HeaderProps {
    *  this to clear only its own thread (never the main chat). Default hidden. */
   showClearChat?: boolean;
   onClearChat?: () => void;
+  /** Hub-set announcement messages for the centre ticker. */
+  announcement?: string[];
 }
 
 export function Header({
@@ -51,6 +54,7 @@ export function Header({
   showNewChat = true,
   showClearChat = false,
   onClearChat,
+  announcement,
 }: HeaderProps) {
   useLocale();
 
@@ -95,8 +99,11 @@ export function Header({
         </span>
       )}
 
-      {/* Spacer */}
-      <div className="flex-1" />
+      {/* Centre — the announcement ticker fills the gap between the model picker
+          and the right-hand controls; truncates so it never crowds either. */}
+      <div className="flex-1 min-w-0">
+        {announcement && announcement.length > 0 && <AnnouncementTicker messages={announcement} />}
+      </div>
 
       {/* Right side: tokens + context ring + tasks */}
       <div className="flex items-center gap-3">
