@@ -44,6 +44,15 @@ import { HealthPlanCreateTool } from './health-plan-create.js';
 import { WritePostTool } from './write-post.js';
 import { ProposeHooksTool } from './propose-hooks.js';
 import { ResearchPostTool } from './research-post.js';
+// Newsroom — Ava as Correspondent. She writes her OWN account and cites the
+// outlets she read; she is not an aggregator. write_article REFUSES an article
+// whose quotes don't appear in what she fetched, so a fabricated quote cannot
+// reach the page (the same trick as write_post's character cap: don't ask the
+// model to be honest, make dishonesty fail).
+import { DiscoverNewsTool } from './discover-news.js';
+import { ResearchStoryTool } from './research-story.js';
+import { FactCheckTool } from './fact-check.js';
+import { WriteArticleTool } from './write-article.js';
 import { PostPerformanceTool } from './post-performance.js';
 import { SuggestBeatsTool } from './suggest-beats.js';
 import { ScanIndustryTool } from './scan-industry.js';
@@ -434,6 +443,10 @@ export class ToolRegistry {
       new WritePostTool(),
       new ProposeHooksTool(),
       new ResearchPostTool(),
+      new DiscoverNewsTool(),
+      new ResearchStoryTool(),
+      new FactCheckTool(),
+      new WriteArticleTool(),
       new PostPerformanceTool(),
       new SuggestBeatsTool(),
       new ScanIndustryTool(),

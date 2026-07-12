@@ -18,7 +18,17 @@ export { IntentClassifier } from './agent/intent-classifier.js';
 export type { UserIntent, IntentClassifierOptions } from './agent/intent-classifier.js';
 
 export type { SystemPromptOptions } from './agent/system-prompt.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, getNewsroomPrefix } from './agent/system-prompt.js';
+
+// Newsroom contracts — the surface-injected news index + article store the
+// Correspondent's tools write through, plus the syndication clusterer that
+// keeps "47 outlets" from being mistaken for corroboration.
+export type {
+  NewsHit, NewsSearchFn,
+  ArticleInput, ArticleStore,
+  FetchedCorpus,
+} from './news/index.js';
+export { clusterCoverage, summariseCoverage, verifyQuote } from './news/index.js';
 
 // Social Studio contracts — the surface-injected stores the Posts-floor tools
 // (write_post, propose_hooks) write through, plus the shared char-limit map.

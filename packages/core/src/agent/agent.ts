@@ -382,6 +382,23 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'ask_user', 'get_datetime',
     'switch_mode',
   ]),
+  // Newsroom — Ava as Correspondent. She reads what outlets published, stands
+  // the story up, and writes her OWN account with the receipts attached.
+  //
+  // The kit is small on purpose. web_search is deliberately OUT: an open web
+  // search returns blogs, forums and SEO sludge, and once that is in the corpus
+  // a quote "verifies" against a source that was never journalism. The news
+  // index is the only door in, so the evidence write_article checks against is
+  // evidence from a publisher. Coding / file / shell tools are out entirely.
+  news: new Set([
+    'discover_news', 'research_story', 'fact_check', 'write_article',
+    // Header images she authors herself — never a lifted press photo.
+    'generate_image',
+    // Continuity: running stories, corrections owed, what she has already covered.
+    'memory_save', 'memory_recall', 'memory_update', 'journal_write',
+    'ask_user', 'get_datetime',
+    'switch_mode',
+  ]),
   // Write mode — the author's surface. Markdown is the editable source;
   // Word/PDF are exports. Ships the authoring tool + the supporting cast a
   // writer reaches for (research, images for covers, the file ops the .md
@@ -456,6 +473,7 @@ function detectModeFromMessages(messages: Message[]): string | null {
     if (text.startsWith('[Health Room]')) return 'health';
     if (text.startsWith('[Design Studio]')) return 'design';
     if (text.startsWith('[Social Studio]')) return 'social';
+    if (text.startsWith('[Newsroom]')) return 'news';
     break;
   }
   return null;
