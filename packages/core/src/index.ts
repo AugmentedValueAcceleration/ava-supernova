@@ -26,6 +26,7 @@ export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeac
 export type {
   NewsHit, NewsSearchFn,
   ArticleInput, ArticleStore,
+  StorySuggestion, StoryStore,
   FetchedCorpus,
 } from './news/index.js';
 export { clusterCoverage, summariseCoverage, verifyQuote } from './news/index.js';

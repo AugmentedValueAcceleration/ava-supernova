@@ -61,6 +61,29 @@ export interface ArticleStore {
 }
 
 /**
+ * One story on the front-page menu — a story she has SEEN, and thinks is worth
+ * writing. `why` is the whole point: the selection is the skill, and the operator
+ * is owed her reason, not a ranked list he has to re-judge himself.
+ */
+export interface StorySuggestion {
+  desk: string;
+  headline: string;
+  outlet: string;
+  /** The URL she saw it at. Checked against the fetched corpus — a story that
+   *  isn't in anything she pulled cannot reach the menu. */
+  url: string;
+  /** Why it's worth writing: what's actually at stake, or what everyone is missing. */
+  why: string;
+  /** Optional: how she'd come at it. */
+  angle?: string;
+}
+
+/** Story-menu sink, injected by the surface (renders the front page). */
+export interface StoryStore {
+  suggest(stories: StorySuggestion[]): Promise<void>;
+}
+
+/**
  * Everything she fetched this turn, kept so write_article can CHECK her quotes
  * against it. Populated by research_story / fact_check; read by write_article.
  * Without this, "quote verbatim from a page you fetched" is an honour system —

@@ -50,6 +50,7 @@ import { ResearchPostTool } from './research-post.js';
 // reach the page (the same trick as write_post's character cap: don't ask the
 // model to be honest, make dishonesty fail).
 import { DiscoverNewsTool } from './discover-news.js';
+import { SuggestStoriesTool } from './suggest-stories.js';
 import { ResearchStoryTool } from './research-story.js';
 import { FactCheckTool } from './fact-check.js';
 import { WriteArticleTool } from './write-article.js';
@@ -444,6 +445,7 @@ export class ToolRegistry {
       new ProposeHooksTool(),
       new ResearchPostTool(),
       new DiscoverNewsTool(),
+      new SuggestStoriesTool(),
       new ResearchStoryTool(),
       new FactCheckTool(),
       new WriteArticleTool(),

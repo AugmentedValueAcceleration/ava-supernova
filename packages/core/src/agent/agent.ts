@@ -391,7 +391,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // index is the only door in, so the evidence write_article checks against is
   // evidence from a publisher. Coding / file / shell tools are out entirely.
   news: new Set([
-    'discover_news', 'research_story', 'fact_check', 'write_article',
+    'discover_news', 'suggest_stories', 'research_story', 'fact_check', 'write_article',
     // Header images she authors herself — never a lifted press photo.
     'generate_image',
     // Continuity: running stories, corrections owed, what she has already covered.
