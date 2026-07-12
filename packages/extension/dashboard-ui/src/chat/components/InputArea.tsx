@@ -6,6 +6,7 @@ import type { SecretEntry } from './SecretVault';
 import { CommandPalette, filterPaletteActions } from './CommandPalette';
 import type { PaletteTool, PaletteAction } from './CommandPalette';
 import { useSecrets } from '../hooks/useSecrets';
+import { post } from '../../App';
 
 export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
@@ -247,11 +248,23 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
   const handleSend = useCallback(() => {
     let trimmed = text.trim();
     if (!trimmed && attachments.length === 0) return;
-    // Replace @secret:Label references with actual values
+    // Expand @secret:Label to the OPAQUE {{secret:<id>}} handle — never the raw
+    // value. The host holds the real key and swaps it in at tool-execution time
+    // (setArgsPreprocessor), so the literal never crosses the conversation
+    // boundary: not into the prompt, not to the model provider, not into the
+    // saved transcript. This used to substitute `found.value` here, which put
+    // the operator's key straight in the message body — masked on screen while
+    // being shipped to a third party, i.e. the exact opposite of a vault.
+    //
+    // Typing the reference IS the grant, so tell the host to promote the entry
+    // into Ava's working set; otherwise the handle would reach a tool with
+    // nothing to resolve it. Only the id crosses — never the value.
     if (trimmed) {
       trimmed = trimmed.replace(/@secret:([^\s]+)/g, (_match, label: string) => {
         const found = secrets.find((s) => s.label.toLowerCase() === label.toLowerCase());
-        return found ? found.value : _match;
+        if (!found) return _match;
+        post({ type: 'grant_secret', secretId: found.id });
+        return `{{secret:${found.id}}}`;
       });
     }
     onSend(trimmed || '(image)', mode, attachments.length > 0 ? attachments : undefined);

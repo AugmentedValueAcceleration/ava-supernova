@@ -89,7 +89,12 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
       style={{
         bottom: '100%',
         marginBottom: '8px',
-        background: 'var(--vscode-editor-background, #1e1e1e)',
+        // Ava's own palette — the vault used to sit on raw --vscode-* chrome,
+        // which made it read as a VS Code dialog with an accent rim bolted on
+        // rather than part of Ava. --bg-page under --bg-card gives the tinted,
+        // lifted surface the rest of the dashboard has (the card layer is
+        // translucent, so it needs an opaque base beneath it).
+        background: 'linear-gradient(var(--bg-card), var(--bg-card)), var(--bg-page)',
         border: '1.5px solid color-mix(in srgb, var(--accent) 25%, transparent)',
         boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4), 0 0 12px color-mix(in srgb, var(--accent) 10%, transparent)',
         animation: 'vault-slide-up 0.2s ease-out',
@@ -98,7 +103,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: '1px solid color-mix(in srgb, var(--accent) 15%, transparent)' }}
+        style={{ borderBottom: '1px solid var(--border-card)' }}
       >
         <div className="flex items-center gap-2">
           <svg
@@ -114,10 +119,21 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span className="text-sm font-semibold text-[var(--vscode-foreground)]">
+          <span className="text-sm font-semibold text-[var(--text-primary)]">
             {t('secrets.title')}
           </span>
-          <span className="text-[10px] opacity-30 ml-1">
+          {/* The only affordance telling you how to use the vault — it was a
+              10px/30%-opacity whisper, which is why nobody could find it. It
+              now also states the guarantee, because that guarantee is the
+              entire point of the feature. */}
+          <span
+            className="ml-1 rounded px-1.5 py-0.5 font-mono text-[10px]"
+            style={{
+              background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+              color: 'var(--accent)',
+            }}
+            title="Reference a key by label in your message. Ava receives an opaque handle — the value is swapped in on your machine when a tool runs, so it never reaches the model or your saved chat."
+          >
             @secret:Label
           </span>
         </div>
@@ -125,7 +141,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
           onClick={onClose}
           className="flex items-center justify-center w-7 h-7 rounded-lg
                      bg-transparent border-none cursor-pointer
-                     text-[var(--vscode-foreground)] opacity-40 hover:opacity-80
+                     text-[var(--text-secondary)] opacity-60 hover:opacity-100
                      transition-opacity duration-150"
           aria-label="Close"
         >
@@ -154,7 +170,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            <p className="text-xs opacity-30">{t('secrets.empty')}</p>
+            <p className="text-xs text-[var(--text-muted)]">{t('secrets.empty')}</p>
           </div>
         ) : (
           <div className="px-2 py-2 space-y-1">
@@ -168,7 +184,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                 >
                   {/* Label + provider badge */}
                   <div className="min-w-[80px] shrink-0 flex flex-col">
-                    <span className="text-xs font-medium text-[var(--vscode-foreground)] opacity-70">
+                    <span className="text-xs font-medium text-[var(--text-primary)]">
                       {secret.label}
                     </span>
                     {secret.provider && (
@@ -182,10 +198,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                   <span
                     className="flex-1 text-xs font-mono truncate"
                     style={{
-                      color: isRevealed
-                        ? 'var(--vscode-foreground)'
-                        : 'var(--vscode-foreground)',
-                      opacity: isRevealed ? 0.8 : 0.35,
+                      color: isRevealed ? 'var(--text-primary)' : 'var(--text-muted)',
                       letterSpacing: isRevealed ? 'normal' : '2px',
                     }}
                   >
@@ -207,8 +220,8 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                     onClick={() => toggleReveal(secret.id)}
                     className="flex items-center justify-center w-7 h-7 rounded-md
                                bg-transparent border-none cursor-pointer
-                               text-[var(--vscode-foreground)] opacity-30
-                               hover:opacity-70 transition-opacity duration-150"
+                               text-[var(--text-muted)] opacity-70
+                               hover:opacity-100 hover:text-[var(--accent)] transition-all duration-150"
                     title={isRevealed ? t('secrets.hide') : t('secrets.reveal')}
                     aria-label={isRevealed ? t('secrets.hide') : t('secrets.reveal')}
                   >
@@ -231,8 +244,8 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                     onClick={() => handleDelete(secret.id)}
                     className="flex items-center justify-center w-7 h-7 rounded-md
                                bg-transparent border-none cursor-pointer
-                               text-[var(--vscode-foreground)] opacity-0
-                               group-hover:opacity-30 hover:!opacity-70 hover:!text-red-400
+                               text-[var(--text-muted)] opacity-0
+                               group-hover:opacity-60 hover:!opacity-100 hover:!text-red-400
                                transition-all duration-150"
                     title={t('memory.delete')}
                     aria-label={t('memory.delete')}
@@ -252,7 +265,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
       {/* Add new secret row */}
       <div
         className="flex items-center gap-2 px-3 py-3"
-        style={{ borderTop: '1px solid color-mix(in srgb, var(--accent) 12%, transparent)' }}
+        style={{ borderTop: '1px solid var(--border-card)' }}
       >
         <input
           ref={labelInputRef}
@@ -262,11 +275,11 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
           onKeyDown={handleKeyDown}
           placeholder={t('secrets.label_placeholder')}
           className="flex-1 min-w-0 px-3 py-2 rounded-lg text-xs
-                     bg-[var(--vscode-input-background)]
-                     text-[var(--vscode-input-foreground)]
-                     placeholder:opacity-30
+                     bg-[var(--bg-input)]
+                     text-[var(--text-primary)]
+                     placeholder:text-[var(--text-muted)]
                      outline-none
-                     border border-[color-mix(in_srgb,var(--accent)_12%,transparent)]
+                     border border-[var(--border-card)]
                      focus:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]
                      transition-colors duration-150"
         />
@@ -276,12 +289,12 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
           onChange={(e) => setNewValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={t('secrets.value_placeholder')}
-          className="flex-1 min-w-0 px-3 py-2 rounded-lg text-xs
-                     bg-[var(--vscode-input-background)]
-                     text-[var(--vscode-input-foreground)]
-                     placeholder:opacity-30
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg text-xs font-mono
+                     bg-[var(--bg-input)]
+                     text-[var(--text-primary)]
+                     placeholder:font-sans placeholder:text-[var(--text-muted)]
                      outline-none
-                     border border-[color-mix(in_srgb,var(--accent)_12%,transparent)]
+                     border border-[var(--border-card)]
                      focus:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]
                      transition-colors duration-150"
         />

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
-import type { Page, DashboardJournalDaySummary, HealthPlanSummary } from '../types/messages';
+import type { Page, DashboardJournalDaySummary, HealthPlanSummary, ProviderKeyStatus } from '../types/messages';
 import { DataPortability } from './DataPortability';
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
@@ -30,6 +30,11 @@ interface NavSidebarProps {
    *  the signed-out Connect screen. */
   accountLoading?: boolean;
   onConnectAccount?: () => void;
+  /** Which BYOK providers already hold a key. Presence flags only — the host
+   *  keeps the values in SecretStorage and never sends them to the webview.
+   *  Drives the collapsible API Keys block below the account, mirroring the
+   *  IDE sidebar. */
+  providerKeys?: ProviderKeyStatus;
   aiName?: string;
   journalSummaries?: DashboardJournalDaySummary[];
   selectedJournalDate?: string;
@@ -117,6 +122,7 @@ export function NavSidebar({
   onSetByokMode,
   accountLoading,
   onConnectAccount,
+  providerKeys,
   aiName,
   selectedJournalDate,
   onSelectJournalDate,
@@ -435,7 +441,115 @@ export function NavSidebar({
           </div>
         )}
       </div>
+
+      {/* API Keys (BYOK) — mirrors the IDE sidebar, which puts this right below
+          the account block. Always available (signed in or not): BYOK is the
+          zero-cost path and shouldn't be buried in Settings. */}
+      <SidebarApiKeys providerKeys={providerKeys} />
     </nav>
+  );
+}
+
+/* ── SidebarApiKeys ───────────────────────────────────────────────────────── */
+/**
+ * Collapsible BYOK key block for the sidebar. Mirrors the IDE's Sidebar
+ * section, but NOT its storage: the IDE keeps keys in localStorage, whereas the
+ * extension hands them to the host, which puts them in VS Code SecretStorage.
+ * The webview therefore never holds a key value — it only learns WHICH
+ * providers have one (`providerKeys`, booleans). So a configured provider shows
+ * as saved with a Remove action rather than echoing dots we don't have.
+ *
+ * The nine providers here are the same set (and wording) as Settings' PROVIDERS.
+ */
+// Explicit union rather than `keyof ProviderKeyStatus` — that interface carries
+// a `[key: string]: boolean` index signature, so keyof widens to string | number
+// and stops meaning anything. These nine are the real providers.
+type SidebarProviderId =
+  | 'anthropic' | 'deepseek' | 'kimi' | 'glm' | 'qwen'
+  | 'mistral' | 'xiaomi' | 'tencent' | 'nvidia';
+
+const SIDEBAR_PROVIDERS: Array<{ id: SidebarProviderId; label: string; placeholder: string }> = [
+  { id: 'anthropic', label: 'Anthropic (Claude)', placeholder: 'sk-ant-...' },
+  { id: 'deepseek', label: 'DeepSeek', placeholder: 'sk-...' },
+  { id: 'kimi', label: 'Kimi (Moonshot)', placeholder: 'sk-...' },
+  { id: 'glm', label: 'GLM (Zhipu AI)', placeholder: '...' },
+  { id: 'qwen', label: 'Qwen (Alibaba)', placeholder: 'sk-...' },
+  { id: 'mistral', label: 'Mistral AI', placeholder: '...' },
+  { id: 'xiaomi', label: 'Xiaomi (MiMo)', placeholder: '...' },
+  { id: 'tencent', label: 'Tencent Hunyuan', placeholder: '...' },
+  { id: 'nvidia', label: 'NVIDIA', placeholder: 'nvapi-...' },
+];
+
+function SidebarApiKeys({ providerKeys }: { providerKeys?: ProviderKeyStatus }) {
+  useLocale();
+  const [open, setOpen] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  const saveKey = (id: string) => {
+    const apiKey = drafts[id]?.trim();
+    if (!apiKey) return;
+    post({ type: 'save_provider_key', provider: id as never, apiKey });
+    setDrafts(prev => ({ ...prev, [id]: '' }));
+  };
+
+  const configured = providerKeys ? Object.values(providerKeys).filter(Boolean).length : 0;
+
+  return (
+    <div className="border-t border-[var(--border-card)] px-4 py-3">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center justify-between border-none bg-transparent p-0 text-[11px] font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-primary)] cursor-pointer"
+      >
+        <span>
+          {tt('dash.settings.section.api_keys', 'API Keys')}
+          {configured > 0 && (
+            <span className="ml-1.5 font-normal text-[var(--accent)]">{configured}</span>
+          )}
+        </span>
+        <svg
+          width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="pt-2">
+          {SIDEBAR_PROVIDERS.map(p => {
+            const isSet = !!providerKeys?.[p.id];
+            return (
+              <div key={p.id} className="mb-1.5">
+                <div className="mb-0.5 flex items-center justify-between">
+                  <span className="text-[10px] text-[var(--text-muted)]">{p.label}</span>
+                  {isSet && (
+                    <button
+                      onClick={() => post({ type: 'remove_provider_key', provider: p.id as never })}
+                      className="border-none bg-transparent p-0 text-[9px] text-[var(--text-muted)] transition hover:text-red-400 cursor-pointer"
+                    >
+                      {tt('dash.settings.remove', 'Remove')}
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  value={drafts[p.id] ?? ''}
+                  onChange={e => setDrafts(prev => ({ ...prev, [p.id]: e.target.value }))}
+                  onBlur={() => saveKey(p.id)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveKey(p.id); } }}
+                  // The host holds the real key; we can't echo it back. Say so
+                  // plainly rather than faking dots in an empty box.
+                  placeholder={isSet ? tt('dash.settings.key_saved', 'Saved — paste to replace') : p.placeholder}
+                  className="h-6 w-full rounded border border-[var(--border-card)] bg-[var(--bg-input)] px-2 text-[11px] text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
+                  style={isSet ? { borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' } : undefined}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

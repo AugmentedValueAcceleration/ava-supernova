@@ -655,7 +655,34 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         id: nextId(),
         role: m.role,
         content: m.role === 'user' ? stripModePrefix(m.content) : m.content,
-        toolCalls: [],
+        // Rebuild the tool chips from the transcript. This was hardcoded to []
+        // — so even once the host started sending them, a reopened conversation
+        // still showed none. Also rebuild `events` so the chips render inline
+        // in the turn, the same way they do live.
+        toolCalls: (m.toolCalls ?? []).map((tc) => ({
+          id: tc.id,
+          name: tc.name,
+          arguments: tc.arguments,
+          status: tc.status,
+          ...(tc.result !== undefined ? { result: tc.result } : {}),
+        })),
+        ...(m.toolCalls?.length
+          ? {
+              events: [
+                ...(m.content ? [{ kind: 'text' as const, content: m.content }] : []),
+                ...m.toolCalls.map((tc) => ({
+                  kind: 'tool_call' as const,
+                  toolCall: {
+                    id: tc.id,
+                    name: tc.name,
+                    arguments: tc.arguments,
+                    status: tc.status,
+                    ...(tc.result !== undefined ? { result: tc.result } : {}),
+                  },
+                })),
+              ],
+            }
+          : {}),
         isStreaming: false,
       }));
       return {

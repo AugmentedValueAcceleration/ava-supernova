@@ -107,19 +107,112 @@ export function formatToolSummary(toolName: string, args: Record<string, unknown
 
 // ── UI message projection ──────────────────────────────────────────────────
 
-/** Project the agent's Message[] into the minimal shape the chat UI renders. */
-export function buildUIMessages(messages: Message[]): Array<{ role: 'user' | 'assistant'; content: string }> {
-  return messages
-    .filter((m) => (m.role === 'user' || m.role === 'assistant') && !!m.content)
-    .map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: typeof m.content === 'string'
-        ? m.content
-        : (m.content ?? [])
-            .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-            .map((p) => p.text)
-            .join('') || '[image]',
-    }));
+/**
+ * Internal primers the host injects into the conversation for the MODEL's
+ * benefit — never the operator's words.
+ *
+ * These are now pushed as `role: 'system'`, but they were previously pushed as
+ * `role: 'user'`, and every conversation already saved to disk carries them that
+ * way. So the role can't be trusted on historical transcripts — we match the
+ * content marker instead. Without this, reopening any older chat resurrects a
+ * raw `[Memory Brief]` blob as a "You" bubble the operator never typed.
+ */
+const INTERNAL_PRIMER_RE = /^\s*\[(Memory Brief|Memory pointer|Project Brain)\]/;
+
+/** True when a message is a host-injected primer rather than real conversation. */
+export function isInternalPrimer(m: Message): boolean {
+  const text = contentToText(m.content);
+  return INTERNAL_PRIMER_RE.test(text);
+}
+
+/** Flatten a core message's content (string | ContentPart[]) to display text. */
+function contentToText(content: Message['content']): string {
+  if (typeof content === 'string') return content;
+  if (!content) return '';
+  return content
+    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+    .map((p) => p.text)
+    .join('');
+}
+
+/** A restored tool call — mirrors the webview's ToolCallDisplay. */
+export interface RestoredToolCall {
+  id: string;
+  name: string;
+  arguments: string;
+  status: 'success' | 'failed';
+  result?: string;
+}
+
+export interface RestoredMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  toolCalls?: RestoredToolCall[];
+}
+
+/**
+ * Project the agent's Message[] into the shape the chat UI renders.
+ *
+ * This used to return `{ role, content }` and nothing else, which quietly threw
+ * away the entire tool half of the transcript on every reload:
+ *   - assistant `tool_calls` were dropped (no field to put them in),
+ *   - `role: 'tool'` results were filtered out,
+ *   - and an assistant turn that was PURELY a tool call had empty content, so
+ *     the `!!m.content` filter deleted it outright.
+ * Live, the webview builds its chips from streaming events, so it looked fine —
+ * then a reopen rebuilt from disk and the tool calls simply weren't there.
+ *
+ * Now we carry them: each assistant message's tool_calls become UI chips, and
+ * the `role: 'tool'` messages that follow are matched back onto their call by
+ * tool_call_id to restore the result. `role: 'system'` stays filtered — those
+ * are internal primers ([Memory Brief], [Memory pointer]) and were never the
+ * operator's words.
+ */
+export function buildUIMessages(messages: Message[]): RestoredMessage[] {
+  // Tool results are separate `role: 'tool'` messages keyed by tool_call_id —
+  // index them first so each call can be reunited with its output.
+  const resultsByCallId = new Map<string, string>();
+  for (const m of messages) {
+    if (m.role === 'tool' && m.tool_call_id) {
+      resultsByCallId.set(m.tool_call_id, contentToText(m.content));
+    }
+  }
+
+  const out: RestoredMessage[] = [];
+  for (const m of messages) {
+    if (m.role !== 'user' && m.role !== 'assistant') continue;
+    // Drop host-injected primers. New ones are role:'system' (filtered above),
+    // but transcripts already on disk have them as role:'user' — so they'd sail
+    // through and render as a "You" bubble. Match the marker, not the role.
+    if (isInternalPrimer(m)) continue;
+
+    const text = contentToText(m.content);
+    const calls = m.role === 'assistant' ? (m.tool_calls ?? []) : [];
+
+    // Keep a message if it has text OR tool calls. The old `!!m.content` test
+    // dropped tool-only assistant turns entirely.
+    if (!text && calls.length === 0) continue;
+
+    const toolCalls: RestoredToolCall[] = calls.map((tc) => {
+      const result = resultsByCallId.get(tc.id);
+      return {
+        id: tc.id,
+        name: tc.function?.name ?? 'tool',
+        arguments: tc.function?.arguments ?? '',
+        // A call with no recorded result never came back (the session died
+        // mid-flight) — say so rather than implying it succeeded.
+        status: result === undefined ? 'failed' : 'success',
+        ...(result !== undefined ? { result } : {}),
+      };
+    });
+
+    out.push({
+      role: m.role,
+      content: text || (calls.length > 0 ? '' : '[image]'),
+      ...(toolCalls.length > 0 ? { toolCalls } : {}),
+    });
+  }
+  return out;
 }
 
 // ── Learning context loader ────────────────────────────────────────────────

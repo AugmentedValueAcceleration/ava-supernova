@@ -562,7 +562,34 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         id: nextId(),
         role: m.role,
         content: m.role === 'user' ? stripModePrefix(m.content) : m.content,
-        toolCalls: [],
+        // Rebuild the tool chips from the transcript. This was hardcoded to []
+        // — so a reopened conversation lost every tool call, because the live
+        // view builds them from streaming events that don't replay. `events`
+        // is rebuilt too so they render inline in the turn, as they do live.
+        toolCalls: (m.toolCalls ?? []).map((tc) => ({
+          id: tc.id,
+          name: tc.name,
+          arguments: tc.arguments,
+          status: tc.status,
+          ...(tc.result !== undefined ? { result: tc.result } : {}),
+        })),
+        ...(m.toolCalls?.length
+          ? {
+              events: [
+                ...(m.content ? [{ kind: 'text' as const, content: m.content }] : []),
+                ...m.toolCalls.map((tc) => ({
+                  kind: 'tool_call' as const,
+                  toolCall: {
+                    id: tc.id,
+                    name: tc.name,
+                    arguments: tc.arguments,
+                    status: tc.status,
+                    ...(tc.result !== undefined ? { result: tc.result } : {}),
+                  },
+                })),
+              ],
+            }
+          : {}),
         isStreaming: false,
       }));
       return {

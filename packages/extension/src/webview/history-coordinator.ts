@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import { Conversation } from '@ava/core';
 import type { HistoryManager } from '@ava/core';
 import type { ExtToWebviewMessage } from './message-types.js';
-import { buildUIMessages } from './helpers.js';
+import { buildUIMessages, isInternalPrimer } from './helpers.js';
 
 export interface HistoryCoordinatorDeps {
   context: vscode.ExtensionContext;
@@ -70,7 +70,12 @@ export class HistoryCoordinator {
     }
 
     const conversation = new Conversation(record.id);
-    const messages = record.messages;
+    // Drop stale host-injected primers ([Memory Brief] / [Memory pointer]) before
+    // rehydrating. One is appended EVERY turn, so a long conversation accumulates
+    // them — and older transcripts saved them as role:'user', which means the model
+    // reads them back as things the operator said. A fresh brief is generated for
+    // the next turn anyway, so the stale ones are pure noise (and pure token cost).
+    const messages = record.messages.filter((m) => !isInternalPrimer(m));
     if (messages.length > 0 && messages[0].role === 'system') {
       messages[0] = { role: 'system' as const, content: await this.deps.buildSystemPrompt() };
     }
@@ -81,7 +86,7 @@ export class HistoryCoordinator {
       type: 'conversation_loaded',
       conversationId: record.id,
       title: record.title,
-      messages: buildUIMessages(record.messages),
+      messages: buildUIMessages(messages),
     });
 
     // Recompute the context bar from the restored messages so users don't
@@ -117,7 +122,10 @@ export class HistoryCoordinator {
     this.deps.reflectOutgoing?.();
 
     const conversation = new Conversation(record.id);
-    const messages = record.messages;
+    // Same as restoreLast: strip stale host-injected primers before rehydrating,
+    // so the model doesn't read old [Memory Brief] blobs back as operator speech
+    // and the chat doesn't render them as "You" bubbles.
+    const messages = record.messages.filter((m) => !isInternalPrimer(m));
     if (messages.length > 0 && messages[0].role === 'system') {
       // Refresh the system prompt, but never let a failure here abort the load
       // — a thrown buildSystemPrompt() used to swallow the whole click, so the
@@ -133,12 +141,12 @@ export class HistoryCoordinator {
 
     this.setLastConversationId(record.id);
 
-    console.log(`[history] loaded conversation ${record.id}: ${record.messages.length} messages`);
+    console.log(`[history] loaded conversation ${record.id}: ${record.messages.length} messages (${record.messages.length - messages.length} stale primer(s) dropped)`);
     this.deps.postMessage({
       type: 'conversation_loaded',
       conversationId: record.id,
       title: record.title,
-      messages: buildUIMessages(record.messages),
+      messages: buildUIMessages(messages),
     });
 
     // Refresh the context bar now that a potentially-large history is loaded.

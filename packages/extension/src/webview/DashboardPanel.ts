@@ -93,7 +93,9 @@ const CHAT_MESSAGE_TYPES = new Set([
   'set_provider_source', 'request_memory', 'save_chat_memory', 'clear_chat_memory',
   'archive_chat_memory', 'restore_chat_memory', 'delete_chat_memory_entry',
   'pong', 'request_today_tasks', 'request_all_tasks', 'toggle_task', 'panel_create_task',
-  'rate_message', 'save_secrets',
+  // grant_secret must reach AvaViewProvider — it owns the SecretAccess working
+  // set that resolves {{secret:<id>}} handles at tool-execution time.
+  'rate_message', 'save_secrets', 'grant_secret',
 ]);
 
 // ─── Platform API ─────────────────────────────────────────────────────────────

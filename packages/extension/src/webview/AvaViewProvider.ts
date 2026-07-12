@@ -825,6 +825,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           msg.alwaysForProject as boolean | undefined,
         );
         return;
+      case 'grant_secret':
+        // The operator typed @secret:<label> in the composer, and the webview
+        // substituted the opaque {{secret:<id>}} handle in its place. Typing
+        // the reference IS the grant, so promote the entry into Ava's working
+        // set now — otherwise the handle would reach a tool with nothing to
+        // resolve it. The raw value never leaves the host.
+        await this.grantSecretById((msg.secretId as string) ?? '');
+        return;
       case 'switch_model':
         mapped = { type: 'switch_model', modelId: msg.modelId as string };
         break;
@@ -3351,8 +3359,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 brief.availableTopics.map(t => t.topic).join(', ')
               : '';
             const msgs = this.conversation!.getMessages();
+            // SYSTEM, not user — this is an internal primer, not something the
+            // operator typed. As a 'user' message it was persisted into the
+            // conversation and then resurrected as a "You" bubble on every
+            // reopen, showing them a raw [Memory Brief] blob they never wrote.
+            // The IDE sidecar has always used 'system' here; this is the
+            // extension catching up.
             msgs.push({
-              role: 'user' as const,
+              role: 'system' as const,
               content: `[Memory Brief]\n${brief.summary}${topicList}`,
             });
             this.conversation!.setMessages(msgs);
@@ -3369,8 +3383,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               recalled.map((r: { entry: { category: string } }) => r.entry.category)
             )];
             const msgs = this.conversation!.getMessages();
+            // SYSTEM, not user — same reason as the [Memory Brief] above: an
+            // internal primer filed as a user message comes back as a "You"
+            // bubble the operator never typed.
             msgs.push({
-              role: 'user' as const,
+              role: 'system' as const,
               content: `[Memory pointer] ${recalled.length} related memor${recalled.length === 1 ? 'y' : 'ies'} found across: ${categories.join(', ')}. Call memory_recall with a specific query if it's relevant to the user's question.`,
             });
             this.conversation!.setMessages(msgs);
@@ -4514,6 +4531,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
 
     pending.resolve({ id: entry.id, label: entry.label });
+  }
+
+  /**
+   * Promote a vault entry into Ava's working set by id, with no grant prompt.
+   *
+   * This is the composer path: the operator typed `@secret:<label>` themselves,
+   * which is an explicit, deliberate reference to their own key — the act of
+   * typing it IS the consent, so re-prompting would be pure friction. The
+   * webview only ever sends the *id*; the value is read here, from SecretStorage,
+   * and stays host-side. Unknown ids are ignored (the handle then simply fails
+   * to resolve, which is the safe direction to fail in).
+   */
+  private async grantSecretById(secretId: string): Promise<void> {
+    if (!secretId) return;
+    const entries = await this.readVaultEntries();
+    const entry = entries.find((e) => e.id === secretId);
+    if (!entry) return;
+    this.secretAccess.grant(entry.id, entry.label, entry.value);
   }
 
   /**

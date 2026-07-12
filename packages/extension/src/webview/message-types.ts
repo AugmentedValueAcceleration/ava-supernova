@@ -105,7 +105,22 @@ export type ExtToWebviewMessage =
       type: 'conversation_loaded';
       conversationId: string;
       title: string;
-      messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+      /**
+       * Restored transcript. `toolCalls` carries the tool half of the turn —
+       * without it a reopened conversation lost every tool chip, because the
+       * live view builds them from streaming events that don't replay.
+       */
+      messages: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+        toolCalls?: Array<{
+          id: string;
+          name: string;
+          arguments: string;
+          status: 'success' | 'failed';
+          result?: string;
+        }>;
+      }>;
     }
   | { type: 'chat_cleared' }
   | { type: 'focus_input' }
@@ -250,6 +265,14 @@ export type WebviewToExtMessage =
       /** When true, also persist 'always grant for this project' on the entry. */
       alwaysForProject?: boolean;
     }
+  /**
+   * Operator referenced a vault entry with `@secret:<label>` in the composer.
+   * The webview substitutes the opaque `{{secret:<id>}}` handle into the message
+   * and sends this so the host can promote the entry into Ava's working set —
+   * the reference itself is the grant. Carries the id ONLY; the value never
+   * leaves the host.
+   */
+  | { type: 'grant_secret'; secretId: string }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
   | { type: 'cancel' }

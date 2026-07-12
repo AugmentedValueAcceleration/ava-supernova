@@ -1558,7 +1558,28 @@ export type ExtToDashboardMessage =
   | { type: 'model_switched'; modelId: string; modelName: string }
   | { type: 'history_list'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
   | { type: 'history_search_results'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
-  | { type: 'conversation_loaded'; conversationId: string; title: string; messages: Array<{ role: 'user' | 'assistant'; content: string }> }
+  /**
+   * Restored transcript. `toolCalls` carries the tool half of the turn — without
+   * it a reopened conversation lost every tool chip, because the live view builds
+   * them from streaming events that don't replay. Kept in step with the same
+   * message in message-types.ts (the two unions are separate by design).
+   */
+  | {
+      type: 'conversation_loaded';
+      conversationId: string;
+      title: string;
+      messages: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+        toolCalls?: Array<{
+          id: string;
+          name: string;
+          arguments: string;
+          status: 'success' | 'failed';
+          result?: string;
+        }>;
+      }>;
+    }
   | { type: 'chat_cleared' }
   | { type: 'cloud_sync_changed'; enabled: boolean }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
@@ -1883,6 +1904,14 @@ export type DashboardToExtMessage =
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
   | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
   | { type: 'load_secrets' }
+  /**
+   * Operator referenced a vault entry with `@secret:<label>` in the composer.
+   * The webview substitutes the opaque `{{secret:<id>}}` handle into the message
+   * and sends this so the host can promote the entry into Ava's working set —
+   * the reference itself is the grant. Carries the id ONLY; the value never
+   * leaves the host. Forwarded to AvaViewProvider (see CHAT_MESSAGE_TYPES).
+   */
+  | { type: 'grant_secret'; secretId: string }
   | { type: 'export_data'; dataType: string }
   | { type: 'import_data'; dataType: string; content: string }
   // Data sovereignty — encrypted backup (.ava-backup) + readable export.

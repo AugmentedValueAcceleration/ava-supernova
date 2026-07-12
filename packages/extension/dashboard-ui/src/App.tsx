@@ -94,10 +94,24 @@ export function App() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeOnStartup, setWelcomeOnStartup] = useState(true);
 
-  // Chat page dispatch — forwards extension messages to the Chat reducer
+  // Chat page dispatch — forwards extension messages to the Chat reducer.
+  //
+  // Replays the cached chat_init / chat_platform_status on registration, exactly
+  // like the three room dispatches below. The main chat is gated behind
+  // `hasAccess`, so it mounts LATER than the one-shot chat_init the host posts
+  // (~2-3s in, once the platform provider is registered). Until it mounted,
+  // `chatDispatchRef.current` was null and `chatDispatchRef.current?.(msg)`
+  // silently dropped that message — and it never fires again. The chat then sat
+  // on its initial state forever: "Loading your account…" over
+  // "No providers configured", with a perfectly healthy agent behind it.
+  //
+  // Every room got this replay when they hit the same race. The main chat — the
+  // surface everyone actually uses — was the one that never did.
   const chatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
   const registerChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
     chatDispatchRef.current = fn;
+    // Replay cached setup so a late-mounting chat has account/provider/model.
+    for (const cached of lastChatSetupRef.current.values()) fn(cached);
   }, []);
   // Second chat dispatch — the focused Ava Health & Fitness room. Host events
   // from a health-lane turn are tagged lane:'health' and routed here instead of
@@ -1769,6 +1783,7 @@ export function App() {
           onSetByokMode={handleSourceToggle}
           accountLoading={accountLoading}
           onConnectAccount={handleConnectAccount}
+          providerKeys={providerKeys}
           aiName={personalityData?.name}
           journalSummaries={journalSummaries}
           selectedJournalDate={selectedJournalDate}
