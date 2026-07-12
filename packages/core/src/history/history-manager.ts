@@ -1,7 +1,8 @@
 import { join } from 'node:path';
 import type { Conversation } from '../agent/conversation.js';
 import { getTextContent } from '../core/types.js';
-import { HistoryStorage, type ConversationRecord } from './storage.js';
+import { HistoryStorage, type ConversationRecord, type ConversationSummary } from './storage.js';
+import { deriveConversationTitle, isJunkTitle } from './conversation-title.js';
 
 /**
  * Chat history is **local-only, end-to-end**. Conversations contain
@@ -56,19 +57,27 @@ export class HistoryManager {
     const messages = conversation.getMessages();
     if (messages.length <= 1) return; // don't save empty conversations (system prompt only)
 
-    const firstUserMsg = messages.find((m) => m.role === 'user');
-    const title = firstUserMsg
-      ? (getTextContent(firstUserMsg.content).slice(0, 80) || 'Untitled')
-      : 'Untitled';
+    // Name it after the first thing the operator actually SAID — not the first
+    // `role: 'user'` message, which is often host machinery: a mode/room preamble
+    // ([Chat Mode] …, [Design Studio] You are Ava …) or an internal primer
+    // ([Memory Brief], [Honesty check …], the mid-run interjection). Taking those
+    // raw is why the history list was full of Ava's own instructions to herself.
+    const title = deriveConversationTitle(messages);
 
     // Preserve createdAt if conversation already exists on disk
     const existing = await this.storage.load(conversation.id);
+
+    // Keep a real title (including a manual rename) but REPAIR a junk one. The
+    // old `existing?.title || title` meant a scaffold title, once written, was
+    // preserved forever — so every conversation already on disk would have kept
+    // its garbage name even after the derivation was fixed.
+    const keptTitle = isJunkTitle(existing?.title) ? title : existing!.title;
 
     const record: ConversationRecord = {
       id: conversation.id,
       createdAt: existing?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      title: existing?.title || title, // preserve manual renames
+      title: keptTitle,
       messages,
       ...(existing?.pinned ? { pinned: true } : {}),
       ...(existing?.projectPath || this.projectPath
@@ -88,19 +97,19 @@ export class HistoryManager {
     return this.storage.load(id);
   }
 
-  async listConversations(filterByProject = true): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }>> {
+  async listConversations(filterByProject = true): Promise<ConversationSummary[]> {
     const all = await this.storage.list();
     if (!filterByProject || !this.projectPath) return all;
     return all.filter((c) => c.projectPath === this.projectPath);
   }
 
-  async searchConversations(query: string, filterByProject = true): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }>> {
+  async searchConversations(query: string, filterByProject = true): Promise<ConversationSummary[]> {
     let all = await this.storage.list();
     if (filterByProject && this.projectPath) {
       all = all.filter((c) => c.projectPath === this.projectPath);
     }
     const lowerQuery = query.toLowerCase();
-    const results: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }> = [];
+    const results: ConversationSummary[] = [];
 
     for (const entry of all) {
       // Quick check: title match

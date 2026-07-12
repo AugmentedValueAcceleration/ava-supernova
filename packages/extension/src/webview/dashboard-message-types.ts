@@ -155,6 +155,12 @@ export interface UsageLogEntry {
   timestamp: string;
 }
 
+/** Which room a conversation came from. Derived in core from the scaffold tag
+ *  already in the transcript — no schema change, works on every old record.
+ *  Mode tags ([Chat Mode], [Plan Mode]…) are modes within the main chat, so they
+ *  are 'main'. */
+export type ConversationSurface = 'main' | 'design' | 'health' | 'learning' | 'social';
+
 export interface ConversationEntry {
   id: string;
   title: string | null;
@@ -163,6 +169,8 @@ export interface ConversationEntry {
   messages: { role: string; content: string }[];
   created_at: string;
   updated_at: string;
+  /** Absent on cloud rows; local rows carry it. Undefined is treated as 'main'. */
+  surface?: ConversationSurface;
 }
 
 export interface SupportTicket {

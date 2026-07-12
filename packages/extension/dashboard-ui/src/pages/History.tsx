@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react';
-import { t, useLocale, getLocale } from '../i18n';
+import { t, tt, useLocale, getLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
 import { Select } from '../components/Select';
 import { Icon } from '../components/Icon';
 import { Skeleton } from '../components/Skeleton';
-import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry, Page } from '../types/messages';
+import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry, ConversationSurface, Page } from '../types/messages';
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
 
 // ─── Model pricing (per 1M tokens) ──────────────────────────────────────────
@@ -288,9 +288,60 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, a
 function ConversationsView({ conversations, loaded, onNavigate }: { conversations: ConversationEntry[]; loaded: boolean; onNavigate: (page: Page) => void }) {
   useLocale();
   const [search, setSearch] = useState('');
+  // Inline rename. The whole path already existed — rename_conversation is typed,
+  // forwarded by DashboardPanel, and handled by AvaViewProvider → HistoryManager,
+  // which even preserves manual renames on re-save. It just had no button.
+  // Mirrors the IDE's pencil affordance (DashboardPages.tsx:7211).
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  // Optimistic overlay: the host rewrites the file, but the list only refreshes
+  // on the next history fetch — without this the new name vanishes on blur.
+  const [renamed, setRenamed] = useState<Record<string, string>>({});
+
+  const saveRename = (id: string) => {
+    const next = editTitle.trim();
+    setEditingId(null);
+    if (!next) return;
+    post({ type: 'rename_conversation', conversationId: id, newTitle: next });
+    setRenamed(prev => ({ ...prev, [id]: next }));
+  };
+
+  // Room filter. Every room saves into the SAME history folder, so the list was
+  // a code chat, a logo experiment and a workout plan all jumbled together —
+  // and Design Studio alone accounts for the majority of it. `surface` is
+  // derived in core from the scaffold tag already in each transcript, so this
+  // needed no migration and works on conversations saved months ago.
+  const [surfaceTab, setSurfaceTab] = useState<'all' | ConversationSurface>('all');
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: conversations.length };
+    for (const conv of conversations) {
+      const s = conv.surface ?? 'main';
+      c[s] = (c[s] ?? 0) + 1;
+    }
+    return c;
+  }, [conversations]);
+
+  // Only offer a tab for a room that actually has conversations — an empty
+  // "Learning" tab is just a dead end to click on.
+  const tabs = useMemo(() => {
+    const order: Array<{ key: 'all' | ConversationSurface; label: string }> = [
+      { key: 'all', label: tt('dash.history.tab.all', 'All') },
+      { key: 'main', label: tt('dash.history.tab.chat', 'Chat') },
+      { key: 'design', label: tt('dash.history.tab.design', 'Design') },
+      { key: 'health', label: tt('dash.history.tab.health', 'Health') },
+      { key: 'learning', label: tt('dash.history.tab.learning', 'Learning') },
+      { key: 'social', label: tt('dash.history.tab.social', 'Social') },
+    ];
+    return order.filter(o => o.key === 'all' || (counts[o.key] ?? 0) > 0);
+  }, [counts]);
 
   const filtered = useMemo(() => {
-    const sorted = [...conversations].sort((a, b) => {
+    const byRoom = surfaceTab === 'all'
+      ? conversations
+      : conversations.filter(c => (c.surface ?? 'main') === surfaceTab);
+
+    const sorted = [...byRoom].sort((a, b) => {
       // Pinned first, then most-recently-updated.
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
@@ -298,7 +349,7 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
     if (!search.trim()) return sorted;
     const q = search.toLowerCase();
     return sorted.filter(c => (c.title || '').toLowerCase().includes(q));
-  }, [conversations, search]);
+  }, [conversations, search, surfaceTab]);
 
   const loadConversation = (conv: ConversationEntry) => {
     post({ type: 'load_conversation', id: conv.id });
@@ -314,6 +365,33 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
 
   return (
     <div className="space-y-3">
+      {/* Room filter. Uses the SAME underline treatment as the page's own
+          top-level tabs (Conversations / Usage / Audit) rather than inventing a
+          second visual language for the same job — so it reads as a tab strip,
+          on its own row, exactly like every other one in the app. Only rendered
+          once there's more than one room in play. */}
+      {tabs.length > 2 && (
+        <div className="flex gap-1 border-b border-[var(--border-card)]">
+          {tabs.map(tab => {
+            const active = surfaceTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setSurfaceTab(tab.key)}
+                className={`-mb-px cursor-pointer border-x-0 border-b-2 border-t-0 bg-transparent px-4 py-2 text-xs font-medium transition ${
+                  active
+                    ? 'border-[var(--accent)] font-semibold text-[var(--accent)]'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {tab.label}
+                <span className="ml-1.5 text-[var(--text-muted)]">{counts[tab.key] ?? 0}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <SearchInput
         value={search}
         onChange={setSearch}
@@ -348,14 +426,31 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
             return (
               <div
                 key={conv.id}
-                onClick={() => loadConversation(conv)}
+                onClick={() => { if (editingId !== conv.id) loadConversation(conv); }}
                 className={`cursor-pointer px-4 py-3 ${INTERACTIVE_CARD}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       {conv.pinned && <span className="text-[var(--accent)]" title={t('history.pinned')}><Icon.pin size={11} /></span>}
-                      <span className="truncate text-sm font-semibold text-[#cdd6f4]">{conv.title || t('dash.chat.untitled')}</span>
+                      {editingId === conv.id ? (
+                        <input
+                          autoFocus
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') { e.preventDefault(); saveRename(conv.id); }
+                            else if (e.key === 'Escape') { setEditingId(null); }
+                          }}
+                          onBlur={() => saveRename(conv.id)}
+                          className="min-w-0 flex-1 rounded-md border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[var(--bg-input)] px-2 py-0.5 text-sm font-semibold text-[#cdd6f4] outline-none"
+                        />
+                      ) : (
+                        <span className="truncate text-sm font-semibold text-[#cdd6f4]">
+                          {renamed[conv.id] || conv.title || t('dash.chat.untitled')}
+                        </span>
+                      )}
                     </div>
                     {preview && (
                       <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-muted)]">{preview}</p>
@@ -370,13 +465,26 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
-                    title={t('dash.common.delete')}
-                    className="shrink-0 rounded-md border border-transparent bg-transparent px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-400"
-                  >
-                    {t('dash.common.delete')}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditTitle(renamed[conv.id] || conv.title || '');
+                        setEditingId(conv.id);
+                      }}
+                      title={tt('dash.history.rename', 'Rename conversation')}
+                      className="rounded-md border border-transparent bg-transparent px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-[var(--border-card)] hover:text-[var(--accent)]"
+                    >
+                      {tt('dash.history.rename', 'Rename')}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
+                      title={t('dash.common.delete')}
+                      className="rounded-md border border-transparent bg-transparent px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-400"
+                    >
+                      {t('dash.common.delete')}
+                    </button>
+                  </div>
                 </div>
               </div>
             );

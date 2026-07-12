@@ -2,6 +2,7 @@ import { readFile, writeFile, rename, readdir, mkdir, unlink } from 'node:fs/pro
 import { join } from 'node:path';
 import { HISTORY_DIR } from '../core/constants.js';
 import type { Message } from '../core/types.js';
+import { deriveConversationTitle, isJunkTitle, deriveConversationSurface, type ConversationSurface } from './conversation-title.js';
 
 export interface ConversationRecord {
   id: string;
@@ -11,6 +12,17 @@ export interface ConversationRecord {
   messages: Message[];
   pinned?: boolean;
   projectPath?: string;
+}
+
+/** A conversation as it appears in the list — no messages, plus the room it
+ *  belongs to (derived, not stored, so it works on every existing transcript). */
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+  pinned?: boolean;
+  projectPath?: string;
+  surface: ConversationSurface;
 }
 
 /** Default max conversations to keep before pruning oldest. */
@@ -82,10 +94,10 @@ export class HistoryStorage {
     }
   }
 
-  async list(): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }>> {
+  async list(): Promise<ConversationSummary[]> {
     await this.init();
     const files = await readdir(this.dir);
-    const summaries: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }> = [];
+    const summaries: ConversationSummary[] = [];
 
     for (const file of files) {
       if (!file.endsWith('.json')) continue;
@@ -95,10 +107,22 @@ export class HistoryStorage {
         if (!this.isValidRecord(record)) continue;
         summaries.push({
           id: record.id,
-          title: record.title,
+          // Repair junk titles on READ. Records written before the title
+          // derivation was fixed are named after host machinery — a mode/room
+          // preamble or an internal primer — and a conversation you never reopen
+          // would keep that name forever. We already have the full record parsed
+          // here, so re-deriving costs nothing. A genuine title (including a
+          // manual rename) is left exactly as it is.
+          title: isJunkTitle(record.title)
+            ? deriveConversationTitle(record.messages)
+            : record.title,
           updatedAt: record.updatedAt,
           pinned: record.pinned,
           projectPath: record.projectPath,
+          // Which room this came from. Derived from the scaffold tag already in
+          // the transcript, so it needs no schema change and works on every
+          // conversation ever saved — the record itself is untouched.
+          surface: deriveConversationSurface(record.messages),
         });
       } catch {
         // skip corrupt files

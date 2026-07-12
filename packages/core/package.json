@@ -56,6 +56,11 @@
       "require": "./dist/audit/index.js",
       "types": "./dist/audit/index.d.ts"
     },
+    "./history/conversation-title": {
+      "import": "./dist/history/conversation-title.js",
+      "require": "./dist/history/conversation-title.js",
+      "types": "./dist/history/conversation-title.d.ts"
+    },
     "./audit/patterns": {
       "import": "./dist/audit/patterns.js",
       "require": "./dist/audit/patterns.js",
