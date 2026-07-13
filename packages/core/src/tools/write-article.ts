@@ -93,7 +93,11 @@ export class WriteArticleTool implements Tool {
           items: { type: 'string' },
         },
         ava_read: { type: 'string', description: 'YOUR view — fenced off, labelled, unmistakably opinion. Be sharp. But it must NOT appear in the body.' },
-        image_prompt: { type: 'string', description: 'Optional prompt for a header image you author yourself.' },
+        image_prompt: {
+          type: 'string',
+          description:
+            "The SUBJECT of the header illustration — a PLACE, a BUILDING or an OBJECT. Never a person: no faces, no likenesses, not even 'a figure'. Report politics through the seat of power, not the person holding it — US politics is the White House or the Capitol; UK is Westminster, Big Ben or the door of No. 10; Greater Manchester is Manchester Town Hall; a trial is an empty courtroom; an election is an empty polling station. Never depict the event itself (no fire, no crash, no casualties) — that would be inventing a photograph of something real, which is the same crime as inventing a quote. The house style and these limits are applied for you; just name the place.",
+        },
       },
       required: ['headline', 'body', 'category', 'sources'],
     },
