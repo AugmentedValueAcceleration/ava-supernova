@@ -135,6 +135,10 @@ interface OverviewProps {
 // felt too heavyweight for what's the operator's daily view).
 type CcTab = 'daily' | 'briefing' | 'reflect' | 'health';
 
+/** Survives the unmount when you open an article, and nothing more. A fresh
+ *  session starts on Daily — see switchTab. */
+let lastCcTab: CcTab = 'daily';
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export function Overview({
@@ -166,19 +170,18 @@ export function Overview({
   // session's tab is intentionally NOT restored: opening the Command
   // Centre is a fresh "where am I today" moment, so the first lens is
   // always the one that orients the operator.
-  // Remember the tab. Opening a story unmounts the Command Centre, so coming back
-  // used to reset you to Daily — you read one headline and lost your place in the
-  // briefing. Persisted rather than lifted, so it also survives a reload.
-  const [tab, setTab] = useState<CcTab>(() => {
-    try {
-      const saved = localStorage.getItem('ava_cc_tab');
-      if (saved === 'daily' || saved === 'briefing' || saved === 'reflect' || saved === 'health') return saved;
-    } catch { /* storage denied */ }
-    return 'daily';
-  });
+  // Remember the tab ONLY for the round-trip into an article.
+  //
+  // Opening a story unmounts the Command Centre, so coming back used to dump you
+  // on Daily — you read one headline and lost your place in the news. This holds
+  // the tab in a module-scoped variable, so it survives that unmount and nothing
+  // else: a fresh open still starts on Daily, which is where it should start.
+  // (localStorage would have made it sticky across restarts too — a behaviour
+  // nobody asked for.)
+  const [tab, setTab] = useState<CcTab>(() => lastCcTab);
   const switchTab = (next: CcTab) => {
+    lastCcTab = next;
     setTab(next);
-    try { localStorage.setItem('ava_cc_tab', next); } catch { /* storage denied */ }
   };
 
   useEffect(() => {
@@ -748,11 +751,13 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
 
   return (
     <WidgetCard title={t('dash.cc.latest_news')} icon={<Newspaper weight="duotone" size={16} />} onRefresh={() => post({ type: 'load_news' })}>
-      {/* Fixed height + column flow: the tail grows into the space and the
-          pagination is pushed to the bottom edge, so the widget doesn't change
-          height between pages (a short page used to leave the pager floating
-          halfway up). */}
-      <div className="flex min-h-[560px] flex-col">
+      {/* Fill the viewport, don't guess at a height.
+          The first attempt set min-h-[560px] — useless, because the content is
+          already taller than that, so the card never grew and the pager stayed
+          welded under the last row while a screenful of empty space sat below.
+          Sized against the actual viewport instead: the tail takes the slack and
+          the pagination lands on the bottom edge. */}
+      <div className="flex min-h-[calc(100vh-300px)] flex-col">
       {/* Category carousel */}
       <div
         className="news-carousel mb-3 flex gap-1.5 overflow-x-auto pb-1"
