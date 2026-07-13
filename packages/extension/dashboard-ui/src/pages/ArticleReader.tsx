@@ -78,7 +78,13 @@ export const MU_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCA
 export interface ShareTarget { key: string; label: string; url: string }
 
 export function shareTargets(title: string, url: string): ShareTarget[] {
-  const withLink = encodeURIComponent(`${title}\n\n${url}`);
+  // ONE LINE, no newlines. `%0A` in an intent's ?text= is a known-bad shape in
+  // the Bluesky app (bluesky-social/social-app#6133) and mu is an older fork of
+  // it, so it inherits that and worse: the handler bails and the app lands on
+  // its own root with no composer. A URL that opened a composer by hand
+  // (?text=hello%20world) differs from ours in exactly two ways — newlines, and
+  // a full URL buried in the text. This removes the first.
+  const withLink = encodeURIComponent(`${title} ${url}`);
   const u = encodeURIComponent(url);
   const t = encodeURIComponent(title);
   return [

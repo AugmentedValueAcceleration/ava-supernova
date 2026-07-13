@@ -575,7 +575,20 @@ export class DashboardPanel {
         try {
           const parsed = new URL(msg.url);
           if (parsed.protocol === 'https:') {
-            vscode.env.openExternal(vscode.Uri.parse(msg.url));
+            // Pass the STRING, not a Uri.
+            //
+            // vscode.Uri.parse() re-encodes the query, and openExternal then
+            // encodes it AGAIN — a long-standing VS Code bug (microsoft/vscode
+            // #135949, #83610). It's harmless for simple params, which is why
+            // X / Reddit / Hacker News always worked. It destroys a param that
+            // itself contains an encoded URL and newlines — i.e. exactly the
+            // share-intent `?text=<headline>%0A%0A<url>` that Bluesky and mu
+            // take, so the composer opened blank on the site's root.
+            //
+            // openExternal accepts a string and uses it verbatim; the overload
+            // just isn't in the public typings, hence the cast. The `new URL`
+            // check above is what keeps this safe.
+            vscode.env.openExternal(msg.url as unknown as vscode.Uri);
           }
         } catch {
           // Invalid URL — ignore silently
