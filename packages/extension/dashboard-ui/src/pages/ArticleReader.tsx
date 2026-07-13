@@ -85,7 +85,10 @@ export function shareTargets(title: string, url: string): ShareTarget[] {
     { key: 'x', label: 'X', url: `https://x.com/intent/tweet?text=${t}&url=${u}` },
     { key: 'bluesky', label: 'Bluesky', url: `https://bsky.app/intent/compose?text=${withLink}` },
     { key: 'mu', label: 'mu.social', url: `https://mu.social/intent/compose?text=${withLink}` },
-    { key: 'linkedin', label: 'LinkedIn', url: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
+    // NOT /sharing/share-offsite — that 302s to the legacy /shareArticle/ page,
+    // which is why it misbehaved. feed/?shareActive=true is LinkedIn's current
+    // composer, and it survives the sign-in redirect with the URL intact.
+    { key: 'linkedin', label: 'LinkedIn', url: `https://www.linkedin.com/feed/?shareActive=true&shareUrl=${u}` },
     { key: 'reddit', label: 'Reddit', url: `https://reddit.com/submit?url=${u}&title=${t}` },
     { key: 'hn', label: 'Hacker News', url: `https://news.ycombinator.com/submitlink?u=${u}&t=${t}` },
   ];
