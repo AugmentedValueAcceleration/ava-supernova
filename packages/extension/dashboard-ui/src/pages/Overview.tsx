@@ -748,6 +748,11 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
 
   return (
     <WidgetCard title={t('dash.cc.latest_news')} icon={<Newspaper weight="duotone" size={16} />} onRefresh={() => post({ type: 'load_news' })}>
+      {/* Fixed height + column flow: the tail grows into the space and the
+          pagination is pushed to the bottom edge, so the widget doesn't change
+          height between pages (a short page used to leave the pager floating
+          halfway up). */}
+      <div className="flex min-h-[560px] flex-col">
       {/* Category carousel */}
       <div
         className="news-carousel mb-3 flex gap-1.5 overflow-x-auto pb-1"
@@ -818,7 +823,7 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
             className="group mb-2.5 block w-full overflow-hidden rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] text-left transition hover:border-[var(--accent)]/40"
           >
             {lead.image_url && (
-              <div className="relative h-32 w-full overflow-hidden">
+              <div className="relative h-44 w-full overflow-hidden">
                 <img src={lead.image_url} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-card)] via-transparent to-transparent" />
                 {lead.category && (
@@ -851,11 +856,11 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
                 className="group block overflow-hidden rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] text-left transition hover:border-[var(--accent)]/40"
               >
                 {article.image_url ? (
-                  <div className="h-16 w-full overflow-hidden">
+                  <div className="h-24 w-full overflow-hidden">
                     <img src={article.image_url} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
                   </div>
                 ) : (
-                  <div className="flex h-16 w-full items-center justify-center text-[var(--accent)]" style={{ background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
+                  <div className="flex h-24 w-full items-center justify-center text-[var(--accent)]" style={{ background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
                     <Newspaper weight="duotone" size={18} />
                   </div>
                 )}
@@ -871,13 +876,14 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
           </div>
         )}
 
-        {/* ── The tail — compact, text-first. Sky's "More stories". ──────── */}
-        <div className="space-y-1">
+        {/* ── The tail — compact, text-first. Takes the slack so the pager
+              sits on the bottom edge rather than floating mid-card. ────────── */}
+        <div className="flex-1 space-y-1">
           {rest.map((article, idx) => (
             <button
               key={article.slug || `r${idx}`}
               onClick={() => handleArticleClick(article.slug)}
-              className="group flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--bg-input)]"
+              className="group flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition hover:bg-[var(--bg-input)]"
             >
               <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]/50" />
               <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--text-secondary)] transition-colors group-hover:text-white">{article.title}</span>
@@ -902,6 +908,7 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
         )}
         </>
       )}
+      </div>
     </WidgetCard>
   );
 }
