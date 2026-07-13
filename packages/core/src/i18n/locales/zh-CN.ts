@@ -3455,4 +3455,5 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': '差异之处',
   'dash.article.not_covering': '未予报道',
   'dash.article.unverified': '无法核实内容',
+  'dash.nav.early_access': '抢先体验',
 };

@@ -3477,4 +3477,5 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': '相違点',
   'dash.article.not_covering': '未報道',
   'dash.article.unverified': '検証できなかったこと',
+  'dash.nav.early_access': '早期アクセス',
 };

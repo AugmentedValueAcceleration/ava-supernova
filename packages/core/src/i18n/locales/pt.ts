@@ -3473,4 +3473,5 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Onde divergem',
   'dash.article.not_covering': 'Não estão cobrindo',
   'dash.article.unverified': 'O que não pudemos verificar',
+  'dash.nav.early_access': 'Acesso Antecipado',
 };

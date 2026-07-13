@@ -3475,4 +3475,5 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Farklılıklar',
   'dash.article.not_covering': 'Kapsamıyor',
   'dash.article.unverified': 'Doğrulayamadıklarımız',
+  'dash.nav.early_access': 'Erken Erişim',
 };

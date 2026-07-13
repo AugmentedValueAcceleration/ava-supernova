@@ -3455,4 +3455,5 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Gdzie się różnią',
   'dash.article.not_covering': 'Nie poruszają tego',
   'dash.article.unverified': 'Co nie udało nam się zweryfikować',
+  'dash.nav.early_access': 'Wczesny dostęp',
 };

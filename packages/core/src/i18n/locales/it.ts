@@ -3475,4 +3475,5 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Dove divergono',
   'dash.article.not_covering': 'Non lo copre',
   'dash.article.unverified': 'Ciò che non abbiamo potuto verificare',
+  'dash.nav.early_access': 'Accesso anticipato',
 };

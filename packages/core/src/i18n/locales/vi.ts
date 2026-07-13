@@ -3475,4 +3475,5 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Điểm khác biệt',
   'dash.article.not_covering': 'Không đưa tin',
   'dash.article.unverified': 'Điều chưa thể xác minh',
+  'dash.nav.early_access': 'Truy cập sớm',
 };

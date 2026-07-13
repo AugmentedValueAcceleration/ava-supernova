@@ -3475,4 +3475,5 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'จุดที่แตกต่าง',
   'dash.article.not_covering': 'ไม่ได้รายงานเรื่องนี้',
   'dash.article.unverified': 'สิ่งที่เราไม่สามารถยืนยันได้',
+  'dash.nav.early_access': 'การเข้าถึงก่อน',
 };

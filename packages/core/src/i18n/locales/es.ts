@@ -3273,7 +3273,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.integrity_deleted': 'Eliminado desde',
   'dash.audit.integrity_unverifiable': 'Inverificable',
   'dash.audit.integrity_hash_after': 'SHA-256 (después)',
-  'dash.audit.integrity_git_sha': 'Git HEAD',
+  'dash.audit.integrity_git_sha': 'Git Cabecera',
   'dash.audit.integrity_size': 'Tamaño',
   'dash.audit.security_lens': 'Seguridad',
   'dash.audit.security_lens_title': 'Lente de seguridad — mostrar solo llamadas que cruzaron un límite de entorno aislado: red, escrituras fuera del espacio de trabajo, acceso a secretos, herramientas peligrosas',
@@ -3447,4 +3447,5 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Dónde difieren',
   'dash.article.not_covering': 'No lo cubren',
   'dash.article.unverified': 'Lo que no pudimos verificar',
+  'dash.nav.early_access': 'Acceso Anticipado',
 };

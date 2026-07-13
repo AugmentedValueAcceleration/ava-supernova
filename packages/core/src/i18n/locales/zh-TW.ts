@@ -3475,4 +3475,5 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': '差異之處',
   'dash.article.not_covering': '未報導此事',
   'dash.article.unverified': '未能核實之事項',
+  'dash.nav.early_access': '搶先體驗',
 };

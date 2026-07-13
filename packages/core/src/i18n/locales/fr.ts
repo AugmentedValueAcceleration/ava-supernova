@@ -3471,4 +3471,5 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Leurs différences',
   'dash.article.not_covering': 'Non couvert',
   'dash.article.unverified': 'Ce que nous n\'avons pas pu vérifier',
+  'dash.nav.early_access': 'Accès anticipé',
 };

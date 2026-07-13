@@ -1417,6 +1417,9 @@ export const enStrings = {
   'dash.cc.yesterday': 'Yesterday',
   'dash.cc.days_ago': '{n} days ago',
   'dash.nav.coming_soon': 'Soon',
+  // Shipped and usable, but still moving. Not a warning and not an apology —
+  // the honest state of a surface that hasn't settled yet.
+  'dash.nav.early_access': 'Early Access',
 
   // ── Missing Navigation Keys ──────────────────────────────────────────
   'dash.nav.planner': 'Planner',

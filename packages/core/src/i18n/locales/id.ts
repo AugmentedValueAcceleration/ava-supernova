@@ -3299,7 +3299,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.integrity_deleted': 'Dihapus sejak',
   'dash.audit.integrity_unverifiable': 'Tidak dapat diverifikasi',
   'dash.audit.integrity_hash_after': 'SHA-256 (setelah)',
-  'dash.audit.integrity_git_sha': 'Git HEAD',
+  'dash.audit.integrity_git_sha': 'Git Puncak',
   'dash.audit.integrity_size': 'Ukuran',
   'dash.audit.security_lens': 'Keamanan',
   'dash.audit.security_lens_title': 'Lensa keamanan — tampilkan hanya panggilan yang melintasi batas sandbox: jaringan, penulisan di luar ruang kerja, akses rahasia, alat berbahaya',
@@ -3473,4 +3473,5 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Perbedaan mereka',
   'dash.article.not_covering': 'Tidak meliputnya',
   'dash.article.unverified': 'Apa yang tidak dapat kami verifikasi',
+  'dash.nav.early_access': 'Akses Dini',
 };

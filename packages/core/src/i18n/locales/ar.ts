@@ -3475,4 +3475,5 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'أين تختلف',
   'dash.article.not_covering': 'لم يغطوا ذلك',
   'dash.article.unverified': 'ما لم نتمكن من التحقق منه',
+  'dash.nav.early_access': 'الوصول المبكر',
 };

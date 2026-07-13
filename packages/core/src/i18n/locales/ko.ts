@@ -3475,4 +3475,5 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': '차이점',
   'dash.article.not_covering': '보도 안 함',
   'dash.article.unverified': '확인되지 않은 사항',
+  'dash.nav.early_access': '얼리 액세스',
 };

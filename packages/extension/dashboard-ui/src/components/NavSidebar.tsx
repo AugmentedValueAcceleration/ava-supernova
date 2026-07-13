@@ -72,6 +72,8 @@ interface NavItem {
   platformOnly?: boolean;
   adminOnly?: boolean;
   comingSoon?: boolean;
+  /** Shipped and usable, but still moving. Mirrored in the IDE sidebar. */
+  earlyAccess?: boolean;
 }
 
 // tt() helper moved to ../i18n.ts so it's shared across pages.
@@ -84,7 +86,8 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     { page: 'library', icon: <Books weight="duotone" size={18} />, label: tt('dash.nav.library', 'Library'), description: tt('dash.nav.library_desc', 'Papers, assets, and documents') },
     { page: 'health', icon: <Barbell weight="duotone" size={18} />, label: tt('dash.nav.health', 'Health & Nutrition'), description: tt('dash.nav.health_desc', 'Exercises, recipes, plans') },
     { page: 'learning-room', icon: <GraduationCap weight="duotone" size={18} />, label: tt('dash.nav.learning', 'Learning'), description: tt('dash.nav.learning_desc', 'Courses, lessons, and teaching') },
-    { page: 'creative-studio', icon: <Palette weight="duotone" size={18} />, label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice') },
+    // Early Access: shipped and usable, but still moving. Mirrored in the IDE.
+    { page: 'creative-studio', icon: <Palette weight="duotone" size={18} />, label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice'), earlyAccess: true },
     { page: 'memory', icon: <Brain weight="duotone" size={18} />, label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
     // Labelled 'History' to match the IDE Sidebar (Sidebar.tsx:1116) —
     // the previous tt('dash.nav.usage', 'History') resolved to "Usage"
@@ -342,6 +345,7 @@ export function NavSidebar({
             isActive={currentPage === item.page}
             onClick={() => handleNavigate(item.page)}
             comingSoon={item.comingSoon}
+            earlyAccess={item.earlyAccess}
             badge={item.page === 'help' ? supportUnread : undefined}
           />
         ))}
@@ -592,6 +596,7 @@ function NavItem({
   isActive,
   onClick,
   comingSoon,
+  earlyAccess,
   badge,
 }: {
   icon: ReactNode;
@@ -600,6 +605,9 @@ function NavItem({
   isActive: boolean;
   onClick: () => void;
   comingSoon?: boolean;
+  /** Shipped and usable, but still moving. Not a warning — the honest state of a
+   *  surface that hasn't settled. Cheaper to say than to let someone find out. */
+  earlyAccess?: boolean;
   badge?: number;
 }) {
   useLocale();
@@ -635,8 +643,13 @@ function NavItem({
         ) : null}
       </span>
       <div className="min-w-0 flex-1">
-        <span className={`text-[12px] block ${isActive ? 'text-white' : 'text-[var(--text-secondary)]'}`}>
+        <span className={`flex items-center gap-1.5 text-[12px] ${isActive ? 'text-white' : 'text-[var(--text-secondary)]'}`}>
           {label}
+          {earlyAccess && (
+            <span className="shrink-0 rounded border border-[var(--accent)]/35 bg-[var(--accent)]/10 px-1 py-px text-[8px] font-bold uppercase leading-tight tracking-wider text-[var(--accent)]">
+              {t('dash.nav.early_access')}
+            </span>
+          )}
         </span>
         <p className="text-[9px] text-[var(--text-muted)] truncate">{description}</p>
       </div>

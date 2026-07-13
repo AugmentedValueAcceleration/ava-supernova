@@ -3475,4 +3475,5 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Где они расходятся',
   'dash.article.not_covering': 'Не освещают это',
   'dash.article.unverified': 'Что мы не смогли проверить',
+  'dash.nav.early_access': 'Ранний доступ',
 };

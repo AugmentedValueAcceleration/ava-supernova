@@ -3455,4 +3455,5 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Wo sie sich unterscheiden',
   'dash.article.not_covering': 'Nicht abgedeckt',
   'dash.article.unverified': 'Was wir nicht verifizieren konnten',
+  'dash.nav.early_access': 'Früher Zugang',
 };

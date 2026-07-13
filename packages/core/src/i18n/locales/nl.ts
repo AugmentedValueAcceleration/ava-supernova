@@ -3475,4 +3475,5 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Waar ze verschillen',
   'dash.article.not_covering': 'Niet aan bod gekomen',
   'dash.article.unverified': 'Wat we niet konden verifiëren',
+  'dash.nav.early_access': 'Vroege toegang',
 };

@@ -3455,4 +3455,5 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.article.differ': 'Де вони відрізняються',
   'dash.article.not_covering': 'Не висвітлюють це',
   'dash.article.unverified': 'Що ми не змогли перевірити',
+  'dash.nav.early_access': 'Ранній доступ',
 };
