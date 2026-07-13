@@ -84,9 +84,11 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     { page: 'chat', icon: <ChatCircleDots weight="duotone" size={18} />, label: tt('dash.nav.ava_chat', 'Chat'), description: tt('dash.nav.ava_chat_desc', 'Talk, build, create') },
     { page: 'planner', icon: <ListChecks weight="duotone" size={18} />, label: tt('dash.nav.planner', 'Planner'), description: tt('dash.nav.planner_desc', 'Tasks, journal, plans') },
     { page: 'library', icon: <Books weight="duotone" size={18} />, label: tt('dash.nav.library', 'Library'), description: tt('dash.nav.library_desc', 'Papers, assets, and documents') },
-    { page: 'health', icon: <Barbell weight="duotone" size={18} />, label: tt('dash.nav.health', 'Health & Nutrition'), description: tt('dash.nav.health_desc', 'Exercises, recipes, plans') },
-    { page: 'learning-room', icon: <GraduationCap weight="duotone" size={18} />, label: tt('dash.nav.learning', 'Learning'), description: tt('dash.nav.learning_desc', 'Courses, lessons, and teaching') },
-    // Early Access: shipped and usable, but still moving. Mirrored in the IDE.
+    { page: 'health', icon: <Barbell weight="duotone" size={18} />, label: tt('dash.nav.health', 'Health & Nutrition'), description: tt('dash.nav.health_desc', 'Exercises, recipes, plans'), earlyAccess: true },
+    { page: 'learning-room', icon: <GraduationCap weight="duotone" size={18} />, label: tt('dash.nav.learning', 'Learning'), description: tt('dash.nav.learning_desc', 'Courses, lessons, and teaching'), earlyAccess: true },
+    // earlyAccess marks the rooms that are shipped and usable but still evolving —
+    // Health, Learning, Creative Studio. Not a warning: it tells someone where a
+    // feature actually is in its development. Keep in step with the IDE Sidebar.
     { page: 'creative-studio', icon: <Palette weight="duotone" size={18} />, label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice'), earlyAccess: true },
     { page: 'memory', icon: <Brain weight="duotone" size={18} />, label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
     // Labelled 'History' to match the IDE Sidebar (Sidebar.tsx:1116) —
