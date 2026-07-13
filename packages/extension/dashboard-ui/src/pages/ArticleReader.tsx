@@ -4,6 +4,78 @@ import { post } from '../App';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
+/**
+ * A cited source. Two shapes exist: the Newsroom's Correspondent writes
+ * `{outlet, headline, url}` (core's write_article); the retired Discover
+ * pipeline and hand-entered rows use `{publication, title, url}`. Read both —
+ * a source that renders as a blank link is worse than citing nothing, because
+ * it looks like we cited something and didn't.
+ */
+export interface NewsSource {
+  url: string;
+  headline?: string | null;
+  outlet?: string | null;
+  title?: string | null;
+  publication?: string | null;
+  author?: string | null;
+}
+
+export interface NewsQuote {
+  text: string;
+  speaker?: string | null;
+  outlet?: string | null;
+  url?: string | null;
+}
+
+/** The spread. Receipts, never a bias rating. */
+export interface NewsCoverage {
+  independent_sources?: number;
+  total_outlets?: number;
+  wire?: string;
+  not_covering?: string;
+  disagreement?: string;
+}
+
+/* ── Share targets ──────────────────────────────────────────────────────
+   The official brand marks, as each company publishes them. Nothing is
+   invented and nothing is approximated: a wrong logo is a small lie, and this
+   is the one product where those aren't free.
+
+   Bluesky and Mastodon have no server-side "share this URL" endpoint the way
+   LinkedIn does — their compose intents take the whole post as text, so the
+   link is appended to the body rather than passed as its own parameter. */
+export const SHARE_ICONS: Record<string, string> = {
+  x: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z',
+  bluesky: 'M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z',
+  mastodon: 'M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z',
+  linkedin: 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z',
+  reddit: 'M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z',
+  hn: 'M0 24V0h24v24H0zM6.951 5.896l4.112 7.708v5.064h1.583v-4.972l4.148-7.799h-1.749l-2.457 4.875c-.372.745-.688 1.434-.688 1.434s-.297-.708-.651-1.434L8.831 5.896h-1.88z',
+};
+
+/** The share row, in the order we actually want people to use. mu.social is our
+ *  Mastodon home — if we ever move instances, only this URL changes. */
+export function shareTargets(title: string, url: string): { key: string; label: string; url: string }[] {
+  const withLink = encodeURIComponent(`${title}\n\n${url}`);
+  const u = encodeURIComponent(url);
+  const t = encodeURIComponent(title);
+  return [
+    { key: 'x', label: 'X', url: `https://x.com/intent/tweet?text=${t}&url=${u}` },
+    { key: 'bluesky', label: 'Bluesky', url: `https://bsky.app/intent/compose?text=${withLink}` },
+    { key: 'mastodon', label: 'mu.social', url: `https://mu.social/share?text=${withLink}` },
+    { key: 'linkedin', label: 'LinkedIn', url: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
+    { key: 'reddit', label: 'Reddit', url: `https://reddit.com/submit?url=${u}&title=${t}` },
+    { key: 'hn', label: 'Hacker News', url: `https://news.ycombinator.com/submitlink?u=${u}&t=${t}` },
+  ];
+}
+
+export const srcHeadline = (s: NewsSource) => s.headline || s.title || s.url;
+export const srcOutlet = (s: NewsSource) => {
+  if (s.outlet) return s.outlet;
+  if (s.publication) return s.publication;
+  try { return new URL(s.url).hostname.replace(/^www\./, ''); } catch { return ''; }
+};
+
 export interface FullArticle {
   title: string;
   slug: string;
@@ -14,7 +86,10 @@ export interface FullArticle {
   source_url: string | null;
   source_author: string | null;
   source_publication: string | null;
-  sources: Array<{ url: string; title: string; author?: string | null; publication?: string | null }> | null;
+  sources: NewsSource[] | null;
+  quotes: NewsQuote[] | null;
+  coverage: NewsCoverage | null;
+  unverified: string[] | null;
   tags: string[] | null;
   reading_time: number | null;
   ai_generated: boolean;
@@ -116,7 +191,17 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
 
   const cat = article.category ? CATEGORIES[article.category] : null;
   const sources = article.sources || [];
+  const quotes = article.quotes || [];
+  const coverage = article.coverage || null;
+  const unverified = article.unverified || [];
   const tags = article.tags || [];
+
+  // The number that means something vs the number that flatters. When more
+  // outlets carry it than there are independent reports, the surplus is the
+  // same copy echoed — and the reader is entitled to know which they're seeing.
+  const indep = coverage?.independent_sources;
+  const total = coverage?.total_outlets;
+  const echoed = typeof indep === 'number' && typeof total === 'number' && total > indep;
   const articleHtml = renderMarkdown(article.content || '');
   const gradientIndex = article.slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % GRADIENTS.length;
 
@@ -212,7 +297,20 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
       )}
 
       {/* Share / copy link */}
-      <div className="mb-6 flex items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        {shareTargets(article.title, articleUrl).map(target => (
+          <button
+            key={target.key}
+            onClick={() => post({ type: 'open_url', url: target.url })}
+            title={target.label}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-1.5 text-[10px] text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-white"
+          >
+            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+              <path d={SHARE_ICONS[target.key]} />
+            </svg>
+            {target.label}
+          </button>
+        ))}
         <button
           onClick={handleCopy}
           className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-1.5 text-[10px] text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-white"
@@ -302,6 +400,88 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
         </div>
       )}
 
+      {/* What we could not verify — published, in plain sight, never buried.
+          "I couldn't stand this up" is a publishable sentence. A confident
+          false claim is not. */}
+      {unverified.length > 0 && (
+        <div className="mt-8 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+            {t('dash.article.unverified')}
+          </p>
+          {unverified.map((claim, i) => (
+            <p key={i} className="text-xs leading-relaxed text-[var(--text-secondary)]">— {claim}</p>
+          ))}
+        </div>
+      )}
+
+      {/* The coverage — receipts, never a rating. We don't score outlets left or
+          right: that's a contested political judgement and it isn't ours to make.
+          We show who reported it, who didn't, and where they disagree. */}
+      {coverage && (typeof indep === 'number' || coverage.disagreement || coverage.not_covering) && (
+        <div className="mt-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+            {t('dash.article.coverage')}
+          </p>
+          {typeof indep === 'number' && (
+            <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+              {t('dash.article.coverage_line', {
+                n: indep,
+                pieces: t(indep === 1 ? 'dash.article.piece' : 'dash.article.pieces'),
+                m: total ?? indep,
+                outlets: t((total ?? indep) === 1 ? 'dash.article.outlet' : 'dash.article.outlets'),
+              })}
+              {echoed && (
+                <span className="text-amber-400">
+                  {' '}
+                  {coverage.wire
+                    ? t('dash.article.echoed_wire', { wire: coverage.wire })
+                    : t('dash.article.echoed')}
+                </span>
+              )}
+            </p>
+          )}
+          {coverage.disagreement && (
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+              <span className="text-[var(--text-muted)]">{t('dash.article.differ')}: </span>
+              {coverage.disagreement}
+            </p>
+          )}
+          {coverage.not_covering && (
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+              <span className="text-[var(--text-muted)]">{t('dash.article.not_covering')}: </span>
+              {coverage.not_covering}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Quotes — each one checked, word for word, against the source text. */}
+      {quotes.length > 0 && (
+        <div className="mt-8 border-t border-[var(--border-card)] pt-6">
+          <h2 className="mb-3 text-xs font-semibold text-[var(--text-secondary)]">{t('dash.article.quotes')}</h2>
+          <div className="space-y-3">
+            {quotes.map((q, i) => (
+              <blockquote key={i} className="border-l-2 border-[var(--accent)] pl-3">
+                <p className="text-xs italic leading-relaxed text-white">&ldquo;{q.text}&rdquo;</p>
+                <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                  {q.speaker && <>{q.speaker} — </>}
+                  {q.url ? (
+                    <button
+                      onClick={() => post({ type: 'open_url', url: q.url! })}
+                      className="text-[var(--accent)] hover:underline"
+                    >
+                      {q.outlet || 'source'}
+                    </button>
+                  ) : (
+                    q.outlet
+                  )}
+                </p>
+              </blockquote>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Sources */}
       {sources.length > 0 && (
         <div className="mt-8 border-t border-[var(--border-card)] pt-6">
@@ -317,11 +497,11 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
                     onClick={() => post({ type: 'open_url', url: source.url })}
                     className="text-xs font-medium text-[var(--accent)] hover:underline text-left"
                   >
-                    {source.title}
+                    {srcHeadline(source)}
                   </button>
                   <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
                     {source.author && <>{source.author} — </>}
-                    {source.publication}
+                    {srcOutlet(source)}
                   </p>
                 </div>
               </div>

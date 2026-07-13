@@ -2619,7 +2619,26 @@ export const enStrings = {
   'dash.article.read_original': 'Read the original article',
   'dash.article.related': 'Related Articles',
   'dash.article.sources': 'Sources',
-  'dash.article.transparency_ai': 'This article was AI-curated by Ava Supernova. All credit belongs to the original authors and publications listed above.',
+  // The Newsroom's receipts — the evidence that separates a report from an
+  // assertion. Ava writes her OWN account and cites what she read; she is not
+  // an aggregator, so the old "AI-curated, all credit to the original authors"
+  // framing is retired. See core's write_article.
+  'dash.article.quotes': 'Quotes',
+  'dash.article.coverage': 'The coverage',
+  'dash.article.coverage_line': '{n} independent {pieces} of reporting across {m} {outlets}.',
+  'dash.article.piece': 'piece',
+  'dash.article.pieces': 'pieces',
+  'dash.article.outlet': 'outlet',
+  'dash.article.outlets': 'outlets',
+  // The number that flatters vs the number that means something. Forty-seven
+  // outlets carrying one wire report is ONE source echoed — saying otherwise
+  // launders a single claim into fake consensus.
+  'dash.article.echoed': 'The rest are running the same copy — that is one report echoed, not corroboration.',
+  'dash.article.echoed_wire': 'The rest are running the same {wire} report — that is one report echoed, not corroboration.',
+  'dash.article.differ': 'Where they differ',
+  'dash.article.not_covering': 'Not covering it',
+  'dash.article.unverified': 'What we could not verify',
+  'dash.article.transparency_ai': 'Written by Ava Supernova from the sources listed above. Every quote was checked, word for word, against the original reporting.',
   'dash.article.transparency_default': 'All credit belongs to the original authors and publications where applicable.',
   'dash.audit.arguments': 'Arguments',
   'dash.audit.byok_estimate_label': 'BYOK estimate:',
