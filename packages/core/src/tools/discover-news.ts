@@ -16,24 +16,130 @@ import type { NewsSearchFn, FetchedCorpus } from '../news/index.js';
  * story that needs CHECKING, not repeating.
  */
 
-/** The standing query per desk. Mirrors NEWS_CATEGORIES on the web side — the
- *  ids MUST stay in step with it, and with the hub. Phrased as a headline search
- *  ("… news today"), not a topic noun-phrase: a generic phrase matches evergreen
- *  aggregator pages, while a breaking phrasing surfaces what is actually
- *  happening now. */
-const CATEGORY_QUERIES: Record<string, string> = {
-  'world': 'breaking world news today',
-  'ai': 'latest AI artificial intelligence news today',
-  'technology': 'technology news today',
-  'open-source': 'open source software news today',
-  'security-privacy': 'cybersecurity data breach privacy news today',
-  'business': 'top business and economy news today',
-  'science': 'latest science news today',
-  'health': 'health and fitness news today',
-  'food': 'food and nutrition news today',
-  'education': 'education news today',
-  'sport': 'breaking sports news today',
+/**
+ * Each desk is a SPREAD of angles, not one standing phrase.
+ *
+ * The first cut used a single query per desk ("breaking world news today"). It
+ * was measured against live Brave News and it was a disaster:
+ *
+ *   world  →  6 hits, 5 of them section fronts, ONE real story
+ *   sport  →  2 hits, both section fronts, ZERO real stories
+ *
+ * So the World desk had exactly one card to play — the US/Iran story — and Ava
+ * played it every single time. It looked like she was obsessed with the war. She
+ * wasn't: it was the only thing on the desk. A newsroom that can only see one
+ * story isn't reporting, it's echoing, and that is the failure this whole room
+ * exists to avoid.
+ *
+ * Two things were wrong with the phrasing, and they pull against each other:
+ *   - "… news today" reads like a SECTION FRONT to a search index, so it matches
+ *     "World News and International Headlines : NPR" rather than any event.
+ *   - one query, however phrased, can only ever surface one slice of a desk.
+ *
+ * So: several concrete angles per desk, merged and de-duplicated. Politics AND
+ * disasters AND diplomacy AND the economy — because that IS what "world" means,
+ * and if we only ask for one of them, that's the only one she can report.
+ *
+ * Same measurement, after: world went from 1 real story to ~50 — Japan's new
+ * intelligence agency, the Bangkok bar fire, Israel's October elections, the
+ * Bangladesh floods, a wildfire in Antelope Valley, the World Cup.
+ *
+ * Ids MUST stay in step with NEWS_CATEGORIES on the web and the hub.
+ */
+const DESK_ANGLES: Record<string, string[]> = {
+  'world': [
+    'world news',
+    'international politics election government',
+    'protest disaster earthquake flood wildfire',
+    'diplomacy summit treaty sanctions',
+  ],
+  'ai': [
+    'artificial intelligence news',
+    'AI model release lab announcement',
+    'AI regulation policy lawsuit',
+    'AI research breakthrough paper',
+  ],
+  'technology': [
+    'technology news',
+    'software developer tools release',
+    'hardware chips semiconductor',
+    'big tech company announcement',
+  ],
+  'open-source': [
+    'open source software',
+    'open source project release github',
+    'open source licensing foundation governance',
+    'linux kernel community',
+  ],
+  'security-privacy': [
+    'cybersecurity attack',
+    'data breach hack ransomware',
+    'privacy surveillance regulation GDPR',
+    'vulnerability exploit CVE patch',
+  ],
+  'business': [
+    'business economy news',
+    'markets earnings company results',
+    'inflation interest rates central bank',
+    'merger acquisition funding round',
+  ],
+  'science': [
+    'science research discovery',
+    'space astronomy mission telescope',
+    'climate environment study',
+    'medicine biology genetics study',
+  ],
+  'health': [
+    'health news',
+    'public health disease outbreak',
+    'fitness exercise nutrition study',
+    'mental health wellbeing research',
+  ],
+  'food': [
+    'food news',
+    'nutrition diet study',
+    'food industry recall safety',
+    'restaurant chef cooking trends',
+  ],
+  'education': [
+    'education news',
+    'schools teachers policy funding',
+    'university higher education students',
+    'edtech learning technology',
+  ],
+  'sport': [
+    'sport news results',
+    'football soccer match result',
+    'transfer injury manager club',
+    'tennis cricket rugby athletics olympics',
+  ],
 };
+
+/**
+ * A section front is not a story.
+ *
+ * "World News and International Headlines : NPR", "Germany: Newsroom", "News
+ * Today Live Updates" — these are the paper's front door, not something that
+ * happened. They carry no event, nothing to stand up, and nothing to quote, and
+ * on the thin desks they were crowding out the real reporting entirely (sport
+ * was 2 hits and BOTH were these).
+ *
+ * Deliberately narrow. It only catches titles that are self-evidently an index —
+ * a real headline about a genuine "breaking news" event ("Breaking news anchor
+ * resigns") keeps its noun and survives, because the pattern needs the phrase to
+ * BE the whole title, not appear in it.
+ */
+const INDEX_PAGE = new RegExp([
+  // Section fronts and headline lists.
+  '^news:', 'headlines$', 'headlines\\s*[:|-]', 'news headlines', 'newsroom$',
+  'latest news$', 'top stories$', 'breaking news$', 'news today live',
+  'live updates?$', 'news roundup',
+  // Sport's version of a section front: the fixtures/scores table. These were
+  // literally the ONLY two things the sport desk returned before the fan-out.
+  '^scores\\b', 'scores?\\s*(&|and)\\s*(fixtures|schedule|results)',
+  'fixtures?\\s*(&|and)\\s*(results|scores)',
+  'results?\\s*(&|and)\\s*fixtures',
+].join('|'), 'i');
 
 export class DiscoverNewsTool implements Tool {
   readonly name = 'discover_news';
@@ -69,13 +175,32 @@ export class DiscoverNewsTool implements Tool {
 
     const category = String(args.category ?? '').trim();
     const freeText = String(args.query ?? '').trim();
-    const query = freeText || CATEGORY_QUERIES[category] || CATEGORY_QUERIES.world;
 
     const freshness = (['pd', 'pw', 'pm'].includes(String(args.freshness))
       ? String(args.freshness)
       : 'pd') as 'pd' | 'pw' | 'pm';
 
-    const hits = await search(query, 20, freshness);
+    // A free-text query is Ava chasing something specific — run it as given.
+    // A desk scan fans out across that desk's angles, because a desk is not one
+    // subject: "world" is politics AND disasters AND diplomacy AND the economy,
+    // and asking for only one of them is how a desk ends up with a single story.
+    const desk = DESK_ANGLES[category] ? category : 'world';
+    const queries = freeText ? [freeText] : DESK_ANGLES[desk];
+
+    const batches = await Promise.all(
+      queries.map((q) => search(q, freeText ? 20 : 10, freshness).catch(() => [])),
+    );
+
+    // Merge, de-duplicate by URL, drop the section fronts.
+    const byUrl = new Map<string, (typeof batches)[number][number]>();
+    for (const batch of batches) {
+      for (const hit of batch) {
+        if (!hit.url || byUrl.has(hit.url)) continue;
+        if (INDEX_PAGE.test(hit.title)) continue;
+        byUrl.set(hit.url, hit);
+      }
+    }
+    const hits = [...byUrl.values()].slice(0, 30);
 
     // Stash for the quote checker — she may quote straight off the menu if she
     // covers one of these without a deeper pull.
@@ -91,8 +216,8 @@ export class DiscoverNewsTool implements Tool {
       return {
         success: true,
         output: JSON.stringify({
-          category: category || 'world',
-          query,
+          desk,
+          queries,
           stories: [],
           note: 'Nothing came back. Say so — do NOT fall back on what you think is happening. An invented story is worse than an empty desk.',
         }),
@@ -102,12 +227,12 @@ export class DiscoverNewsTool implements Tool {
     return {
       success: true,
       output: JSON.stringify({
-        category: category || 'world',
-        query,
+        desk,
+        queries,
         count: hits.length,
         stories: hits.map((h) => ({ outlet: h.outlet, headline: h.title, url: h.url, age: h.age ?? null, excerpt: h.excerpt.slice(0, 240) })),
         note:
-          'This is the menu, not the story. Before writing ANY of these, call research_story to see who else has it, whether it is independent reporting or one wire echoed, and where outlets disagree. The selection is the skill: a story everyone has is rarely worth writing; a story only one outlet has needs CHECKING, not repeating.',
+          'This is the menu, not the story. These came from SEVERAL angles on the desk, so they will span different subjects — that is the point. Do not tunnel on whichever subject happens to have the most hits; a desk that only ever reports one running story is echoing, not reporting. Before writing ANY of these, call research_story to see who else has it, whether it is independent reporting or one wire echoed, and where outlets disagree. The selection is the skill: a story everyone has is rarely worth writing; a story only one outlet has needs CHECKING, not repeating.',
       }),
     };
   }
