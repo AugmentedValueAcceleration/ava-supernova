@@ -1387,7 +1387,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'Kredit, sesi, model',
   'dash.chat.both': 'Keduanya',
   'dash.chat.tab.daily': 'Harian',
-  'dash.chat.tab.briefing': 'Ikhtisar',
+  'dash.chat.tab.briefing': 'Ruang Berita',
   'dash.chat.tab.reflect': 'Refleksi',
   'dash.sync.health_profile': 'Profil Kesehatan',
   'dash.sync.health_profile_desc': 'Statistik tubuh, tujuan, batasan, dan jadwal',
@@ -3474,4 +3474,5 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'Tidak meliputnya',
   'dash.article.unverified': 'Apa yang tidak dapat kami verifikasi',
   'dash.nav.early_access': 'Akses Dini',
+  'news.breaking': 'Terkini',
 };

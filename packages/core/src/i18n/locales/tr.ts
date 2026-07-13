@@ -1389,7 +1389,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'Krediler, oturumlar, modeller',
   'dash.chat.both': 'Her ikisi',
   'dash.chat.tab.daily': 'Günlük',
-  'dash.chat.tab.briefing': 'Özet',
+  'dash.chat.tab.briefing': 'Haber Merkezi',
   'dash.chat.tab.reflect': 'Yansıtma',
   'dash.sync.health_profile': 'Sağlık Profili',
   'dash.sync.health_profile_desc': 'Vücut verileri, hedefler, kısıtlamalar ve program',
@@ -3476,4 +3476,5 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'Kapsamıyor',
   'dash.article.unverified': 'Doğrulayamadıklarımız',
   'dash.nav.early_access': 'Erken Erişim',
+  'news.breaking': 'Son Dakika',
 };

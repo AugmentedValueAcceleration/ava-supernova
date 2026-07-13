@@ -1389,7 +1389,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'क्रेडिट, सत्र, मॉडल',
   'dash.chat.both': 'दोनों',
   'dash.chat.tab.daily': 'दैनिक',
-  'dash.chat.tab.briefing': 'सारांश',
+  'dash.chat.tab.briefing': 'न्यूज़रूम',
   'dash.chat.tab.reflect': 'विचार',
   'dash.sync.health_profile': 'स्वास्थ्य प्रोफाइल',
   'dash.sync.health_profile_desc': 'शारीरिक आंकड़े, लक्ष्य, प्रतिबंध, और अनुसूची',
@@ -3476,4 +3476,5 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'कवरेज नहीं',
   'dash.article.unverified': 'जो हमने सत्यापित नहीं किया',
   'dash.nav.early_access': 'प्रारंभिक पहुंच',
+  'news.breaking': 'तत्काल',
 };

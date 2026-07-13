@@ -1369,7 +1369,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'Кредити, сесії, моделі',
   'dash.chat.both': 'Обидва',
   'dash.chat.tab.daily': 'Щоденний',
-  'dash.chat.tab.briefing': 'Брифінг',
+  'dash.chat.tab.briefing': 'Редакція',
   'dash.chat.tab.reflect': 'Рефлексія',
   'dash.sync.health_profile': 'Профіль здоров\'я',
   'dash.sync.health_profile_desc': 'Показники тіла, цілі, обмеження та розклад',
@@ -3456,4 +3456,5 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'Не висвітлюють це',
   'dash.article.unverified': 'Що ми не змогли перевірити',
   'dash.nav.early_access': 'Ранній доступ',
+  'news.breaking': 'Терміново',
 };

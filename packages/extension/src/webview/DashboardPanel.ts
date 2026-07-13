@@ -5304,6 +5304,7 @@ export class DashboardPanel {
         { posts?: Array<Record<string, unknown>>; articles?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
       const list = (Array.isArray(data) ? data : ((data as any).posts ?? (data as any).articles ?? [])) as Array<{
         title?: string; category?: string; reading_time?: number; slug?: string; published_at?: string;
+        created_at?: string; excerpt?: string | null; priority?: string | null;
         image_url?: string | null;
       }>;
 
@@ -5314,8 +5315,13 @@ export class DashboardPanel {
           category: a.category ?? '',
           reading_time: a.reading_time ?? 0,
           slug: a.slug ?? '',
-          date: a.published_at ?? '',
+          date: a.published_at ?? a.created_at ?? '',
           image_url: a.image_url ?? null,
+          // The briefing needs both: the standfirst under a lead headline, and
+          // the priority that drives the BREAKING strip. They were being dropped
+          // here, so the widget could only ever render a flat list of titles.
+          excerpt: a.excerpt ?? null,
+          priority: a.priority ?? null,
         })),
       });
     } catch {

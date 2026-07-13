@@ -1389,7 +1389,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': '크레딧, 세션, 모델',
   'dash.chat.both': '둘 다',
   'dash.chat.tab.daily': '일일',
-  'dash.chat.tab.briefing': '브리핑',
+  'dash.chat.tab.briefing': '뉴스룸',
   'dash.chat.tab.reflect': '회고',
   'dash.sync.health_profile': '건강 프로필',
   'dash.sync.health_profile_desc': '신체 통계, 목표, 제약 사항, 일정',
@@ -3476,4 +3476,5 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': '보도 안 함',
   'dash.article.unverified': '확인되지 않은 사항',
   'dash.nav.early_access': '얼리 액세스',
+  'news.breaking': '속보',
 };

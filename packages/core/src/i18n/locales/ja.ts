@@ -1391,7 +1391,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'クレジット、セッション、モデル',
   'dash.chat.both': '両方',
   'dash.chat.tab.daily': 'デイリー',
-  'dash.chat.tab.briefing': 'ブリーフィング',
+  'dash.chat.tab.briefing': 'ニュース',
   'dash.chat.tab.reflect': '振り返り',
   'dash.sync.health_profile': '健康プロフィール',
   'dash.sync.health_profile_desc': '身体データ、目標、制約、スケジュール',
@@ -3478,4 +3478,5 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': '未報道',
   'dash.article.unverified': '検証できなかったこと',
   'dash.nav.early_access': '早期アクセス',
+  'news.breaking': '速報',
 };

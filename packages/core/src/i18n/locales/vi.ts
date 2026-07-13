@@ -1389,7 +1389,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'Tín dụng, phiên, mô hình',
   'dash.chat.both': 'Cả hai',
   'dash.chat.tab.daily': 'Hàng ngày',
-  'dash.chat.tab.briefing': 'Báo cáo',
+  'dash.chat.tab.briefing': 'Phòng tin tức',
   'dash.chat.tab.reflect': 'Suy ngẫm',
   'dash.sync.health_profile': 'Hồ sơ sức khỏe',
   'dash.sync.health_profile_desc': 'Số liệu cơ thể, mục tiêu, giới hạn và lịch trình',
@@ -3476,4 +3476,5 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'Không đưa tin',
   'dash.article.unverified': 'Điều chưa thể xác minh',
   'dash.nav.early_access': 'Truy cập sớm',
+  'news.breaking': 'Tin nóng',
 };

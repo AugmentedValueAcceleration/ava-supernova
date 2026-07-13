@@ -1389,7 +1389,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'Кредиты, сессии, модели',
   'dash.chat.both': 'Оба',
   'dash.chat.tab.daily': 'Ежедневно',
-  'dash.chat.tab.briefing': 'Сводка',
+  'dash.chat.tab.briefing': 'Редакция',
   'dash.chat.tab.reflect': 'Рефлексия',
   'dash.sync.health_profile': 'Профиль здоровья',
   'dash.sync.health_profile_desc': 'Показатели тела, цели, ограничения и расписание',
@@ -3476,4 +3476,5 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'Не освещают это',
   'dash.article.unverified': 'Что мы не смогли проверить',
   'dash.nav.early_access': 'Ранний доступ',
+  'news.breaking': 'Срочно',
 };

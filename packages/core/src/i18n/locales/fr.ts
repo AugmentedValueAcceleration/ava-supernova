@@ -1385,7 +1385,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'Crédits, sessions, modèles',
   'dash.chat.both': 'Les deux',
   'dash.chat.tab.daily': 'Quotidien',
-  'dash.chat.tab.briefing': 'Briefing',
+  'dash.chat.tab.briefing': 'Rédaction',
   'dash.chat.tab.reflect': 'Réflexion',
   'dash.sync.health_profile': 'Profil Santé',
   'dash.sync.health_profile_desc': 'Statistiques corporelles, objectifs, contraintes et planning',
@@ -3472,4 +3472,5 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'Non couvert',
   'dash.article.unverified': 'Ce que nous n\'avons pas pu vérifier',
   'dash.nav.early_access': 'Accès anticipé',
+  'news.breaking': 'Urgent',
 };

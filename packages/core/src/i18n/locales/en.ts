@@ -425,6 +425,9 @@ export const enStrings = {
 
   // ── News Categories ─────────────────────────────────────────────────────
   'news.all': 'All',
+  // The BREAKING strip. Only ever shown for a story the desk actually marked
+  // breaking — a banner that is always on has stopped meaning anything.
+  'news.breaking': 'Breaking',
   'news.ai_agents': 'AI Agents',
   'news.models': 'Models',
   'news.dev_tools': 'Dev Tools',
@@ -454,7 +457,8 @@ export const enStrings = {
   'dash.chat.local': 'Local',
   'dash.chat.both': 'Both',
   'dash.chat.tab.daily': 'Daily',
-  'dash.chat.tab.briefing': 'Briefing',
+  // Was "Briefing", which told you nothing. This is where the news lives — say so.
+  'dash.chat.tab.briefing': 'Newsroom',
   'dash.chat.tab.reflect': 'Reflect',
   'dash.chat.tokens': 'tokens',
   'dash.chat.no_keys': 'Add a provider key in the sidebar to start chatting',

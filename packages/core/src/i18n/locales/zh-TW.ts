@@ -1389,7 +1389,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': '積分、會話、模型',
   'dash.chat.both': '兩者',
   'dash.chat.tab.daily': '每日',
-  'dash.chat.tab.briefing': '摘要',
+  'dash.chat.tab.briefing': '新聞中心',
   'dash.chat.tab.reflect': '反思',
   'dash.sync.health_profile': '健康檔案',
   'dash.sync.health_profile_desc': '身體數據、目標、限制和日程',
@@ -3476,4 +3476,5 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': '未報導此事',
   'dash.article.unverified': '未能核實之事項',
   'dash.nav.early_access': '搶先體驗',
+  'news.breaking': '突發',
 };

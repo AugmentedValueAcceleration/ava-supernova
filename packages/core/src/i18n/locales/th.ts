@@ -1389,7 +1389,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'เครดิต, เซสชัน, โมเดล',
   'dash.chat.both': 'ทั้งสอง',
   'dash.chat.tab.daily': 'รายวัน',
-  'dash.chat.tab.briefing': 'สรุป',
+  'dash.chat.tab.briefing': 'ห้องข่าว',
   'dash.chat.tab.reflect': 'ทบทวน',
   'dash.sync.health_profile': 'โปรไฟล์สุขภาพ',
   'dash.sync.health_profile_desc': 'สถิติร่างกาย, เป้าหมาย, ข้อจำกัด และตารางเวลา',
@@ -3476,4 +3476,5 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'ไม่ได้รายงานเรื่องนี้',
   'dash.article.unverified': 'สิ่งที่เราไม่สามารถยืนยันได้',
   'dash.nav.early_access': 'การเข้าถึงก่อน',
+  'news.breaking': 'ข่าวด่วน',
 };

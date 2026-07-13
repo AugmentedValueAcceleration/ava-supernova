@@ -1369,7 +1369,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': '积分、会话、模型',
   'dash.chat.both': '两者',
   'dash.chat.tab.daily': '每日',
-  'dash.chat.tab.briefing': '简报',
+  'dash.chat.tab.briefing': '新闻中心',
   'dash.chat.tab.reflect': '反思',
   'dash.sync.health_profile': '健康档案',
   'dash.sync.health_profile_desc': '身体数据、目标、限制和日程',
@@ -3456,4 +3456,5 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': '未予报道',
   'dash.article.unverified': '无法核实内容',
   'dash.nav.early_access': '抢先体验',
+  'news.breaking': '突发',
 };

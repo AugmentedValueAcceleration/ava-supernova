@@ -1389,7 +1389,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.history_desc': 'الرصيد، الجلسات، النماذج',
   'dash.chat.both': 'كلاهما',
   'dash.chat.tab.daily': 'يومي',
-  'dash.chat.tab.briefing': 'ملخص',
+  'dash.chat.tab.briefing': 'غرفة الأخبار',
   'dash.chat.tab.reflect': 'تأمل',
   'dash.sync.health_profile': 'الملف الصحي',
   'dash.sync.health_profile_desc': 'إحصائيات الجسم، الأهداف، القيود، والجدول',
@@ -3476,4 +3476,5 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.article.not_covering': 'لم يغطوا ذلك',
   'dash.article.unverified': 'ما لم نتمكن من التحقق منه',
   'dash.nav.early_access': 'الوصول المبكر',
+  'news.breaking': 'عاجل',
 };

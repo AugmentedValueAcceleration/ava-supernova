@@ -45,6 +45,10 @@ interface NewsArticle {
   reading_time: number;
   date: string;
   image_url?: string | null;
+  /** The standfirst — one line under a lead headline. */
+  excerpt?: string | null;
+  /** breaking | high | normal | evergreen. Drives the BREAKING strip. */
+  priority?: string | null;
 }
 
 // ── Release info (from extension host) ───────────────────────────────────────
@@ -162,8 +166,20 @@ export function Overview({
   // session's tab is intentionally NOT restored: opening the Command
   // Centre is a fresh "where am I today" moment, so the first lens is
   // always the one that orients the operator.
-  const [tab, setTab] = useState<CcTab>('daily');
-  const switchTab = (next: CcTab) => setTab(next);
+  // Remember the tab. Opening a story unmounts the Command Centre, so coming back
+  // used to reset you to Daily — you read one headline and lost your place in the
+  // briefing. Persisted rather than lifted, so it also survives a reload.
+  const [tab, setTab] = useState<CcTab>(() => {
+    try {
+      const saved = localStorage.getItem('ava_cc_tab');
+      if (saved === 'daily' || saved === 'briefing' || saved === 'reflect' || saved === 'health') return saved;
+    } catch { /* storage denied */ }
+    return 'daily';
+  });
+  const switchTab = (next: CcTab) => {
+    setTab(next);
+    try { localStorage.setItem('ava_cc_tab', next); } catch { /* storage denied */ }
+  };
 
   useEffect(() => {
     if (logs.length === 0 && account) {
@@ -344,7 +360,7 @@ export function Overview({
       {/* ── Tab nav ──────────────────────────────────────────────────── */}
       <div className="mb-5 flex gap-1 border-b border-[var(--border-card)]">
         <TabBtn id="daily" label={tt('dash.chat.tab.daily', 'Daily')} active={tab === 'daily'} onClick={() => switchTab('daily')} />
-        <TabBtn id="briefing" label={tt('dash.chat.tab.briefing', 'Briefing')} active={tab === 'briefing'} onClick={() => switchTab('briefing')} />
+        <TabBtn id="briefing" label={tt('dash.chat.tab.briefing', 'Newsroom')} active={tab === 'briefing'} onClick={() => switchTab('briefing')} />
         <TabBtn id="reflect" label={tt('dash.chat.tab.reflect', 'Reflect')} active={tab === 'reflect'} onClick={() => switchTab('reflect')} />
         <TabBtn id="health" label={tt('dash.chat.tab.health', 'Health')} active={tab === 'health'} onClick={() => switchTab('health')} />
       </div>
@@ -367,14 +383,17 @@ export function Overview({
         </>
       )}
 
-      {/* ── Briefing tab — News + Releases ───────────────────────────── */}
+      {/* ── Briefing tab — a front page, not a list ──────────────────────
+          The release moved from a full card at the BOTTOM to a slim strip at the
+          TOP. It's a notification, not a section: as a big card underneath the
+          news it managed to take more space than the news while being the last
+          thing anyone ever saw. At a tenth of the size and first in the eye-line,
+          it gets more attention, not less. */}
       {tab === 'briefing' && (
         <>
+          <ReleaseStrip release={latestRelease} />
           <div className="mb-4">
             <NewsWidget articles={newsArticles} articleLoading={articleLoading} onOpenArticle={onOpenArticle} />
-          </div>
-          <div className="mb-4">
-            <ReleaseWidget release={latestRelease} />
           </div>
         </>
       )}
@@ -690,10 +709,24 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  const PER_PAGE = 6;
+  // A front page, not a list: 1 lead + 2 equals + a compact tail.
+  const PER_PAGE = 7;
   const totalPages = Math.max(1, Math.ceil(articles.length / PER_PAGE));
   const safePage = Math.min(page, totalPages - 1);
   const pageArticles = articles.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
+
+  // The BREAKING strip is real or it is nothing. Only a story the desk actually
+  // marked `breaking` gets it — a banner that's always on has stopped meaning
+  // anything, and this is the one product where a word has to keep its meaning.
+  // Taken from the whole set, not the current page: breaking news doesn't stop
+  // being breaking because you clicked "next".
+  const breaking = articles.find(a => a.priority === 'breaking') ?? null;
+
+  // The lead is the newest story that ISN'T already shouting from the strip.
+  const leadPool = pageArticles.filter(a => a.slug !== breaking?.slug);
+  const lead = leadPool[0] ?? null;
+  const seconds = leadPool.slice(1, 3);
+  const rest = leadPool.slice(3);
 
   const handleCategoryChange = (cat: string | null) => {
     setSelectedCategory(cat);
@@ -757,36 +790,98 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
         <p className="py-4 text-xs text-[var(--text-muted)]">{t('dash.cc.no_news')}</p>
       ) : !articleLoading && (
         <>
-        <div className="space-y-2">
-          {pageArticles.map((article, idx) => (
-            <button
-              key={article.slug || idx}
-              onClick={() => handleArticleClick(article.slug)}
-              className="group block w-full rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3.5 text-left transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/[0.03]"
-            >
-              <div className="flex items-start gap-3">
+        {/* ── BREAKING ───────────────────────────────────────────────────
+            Driven by real data (news_posts.priority), never decoration. If
+            nothing is marked breaking, no strip — a permanent "BREAKING" banner
+            is just a lie that has stopped meaning anything. */}
+        {breaking && (
+          <button
+            onClick={() => handleArticleClick(breaking.slug)}
+            className="mb-3 flex w-full items-center gap-2.5 overflow-hidden rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-left transition hover:bg-red-500/[0.16]"
+          >
+            <span className="shrink-0 rounded bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+              {t('news.breaking')}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium text-white">{breaking.title}</span>
+            <span className="shrink-0 text-[9px] text-red-300/70">{formatRelativeDate(breaking.date)}</span>
+          </button>
+        )}
+
+        {/* ── The lead ───────────────────────────────────────────────────
+            One story gets the space. A front page that treats six stories
+            identically has made no editorial judgement at all — which is the
+            whole job. The image finally earns its place: these are real
+            photographs of the subject now, not 40px thumbnails. */}
+        {lead && (
+          <button
+            onClick={() => handleArticleClick(lead.slug)}
+            className="group mb-2.5 block w-full overflow-hidden rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] text-left transition hover:border-[var(--accent)]/40"
+          >
+            {lead.image_url && (
+              <div className="relative h-32 w-full overflow-hidden">
+                <img src={lead.image_url} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-card)] via-transparent to-transparent" />
+                {lead.category && (
+                  <span className="absolute left-2.5 top-2.5 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                    {formatCategoryLabel(lead.category)}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="p-3">
+              <p className="text-[13.5px] font-semibold leading-snug text-white transition-colors group-hover:text-[var(--accent)]">{lead.title}</p>
+              {lead.excerpt && (
+                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">{lead.excerpt}</p>
+              )}
+              <div className="mt-1.5 flex items-center gap-2 text-[9px] text-[var(--text-muted)]">
+                {lead.reading_time > 0 && <span>{t('news.min_read', { n: lead.reading_time })}</span>}
+                <span>{formatRelativeDate(lead.date)}</span>
+              </div>
+            </div>
+          </button>
+        )}
+
+        {/* ── The row of equals ──────────────────────────────────────────── */}
+        {seconds.length > 0 && (
+          <div className="mb-2.5 grid grid-cols-2 gap-2.5">
+            {seconds.map((article, idx) => (
+              <button
+                key={article.slug || `s${idx}`}
+                onClick={() => handleArticleClick(article.slug)}
+                className="group block overflow-hidden rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] text-left transition hover:border-[var(--accent)]/40"
+              >
                 {article.image_url ? (
-                  <img src={article.image_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-lg object-cover mt-0.5" />
+                  <div className="h-16 w-full overflow-hidden">
+                    <img src={article.image_url} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
+                  </div>
                 ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5 text-[var(--accent)]" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
-                    <Newspaper weight="duotone" size={14} />
+                  <div className="flex h-16 w-full items-center justify-center text-[var(--accent)]" style={{ background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
+                    <Newspaper weight="duotone" size={18} />
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-white leading-snug group-hover:text-[var(--accent)] transition-colors">{article.title}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    {article.category && (
-                      <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">
-                        {formatCategoryLabel(article.category)}
-                      </span>
-                    )}
-                    {article.reading_time > 0 && (
-                      <span className="text-[9px] text-[var(--text-muted)]">{t('news.min_read', { n: article.reading_time })}</span>
-                    )}
-                    <span className="text-[9px] text-[var(--text-muted)]">{formatRelativeDate(article.date)}</span>
+                <div className="p-2.5">
+                  <p className="line-clamp-2 text-[11.5px] font-medium leading-snug text-white transition-colors group-hover:text-[var(--accent)]">{article.title}</p>
+                  <div className="mt-1 flex items-center gap-1.5 text-[9px] text-[var(--text-muted)]">
+                    {article.category && <span className="text-[var(--accent)]">{formatCategoryLabel(article.category)}</span>}
+                    <span>{formatRelativeDate(article.date)}</span>
                   </div>
                 </div>
-              </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── The tail — compact, text-first. Sky's "More stories". ──────── */}
+        <div className="space-y-1">
+          {rest.map((article, idx) => (
+            <button
+              key={article.slug || `r${idx}`}
+              onClick={() => handleArticleClick(article.slug)}
+              className="group flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--bg-input)]"
+            >
+              <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]/50" />
+              <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--text-secondary)] transition-colors group-hover:text-white">{article.title}</span>
+              <span className="shrink-0 text-[9px] text-[var(--text-muted)]">{formatRelativeDate(article.date)}</span>
             </button>
           ))}
         </div>
@@ -1045,6 +1140,31 @@ function MemoryWidget({ memories: rawMemories, onNavigate, total }: { memories: 
 }
 
 // ── Release Widget ───────────────────────────────────────────────────────────
+
+/**
+ * The release, as a strip rather than a section.
+ *
+ * It sat at the bottom of the Briefing in a full-height card — more visual weight
+ * than the news it sat under, and simultaneously the last thing anyone scrolled
+ * to. A shipping note isn't content; it's a notification. One line, at the top,
+ * out of the way of the front page.
+ */
+function ReleaseStrip({ release }: { release: ReleaseInfo | null }) {
+  if (!release) return null;
+  return (
+    <button
+      onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/releases' })}
+      className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-[var(--accent)]/25 bg-[var(--accent)]/[0.07] px-3 py-2 text-left transition hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/[0.12]"
+    >
+      <Rocket weight="duotone" size={14} className="shrink-0 text-[var(--accent)]" />
+      <span className="shrink-0 rounded bg-[var(--accent)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--accent)]">
+        v{release.version}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--text-secondary)]">{release.title}</span>
+      <span className="shrink-0 text-[10px] font-medium text-[var(--accent)]">{t('dash.nav.release_notes')} &rarr;</span>
+    </button>
+  );
+}
 
 function ReleaseWidget({ release }: { release: ReleaseInfo | null }) {
   return (
