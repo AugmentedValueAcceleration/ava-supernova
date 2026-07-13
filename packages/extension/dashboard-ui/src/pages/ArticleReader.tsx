@@ -53,16 +53,30 @@ export const SHARE_ICONS: Record<string, string> = {
   hn: 'M0 24V0h24v24H0zM6.951 5.896l4.112 7.708v5.064h1.583v-4.972l4.148-7.799h-1.749l-2.457 4.875c-.372.745-.688 1.434-.688 1.434s-.297-.708-.651-1.434L8.831 5.896h-1.88z',
 };
 
-/** The share row, in the order we actually want people to use. mu.social is our
- *  Mastodon home — if we ever move instances, only this URL changes. */
-export function shareTargets(title: string, url: string): { key: string; label: string; url: string }[] {
-  const withLink = encodeURIComponent(`${title}\n\n${url}`);
+/**
+ * Where an article can be shared.
+ *
+ * X, Bluesky, LinkedIn, Reddit and HN all take the post as URL parameters, so
+ * one click lands you in a pre-filled composer.
+ *
+ * mu.social does NOT. It looks like a Mastodon address but it's an AT Protocol
+ * app, and it ships no compose intent — `/share?text=` (the Mastodon route) is
+ * silently swallowed by its single-page router, which is why the post never
+ * appeared. No URL will pre-fill it. So rather than a button that quietly does
+ * nothing, we copy the post to the clipboard and open the composer: `copyFirst`
+ * marks that. One paste instead of one click, and it actually works.
+ */
+export interface ShareTarget { key: string; label: string; url: string; copyFirst?: string }
+
+export function shareTargets(title: string, url: string): ShareTarget[] {
+  const post = `${title}\n\n${url}`;
+  const withLink = encodeURIComponent(post);
   const u = encodeURIComponent(url);
   const t = encodeURIComponent(title);
   return [
     { key: 'x', label: 'X', url: `https://x.com/intent/tweet?text=${t}&url=${u}` },
     { key: 'bluesky', label: 'Bluesky', url: `https://bsky.app/intent/compose?text=${withLink}` },
-    { key: 'mastodon', label: 'mu.social', url: `https://mu.social/share?text=${withLink}` },
+    { key: 'mastodon', label: 'mu.social', url: 'https://mu.social/', copyFirst: post },
     { key: 'linkedin', label: 'LinkedIn', url: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
     { key: 'reddit', label: 'Reddit', url: `https://reddit.com/submit?url=${u}&title=${t}` },
     { key: 'hn', label: 'Hacker News', url: `https://news.ycombinator.com/submitlink?u=${u}&t=${t}` },
@@ -179,6 +193,7 @@ interface Props {
 export function ArticleReader({ article, related, onBack, onNavigateToArticle }: Props) {
   useLocale();
   const [copied, setCopied] = useState(false);
+  const [sharePasted, setSharePasted] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Scroll to top when article changes
@@ -301,14 +316,24 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
         {shareTargets(article.title, articleUrl).map(target => (
           <button
             key={target.key}
-            onClick={() => post({ type: 'open_url', url: target.url })}
-            title={target.label}
+            onClick={async () => {
+              // mu.social can't be pre-filled — put the post on the clipboard so
+              // the composer is one paste away, and SAY so rather than leaving
+              // the operator wondering why nothing appeared.
+              if (target.copyFirst) {
+                try { await navigator.clipboard.writeText(target.copyFirst); } catch { /* clipboard denied */ }
+                setSharePasted(target.key);
+                setTimeout(() => setSharePasted(null), 2500);
+              }
+              post({ type: 'open_url', url: target.url });
+            }}
+            title={target.copyFirst ? 'Copies the post — paste it into the composer' : target.label}
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-1.5 text-[10px] text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-white"
           >
             <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
               <path d={SHARE_ICONS[target.key]} />
             </svg>
-            {target.label}
+            {sharePasted === target.key ? 'Copied — paste it' : target.label}
           </button>
         ))}
         <button
