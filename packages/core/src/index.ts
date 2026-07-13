@@ -24,7 +24,7 @@ export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeac
 // Correspondent's tools write through, plus the syndication clusterer that
 // keeps "47 outlets" from being mistaken for corroboration.
 export type {
-  NewsHit, NewsSearchFn,
+  NewsHit, NewsSearchFn, NewsFeedFn,
   ArticleInput, ArticleStore,
   StorySuggestion, StoryStore,
   FetchedCorpus,

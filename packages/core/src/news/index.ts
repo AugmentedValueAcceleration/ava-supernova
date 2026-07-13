@@ -41,6 +41,20 @@ export type NewsSearchFn = (
   freshness?: 'pd' | 'pw' | 'pm',
 ) => Promise<NewsHit[]>;
 
+/**
+ * Read a desk's front pages — the RSS feeds of real newsrooms. Injected by the
+ * surface (the web supplies `readDeskFeeds`).
+ *
+ * This is DISCOVERY, and it is deliberately not a search. A search is a pull:
+ * you only get back what you already suspected, and nobody thinks to ask for
+ * "Bangkok bar fire" at 6am. A front page is a push: the world editor put it
+ * there because it happened. So the newsroom SEES first (feeds), CHOOSES second
+ * (Ava), and only then VERIFIES with search (Brave) — which is the right tool for
+ * standing up a story she has already found, and the wrong one for deciding what
+ * the news is.
+ */
+export type NewsFeedFn = (desk: string) => Promise<NewsHit[]>;
+
 /** A finished article, on its way to the card + the drafts table. */
 export interface ArticleInput {
   headline: string;

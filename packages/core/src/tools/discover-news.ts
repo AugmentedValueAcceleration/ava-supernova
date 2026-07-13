@@ -1,15 +1,35 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import type { NewsSearchFn, FetchedCorpus } from '../news/index.js';
+import type { NewsSearchFn, NewsFeedFn, FetchedCorpus } from '../news/index.js';
 
 /**
- * The story menu — what is actually breaking, by desk.
+ * The story menu — what newsrooms actually ran today.
+ *
+ * DISCOVERY IS NOT A SEARCH. It reads the front pages: the RSS feeds of real
+ * newsrooms, whose editors already decided what mattered this morning.
+ *
+ * The first cut searched, and it failed in a way worth remembering. Each desk ran
+ * a keyword query against the news index, and the World desk's query returned SIX
+ * hits — five of them section fronts, one real story. So Ava reported that one
+ * story every single time and looked fixated on a war. She wasn't: it was the only
+ * thing on her desk.
+ *
+ * The flaw was structural, not a bad keyword. A SEARCH IS A PULL — you only get
+ * back what you already suspected — and nobody, human or model, thinks to ask for
+ * "Bangkok bar fire" at 6am. Twenty-seven people died and the story reaches us by
+ * luck. Letting the MODEL write the queries doesn't fix that; it just moves the
+ * guess somewhere less inspectable, and a model's guess about today is even worse,
+ * because today is precisely what it doesn't know.
+ *
+ * A FRONT PAGE IS A PUSH. The Guardian's world editor put the fire on the page
+ * BECAUSE IT HAPPENED. So: SEE (feeds) → CHOOSE (Ava) → VERIFY (research_story).
+ * Search is still used — but only to stand up a story she has already seen, never
+ * to decide what the news is.
  *
  * Deliberately does NOT cluster. Syndication detection compares TEXT, which is
- * exactly right within one story and wrong across a category sweep: twenty
- * unrelated earnings pieces sharing a template would collapse into one "story"
- * that doesn't exist. Clustering belongs in research_story, where the hits are
- * all about the same event.
+ * exactly right within one story and wrong across a whole desk: twenty unrelated
+ * pieces sharing a house style would collapse into one "story" that doesn't exist.
+ * Clustering belongs in research_story, where every hit is about the same event.
  *
  * The selection is the skill, and it belongs to her, not to a ranking function:
  * a story everyone has is rarely worth writing; a story only one outlet has is a
@@ -144,63 +164,79 @@ const INDEX_PAGE = new RegExp([
 export class DiscoverNewsTool implements Tool {
   readonly name = 'discover_news';
   readonly description =
-    'What is actually breaking right now, by category or free-text query. Your story menu. Returns real headlines with their outlet and URL, straight from the news index. Never invent a story — if this comes back empty, say so.';
+    "Read a desk's FRONT PAGES — the stories real newsrooms ran today, straight from their own feeds. No searching, no keywords: you see what happened, not what someone thought to ask for. This is your story menu.";
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'discover_news',
     description:
-      "What is actually breaking right now, by desk or free-text query. Your story menu — call this when the operator asks what's happening or what's worth covering. Returns real headlines with outlet and URL from the news index. Never invent a story; if it comes back empty, say so plainly.",
+      "Read a desk's FRONT PAGES — the stories real newsrooms actually ran today, pulled from their own feeds (Guardian, BBC, Al Jazeera, NPR, DW, France 24, Reuters-carrying outlets, and so on, depending on the desk). This is NOT a search: nothing here was chosen by a keyword, so you are seeing what happened rather than what someone thought to ask for. Call it when the operator asks what's happening or what's worth covering. Read WIDELY before you choose — the whole point is that you are not being handed one running story. Pass `query` INSTEAD only when you are chasing a specific story you already know exists; that runs a real search. Never invent a story; if it comes back empty, say so plainly.",
     parameters: {
       type: 'object',
       properties: {
         category: {
           type: 'string',
           enum: ['world', 'ai', 'technology', 'open-source', 'security-privacy', 'business', 'science', 'health', 'food', 'education', 'sport'],
-          description: "The desk to scan. Uses that desk's standing query.",
+          description: "The desk whose front pages to read.",
         },
-        query: { type: 'string', description: 'Optional free-text query, used INSTEAD of the category default (e.g. "FIFA refereeing complaints").' },
-        freshness: { type: 'string', enum: ['pd', 'pw', 'pm'], description: 'pd = past day (default, for breaking), pw = past week, pm = past month.' },
+        query: { type: 'string', description: 'Only for chasing a specific story you ALREADY know exists (e.g. "Bangkok bar fire death toll"). Runs a search INSTEAD of reading the front pages. Leave empty for a desk scan — a search can only return what you already suspected, which is how a desk ends up reporting the same story every day.' },
+        freshness: { type: 'string', enum: ['pd', 'pw', 'pm'], description: 'Only applies to `query`. pd = past day (default), pw = past week, pm = past month.' },
       },
       required: [],
     },
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const feeds = context.sharedState?.newsFeeds as NewsFeedFn | undefined;
     const search = context.sharedState?.newsSearch as NewsSearchFn | undefined;
-    if (!search) {
-      return { success: false, output: 'News search is not available in this context. The host must inject `newsSearch` into shared state.' };
-    }
 
     const category = String(args.category ?? '').trim();
     const freeText = String(args.query ?? '').trim();
+    const desk = DESK_ANGLES[category] ? category : 'world';
 
     const freshness = (['pd', 'pw', 'pm'].includes(String(args.freshness))
       ? String(args.freshness)
       : 'pd') as 'pd' | 'pw' | 'pm';
 
-    // A free-text query is Ava chasing something specific — run it as given.
-    // A desk scan fans out across that desk's angles, because a desk is not one
-    // subject: "world" is politics AND disasters AND diplomacy AND the economy,
-    // and asking for only one of them is how a desk ends up with a single story.
-    const desk = DESK_ANGLES[category] ? category : 'world';
-    const queries = freeText ? [freeText] : DESK_ANGLES[desk];
+    let hits: Awaited<ReturnType<NewsFeedFn>> = [];
+    let source: string;
 
-    const batches = await Promise.all(
-      queries.map((q) => search(q, freeText ? 20 : 10, freshness).catch(() => [])),
-    );
-
-    // Merge, de-duplicate by URL, drop the section fronts.
-    const byUrl = new Map<string, (typeof batches)[number][number]>();
-    for (const batch of batches) {
-      for (const hit of batch) {
-        if (!hit.url || byUrl.has(hit.url)) continue;
-        if (INDEX_PAGE.test(hit.title)) continue;
-        byUrl.set(hit.url, hit);
+    if (freeText) {
+      // She's chasing something specific she already knows exists — that IS a
+      // search, and search is the right tool for it.
+      if (!search) {
+        return { success: false, output: 'News search is not available in this context. The host must inject `newsSearch` into shared state.' };
       }
+      hits = await search(freeText, 20, freshness);
+      source = `search: "${freeText}"`;
+    } else if (feeds) {
+      // A desk scan READS THE FRONT PAGES. No query, no guessing — what those
+      // newsrooms actually ran.
+      hits = await feeds(desk);
+      source = 'front pages';
+    } else if (search) {
+      // Fallback ONLY: a surface that hasn't injected the feed reader. Keyword
+      // angles are strictly worse (this is the mode that gave the World desk one
+      // story), so it is a floor, not the design.
+      const batches = await Promise.all(
+        DESK_ANGLES[desk].map((q) => search(q, 10, freshness).catch(() => [])),
+      );
+      hits = batches.flat();
+      source = 'keyword fallback (no feed reader injected)';
+    } else {
+      return { success: false, output: 'Neither `newsFeeds` nor `newsSearch` is available in this context. The host must inject at least one.' };
     }
-    const hits = [...byUrl.values()].slice(0, 30);
+
+    // De-duplicate by URL and drop section fronts / fixtures tables — a headline
+    // index is not a story: nothing happened, nothing to stand up, nothing to quote.
+    const byUrl = new Map<string, (typeof hits)[number]>();
+    for (const hit of hits) {
+      if (!hit.url || byUrl.has(hit.url)) continue;
+      if (INDEX_PAGE.test(hit.title)) continue;
+      byUrl.set(hit.url, hit);
+    }
+    const stories = [...byUrl.values()].slice(0, 40);
 
     // Stash for the quote checker — she may quote straight off the menu if she
     // covers one of these without a deeper pull.
@@ -208,31 +244,34 @@ export class DiscoverNewsTool implements Tool {
       const existing = (context.sharedState.fetchedCorpus as FetchedCorpus | undefined) ?? { hits: [] };
       const seen = new Set(existing.hits.map((h) => h.url));
       context.sharedState.fetchedCorpus = {
-        hits: [...existing.hits, ...hits.filter((h) => !seen.has(h.url))],
+        hits: [...existing.hits, ...stories.filter((h) => !seen.has(h.url))],
       };
     }
 
-    if (hits.length === 0) {
+    if (stories.length === 0) {
       return {
         success: true,
         output: JSON.stringify({
           desk,
-          queries,
+          source,
           stories: [],
           note: 'Nothing came back. Say so — do NOT fall back on what you think is happening. An invented story is worse than an empty desk.',
         }),
       };
     }
 
+    const outlets = [...new Set(stories.map((s) => s.outlet).filter(Boolean))];
+
     return {
       success: true,
       output: JSON.stringify({
         desk,
-        queries,
-        count: hits.length,
-        stories: hits.map((h) => ({ outlet: h.outlet, headline: h.title, url: h.url, age: h.age ?? null, excerpt: h.excerpt.slice(0, 240) })),
+        source,
+        outlets,
+        count: stories.length,
+        stories: stories.map((h) => ({ outlet: h.outlet, headline: h.title, url: h.url, age: h.age ?? null, excerpt: h.excerpt.slice(0, 240) })),
         note:
-          'This is the menu, not the story. These came from SEVERAL angles on the desk, so they will span different subjects — that is the point. Do not tunnel on whichever subject happens to have the most hits; a desk that only ever reports one running story is echoing, not reporting. Before writing ANY of these, call research_story to see who else has it, whether it is independent reporting or one wire echoed, and where outlets disagree. The selection is the skill: a story everyone has is rarely worth writing; a story only one outlet has needs CHECKING, not repeating.',
+          'This is the front page, not the story — these are the pieces real newsrooms ran today, across several outlets that often disagree with each other. Nobody searched for them, so nothing here was pre-selected by a keyword: read WIDELY before you choose. A desk that only ever reports the one running story is echoing, not reporting. Then, for whatever you pick: call research_story to see who else has it, whether it is independent reporting or one wire echoed, and where outlets diverge. The selection is the skill — a story everyone has is rarely worth writing; a story only one outlet has needs CHECKING, not repeating.',
       }),
     };
   }
