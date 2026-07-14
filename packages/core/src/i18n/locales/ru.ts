@@ -3490,4 +3490,5 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': 'Экспортировано {count} файл(ов).',
   'dash.portability.import_unknown': 'Этот файл не является распознанным экспортом Ava.',
   'dash.portability.keys_not_exported': 'Ваши ключи API хранятся в хранилище ключей операционной системы, а не в этих данных — поэтому восстановление вернёт всё, кроме ключей.',
+  'dash.settings.tab.privacy': 'Конфиденциальность',
 };

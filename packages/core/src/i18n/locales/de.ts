@@ -3432,7 +3432,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.video.aspect': 'Seitenverhältnis',
   'dash.studio.video.resolution': 'Auflösung',
   'dash.studio.video.hint': 'Sprich mit Ava – sie inszeniert die Szene und generiert sie.',
-  'dash.studio.voice.title': 'Voiceover',
+  'dash.studio.voice.title': 'Stimme',
   'dash.studio.voice.subtitle': 'Sprich mit Ava – sie schreibt den Text, dirigiert die Aussprache und spricht ihn als Wellenform, die du durchspulen kannst.',
   'dash.studio.voice.voice': 'Stimme',
   'dash.studio.voice.language': 'Sprache',
@@ -3470,4 +3470,5 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': '{count} Datei(en) exportiert.',
   'dash.portability.import_unknown': 'Diese Datei ist kein erkannter Ava-Export.',
   'dash.portability.keys_not_exported': 'Ihre API-Schlüssel werden im Schlüsselbund Ihres Betriebssystems gespeichert und nicht in diesen Daten – eine Wiederherstellung stellt daher alles außer den Schlüsseln wieder her.',
+  'dash.settings.tab.privacy': 'Datenschutz',
 };

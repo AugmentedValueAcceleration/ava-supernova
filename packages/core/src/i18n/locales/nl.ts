@@ -3490,4 +3490,5 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': 'Geëxporteerd {count} bestand(en).',
   'dash.portability.import_unknown': 'Dat bestand is geen erkend Ava-exportbestand.',
   'dash.portability.keys_not_exported': 'Je API-sleutels worden opgeslagen in de sleutelopslag van je besturingssysteem, niet in deze gegevens — dus een herstel brengt alles terug behalve de sleutels.',
+  'dash.settings.tab.privacy': 'Privacy',
 };

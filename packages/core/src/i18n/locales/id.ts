@@ -3488,4 +3488,5 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': 'File diekspor {count}.',
   'dash.portability.import_unknown': 'File tersebut bukan ekspor Ava yang dikenali.',
   'dash.portability.keys_not_exported': 'Kunci API Anda disimpan di penyimpanan kunci sistem operasi Anda, bukan dalam data ini — sehingga pemulihan mengembalikan semuanya kecuali kuncinya.',
+  'dash.settings.tab.privacy': 'Privasi',
 };

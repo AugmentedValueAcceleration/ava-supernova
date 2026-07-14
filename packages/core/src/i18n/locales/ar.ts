@@ -3490,4 +3490,5 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': 'تم تصدير {count} ملف.',
   'dash.portability.import_unknown': 'هذا الملف ليس تصدير Ava مُعترفًا به.',
   'dash.portability.keys_not_exported': 'تُخزَّن مفاتيح API الخاصة بك في سلسلة مفاتيح نظام التشغيل، وليس في هذه البيانات — لذا فإن الاستعادة تعيد كل شيء باستثناء المفاتيح.',
+  'dash.settings.tab.privacy': 'الخصوصية',
 };

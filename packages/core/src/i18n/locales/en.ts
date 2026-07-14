@@ -1075,6 +1075,7 @@ export const enStrings = {
   'dash.settings.tab.personality': 'Personality',
   'dash.settings.tab.permissions': 'Permissions',
   'dash.settings.tab.data': 'Data',
+  'dash.settings.tab.privacy': 'Privacy',
   'dash.settings.tab.advanced': 'Advanced',
   'dash.settings.customise': 'Customise',
   'dash.settings.default_personality': 'Default personality',

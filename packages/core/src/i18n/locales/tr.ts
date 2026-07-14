@@ -3490,4 +3490,5 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': '{count} dosya dışa aktarıldı.',
   'dash.portability.import_unknown': 'Bu dosya tanınan bir Ava dışa aktarımı değil.',
   'dash.portability.keys_not_exported': 'API anahtarlarınız işletim sisteminizin anahtar zincirinde saklanır, bu veride değil — bu yüzden geri yükleme anahtarlar hariç her şeyi geri getirir.',
+  'dash.settings.tab.privacy': 'Gizlilik',
 };

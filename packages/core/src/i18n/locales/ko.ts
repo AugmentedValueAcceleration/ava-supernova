@@ -3490,4 +3490,5 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': '{count}개의 파일이 내보내졌습니다.',
   'dash.portability.import_unknown': '이 파일은 인식된 Ava 내보내기 파일이 아닙니다.',
   'dash.portability.keys_not_exported': 'API 키는 이 데이터가 아닌 운영 체제의 키체인에 저장되어 있으므로, 복원 시 키를 제외한 모든 것이 복구됩니다.',
+  'dash.settings.tab.privacy': '개인정보',
 };

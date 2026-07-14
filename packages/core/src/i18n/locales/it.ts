@@ -3490,4 +3490,5 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': 'Esportati {count} file.',
   'dash.portability.import_unknown': 'Questo file non è un\'esportazione Ava riconosciuta.',
   'dash.portability.keys_not_exported': 'Le tue chiavi API sono memorizzate nel portachiavi del tuo sistema operativo, non in questi dati — quindi un ripristino riporta tutto tranne le chiavi.',
+  'dash.settings.tab.privacy': 'Privacy',
 };

@@ -356,7 +356,10 @@ export function Settings({
         {([
           { id: 'models' as const,       label: tt('dash.settings.tab.models',       'Models') },
           { id: 'permissions' as const,  label: tt('dash.settings.tab.permissions',  'Permissions') },
-          { id: 'data' as const,         label: tt('dash.settings.tab.data',         'Data') },
+          // "Privacy", not "Data" — everything on this tab (export, import, what
+          // leaves the machine, what's captured) answers a privacy question. The
+          // internal id stays 'data' so saved tab selections don't break.
+          { id: 'data' as const,         label: tt('dash.settings.tab.privacy',      'Privacy') },
           { id: 'advanced' as const,     label: tt('dash.settings.tab.advanced',     'Advanced') },
         ]).map(t_ => (
           <button

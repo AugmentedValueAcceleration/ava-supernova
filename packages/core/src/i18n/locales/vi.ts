@@ -3490,4 +3490,5 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': 'Đã xuất {count} tệp.',
   'dash.portability.import_unknown': 'Tệp này không phải là bản xuất Ava hợp lệ.',
   'dash.portability.keys_not_exported': 'Khóa API của bạn được lưu trong chuỗi khóa của hệ điều hành, không nằm trong dữ liệu này — nên khôi phục sẽ trả lại mọi thứ ngoại trừ các khóa.',
+  'dash.settings.tab.privacy': 'Quyền riêng tư',
 };

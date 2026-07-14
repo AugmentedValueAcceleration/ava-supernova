@@ -3492,4 +3492,5 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': '{count} ファイルをエクスポートしました。',
   'dash.portability.import_unknown': 'そのファイルは有効な Ava エクスポートではありません。',
   'dash.portability.keys_not_exported': 'API キーは OS のキーチェーンに保存されており、このデータには含まれていません。そのため、復元するとキーを除いたすべてが戻ります。',
+  'dash.settings.tab.privacy': 'プライバシー',
 };

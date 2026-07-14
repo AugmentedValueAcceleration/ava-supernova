@@ -3470,4 +3470,5 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': 'Експортовано {count} файл(ів).',
   'dash.portability.import_unknown': 'Цей файл не є розпізнаним експортом Ava.',
   'dash.portability.keys_not_exported': 'Ваші ключі API зберігаються у сховищі ключів вашої операційної системи, а не в цих даних — тому відновлення поверне все, окрім ключів.',
+  'dash.settings.tab.privacy': 'Приватність',
 };

@@ -3470,4 +3470,5 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': '已导出 {count} 个文件。',
   'dash.portability.import_unknown': '该文件不是有效的 Ava 导出。',
   'dash.portability.keys_not_exported': '您的 API 密钥存储在操作系统密钥链中，而非此数据中——因此恢复将带回所有内容，除了密钥。',
+  'dash.settings.tab.privacy': '隐私',
 };

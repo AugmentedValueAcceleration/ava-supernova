@@ -3490,4 +3490,5 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': '{count} फ़ाइल(ें) निर्यात की गईं।',
   'dash.portability.import_unknown': 'यह फ़ाइल एक मान्य Ava निर्यात नहीं है।',
   'dash.portability.keys_not_exported': 'आपकी API कुंजियाँ आपके ऑपरेटिंग सिस्टम के कीचेन में संग्रहीत हैं, इस डेटा में नहीं — इसलिए बहाली से कुंजियों को छोड़कर सब कुछ वापस आ जाता है।',
+  'dash.settings.tab.privacy': 'गोपनीयता',
 };

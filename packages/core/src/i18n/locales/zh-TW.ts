@@ -3490,4 +3490,5 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.exported': '已匯出 {count} 個檔案。',
   'dash.portability.import_unknown': '該檔案並非已識別的 Ava 匯出檔案。',
   'dash.portability.keys_not_exported': '您的 API 金鑰儲存在作業系統的密鑰庫中，而非此資料內——因此還原時會恢復所有內容，但不包含金鑰。',
+  'dash.settings.tab.privacy': '隱私',
 };
