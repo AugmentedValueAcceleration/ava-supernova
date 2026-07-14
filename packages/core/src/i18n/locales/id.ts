@@ -3477,4 +3477,12 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Terkini',
   'dash.settings.section.export_import': 'Ekspor & Impor',
   'dash.portability.deselect_all': 'Batal pilih semua',
+  'dash.portability.type.profile': 'Profil',
+  'dash.portability.type.profile_desc': 'Nama, kata ganti, dan detail fisik Anda.',
+  'dash.portability.type.brain': 'Keterampilan yang dipelajari',
+  'dash.portability.type.brain_desc': 'Prosedur yang telah Ava pelajari dan pelajaran yang ia petik dari kesalahan masa lalu.',
+  'dash.portability.type.datasets': 'Data yang direkam',
+  'dash.portability.type.datasets_desc': 'Data pelatihan yang direkam dari sesi Anda, jika Anda mengizinkan.',
+  'dash.portability.type.audit': 'Log aktivitas',
+  'dash.portability.type.audit_desc': 'Catatan setiap alat yang dijalankan Ava di komputer ini.',
 };

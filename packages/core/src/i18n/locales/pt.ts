@@ -3477,4 +3477,12 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Úrgente',
   'dash.settings.section.export_import': 'Exportar & Importar',
   'dash.portability.deselect_all': 'Desmarcar tudo',
+  'dash.portability.type.profile': 'Perfil',
+  'dash.portability.type.profile_desc': 'Seu nome, pronomes e características físicas básicas.',
+  'dash.portability.type.brain': 'Habilidades aprendidas',
+  'dash.portability.type.brain_desc': 'Procedimentos que a Ava aprendeu e as lições que ela tirou de erros passados.',
+  'dash.portability.type.datasets': 'Dados capturados',
+  'dash.portability.type.datasets_desc': 'Os dados de treinamento capturados das suas sessões, caso tenha optado por compartilhar.',
+  'dash.portability.type.audit': 'Registro de atividades',
+  'dash.portability.type.audit_desc': 'Um registro de todas as ferramentas que a Ava executou neste computador.',
 };

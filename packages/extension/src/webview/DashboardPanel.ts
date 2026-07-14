@@ -4635,7 +4635,7 @@ export class DashboardPanel {
       let localCount = 0;
       try {
         const filePath = t === 'memory' ? path.join(dataDir, 'memory.json')
-          : t === 'tasks' ? path.join(dataDir, 'tasks.json')
+          : t === 'tasks' ? path.join(dataDir, 'tasks', 'tasks.json')
           : t === 'journal' ? path.join(dataDir, 'journal')
           : t === 'learning' ? path.join(dataDir, 'learning.json')
           : t === 'history' ? path.join(dataDir, 'history')
@@ -4649,7 +4649,9 @@ export class DashboardPanel {
           const raw = await fs.readFile(filePath, 'utf-8');
           const parsed = JSON.parse(raw);
           if (t === 'memory') localCount = parsed.entries?.length ?? 0;
-          else if (t === 'tasks') localCount = parsed.tasks?.length ?? 0;
+          // TaskManager writes { version, lastModified, entries } — reading
+          // `.tasks` here always yielded 0, so the count read empty even when it wasn't.
+          else if (t === 'tasks') localCount = (parsed.entries ?? parsed.tasks)?.length ?? 0;
           else if (t === 'learning') localCount = parsed.curriculums?.length ?? 0;
           else localCount = 1;
         }
@@ -4753,7 +4755,7 @@ export class DashboardPanel {
         }
 
         case 'tasks': {
-          const store = await fs.readFile(path.join(this.getUserDataDir(), 'tasks.json'), 'utf-8')
+          const store = await fs.readFile(path.join(this.getUserDataDir(), 'tasks', 'tasks.json'), 'utf-8')
             .then(JSON.parse).catch(() => ({ tasks: [] }));
           const tasks = store.tasks || [];
           const res = await apiFetch('/tasks/sync', {
@@ -5761,7 +5763,9 @@ export class DashboardPanel {
       for (const e of entries) {
         const abs = path.join(dir, e.name);
         if (e.isDirectory()) await walk(abs);
-        else if (e.isFile() && e.name.endsWith('.json')) {
+        // .jsonl too — the dataset capture writes newline-delimited JSON, and a
+        // .json-only filter collected exactly none of it.
+        else if (e.isFile() && (e.name.endsWith('.json') || e.name.endsWith('.jsonl'))) {
           out[path.relative(root, abs).split(path.sep).join('/')] = await fs.readFile(abs, 'utf-8');
         }
       }
@@ -5841,7 +5845,9 @@ export class DashboardPanel {
           break;
         }
         case 'tasks': {
-          const raw = await fs.readFile(path.join(avaDir, 'tasks.json'), 'utf-8');
+          // Missing file = you have no tasks. That's an empty export, not a failure.
+          const raw = await fs.readFile(path.join(avaDir, 'tasks', 'tasks.json'), 'utf-8')
+            .catch(() => JSON.stringify({ tasks: [] }, null, 2));
           content = raw;
           filename = 'ava-tasks.json';
           break;
@@ -5866,7 +5872,9 @@ export class DashboardPanel {
           break;
         }
         case 'learning': {
-          const raw = await fs.readFile(path.join(avaDir, 'learning.json'), 'utf-8');
+          // Missing file = you never used Learning. Empty, not broken.
+          const raw = await fs.readFile(path.join(avaDir, 'learning.json'), 'utf-8')
+            .catch(() => JSON.stringify({ curriculums: [] }, null, 2));
           content = raw;
           filename = 'ava-learning.json';
           break;
@@ -5906,9 +5914,49 @@ export class DashboardPanel {
           break;
         }
         case 'personality': {
-          const raw = await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8');
+          // personality.json only exists once you've saved a personality. Before
+          // that the read threw and the export died with a hard error — for the
+          // very ordinary case of "I never customised it". An empty section is a
+          // truthful answer; a failure is not.
+          const raw = await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8')
+            .catch(() => JSON.stringify({ personality: null }, null, 2));
           content = raw;
           filename = 'ava-personality.json';
+          break;
+        }
+        case 'profile': {
+          // GeneralProfile — account-scoped (general.json), not AVA_HOME root.
+          const raw = await fs.readFile(path.join(avaDir, 'general.json'), 'utf-8')
+            .catch(() => JSON.stringify({ profile: null }, null, 2));
+          content = raw;
+          filename = 'ava-profile.json';
+          break;
+        }
+        case 'brain': {
+          // The learned layer lives at the AVA_HOME ROOT, not the scoped dir.
+          const read = async (f: string) => {
+            try { return JSON.parse(await fs.readFile(path.join(this.avaHome, f), 'utf-8')); }
+            catch { return null; }
+          };
+          content = JSON.stringify({
+            procedures: await read('procedures.json'),
+            selfImprovement: await read('self-improvement.json'),
+            feedback: await read('feedback.json'),
+          }, null, 2);
+          filename = 'ava-brain.json';
+          break;
+        }
+        case 'datasets': {
+          const files = await this.collectDirJson(path.join(this.avaHome, 'datasets'), this.avaHome);
+          content = JSON.stringify({ datasets: files }, null, 2);
+          filename = 'ava-datasets.json';
+          break;
+        }
+        case 'audit': {
+          // Export-only. Never restored — see the import handler.
+          content = await fs.readFile(path.join(this.avaHome, 'audit-log.jsonl'), 'utf-8')
+            .catch(() => '');
+          filename = 'ava-audit-log.jsonl';
           break;
         }
         default:
@@ -5919,7 +5967,9 @@ export class DashboardPanel {
       // Use VS Code's native save dialog — webviews can't trigger downloads
       const uri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(filename),
-        filters: { 'JSON': ['json'] },
+        // The audit log is newline-delimited JSON — a hard 'json' filter would
+        // rename it and quietly imply it parses as one object. It doesn't.
+        filters: filename.endsWith('.jsonl') ? { 'JSON Lines': ['jsonl'] } : { 'JSON': ['json'] },
       });
       if (uri) {
         await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
@@ -5949,7 +5999,8 @@ export class DashboardPanel {
               break;
             }
             case 'tasks':
-              zip.file('ava-tasks.json', await fs.readFile(path.join(avaDir, 'tasks.json'), 'utf-8'));
+              zip.file('ava-tasks.json', await fs.readFile(path.join(avaDir, 'tasks', 'tasks.json'), 'utf-8')
+                .catch(() => JSON.stringify({ tasks: [] }, null, 2)));
               break;
             case 'journal': {
               const journalDir = path.join(avaDir, 'journal');
@@ -5967,7 +6018,8 @@ export class DashboardPanel {
               break;
             }
             case 'learning':
-              zip.file('ava-learning.json', await fs.readFile(path.join(avaDir, 'learning.json'), 'utf-8'));
+              zip.file('ava-learning.json', await fs.readFile(path.join(avaDir, 'learning.json'), 'utf-8')
+                .catch(() => JSON.stringify({ curriculums: [] }, null, 2)));
               break;
             case 'history': {
               const histDir = path.join(avaDir, 'history');
@@ -6011,7 +6063,34 @@ export class DashboardPanel {
               zip.file('ava-settings.json', JSON.stringify({ settings: this.readSettings() }, null, 2));
               break;
             case 'personality':
-              zip.file('ava-personality.json', await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8'));
+              zip.file('ava-personality.json', await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8')
+                .catch(() => JSON.stringify({ personality: null }, null, 2)));
+              break;
+            case 'profile':
+              zip.file('ava-profile.json', await fs.readFile(path.join(avaDir, 'general.json'), 'utf-8')
+                .catch(() => JSON.stringify({ profile: null }, null, 2)));
+              break;
+            case 'brain': {
+              // AVA_HOME root, not the scoped dir.
+              const readBrain = async (f: string) => {
+                try { return JSON.parse(await fs.readFile(path.join(this.avaHome, f), 'utf-8')); }
+                catch { return null; }
+              };
+              zip.file('ava-brain.json', JSON.stringify({
+                procedures: await readBrain('procedures.json'),
+                selfImprovement: await readBrain('self-improvement.json'),
+                feedback: await readBrain('feedback.json'),
+              }, null, 2));
+              break;
+            }
+            case 'datasets': {
+              const dsFiles = await this.collectDirJson(path.join(this.avaHome, 'datasets'), this.avaHome);
+              for (const [rel, raw] of Object.entries(dsFiles)) zip.file(rel, raw);
+              break;
+            }
+            case 'audit':
+              zip.file('ava-audit-log.jsonl', await fs.readFile(path.join(this.avaHome, 'audit-log.jsonl'), 'utf-8')
+                .catch(() => ''));
               break;
           }
         } catch { /* skip missing files */ }
@@ -6063,7 +6142,9 @@ export class DashboardPanel {
           break;
         }
         case 'tasks': {
-          await fs.writeFile(path.join(avaDir, 'tasks.json'), content, 'utf-8');
+          // Restore into the tasks/ DIRECTORY the TaskManager actually reads.
+          await fs.mkdir(path.join(avaDir, 'tasks'), { recursive: true });
+          await fs.writeFile(path.join(avaDir, 'tasks', 'tasks.json'), content, 'utf-8');
           const data = JSON.parse(content);
           count = data.tasks?.length || 0;
           break;
@@ -6130,6 +6211,48 @@ export class DashboardPanel {
           count = 1;
           break;
         }
+        case 'profile': {
+          await fs.writeFile(path.join(avaDir, 'general.json'), content, 'utf-8');
+          count = 1;
+          break;
+        }
+        case 'brain': {
+          // Split the bundle back into the three root files it came from.
+          const parsed = JSON.parse(content) as {
+            procedures?: unknown; selfImprovement?: unknown; feedback?: unknown;
+          };
+          const parts: Array<[string, unknown]> = [
+            ['procedures.json', parsed.procedures],
+            ['self-improvement.json', parsed.selfImprovement],
+            ['feedback.json', parsed.feedback],
+          ];
+          for (const [file, value] of parts) {
+            if (value == null) continue;
+            await fs.writeFile(path.join(this.avaHome, file), JSON.stringify(value, null, 2), 'utf-8');
+            count++;
+          }
+          break;
+        }
+        case 'datasets': {
+          // { datasets: { 'datasets/<kind>/<date>.jsonl': contents } } — relative
+          // to AVA_HOME, so recreate the subdirectories before writing.
+          const parsed = JSON.parse(content) as { datasets?: Record<string, string> };
+          for (const [rel, raw] of Object.entries(parsed.datasets ?? {})) {
+            // Never let a crafted export escape AVA_HOME.
+            const dest = path.resolve(this.avaHome, rel);
+            if (!dest.startsWith(path.resolve(this.avaHome) + path.sep)) continue;
+            await fs.mkdir(path.dirname(dest), { recursive: true });
+            await fs.writeFile(dest, raw, 'utf-8');
+            count++;
+          }
+          break;
+        }
+        case 'audit':
+          // Deliberately not importable. The audit log is an append-only record
+          // of what ran on THIS machine; overwriting it with another machine's
+          // history would destroy the very thing it exists to prove.
+          this.post({ type: 'error', message: "The activity log is export-only — it cannot be restored over this machine's own record." });
+          return;
         default:
           this.post({ type: 'error', message: `Unknown data type: ${dataType}` });
           return;

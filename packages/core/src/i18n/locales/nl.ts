@@ -3479,4 +3479,12 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Actueel',
   'dash.settings.section.export_import': 'Export & Import',
   'dash.portability.deselect_all': 'Alles deselecteren',
+  'dash.portability.type.profile': 'Profiel',
+  'dash.portability.type.profile_desc': 'Je naam, voornaamwoorden en lichamelijke basis.',
+  'dash.portability.type.brain': 'Gelerde vaardigheden',
+  'dash.portability.type.brain_desc': 'Procedures die Ava heeft geleerd en de lessen die ze heeft getrokken uit eerdere fouten.',
+  'dash.portability.type.datasets': 'Ingezamelde data',
+  'dash.portability.type.datasets_desc': 'De trainingsdata die tijdens je sessies is opgevangen, als je hebt ingestemd.',
+  'dash.portability.type.audit': 'Activiteitenlogboek',
+  'dash.portability.type.audit_desc': 'Een registratie van elk hulpmiddel dat Ava op deze computer heeft uitgevoerd.',
 };

@@ -3479,4 +3479,12 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'तत्काल',
   'dash.settings.section.export_import': 'निर्यात और आयात',
   'dash.portability.deselect_all': 'सभी का चयन हटाएं',
+  'dash.portability.type.profile': 'प्रोफ़ाइल',
+  'dash.portability.type.profile_desc': 'आपका नाम, सर्वनाम और शारीरिक विवरण।',
+  'dash.portability.type.brain': 'सीखे हुए कौशल',
+  'dash.portability.type.brain_desc': 'Ava द्वारा सीखी गई प्रक्रियाएं और पिछली गलतियों से लिए गए सबक।',
+  'dash.portability.type.datasets': 'संग्रहित डेटा',
+  'dash.portability.type.datasets_desc': 'आपके सत्रों से एकत्रित प्रशिक्षण डेटा, यदि आपने सहमति दी है।',
+  'dash.portability.type.audit': 'गतिविधि लॉग',
+  'dash.portability.type.audit_desc': 'इस मशीन पर Ava द्वारा चलाई गई प्रत्येक टूल का रिकॉर्ड।',
 };

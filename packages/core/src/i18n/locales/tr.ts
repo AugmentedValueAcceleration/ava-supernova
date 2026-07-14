@@ -3479,4 +3479,12 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Son Dakika',
   'dash.settings.section.export_import': 'Dışa Aktar & İçe Aktar',
   'dash.portability.deselect_all': 'Hepsini Seçimi Kaldır',
+  'dash.portability.type.profile': 'Profil',
+  'dash.portability.type.profile_desc': 'Adınız, zamirleriniz ve temel beden özellikleriniz.',
+  'dash.portability.type.brain': 'Öğrenilen beceriler',
+  'dash.portability.type.brain_desc': 'Ava\'nın öğrendiği prosedürler ve geçmiş hatalardan çıkardığı dersler.',
+  'dash.portability.type.datasets': 'Kaydedilen veriler',
+  'dash.portability.type.datasets_desc': 'Oturumlarınızdan kaydedilen eğitim verileri, izin verdiyseniz.',
+  'dash.portability.type.audit': 'Etkinlik günlüğü',
+  'dash.portability.type.audit_desc': 'Bu makinede Ava\'nın çalıştırdığı her aracın kaydı.',
 };

@@ -3479,4 +3479,12 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': '突發',
   'dash.settings.section.export_import': '匯出與匯入',
   'dash.portability.deselect_all': '取消全選',
+  'dash.portability.type.profile': '個人資料',
+  'dash.portability.type.profile_desc': '您的姓名、代詞與身體基本資料。',
+  'dash.portability.type.brain': '已學技能',
+  'dash.portability.type.brain_desc': 'Ava 已學習的程序，以及她從過去錯誤中汲取的教訓。',
+  'dash.portability.type.datasets': '已捕捉數據',
+  'dash.portability.type.datasets_desc': '從您的會話中捕捉的訓練數據，若您選擇加入。',
+  'dash.portability.type.audit': '活動日誌',
+  'dash.portability.type.audit_desc': '此機器上 Ava 運行過的所有工具的記錄。',
 };

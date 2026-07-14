@@ -3459,4 +3459,12 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Na gorąco',
   'dash.settings.section.export_import': 'Eksport & Import',
   'dash.portability.deselect_all': 'Odznacz wszystkie',
+  'dash.portability.type.profile': 'Profil',
+  'dash.portability.type.profile_desc': 'Twoje imię, zaimki i podstawowe cechy ciała.',
+  'dash.portability.type.brain': 'Opanowane umiejętności',
+  'dash.portability.type.brain_desc': 'Procedury, których nauczyła się Ava, oraz wnioski wyciągnięte z przeszłych błędów.',
+  'dash.portability.type.datasets': 'Zgromadzone dane',
+  'dash.portability.type.datasets_desc': 'Dane treningowe zebrane z Twoich sesji, jeśli wyraziłeś zgodę.',
+  'dash.portability.type.audit': 'Dziennik aktywności',
+  'dash.portability.type.audit_desc': 'Rejestr każdego narzędzia uruchomionego przez Avę na tym komputerze.',
 };

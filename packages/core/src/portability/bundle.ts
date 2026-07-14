@@ -29,14 +29,20 @@ export const BUNDLE_VERSION = 1 as const;
  */
 export const USER_DATA_PATHS: readonly string[] = [
   // Memory (v3 graph + legacy v2 + markdown mirror)
-  'memory',                 // graph.json, procedures.json, ambient.json, project-brain
+  'memory',                 // graph.json, brain.json
   'memory.json',
   'memory.md',
   'memory-v2-backup.json',
+  // The learned layer. These sit at the AVA_HOME root, NOT under memory/ —
+  // an earlier comment claimed otherwise and they were never actually backed up.
+  'procedures.json',        // procedural memory
+  'self-improvement.json',  // learnings from past failures
   // Conversations
   'history',                // {id}.json transcripts
   // Productivity + life data
-  'tasks.json',
+  'tasks',                  // tasks/tasks.json — a DIRECTORY. It was listed as
+                            // 'tasks.json' (a file that has never existed), so
+                            // every backup taken so far contained zero tasks.
   'journal',                // {date}.json
   'learning.json',
   'health',                 // profile.json, plans/, daily-plans/
@@ -44,8 +50,12 @@ export const USER_DATA_PATHS: readonly string[] = [
   'creative/metadata.json',
   // Personalisation
   'personality.json',
+  'general.json',           // GeneralProfile — name, body basics
   'config',                 // personality.json / app config that is user-set
   'projects.json',
+  'feedback.json',
+  // Captured training data. It's generated FROM the user, so it leaves with them.
+  'datasets',
 ];
 
 export interface DataBundle {

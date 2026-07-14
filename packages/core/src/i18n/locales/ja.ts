@@ -3481,4 +3481,12 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': '速報',
   'dash.settings.section.export_import': 'エクスポートとインポート',
   'dash.portability.deselect_all': 'すべて選択解除',
+  'dash.portability.type.profile': 'プロフィール',
+  'dash.portability.type.profile_desc': 'お名前、性代名詞、および身体の基本情報。',
+  'dash.portability.type.brain': '習得したスキル',
+  'dash.portability.type.brain_desc': 'アバが学習した手順と、過去の失敗から得た教訓。',
+  'dash.portability.type.datasets': '収集したデータ',
+  'dash.portability.type.datasets_desc': 'オプトインした場合、セッションから収集されたトレーニングデータ。',
+  'dash.portability.type.audit': 'アクティビティログ',
+  'dash.portability.type.audit_desc': 'このマシン上でアバが実行したすべてのツールの記録。',
 };

@@ -3451,4 +3451,12 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Última hora',
   'dash.settings.section.export_import': 'Exportar e Importar',
   'dash.portability.deselect_all': 'Deseleccionar todo',
+  'dash.portability.type.profile': 'Perfil',
+  'dash.portability.type.profile_desc': 'Tu nombre, pronombres y aspectos básicos del cuerpo.',
+  'dash.portability.type.brain': 'Habilidades aprendidas',
+  'dash.portability.type.brain_desc': 'Procedimientos que Ava ha aprendido y las lecciones que ha extraído de errores pasados.',
+  'dash.portability.type.datasets': 'Datos capturados',
+  'dash.portability.type.datasets_desc': 'Los datos de entrenamiento capturados de tus sesiones, si optaste por participar.',
+  'dash.portability.type.audit': 'Registro de actividad',
+  'dash.portability.type.audit_desc': 'Un registro de cada herramienta que Ava ha ejecutado en esta máquina.',
 };

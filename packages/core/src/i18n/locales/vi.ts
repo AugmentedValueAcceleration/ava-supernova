@@ -3479,4 +3479,12 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Tin nóng',
   'dash.settings.section.export_import': 'Xuất & Nhập',
   'dash.portability.deselect_all': 'Bỏ chọn tất cả',
+  'dash.portability.type.profile': 'Hồ sơ',
+  'dash.portability.type.profile_desc': 'Tên, đại từ và thông tin cơ bản về cơ thể.',
+  'dash.portability.type.brain': 'Kỹ năng đã học',
+  'dash.portability.type.brain_desc': 'Các quy trình Ava đã học và những bài học cô ấy rút ra từ những sai lầm trong quá khứ.',
+  'dash.portability.type.datasets': 'Dữ liệu đã thu thập',
+  'dash.portability.type.datasets_desc': 'Dữ liệu huấn luyện được thu thập từ các phiên làm việc của bạn, nếu bạn đã chọn tham gia.',
+  'dash.portability.type.audit': 'Nhật ký hoạt động',
+  'dash.portability.type.audit_desc': 'Ghi lại mọi công cụ Ava đã chạy trên máy này.',
 };

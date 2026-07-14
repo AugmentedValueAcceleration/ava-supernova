@@ -3479,4 +3479,12 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': '속보',
   'dash.settings.section.export_import': '내보내기 및 가져오기',
   'dash.portability.deselect_all': '모두 선택 취소',
+  'dash.portability.type.profile': '프로필',
+  'dash.portability.type.profile_desc': '이름, 대명사, 신체 기본 정보.',
+  'dash.portability.type.brain': '학습한 기능',
+  'dash.portability.type.brain_desc': 'Ava 가 습득한 절차와 과거 실수로부터 배운 교훈입니다.',
+  'dash.portability.type.datasets': '기록된 데이터',
+  'dash.portability.type.datasets_desc': '동의한 경우 세션에서 수집된 학습 데이터입니다.',
+  'dash.portability.type.audit': '활동 로그',
+  'dash.portability.type.audit_desc': '이 기기에서 Ava 가 실행한 모든 도구의 기록입니다.',
 };

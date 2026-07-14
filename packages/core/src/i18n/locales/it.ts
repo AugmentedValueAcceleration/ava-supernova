@@ -3479,4 +3479,12 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Urgente',
   'dash.settings.section.export_import': 'Esporta & Importa',
   'dash.portability.deselect_all': 'Deseleziona tutto',
+  'dash.portability.type.profile': 'Profilo',
+  'dash.portability.type.profile_desc': 'Il tuo nome, i pronomi e le informazioni fisiche di base.',
+  'dash.portability.type.brain': 'Competenze apprese',
+  'dash.portability.type.brain_desc': 'Le procedure che Ava ha appreso e le lezioni che ha tratto dagli errori passati.',
+  'dash.portability.type.datasets': 'Dati acquisiti',
+  'dash.portability.type.datasets_desc': 'I dati di addestramento acquisiti dalle tue sessioni, se hai acconsentito.',
+  'dash.portability.type.audit': 'Registro attività',
+  'dash.portability.type.audit_desc': 'Un registro di ogni strumento eseguito da Ava su questo dispositivo.',
 };

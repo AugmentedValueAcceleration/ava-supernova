@@ -3459,4 +3459,12 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'Терміново',
   'dash.settings.section.export_import': 'Експорт та імпорт',
   'dash.portability.deselect_all': 'Зняти виділення з усіх',
+  'dash.portability.type.profile': 'Профіль',
+  'dash.portability.type.profile_desc': 'Ваше ім\'я, займенники та основні дані про тіло.',
+  'dash.portability.type.brain': 'Опановані навички',
+  'dash.portability.type.brain_desc': 'Процедури, які освоила Ava, та уроки, які вона винесла з минулих помилок.',
+  'dash.portability.type.datasets': 'Зібрані дані',
+  'dash.portability.type.datasets_desc': 'Тренувальні дані, зібрані з ваших сесій, якщо ви погодилися.',
+  'dash.portability.type.audit': 'Журнал активності',
+  'dash.portability.type.audit_desc': 'Запис кожного інструменту, який запустила Ava на цьому пристрої.',
 };

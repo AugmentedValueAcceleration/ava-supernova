@@ -3479,4 +3479,12 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'ข่าวด่วน',
   'dash.settings.section.export_import': 'ส่งออก & นำเข้า',
   'dash.portability.deselect_all': 'ยกเลิกการเลือกทั้งหมด',
+  'dash.portability.type.profile': 'โปรไฟล์',
+  'dash.portability.type.profile_desc': 'ชื่อของคุณ คำสรรพนาม และข้อมูลร่างกายพื้นฐาน',
+  'dash.portability.type.brain': 'ทักษะที่เรียนรู้',
+  'dash.portability.type.brain_desc': 'ขั้นตอนที่ Ava เรียนรู้ และบทเรียนที่ได้จากข้อผิดพลาดในอดีต',
+  'dash.portability.type.datasets': 'ข้อมูลที่บันทึกไว้',
+  'dash.portability.type.datasets_desc': 'ข้อมูลการฝึกฝนที่บันทึกจากเซสชันของคุณ หากคุณเลือกเข้าร่วม',
+  'dash.portability.type.audit': 'บันทึกกิจกรรม',
+  'dash.portability.type.audit_desc': 'บันทึกเครื่องมือทุกชนิดที่ Ava รันบนเครื่องนี้',
 };

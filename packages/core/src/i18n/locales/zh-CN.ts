@@ -3459,4 +3459,12 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': '突发',
   'dash.settings.section.export_import': '导出与导入',
   'dash.portability.deselect_all': '取消全选',
+  'dash.portability.type.profile': '个人资料',
+  'dash.portability.type.profile_desc': '你的姓名、代词及基础身体信息。',
+  'dash.portability.type.brain': '已学技能',
+  'dash.portability.type.brain_desc': 'Ava 已学习的流程，以及她从过往错误中汲取的教训。',
+  'dash.portability.type.datasets': '采集的数据',
+  'dash.portability.type.datasets_desc': '若你选择启用，此处为从你的会话中捕获的训练数据。',
+  'dash.portability.type.audit': '活动日志',
+  'dash.portability.type.audit_desc': 'Ava 在此设备上运行过的所有工具记录。',
 };

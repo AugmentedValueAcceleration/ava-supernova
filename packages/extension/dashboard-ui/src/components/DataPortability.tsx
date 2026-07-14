@@ -18,6 +18,16 @@ const DATA_TYPES = [
   { id: 'creative', nameKey: 'dash.nav.creative_studio', icon: '\uD83C\uDFAC', descKey: 'dash.portability.type.creative_desc' },
   { id: 'settings', nameKey: 'dash.nav.settings', icon: '\u2699\uFE0F', descKey: 'dash.portability.type.settings_desc' },
   { id: 'personality', nameKey: 'dash.nav.personality', icon: '\uD83C\uDFA8', descKey: 'dash.portability.type.personality_desc' },
+  // Account-level GeneralProfile (general.json) \u2014 name, pronouns, body basics.
+  { id: 'profile', nameKey: 'dash.portability.type.profile', icon: '\uD83D\uDC64', descKey: 'dash.portability.type.profile_desc' },
+  // The learned layer: procedures.json + self-improvement.json. Ava's skills are
+  // built from the user's sessions, so they belong to the user.
+  { id: 'brain', nameKey: 'dash.portability.type.brain', icon: '\u2728', descKey: 'dash.portability.type.brain_desc' },
+  // Opt-in dataset capture (~/.ava/datasets) \u2014 generated FROM them, leaves WITH them.
+  { id: 'datasets', nameKey: 'dash.portability.type.datasets', icon: '\uD83D\uDCE6', descKey: 'dash.portability.type.datasets_desc' },
+  // Append-only audit trail. Export-only: it is never restored, because writing
+  // one machine's trail over another's would destroy the record it exists to keep.
+  { id: 'audit', nameKey: 'dash.portability.type.audit', icon: '\uD83D\uDCDC', descKey: 'dash.portability.type.audit_desc' },
 ];
 
 /** Cheap client-side check for an encrypted .ava-backup (no crypto needed —

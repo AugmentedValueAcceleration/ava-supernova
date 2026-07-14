@@ -3479,4 +3479,12 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'news.breaking': 'عاجل',
   'dash.settings.section.export_import': 'تصدير واستيراد',
   'dash.portability.deselect_all': 'إلغاء تحديد الكل',
+  'dash.portability.type.profile': 'الملف الشخصي',
+  'dash.portability.type.profile_desc': 'اسمك، ضمائرك، وأساسيات جسمك.',
+  'dash.portability.type.brain': 'المهارات المكتسبة',
+  'dash.portability.type.brain_desc': 'الإجراءات التي تعلمتها Ava والدروس المستفادة من أخطائها السابقة.',
+  'dash.portability.type.datasets': 'البيانات المسجلة',
+  'dash.portability.type.datasets_desc': 'بيانات التدريب المسجلة من جلساتك، إذا اخترت المشاركة.',
+  'dash.portability.type.audit': 'سجل النشاط',
+  'dash.portability.type.audit_desc': 'سجل لكل أداة شغلتها Ava على هذا الجهاز.',
 };
