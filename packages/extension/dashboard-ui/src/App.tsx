@@ -1837,7 +1837,12 @@ export function App() {
       {effectivePage !== 'chat' && (
         <div className="flex-1 flex flex-col overflow-hidden" style={{ order: 1 }}>
           <DashboardTopBar account={account} announcement={announcement} />
-          <main className="flex-1 overflow-y-auto p-8">
+          {/* flex column, so a page can claim the remaining height with flex-1.
+              Without this, `min-h-full` on a page root has nothing definite to
+              size against and any flex-1 section inside it collapses back to its
+              content height — which is why the Newsroom card kept stopping short
+              with dead space under it, whatever number I put on it. */}
+          <main className="flex flex-1 flex-col overflow-y-auto p-8">
             {errorMsg && (
               <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
                 {errorMsg}

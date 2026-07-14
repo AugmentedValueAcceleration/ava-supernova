@@ -3477,4 +3477,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'Что мы не смогли проверить',
   'dash.nav.early_access': 'Ранний доступ',
   'news.breaking': 'Срочно',
+  'dash.settings.section.export_import': 'Экспорт и импорт',
+  'dash.portability.deselect_all': 'Снять выделение со всех',
 };

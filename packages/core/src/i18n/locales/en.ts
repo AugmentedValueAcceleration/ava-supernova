@@ -1064,6 +1064,9 @@ export const enStrings = {
   'dash.settings.provider_keys': 'API Keys (BYOK)',
   'dash.settings.section.your_ai': 'Your AI',
   'dash.settings.section.model': 'Model',
+  // Export / import — moved out of the sidebar into Settings -> Data,
+  // alongside the other privacy-and-data controls.
+  'dash.settings.section.export_import': 'Export & Import',
   'dash.settings.section.privacy': 'Privacy & Data',
   'dash.settings.section.behavior': 'Behavior',
   'dash.settings.section.advanced': 'Advanced',
@@ -3086,6 +3089,9 @@ export const enStrings = {
   'dash.portability.importing': 'Importing...',
   'dash.portability.pick_specific': 'Or pick specific data types to export individually:',
   'dash.portability.select_all': 'Select all',
+  // The same button flips once everything is ticked — a 'Select all' that
+  // does nothing when all is already selected is a dead control.
+  'dash.portability.deselect_all': 'Deselect all',
   'dash.portability.select_data': 'Select data to export',
   'dash.portability.title': 'Data Portability',
   'dash.portability.unknown_format': 'Unknown format',

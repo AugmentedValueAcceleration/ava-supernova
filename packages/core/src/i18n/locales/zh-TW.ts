@@ -3477,4 +3477,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': '未能核實之事項',
   'dash.nav.early_access': '搶先體驗',
   'news.breaking': '突發',
+  'dash.settings.section.export_import': '匯出與匯入',
+  'dash.portability.deselect_all': '取消全選',
 };

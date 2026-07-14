@@ -3477,4 +3477,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'ما لم نتمكن من التحقق منه',
   'dash.nav.early_access': 'الوصول المبكر',
   'news.breaking': 'عاجل',
+  'dash.settings.section.export_import': 'تصدير واستيراد',
+  'dash.portability.deselect_all': 'إلغاء تحديد الكل',
 };

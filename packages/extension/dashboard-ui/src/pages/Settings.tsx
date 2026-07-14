@@ -4,6 +4,7 @@ import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
 import { Icon } from '../components/Icon';
+import { DataPortability } from '../components/DataPortability';
 import type { DashboardSettings, ProviderKeyStatus } from '../types/messages';
 
 interface SettingsProps {
@@ -476,6 +477,16 @@ export function Settings({
         )}
       </div>
 
+
+      {/* ── Export / Import ────────────────────────────────────────────
+          It used to be a 22px icon at the top of the sidebar, wedged between two
+          view controls. Nobody goes to a sidebar to find their data — they come
+          to Settings → Data, which is where privacy and data already live. */}
+      <SectionLabel>{tt('dash.settings.section.export_import', 'Export & Import')}</SectionLabel>
+      <div className="mb-4">
+        <DataPortability isOpen inline onClose={() => { /* inline — nothing to close */ }} />
+      </div>
+
       </>}
       {/* ── Permissions tab — Behavior (permission mode + caps) ────── */}
       {tab === 'permissions' && <>
@@ -833,6 +844,7 @@ export function Settings({
           </div>
         </>
       )}
+
 
       </>}
       {/* ── Advanced tab — Language + Advanced + Danger Zone ─────────── */}

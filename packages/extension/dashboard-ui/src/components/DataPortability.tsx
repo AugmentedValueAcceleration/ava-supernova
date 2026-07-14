@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { post } from '../vscode';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 
 // Visual-only metadata \u2014 labels/descriptions are resolved through t() at the
 // render site (module consts evaluate once at import, so a live t() here would
@@ -30,9 +30,12 @@ function looksLikeSealedBackup(content: string, name: string): boolean {
 interface DataPortabilityProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Render as a section of Settings → Data instead of a floating popup. Same
+   *  component and same logic — only the shell differs. */
+  inline?: boolean;
 }
 
-export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
+export function DataPortability({ isOpen, onClose, inline = false }: DataPortabilityProps) {
   useLocale();
   const [tab, setTab] = useState<'export' | 'import'>('export');
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
@@ -49,15 +52,16 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
-  // Close on outside click
+  // Close on outside click — popup only. Inline it IS the page, so a click
+  // anywhere else would close the thing you're looking at.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || inline) return;
     const handler = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [isOpen, onClose]);
+  }, [isOpen, inline, onClose]);
 
   // Listen for export results from host
   useEffect(() => {
@@ -121,8 +125,14 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
     });
   }, []);
 
-  const selectAllExport = useCallback(() => {
-    setExportSelected(new Set(DATA_TYPES.map(d => d.id)));
+  /** Everything selected → the button becomes Deselect all. A "Select all" that
+   *  does nothing once everything is already selected is a dead control. */
+  const allExportSelected = exportSelected.size === DATA_TYPES.length;
+
+  const toggleAllExport = useCallback(() => {
+    setExportSelected(prev =>
+      prev.size === DATA_TYPES.length ? new Set() : new Set(DATA_TYPES.map(d => d.id)),
+    );
   }, []);
 
   const handleExport = useCallback(() => {
@@ -204,6 +214,30 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
 
   if (!isOpen) return null;
 
+  // Inline mode: the same panel, rendered as a section of Settings → Data rather
+  // than as a floating popup pinned to a sidebar icon. Same component, same
+  // logic — only the shell changes, because the logic was never the problem.
+  const shellProps = inline
+    ? {
+        // Matches the other Settings cards: full width, same border, same card
+        // background. (I'd capped this at 560px, which made it the one card on
+        // the page that didn't line up with the rest.)
+        className: 'rounded-xl border',
+        style: {
+          width: '100%',
+          background: 'var(--bg-card)',
+          borderColor: 'var(--border-card)',
+        } as React.CSSProperties,
+      }
+    : {
+        className: 'fixed z-[9999] rounded-xl border',
+        style: {
+          top: 80, left: 60, width: 340, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto',
+          background: '#1e1e2e', borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+        } as React.CSSProperties,
+      };
+
   const tabBtn = (which: 'export' | 'import') => ({
     background: tab === which ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent',
     color: tab === which ? 'var(--accent)' : 'var(--text-muted)',
@@ -214,16 +248,14 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
   const dataTypeIcon = (id: string) => DATA_TYPES.find(d => d.id === id)?.icon || '\uD83D\uDCC1';
 
   return (
-    <div ref={panelRef} className="fixed z-[9999] rounded-xl border"
-      style={{
-        top: 80, left: 60, width: 340, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto',
-        background: '#1e1e2e', borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
-        boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-      }}
-    >
-      {/* Header */}
+    <div ref={panelRef} {...shellProps}>
+      {/* Header. Inline, the page already carries an "Export & Import" section
+          label above this — repeating the title here just stacks two headings on
+          top of each other. So inline shows only the Export / Import switch. */}
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
-        <span className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.portability.title')}</span>
+        {inline
+          ? <span />
+          : <span className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.portability.title')}</span>}
         <div className="flex gap-1">
           <button onClick={() => setTab('export')} style={tabBtn('export')}>{t('dash.portability.export')}</button>
           <button onClick={() => setTab('import')} style={tabBtn('import')}>{t('dash.portability.import')}</button>
@@ -266,41 +298,18 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
               </div>
             </div>
           </button>
-          {/* GDPR Article 20 — full cloud-stored data export. Lives at
-              the top of the Export tab as a hero CTA so users see the
-              "everything in one file" path before the per-type list.
-              Hits /api/export-my-data via the host (auth lives in
-              SecretStorage). Distinct from per-type below because it
-              covers tables the per-type flow doesn't (subscriptions,
-              consent records, etc.) — true GDPR completeness. */}
-          {/* Cloud sunset — the platform stops storing user data on 1 Jul 2026.
-              This is the last-chance path to pull anything we still hold in the
-              cloud before it's deleted for good. Styled amber as a warning. */}
-          <button
-            onClick={() => post({ type: 'export_full_account_data' } as { type: 'export_full_account_data' })}
-            className="mb-3 w-full rounded-lg border px-3 py-2.5 text-left transition hover:bg-amber-500/10"
-            style={{ borderColor: 'rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.08)' }}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-base">{'⚠️'}</span>
-              <div className="flex-1">
-                <div className="text-xs font-semibold" style={{ color: '#fbbf24' }}>{t('dash.portability.download_all')}</div>
-                <div className="text-[10px] font-semibold mt-0.5" style={{ color: '#fbbf24' }}>
-                  {t('dash.portability.cloud_sunset')}
-                </div>
-                <div className="text-[10px] opacity-60 mt-0.5" style={{ color: '#a6adc8' }}>
-                  {t('dash.portability.download_all_desc')}
-                </div>
-              </div>
-            </div>
-          </button>
-          <div className="mb-3 px-1 text-[10px] opacity-50" style={{ color: '#6c7086' }}>
-            {t('dash.portability.pick_specific')}
-          </div>
+          {/* The "Download all my cloud data" warning is GONE. It told users that
+              cloud storage would be deleted on 1 July 2026 and to pull their data
+              before then. That date has passed and nothing is stored in the cloud
+              any more — so the banner was warning about a deadline that no longer
+              exists, for data that no longer exists. A stale warning is worse than
+              no warning: it teaches people to ignore the amber ones that matter. */}
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] uppercase tracking-wider opacity-40">{t('dash.portability.select_data')}</span>
-            <button onClick={selectAllExport} className="text-[10px] bg-transparent border-none cursor-pointer" style={{ color: 'var(--accent)' }}>
-              {t('dash.portability.select_all')}
+            <button onClick={toggleAllExport} className="text-[10px] bg-transparent border-none cursor-pointer" style={{ color: 'var(--accent)' }}>
+              {allExportSelected
+                ? tt('dash.portability.deselect_all', 'Deselect all')
+                : t('dash.portability.select_all')}
             </button>
           </div>
           {DATA_TYPES.map(dt => {

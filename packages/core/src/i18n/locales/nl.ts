@@ -3477,4 +3477,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'Wat we niet konden verifiëren',
   'dash.nav.early_access': 'Vroege toegang',
   'news.breaking': 'Actueel',
+  'dash.settings.section.export_import': 'Export & Import',
+  'dash.portability.deselect_all': 'Alles deselecteren',
 };

@@ -3477,4 +3477,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': '확인되지 않은 사항',
   'dash.nav.early_access': '얼리 액세스',
   'news.breaking': '속보',
+  'dash.settings.section.export_import': '내보내기 및 가져오기',
+  'dash.portability.deselect_all': '모두 선택 취소',
 };

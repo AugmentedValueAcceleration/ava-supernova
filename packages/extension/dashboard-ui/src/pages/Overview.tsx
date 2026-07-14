@@ -281,7 +281,11 @@ export function Overview({
   })();
 
   return (
-    <div className="w-full">
+    // flex-1 inside the (now) flex-column <main>: this page fills the remaining
+    // height, so the Newsroom tab can claim what's left and put its pager on the
+    // bottom edge. min-h-0 lets the taller tabs (Daily) still overflow and scroll
+    // as they always did, instead of being squashed.
+    <div className="flex w-full min-h-0 flex-1 flex-col">
       {/* ── Hero strip — matches IDE Command Centre framing ──────────── */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -393,12 +397,12 @@ export function Overview({
           thing anyone ever saw. At a tenth of the size and first in the eye-line,
           it gets more attention, not less. */}
       {tab === 'briefing' && (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col">
           <ReleaseStrip release={latestRelease} />
-          <div className="mb-4">
+          <div className="flex min-h-0 flex-1 flex-col">
             <NewsWidget articles={newsArticles} articleLoading={articleLoading} onOpenArticle={onOpenArticle} />
           </div>
-        </>
+        </div>
       )}
 
       {/* ── Reflect tab — Memory + Learning ──────────────────────────── */}
@@ -750,14 +754,19 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
   };
 
   return (
-    <WidgetCard title={t('dash.cc.latest_news')} icon={<Newspaper weight="duotone" size={16} />} onRefresh={() => post({ type: 'load_news' })}>
-      {/* Fill the viewport, don't guess at a height.
-          The first attempt set min-h-[560px] — useless, because the content is
-          already taller than that, so the card never grew and the pager stayed
-          welded under the last row while a screenful of empty space sat below.
-          Sized against the actual viewport instead: the tail takes the slack and
-          the pagination lands on the bottom edge. */}
-      <div className="flex min-h-[calc(100vh-300px)] flex-col">
+    <WidgetCard
+      title={t('dash.cc.latest_news')}
+      icon={<Newspaper weight="duotone" size={16} />}
+      onRefresh={() => post({ type: 'load_news' })}
+      // Fill the parent. NOT a guessed height: min-h-[560px] did nothing (the
+      // content is already taller), and 100vh overflowed the scroll container and
+      // gave you a scrollbar. Both were me inventing a number instead of using the
+      // space that's actually there. The card stretches, the tail takes the slack,
+      // the pager lands on the bottom edge — and the page fits on one screen.
+      className="flex h-full flex-col"
+      bodyClassName="flex min-h-0 flex-1 flex-col"
+    >
+      <div className="flex min-h-0 flex-1 flex-col">
       {/* Category carousel */}
       <div
         className="news-carousel mb-3 flex gap-1.5 overflow-x-auto pb-1"
@@ -1213,6 +1222,8 @@ function WidgetCard({
   action,
   onRefresh,
   children,
+  className = '',
+  bodyClassName = '',
 }: {
   title: string;
   icon: React.ReactNode;
@@ -1220,6 +1231,11 @@ function WidgetCard({
   action?: { label: string; onClick: () => void };
   onRefresh?: () => void;
   children: React.ReactNode;
+  /** Lets a card stretch to fill its parent (the Newsroom does; nothing else
+   *  needs to). Without this the card only ever grows to fit its content, which
+   *  is why a guessed min-height could never put the pager on the bottom edge. */
+  className?: string;
+  bodyClassName?: string;
 }) {
   const [spinning, setSpinning] = useState(false);
   const handleRefresh = () => {
@@ -1229,8 +1245,8 @@ function WidgetCard({
     setTimeout(() => setSpinning(false), 1000);
   };
   return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-      <div className="mb-3 flex items-center justify-between">
+    <div className={`rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 ${className}`}>
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[var(--accent)] shrink-0">{icon}</span>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{title}</h3>
@@ -1260,7 +1276,7 @@ function WidgetCard({
         )}
         </div>
       </div>
-      {children}
+      {bodyClassName ? <div className={bodyClassName}>{children}</div> : children}
     </div>
   );
 }

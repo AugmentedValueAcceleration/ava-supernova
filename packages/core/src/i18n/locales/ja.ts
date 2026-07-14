@@ -3479,4 +3479,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': '検証できなかったこと',
   'dash.nav.early_access': '早期アクセス',
   'news.breaking': '速報',
+  'dash.settings.section.export_import': 'エクスポートとインポート',
+  'dash.portability.deselect_all': 'すべて選択解除',
 };

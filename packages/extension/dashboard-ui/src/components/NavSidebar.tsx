@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } fro
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary, HealthPlanSummary, ProviderKeyStatus } from '../types/messages';
-import { DataPortability } from './DataPortability';
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
   Brain, ChartLineUp, GearSix, Question, Barbell, GraduationCap,
+  ArrowsLeftRight, CaretLeft, CaretRight,
 } from '@phosphor-icons/react';
 
 interface NavSidebarProps {
@@ -152,7 +152,6 @@ export function NavSidebar({
   // useRef and useCallback hooks below — toggling collapse changed the
   // hook count mid-render and React threw #300. Keep hooks above any
   // conditional returns. (Rules of Hooks.) ────────────────────────────────
-  const [dataPortOpen, setDataPortOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('ava-sidebar-width');
     return saved ? Math.max(180, Math.min(400, Number(saved))) : 224;
@@ -205,19 +204,27 @@ export function NavSidebar({
   if (collapsed) {
     return (
       <nav
-        className="flex shrink-0 flex-col h-full border-r border-[var(--border-card)] bg-[var(--bg-card)] items-center py-3 gap-1"
+        className="relative flex shrink-0 flex-col h-full border-r border-[var(--border-card)] bg-[var(--bg-card)] items-center py-3 gap-1"
         style={{ width: RAIL_WIDTH }}
       >
-        {/* Expand button */}
+        {/* Expand — the SAME handle, in the SAME place, as the collapse control on
+            the expanded panel. It was a different glyph in a different position,
+            so the control moved on you the moment you used it. The arrow points
+            outward: the way the panel will come back. */}
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
             title={t('dash.nav.expand_sidebar')}
-            className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--text-muted)] hover:text-white bg-transparent border-none cursor-pointer mb-1"
+            className="absolute z-20 flex h-14 w-[14px] -translate-y-1/2 items-center justify-center border border-[var(--border-card)] bg-[var(--bg-card)] text-[#6c7086] transition-colors hover:bg-[var(--bg-input)] hover:text-[#cdd6f4]"
+            style={
+              sidebarSide === 'right'
+                ? { top: '50%', left: -1, borderRadius: '4px 0 0 4px', borderRight: 'none' }
+                : { top: '50%', right: -1, borderRadius: '0 4px 4px 0', borderLeft: 'none' }
+            }
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
-              <path d="M1 2h14v12H1V2zm1 1v10h4V3H2zm5 0v10h7V3H7z" />
-            </svg>
+            {sidebarSide === 'right'
+              ? <CaretLeft weight="bold" size={11} />
+              : <CaretRight weight="bold" size={11} />}
           </button>
         )}
 
@@ -279,6 +286,28 @@ export function NavSidebar({
         className="absolute top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-[color-mix(in_srgb,var(--accent)_30%,transparent)] transition-colors"
         style={{ [sidebarSide === 'right' ? 'left' : 'right']: 0 }}
       />
+
+      {/* Collapse — a handle on the border facing the content, halfway down.
+          It used to be a 22px icon buried in a row of three at the top, where you
+          neither look for it nor reach for it. On the edge it is where the hand
+          already is, and the arrow points the way the panel will actually go: left
+          when the sidebar is docked left, right when it's flipped. */}
+      {onToggleSidebar && (
+        <button
+          onClick={onToggleSidebar}
+          title={t('dash.nav.hide_sidebar')}
+          className="group absolute z-20 flex h-14 w-[14px] -translate-y-1/2 items-center justify-center border border-[var(--border-card)] bg-[var(--bg-card)] text-[#6c7086] transition-colors hover:bg-[var(--bg-input)] hover:text-[#cdd6f4]"
+          style={
+            sidebarSide === 'right'
+              ? { top: '50%', left: -1, borderRadius: '4px 0 0 4px', borderRight: 'none' }
+              : { top: '50%', right: -1, borderRadius: '0 4px 4px 0', borderLeft: 'none' }
+          }
+        >
+          {sidebarSide === 'right'
+            ? <CaretRight weight="bold" size={11} />
+            : <CaretLeft weight="bold" size={11} />}
+        </button>
+      )}
       {/* Logo + action buttons */}
       <div className="border-b border-[var(--border-card)] px-4 py-3">
         <div className="flex items-center gap-2 mb-2">
@@ -287,52 +316,22 @@ export function NavSidebar({
             {aiName || 'Ava'} Supernova
           </span>
         </div>
-        {/* Sidebar control icons — stroke-based, matches IDE Sidebar at
-            Sidebar.tsx:1338-1377. 24×24 viewBox, 14px render, stroke-2,
-            currentColor → muted by default, cdd6f4 on hover. */}
+        {/* Sidebar controls.
+            Only the flip lives up here now. Collapse moved to a handle on the
+            sidebar's inner border (where you actually reach for it), and Export /
+            Import moved to Settings → Data (where you'd look for it). Icons are
+            Phosphor duotone, the same pack as the nav below — the hand-rolled SVGs
+            were a second icon language in a 22px space. */}
         <div className="flex items-center gap-0.5">
-          {onToggleSidebar && (
-            <button
-              onClick={onToggleSidebar}
-              title={t('dash.nav.hide_sidebar')}
-              className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-              </svg>
-            </button>
-          )}
           {onFlipSidebar && (
             <button
               onClick={onFlipSidebar}
               title={sidebarSide === 'left' ? t('dash.nav.move_sidebar_right') : t('dash.nav.move_sidebar_left')}
               className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="17 1 21 5 17 9" />
-                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                <polyline points="7 23 3 19 7 15" />
-                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-              </svg>
+              <ArrowsLeftRight weight="duotone" size={15} />
             </button>
           )}
-          {/* Data portability */}
-          <div className="relative">
-            <button
-              onClick={() => setDataPortOpen(!dataPortOpen)}
-              title={t('dash.nav.export_import')}
-              className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
-              style={dataPortOpen ? { color: '#cdd6f4' } : undefined}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </button>
-            <DataPortability isOpen={dataPortOpen} onClose={() => setDataPortOpen(false)} />
-          </div>
         </div>
       </div>
 

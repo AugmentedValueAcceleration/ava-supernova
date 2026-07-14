@@ -3477,4 +3477,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'Điều chưa thể xác minh',
   'dash.nav.early_access': 'Truy cập sớm',
   'news.breaking': 'Tin nóng',
+  'dash.settings.section.export_import': 'Xuất & Nhập',
+  'dash.portability.deselect_all': 'Bỏ chọn tất cả',
 };

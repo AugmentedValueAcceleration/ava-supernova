@@ -3475,4 +3475,6 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'O que não pudemos verificar',
   'dash.nav.early_access': 'Acesso Antecipado',
   'news.breaking': 'Úrgente',
+  'dash.settings.section.export_import': 'Exportar & Importar',
+  'dash.portability.deselect_all': 'Desmarcar tudo',
 };

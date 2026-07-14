@@ -3457,4 +3457,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': '无法核实内容',
   'dash.nav.early_access': '抢先体验',
   'news.breaking': '突发',
+  'dash.settings.section.export_import': '导出与导入',
+  'dash.portability.deselect_all': '取消全选',
 };

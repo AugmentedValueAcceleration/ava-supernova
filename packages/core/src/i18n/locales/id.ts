@@ -3475,4 +3475,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'Apa yang tidak dapat kami verifikasi',
   'dash.nav.early_access': 'Akses Dini',
   'news.breaking': 'Terkini',
+  'dash.settings.section.export_import': 'Ekspor & Impor',
+  'dash.portability.deselect_all': 'Batal pilih semua',
 };

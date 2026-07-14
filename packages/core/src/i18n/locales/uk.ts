@@ -3457,4 +3457,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'Що ми не змогли перевірити',
   'dash.nav.early_access': 'Ранній доступ',
   'news.breaking': 'Терміново',
+  'dash.settings.section.export_import': 'Експорт та імпорт',
+  'dash.portability.deselect_all': 'Зняти виділення з усіх',
 };

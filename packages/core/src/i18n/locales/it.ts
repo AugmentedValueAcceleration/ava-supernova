@@ -3301,7 +3301,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.integrity_deleted': 'Eliminato da',
   'dash.audit.integrity_unverifiable': 'Non verificabile',
   'dash.audit.integrity_hash_after': 'SHA-256 (dopo)',
-  'dash.audit.integrity_git_sha': 'Git HEAD',
+  'dash.audit.integrity_git_sha': 'Git Testata',
   'dash.audit.integrity_size': 'Dimensione',
   'dash.audit.security_lens': 'Sicurezza',
   'dash.audit.security_lens_title': 'Lente sicurezza — mostra solo le chiamate che hanno attraversato un confine sandbox: rete, scritture fuori dallo spazio di lavoro, accesso ai segreti, strumenti pericolosi',
@@ -3477,4 +3477,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'Ciò che non abbiamo potuto verificare',
   'dash.nav.early_access': 'Accesso anticipato',
   'news.breaking': 'Urgente',
+  'dash.settings.section.export_import': 'Esporta & Importa',
+  'dash.portability.deselect_all': 'Deseleziona tutto',
 };

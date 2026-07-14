@@ -3477,4 +3477,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'जो हमने सत्यापित नहीं किया',
   'dash.nav.early_access': 'प्रारंभिक पहुंच',
   'news.breaking': 'तत्काल',
+  'dash.settings.section.export_import': 'निर्यात और आयात',
+  'dash.portability.deselect_all': 'सभी का चयन हटाएं',
 };

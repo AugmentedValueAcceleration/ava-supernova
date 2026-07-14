@@ -3477,4 +3477,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'Doğrulayamadıklarımız',
   'dash.nav.early_access': 'Erken Erişim',
   'news.breaking': 'Son Dakika',
+  'dash.settings.section.export_import': 'Dışa Aktar & İçe Aktar',
+  'dash.portability.deselect_all': 'Hepsini Seçimi Kaldır',
 };

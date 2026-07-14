@@ -3477,4 +3477,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.article.unverified': 'สิ่งที่เราไม่สามารถยืนยันได้',
   'dash.nav.early_access': 'การเข้าถึงก่อน',
   'news.breaking': 'ข่าวด่วน',
+  'dash.settings.section.export_import': 'ส่งออก & นำเข้า',
+  'dash.portability.deselect_all': 'ยกเลิกการเลือกทั้งหมด',
 };
