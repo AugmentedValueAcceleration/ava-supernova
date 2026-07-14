@@ -3467,4 +3467,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': '若你选择启用，此处为从你的会话中捕获的训练数据。',
   'dash.portability.type.audit': '活动日志',
   'dash.portability.type.audit_desc': 'Ava 在此设备上运行过的所有工具记录。',
+  'dash.portability.exported': '已导出 {count} 个文件。',
+  'dash.portability.import_unknown': '该文件不是有效的 Ava 导出。',
+  'dash.portability.keys_not_exported': '您的 API 密钥存储在操作系统密钥链中，而非此数据中——因此恢复将带回所有内容，除了密钥。',
 };

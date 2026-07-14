@@ -14,10 +14,23 @@ export {
   gatherBundle,
   restoreBundle,
   USER_DATA_PATHS,
+  ACCOUNT_DATA_PATHS,
+  GLOBAL_DATA_PATHS,
   BUNDLE_VERSION,
   type DataBundle,
   type RestoreResult,
 } from './bundle.js';
+// Per-type export/import, shared by every surface so they cannot drift.
+export {
+  exportDataType,
+  importDataType,
+  isCoreDataType,
+  NotImportableError,
+  CORE_DATA_TYPES,
+  type CoreDataType,
+  type ExportedFile,
+  type DataRoots,
+} from './data-types.js';
 
 import { seal, open } from './crypto.js';
 import { gatherBundle, restoreBundle, type DataBundle, type RestoreResult } from './bundle.js';
@@ -29,7 +42,7 @@ import { gatherBundle, restoreBundle, type DataBundle, type RestoreResult } from
 export async function exportEncryptedBackup(
   avaHome: string,
   passphrase: string,
-  opts: { source: string; createdAt?: string },
+  opts: { source: string; createdAt?: string; scopedDir?: string },
 ): Promise<string> {
   const bundle = await gatherBundle(avaHome, opts);
   return seal(JSON.stringify(bundle), passphrase);
@@ -43,7 +56,7 @@ export async function importEncryptedBackup(
   avaHome: string,
   envelopeJson: string,
   passphrase: string,
-  opts?: { overwrite?: boolean },
+  opts?: { overwrite?: boolean; scopedDir?: string },
 ): Promise<{ bundle: DataBundle; result: RestoreResult }> {
   const json = open(envelopeJson, passphrase);
   let bundle: DataBundle;

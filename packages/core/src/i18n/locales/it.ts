@@ -3382,7 +3382,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.check_against': 'Verifica rispetto a',
   'dash.studio.colour_brand': 'Colore — dal Kit Marchio',
   'dash.studio.finish': 'Fine',
-  'dash.studio.logo.title': 'Logo',
+  'dash.studio.logo.title': 'Logotipo',
   'dash.studio.logo.subtitle': 'L\'intera identità del tuo marchio — un sistema, tutte le sue forme. Parla con Ava per progettarlo; verifica ogni forma rispetto a chiaro e scuro proprio qui.',
   'dash.studio.logo.pick_hint': 'Clicca una direzione per sceglierlo — o chiedi ad Ava quale sceglierebbe lei.',
   'dash.studio.logo.empty_title': 'Progettiamo un logo per',
@@ -3487,4 +3487,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'I dati di addestramento acquisiti dalle tue sessioni, se hai acconsentito.',
   'dash.portability.type.audit': 'Registro attività',
   'dash.portability.type.audit_desc': 'Un registro di ogni strumento eseguito da Ava su questo dispositivo.',
+  'dash.portability.exported': 'Esportati {count} file.',
+  'dash.portability.import_unknown': 'Questo file non è un\'esportazione Ava riconosciuta.',
+  'dash.portability.keys_not_exported': 'Le tue chiavi API sono memorizzate nel portachiavi del tuo sistema operativo, non in questi dati — quindi un ripristino riporta tutto tranne le chiavi.',
 };

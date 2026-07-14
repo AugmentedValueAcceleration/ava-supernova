@@ -3467,4 +3467,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'Die Trainingsdaten, die aus Ihren Sitzungen erfasst wurden, falls Sie zugestimmt haben.',
   'dash.portability.type.audit': 'Aktivitätsprotokoll',
   'dash.portability.type.audit_desc': 'Eine Aufzeichnung aller Werkzeuge, die Ava auf diesem Computer ausgeführt hat.',
+  'dash.portability.exported': '{count} Datei(en) exportiert.',
+  'dash.portability.import_unknown': 'Diese Datei ist kein erkannter Ava-Export.',
+  'dash.portability.keys_not_exported': 'Ihre API-Schlüssel werden im Schlüsselbund Ihres Betriebssystems gespeichert und nicht in diesen Daten – eine Wiederherstellung stellt daher alles außer den Schlüsseln wieder her.',
 };

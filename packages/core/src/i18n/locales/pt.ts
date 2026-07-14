@@ -3485,4 +3485,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'Os dados de treinamento capturados das suas sessões, caso tenha optado por compartilhar.',
   'dash.portability.type.audit': 'Registro de atividades',
   'dash.portability.type.audit_desc': 'Um registro de todas as ferramentas que a Ava executou neste computador.',
+  'dash.portability.exported': '{count} arquivo(s) exportado(s).',
+  'dash.portability.import_unknown': 'Esse arquivo não é uma exportação reconhecida da Ava.',
+  'dash.portability.keys_not_exported': 'Suas chaves de API estão armazenadas no chaveiro do seu sistema operacional, não nesses dados — então uma restauração traz tudo de volta, exceto as chaves.',
 };

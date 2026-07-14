@@ -186,8 +186,10 @@ export { needsMigration, migrateV2ToV3 } from './memory/migration-v3.js';
 export {
   seal, open, isSealedEnvelope,
   gatherBundle, restoreBundle, exportEncryptedBackup, importEncryptedBackup,
-  USER_DATA_PATHS, BUNDLE_VERSION,
+  USER_DATA_PATHS, ACCOUNT_DATA_PATHS, GLOBAL_DATA_PATHS, BUNDLE_VERSION,
+  exportDataType, importDataType, isCoreDataType, NotImportableError, CORE_DATA_TYPES,
   type SealedEnvelope, type DataBundle, type RestoreResult,
+  type CoreDataType, type ExportedFile, type DataRoots,
 } from './portability/index.js';
 
 export { exportTrainingData, toJsonlSft, toJsonlWithReasoning } from './memory/training-export.js';

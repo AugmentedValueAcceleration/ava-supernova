@@ -3467,4 +3467,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'Dane treningowe zebrane z Twoich sesji, jeśli wyraziłeś zgodę.',
   'dash.portability.type.audit': 'Dziennik aktywności',
   'dash.portability.type.audit_desc': 'Rejestr każdego narzędzia uruchomionego przez Avę na tym komputerze.',
+  'dash.portability.exported': 'Wyeksportowano {count} plik(ów).',
+  'dash.portability.import_unknown': 'Ten plik nie jest rozpoznawany jako eksport Ava.',
+  'dash.portability.keys_not_exported': 'Twoje klucze API są przechowywane w magazynie kluczy systemu operacyjnego, a nie w tych danych — więc przywrócenie przywraca wszystko oprócz kluczy.',
 };

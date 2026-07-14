@@ -3487,4 +3487,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'आपके सत्रों से एकत्रित प्रशिक्षण डेटा, यदि आपने सहमति दी है।',
   'dash.portability.type.audit': 'गतिविधि लॉग',
   'dash.portability.type.audit_desc': 'इस मशीन पर Ava द्वारा चलाई गई प्रत्येक टूल का रिकॉर्ड।',
+  'dash.portability.exported': '{count} फ़ाइल(ें) निर्यात की गईं।',
+  'dash.portability.import_unknown': 'यह फ़ाइल एक मान्य Ava निर्यात नहीं है।',
+  'dash.portability.keys_not_exported': 'आपकी API कुंजियाँ आपके ऑपरेटिंग सिस्टम के कीचेन में संग्रहीत हैं, इस डेटा में नहीं — इसलिए बहाली से कुंजियों को छोड़कर सब कुछ वापस आ जाता है।',
 };

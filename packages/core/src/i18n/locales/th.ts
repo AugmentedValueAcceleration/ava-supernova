@@ -3487,4 +3487,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'ข้อมูลการฝึกฝนที่บันทึกจากเซสชันของคุณ หากคุณเลือกเข้าร่วม',
   'dash.portability.type.audit': 'บันทึกกิจกรรม',
   'dash.portability.type.audit_desc': 'บันทึกเครื่องมือทุกชนิดที่ Ava รันบนเครื่องนี้',
+  'dash.portability.exported': 'ส่งออกแล้ว {count} ไฟล์.',
+  'dash.portability.import_unknown': 'ไฟล์นั้นไม่เป็นการส่งออก Ava ที่รองรับ.',
+  'dash.portability.keys_not_exported': 'คีย์ API ของคุณถูกเก็บไว้ในที่เก็บรหัสของระบบปฏิบัติการ ไม่ใช่ในข้อมูลนี้ — ดังนั้นการกู้คืนจะนำทุกอย่างกลับมา ยกเว้นคีย์.',
 };

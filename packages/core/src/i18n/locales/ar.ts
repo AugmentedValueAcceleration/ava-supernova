@@ -3487,4 +3487,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'بيانات التدريب المسجلة من جلساتك، إذا اخترت المشاركة.',
   'dash.portability.type.audit': 'سجل النشاط',
   'dash.portability.type.audit_desc': 'سجل لكل أداة شغلتها Ava على هذا الجهاز.',
+  'dash.portability.exported': 'تم تصدير {count} ملف.',
+  'dash.portability.import_unknown': 'هذا الملف ليس تصدير Ava مُعترفًا به.',
+  'dash.portability.keys_not_exported': 'تُخزَّن مفاتيح API الخاصة بك في سلسلة مفاتيح نظام التشغيل، وليس في هذه البيانات — لذا فإن الاستعادة تعيد كل شيء باستثناء المفاتيح.',
 };

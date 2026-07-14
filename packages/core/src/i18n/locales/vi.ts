@@ -3487,4 +3487,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'Dữ liệu huấn luyện được thu thập từ các phiên làm việc của bạn, nếu bạn đã chọn tham gia.',
   'dash.portability.type.audit': 'Nhật ký hoạt động',
   'dash.portability.type.audit_desc': 'Ghi lại mọi công cụ Ava đã chạy trên máy này.',
+  'dash.portability.exported': 'Đã xuất {count} tệp.',
+  'dash.portability.import_unknown': 'Tệp này không phải là bản xuất Ava hợp lệ.',
+  'dash.portability.keys_not_exported': 'Khóa API của bạn được lưu trong chuỗi khóa của hệ điều hành, không nằm trong dữ liệu này — nên khôi phục sẽ trả lại mọi thứ ngoại trừ các khóa.',
 };

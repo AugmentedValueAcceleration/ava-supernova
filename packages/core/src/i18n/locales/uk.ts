@@ -3467,4 +3467,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'Тренувальні дані, зібрані з ваших сесій, якщо ви погодилися.',
   'dash.portability.type.audit': 'Журнал активності',
   'dash.portability.type.audit_desc': 'Запис кожного інструменту, який запустила Ava на цьому пристрої.',
+  'dash.portability.exported': 'Експортовано {count} файл(ів).',
+  'dash.portability.import_unknown': 'Цей файл не є розпізнаним експортом Ava.',
+  'dash.portability.keys_not_exported': 'Ваші ключі API зберігаються у сховищі ключів вашої операційної системи, а не в цих даних — тому відновлення поверне все, окрім ключів.',
 };

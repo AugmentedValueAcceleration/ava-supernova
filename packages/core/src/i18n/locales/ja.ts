@@ -3489,4 +3489,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'オプトインした場合、セッションから収集されたトレーニングデータ。',
   'dash.portability.type.audit': 'アクティビティログ',
   'dash.portability.type.audit_desc': 'このマシン上でアバが実行したすべてのツールの記録。',
+  'dash.portability.exported': '{count} ファイルをエクスポートしました。',
+  'dash.portability.import_unknown': 'そのファイルは有効な Ava エクスポートではありません。',
+  'dash.portability.keys_not_exported': 'API キーは OS のキーチェーンに保存されており、このデータには含まれていません。そのため、復元するとキーを除いたすべてが戻ります。',
 };

@@ -3487,4 +3487,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'De trainingsdata die tijdens je sessies is opgevangen, als je hebt ingestemd.',
   'dash.portability.type.audit': 'Activiteitenlogboek',
   'dash.portability.type.audit_desc': 'Een registratie van elk hulpmiddel dat Ava op deze computer heeft uitgevoerd.',
+  'dash.portability.exported': 'Geëxporteerd {count} bestand(en).',
+  'dash.portability.import_unknown': 'Dat bestand is geen erkend Ava-exportbestand.',
+  'dash.portability.keys_not_exported': 'Je API-sleutels worden opgeslagen in de sleutelopslag van je besturingssysteem, niet in deze gegevens — dus een herstel brengt alles terug behalve de sleutels.',
 };

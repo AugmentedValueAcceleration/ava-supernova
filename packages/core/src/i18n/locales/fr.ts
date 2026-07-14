@@ -3483,4 +3483,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'Les données d\'entraînement capturées depuis vos sessions, si vous avez donné votre accord.',
   'dash.portability.type.audit': 'Journal d\'activité',
   'dash.portability.type.audit_desc': 'Un enregistrement de chaque outil qu\'Ava a exécuté sur cette machine.',
+  'dash.portability.exported': 'Exporté {count} fichier(s).',
+  'dash.portability.import_unknown': 'Ce fichier n\'est pas une exportation Ava reconnue.',
+  'dash.portability.keys_not_exported': 'Vos clés API sont stockées dans le trousseau de clés de votre système d\'exploitation, et non dans ces données — une restauration restaure donc tout sauf les clés.',
 };

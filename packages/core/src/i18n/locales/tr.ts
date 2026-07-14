@@ -3487,4 +3487,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.type.datasets_desc': 'Oturumlarınızdan kaydedilen eğitim verileri, izin verdiyseniz.',
   'dash.portability.type.audit': 'Etkinlik günlüğü',
   'dash.portability.type.audit_desc': 'Bu makinede Ava\'nın çalıştırdığı her aracın kaydı.',
+  'dash.portability.exported': '{count} dosya dışa aktarıldı.',
+  'dash.portability.import_unknown': 'Bu dosya tanınan bir Ava dışa aktarımı değil.',
+  'dash.portability.keys_not_exported': 'API anahtarlarınız işletim sisteminizin anahtar zincirinde saklanır, bu veride değil — bu yüzden geri yükleme anahtarlar hariç her şeyi geri getirir.',
 };

@@ -34,6 +34,8 @@ import {
   loadPersonality, savePersonality, resetPersonality,
   loadDatasetConfig, saveDatasetConfig, configPathFor,
   exportEncryptedBackup, importEncryptedBackup, gatherBundle,
+  // Per-type export/import is shared with the IDE — one implementation, in core.
+  exportDataType, importDataType, isCoreDataType, NotImportableError,
   type DatasetConfig,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
@@ -5699,8 +5701,10 @@ export class DashboardPanel {
       return;
     }
     try {
-      const avaDir = this.getUserDataDir();
-      const envelope = await exportEncryptedBackup(avaDir, passphrase, { source: 'extension' });
+      const envelope = await exportEncryptedBackup(this.avaHome, passphrase, {
+        source: 'extension',
+        scopedDir: this.getUserDataDir(),
+      });
       const datePart = new Date().toISOString().slice(0, 10);
       const uri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(`ava-backup-${datePart}.ava-backup`),
@@ -5721,8 +5725,10 @@ export class DashboardPanel {
    *  so we tell them to keep it safe. */
   private async handleExportReadableAll(): Promise<void> {
     try {
-      const avaDir = this.getUserDataDir();
-      const bundle = await gatherBundle(avaDir, { source: 'extension' });
+      const bundle = await gatherBundle(this.avaHome, {
+        source: 'extension',
+        scopedDir: this.getUserDataDir(),
+      });
       const datePart = new Date().toISOString().slice(0, 10);
       const uri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(`ava-data-readable-${datePart}.json`),
@@ -5745,43 +5751,46 @@ export class DashboardPanel {
       return;
     }
     try {
-      const avaDir = this.getUserDataDir();
-      const { result } = await importEncryptedBackup(avaDir, content, passphrase, { overwrite: !!overwrite });
+      const { result } = await importEncryptedBackup(this.avaHome, content, passphrase, {
+        overwrite: !!overwrite,
+        scopedDir: this.getUserDataDir(),
+      });
       this.post({ type: 'backup_imported', ok: true, written: result.written, skipped: result.skipped } as any);
     } catch (err) {
       this.post({ type: 'backup_imported', ok: false, message: err instanceof Error ? err.message : String(err) } as any);
     }
   }
 
-  /** Recursively collect a directory into a flat { posixRelPath: utf8 } map,
-   *  relative to `root`. Used to gather health/ and creative metadata as JSON. */
-  private async collectDirJson(absDir: string, root: string): Promise<Record<string, string>> {
+  /** Creative Studio export — a zip of metadata.json + the actual media files
+   *  (images/music/video/voice). Binaries aren't JSON-serialisable, so this is
+   *  its own path rather than the single-JSON flow. */
+  /** Add creative/ (metadata as text, media as raw bytes) to a zip. Returns file count. */
+  private async addCreativeToZip(zip: any): Promise<number> {
     const fs = await import('node:fs/promises');
-    const out: Record<string, string> = {};
+    const creativeDir = path.join(this.getUserDataDir(), 'creative');
+    let fileCount = 0;
     const walk = async (dir: string): Promise<void> => {
       const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
       for (const e of entries) {
         const abs = path.join(dir, e.name);
-        if (e.isDirectory()) await walk(abs);
-        // .jsonl too — the dataset capture writes newline-delimited JSON, and a
-        // .json-only filter collected exactly none of it.
-        else if (e.isFile() && (e.name.endsWith('.json') || e.name.endsWith('.jsonl'))) {
-          out[path.relative(root, abs).split(path.sep).join('/')] = await fs.readFile(abs, 'utf-8');
-        }
+        if (e.isDirectory()) { await walk(abs); continue; }
+        if (!e.isFile()) continue;
+        const rel = path.relative(creativeDir, abs).split(path.sep).join('/');
+        // JSON metadata as text; media as raw bytes.
+        zip.file(`creative/${rel}`, e.name.endsWith('.json')
+          ? await fs.readFile(abs, 'utf-8')
+          : await fs.readFile(abs));
+        fileCount++;
       }
     };
-    await walk(absDir);
-    return out;
+    await walk(creativeDir);
+    return fileCount;
   }
 
-  /** Creative Studio export — a zip of metadata.json + the actual media files
-   *  (images/music/video/voice). Binaries aren't JSON-serialisable, so this is
-   *  its own path rather than the single-JSON flow. */
   private async handleExportCreativeZip(): Promise<void> {
     const fs = await import('node:fs/promises');
     const JSZip = require('jszip');
-    const avaDir = this.getUserDataDir();
-    const creativeDir = path.join(avaDir, 'creative');
+    const creativeDir = path.join(this.getUserDataDir(), 'creative');
     try {
       const dirStat = await fs.stat(creativeDir).catch(() => null);
       if (!dirStat?.isDirectory()) {
@@ -5789,23 +5798,7 @@ export class DashboardPanel {
         return;
       }
       const zip = new JSZip();
-      let fileCount = 0;
-      const walk = async (dir: string): Promise<void> => {
-        const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
-        for (const e of entries) {
-          const abs = path.join(dir, e.name);
-          if (e.isDirectory()) await walk(abs);
-          else if (e.isFile()) {
-            const rel = path.relative(creativeDir, abs).split(path.sep).join('/');
-            // JSON metadata as text; media as raw bytes.
-            zip.file(`creative/${rel}`, e.name.endsWith('.json')
-              ? await fs.readFile(abs, 'utf-8')
-              : await fs.readFile(abs));
-            fileCount++;
-          }
-        }
-      };
-      await walk(creativeDir);
+      const fileCount = await this.addCreativeToZip(zip);
       const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
       const uri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file('ava-creative.zip'),
@@ -5824,155 +5817,32 @@ export class DashboardPanel {
     // Creative Studio takes the zip path (metadata + binary media).
     if (dataType === 'creative') { await this.handleExportCreativeZip(); return; }
 
-    const fs = await import('node:fs/promises');
-    const avaDir = this.getUserDataDir();
-
     try {
-      let content = '';
-      let filename = '';
+      let file: { name: string; content: string };
 
-      switch (dataType) {
-        case 'memory': {
-          // Include BOTH the v2 flat store (memory.json) AND the v3 graph
-          // (memory/ — graph.json etc.), which is where memories actually live
-          // now. The old export read memory.json only and would hand back a
-          // near-empty file while the real memories sat in the graph.
-          const files: Record<string, string> = {};
-          try { files['memory.json'] = await fs.readFile(path.join(avaDir, 'memory.json'), 'utf-8'); } catch { /* may not exist */ }
-          Object.assign(files, await this.collectDirJson(path.join(avaDir, 'memory'), avaDir));
-          content = JSON.stringify({ memory: files }, null, 2);
-          filename = 'ava-memory.json';
-          break;
-        }
-        case 'tasks': {
-          // Missing file = you have no tasks. That's an empty export, not a failure.
-          const raw = await fs.readFile(path.join(avaDir, 'tasks', 'tasks.json'), 'utf-8')
-            .catch(() => JSON.stringify({ tasks: [] }, null, 2));
-          content = raw;
-          filename = 'ava-tasks.json';
-          break;
-        }
-        case 'journal': {
-          const journalDir = path.join(avaDir, 'journal');
-          const files = await fs.readdir(journalDir).catch(() => []);
-          const entries: unknown[] = [];
-          let kinds: unknown = null;
-          for (const file of files) {
-            if (!file.endsWith('.json')) continue;
-            try {
-              const raw = await fs.readFile(path.join(journalDir, file), 'utf-8');
-              // kinds.json holds the user's custom entry kinds — keep it separate
-              // from the day files so it round-trips on import.
-              if (file === 'kinds.json') kinds = JSON.parse(raw);
-              else entries.push(JSON.parse(raw));
-            } catch { /* skip */ }
-          }
-          content = JSON.stringify({ journal: entries, kinds }, null, 2);
-          filename = 'ava-journal.json';
-          break;
-        }
-        case 'learning': {
-          // Missing file = you never used Learning. Empty, not broken.
-          const raw = await fs.readFile(path.join(avaDir, 'learning.json'), 'utf-8')
-            .catch(() => JSON.stringify({ curriculums: [] }, null, 2));
-          content = raw;
-          filename = 'ava-learning.json';
-          break;
-        }
-        case 'history': {
-          const histDir = path.join(avaDir, 'history');
-          const files = await fs.readdir(histDir).catch(() => []);
-          const convos: unknown[] = [];
-          for (const file of files) {
-            if (!file.endsWith('.json')) continue;
-            try {
-              const raw = await fs.readFile(path.join(histDir, file), 'utf-8');
-              convos.push(JSON.parse(raw));
-            } catch { /* skip */ }
-          }
-          content = JSON.stringify({ conversations: convos }, null, 2);
-          filename = 'ava-history.json';
-          break;
-        }
-        case 'health': {
-          // Fitness + recipe + meal plans and the health profile, under ~/.ava/health.
-          const files = await this.collectDirJson(path.join(avaDir, 'health'), path.join(avaDir, 'health'));
-          const parsed: Record<string, unknown> = {};
-          for (const [rel, raw] of Object.entries(files)) {
-            try { parsed[rel] = JSON.parse(raw); } catch { parsed[rel] = raw; }
-          }
-          content = JSON.stringify({ health: parsed }, null, 2);
-          filename = 'ava-health.json';
-          break;
-        }
-        case 'settings': {
-          // Settings live in VS Code config, not a file — serialise the live
-          // snapshot so the export actually captures them (was reading a
-          // config.json the extension never writes).
-          content = JSON.stringify({ settings: this.readSettings() }, null, 2);
-          filename = 'ava-settings.json';
-          break;
-        }
-        case 'personality': {
-          // personality.json only exists once you've saved a personality. Before
-          // that the read threw and the export died with a hard error — for the
-          // very ordinary case of "I never customised it". An empty section is a
-          // truthful answer; a failure is not.
-          const raw = await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8')
-            .catch(() => JSON.stringify({ personality: null }, null, 2));
-          content = raw;
-          filename = 'ava-personality.json';
-          break;
-        }
-        case 'profile': {
-          // GeneralProfile — account-scoped (general.json), not AVA_HOME root.
-          const raw = await fs.readFile(path.join(avaDir, 'general.json'), 'utf-8')
-            .catch(() => JSON.stringify({ profile: null }, null, 2));
-          content = raw;
-          filename = 'ava-profile.json';
-          break;
-        }
-        case 'brain': {
-          // The learned layer lives at the AVA_HOME ROOT, not the scoped dir.
-          const read = async (f: string) => {
-            try { return JSON.parse(await fs.readFile(path.join(this.avaHome, f), 'utf-8')); }
-            catch { return null; }
-          };
-          content = JSON.stringify({
-            procedures: await read('procedures.json'),
-            selfImprovement: await read('self-improvement.json'),
-            feedback: await read('feedback.json'),
-          }, null, 2);
-          filename = 'ava-brain.json';
-          break;
-        }
-        case 'datasets': {
-          const files = await this.collectDirJson(path.join(this.avaHome, 'datasets'), this.avaHome);
-          content = JSON.stringify({ datasets: files }, null, 2);
-          filename = 'ava-datasets.json';
-          break;
-        }
-        case 'audit': {
-          // Export-only. Never restored — see the import handler.
-          content = await fs.readFile(path.join(this.avaHome, 'audit-log.jsonl'), 'utf-8')
-            .catch(() => '');
-          filename = 'ava-audit-log.jsonl';
-          break;
-        }
-        default:
-          this.post({ type: 'error', message: `Unknown data type: ${dataType}` });
-          return;
+      if (dataType === 'settings') {
+        // Surface-specific: settings live in VS Code's config store, not ~/.ava.
+        file = {
+          name: 'ava-settings.json',
+          content: JSON.stringify({ settings: this.readSettings() }, null, 2),
+        };
+      } else if (isCoreDataType(dataType)) {
+        // Everything else is shared with the IDE — one implementation in core,
+        // so the two surfaces cannot drift apart again.
+        file = await exportDataType(dataType, this.dataRoots());
+      } else {
+        this.post({ type: 'error', message: `Unknown data type: ${dataType}` });
+        return;
       }
 
-      // Use VS Code's native save dialog — webviews can't trigger downloads
       const uri = await vscode.window.showSaveDialog({
-        defaultUri: vscode.Uri.file(filename),
+        defaultUri: vscode.Uri.file(file.name),
         // The audit log is newline-delimited JSON — a hard 'json' filter would
         // rename it and quietly imply it parses as one object. It doesn't.
-        filters: filename.endsWith('.jsonl') ? { 'JSON Lines': ['jsonl'] } : { 'JSON': ['json'] },
+        filters: file.name.endsWith('.jsonl') ? { 'JSON Lines': ['jsonl'] } : { 'JSON': ['json'] },
       });
       if (uri) {
-        await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
+        await vscode.workspace.fs.writeFile(uri, Buffer.from(file.content, 'utf-8'));
         vscode.window.showInformationMessage(`Exported ${dataType} to ${uri.fsPath}`);
       }
     } catch (err) {
@@ -5980,120 +5850,29 @@ export class DashboardPanel {
     }
   }
 
+  /** The two roots every export needs: machine-wide + this account's dir. */
+  private dataRoots(): { avaHome: string; scopedDir: string } {
+    return { avaHome: this.avaHome, scopedDir: this.getUserDataDir() };
+  }
+
   private async handleExportBundle(types: string[]): Promise<void> {
-    const fs = await import('node:fs/promises');
     const JSZip = require('jszip');
-    const avaDir = this.getUserDataDir();
 
     try {
       const zip = new JSZip();
 
       for (const dataType of types) {
         try {
-          switch (dataType) {
-            case 'memory': {
-              // v2 store + v3 graph (memory/) — the graph holds the real memories.
-              try { zip.file('memory.json', await fs.readFile(path.join(avaDir, 'memory.json'), 'utf-8')); } catch { /* may not exist */ }
-              const memFiles = await this.collectDirJson(path.join(avaDir, 'memory'), avaDir);
-              for (const [rel, raw] of Object.entries(memFiles)) zip.file(rel, raw);
-              break;
-            }
-            case 'tasks':
-              zip.file('ava-tasks.json', await fs.readFile(path.join(avaDir, 'tasks', 'tasks.json'), 'utf-8')
-                .catch(() => JSON.stringify({ tasks: [] }, null, 2)));
-              break;
-            case 'journal': {
-              const journalDir = path.join(avaDir, 'journal');
-              const files = await fs.readdir(journalDir).catch(() => []);
-              const entries: unknown[] = [];
-              let kinds: unknown = null;
-              for (const file of files) {
-                if (!file.endsWith('.json')) continue;
-                try {
-                  const parsed = JSON.parse(await fs.readFile(path.join(journalDir, file), 'utf-8'));
-                  if (file === 'kinds.json') kinds = parsed; else entries.push(parsed);
-                } catch { /* skip */ }
-              }
-              zip.file('ava-journal.json', JSON.stringify({ journal: entries, kinds }, null, 2));
-              break;
-            }
-            case 'learning':
-              zip.file('ava-learning.json', await fs.readFile(path.join(avaDir, 'learning.json'), 'utf-8')
-                .catch(() => JSON.stringify({ curriculums: [] }, null, 2)));
-              break;
-            case 'history': {
-              const histDir = path.join(avaDir, 'history');
-              const files = await fs.readdir(histDir).catch(() => []);
-              const convos: unknown[] = [];
-              for (const file of files) {
-                if (!file.endsWith('.json')) continue;
-                try { convos.push(JSON.parse(await fs.readFile(path.join(histDir, file), 'utf-8'))); } catch { /* skip */ }
-              }
-              zip.file('ava-history.json', JSON.stringify({ conversations: convos }, null, 2));
-              break;
-            }
-            case 'health': {
-              const root = path.join(avaDir, 'health');
-              const files = await this.collectDirJson(root, root);
-              const parsed: Record<string, unknown> = {};
-              for (const [rel, raw] of Object.entries(files)) {
-                try { parsed[rel] = JSON.parse(raw); } catch { parsed[rel] = raw; }
-              }
-              zip.file('ava-health.json', JSON.stringify({ health: parsed }, null, 2));
-              break;
-            }
-            case 'creative': {
-              // Metadata + media files, preserving their relative paths.
-              const root = path.join(avaDir, 'creative');
-              const walk = async (dir: string): Promise<void> => {
-                const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
-                for (const e of entries) {
-                  const abs = path.join(dir, e.name);
-                  if (e.isDirectory()) await walk(abs);
-                  else if (e.isFile()) {
-                    const rel = path.relative(root, abs).split(path.sep).join('/');
-                    zip.file(`creative/${rel}`, e.name.endsWith('.json') ? await fs.readFile(abs, 'utf-8') : await fs.readFile(abs));
-                  }
-                }
-              };
-              await walk(root);
-              break;
-            }
-            case 'settings':
-              zip.file('ava-settings.json', JSON.stringify({ settings: this.readSettings() }, null, 2));
-              break;
-            case 'personality':
-              zip.file('ava-personality.json', await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8')
-                .catch(() => JSON.stringify({ personality: null }, null, 2)));
-              break;
-            case 'profile':
-              zip.file('ava-profile.json', await fs.readFile(path.join(avaDir, 'general.json'), 'utf-8')
-                .catch(() => JSON.stringify({ profile: null }, null, 2)));
-              break;
-            case 'brain': {
-              // AVA_HOME root, not the scoped dir.
-              const readBrain = async (f: string) => {
-                try { return JSON.parse(await fs.readFile(path.join(this.avaHome, f), 'utf-8')); }
-                catch { return null; }
-              };
-              zip.file('ava-brain.json', JSON.stringify({
-                procedures: await readBrain('procedures.json'),
-                selfImprovement: await readBrain('self-improvement.json'),
-                feedback: await readBrain('feedback.json'),
-              }, null, 2));
-              break;
-            }
-            case 'datasets': {
-              const dsFiles = await this.collectDirJson(path.join(this.avaHome, 'datasets'), this.avaHome);
-              for (const [rel, raw] of Object.entries(dsFiles)) zip.file(rel, raw);
-              break;
-            }
-            case 'audit':
-              zip.file('ava-audit-log.jsonl', await fs.readFile(path.join(this.avaHome, 'audit-log.jsonl'), 'utf-8')
-                .catch(() => ''));
-              break;
+          if (dataType === 'creative') {
+            // Binary media — folded into this zip under creative/.
+            await this.addCreativeToZip(zip);
+          } else if (dataType === 'settings') {
+            zip.file('ava-settings.json', JSON.stringify({ settings: this.readSettings() }, null, 2));
+          } else if (isCoreDataType(dataType)) {
+            const file = await exportDataType(dataType, this.dataRoots());
+            zip.file(file.name, file.content);
           }
-        } catch { /* skip missing files */ }
+        } catch { /* one absent type must not kill the whole export */ }
       }
 
       const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
@@ -6113,154 +5892,29 @@ export class DashboardPanel {
   }
 
   private async handleImportData(dataType: string, content: string): Promise<void> {
-    const fs = await import('node:fs/promises');
-    const avaDir = this.getUserDataDir();
-
     try {
       let count = 0;
 
-      switch (dataType) {
-        case 'memory': {
-          const data = JSON.parse(content);
-          if (data.memory && typeof data.memory === 'object') {
-            // New format — keyed files (v2 store + v3 graph). Restore each,
-            // guarding against path traversal from an untrusted file.
-            for (const [rel, raw] of Object.entries(data.memory as Record<string, unknown>)) {
-              const abs = path.resolve(avaDir, rel);
-              if (abs !== avaDir && !abs.startsWith(avaDir + path.sep)) continue;
-              await fs.mkdir(path.dirname(abs), { recursive: true });
-              await fs.writeFile(abs, typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2), 'utf-8');
-            }
-            // Count from graph nodes if present, else v2 entries.
-            try { count = JSON.parse((data.memory['memory/graph.json'] as string) || '{}').nodes?.length || 0; } catch { /* */ }
-            if (!count) { try { count = JSON.parse((data.memory['memory.json'] as string) || '{}').entries?.length || 0; } catch { /* */ } }
-          } else {
-            // Legacy format — raw memory.json content.
-            await fs.writeFile(path.join(avaDir, 'memory.json'), content, 'utf-8');
-            count = data.entries?.length || 0;
-          }
-          break;
-        }
-        case 'tasks': {
-          // Restore into the tasks/ DIRECTORY the TaskManager actually reads.
-          await fs.mkdir(path.join(avaDir, 'tasks'), { recursive: true });
-          await fs.writeFile(path.join(avaDir, 'tasks', 'tasks.json'), content, 'utf-8');
-          const data = JSON.parse(content);
-          count = data.tasks?.length || 0;
-          break;
-        }
-        case 'journal': {
-          const data = JSON.parse(content);
-          const entries = data.journal || [];
-          const journalDir = path.join(avaDir, 'journal');
-          await fs.mkdir(journalDir, { recursive: true });
-          for (const entry of entries) {
-            if (entry.date) {
-              await fs.writeFile(path.join(journalDir, `${entry.date}.json`), JSON.stringify(entry, null, 2), 'utf-8');
-              count++;
-            }
-          }
-          break;
-        }
-        case 'learning': {
-          await fs.writeFile(path.join(avaDir, 'learning.json'), content, 'utf-8');
-          const data = JSON.parse(content);
-          count = data.curriculums?.length || 0;
-          break;
-        }
-        case 'history': {
-          const data = JSON.parse(content);
-          const convos = data.conversations || [];
-          const histDir = path.join(avaDir, 'history');
-          await fs.mkdir(histDir, { recursive: true });
-          for (const conv of convos) {
-            if (conv.id) {
-              await fs.writeFile(path.join(histDir, `${conv.id}.json`), JSON.stringify(conv, null, 2), 'utf-8');
-              count++;
-            }
-          }
-          break;
-        }
-        case 'health': {
-          // Write each health file back under ~/.ava/health, recreating the
-          // plans/ + daily-plans/ structure from the keyed export object.
-          const data = JSON.parse(content);
-          const files = (data.health || {}) as Record<string, unknown>;
-          const healthDir = path.join(avaDir, 'health');
-          for (const [rel, value] of Object.entries(files)) {
-            // Guard against path traversal from an untrusted file.
-            const abs = path.resolve(healthDir, rel);
-            if (abs !== healthDir && !abs.startsWith(healthDir + path.sep)) continue;
-            await fs.mkdir(path.dirname(abs), { recursive: true });
-            await fs.writeFile(abs, typeof value === 'string' ? value : JSON.stringify(value, null, 2), 'utf-8');
-            count++;
-          }
-          break;
-        }
-        case 'settings': {
-          // Settings live in VS Code config — apply the snapshot via saveSettings
-          // (handles both the new { settings: {...} } wrapper and a bare object).
-          const parsed = JSON.parse(content);
-          const settings = (parsed.settings ?? parsed) as DashboardSettings;
-          this.saveSettings(settings);
-          count = 1;
-          break;
-        }
-        case 'personality': {
-          await fs.writeFile(path.join(avaDir, 'personality.json'), content, 'utf-8');
-          count = 1;
-          break;
-        }
-        case 'profile': {
-          await fs.writeFile(path.join(avaDir, 'general.json'), content, 'utf-8');
-          count = 1;
-          break;
-        }
-        case 'brain': {
-          // Split the bundle back into the three root files it came from.
-          const parsed = JSON.parse(content) as {
-            procedures?: unknown; selfImprovement?: unknown; feedback?: unknown;
-          };
-          const parts: Array<[string, unknown]> = [
-            ['procedures.json', parsed.procedures],
-            ['self-improvement.json', parsed.selfImprovement],
-            ['feedback.json', parsed.feedback],
-          ];
-          for (const [file, value] of parts) {
-            if (value == null) continue;
-            await fs.writeFile(path.join(this.avaHome, file), JSON.stringify(value, null, 2), 'utf-8');
-            count++;
-          }
-          break;
-        }
-        case 'datasets': {
-          // { datasets: { 'datasets/<kind>/<date>.jsonl': contents } } — relative
-          // to AVA_HOME, so recreate the subdirectories before writing.
-          const parsed = JSON.parse(content) as { datasets?: Record<string, string> };
-          for (const [rel, raw] of Object.entries(parsed.datasets ?? {})) {
-            // Never let a crafted export escape AVA_HOME.
-            const dest = path.resolve(this.avaHome, rel);
-            if (!dest.startsWith(path.resolve(this.avaHome) + path.sep)) continue;
-            await fs.mkdir(path.dirname(dest), { recursive: true });
-            await fs.writeFile(dest, raw, 'utf-8');
-            count++;
-          }
-          break;
-        }
-        case 'audit':
-          // Deliberately not importable. The audit log is an append-only record
-          // of what ran on THIS machine; overwriting it with another machine's
-          // history would destroy the very thing it exists to prove.
-          this.post({ type: 'error', message: "The activity log is export-only — it cannot be restored over this machine's own record." });
-          return;
-        default:
-          this.post({ type: 'error', message: `Unknown data type: ${dataType}` });
-          return;
+      if (dataType === 'settings') {
+        // Settings live in VS Code config — apply the snapshot via saveSettings
+        // (handles both the new { settings: {...} } wrapper and a bare object).
+        const parsed = JSON.parse(content);
+        this.saveSettings((parsed.settings ?? parsed) as DashboardSettings);
+        count = 1;
+      } else if (isCoreDataType(dataType)) {
+        count = await importDataType(dataType, content, this.dataRoots());
+      } else {
+        this.post({ type: 'error', message: `Unknown data type: ${dataType}` });
+        return;
       }
 
       this.post({ type: 'data_imported' as any, dataType, count });
     } catch (err) {
-      this.post({ type: 'error', message: `Import failed: ${err instanceof Error ? err.message : String(err)}` });
+      // `audit` is deliberately export-only and says so in plain words.
+      const message = err instanceof NotImportableError
+        ? err.message
+        : `Import failed: ${err instanceof Error ? err.message : String(err)}`;
+      this.post({ type: 'error', message });
     }
   }
 
