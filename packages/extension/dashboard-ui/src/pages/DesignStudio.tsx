@@ -144,7 +144,7 @@ function ColorField({ value, onChange, swatches }: { value: string; onChange: (v
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(o => !o)} title="Change colour" aria-label="Change colour"
+      <button onClick={() => setOpen(o => !o)} title={tt('dash.studio.change_colour','Change colour')} aria-label={tt('dash.studio.change_colour','Change colour')}
         className="w-7 h-7 rounded-md cursor-pointer border border-[var(--border-card)]" style={{ background: value }} />
       {open && (
         <div className="absolute z-[60] top-9 left-0 w-[200px] rounded-lg border border-[var(--border-card)] bg-[#1a1028] p-2.5 shadow-lg select-none">
@@ -334,8 +334,8 @@ function VideoStage({ durationSec, src, generating, onDownload }: { durationSec:
             <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="2" y="5" width="15" height="14" rx="2" /><path d="m17 9 5-3v12l-5-3" />
             </svg>
-            <div style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>Your video will appear here</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320, lineHeight: 1.6 }}>Describe it on the right — Ava generates it and it plays here.</div>
+            <div style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>{tt('dash.studio.video.empty','Your video will appear here')}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320, lineHeight: 1.6 }}>{tt('dash.studio.video.empty_hint','Describe it on the right — Ava generates it and it plays here.')}</div>
           </div>
         )}
         {generating && (
@@ -355,7 +355,7 @@ function VideoStage({ durationSec, src, generating, onDownload }: { durationSec:
               : <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>}
           </TransportButton>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <DragBar value={progress} onChange={seek} title="Scrub" />
+            <DragBar value={progress} onChange={seek} title={tt('dash.studio.transport.scrub','Scrub')} />
           </div>
           <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{fmtTime(cur)} / {fmtTime(durationSec)}</span>
         </div>
@@ -366,7 +366,7 @@ function VideoStage({ durationSec, src, generating, onDownload }: { durationSec:
               : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>}
           </button>
           <div style={{ width: 96 }}>
-            <DragBar value={muted ? 0 : volume} onChange={v => { setVolume(v); setMuted(false); }} height={5} thumb={11} title="Volume" />
+            <DragBar value={muted ? 0 : volume} onChange={v => { setVolume(v); setMuted(false); }} height={5} thumb={11} title={tt('dash.studio.transport.volume','Volume')} />
           </div>
           <div style={{ flex: 1 }} />
           <button type="button" onClick={toggleMax} title={isMax ? 'Restore (Esc)' : 'Maximise'} aria-label={isMax ? 'Restore' : 'Maximise'} style={iconBtnStyle}>
@@ -374,7 +374,7 @@ function VideoStage({ durationSec, src, generating, onDownload }: { durationSec:
               ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" /></svg>
               : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /></svg>}
           </button>
-          <button type="button" onClick={onDownload} disabled={!src || !onDownload} title="Download a copy" aria-label="Download a copy"
+          <button type="button" onClick={onDownload} disabled={!src || !onDownload} title={tt('ext.studio.download_copy','Download a copy')} aria-label={tt('ext.studio.download_copy','Download a copy')}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: src && onDownload ? 'pointer' : 'default', opacity: src && onDownload ? 1 : 0.45, fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
             Download
@@ -566,7 +566,7 @@ function WaveformPlayer({ voiceName, title, durationSec, src, generating, onDown
           </div>
           <div style={{ flex: 1 }} />
           <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{fmtTime(cur)} / {fmtTime(dur)}</span>
-          <button type="button" onClick={onDownload} disabled={!src || !onDownload} title="Download a copy" aria-label="Download a copy"
+          <button type="button" onClick={onDownload} disabled={!src || !onDownload} title={tt('ext.studio.download_copy','Download a copy')} aria-label={tt('ext.studio.download_copy','Download a copy')}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: src && onDownload ? 'pointer' : 'default', opacity: src && onDownload ? 1 : 0.45, fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
             Download
@@ -1471,7 +1471,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               ))}
             </div>
             <div className="flex-1 min-h-[240px] rounded-xl border border-[var(--border-card)] flex flex-col items-center justify-center gap-3.5 relative" style={{ background: boardBg }}>
-              {genResult && <img src={genResult} alt="Generated icon" className="w-[200px] h-[200px] object-contain" />}
+              {genResult && <img src={genResult} alt={tt('dash.studio.generated_icon','Generated icon')} className="w-[200px] h-[200px] object-contain" />}
               {!genResult && !genStatus && shape && (
                 <>
                   <div className="w-[132px] h-[132px] opacity-80" dangerouslySetInnerHTML={{ __html: buildShapeSvg(shape.elements, 'flat', ['#8b93b8'], 2.6) }} />
@@ -1510,14 +1510,14 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{tt('dash.studio.image.subtitle', 'Free-form — a hero shot, illustration, background or scene. Describe it; Ava composes it and it appears here.')}</p>
             </div>
             <div className="flex-1 min-h-[240px] rounded-xl border border-[var(--border-card)] flex items-center justify-center relative overflow-hidden" style={{ background: 'radial-gradient(120% 120% at 50% 30%, #171021, #0c0814)' }}>
-              {imageSrc && <img src={imageSrc} alt="Generated image" className="max-w-full max-h-full object-contain" />}
+              {imageSrc && <img src={imageSrc} alt={tt('dash.studio.generated_image','Generated image')} className="max-w-full max-h-full object-contain" />}
               {!imageSrc && !imageGenerating && (
                 <div className="flex flex-col items-center gap-2.5 text-center px-8 pointer-events-none">
                   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.5-3.5a2 2 0 0 0-3 0L5 21" />
                   </svg>
-                  <div className="text-[13.5px] text-[var(--text-secondary)]">Your image will appear here</div>
-                  <div className="text-[12px] text-[var(--text-muted)] max-w-[320px] leading-relaxed">Describe it — Ava composes it and it appears here.</div>
+                  <div className="text-[13.5px] text-[var(--text-secondary)]">{tt('ext.studio.image_empty','Your image will appear here')}</div>
+                  <div className="text-[12px] text-[var(--text-muted)] max-w-[320px] leading-relaxed">{tt('ext.studio.image_empty_hint','Describe it — Ava composes it and it appears here.')}</div>
                 </div>
               )}
               {imageGenerating && (
@@ -1529,7 +1529,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
             </div>
             {imageSrc && (
               <div className="flex justify-end mt-3">
-                <button type="button" onClick={() => saveAssetCopy(imageSrc, `${lastImageTitleRef.current || 'image'}.${imageSrc.startsWith('data:image/webp') ? 'webp' : 'png'}`)} title="Download a copy" aria-label="Download a copy"
+                <button type="button" onClick={() => saveAssetCopy(imageSrc, `${lastImageTitleRef.current || 'image'}.${imageSrc.startsWith('data:image/webp') ? 'webp' : 'png'}`)} title={tt('ext.studio.download_copy','Download a copy')} aria-label={tt('ext.studio.download_copy','Download a copy')}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
                   Download
@@ -1609,8 +1609,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           <div className="flex-1 overflow-hidden relative">
             {/* Overview — all brand kits at a glance */}
             <div className="h-full overflow-y-auto px-6 py-5">
-              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">Brand Kits</h2>
-              <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-4">Multiple brands, one active. The active kit is what every icon, image, and post comes out on. Click a kit to edit it.</p>
+              <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('ext.studio.brand_kits','Brand Kits')}</h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-4">{tt('ext.studio.brand_kits_sub','Multiple brands, one active. The active kit is what every icon, image, and post comes out on. Click a kit to edit it.')}</p>
               <div className="grid gap-3 max-w-[760px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))' }}>
                 {loadKits().map(k => (
                   <div key={k.id} onClick={() => openKit(k.id)}
@@ -1625,7 +1625,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                     </div>
                     <div className="flex items-center gap-2 mt-auto">
                       {k.id !== kit.id && (
-                        <button onClick={e => { e.stopPropagation(); makeActiveId(k.id); }} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>Make active</button>
+                        <button onClick={e => { e.stopPropagation(); makeActiveId(k.id); }} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>{tt('ext.studio.make_active','Make active')}</button>
                       )}
                       {loadKits().length > 1 && (
                         <button onClick={e => { e.stopPropagation(); setConfirmDelete(k); }} className={`${KIT_BTN_GHOST} ml-auto`}>Delete</button>
@@ -1653,12 +1653,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  <div><label className={KIT_LBL}>Brand name</label><input value={panelKit.name} onChange={e => saveKit({ name: e.target.value })} className={KIT_INP} /></div>
-                  <div><label className={KIT_LBL}>Tagline</label><input value={panelKit.tagline ?? ''} onChange={e => saveKit({ tagline: e.target.value })} className={KIT_INP} placeholder="one-liner" /></div>
-                  <div><label className={KIT_LBL}>Positioning</label><input value={panelKit.positioning ?? ''} onChange={e => saveKit({ positioning: e.target.value })} className={KIT_INP} placeholder="what it is + who it's for" /></div>
+                  <div><label className={KIT_LBL}>{tt('ext.studio.brand_name','Brand name')}</label><input value={panelKit.name} onChange={e => saveKit({ name: e.target.value })} className={KIT_INP} /></div>
+                  <div><label className={KIT_LBL}>{tt('ext.studio.tagline','Tagline')}</label><input value={panelKit.tagline ?? ''} onChange={e => saveKit({ tagline: e.target.value })} className={KIT_INP} placeholder="one-liner" /></div>
+                  <div><label className={KIT_LBL}>{tt('ext.studio.positioning','Positioning')}</label><input value={panelKit.positioning ?? ''} onChange={e => saveKit({ positioning: e.target.value })} className={KIT_INP} placeholder={tt('ext.studio.positioning_ph',"what it is + who it's for")} /></div>
 
                   <div>
-                    <label className={KIT_LBL}>Palette</label>
+                    <label className={KIT_LBL}>{tt('dash.studio.brandkit.palette','Palette')}</label>
                     <div className="grid grid-cols-5 gap-2">
                       {(Object.keys(panelKit.palette) as (keyof BrandKit['palette'])[]).map(role => (
                         <label key={role} className="flex flex-col items-center gap-1 text-[10px] text-[var(--text-muted)]">
@@ -1687,17 +1687,17 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                         {panelKit.logo?.primary && <button onClick={() => saveKit({ logo: { ...panelKit.logo, primary: undefined } })} className={KIT_BTN_GHOST}>Remove</button>}
                       </div>
                     </div>
-                    <p className="text-[10px] text-[var(--text-muted)] mt-1">Upload one, or ask Ava to set the image she just made as your logo.</p>
+                    <p className="text-[10px] text-[var(--text-muted)] mt-1">{tt('ext.studio.logo_upload_hint','Upload one, or ask Ava to set the image she just made as your logo.')}</p>
                   </div>
 
-                  <div><label className={KIT_LBL}>Voice / tone (flows into posts)</label><textarea value={panelKit.voice ?? ''} onChange={e => saveKit({ voice: e.target.value })} className={`${KIT_INP} h-20 resize-none`} placeholder="First person, punchy, honest, no hype…" /></div>
+                  <div><label className={KIT_LBL}>{tt('ext.studio.voice_tone','Voice / tone (flows into posts)')}</label><textarea value={panelKit.voice ?? ''} onChange={e => saveKit({ voice: e.target.value })} className={`${KIT_INP} h-20 resize-none`} placeholder={tt('ext.studio.voice_ph','First person, punchy, honest, no hype…')} /></div>
                   <div><label className={KIT_LBL}>Do (one per line)</label><textarea value={(panelKit.doRules ?? []).join('\n')} onChange={e => saveKit({ doRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-16 resize-none`} /></div>
                   <div><label className={KIT_LBL}>Don't (one per line)</label><textarea value={(panelKit.dontRules ?? []).join('\n')} onChange={e => saveKit({ dontRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-16 resize-none`} /></div>
                   <div><label className={KIT_LBL}>Default hashtags (comma-separated)</label><input value={(panelKit.defaultHashtags ?? []).join(', ')} onChange={e => saveKit({ defaultHashtags: e.target.value.split(',').map(x => x.trim().replace(/^#/, '')).filter(Boolean) })} className={KIT_INP} placeholder="buildinpublic, localfirst" /></div>
-                  <div><label className={KIT_LBL}>Default link</label><input value={panelKit.defaultLink ?? ''} onChange={e => saveKit({ defaultLink: e.target.value })} className={KIT_INP} placeholder="ava-supernova.com" /></div>
+                  <div><label className={KIT_LBL}>{tt('ext.studio.default_link','Default link')}</label><input value={panelKit.defaultLink ?? ''} onChange={e => saveKit({ defaultLink: e.target.value })} className={KIT_INP} placeholder="ava-supernova.com" /></div>
 
                   <div className="flex items-center gap-3 pt-1">
-                    {panelKit.id !== kit.id && <button onClick={() => makeActiveId(panelKit.id)} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>Make active</button>}
+                    {panelKit.id !== kit.id && <button onClick={() => makeActiveId(panelKit.id)} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>{tt('ext.studio.make_active','Make active')}</button>}
                     {loadKits().length > 1 && <button onClick={() => setConfirmDelete(panelKit)} className={`${KIT_BTN_GHOST} ml-auto`}>Delete</button>}
                   </div>
                 </div>
@@ -1722,7 +1722,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           <div className="flex-1 flex flex-col items-center justify-center gap-2.5 text-center px-10 text-[var(--text-muted)]">
             <PenNib weight="duotone" size={26} style={{ color: 'var(--accent)' }} />
             <span className="text-[15px] text-[var(--text-secondary)]">{DESIGN_GROUPS.flatMap(g => g.items).find(i => i.id === view)?.label}</span>
-            <span className="max-w-[420px] text-[13px] leading-relaxed">Being brought over from the hub. The Icon lane is live — this one lands in an upcoming slice.</span>
+            <span className="max-w-[420px] text-[13px] leading-relaxed">{tt('dash.studio.coming_soon','Being brought over from the hub. The Icon lane is live — this one lands in an upcoming slice.')}</span>
           </div>
         )}
 
@@ -1982,7 +1982,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                 {LOGO_STYLES.map(s => {
                   const on = logoStyle === s.id;
                   return (
-                    <button key={s.id} onClick={() => setLogoStyle(s.id)} title={s.label}
+                    <button key={s.id} onClick={() => setLogoStyle(s.id)} title={tt('dash.studio.style.' + s.id, s.label)}
                       className={`px-2.5 py-[7px] rounded-lg cursor-pointer text-[11.5px] text-center border ${on ? 'border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]' : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)]'}`}>{tt('dash.studio.style.' + s.id, s.label)}</button>
                   );
                 })}
@@ -2048,7 +2048,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               </Section>
             )}
 
-            <p className="text-[10.5px] text-[var(--text-muted)] m-0">Talk to Ava — she gauges the brand, proposes the mark, designs it and tells you why.</p>
+            <p className="text-[10.5px] text-[var(--text-muted)] m-0">{tt('ext.studio.icon_lane_intro','Talk to Ava — she gauges the brand, proposes the mark, designs it and tells you why.')}</p>
           </div>
         </aside>
       )}

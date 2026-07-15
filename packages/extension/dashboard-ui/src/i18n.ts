@@ -136,6 +136,37 @@ export function getLocale(): string {
   return currentLocale;
 }
 
+// Language-picker codes (native fallback used only if Intl.DisplayNames is
+// unavailable — the VS Code webview is Chromium, which has it).
+const LANGUAGE_CODES = ['en', 'zh-CN', 'zh-TW', 'ja', 'ko', 'es', 'pt', 'fr', 'de', 'ru', 'ar', 'hi', 'vi', 'th', 'tr', 'it', 'pl', 'uk', 'nl', 'id'];
+const NATIVE_FALLBACK: Record<string, string> = {
+  en: 'English', 'zh-CN': '中文（简体）', 'zh-TW': '中文（繁體）', ja: '日本語', ko: '한국어',
+  es: 'Español', pt: 'Português', fr: 'Français', de: 'Deutsch', ru: 'Русский', ar: 'العربية',
+  hi: 'हिन्दी', vi: 'Tiếng Việt', th: 'ภาษาไทย', tr: 'Türkçe', it: 'Italiano', pl: 'Polski',
+  uk: 'Українська', nl: 'Nederlands', id: 'Bahasa Indonesia',
+};
+const capitalise = (s: string): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+/**
+ * Each language shown in the current UI language AND its native form ("Japonés ·
+ * 日本語" when the UI is Spanish). Mirrors the IDE. Uses Intl.DisplayNames, so it
+ * needs no translation keys and follows the current locale.
+ */
+export function languageOptions(): { value: string; label: string }[] {
+  const named = (code: string): string => {
+    let inCurrent = '', native = '';
+    try { inCurrent = capitalise(new Intl.DisplayNames([currentLocale], { type: 'language' }).of(code) || ''); } catch { /* no Intl */ }
+    try { native = capitalise(new Intl.DisplayNames([code], { type: 'language' }).of(code) || ''); } catch { /* no Intl */ }
+    native = native || NATIVE_FALLBACK[code] || code;
+    if (!inCurrent || inCurrent === native) return native;
+    return `${inCurrent} · ${native}`;
+  };
+  return [
+    { value: 'auto', label: t('dash.settings.auto_detect') },
+    ...LANGUAGE_CODES.map(code => ({ value: code, label: named(code) })),
+  ];
+}
+
 /** Format time in 24-hour format (HH:mm) */
 export function formatTime(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;

@@ -1813,6 +1813,22 @@ export const enStrings = {
   'ext.chat.clear_design_chat': 'Clear the design chat',
   'ext.chat.summarising': 'Ava is summarising older messages to free up space',
   'ext.header.chat_controls': 'Chat controls',
+  // Extension Design Studio — strings beyond what dash.studio.* already covers.
+  'ext.studio.download_copy': 'Download a copy',
+  'ext.studio.brand_kits': 'Brand Kits',
+  'ext.studio.brand_kits_sub': 'Multiple brands, one active. The active kit is what every icon, image, and post comes out on. Click a kit to edit it.',
+  'ext.studio.make_active': 'Make active',
+  'ext.studio.brand_name': 'Brand name',
+  'ext.studio.tagline': 'Tagline',
+  'ext.studio.positioning': 'Positioning',
+  'ext.studio.positioning_ph': "what it is + who it's for",
+  'ext.studio.voice_tone': 'Voice / tone (flows into posts)',
+  'ext.studio.voice_ph': 'First person, punchy, honest, no hype…',
+  'ext.studio.default_link': 'Default link',
+  'ext.studio.logo_upload_hint': 'Upload one, or ask Ava to set the image she just made as your logo.',
+  'ext.studio.image_empty': 'Your image will appear here',
+  'ext.studio.image_empty_hint': 'Describe it — Ava composes it and it appears here.',
+  'ext.studio.icon_lane_intro': 'Talk to Ava — she gauges the brand, proposes the mark, designs it and tells you why.',
   'model.add_key': 'Add key',
   // Orchestration-mode subtitles. Proper nouns (Qwen, DeepSeek, Mistral, BYOK)
   // stay; only the surrounding words translate.

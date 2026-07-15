@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { t, tt, initLocale, useLocale } from '../i18n';
+import { t, tt, initLocale, useLocale, languageOptions } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
@@ -81,30 +81,6 @@ const PROVIDERS = [
     signupUrl: 'https://build.nvidia.com',
     description: 'Nemotron 3 Ultra — open-weight, 1M context, frontier reasoning (BYOK)',
   },
-];
-
-const LANGUAGES = [
-  { value: 'auto', label: 'Auto-detect' }, // resolved at runtime via t('dash.settings.auto_detect') when i18n is loaded
-  { value: 'en', label: 'English' },
-  { value: 'zh-CN', label: '\u4e2d\u6587\uff08\u7b80\u4f53\uff09' },
-  { value: 'zh-TW', label: '\u4e2d\u6587\uff08\u7e41\u9ad4\uff09' },
-  { value: 'ja', label: '\u65e5\u672c\u8a9e' },
-  { value: 'ko', label: '\ud55c\uad6d\uc5b4' },
-  { value: 'es', label: 'Espa\u00f1ol' },
-  { value: 'pt', label: 'Portugu\u00eas' },
-  { value: 'fr', label: 'Fran\u00e7ais' },
-  { value: 'de', label: 'Deutsch' },
-  { value: 'ru', label: '\u0420\u0443\u0441\u0441\u043a\u0438\u0439' },
-  { value: 'ar', label: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629' },
-  { value: 'hi', label: '\u0939\u093f\u0928\u094d\u0926\u0940' },
-  { value: 'vi', label: 'Ti\u1ebfng Vi\u1ec7t' },
-  { value: 'th', label: '\u0e20\u0e32\u0e29\u0e32\u0e44\u0e17\u0e22' },
-  { value: 'tr', label: 'T\u00fcrk\u00e7e' },
-  { value: 'it', label: 'Italiano' },
-  { value: 'pl', label: 'Polski' },
-  { value: 'uk', label: '\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430' },
-  { value: 'nl', label: 'Nederlands' },
-  { value: 'id', label: 'Bahasa Indonesia' },
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -857,7 +833,7 @@ export function Settings({
         <Select
           value={local.language}
           onChange={v => saveImmediate('language', v)}
-          options={LANGUAGES.map(l => l.value === 'auto' ? { ...l, label: t('dash.settings.auto_detect') } : l)}
+          options={languageOptions()}
         />
       </div>
       <SectionLabel>{t('dash.settings.section.advanced')}</SectionLabel>

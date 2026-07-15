@@ -164,6 +164,14 @@ const CATEGORIES: Record<string, { label: string; icon: string }> = {
   'education':        { label: 'Education',          icon: '🎓' },
 };
 
+// News-category label via the shared news.* keys (extension slugs use hyphens,
+// the keys use underscores). Falls back to the English label if a key is absent.
+function catLabel(slug: string): string {
+  const key = `news.${slug.replace(/-/g, '_')}`;
+  const v = t(key);
+  return v === key ? (CATEGORIES[slug]?.label ?? slug) : v;
+}
+
 const GRADIENTS = [
   'radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.2), transparent 60%), linear-gradient(135deg, #1a1a2e, #16213e)',
   'radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.2), transparent 60%), linear-gradient(135deg, #0f172a, #1e1b4b)',
@@ -278,7 +286,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
         <div className="absolute right-3 top-3 flex items-center gap-1.5">
           {cat && (
             <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm">
-              {cat.icon} {cat.label}
+              {cat.icon} {catLabel(article.category!)}
             </span>
           )}
           {article.priority === 'breaking' && (
@@ -573,7 +581,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     {relCat && (
                       <span className="absolute left-2 top-2 rounded bg-black/40 px-1.5 py-0.5 text-[8px] font-bold text-white backdrop-blur-sm">
-                        {relCat.icon} {relCat.label}
+                        {relCat.icon} {catLabel(rel.category!)}
                       </span>
                     )}
                   </div>
