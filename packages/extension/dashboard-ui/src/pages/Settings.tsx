@@ -103,14 +103,16 @@ export function Settings({
   // Settings tabs — Models / Permissions / Data / Advanced. Ava's identity
   // (avatar, tone, energy, style) lives in the Account "Ava's Style" tab, not
   // here. State persists so the user lands on whichever tab they last opened.
-  type SettingsTab = 'models' | 'permissions' | 'data' | 'advanced';
+  // Tabs mirror the IDE: General · Models · Behavior · Privacy (no Desktop —
+  // the extension has no desktop-automation surface).
+  type SettingsTab = 'general' | 'models' | 'behavior' | 'privacy';
   const [tab, setTab] = useState<SettingsTab>(() => {
     try {
       const stored = localStorage.getItem('ava-ext-settings-tab');
-      const valid: SettingsTab[] = ['models', 'permissions', 'data', 'advanced'];
+      const valid: SettingsTab[] = ['general', 'models', 'behavior', 'privacy'];
       if (stored && (valid as string[]).includes(stored)) return stored as SettingsTab;
     } catch { /* */ }
-    return 'models';
+    return 'general';
   });
   const switchTab = (next: SettingsTab) => {
     setTab(next);
@@ -330,13 +332,10 @@ export function Settings({
       {/* ── Tab nav — mirrors IDE Settings 5-tab refactor ────────────── */}
       <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
         {([
-          { id: 'models' as const,       label: tt('dash.settings.tab.models',       'Models') },
-          { id: 'permissions' as const,  label: tt('dash.settings.tab.permissions',  'Permissions') },
-          // "Privacy", not "Data" — everything on this tab (export, import, what
-          // leaves the machine, what's captured) answers a privacy question. The
-          // internal id stays 'data' so saved tab selections don't break.
-          { id: 'data' as const,         label: tt('dash.settings.tab.privacy',      'Privacy') },
-          { id: 'advanced' as const,     label: tt('dash.settings.tab.advanced',     'Advanced') },
+          { id: 'general' as const,   label: tt('dash.settings.tab.general',  'General') },
+          { id: 'models' as const,    label: tt('dash.settings.tab.models',   'Models') },
+          { id: 'behavior' as const,  label: tt('dash.settings.tab.behavior', 'Behavior') },
+          { id: 'privacy' as const,   label: tt('dash.settings.tab.privacy',  'Privacy') },
         ]).map(t_ => (
           <button
             key={t_.id}
@@ -354,7 +353,7 @@ export function Settings({
       </div>
 
       {/* ── Data tab — Privacy + Help train Ava ──────────────────────── */}
-      {tab === 'data' && <>
+      {tab === 'privacy' && <>
       <SectionLabel>{t('dash.settings.section.privacy')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         {/* Auto Memory */}
@@ -468,7 +467,7 @@ export function Settings({
 
       </>}
       {/* ── Permissions tab — Behavior (permission mode + caps) ────── */}
-      {tab === 'permissions' && <>
+      {tab === 'behavior' && <>
       <SectionLabel>{t('dash.settings.section.behavior')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <p className="mb-1 text-sm font-semibold">{t('dash.settings.permission')}</p>
@@ -826,8 +825,8 @@ export function Settings({
 
 
       </>}
-      {/* ── Advanced tab — Language + Advanced + Danger Zone ─────────── */}
-      {tab === 'advanced' && <>
+      {/* ── General tab — Language + Welcome tour (mirrors IDE General) ─── */}
+      {tab === 'general' && <>
       <SectionLabel>{t('dash.settings.language')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <Select
@@ -836,6 +835,20 @@ export function Settings({
           options={languageOptions()}
         />
       </div>
+      <SectionLabel>{tt('ext.settings.welcome_tour', 'Welcome tour')}</SectionLabel>
+      <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+        <p className="text-xs text-[var(--text-muted)]">{tt('ext.settings.replay_tour_hint', 'See the first-run walkthrough again.')}</p>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('ava-show-welcome'))}
+          className="rounded-lg border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3 py-1.5 text-xs font-semibold text-[#cdd6f4]"
+        >
+          {tt('ext.settings.replay_tour', 'Replay welcome tour')}
+        </button>
+      </div>
+      </>}
+
+      {/* Advanced settings live under Models, mirroring the IDE. */}
+      {tab === 'models' && <>
       <SectionLabel>{t('dash.settings.section.advanced')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)]">
         <button
@@ -921,8 +934,10 @@ export function Settings({
         )}
       </div>
 
-      {/* ── 8. Danger Zone ──────────────────────────────────────────────── */}
-      {account && (
+      </>}
+
+      {/* Danger Zone lives under Privacy, mirroring the IDE. */}
+      {tab === 'privacy' && account && (
         <>
           <SectionLabel>{t('dash.settings.section.danger_zone')}</SectionLabel>
           <div className="mb-4 rounded-xl border border-red-500/30 bg-[var(--bg-card)] p-5">
@@ -943,7 +958,6 @@ export function Settings({
           </div>
         </>
       )}
-      </>}
     </div>
   );
 }

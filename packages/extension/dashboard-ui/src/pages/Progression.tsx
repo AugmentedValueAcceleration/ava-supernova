@@ -23,11 +23,11 @@ interface Props {
   userAvatarUrl?: string | null;
 }
 
-const LEVEL_META: Record<SkillLevel, { label: string; color: string }> = {
-  novice:     { label: 'Novice',     color: '#94a3b8' },
-  familiar:   { label: 'Familiar',   color: '#60a5fa' },
-  proficient: { label: 'Proficient', color: '#c084fc' },
-  mastered:   { label: 'Mastered',   color: '#34d399' },
+const LEVEL_META: Record<SkillLevel, { labelKey: string; label: string; color: string }> = {
+  novice:     { labelKey: 'ext.progression.novice',     label: 'Novice',     color: '#94a3b8' },
+  familiar:   { labelKey: 'ext.progression.familiar',   label: 'Familiar',   color: '#60a5fa' },
+  proficient: { labelKey: 'ext.progression.proficient', label: 'Proficient', color: '#c084fc' },
+  mastered:   { labelKey: 'ext.progression.mastered',   label: 'Mastered',   color: '#34d399' },
 };
 
 const relTime = (iso: string | null): string => {
@@ -213,7 +213,7 @@ function EarnedSkillChip({ skill }: { skill: DerivedSkill }) {
     >
       <span style={{ color: meta.color }} aria-hidden><Icon.verified size={13} /></span>
       {skill.name}
-      <span className="rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide" style={{ color: meta.color }}>{meta.label}</span>
+      <span className="rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide" style={{ color: meta.color }}>{tt(meta.labelKey, meta.label)}</span>
       {skill.stale && <span title={tt('learning.progression.stale', 'Time for a refresh')} aria-hidden><Icon.clock size={12} /></span>}
     </span>
   );

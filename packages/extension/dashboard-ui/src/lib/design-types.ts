@@ -11,17 +11,17 @@ export type ViewId =
   | 'image' | 'video' | 'voice' | 'brandkit';
 
 export interface DesignTypeItem { id: ViewId; label: string; badge?: string }
-export interface DesignGroup { label: string; accent: string; items: DesignTypeItem[] }
+export interface DesignGroup { labelKey: string; label: string; accent: string; items: DesignTypeItem[] }
 
 // Left-nav group accent colours mirror the hub (Web/App purple, Game orange,
 // Open Canvas blue).
 export const DESIGN_GROUPS: DesignGroup[] = [
-  { label: 'Open Canvas', accent: '#6aa9ff', items: [
+  { labelKey: 'dash.studio.group.open_canvas', label: 'Open Canvas', accent: '#6aa9ff', items: [
     { id: 'video', label: 'Video' },
     { id: 'voice', label: 'Voiceover' },
     { id: 'image', label: 'Image' },
   ] },
-  { label: 'Web / App', accent: 'var(--accent)', items: [
+  { labelKey: 'dash.studio.group.web_app', label: 'Web / App', accent: 'var(--accent)', items: [
     { id: 'icon', label: 'Icon' },
     { id: 'appicon', label: 'App Icon / Favicon', badge: 'SOON' },
     { id: 'logo', label: 'Logo' },
@@ -33,7 +33,7 @@ export const DESIGN_GROUPS: DesignGroup[] = [
     { id: 'illustration', label: 'Illustration', badge: 'SOON' },
     { id: 'pattern', label: 'Pattern / Background', badge: 'SOON' },
   ] },
-  { label: 'Game Dev', accent: '#f0a24b', items: [
+  { labelKey: 'ext.studio.group.game_dev', label: 'Game Dev', accent: '#f0a24b', items: [
     { id: 'game-concept', label: 'Concept Art', badge: 'SOON' },
     { id: 'game-character', label: 'Character / Portrait', badge: 'SOON' },
     { id: 'game-creature', label: 'Creature / Enemy', badge: 'SOON' },

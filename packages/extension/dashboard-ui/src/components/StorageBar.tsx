@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { tt } from '../i18n';
 import type { StorageScan } from '../types/messages';
 import { post } from '../App';
 
@@ -100,7 +101,7 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-[var(--text-muted)]">{formatBytes(totalBytes)}</span>
             {pinned && (
-              <button onClick={close} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition" aria-label="Close">✕</button>
+              <button onClick={close} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition" aria-label={tt('history.close','Close')}>✕</button>
             )}
           </div>
         </div>
@@ -120,19 +121,19 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
             <div className="flex items-center gap-2">
               <button
                 onClick={() => post({ type: 'open_storage_folder' })}
-                title="Reveal the ~/.ava data folder"
+                title={tt('ide.storage.reveal','Reveal the ~/.ava data folder')}
                 className="flex-1 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
               >
                 Open folder
               </button>
               {reclaimBytes > 0 && (armed
                 ? <button onClick={doReclaim} className="flex-shrink-0 rounded-lg border border-red-500/50 bg-red-500/15 px-2.5 py-1 text-[11px] font-medium text-red-300 hover:bg-red-500/25 transition">Free {formatBytes(reclaimBytes)}</button>
-                : <button onClick={() => setArmed(true)} className="flex-shrink-0 rounded-lg border border-[var(--border-card)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-red-500/50 hover:text-red-300 transition">Reclaim</button>)}
+                : <button onClick={() => setArmed(true)} className="flex-shrink-0 rounded-lg border border-[var(--border-card)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-red-500/50 hover:text-red-300 transition">{tt('ide.storage.reclaim','Reclaim')}</button>)}
             </div>
             <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">Reclaim removes only stale backups. Models are Ava's local AI engine, managed in Desktop / Vision.</p>
           </div>
         ) : (
-          <div className="mt-2 border-t border-[var(--border-card)] pt-2 text-[10px] text-[var(--text-muted)]">Click to manage</div>
+          <div className="mt-2 border-t border-[var(--border-card)] pt-2 text-[10px] text-[var(--text-muted)]">{tt('ext.storage.click_manage','Click to manage')}</div>
         )}
       </div>
     </div>

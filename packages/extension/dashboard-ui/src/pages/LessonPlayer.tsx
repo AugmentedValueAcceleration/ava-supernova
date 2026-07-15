@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { tt } from '../i18n';
 import { post } from '../App';
 import type { DashboardLearningLesson, DashboardLessonStep } from '../types/messages';
 
@@ -47,7 +48,7 @@ export function LessonPlayer({ lesson, curriculumId, onClose }: Props) {
         <BackBar onClose={onClose} title={lesson.title} progress="" />
         <div className="rounded-xl border border-emerald-400/30 bg-gradient-to-br from-emerald-400/5 to-[var(--accent)]/5 p-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/10 text-2xl">✓</div>
-          <h2 className="text-lg font-bold text-white">You did it</h2>
+          <h2 className="text-lg font-bold text-white">{tt('ext.lesson.you_did_it','You did it')}</h2>
           <p className="mt-2 text-sm text-[var(--text-secondary)]">
             You worked through every step yourself — that&apos;s the skill, not the reading.
           </p>
@@ -143,7 +144,7 @@ function StepCard({ step, onDone }: { step: DashboardLessonStep; onDone: (r: Ste
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Your answer…"
+            placeholder={tt('ext.lesson.answer_ph','Your answer…')}
             rows={3}
             className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] p-2.5 text-xs text-white outline-none focus:border-[var(--accent)]/50"
           />
@@ -171,9 +172,9 @@ function StepCard({ step, onDone }: { step: DashboardLessonStep; onDone: (r: Ste
       )}
       {!isDeterministic && revealed && step.interaction.evaluation && (
         <div className="mt-3 rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">What a strong answer has</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">{tt('ext.lesson.strong_answer','What a strong answer has')}</p>
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">{step.interaction.evaluation}</p>
-          <p className="mt-2 text-[10px] text-[var(--text-muted)]">Soon: Ava reads your actual answer and grades it against this live.</p>
+          <p className="mt-2 text-[10px] text-[var(--text-muted)]">{tt('ext.lesson.soon','Soon: Ava reads your actual answer and grades it against this live.')}</p>
         </div>
       )}
 

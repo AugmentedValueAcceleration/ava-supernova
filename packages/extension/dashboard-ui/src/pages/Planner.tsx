@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocale } from '../i18n';
+import { tt, useLocale } from '../i18n';
 import { Tasks } from './Tasks';
 import { Journal } from './Journal';
 import { HealthPlans } from './HealthPlans';
@@ -70,10 +70,10 @@ const TABS: { key: PlannerTab; icon: string }[] = [
   { key: 'plans', icon: '\u2630' },
 ];
 
-const TAB_LABELS: Record<PlannerTab, string> = {
-  tasks: 'Tasks',
-  journal: 'Journal',
-  plans: 'Plans',
+const TAB_KEYS: Record<PlannerTab, string> = {
+  tasks: 'dash.nav.tasks',
+  journal: 'dash.nav.journal',
+  plans: 'dash.planner.tab_plans',
 };
 
 export function Planner({
@@ -103,8 +103,8 @@ export function Planner({
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Planner</h1>
-        <p className="mt-1.5 text-[13px] text-[#6c7086]">Tasks, reflections, and plans</p>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{tt('dash.nav.planner', 'Planner')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">{tt('ext.planner.subtitle', 'Tasks, reflections, and plans')}</p>
       </div>
 
       {/* Tab bar */}
@@ -120,7 +120,7 @@ export function Planner({
             }`}
           >
             <span className="text-[11px]">{icon}</span>
-            {TAB_LABELS[key]}
+            {tt(TAB_KEYS[key], key)}
             {key === 'tasks' && tasks.filter(t => t.status === 'todo' || t.status === 'in-progress').length > 0 && (
               <span className="ml-1 rounded-full bg-[var(--accent)]/15 px-1.5 text-[10px] text-[var(--accent)]">
                 {tasks.filter(t => t.status === 'todo' || t.status === 'in-progress').length}

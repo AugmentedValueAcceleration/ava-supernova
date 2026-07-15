@@ -510,7 +510,7 @@ function QuickAdd({
                 <div key={i} className="flex items-center gap-2">
                   <span className="h-3.5 w-3.5 flex-shrink-0 rounded border border-white/20" />
                   <span className="flex-1 text-xs text-[var(--text-secondary)]">{s}</span>
-                  <button onClick={() => setSubtasks((arr) => arr.filter((_, j) => j !== i))} aria-label="Remove" className="border-none bg-transparent text-[15px] leading-none text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">×</button>
+                  <button onClick={() => setSubtasks((arr) => arr.filter((_, j) => j !== i))} aria-label={tt('dash.settings.remove','Remove')} className="border-none bg-transparent text-[15px] leading-none text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">×</button>
                 </div>
               ))}
             </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { tt } from '../i18n';
 
 /**
  * A compact, dark-themed month calendar that mirrors the sidebar mini-calendar
@@ -34,13 +35,13 @@ export function MiniDatePicker({ value, onChange }: MiniDatePickerProps) {
     <div className="rounded-xl border border-[var(--border-card)] p-3 shadow-2xl" style={{ width: 220, background: '#1b1230' }}>
       <div className="flex items-center justify-between mb-2">
         <span className="flex items-center">
-          <button onClick={() => stepYear(-1)} title="Previous year" className={`${navBtn} text-[13px]`}>{'«'}</button>
-          <button onClick={() => step(-1)} title="Previous month" className={`${navBtn} text-xs`}>{'‹'}</button>
+          <button onClick={() => stepYear(-1)} title={tt('ide.datepicker.prev_year','Previous year')} className={`${navBtn} text-[13px]`}>{'«'}</button>
+          <button onClick={() => step(-1)} title={tt('ide.datepicker.prev_month','Previous month')} className={`${navBtn} text-xs`}>{'‹'}</button>
         </span>
         <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
         <span className="flex items-center">
-          <button onClick={() => step(1)} title="Next month" className={`${navBtn} text-xs`}>{'›'}</button>
-          <button onClick={() => stepYear(1)} title="Next year" className={`${navBtn} text-[13px]`}>{'»'}</button>
+          <button onClick={() => step(1)} title={tt('ide.datepicker.next_month','Next month')} className={`${navBtn} text-xs`}>{'›'}</button>
+          <button onClick={() => stepYear(1)} title={tt('ide.datepicker.next_year','Next year')} className={`${navBtn} text-[13px]`}>{'»'}</button>
         </span>
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center mb-1">

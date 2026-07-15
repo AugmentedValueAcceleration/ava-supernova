@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, useLocale, tt} from '../i18n';
 import { post } from '../App';
 import type { LibraryImage, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset, StorageScan } from '../types/messages';
 import { LibraryPapers } from './LibraryPapers';
@@ -451,7 +451,7 @@ export function Library({
               click for the breakdown + backup reclaim. Shared with the Command
               Center header. */}
           <div className="mb-3 max-w-md">
-            <StorageBar scan={storageScan} label="Storage" />
+            <StorageBar scan={storageScan} label={tt('dash.cc.storage','Storage')} />
           </div>
 
           {/* Inline loading pill — non-blocking. Stays visible while

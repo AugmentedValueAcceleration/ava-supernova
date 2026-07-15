@@ -105,7 +105,7 @@ function GraphStatsBar({ stats, brain }: {
 function CategoryBadge({ category }: { category: string | null }) {
   const cat = category ?? 'general';
   const colors = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.general;
-  const label = cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ');
+  const label = t('memory.category.' + cat) !== 'memory.category.' + cat ? t('memory.category.' + cat) : cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ');
   return (
     <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${colors}`}>
       {label}
@@ -554,7 +554,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
                   : 'border-[var(--border-card)] text-[var(--text-muted)] hover:border-[var(--accent)]/50'
               }`}
             >
-              {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')} ({categoryCounts[cat]})
+              {t('memory.category.' + cat) !== 'memory.category.' + cat ? t('memory.category.' + cat) : cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')} ({categoryCounts[cat]})
             </button>
           ))}
         </div>

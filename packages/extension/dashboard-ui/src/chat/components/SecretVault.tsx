@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { t, useLocale } from '../../i18n';
+import { t, useLocale, tt} from '../../i18n';
 import { detectProvider } from '../../utils/secret-patterns';
 
 export interface SecretEntry {
@@ -132,7 +132,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
               background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
               color: 'var(--accent)',
             }}
-            title="Reference a key by label in your message. Ava receives an opaque handle — the value is swapped in on your machine when a tool runs, so it never reaches the model or your saved chat."
+            title={tt('ext.vault.reference_hint','Reference a key by label in your message. Ava receives an opaque handle — the value is swapped in on your machine when a tool runs, so it never reaches the model or your saved chat.')}
           >
             @secret:Label
           </span>
@@ -143,7 +143,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                      bg-transparent border-none cursor-pointer
                      text-[var(--text-secondary)] opacity-60 hover:opacity-100
                      transition-opacity duration-150"
-          aria-label="Close"
+          aria-label={tt('history.close','Close')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -209,7 +209,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                   {secret.alwaysGrantProjects && secret.alwaysGrantProjects.length > 0 && (
                     <span
                       className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--accent)]/15 text-[var(--accent)] shrink-0"
-                      title="Auto-granted to Ava on this project — clear by deleting and re-adding the secret"
+                      title={tt('ext.vault.autogrant_hint','Auto-granted to Ava on this project — clear by deleting and re-adding the secret')}
                     >
                       auto
                     </span>

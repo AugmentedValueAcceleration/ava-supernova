@@ -1393,7 +1393,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         {DESIGN_GROUPS.map(g => (
           <div key={g.label} className="mb-3.5">
             <div className="flex items-center gap-1.5 px-2.5 pb-1.5 text-[10px] tracking-[1.4px] uppercase font-semibold" style={{ color: g.accent }}>
-              <span className="w-[3px] h-3 rounded" style={{ background: g.accent }} />{g.label}
+              <span className="w-[3px] h-3 rounded" style={{ background: g.accent }} />{tt(g.labelKey, g.label)}
             </div>
             {g.items.map(it => {
               const on = view === it.id;
@@ -1407,8 +1407,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                     : on ? 'cursor-pointer border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)] font-normal'
                     : 'cursor-pointer border-transparent bg-transparent text-[var(--text-secondary)] font-light hover:text-[var(--text-primary)]'
                   }`}>
-                  {it.label}
-                  {it.badge && <span className="ml-auto text-[9px] tracking-wider text-[var(--text-muted)] border border-[var(--border-card)] px-1.5 rounded-full">{it.badge}</span>}
+                  {tt('dash.studio.asset.' + it.id, it.label)}
+                  {it.badge && <span className="ml-auto text-[9px] tracking-wider text-[var(--text-muted)] border border-[var(--border-card)] px-1.5 rounded-full">{tt('dash.studio.soon', it.badge)}</span>}
                 </button>
               );
             })}

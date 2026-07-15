@@ -617,6 +617,12 @@ export function App() {
   // cache — the old `length > 0` guard left a stale course that re-appeared.
   useEffect(() => { try { localStorage.setItem('ava-dash-learning', JSON.stringify(learningCurriculums)); } catch {} }, [learningCurriculums]);
   useEffect(() => { if (journalDay) { try { localStorage.setItem(`ava-dash-journal-${selectedJournalDate}`, JSON.stringify(journalDay)); } catch {} } }, [journalDay, selectedJournalDate]);
+  // Settings → Advanced can replay the welcome tour on demand.
+  useEffect(() => {
+    const show = () => setShowWelcome(true);
+    window.addEventListener('ava-show-welcome', show);
+    return () => window.removeEventListener('ava-show-welcome', show);
+  }, []);
   useEffect(() => { if (personalityData) { try { localStorage.setItem('ava-dash-personality', JSON.stringify(personalityData)); } catch {} } }, [personalityData]);
 
   // "Ask Ava" from the docs page — the question is stashed in localStorage by
@@ -1859,6 +1865,15 @@ export function App() {
           onSetWelcomeOnStartup={(enabled) => { setWelcomeOnStartup(enabled); post({ type: 'set_welcome_on_startup', enabled }); }}
           onClose={() => setShowWelcome(false)}
           onNavigate={(p) => setPagePersist(p as Page)}
+          onSetLanguage={(loc) => {
+            localStorage.setItem('ava-dashboard-language', loc);
+            initLocale(loc);
+            setSettings((prev) => {
+              const updated = { ...prev, language: loc };
+              post({ type: 'save_settings', settings: updated });
+              return updated;
+            });
+          }}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { t, tt, useLocale } from '../i18n';
+import { t, tt, useLocale, getLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { Icon } from '../components/Icon';
@@ -304,7 +304,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
         <CalendarIcon className="h-3.5 w-3.5 text-[var(--text-muted)]" />
         <span className="text-[11px] text-[var(--text-muted)]">
           {dateScope === 'selected'
-            ? <>Showing tasks for <span className="font-semibold text-[var(--accent)]">{activeDate === todayIso ? 'today' : new Date(activeDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</span></>
+            ? <>{tt('ext.tasks.showing_for', 'Showing tasks for')} <span className="font-semibold text-[var(--accent)]">{activeDate === todayIso ? tt('ext.tasks.today', 'today') : new Date(activeDate).toLocaleDateString(getLocale(), { weekday: 'short', day: 'numeric', month: 'short' })}</span></>
             : <>Showing <span className="font-semibold text-[var(--accent)]">all tasks</span></>}
         </span>
         <div className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] p-0.5">
@@ -316,7 +316,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
                 : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            Selected day
+            {tt('ext.tasks.selected_day', 'Selected day')}
           </button>
           <button
             onClick={() => setDateScope('all')}

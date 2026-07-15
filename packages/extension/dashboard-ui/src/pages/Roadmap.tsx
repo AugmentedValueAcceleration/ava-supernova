@@ -1,4 +1,4 @@
-import { useLocale } from '../i18n';
+import { useLocale, tt} from '../i18n';
 import { Skeleton } from '../components/Skeleton';
 import type { RoadmapTheme } from '../types/messages';
 
@@ -45,15 +45,15 @@ export function Roadmap({ themes, loading }: Props) {
           <div className="flex gap-6 mb-8">
             <div>
               <div className="text-2xl font-light" style={{ color: 'var(--accent)' }}>{pct}%</div>
-              <div className="text-[10px] font-light uppercase tracking-wider text-[var(--text-muted)]">Complete</div>
+              <div className="text-[10px] font-light uppercase tracking-wider text-[var(--text-muted)]">{tt('dash.roadmap.complete','Complete')}</div>
             </div>
             <div>
               <div className="text-2xl font-light text-green-400">{totalShipped}</div>
-              <div className="text-[10px] font-light uppercase tracking-wider text-[var(--text-muted)]">Shipped</div>
+              <div className="text-[10px] font-light uppercase tracking-wider text-[var(--text-muted)]">{tt('dash.roadmap.shipped','Shipped')}</div>
             </div>
             <div>
               <div className="text-2xl font-light text-blue-400">{totalAll - totalShipped}</div>
-              <div className="text-[10px] font-light uppercase tracking-wider text-[var(--text-muted)]">Coming</div>
+              <div className="text-[10px] font-light uppercase tracking-wider text-[var(--text-muted)]">{tt('dash.roadmap.coming','Coming')}</div>
             </div>
           </div>
 

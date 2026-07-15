@@ -4,8 +4,9 @@
 // Shared data: ../onboarding/flow. Copy: onboarding.* (core i18n).
 
 import { useState, useEffect } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, useLocale, getLocale, languageOptions } from '../i18n';
 import { Icon } from './Icon';
+import { Select } from './Select';
 import { PATHS, MODES, BREADTH, stepsFor, pathById, type Destination, type OnboardingPath } from '../onboarding/flow';
 
 interface Props {
@@ -15,6 +16,9 @@ interface Props {
   onClose: () => void;
   /** Navigate the dashboard to a page (overview/chat/journal/learning/health/account/...). */
   onNavigate: (page: string) => void;
+  /** Persist + apply the UI/Ava language. Present from the first screen so the
+   *  whole tour — and everything after — runs in the user's language. */
+  onSetLanguage: (locale: string) => void;
 }
 
 const STEPS = stepsFor('extension'); // identity, path, tailored, breadth, connect, ready
@@ -32,7 +36,7 @@ const DEST_PAGE: Record<Destination, string> = {
   home: 'overview',
 };
 
-export function WelcomeOnboarding({ isConnected, welcomeOnStartup, onSetWelcomeOnStartup, onClose, onNavigate }: Props) {
+export function WelcomeOnboarding({ isConnected, welcomeOnStartup, onSetWelcomeOnStartup, onClose, onNavigate, onSetLanguage }: Props) {
   useLocale();
   const [idx, setIdx] = useState(0);
   const [pathId, setPathId] = useState<string | null>(null);
@@ -68,6 +72,15 @@ export function WelcomeOnboarding({ isConnected, welcomeOnStartup, onSetWelcomeO
             <span key={s.id} className="h-1.5 rounded-full transition-all" style={{ width: i === idx ? 28 : 8, background: i <= idx ? ACCENT : 'rgba(255,255,255,0.15)' }} />
           ))}
           <div className="flex-1" />
+          {/* Language picker, present from the first screen so the whole tour —
+              and everything after — is in the user's language. Mirrors the IDE. */}
+          <Select
+            value={getLocale()}
+            onChange={onSetLanguage}
+            options={languageOptions()}
+            size="sm"
+            title={t('dash.settings.language')}
+          />
           <button onClick={onClose} className="text-xs text-[var(--text-muted)] hover:text-white bg-transparent border-none cursor-pointer">{t('onboarding.skip')}</button>
         </div>
 
