@@ -1779,6 +1779,25 @@ export const enStrings = {
   'dash.sidebar.searching': 'Searching…',
   'dash.sidebar.no_matches': 'No matches.',
   'dash.sidebar.match_case': 'Match case',
+  // ── Audit tab — most keys already exist below (underscore naming:
+  // cat_*, risk_*, status_*, showing_range, security_lens…). Only the pieces
+  // that vocabulary lacked are added here: pagination + the approval-cell
+  // values (it had approval-column header but no per-value labels). ──────────
+  'dash.audit.prev': 'Prev',
+  'dash.audit.next': 'Next',
+  'dash.audit.page': 'Page {n} of {total}',
+  'dash.audit.appr_auto': 'auto',
+  'dash.audit.appr_first-time': 'first-time',
+  'dash.audit.appr_user-approved': 'user-approved',
+  'dash.audit.appr_denied': 'denied',
+  // ── Orchestration modes (shared by the model dropdown + the CC model picker,
+  // which had drifted into two slightly different copies). Names are proper
+  // nouns and stay as-is; only the descriptions are translated. ──────────────
+  'dash.model.select': 'Select model',
+  'dash.model.aurora_title': 'Aurora — Mistral-only EU stack. Three-tier fleet: Mistral Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Mistral Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Mistral Large 3 is the heavy reserve. EU-only data residency, GDPR-strict, open weights.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4 Pro coordinator + V4 Flash specialists with Qwen builders. Heavy multi-step work.',
+  'dash.model.maestro_title': 'Maestro — single Qwen 3.7 Plus conductor. Daily work, predictable cost.',
+
   // ── Command Centre chrome ────────────────────────────────────────────────
   'dash.cc.call_you_ph': 'What should Ava call you?',
   'dash.cc.call_you_click': 'Click to change what Ava calls you',
