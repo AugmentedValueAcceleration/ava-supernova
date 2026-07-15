@@ -218,34 +218,34 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
   // hat). They prefill the composer so the user can edit before sending. The
   // set follows the operator into the Open Canvas (Video / Voiceover).
   const iconChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
-    { label: 'Make an icon',     prefix: '✦', prompt: 'Design a bell icon in glass, in my brand colours',   color: 'var(--accent)' },
-    { label: 'A whole set',      prefix: '✦', prompt: 'Make me a matching icon set for my app',             color: '#f9e2af' },
-    { label: 'Logo ideas',       prefix: '✦', prompt: 'Give me a few logo directions for my brand',         color: '#60a5fa' },
-    { label: 'Which material?',  prefix: '✦', prompt: 'What material suits a premium, trustworthy brand?',   color: '#94e2d5' },
+    { label: t('ext.chat.starter.icon.1_l'), prefix: '✦', prompt: t('ext.chat.starter.icon.1_p'), color: 'var(--accent)' },
+    { label: t('ext.chat.starter.icon.2_l'), prefix: '✦', prompt: t('ext.chat.starter.icon.2_p'), color: '#f9e2af' },
+    { label: t('ext.chat.starter.icon.3_l'), prefix: '✦', prompt: t('ext.chat.starter.icon.3_p'), color: '#60a5fa' },
+    { label: t('ext.chat.starter.icon.4_l'), prefix: '✦', prompt: t('ext.chat.starter.icon.4_p'), color: '#94e2d5' },
   ];
   const videoChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
-    { label: 'Film a scene',       prefix: '✦', prompt: 'Create a video: a slow cinematic dolly-in down a neon-lit, rain-slicked street at night', color: 'var(--accent)' },
-    { label: 'Product in motion',  prefix: '✦', prompt: 'A short clip of my product turning slowly on a clean studio backdrop, soft key light',    color: '#f9e2af' },
-    { label: 'Set a mood',         prefix: '✦', prompt: 'A calm 5-second atmospheric clip — soft morning light, gentle drifting motion',           color: '#60a5fa' },
-    { label: 'Vertical for social',prefix: '✦', prompt: 'A punchy vertical 9:16 clip for social, bright and energetic',                             color: '#94e2d5' },
+    { label: t('ext.chat.starter.video.1_l'), prefix: '✦', prompt: t('ext.chat.starter.video.1_p'), color: 'var(--accent)' },
+    { label: t('ext.chat.starter.video.2_l'), prefix: '✦', prompt: t('ext.chat.starter.video.2_p'), color: '#f9e2af' },
+    { label: t('ext.chat.starter.video.3_l'), prefix: '✦', prompt: t('ext.chat.starter.video.3_p'), color: '#60a5fa' },
+    { label: t('ext.chat.starter.video.4_l'), prefix: '✦', prompt: t('ext.chat.starter.video.4_p'), color: '#94e2d5' },
   ];
   const voiceChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
-    { label: 'Narrate a script', prefix: '✦', prompt: 'Narrate this in a warm, calm voice: ',                     color: 'var(--accent)' },
-    { label: 'A warm read',      prefix: '✦', prompt: 'A warm, unhurried, reassuring intro read for my product',  color: '#f9e2af' },
-    { label: 'A trailer VO',     prefix: '✦', prompt: 'A dramatic, high-energy trailer voiceover',                color: '#60a5fa' },
-    { label: 'Translate a VO',   prefix: '✦', prompt: 'Voice this in French, in the same voice: ',                color: '#94e2d5' },
+    { label: t('ext.chat.starter.voice.1_l'), prefix: '✦', prompt: t('ext.chat.starter.voice.1_p'), color: 'var(--accent)' },
+    { label: t('ext.chat.starter.voice.2_l'), prefix: '✦', prompt: t('ext.chat.starter.voice.2_p'), color: '#f9e2af' },
+    { label: t('ext.chat.starter.voice.3_l'), prefix: '✦', prompt: t('ext.chat.starter.voice.3_p'), color: '#60a5fa' },
+    { label: t('ext.chat.starter.voice.4_l'), prefix: '✦', prompt: t('ext.chat.starter.voice.4_p'), color: '#94e2d5' },
   ];
   const imageChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
-    { label: 'A hero image',   prefix: '✦', prompt: 'Compose a hero image: a sleek product on a gradient studio backdrop, cinematic lighting', color: 'var(--accent)' },
-    { label: 'An illustration', prefix: '✦', prompt: 'A flat vector illustration of a rocket launching, bold and playful',                       color: '#f9e2af' },
-    { label: 'A background',   prefix: '✦', prompt: 'An abstract gradient background, deep purples and blues, subtle grain',                    color: '#60a5fa' },
-    { label: 'A scene',        prefix: '✦', prompt: 'A cozy reading nook by a rainy window, warm light, photorealistic',                        color: '#94e2d5' },
+    { label: t('ext.chat.starter.image.1_l'), prefix: '✦', prompt: t('ext.chat.starter.image.1_p'), color: 'var(--accent)' },
+    { label: t('ext.chat.starter.image.2_l'), prefix: '✦', prompt: t('ext.chat.starter.image.2_p'), color: '#f9e2af' },
+    { label: t('ext.chat.starter.image.3_l'), prefix: '✦', prompt: t('ext.chat.starter.image.3_p'), color: '#60a5fa' },
+    { label: t('ext.chat.starter.image.4_l'), prefix: '✦', prompt: t('ext.chat.starter.image.4_p'), color: '#94e2d5' },
   ];
   const logoChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
-    { label: 'Design my logo',   prefix: '✦', prompt: 'Design a logo for my brand — work from my brand kit', color: 'var(--accent)' },
-    { label: 'From an idea',     prefix: '✦', prompt: 'Design a logo around this idea: ',                     color: '#f9e2af' },
-    { label: 'A few directions', prefix: '✦', prompt: 'Give me a few different logo directions for my brand', color: '#60a5fa' },
-    { label: 'Which font fits?', prefix: '✦', prompt: 'What wordmark font suits a premium, trustworthy brand?', color: '#94e2d5' },
+    { label: t('ext.chat.starter.logo.1_l'), prefix: '✦', prompt: t('ext.chat.starter.logo.1_p'), color: 'var(--accent)' },
+    { label: t('ext.chat.starter.logo.2_l'), prefix: '✦', prompt: t('ext.chat.starter.logo.2_p'), color: '#f9e2af' },
+    { label: t('ext.chat.starter.logo.3_l'), prefix: '✦', prompt: t('ext.chat.starter.logo.3_p'), color: '#60a5fa' },
+    { label: t('ext.chat.starter.logo.4_l'), prefix: '✦', prompt: t('ext.chat.starter.logo.4_p'), color: '#94e2d5' },
   ];
   const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : designRoom === 'image' ? imageChips : designRoom === 'logo' ? logoChips : iconChips;
   // Health room: plain-prompt chips (no mode prefix — the room is locked to
