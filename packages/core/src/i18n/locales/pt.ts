@@ -3834,7 +3834,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'ide.papers.primer_intro': 'Gostaria que você lesse e explicasse este artigo científico para mim. Use o passo de quatro camadas: 1. Qual é a pergunta? (uma frase em linguagem simples). 2. Por que importa? (o impacto humano). 3. O que eles fizeram? (método, sem jargões). 4. O que descobriram — e quão confiante devo estar? (resultados + ressalvas específicas da área deste artigo).',
   'ide.papers.primer_paper': 'Artigo: **{title}**',
   'ide.papers.primer_authors': 'Autores: {authors}',
-  'ide.papers.primer_etal': 'et al.',
+  'ide.papers.primer_etal': 'e outros',
   'ide.papers.primer_identifier': 'Identificador: `{ident}`',
   'ide.papers.primer_url': 'URL: {url}',
   'ide.papers.primer_retracted': '⚠ Este artigo está marcado como RETRATADO. Avise-me sobre isso antes de discutir os resultados.',

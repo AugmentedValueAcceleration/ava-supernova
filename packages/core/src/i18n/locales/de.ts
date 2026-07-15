@@ -3591,7 +3591,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.asset.video': 'Video',
   'dash.studio.asset.voice': 'Sprachaufnahme',
   'dash.studio.asset.image': 'Bild',
-  'dash.studio.asset.icon': 'Icon',
+  'dash.studio.asset.icon': 'Symbol',
   'dash.studio.asset.iconset': 'Icon-Set',
   'dash.studio.asset.appicon': 'App-Icon / Favicon',
   'dash.studio.asset.logo': 'Logo',
