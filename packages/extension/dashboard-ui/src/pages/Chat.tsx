@@ -860,16 +860,16 @@ function QuestionReply({ onAnswer }: { onAnswer: (text: string) => void }) {
   const submit = () => { const t = text.trim(); if (!t) return; onAnswer(t); setText(''); };
   return (
     <div className="mx-4 mb-3 mt-1 flex items-center gap-2 rounded-xl border border-[var(--accent)]/40 bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] px-3 py-2">
-      <span className="shrink-0 text-[11px] font-semibold text-[var(--accent)]">Your answer</span>
+      <span className="shrink-0 text-[11px] font-semibold text-[var(--accent)]">{t('ext.chat.your_answer')}</span>
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
         autoFocus
-        placeholder="Reply to Ava…"
+        placeholder={t('ext.chat.reply_placeholder')}
         className="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
       />
-      <button onClick={submit} disabled={!text.trim()} className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1 text-[12px] font-medium text-white transition hover:brightness-110 disabled:opacity-40">Send</button>
+      <button onClick={submit} disabled={!text.trim()} className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1 text-[12px] font-medium text-white transition hover:brightness-110 disabled:opacity-40">{t('dash.support.send')}</button>
     </div>
   );
 }
@@ -1238,8 +1238,8 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
           {hideHeader && !hideMessages && lane === 'design' && (
             <div className="shrink-0 flex items-center justify-between px-3 py-1.5 border-b"
                  style={{ borderColor: 'var(--border-card, rgba(128,128,128,0.2))' }}>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50">Design chat</span>
-              <button onClick={handleClearChat} title="Clear the design chat"
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-50">{t('ext.chat.design_chat')}</span>
+              <button onClick={handleClearChat} title={t('ext.chat.clear_design_chat')}
                 className="text-[11px] px-2 py-0.5 rounded-md opacity-70 hover:opacity-100 transition cursor-pointer border"
                 style={{ borderColor: 'var(--border-card, rgba(128,128,128,0.25))' }}>
                 Clear chat
@@ -1308,7 +1308,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
                 <path fill="currentColor" d="M8 1v1.5A5.5 5.5 0 0 1 13.5 8H15A7 7 0 0 0 8 1z"/>
               </svg>
               <span style={{ color: 'var(--accent)' }}>{t('input.compressing') || 'Compressing context...'}</span>
-              <span className="opacity-40">Ava is summarising older messages to free up space</span>
+              <span className="opacity-40">{t('ext.chat.summarising')}</span>
             </div>
           )}
 

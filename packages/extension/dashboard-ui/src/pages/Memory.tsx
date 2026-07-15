@@ -72,7 +72,7 @@ function GraphStatsBar({ stats, brain }: {
     <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
       {brain?.brief && (
         <div className="mb-3 rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-purple-400">Project Brain</p>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-purple-400">{t('ext.memory.project_brain')}</p>
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">{brain.brief}</p>
         </div>
       )}
@@ -80,21 +80,21 @@ function GraphStatsBar({ stats, brain }: {
         <div className="grid grid-cols-4 gap-3">
           <div className="text-center">
             <p className="text-lg font-light text-white">{stats.activeNodes}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">Active</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{t('memory.tab.active')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-light text-white">{stats.edges}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">Edges</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{t('ext.memory.edges')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-light" style={{ color: stats.avgConfidence >= 0.6 ? '#34d399' : stats.avgConfidence >= 0.3 ? '#fbbf24' : '#f87171' }}>
               {Math.round(stats.avgConfidence * 100)}%
             </p>
-            <p className="text-[10px] text-[var(--text-muted)]">Avg Confidence</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{t('ext.memory.avg_confidence')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-light text-white">{stats.crystallisedPatterns}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">Patterns</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{t('memory.tab.patterns')}</p>
           </div>
         </div>
       )}
@@ -562,7 +562,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
 
       {/* v3 Contradictions panel */}
       {viewMode === 'contradictions' && contradictions && contradictions.length > 0 && (
-        <SectionGroup label="Contradictions" count={`${contradictions.length} conflicts to resolve`}>
+        <SectionGroup label={t('ext.memory.contradictions')} count={`${contradictions.length} conflicts to resolve`}>
           <div className="space-y-4">
             {contradictions.map((c, i) => (
               <div key={c.edgeId} className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
@@ -594,7 +594,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
 
       {/* v3 Procedural patterns panel */}
       {viewMode === 'patterns' && patterns && patterns.length > 0 && (
-        <SectionGroup label="Learned Patterns" count={`${patterns.length} patterns (${patterns.filter(p => p.crystallised).length} crystallised)`}>
+        <SectionGroup label={t('ext.memory.learned_patterns')} count={`${patterns.length} patterns (${patterns.filter(p => p.crystallised).length} crystallised)`}>
           <div className="space-y-3">
             {patterns.sort((a, b) => b.confidence - a.confidence).map(p => (
               <div key={p.id} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">

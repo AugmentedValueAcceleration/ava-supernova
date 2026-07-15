@@ -90,7 +90,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
       {isConnected && !cloudSync && (
         <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)] mb-6">
           Cloud sync is off — your data stays on this machine. Turn on the{' '}
-          <span className="font-medium text-[#a6e3a1]">Cloud sync</span> toggle in the chat header to back up to the cloud.
+          <span className="font-medium text-[#a6e3a1]">{tt('dash.storage.cloud_sync','Cloud sync')}</span> toggle in the chat header to back up to the cloud.
         </div>
       )}
 
@@ -218,12 +218,12 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
       )}
 
       <div className="mt-8 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-        <h3 className="text-xs font-semibold text-white mb-2">How it works</h3>
+        <h3 className="text-xs font-semibold text-white mb-2">{tt('dash.learning.how_it_works','How it works')}</h3>
         <ul className="text-[11px] text-[var(--text-muted)] space-y-1.5">
-          <li>All data is saved locally by default — nothing leaves your machine automatically</li>
-          <li>Push to Cloud sends your local data to the platform for cross-device access</li>
-          <li>Your companion app and web dashboard will show the synced data</li>
-          <li>You control what syncs and when — complete privacy by default</li>
+          <li>{tt('dash.sync.how1','All data is saved locally by default — nothing leaves your machine automatically')}</li>
+          <li>{tt('dash.sync.how2','Push to Cloud sends your local data to the platform for cross-device access')}</li>
+          <li>{tt('dash.sync.how3','Your companion app and web dashboard will show the synced data')}</li>
+          <li>{tt('dash.sync.how4','You control what syncs and when — complete privacy by default')}</li>
         </ul>
       </div>
     </div>

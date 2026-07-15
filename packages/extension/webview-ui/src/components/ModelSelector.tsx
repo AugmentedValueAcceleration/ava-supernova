@@ -158,7 +158,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
           {/* Orchestrated section — Supernova preview + Maestro */}
           {orchestrated.length > 0 && (
             <>
-              <div style={sectionHeaderStyle}>Orchestrated</div>
+              <div style={sectionHeaderStyle}>{t('dash.model.orchestrated')}</div>
               {orchestrated.map(o => {
                 const isPreview = (o.id === 'supernova' || o.id === 'aurora') && !o.available;
                 const active = activeModel === o.id;

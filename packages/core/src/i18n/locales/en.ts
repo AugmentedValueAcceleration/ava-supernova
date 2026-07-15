@@ -1800,6 +1800,19 @@ export const enStrings = {
   // which had drifted into two slightly different copies). Names are proper
   // nouns and stay as-is; only the descriptions are translated. ──────────────
   'dash.model.select': 'Select model',
+  'dash.model.orchestrated': 'Orchestrated',
+  // Extension dashboard — strings the IDE didn't already cover.
+  'ext.memory.project_brain': 'Project Brain',
+  'ext.memory.edges': 'Edges',
+  'ext.memory.avg_confidence': 'Avg Confidence',
+  'ext.memory.contradictions': 'Contradictions',
+  'ext.memory.learned_patterns': 'Learned Patterns',
+  'ext.chat.your_answer': 'Your answer',
+  'ext.chat.reply_placeholder': 'Reply to Ava…',
+  'ext.chat.design_chat': 'Design chat',
+  'ext.chat.clear_design_chat': 'Clear the design chat',
+  'ext.chat.summarising': 'Ava is summarising older messages to free up space',
+  'ext.header.chat_controls': 'Chat controls',
   'model.add_key': 'Add key',
   // Orchestration-mode subtitles. Proper nouns (Qwen, DeepSeek, Mistral, BYOK)
   // stay; only the surrounding words translate.

@@ -66,7 +66,7 @@ export function Header({
 
   return (
     <div className="border-b" style={{ borderColor: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
-    <div className="flex items-center gap-2 px-3 py-2" role="toolbar" aria-label="Chat controls">
+    <div className="flex items-center gap-2 px-3 py-2" role="toolbar" aria-label={tt('ext.header.chat_controls', 'Chat controls')}>
       {/* Model selector — sidebar toggle dropped to match IDE which has no
           sidebar-toggle in the chat header (the dashboard sidebar collapses
           via its own affordance). */}
@@ -125,7 +125,7 @@ export function Header({
               <span
                 className="text-[11px] tabular-nums opacity-50"
                 style={{ fontFamily: 'monospace', color: '#6c7086' }}
-                title="Unlimited credits"
+                title={tt('dash.topbar.unlimited_credits', 'Unlimited credits')}
               >∞ credits</span>
             );
           }
@@ -157,7 +157,7 @@ export function Header({
         <button
           onClick={onNewChat}
           title={t('header.new_chat')}
-          aria-label="New chat"
+          aria-label={tt('header.new_chat', 'New chat')}
           style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
             background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
@@ -183,7 +183,7 @@ export function Header({
         <button
           onClick={onClearChat}
           title={tt('header.clear_chat', 'Clear chat')}
-          aria-label="Clear chat"
+          aria-label={tt('header.clear_chat', 'Clear chat')}
           style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
             background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
