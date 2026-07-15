@@ -1219,6 +1219,12 @@ export const enStrings = {
   'dash.support.pick_reason_ph': 'Pick a reason above to start…',
   'dash.support.reply_ph': 'Reply to this ticket…',
   'dash.chat.sending': 'Sending…',
+  // Ava's opening message in a new chat. {name} carries its own leading comma
+  // (", Stewart") or, for the late variant, " here" when there's no name.
+  'dash.chat.welcome_morning': "Morning{name}. It's {day} — what are we tackling today?",
+  'dash.chat.welcome_afternoon': 'Afternoon{name}. {day} — what can I get into for you?',
+  'dash.chat.welcome_evening': 'Evening{name}. Pull up a chair — what are we working on?',
+  'dash.chat.welcome_late': "Late one{name}. I'm awake if you are — what's on your mind?",
   // Ticket categories — label + composer placeholder, by slug.
   'dash.support.cat.bug': 'Bug or broken',
   'dash.support.cat.bug_ph': 'What broke, and what were you doing when it happened?',
@@ -1794,6 +1800,20 @@ export const enStrings = {
   // which had drifted into two slightly different copies). Names are proper
   // nouns and stay as-is; only the descriptions are translated. ──────────────
   'dash.model.select': 'Select model',
+  'model.add_key': 'Add key',
+  // Orchestration-mode subtitles. Proper nouns (Qwen, DeepSeek, Mistral, BYOK)
+  // stay; only the surrounding words translate.
+  'dash.model.sub.maestro_best': 'Best model per task',
+  'dash.model.sub.byok_qwen': 'BYOK · Qwen',
+  'dash.model.sub.supernova_poly': 'Polyglot ensemble',
+  'dash.model.sub.byok_ds_qwen': 'BYOK · DeepSeek + Qwen',
+  'dash.model.sub.aurora_eu': 'EU stack — Mistral end-to-end',
+  'dash.model.sub.byok_mistral': 'BYOK · Mistral',
+  'dash.model.sub.add_deepseek': 'Add DeepSeek key',
+  'dash.model.sub.add_qwen': 'Add Qwen key',
+  'dash.model.sub.connect_ds_qwen': 'Connect or add DeepSeek + Qwen keys',
+  'dash.model.sub.connect_mistral': 'Connect or add Mistral key',
+  'dash.model.sub.connect_qwen': 'Connect or add Qwen key',
   'dash.model.aurora_title': 'Aurora — Mistral-only EU stack. Three-tier fleet: Mistral Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Mistral Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Mistral Large 3 is the heavy reserve. EU-only data residency, GDPR-strict, open weights.',
   'dash.model.supernova_title': 'Supernova — DeepSeek V4 Pro coordinator + V4 Flash specialists with Qwen builders. Heavy multi-step work.',
   'dash.model.maestro_title': 'Maestro — single Qwen 3.7 Plus conductor. Daily work, predictable cost.',
@@ -1805,6 +1825,9 @@ export const enStrings = {
   'dash.cc.weather_hint': 'Weather — see Daily for details',
   'dash.cc.hours_hint': 'Working hours — change on Daily tab',
   'dash.cc.where_start': 'Where do we start?',
+  'dash.cc.qs_subtitle': 'I can read your code, plan a feature, teach you something, audit security, brainstorm, or just chat. Pick one — you can edit before sending.',
+  'dash.cc.tip_prefix': 'Tip: type',
+  'dash.cc.tip_suffix': 'to switch modes any time.',
   // Quick-start cards. Label is the chip; the `prefix`/`prompt` are mode
   // protocol + composer prefill — the prefix is NEVER translated (core gates
   // tool lanes on it), the prompt is.
@@ -1895,6 +1918,18 @@ export const enStrings = {
   // Medical disclaimer. Translated like everything else, but flagged: a
   // mistranslated safety notice is a different class of problem from a
   // mistranslated button — worth a human read in each locale.
+  // "Read with Ava" primer — user-visible (it appears as a chat bubble) AND the
+  // instruction Ava follows. The tool name `paper_fetch_full_text` and the paper
+  // identifier stay literal; everything else is translated.
+  'ide.papers.primer_tag': '[Read with Ava]',
+  'ide.papers.primer_intro': "I'd like you to read and explain this scientific paper for me. Use the four-layer pass: 1. What's the question? (one plain-English sentence). 2. Why does it matter? (the human stake). 3. What did they do? (method, jargon-stripped). 4. What did they find — and how confident should I be? (results + caveats specific to this paper's discipline).",
+  'ide.papers.primer_paper': 'Paper: **{title}**',
+  'ide.papers.primer_authors': 'Authors: {authors}',
+  'ide.papers.primer_etal': 'et al.',
+  'ide.papers.primer_identifier': 'Identifier: `{ident}`',
+  'ide.papers.primer_url': 'URL: {url}',
+  'ide.papers.primer_retracted': '⚠ This paper is marked as RETRACTED. Surface that to me before discussing findings.',
+  'ide.papers.primer_fetch': 'Fetch the full text via the `paper_fetch_full_text` tool first if you need more than the abstract, then walk me through it.',
   'ide.papers.not_medical_advice': 'Not medical advice.',
   'ide.papers.not_medical_advice_body': "Ava's explanation is summarisation, not clinical guidance. Talk to a healthcare professional before acting on anything from this paper.",
   // Updater.
