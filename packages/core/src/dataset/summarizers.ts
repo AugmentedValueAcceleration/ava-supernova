@@ -73,7 +73,7 @@ const EDIT_TOOLS = new Set(['file_write', 'file_edit']);
 const COMMIT_TOOLS = new Set(['git_commit', 'git_create_pr', 'rollback']);
 const EXEC_TOOLS = new Set(['bash', 'test_run', 'test_generate', 'benchmark']);
 const GENERATION_TOOLS = new Set([
-  'generate_image', 'generate_music', 'generate_video', 'generate_voice', 'remove_background',
+  'generate_image', 'generate_video', 'generate_voice', 'remove_background',
 ]);
 
 /**

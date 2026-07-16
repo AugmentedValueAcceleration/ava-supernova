@@ -49,9 +49,11 @@ export const MODEL_API_NAMES: Record<string, string> = {
  *
  * qwen3.5-flash is text-only. DeepSeek V4 (Pro + Flash) is text-only at the API
  * level (verified against api.deepseek.com 2026-04-25) so image requests reroute
- * to Qwen 3.7 Plus (native vision + video). Aurora's Large 3 coordinator is
- * text-only -> Medium 3.5 (vision encoder trained from scratch), keeping the
- * EU-stack guarantee instead of falling to Qwen.
+ * to Qwen 3.7 Plus (native vision + video). Aurora coordinates on Medium 3.5,
+ * whose vision encoder was trained from scratch, so images stay in-fleet and
+ * the EU-stack guarantee holds instead of falling to Qwen. (Large 3 — text-only
+ * — was the coordinator before the fleet was re-tiered; it's the heavy reserve
+ * now.)
  */
 export const VISION_REROUTE: Record<string, string> = {
   'qwen3.5-flash':       'qwen3.7-plus',

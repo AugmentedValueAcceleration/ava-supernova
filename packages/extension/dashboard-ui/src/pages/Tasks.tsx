@@ -5,6 +5,8 @@ import { SectionGroup } from '../components/SectionGroup';
 import { Icon } from '../components/Icon';
 import { Skeleton } from '../components/Skeleton';
 import { Select } from '../components/Select';
+import { Combobox } from '../components/Combobox';
+import { DateField } from '../components/DateField';
 import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon } from '../components/Icons';
 import type { DashboardTaskEntry } from '../types/messages';
 
@@ -463,28 +465,26 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
                     { value: 'urgent', label: t('dash.tasks.priority_urgent') },
                   ]} />
                 </div>
-                {/* Category — free-form: pick a preset or type your own */}
+                {/* Category — free-form: pick a preset or type your own. Uses
+                    our Combobox rather than <input list> + <datalist>, whose
+                    dropdown is drawn by the browser (light, unstyleable). */}
                 <div>
                   <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_category')}</label>
-                  <input
-                    list="task-category-suggestions"
+                  <Combobox
                     value={formCategory}
-                    onChange={e => setFormCategory(e.target.value)}
+                    onChange={setFormCategory}
+                    options={CATEGORY_SUGGESTIONS}
                     placeholder={tt('dash.tasks.cat_placeholder', 'e.g. personal, fitness…')}
-                    className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50"
                   />
-                  <datalist id="task-category-suggestions">
-                    {CATEGORY_SUGGESTIONS.map(c => <option key={c} value={c} />)}
-                  </datalist>
                 </div>
-                {/* Due date */}
+                {/* Due date — our MiniDatePicker via DateField, not the native
+                    (light) browser calendar. */}
                 <div>
                   <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_due_date')}</label>
-                  <input
-                    type="date"
-                    value={formDueDate}
-                    onChange={e => setFormDueDate(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-white outline-none"
+                  <DateField
+                    value={formDueDate || null}
+                    onChange={(iso) => setFormDueDate(iso ?? '')}
+                    placeholder={tt('dash.tasks.due_none', 'No due date')}
                   />
                 </div>
                 {/* Recurrence */}

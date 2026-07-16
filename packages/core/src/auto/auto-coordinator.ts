@@ -555,7 +555,7 @@ export class AutoCoordinator {
 
     // Direct handling — no spawn needed
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
-      // Image inputs: the coordinators (DeepSeek V4, Mistral Large 3) are blind
+      // Image inputs: a text-only coordinator (Supernova's DeepSeek V4) is blind
       // to images. Rather than hand the whole turn to the vision model (which
       // loses the coordinator's agentic depth), the coordinatorAgent carries the
       // vision bridge — it runs the vision model (Qwen Omni) to DESCRIBE the

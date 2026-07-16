@@ -68,7 +68,7 @@ const ALL_TOOL_NAMES = [
   'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
   'bash', 'git_status', 'git_diff', 'rollback', 'git_commit', 'git_create_pr',
   'web_search', 'http_request', 'browser',
-  'generate_image', 'generate_music', 'generate_video', 'generate_voice', 'remove_background',
+  'generate_image', 'generate_video', 'generate_voice', 'remove_background',
   'database_query', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete',
   'present_plan', 'todo_write', 'task_manage', 'journal_write', 'document_manage',
   'learning_create', 'learning_teach', 'learning_progress',

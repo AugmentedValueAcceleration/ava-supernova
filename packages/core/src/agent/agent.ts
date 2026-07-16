@@ -226,7 +226,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'web_search', 'http_request', 'browser',
     // Creative Studio — generation (not capture) stays available for
     // UI / media work done inline with code.
-    'generate_image', 'generate_music', 'generate_video', 'generate_voice',
+    'generate_image', 'generate_video', 'generate_voice',
     'remove_background',
     // Data
     'database_query',
