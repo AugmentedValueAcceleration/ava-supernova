@@ -54,7 +54,7 @@ The same agent engine (`@ava/core`) powers every surface — same tools, same pe
 - **She picks the right fleet for the work.** You pick the job; the right multi-model fleet falls out of it (see [Models & Fleets](#models--fleets)).
 - **She teaches for free.** Switch to Teach mode, say "teach me Rust," and she builds a personalised curriculum and teaches it lesson by lesson — fact-checked against the live web. Same credits as every other mode.
 - **She explains herself.** Ask "how does your memory work?" and she reads her own implementation and walks you through it.
-- **She's yours to design.** Name, pronouns, tone, energy, communication style — same brain, your personality. Full UI in 20 languages.
+- **She's yours to design.** Name, pronouns, tone, energy, communication style — same brain, your personality. The whole UI translates into 20 languages and switches live the moment you change it — no restart.
 
 ## 7 Modes — States of Thought
 

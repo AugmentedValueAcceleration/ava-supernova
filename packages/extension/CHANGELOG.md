@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.86.0 — 2026-07-16 — Your language, the whole way through — and live
+
+### Changed
+- **The whole app speaks your language now, not just the chat.** Every page — Planner, Tasks, Memory, History, Design Studio, Learning, Settings — switches with your language across 19 languages. The chat and Creative Studio were already there; this closes the gaps everywhere else.
+- **Switch language live, no restart.** Change it once and the entire interface *and* Ava's replies follow on the spot — no reload, no losing your place.
+- **Pick your language from the first screen.** The welcome tour now opens with a language picker, so onboarding runs in your language from the very first step. And every language is shown both in your current language and its own — "Japanese · 日本語" — so yours is easy to find whichever way you came in.
+- **Settings now mirror the IDE.** Reorganised into General, Models, Behavior and Privacy so the extension and the IDE feel like one product. The old **Data** tab is now **Privacy**, and you can replay the welcome tour any time from Settings → General.
+
+### Fixed
+- **Your tasks now travel with your data.** They were being left out of both exports and backups — a single shared export path now includes them, and fixes a bug that could split an export across two folders.
+- **Model picker tidied.** Missing labels now render, orchestration subtitles are translated instead of hardcoded, and the dropdown is a touch wider so it's no longer cramped. (Model and provider names stay as they are — they're proper nouns.)
+
 ## 0.82.0 — 2026-07-11 — Ava designs your brand: real logos, in your language
 
 ### Added

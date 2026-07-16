@@ -2,6 +2,32 @@
 
 All notable changes to Ava Supernova will be documented in this file.
 
+## Extension [0.86.0] - 2026-07-16
+
+### Your language, the whole way through — and live
+- **The whole app is translated, not just the chat.** Every page — Planner, Tasks, Memory, History, Design Studio, Learning, Settings — now switches with your language across 19 languages. The earlier work covered the chat and Creative Studio; this closes the gaps everywhere else.
+- **Switch live, no restart.** Change your language once and the entire interface *and* Ava's replies follow on the spot — no reload, no losing your place.
+- **A language picker in the welcome tour.** Onboarding now opens with a language picker so the whole tour runs in your language from the first screen. Each language is shown both in your current language and its own ("Japanese · 日本語"), so yours is easy to find whichever way you came in.
+
+### Settings restructured to mirror the IDE
+- **General / Models / Behavior / Privacy** — the extension's Settings now match the IDE's structure so the two surfaces feel like one product. The old **Data** tab is now **Privacy**.
+- **Replay the welcome tour** any time from Settings → General.
+
+### Fixed
+- **Tasks now travel with your data.** They were silently missing from both exports and backups — a single shared export path now includes them, and fixes a bug that could split an export across two folders.
+- **Model picker tidied.** Missing labels now render, orchestration subtitles are translated rather than hardcoded, and the dropdown is slightly wider so it's no longer cramped. Model and provider names stay in their original form — they're proper nouns.
+
+## IDE [0.34.0] - 2026-07-16
+
+### Your language, the whole way through — and live
+- **The whole interface is translated, not just the chat** — every panel and page across the IDE now reads in your language, across 19 languages.
+- **Switch live.** Change your language and the entire interface *and* Ava's replies follow immediately. Nothing to reload.
+- **A language picker in the welcome flow,** present from the first screen so onboarding runs in your language from step one. Each language is shown in both your current language and its own.
+- **Locale-aware dates.** Day and date formatting now follows your language throughout, instead of one fixed format.
+
+### Fixed
+- **Model picker tidied** — missing labels render, orchestration subtitles are translated, and the dropdown is wider. Model and provider names stay in their original form.
+
 ## Extension [0.53.0] - 2026-04-26
 
 ### Custom Model — Ollama / LM Studio / vLLM / BYOM

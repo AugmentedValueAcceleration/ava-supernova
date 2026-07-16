@@ -209,6 +209,54 @@ const RELEASES = [
       'A free, growing collection that fills out as more from-scratch recipes are added — no account needed.',
     ],
   },
+  {
+    migration: 350,
+    version: '0.86.0',
+    platform: 'extension',
+    toolCount: 62,
+    publishedAt: '2026-07-16 09:00:00+00',
+    title: 'Your language, the whole way through — and live',
+    body: `Ava has spoken 20 languages for a while, but the app around her didn't always keep up — pick a language and pockets of the interface stayed in English. This release closes that gap and makes the switch instant.
+
+**The whole app, not just the chat.** Every page now speaks your language — Planner, Tasks, Memory, History, Design Studio, Learning, Settings, the lot. If it's text the app draws, it now reads in your tongue across 19 languages.
+
+**Switch live — no restart.** Change your language once and the entire interface *and* Ava's replies follow on the spot. No reload, no losing your place.
+
+**Pick your language from the first screen.** The welcome tour now opens with a language picker, so onboarding runs in your language from the very first step — and every language is shown both in your current language and its own, so yours is easy to find whichever way you came in.
+
+**Settings that match across surfaces.** The extension's Settings are reorganised to mirror the IDE — General, Models, Behavior and Privacy — so the two feel like one product. The old Data tab is now Privacy, and you can replay the welcome tour any time from Settings → General.
+
+**And a quiet fix that matters:** your tasks now travel with your exports and backups — they were being left behind before.`,
+    highlights: [
+      'The whole app is translated now, not just the chat — Planner, Tasks, Memory, History, Design Studio, Learning and Settings all switch with your language across 19 languages.',
+      'Change your language and it applies live — the entire interface and Ava\'s replies both follow on the spot, with no restart.',
+      'The welcome tour opens with a language picker, and every language is shown in both your current language and its own so yours is easy to find.',
+      'Settings now mirror the IDE — General, Models, Behavior, Privacy — and your tasks are finally included in exports and backups.',
+    ],
+  },
+  {
+    migration: 351,
+    version: '0.34.0',
+    platform: 'ide',
+    toolCount: 62,
+    publishedAt: '2026-07-16 09:05:00+00',
+    title: 'Your language, the whole way through — and live',
+    body: `The IDE now speaks your language everywhere, and switches the moment you ask — no restart, no half-translated screens.
+
+**The whole interface, not just the chat.** Every panel and page across the IDE now reads in your language, across 19 languages — the same depth the chat has always had.
+
+**Switch live.** Change your language and the entire interface *and* Ava's replies follow immediately. Nothing to reload.
+
+**From the first screen.** The welcome flow opens with a language picker, so onboarding runs in your language from step one — and each language is shown both in your current language and its own.
+
+**Dates read the way your language writes them.** Day and date formatting now follows your locale throughout, instead of one fixed format.`,
+    highlights: [
+      'The whole IDE interface is translated now, not just the chat — every panel and page switches with your language across 19 languages.',
+      'Change your language and it applies live — the interface and Ava\'s replies both follow immediately, with no restart.',
+      'The welcome flow opens with a language picker, and each language is shown in both your current language and its own.',
+      'Dates now format the way your language writes them, following your locale throughout.',
+    ],
+  },
 ];
 
 // ── Credential ───────────────────────────────────────────────────────────────

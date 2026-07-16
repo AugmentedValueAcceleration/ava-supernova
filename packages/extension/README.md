@@ -218,7 +218,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 - **Energy** — calm, enthusiastic, measured, excitable
 - **Style** — concise, detailed, conversational, structured
 
-**20 languages** — full UI translation, auto-detected from your locale or set manually. Code stays English; conversation matches you.
+**20 languages** — the whole interface translates, not just the chat, and switches **live the moment you change it** — no restart. Pick your language right from the welcome tour or in Settings; auto-detected from your locale or set manually. Each language is shown in both your current language and its own, so yours is easy to find. Code stays English; conversation matches you.
 
 **Local-first storage** — memory, tasks, journal, learning, history, settings, personality all stored on your machine. Cloud sync is opt-in, with full delta tracking so you see exactly what's about to be pushed.
 
