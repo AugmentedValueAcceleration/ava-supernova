@@ -3926,4 +3926,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.replay_tour': 'Повторити вітальний тур',
   'ext.settings.replay_tour_hint': 'Перегляньте огляд першого запуску ще раз.',
   'model.no_vision_title': 'Text only — this model cannot read image attachments',
+  'library.use_in_project': 'Use in project',
+  'library.rename': 'Rename',
+  'library.rename_save': 'Save',
 };

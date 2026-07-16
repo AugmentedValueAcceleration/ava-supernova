@@ -224,9 +224,13 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'git_status', 'git_diff', 'rollback', 'git_commit', 'git_create_pr',
     // Web
     'web_search', 'http_request', 'browser',
-    // Creative Studio — generation (not capture) stays available for
-    // UI / media work done inline with code.
-    'generate_image', 'generate_video', 'generate_voice',
+    // Creative Studio — making an asset happens in the Studio, not inline
+    // here. This gate used to list 'generate_image' / 'generate_video' /
+    // 'generate_voice', but the registry only ever builds the design_* tools,
+    // so those three names resolved to nothing — dead entries. The handoff
+    // (open_design_studio, further down) and browse_library are what work mode
+    // actually needs: point at the Studio to make, read the library to reuse.
+    'browse_library',
     'remove_background',
     // Data
     'database_query',

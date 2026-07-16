@@ -3942,4 +3942,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.replay_tour': 'Rejouer la visite guidée',
   'ext.settings.replay_tour_hint': 'Voir à nouveau le guide de prise en main.',
   'model.no_vision_title': 'Text only — this model cannot read image attachments',
+  'library.use_in_project': 'Use in project',
+  'library.rename': 'Rename',
+  'library.rename_save': 'Save',
 };

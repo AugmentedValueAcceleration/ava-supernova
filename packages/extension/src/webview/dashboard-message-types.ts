@@ -1938,6 +1938,8 @@ export type DashboardToExtMessage =
   | { type: 'save_asset_copy'; url: string; filename: string }
   | { type: 'load_local_creative' }
   | { type: 'delete_local_creative'; id: string }
+  | { type: 'rename_local_creative'; id: string; title: string }
+  | { type: 'use_creative_in_project'; id: string }
   // Storage manager — bulk-delete local creative assets by id (the webview
   // computes which items a "clear this type / older than N days" action covers).
   | { type: 'prune_creative'; ids: string[] }

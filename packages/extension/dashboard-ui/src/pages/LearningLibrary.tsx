@@ -19,25 +19,43 @@ const sourceColors: Record<string, ColorPair> = {
   community: { color: '#60a5fa', background: 'rgba(96,165,250,0.1)' },
 };
 
-const typeIcons: Record<string, string> = {
-  concept: '\uD83D\uDCD6', exercise: '\uD83D\uDCBB', project: '\uD83D\uDEE0', quiz: '\u2753', recap: '\uD83D\uDD04', challenge: '\uD83C\uDFC6',
-};
+// Lesson-type glyphs, drawn from our own icon set. These used to be emoji
+// (\uD83D\uDCD6 \uD83D\uDCBB \uD83D\uDEE0 \u2753 \uD83D\uDD04 \uD83C\uDFC6) \u2014 they render differently on every platform, sit at a
+// different weight to every other glyph in the app, and can't take the
+// surrounding text colour.
+const TYPE_ICON = {
+  concept: Icon.book,
+  exercise: Icon.code,
+  project: Icon.project,
+  quiz: Icon.quiz,
+  recap: Icon.review,
+  challenge: Icon.achievement,
+} as const;
+
+function LessonTypeIcon({ type }: { type: string }) {
+  const Glyph = TYPE_ICON[type as keyof typeof TYPE_ICON] ?? Icon.note;
+  return <Glyph size={15} />;
+}
 
 // A small, friendly visual identity per course \u2014 a soft gradient + icon derived
 // from the subject, so each tile feels distinct and inviting at a glance.
-type Identity = { from: string; to: string; tint: string; icon: string };
+//
+// `icon` is a component from our own set, not an emoji. These were \u2728\uD83C\uDFA8\uD83D\uDCCA\uD83D\uDD12\u2699\uFE0F\uD83C\uDFAE\uD83E\uDDEE\uD83D\uDCDA,
+// which render at a different weight on every platform, can't inherit a colour,
+// and read as clip-art next to the rest of the app's line icons.
+type Identity = { from: string; to: string; tint: string; icon: (p: { size?: number }) => React.ReactElement };
 
 const subjectIdentities: { match: string[]; identity: Identity }[] = [
-  { match: ['prompt', 'ai', 'llm', 'agent', 'machine'], identity: { from: '#a855f7', to: '#7c3aed', tint: 'rgba(168,85,247,0.12)', icon: '\u2728' } },
-  { match: ['web', 'frontend', 'react', 'css', 'html', 'ui', 'design'], identity: { from: '#38bdf8', to: '#2563eb', tint: 'rgba(56,189,248,0.12)', icon: '\uD83C\uDFA8' } },
-  { match: ['python', 'data', 'analysis', 'science', 'ml'], identity: { from: '#34d399', to: '#0ea5e9', tint: 'rgba(52,211,153,0.12)', icon: '\uD83D\uDCCA' } },
-  { match: ['security', 'crypto', 'network', 'cyber'], identity: { from: '#f87171', to: '#b91c1c', tint: 'rgba(248,113,113,0.12)', icon: '\uD83D\uDD12' } },
-  { match: ['backend', 'server', 'api', 'database', 'sql', 'devops', 'cloud'], identity: { from: '#fbbf24', to: '#d97706', tint: 'rgba(251,191,36,0.12)', icon: '\u2699\uFE0F' } },
-  { match: ['game', 'graphics', '3d', 'shader'], identity: { from: '#f472b6', to: '#db2777', tint: 'rgba(244,114,182,0.12)', icon: '\uD83C\uDFAE' } },
-  { match: ['math', 'algorithm', 'logic'], identity: { from: '#818cf8', to: '#4f46e5', tint: 'rgba(129,140,248,0.12)', icon: '\uD83E\uDDEE' } },
+  { match: ['prompt', 'ai', 'llm', 'agent', 'machine'], identity: { from: '#a855f7', to: '#7c3aed', tint: 'rgba(168,85,247,0.12)', icon: Icon.sparkle } },
+  { match: ['web', 'frontend', 'react', 'css', 'html', 'ui', 'design'], identity: { from: '#38bdf8', to: '#2563eb', tint: 'rgba(56,189,248,0.12)', icon: Icon.palette } },
+  { match: ['python', 'data', 'analysis', 'science', 'ml'], identity: { from: '#34d399', to: '#0ea5e9', tint: 'rgba(52,211,153,0.12)', icon: Icon.database } },
+  { match: ['security', 'crypto', 'network', 'cyber'], identity: { from: '#f87171', to: '#b91c1c', tint: 'rgba(248,113,113,0.12)', icon: Icon.shield } },
+  { match: ['backend', 'server', 'api', 'database', 'sql', 'devops', 'cloud'], identity: { from: '#fbbf24', to: '#d97706', tint: 'rgba(251,191,36,0.12)', icon: Icon.gear } },
+  { match: ['game', 'graphics', '3d', 'shader'], identity: { from: '#f472b6', to: '#db2777', tint: 'rgba(244,114,182,0.12)', icon: Icon.puzzle } },
+  { match: ['math', 'algorithm', 'logic'], identity: { from: '#818cf8', to: '#4f46e5', tint: 'rgba(129,140,248,0.12)', icon: Icon.brain } },
 ];
 
-const defaultIdentity: Identity = { from: 'var(--gradient-start)', to: 'var(--gradient-end)', tint: 'rgba(168,85,247,0.10)', icon: '\uD83D\uDCDA' };
+const defaultIdentity: Identity = { from: 'var(--gradient-start)', to: 'var(--gradient-end)', tint: 'rgba(168,85,247,0.10)', icon: Icon.books };
 
 function identityFor(subject?: string, title?: string): Identity {
   const hay = `${subject || ''} ${title || ''}`.toLowerCase();
@@ -114,8 +132,10 @@ export function LearningLibrary({ paths, detail }: Props) {
     const id = identityFor(selected.subject, selected.title);
     const moduleCount = selected.content?.modules?.length || 0;
     const lessonCount = selected.content?.modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 0;
+    // Full width — the course detail was pinned to 860px and centred, which
+    // left most of the panel empty on any real editor width.
     return (
-      <div style={{ padding: 20, maxWidth: 860, margin: '0 auto' }}>
+      <div style={{ padding: 20 }}>
         <button
           onClick={() => setSelectedId(null)}
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, marginBottom: 16, padding: 0 }}
@@ -136,12 +156,13 @@ export function LearningLibrary({ paths, detail }: Props) {
             <div
               style={{
                 flexShrink: 0, width: 56, height: 56, borderRadius: 14, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', fontSize: 28,
+                alignItems: 'center', justifyContent: 'center',
                 background: `linear-gradient(135deg, ${id.from}, ${id.to})`,
                 boxShadow: `0 6px 20px -6px ${id.from}`,
+                color: '#fff',
               }}
             >
-              {id.icon}
+              <id.icon size={26} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -167,7 +188,7 @@ export function LearningLibrary({ paths, detail }: Props) {
 
           {/* Stats row */}
           <div style={{ display: 'flex', gap: 20, marginTop: 18, flexWrap: 'wrap' }}>
-            {selected.estimated_hours ? <Stat icon={'⏱'} label={`${selected.estimated_hours}h`} sub={t('learning_library.stat_estimated')} /> : null}
+            {selected.estimated_hours ? <Stat icon={<Icon.clock size={15} />} label={`${selected.estimated_hours}h`} sub={t('learning_library.stat_estimated')} /> : null}
             <Stat icon={<Icon.users size={15} />} label={String(selected.fork_count)} sub={t('dash.learning_library.learners')} />
             {selected.average_rating ? <Stat icon={<Icon.star size={15} />} label={`${selected.average_rating}/5`} sub={t('learning_library.stat_rating')} /> : null}
             {moduleCount > 0 ? <Stat icon={<Icon.package size={15} />} label={String(moduleCount)} sub={`module${moduleCount !== 1 ? 's' : ''}`} /> : null}
@@ -227,7 +248,9 @@ export function LearningLibrary({ paths, detail }: Props) {
                             background: 'var(--bg-input)',
                           }}
                         >
-                          <span style={{ fontSize: 15, lineHeight: 1 }}>{typeIcons[lesson.type] || '\u25CB'}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                            <LessonTypeIcon type={lesson.type} />
+                          </span>
                           <span style={{ flex: 1 }}>{lesson.title}</span>
                           {lesson.difficulty && (
                             <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{lesson.difficulty}</span>
@@ -251,14 +274,20 @@ export function LearningLibrary({ paths, detail }: Props) {
             padding: 18, marginBottom: 12,
           }}
         >
+          {/* House button style — the chat header's "New Chat" pill: translucent
+              accent fill, accent border + text, subtle hover. Was a solid-accent
+              button with white text, which matched nothing else. */}
           <button
             onClick={() => handleFork(selected.id)}
             disabled={forking}
+            onMouseEnter={(e) => { if (!forking) e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 20%, transparent)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)'; }}
             style={{
-              padding: '11px 26px', borderRadius: 10, cursor: forking ? 'wait' : 'pointer',
-              border: '1px solid color-mix(in srgb, var(--accent) 45%, transparent)',
-              background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600,
-              opacity: forking ? 0.7 : 1, transition: 'opacity 0.15s',
+              padding: '11px 26px', borderRadius: 8, cursor: forking ? 'wait' : 'pointer',
+              border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+              background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+              color: 'var(--accent)', fontSize: 14, fontWeight: 600,
+              opacity: forking ? 0.7 : 1, transition: 'background 0.15s, opacity 0.15s',
             }}
           >
             {forking ? t('dash.learning_library.starting') : t('dash.learning_library.start_learning')}
@@ -417,10 +446,10 @@ export function LearningLibrary({ paths, detail }: Props) {
                   <div
                     style={{
                       width: 42, height: 42, borderRadius: 12, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', fontSize: 22, background: 'rgba(0,0,0,0.18)',
+                      justifyContent: 'center', background: 'rgba(0,0,0,0.18)', color: '#fff',
                     }}
                   >
-                    {id.icon}
+                    <id.icon size={20} />
                   </div>
                 )}
                 <span style={{

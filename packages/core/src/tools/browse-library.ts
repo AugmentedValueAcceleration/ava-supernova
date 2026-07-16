@@ -4,10 +4,20 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 
 /**
- * Browse the project's creative asset library.
+ * Browse the user's creative asset library.
  *
- * Scans standard asset directories (images/, .ava/creative/, public/, src/assets/)
- * and returns a categorised list of available assets Ava can reference or use.
+ * Scans TWO places, because assets live in two:
+ *  1. The project — images/, .ava/creative/, public/, src/assets/ etc. Paths
+ *     come back relative to the project, ready to wire into code.
+ *  2. The Creative Studio library — everything made in the Studio is saved
+ *     account-scoped under <userDataDir>/creative/<kind>/, OUTSIDE any project.
+ *     The host passes that directory via sharedState.creativeDir; paths come
+ *     back absolute, because that's what they are.
+ *
+ * (2) used to be missing entirely: the tool only ever scanned project-relative
+ * dirs, so every icon, logo, image and voiceover the user made in the Studio
+ * was invisible to Ava — she'd report "no assets" and offer to generate a fresh
+ * one, burning credits on something they already owned.
  */
 
 const ASSET_EXTENSIONS: Record<string, string> = {
@@ -88,45 +98,74 @@ export class BrowseLibraryTool implements Tool {
       }
     }
 
-    if (assets.length === 0) {
+    // The Creative Studio library — account-scoped, outside the project. Only
+    // when the caller didn't ask for one specific project directory.
+    const studioAssets: AssetEntry[] = [];
+    const creativeDir = typeof context.sharedState?.creativeDir === 'string'
+      ? context.sharedState.creativeDir as string
+      : undefined;
+    if (!specificDir && creativeDir) {
+      try {
+        // Root the relative-path calc AT the creative dir, so entries read
+        // "icons/foo.png" rather than a pile of ../../.. escaping the project.
+        await this.scanDirectory(creativeDir, creativeDir, studioAssets, filterType);
+      } catch {
+        // No library yet — skip
+      }
+    }
+
+    if (assets.length === 0 && studioAssets.length === 0) {
       return {
         success: true,
         output: filterType === 'all'
-          ? 'No creative assets found in the project. Standard locations checked: images/, .ava/creative/, public/, src/assets/, assets/, static/, media/'
-          : `No ${filterType} assets found in the project.`,
+          ? 'No creative assets found. Checked the project (images/, .ava/creative/, public/, src/assets/, assets/, static/, media/) and the Creative Studio library.'
+          : `No ${filterType} assets found in the project or the Creative Studio library.`,
       };
     }
 
-    // Group by type
-    const grouped: Record<string, AssetEntry[]> = {};
-    for (const asset of assets) {
-      (grouped[asset.type] ??= []).push(asset);
+    const size = (n: number): string =>
+      n < 1024 ? `${n} B`
+        : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB`
+        : `${(n / (1024 * 1024)).toFixed(1)} MB`;
+
+    const section = (entries: AssetEntry[], prefix = ''): string => {
+      const grouped: Record<string, AssetEntry[]> = {};
+      for (const a of entries) (grouped[a.type] ??= []).push(a);
+      let out = '';
+      for (const [type, items] of Object.entries(grouped).sort()) {
+        out += `${type.toUpperCase()} (${items.length})\n`;
+        for (const item of items.slice(0, 50)) { // Cap at 50 per type
+          out += `  ${prefix}${item.path} (${size(item.size)})\n`;
+        }
+        if (items.length > 50) out += `  ... and ${items.length - 50} more\n`;
+        out += '\n';
+      }
+      return out;
+    };
+
+    let output = '';
+    if (assets.length > 0) {
+      output += `In the project (${assets.length} asset${assets.length !== 1 ? 's' : ''}) — paths are project-relative, use them as-is:\n\n`;
+      output += section(assets);
+    }
+    if (studioAssets.length > 0) {
+      // Absolute, and said so plainly: these live in the user's Creative Studio
+      // library outside the project, so a relative path would be a lie.
+      output += `In their Creative Studio library (${studioAssets.length} asset${studioAssets.length !== 1 ? 's' : ''}) — these live outside the project, so the path is absolute. To use one in the project, copy it in rather than referencing it from here:\n\n`;
+      output += section(studioAssets, `${creativeDir}/`);
     }
 
-    let output = `Found ${assets.length} asset${assets.length !== 1 ? 's' : ''} in the project:\n\n`;
-
-    for (const [type, items] of Object.entries(grouped).sort()) {
-      output += `${type.toUpperCase()} (${items.length})\n`;
-      for (const item of items.slice(0, 50)) { // Cap at 50 per type
-        const sizeStr = item.size < 1024
-          ? `${item.size} B`
-          : item.size < 1024 * 1024
-          ? `${(item.size / 1024).toFixed(1)} KB`
-          : `${(item.size / (1024 * 1024)).toFixed(1)} MB`;
-        output += `  ${item.path} (${sizeStr})\n`;
-      }
-      if (items.length > 50) {
-        output += `  ... and ${items.length - 50} more\n`;
-      }
-      output += '\n';
-    }
+    const byType: Record<string, number> = {};
+    for (const a of [...assets, ...studioAssets]) byType[a.type] = (byType[a.type] ?? 0) + 1;
 
     return {
       success: true,
       output,
       metadata: {
-        totalAssets: assets.length,
-        byType: Object.fromEntries(Object.entries(grouped).map(([k, v]) => [k, v.length])),
+        totalAssets: assets.length + studioAssets.length,
+        projectAssets: assets.length,
+        studioAssets: studioAssets.length,
+        byType,
       },
     };
   }

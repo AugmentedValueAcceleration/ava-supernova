@@ -156,6 +156,85 @@ export async function saveLocalCreative(
   }
 }
 
+/** Rename a stored asset. Only the metadata `title` changes — the file on disk
+ *  keeps its generated name, so every path already handed out (to the Library,
+ *  to Ava via browse_library, or copied into a project) stays valid. Renaming
+ *  the file itself would silently break those. Returns the new title, or null
+ *  if the id is unknown / the title is empty. */
+export async function renameLocalCreative(scopedDir: string, id: string, title: string): Promise<string | null> {
+  const next = title.trim();
+  if (!next) return null;
+  const items = await readLocalCreative(scopedDir);
+  const item = items.find((i) => i.id === id);
+  if (!item) return null;
+  item.title = next;
+  await writeLocalCreative(scopedDir, items).catch(() => {});
+  return next;
+}
+
+/**
+ * Copy a Studio asset into the user's project so it can actually be used in
+ * code — the Studio library lives account-scoped outside any project, so a
+ * reference to it would only work on this machine.
+ *
+ * Destination follows the project's OWN convention: the first of public/,
+ * src/assets/, assets/, static/, images/ that already exists, falling back to
+ * creating images/. Deliberately NOT <project>/.ava/creative — that's
+ * gitignored, so the asset would work locally and vanish for everyone else.
+ *
+ * Returns the project-relative path (forward slashes), ready to paste into
+ * code, or null if there's no project open.
+ */
+export async function copyCreativeToProject(
+  scopedDir: string,
+  id: string,
+  projectRoot: string,
+): Promise<{ relPath: string; absPath: string } | null> {
+  const items = await readLocalCreative(scopedDir);
+  const item = items.find((i) => i.id === id);
+  if (!item || !projectRoot) return null;
+
+  const PREFERRED = ['public', join('src', 'assets'), 'assets', 'static', 'images'];
+  let destDir: string | null = null;
+  for (const candidate of PREFERRED) {
+    try {
+      const s = await stat(join(projectRoot, candidate));
+      if (s.isDirectory()) { destDir = join(projectRoot, candidate); break; }
+    } catch { /* not there — try the next */ }
+  }
+  if (!destDir) {
+    destDir = join(projectRoot, 'images');
+    await mkdir(destDir, { recursive: true });
+  }
+
+  // Name it after the user's title where we can — that's the name they gave it
+  // — but keep the original extension, and never clobber an existing file.
+  const ext = item.path.slice(item.path.lastIndexOf('.'));
+  const base = (item.title || 'asset')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'asset';
+
+  let filename = `${base}${ext}`;
+  let n = 2;
+  for (;;) {
+    try {
+      await stat(join(destDir, filename));
+      filename = `${base}-${n++}${ext}`; // taken — try the next
+    } catch {
+      break; // free
+    }
+  }
+
+  const absPath = join(destDir, filename);
+  const data = await readFile(item.absolutePath);
+  await writeFile(absPath, data);
+
+  const relPath = absPath.slice(projectRoot.length + 1).replace(/\\/g, '/');
+  return { relPath, absPath };
+}
+
 /** Delete a stored asset (file + metadata entry). Best-effort. */
 export async function deleteLocalCreative(scopedDir: string, id: string): Promise<void> {
   const items = await readLocalCreative(scopedDir);

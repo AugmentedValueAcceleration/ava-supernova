@@ -3946,4 +3946,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.replay_tour': 'स्वागत यात्रा फिर से देखें',
   'ext.settings.replay_tour_hint': 'पहली बार के मार्गदर्शन को फिर से देखें।',
   'model.no_vision_title': 'Text only — this model cannot read image attachments',
+  'library.use_in_project': 'Use in project',
+  'library.rename': 'Rename',
+  'library.rename_save': 'Save',
 };

@@ -83,7 +83,7 @@ import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
-import { readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, type CreativeKind } from './creative-store.js';
+import { readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
 import { scanStorage, reclaimStorage } from './storage-scan.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
@@ -1787,6 +1787,45 @@ export class DashboardPanel {
         await deleteLocalCreative(this.getUserDataDir(), msg.id);
         await this.loadLocalCreative();
         break;
+
+      case 'rename_local_creative': {
+        const renamed = await renameLocalCreative(this.getUserDataDir(), msg.id, msg.title);
+        if (renamed) await this.loadLocalCreative();
+        break;
+      }
+
+      case 'use_creative_in_project': {
+        // Copy a Studio asset into the open project. The library lives outside
+        // any project, so referencing it from code would only ever work on this
+        // machine — the file has to actually come across.
+        const folders = vscode.workspace.workspaceFolders;
+        if (!folders || folders.length === 0) {
+          vscode.window.showWarningMessage('Open a project folder first — there\'s nowhere to copy the asset to.');
+          break;
+        }
+        try {
+          const copied = await copyCreativeToProject(this.getUserDataDir(), msg.id, folders[0].uri.fsPath);
+          if (!copied) {
+            vscode.window.showWarningMessage('Could not find that asset to copy.');
+            break;
+          }
+          this.log(`[Creative] Copied asset ${msg.id} -> ${copied.relPath}`);
+          // Refresh the project-files view so it shows up immediately.
+          await this.loadLibraryFiles();
+          const action = await vscode.window.showInformationMessage(
+            `Copied to ${copied.relPath}`,
+            'Copy path',
+            'Reveal',
+          );
+          if (action === 'Copy path') await vscode.env.clipboard.writeText(copied.relPath);
+          else if (action === 'Reveal') await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(copied.absPath));
+        } catch (err) {
+          const m = err instanceof Error ? err.message : String(err);
+          this.log(`[Creative] Copy to project failed: ${m}`);
+          vscode.window.showErrorMessage(`Couldn't copy the asset into the project: ${m}`);
+        }
+        break;
+      }
 
       case 'prune_creative': {
         const removed = await pruneLocalCreative(this.getUserDataDir(), msg.ids);

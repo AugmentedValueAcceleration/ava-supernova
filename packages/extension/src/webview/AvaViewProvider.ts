@@ -1446,6 +1446,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 // HistoryCoordinator + sharedState keep working.
                 await this.migrateHistoryToScopedDir(newScopedDir);
                 this.historyManager.setBaseDir(newScopedDir);
+                // Re-point the live sharedState's creative dir for the same
+                // reason history is re-pointed rather than replaced: this block
+                // doesn't re-run initializeSession, so a stale string here would
+                // leave browse_library reading ~/.ava/creative for the rest of
+                // the session instead of the account's library.
+                if (this.sharedState) this.sharedState.creativeDir = join(newScopedDir, 'creative');
                 // Personality was stored unscoped at ~/.ava/personality.json —
                 // migrate it into the scoped dir so signed-in users keep their Ava.
                 await this.migrateFileToScopedDir('personality.json', newScopedDir);
@@ -1958,6 +1964,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     await migrateHealthFromGlobalState(this.context, join(this.accountScopedDir, 'health')).catch(() => {});
 
     const sharedState: Record<string, unknown> = {
+      // Creative Studio library root — account-scoped, outside any project.
+      // browse_library reads this so assets the user made in the Studio are
+      // visible to Ava; without it she only ever saw project files and would
+      // offer to regenerate things they already owned. Matches the layout in
+      // creative-store.ts (<accountScopedDir>/creative/<kind>/).
+      creativeDir: join(this.accountScopedDir, 'creative'),
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
@@ -2169,8 +2181,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // coordinator via the core helper. Auto picks the platform default
     // ladder (Qwen 3.7 Plus on platform). Supernova pins to DeepSeek V4
     // Pro and runs Builder spawns on Qwen 3.7 Plus. Aurora pins to
-    // Mistral Large 3 with Builder on Mistral Small 4 — Mistral-only
-    // routing for the EU-stack guarantee.
+    // Mistral Medium 3.5 (AURORA_COORDINATOR_ID) with Small 4 carrying the
+    // volume — Mistral-only routing for the EU-stack guarantee. Large 3 is
+    // the heavy reserve, not the coordinator.
     if (modelId === 'auto' || modelId === 'supernova' || modelId === 'aurora') {
       const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
       const hasPlatform = !!platformKey;

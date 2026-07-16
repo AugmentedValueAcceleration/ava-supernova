@@ -420,11 +420,22 @@ export function NavSidebar({
                     <button
                       key={opt.key}
                       onClick={() => onSetByokMode(opt.key === 'byok')}
-                      className="flex-1 rounded text-[11px] font-medium transition border-none cursor-pointer"
+                      /* House button style — the chat header's "New Chat" pill:
+                         translucent accent fill, accent border + text. The
+                         selected side sits at 18%/40%, the unselected at
+                         transparent with a muted border, so the pair still
+                         reads as one segmented control. Was solid-accent +
+                         white vs flat grey, which matched nothing else. */
+                      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 8%, transparent)'; }}
+                      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                      className="flex-1 rounded-lg text-[11px] font-semibold transition cursor-pointer"
                       style={{
                         padding: '5px 0',
-                        background: active ? 'var(--accent)' : 'rgba(49, 34, 68, 0.5)',
-                        color: active ? '#fff' : '#6c7086',
+                        background: active ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent',
+                        border: active
+                          ? '1px solid color-mix(in srgb, var(--accent) 40%, transparent)'
+                          : '1px solid var(--border-card)',
+                        color: active ? 'var(--accent)' : '#6c7086',
                       }}
                     >
                       {opt.label}

@@ -3946,4 +3946,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.replay_tour': '重播歡迎導覽',
   'ext.settings.replay_tour_hint': '再次查看首次使用導覽。',
   'model.no_vision_title': 'Text only — this model cannot read image attachments',
+  'library.use_in_project': 'Use in project',
+  'library.rename': 'Rename',
+  'library.rename_save': 'Save',
 };

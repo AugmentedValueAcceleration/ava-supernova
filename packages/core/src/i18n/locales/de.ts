@@ -3926,4 +3926,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.replay_tour': 'Willkommens-Tour wiederholen',
   'ext.settings.replay_tour_hint': 'Die Ersteinführung erneut ansehen.',
   'model.no_vision_title': 'Text only — this model cannot read image attachments',
+  'library.use_in_project': 'Use in project',
+  'library.rename': 'Rename',
+  'library.rename_save': 'Save',
 };

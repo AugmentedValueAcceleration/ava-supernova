@@ -652,6 +652,8 @@ function PreviewModal({
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(item.title);
 
   const isLocal = item.source === 'local';
   const isImage = item.kind === 'image' || item.kind === 'graphic';
@@ -719,6 +721,20 @@ function PreviewModal({
       post({ type: 'download_cloud_asset', url: cloudUrl, filename });
       onClose();
     }
+  };
+
+  // Copy a Studio asset into the open project. The library lives account-scoped
+  // outside any project, so this is what makes an asset actually usable in code
+  // — the host picks the destination from the project's own conventions.
+  const handleUseInProject = () => {
+    if (isLocalCreative && rawCreative.id) post({ type: 'use_creative_in_project', id: rawCreative.id });
+  };
+
+  const handleRename = () => {
+    const next = renameValue.trim();
+    if (!next || !rawCreative.id) { setRenaming(false); return; }
+    post({ type: 'rename_local_creative', id: rawCreative.id, title: next });
+    setRenaming(false);
   };
 
   const handleDelete = () => {
@@ -847,7 +863,49 @@ function PreviewModal({
                 the modal above for all media, and Download for keeping
                 a copy. Raw Supabase URLs are only exposed via Copy URL
                 when the user explicitly asks for them. */}
+          {/* Rename — inline, so the name the user gave an asset is editable
+              without leaving the modal. Only the metadata title changes; the
+              file keeps its name so paths already in use stay valid. */}
+          {isLocalCreative && rawCreative.id && renaming && (
+            <div className="mt-4 flex gap-2">
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRename();
+                  if (e.key === 'Escape') { setRenameValue(item.title); setRenaming(false); }
+                }}
+                className="flex-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-1.5 text-xs text-white outline-none focus:border-[var(--accent)]/50"
+              />
+              <button
+                onClick={handleRename}
+                className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+              >
+                {tt('library.rename_save', 'Save')}
+              </button>
+            </div>
+          )}
+
           <div className="mt-5 flex flex-wrap gap-2">
+            {/* Use in project — the thing that makes a Studio asset usable in
+                code. Hidden when there's nothing to copy from. */}
+            {isLocalCreative && rawCreative.id && (
+              <button
+                onClick={handleUseInProject}
+                className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+              >
+                {tt('library.use_in_project', 'Use in project')}
+              </button>
+            )}
+            {isLocalCreative && rawCreative.id && !renaming && (
+              <button
+                onClick={() => { setRenameValue(item.title); setRenaming(true); }}
+                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
+              >
+                {tt('library.rename', 'Rename')}
+              </button>
+            )}
             {isLocal && localPath && (
               <button
                 onClick={handleOpen}
