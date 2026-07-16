@@ -2130,9 +2130,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Routing mode — 'supernova' when the operator picks Supernova,
     // 'aurora' when they pick the EU-stack Mistral-only routing,
     // otherwise 'auto'. AutoCoordinator honours this for coordinator
-    // selection (V4 Pro on Supernova, Mistral Large 3 on Aurora) and
+    // selection (V4 Pro on Supernova, Mistral Medium 3.5 on Aurora) and
     // for the Builder spawn model (Qwen 3.7 Plus on Supernova,
-    // Mistral Small 4 on Aurora).
+    // Mistral Medium 3.5 on Aurora — AURORA_BUILDER_ID).
     // Prefer the fleet passed in by setActiveModel — it is known synchronously
     // at switch time, BEFORE the activeModel config write lands. Re-reading the
     // config here would lag a fleet switch by one selection (the classic cause
@@ -2203,7 +2203,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (mistralKey) availableProviders.add('mistral');
 
       // Supernova pins coordinator to V4 Pro. Aurora pins coordinator to
-      // Mistral Large 3 (with Small 4 fallback if Large 3 not reachable).
+      // Mistral Medium 3.5 (AURORA_COORDINATOR_ID), the fleet's lead seat.
       // Auto follows the default priority ladder. Aurora uses a strict
       // Mistral-only resolution chain so it never silently routes to a
       // non-Mistral coordinator — the EU-stack guarantee.
@@ -2211,9 +2211,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (modelId === 'supernova') {
         preferredCoordinatorId = 'platform:deepseek-v4-pro-platform';
       } else if (modelId === 'aurora') {
-        // Try platform-managed first, then BYOK Mistral, then Small 4
-        // fallback. The first resolvable wins.
+        // Medium 3.5 first — it's the coordinator per core's aurora-router,
+        // the web API (/api/chat resolves aurora -> mistral-medium-3.5-platform)
+        // and the docs. Large 3 is the heavy RESERVE and Small 4 the volume
+        // workhorse, so they're fallbacks, not the lead.
+        //
+        // This chain used to start at Large 3 and never listed Medium 3.5 at
+        // all, so Aurora was coordinated by a non-reasoning, text-only reserve
+        // model — while the billing table (credits.ts) had already been
+        // rebalanced on the assumption Medium 3.5 leads ("Large 3 ... now
+        // Aurora's heavy reserve/fallback, not the coordinator").
+        //
+        // Platform-managed first, then BYOK, then down the tiers. First
+        // resolvable wins.
         const tries = [
+          'platform:mistral-medium-3.5-platform',
+          'mistral:mistral-medium-3.5',
+          'mistral-medium-3.5',
           'platform:mistral-large-3-platform',
           'mistral:mistral-large-3',
           'mistral-large-3',
