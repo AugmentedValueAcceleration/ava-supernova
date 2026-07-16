@@ -39,6 +39,7 @@ export const enStrings = {
   'model.open_settings': 'Open Settings',
   'model.vision': 'vision',
   'model.vision_title': 'This model supports image/vision input',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
   'model.switched': 'Switched to {model}',
 
   // ── Thinking Indicator ────────────────────────────────────────────────────

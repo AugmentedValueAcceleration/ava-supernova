@@ -1465,6 +1465,9 @@ export function App() {
           platformStatus={state.platformStatus}
           onProviderSourceChange={handleProviderSourceChange}
           contextUsage={state.contextUsage}
+          modelSupportsVision={
+            state.models.find((m) => m.id === state.activeModel)?.supportsVision
+          }
           prefill={pendingPrefill}
         />
 

@@ -3945,4 +3945,5 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Hoş Geldiniz Turu',
   'ext.settings.replay_tour': 'Hoş Geldiniz Turunu Tekrar Oynat',
   'ext.settings.replay_tour_hint': 'İlk çalıştırma kılavuzunu tekrar görün.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

@@ -3947,4 +3947,5 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'ウェルカムツアー',
   'ext.settings.replay_tour': 'ウェルカムツアーを再表示',
   'ext.settings.replay_tour_hint': '初回ウォークスルーを再度ご覧ください。',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

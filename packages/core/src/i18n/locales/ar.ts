@@ -3945,4 +3945,5 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'جولة الترحيب',
   'ext.settings.replay_tour': 'إعادة عرض جولة الترحيب',
   'ext.settings.replay_tour_hint': 'شاهد الدليل الأول مرة أخرى.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

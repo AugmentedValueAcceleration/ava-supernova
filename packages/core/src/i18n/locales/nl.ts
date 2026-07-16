@@ -3945,4 +3945,5 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Welkomsttour',
   'ext.settings.replay_tour': 'Welkomsttour opnieuw afspelen',
   'ext.settings.replay_tour_hint': 'Bekijk de rondleiding bij de eerste keer opnieuw.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { t, useLocale } from '../../i18n';
 
 interface ModelSelectorProps {
@@ -14,6 +14,48 @@ interface ModelSelectorProps {
 // to match the IDE chat header model picker at DashboardPages.tsx:3947-4084.
 // Edits land in lockstep on both extension copies (panel webview + dashboard
 // chat webview) per `feedback_extension_ide_mirror.md`.
+
+/**
+ * Paperclip = "this model takes image attachments" — deliberately the SAME
+ * glyph as the composer's attach button, struck through when it doesn't.
+ * Reusing the composer icon means there's nothing new to learn: that symbol is
+ * the attach button, so a strike reads as "attach won't work here".
+ *
+ * Shown on every row AND on the collapsed toggle — the answer you most need is
+ * "can the model I'm on right now see?", and that shouldn't cost a click. On
+ * the rows it's on every one, not just the blind ones, so absence is comparable
+ * at a glance; a marker you only see occasionally is a marker nobody learns.
+ *
+ * The strike cuts a real transparent gap via an SVG mask rather than painting a
+ * halo in the surface colour: the menu and the toggle sit on different
+ * backgrounds, so any hard-coded halo would be wrong on one of them.
+ *
+ * Icon-only, so it costs no translation; the tooltip carries the words.
+ */
+function VisionGlyph({ supported }: { supported: boolean }) {
+  const maskId = useId();
+  return (
+    <svg
+      width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+      style={{ color: '#6c7086', opacity: supported ? 0.45 : 0.9, flexShrink: 0 }}
+    >
+      {!supported && (
+        <mask id={maskId}>
+          <rect width="16" height="16" fill="white" />
+          <line x1="2.5" y1="13.5" x2="13.5" y2="2.5" stroke="black" strokeWidth="3" strokeLinecap="round" />
+        </mask>
+      )}
+      <path
+        d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a2.75 2.75 0 1 1-3.935-3.84l4.486-4.486a1.75 1.75 0 0 1 2.505 2.44L6.623 9.573a.75.75 0 0 1-1.08-1.04l4.473-4.563z"
+        fill="currentColor"
+        mask={supported ? undefined : `url(#${maskId})`}
+      />
+      {!supported && (
+        <line x1="2.5" y1="13.5" x2="13.5" y2="2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      )}
+    </svg>
+  );
+}
 
 const PROVIDER_LABEL: Record<string, string> = {
   qwen: 'Qwen',
@@ -89,6 +131,11 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
         ? 'Aurora'
         : models.find(m => m.id === activeModel)?.name ?? 'Select model';
 
+  // Vision state of the model you're actually on — surfaced on the collapsed
+  // toggle so "can this see?" doesn't require opening the picker. The fleets
+  // live in `models` too, so this covers them without special-casing.
+  const activeSupportsVision = models.find(m => m.id === activeModel)?.supportsVision;
+
   const connected = !needsSetup;
 
   return (
@@ -111,6 +158,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
           flexShrink: 0,
         }} />
         {activeModelName}
+        <VisionGlyph supported={activeSupportsVision !== false} />
         <svg
           width="10" height="10" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2.5"
@@ -128,7 +176,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
             border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
             borderRadius: 10,
             padding: 6,
-            minWidth: 240,
+            minWidth: 300,
             maxHeight: 420,
             overflowY: 'auto',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
@@ -169,7 +217,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                       : o.id === 'auto'
                         ? 'One coordinator handles everything — proven, production-tuned'
                         : o.id === 'aurora'
-                          ? 'Aurora — Mistral-only three-tier EU stack. Large 3 coordinator + heavy specialists, Medium 3.5 for Builder + mid-tier + vision + long-form, Small 4 at the intent gate. Stays inside European infrastructure.'
+                          ? 'Aurora — Mistral-only three-tier EU stack. Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Large 3 is the heavy reserve. Stays inside European infrastructure.'
                           : 'Multi-model orchestration — coordinator picks the best specialist for each task'}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -208,7 +256,11 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                       if (!m.available) { onOpenDashboard(); setOpen(false); return; }
                       onSwitch(m.id); setOpen(false);
                     }}
-                    title={m.available ? m.name : `Add ${providerLabel(provider)} API key to unlock`}
+                    title={!m.available
+                      ? `Add ${providerLabel(provider)} API key to unlock`
+                      : m.supportsVision === false
+                        ? `${m.name} — ${t('model.no_vision_title')}`
+                        : m.name}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       width: '100%', padding: '8px 10px',
@@ -226,9 +278,15 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                       {active && m.available && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />}
                       <span style={{ fontWeight: active && m.available ? 600 : 400 }}>{m.name}</span>
                     </span>
-                    {!m.available && (
-                      <span style={{ fontSize: 10, color: '#facc15', opacity: 0.7 }}>Add key</span>
-                    )}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      {!m.available && (
+                        <span style={{ fontSize: 10, color: '#facc15', opacity: 0.7 }}>Add key</span>
+                      )}
+                      {/* `!== false` mirrors the composer's `=== false` gate: an
+                          older host that omits the flag means "unknown", and we
+                          don't brand a model blind on a guess. */}
+                      <VisionGlyph supported={m.supportsVision !== false} />
+                    </span>
                   </button>
                 );
               })}

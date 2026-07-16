@@ -3945,4 +3945,5 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Приветственный тур',
   'ext.settings.replay_tour': 'Повторить приветственный тур',
   'ext.settings.replay_tour_hint': 'Посмотреть инструкцию первого запуска снова.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

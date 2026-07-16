@@ -3945,4 +3945,5 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Hành trình chào mừng',
   'ext.settings.replay_tour': 'Xem lại hành trình chào mừng',
   'ext.settings.replay_tour_hint': 'Xem lại hướng dẫn lần chạy đầu tiên.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

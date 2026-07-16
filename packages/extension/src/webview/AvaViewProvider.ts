@@ -2339,13 +2339,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return true;
     });
 
-    const modelList = byokOnly.map((m) => ({
-      id: `${m.provider}:${m.id}`,
-      name: m.name,
-      provider: m.provider,
-      available: m.available,
-      ...(m.supportsVision ? { supportsVision: true } : {}),
-    }));
+    // supportsVision is sent as an EXPLICIT boolean. It used to be spread in
+    // only when true, so a text-only model arrived as `undefined` — which the
+    // composer reads as "unknown, don't block". The attach gate could
+    // therefore never fire and images were sent to blind models. Absent on a
+    // ModelDefinition means no vision (the convention across the catalogue),
+    // so `=== true` is the honest coercion.
+    const modelList: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> =
+      byokOnly.map((m) => ({
+        id: `${m.provider}:${m.id}`,
+        name: m.name,
+        provider: m.provider,
+        available: m.available,
+        supportsVision: m.supportsVision === true,
+      }));
 
     // Three orchestrated modes. Admin gate retired 2026-04-30 — public
     // launch of Aurora + Supernova alongside Maestro. Any signed-in
@@ -2359,9 +2366,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const maestroAvailable   = hasPlatform || hasQwen;
     const supernovaAvailable = hasPlatform || (hasDeepSeek && hasQwen);
     const auroraAvailable    = hasPlatform || hasMistral;
-    modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: maestroAvailable });
-    modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: supernovaAvailable });
-    modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable });
+    // The fleets always accept images. Maestro and Aurora have vision-capable
+    // coordinators outright; Supernova's coordinator (DeepSeek V4) is blind,
+    // but the vision bridge describes the image with a vision model and injects
+    // the description, so from the user's side attaching works. Report the
+    // EFFECTIVE capability, not the coordinator's raw flag — otherwise we'd
+    // strike through a fleet that handles images perfectly well.
+    modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: maestroAvailable, supportsVision: true });
+    modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: supernovaAvailable, supportsVision: true });
+    modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable, supportsVision: true });
 
     return modelList;
   }

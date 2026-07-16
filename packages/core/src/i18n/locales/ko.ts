@@ -3945,4 +3945,5 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': '소개 투어',
   'ext.settings.replay_tour': '소개 투어 다시 보기',
   'ext.settings.replay_tour_hint': '첫 실행 안내를 다시 보세요.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

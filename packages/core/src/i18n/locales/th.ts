@@ -3945,4 +3945,5 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'ทัวร์ต้อนรับ',
   'ext.settings.replay_tour': 'ดูทัวร์ต้อนรับอีกครั้ง',
   'ext.settings.replay_tour_hint': 'ดูขั้นตอนการเริ่มต้นใช้งานอีกครั้ง',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

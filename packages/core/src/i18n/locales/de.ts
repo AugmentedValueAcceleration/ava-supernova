@@ -3925,4 +3925,5 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Willkommens-Tour',
   'ext.settings.replay_tour': 'Willkommens-Tour wiederholen',
   'ext.settings.replay_tour_hint': 'Die Ersteinführung erneut ansehen.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

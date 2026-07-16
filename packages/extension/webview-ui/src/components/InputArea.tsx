@@ -29,6 +29,11 @@ interface InputAreaProps {
   isCompressing?: boolean;
   onCompress?: () => void;
   providerSource?: ProviderSource;
+  /** Vision capability of the currently-selected model. When false the
+   *  attach-image button is disabled and the tooltip explains why.
+   *  Undefined means "unknown" — treated as supported (don't block).
+   *  Mirrors dashboard-ui/src/chat/components/InputArea.tsx. */
+  modelSupportsVision?: boolean;
   contextUsage?: { used: number; limit: number; percent: number } | null;
   platformStatus?: {
     connected: boolean;
@@ -75,7 +80,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
 // onProviderSourceChange is no longer destructured — the Platform/API-key
 // toggle was dropped to match IDE. Prop stays in InputAreaProps so callers
 // can keep passing it without a shape change.
-export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus, prefill }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus, modelSupportsVision, prefill }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across panel close/reopen — IDE chat persists via
@@ -584,11 +589,15 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
           {/* Right side actions — provider toggle + voice button dropped
               to match IDE; only attach + vault + send remain. */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Attach button */}
+            {/* Attach button — disabled when the current model is text-only.
+                modelSupportsVision === false explicitly blocks; undefined is
+                treated as unknown/supported so older clients keep working. */}
             <button
               onClick={handleAttach}
-              disabled={disabled}
-              title={t('input.attach_image')}
+              disabled={disabled || modelSupportsVision === false}
+              title={modelSupportsVision === false
+                ? t('input.attach_image_unsupported')
+                : t('input.attach_image')}
               aria-label={t('input.attach_image')}
               className="flex items-center justify-center w-9 h-9 rounded-lg
                          cursor-pointer

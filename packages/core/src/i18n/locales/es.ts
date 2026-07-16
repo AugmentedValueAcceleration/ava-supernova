@@ -3917,4 +3917,5 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Recorrido de bienvenida',
   'ext.settings.replay_tour': 'Repetir recorrido de bienvenida',
   'ext.settings.replay_tour_hint': 'Vea nuevamente la guía de primera vez.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };

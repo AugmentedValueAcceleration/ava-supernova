@@ -60,12 +60,30 @@ export async function describeImageWithVision(
   }
 }
 
+/**
+ * What the model is handed when it can't see and no relay is available.
+ *
+ * This is addressed to Ava, not to the user, and it deliberately does NOT read
+ * like an error: a model without vision is a known property of the model the
+ * user picked, not a failure. Ava explains it herself, in her own voice, and
+ * carries on — errors are reserved for things that actually went wrong.
+ *
+ * It points at the picker's affordance rather than naming models, because a
+ * hard-coded roster goes stale (this note used to recommend Kimi K2.5 and
+ * "Mistral Large") whereas the struck-through paperclip is always current.
+ */
 function fallbackNote(model: ModelDefinition): string {
   return [
-    `Your current model (${model.name || model.id}) doesn't support images.`,
-    'To analyse images, switch to a vision-capable model:',
-    '- Qwen 3.7 Plus / Qwen 3.5 Omni Plus / Omni Flash (multimodal)',
-    '- Kimi K2.5, GLM-5.2, Mistral Large, Claude (BYOK)',
+    `[Context for you — not a message from the user, and not an error.`,
+    `They attached an image, but ${model.name || model.id} has no vision and no vision`,
+    `relay is available right now, so you genuinely cannot see it.`,
+    ``,
+    `Tell them briefly and plainly, in your own voice, that you can't see images on this`,
+    `model. Don't apologise at length and don't frame it as something broken — it's a`,
+    `property of the model they chose. Offer the two ways forward: switch to a`,
+    `vision-capable model (the model picker strikes through the paperclip on any model`,
+    `that can't read images), or describe the image and you'll work from their`,
+    `description. Then get on with whatever else they asked for.]`,
   ].join('\n');
 }
 

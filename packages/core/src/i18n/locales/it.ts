@@ -3945,4 +3945,5 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Tour di benvenuto',
   'ext.settings.replay_tour': 'Ripeti tour di benvenuto',
   'ext.settings.replay_tour_hint': 'Rivedi la guida alla prima esecuzione.',
+  'model.no_vision_title': 'Text only — this model cannot read image attachments',
 };
