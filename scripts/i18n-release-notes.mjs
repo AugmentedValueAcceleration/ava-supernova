@@ -63,6 +63,33 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 355,
+    version: '0.35.0',
+    platform: 'ide',
+    toolCount: 62,
+    publishedAt: '2026-07-17 19:15:00+00',
+    title: 'Kimi K3, and the right tools in the right rooms',
+    body: `The desktop IDE catches up to everything the extension shipped this week, plus a full pass over which tools Ava can reach in which mode.
+
+**Kimi K3.** Moonshot's new frontier model — 2.8-trillion-parameter sparse mix-of-experts, a one-million-token context window, native vision. Bring your own Moonshot key. On Moonshot's own published benchmarks it leads Claude Opus 4.8 across most agentic work at roughly 60% of the price, while trailing Claude Fable 5 on the hardest reasoning. K2.7 Code stays as the cheaper agentic coder.
+
+**Aurora is led by the right model.** Aurora is meant to be led by Mistral Medium 3.5. It was quietly coordinating on Large 3 — the text-only heavy reserve — instead. Fixed. Aurora remains Mistral-only and EU-resident end to end.
+
+**The right tools in the right rooms.** We checked, mode by mode, that the tools Ava is told she has are the ones she can actually reach:
+- She can read the exact earlier conversation back in every mode now, instead of guessing or asking you to repeat yourself.
+- Teach mode can fetch a scientific paper for "Read with Ava" again.
+- Asking for an image in the Posts, Newsroom and Writing rooms points you to the Creative Studio, where all creation lives, instead of silently doing nothing.
+- Putting a vault-granted API key into a project's ignored env file works end to end — Ava never sees the value, and asks before each write.
+
+**Housekeeping.** DeepSeek's retiring model ids moved to V4, several price tables were corrected, and desktop automation moved onto a cleaner internal path — unchanged for you: the IDE ships the full agent, desktop automation included.`,
+    highlights: [
+      'Kimi K3 is here — Moonshot\'s frontier model, 1M context, native vision, ahead of Opus 4.8 on most agentic benchmarks at ~60% of the price (Moonshot-reported).',
+      'Aurora is now led by Mistral Medium 3.5 as intended, not the text-only heavy reserve it had been coordinating on.',
+      'A full mode-by-mode tool audit: exact-conversation recall works in every mode, "Read with Ava" fetches papers again, and the post rooms point to the Creative Studio for images.',
+      'Ava can put a vault-granted API key into a project\'s ignored env file end to end — never seeing the value, asking before each write.',
+    ],
+  },
+  {
     migration: 354,
     version: '0.87.2',
     platform: 'extension',
