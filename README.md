@@ -110,7 +110,7 @@ Bring your own key for any provider, or use Ava-managed models on a plan. Every 
 | **Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 — EU, open weights, up to 262K context |
 | **MiniMax** | M3, M2.7, M2.7 HighSpeed — up to 1M context (BYOK) |
 | **Xiaomi** | MiMo V2.5, V2.5-Pro — 1M context, native multimodal |
-| **Anthropic** | Claude Opus 4.8, Sonnet 5, Haiku 4.5 |
+| **Anthropic** | Claude Fable 5, Opus 4.8, Sonnet 5, Haiku 4.5 |
 | **Custom / Local** | Ollama, LM Studio, vLLM, or any standard API-format endpoint — the $0 path |
 
 ## Getting Started

@@ -260,7 +260,7 @@ Every plan gets every managed model. Tiers differ only on monthly credit allowan
 | **BYOK — Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 |
 | **BYOK — MiniMax** | M3, M2.7, M2.7 HighSpeed |
 | **BYOK — Xiaomi** | MiMo V2.5, V2.5-Pro |
-| **BYOK — Anthropic** | Claude Opus 4.8, Sonnet 5, Haiku 4.5 |
+| **BYOK — Anthropic** | Claude Fable 5, Opus 4.8, Sonnet 5, Haiku 4.5 |
 | **BYOK — Custom** | Ollama, LM Studio, vLLM, any standard API endpoint |
 
 ---

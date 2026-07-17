@@ -11,9 +11,9 @@ export const ANTHROPIC_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsVision: true,
     desktopCapable: true, // Anthropic's Mythos-class flagship (released 2026-06-09).
-    // DISABLED 2026-06-14 — pulled over a US-government restriction. Definition
-    // kept intact; flip `disabled` back to false (or remove it) to re-enable.
-    disabled: true,
+    // Re-enabled 2026-07-17 — the US-government restriction that pulled it on
+    // 2026-06-14 has lifted. BYOK-only in practice (Anthropic's $10/$50 pricing
+    // means few will run it over the cheaper fleets), but offered again.
     // NOTE Fable 5 API quirks (shared with Opus 4.7/4.8 plus one of its own):
     // adaptive thinking only; temperature/top_p/top_k are rejected (400); an
     // explicit thinking:{type:'disabled'} also 400s — omit the param instead.
