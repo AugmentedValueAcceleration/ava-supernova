@@ -108,10 +108,23 @@ export function App() {
   // Every room got this replay when they hit the same race. The main chat — the
   // surface everyone actually uses — was the one that never did.
   const chatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
+  // The last restore/reset the host sent for the MAIN chat — a `conversation_loaded`
+  // (restore the previous session) or a `chat_cleared` (start fresh). Same race as
+  // the setup cache above, but this one is why the chat opened BLANK: the host posts
+  // conversation_loaded ~2-3s in from restoreLast(), the main Chat mounts later
+  // (gated on hasAccess), so `chatDispatchRef.current?.(msg)` dropped the only copy
+  // and the previous session never came back. The setup cache (chat_init /
+  // chat_platform_status) got the replay in the July 12 fix; the restore message
+  // did not, so "always opens a clean chat" survived. Keep only the latest — a
+  // chat_cleared supersedes an earlier conversation_loaded and vice versa.
+  const lastRestoreRef = useRef<ExtToDashboardMessage | null>(null);
   const registerChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
     chatDispatchRef.current = fn;
     // Replay cached setup so a late-mounting chat has account/provider/model.
     for (const cached of lastChatSetupRef.current.values()) fn(cached);
+    // Then replay the restore so the previous session is actually on screen,
+    // not just the account context around an empty thread.
+    if (lastRestoreRef.current) fn(lastRestoreRef.current);
   }, []);
   // Second chat dispatch — the focused Ava Health & Fitness room. Host events
   // from a health-lane turn are tagged lane:'health' and routed here instead of
@@ -653,6 +666,12 @@ export function App() {
     // the user first opens Health / Learning) gets them replayed on registration.
     const isChatSetup = msg.type === 'chat_init' || msg.type === 'chat_platform_status';
     if (isChatSetup) lastChatSetupRef.current.set(msg.type, msg);
+    // Cache the latest MAIN-lane restore/reset so a late-mounting chat can replay
+    // it on registration (see registerChatDispatch). Room-lane messages carry a
+    // lane tag and are handled by their own surfaces, so only cache untagged ones.
+    if ((msg.type === 'conversation_loaded' || msg.type === 'chat_cleared') && !lane) {
+      lastRestoreRef.current = msg;
+    }
     // Keep the Design Studio top-bar model/credit state in sync.
     if (msg.type === 'chat_init') {
       setDesignModel({ models: msg.models, activeModel: msg.activeModel, needsSetup: msg.needsSetup, platformStatus: msg.platformStatus ?? null });

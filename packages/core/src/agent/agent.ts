@@ -218,6 +218,25 @@ export const DESKTOP_TOOL_NAMES = [
 
 const DESKTOP_ONLY_TOOLS: Set<string> = new Set(DESKTOP_TOOL_NAMES);
 
+/**
+ * Tools every mode gets, unioned in on top of MODE_ALLOWED_TOOLS.
+ *
+ * `self_inspect` is read-only by construction — it reads Ava's own source and
+ * her deploy state. It cannot write a file, run a command, or spend anything;
+ * changing the code is a thing the operator does directly, never Ava. So there
+ * is no mode where "don't let her read her own source" is the right answer.
+ *
+ * It was previously allowed in `work` and `plan` only, which meant that in the
+ * other ten modes the schema filter removed it and she'd correctly say she
+ * didn't have it — including in Chat, where "what can you do?" is exactly the
+ * question you'd ask, and which the README promises she answers by reading her
+ * own source.
+ *
+ * This is a union rather than twelve list edits on purpose: a new mode gets it
+ * automatically, so it can't rot back out the way it did the first time.
+ */
+const ALWAYS_ALLOWED_TOOLS: Set<string> = new Set(['self_inspect']);
+
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // Work mode — the bread-and-butter coding surface. Ships every turn
   // to users writing code, so the schema list is the single biggest
@@ -1284,7 +1303,7 @@ export class Agent {
     const modeAllowed = detectedMode ? MODE_ALLOWED_TOOLS[detectedMode] : null;
     let filteredSchemas: ToolSchema[];
     if (modeAllowed) {
-      filteredSchemas = allSchemas.filter(s => modeAllowed.has(s.function.name));
+      filteredSchemas = allSchemas.filter(s => modeAllowed.has(s.function.name) || ALWAYS_ALLOWED_TOOLS.has(s.function.name));
     } else {
       // No prefix detected. Filter only the desktop-only tools so the
       // surgical leak closes without tightening any other tool the user
@@ -2094,8 +2113,13 @@ export class Agent {
       }
 
       // ── Mode enforcement: block tools not allowed in the active mode ────
+      // ALWAYS_ALLOWED_TOOLS is honoured here as well as in the schema filter
+      // above. The two must agree: offering a schema and then blocking the call
+      // gives the model a tool it can see and cannot use, which reads to the
+      // user as Ava being broken rather than restricted.
       if (modeAllowed) {
-        const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !modeAllowed.has(tc.function.name));
+        const isAllowed = (name: string) => modeAllowed.has(name) || ALWAYS_ALLOWED_TOOLS.has(name);
+        const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !isAllowed(tc.function.name));
         if (blocked.length > 0) {
           const blockedNames = blocked.map((tc: ToolCall) => tc.function.name).join(', ');
           logger.warn(`[agent] Mode ${detectedMode} blocked tools: ${blockedNames}`);
@@ -2111,7 +2135,7 @@ export class Agent {
             } as any);
           }
           // Remove blocked calls, keep allowed ones.
-          assistantMessage.tool_calls = assistantMessage.tool_calls.filter((tc: ToolCall) => modeAllowed.has(tc.function.name));
+          assistantMessage.tool_calls = assistantMessage.tool_calls.filter((tc: ToolCall) => isAllowed(tc.function.name));
           if (assistantMessage.tool_calls.length === 0) {
             // Delete the field entirely — Qwen rejects `tool_calls: []`.
             // Since assistantMessage is a reference already in `messages`,
