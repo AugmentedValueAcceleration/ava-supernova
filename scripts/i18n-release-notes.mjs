@@ -62,6 +62,31 @@ const DO_NOT_TRANSLATE = [
 // ── Release content (English) ────────────────────────────────────────────────
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
+  {
+    migration: 354,
+    version: '0.87.2',
+    platform: 'extension',
+    toolCount: 62,
+    publishedAt: '2026-07-17 18:00:00+00',
+    title: 'The right tools in the right rooms',
+    body: `We went through every one of Ava's tools and checked, mode by mode, that the ones she's told she has are the ones she can actually reach. Several couldn't, and a few pointed at nothing. This fixes all of them.
+
+**She can read the conversation back — everywhere.** Ava has a tool for reading the exact earlier transcript instead of guessing at what you said. Her instructions told her to use it every turn, but it was quietly switched off in most rooms — so she'd guess or ask you to repeat yourself. It now works in every mode, chat included.
+
+**"Read with Ava" works on papers again.** In Teach mode, picking a scientific paper to read together hands Ava the paper to explain. She couldn't actually fetch it — the one room that needed the tool was the one room without it. Fixed.
+
+**Making things always points to the Creative Studio.** In the Posts, Newsroom and Writing rooms, asking for an image used to reach for a tool that no longer exists and silently do nothing. Now Ava sends you to the Creative Studio — where all creation lives — and can reuse what's already in your library.
+
+**Putting an API key into a project works end to end.** When Ava sets up a project that needs a key, she can now take one you've granted from your vault and write it into the project's ignored env file — without ever seeing the value herself, and asking before every write. The steps were described but the tools weren't switched on anywhere; now they are.
+
+Under the hood this is locked down with tests, so a tool can't quietly drift out of a room again.`,
+    highlights: [
+      'Ava can read the exact earlier conversation back in every mode now — including chat, where the tool had been switched off, so she stops guessing or asking you to repeat yourself.',
+      '"Read with Ava" on a scientific paper works again — Teach mode was the one room missing the tool it needed to fetch the paper.',
+      'Asking for an image in the Posts, Newsroom and Writing rooms now points you to the Creative Studio instead of silently doing nothing.',
+      'Ava can put a vault-granted API key into a project\'s ignored env file end to end — never seeing the value, asking before each write — a flow that was described but never actually switched on.',
+    ],
+  },
   // NOTE on scope (operator decision, 2026-07-17): 0.87.1 is mostly a
   // marketplace-compliance fix — the desktop/browser tools MS requires the
   // extension not to ship were being bundled again. That story is deliberately
