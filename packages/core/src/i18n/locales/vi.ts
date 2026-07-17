@@ -3945,8 +3945,8 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Hành trình chào mừng',
   'ext.settings.replay_tour': 'Xem lại hành trình chào mừng',
   'ext.settings.replay_tour_hint': 'Xem lại hướng dẫn lần chạy đầu tiên.',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': 'Chỉ văn bản — mô hình này không thể đọc tệp đính kèm hình ảnh',
+  'library.use_in_project': 'Sử dụng trong dự án',
+  'library.rename': 'Đổi tên',
+  'library.rename_save': 'Lưu',
 };

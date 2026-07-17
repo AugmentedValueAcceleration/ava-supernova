@@ -3945,8 +3945,8 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Tour di benvenuto',
   'ext.settings.replay_tour': 'Ripeti tour di benvenuto',
   'ext.settings.replay_tour_hint': 'Rivedi la guida alla prima esecuzione.',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': 'Solo testo — questo modello non può leggere allegati immagine',
+  'library.use_in_project': 'Usa nel progetto',
+  'library.rename': 'Rinomina',
+  'library.rename_save': 'Salva',
 };

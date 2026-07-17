@@ -3925,8 +3925,8 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Вітальний тур',
   'ext.settings.replay_tour': 'Повторити вітальний тур',
   'ext.settings.replay_tour_hint': 'Перегляньте огляд першого запуску ще раз.',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': 'Тільки текст — ця модель не може читати вкладення зображень',
+  'library.use_in_project': 'Використати в проєкті',
+  'library.rename': 'Перейменувати',
+  'library.rename_save': 'Зберегти',
 };

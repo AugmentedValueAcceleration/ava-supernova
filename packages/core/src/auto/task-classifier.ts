@@ -4,14 +4,16 @@ import type { ClassificationResult } from './types.js';
 // ─── Model name patterns for user inline overrides ───────────────────────────
 
 const MODEL_ALIASES: Record<string, string> = {
-  // Kimi / Moonshot — 'kimi' / 'k2' / 'moonshot' route to the current flagship
-  // K2.7 Code; 'k2.6'/'k2.5' aliases kept to pin the older models explicitly.
-  'kimi': 'kimi-k2.7-code',
+  // Kimi / Moonshot — bare 'kimi' / 'moonshot' route to the current flagship
+  // K3. 'k2' stays on the K2 line (K2.7 Code, the value agentic coder); the
+  // 'k2.7'/'k2.6'/'k2.5' aliases pin the older models explicitly.
+  'kimi': 'kimi-k3',
+  'k3': 'kimi-k3',
   'k2': 'kimi-k2.7-code',
   'k2.7': 'kimi-k2.7-code',
   'k2.6': 'kimi-k2.6',
   'k2.5': 'kimi-k2.5',
-  'moonshot': 'kimi-k2.7-code',
+  'moonshot': 'kimi-k3',
   // MiniMax (BYOK chat, M3 only) — bare 'minimax'/'m3' route to M3.
   'minimax': 'MiniMax-M3',
   'm3': 'MiniMax-M3',
@@ -22,8 +24,11 @@ const MODEL_ALIASES: Record<string, string> = {
   // Bare 'qwen plus' = the current Plus flagship (3.5 Plus retired from
   // primary routes — operator, 2026-07-04).
   'qwen plus': 'qwen3.7-plus',
-  // DeepSeek
-  'deepseek': 'deepseek-chat',
+  // DeepSeek — bare 'deepseek' routes to the current frontier V4 Pro. The old
+  // `deepseek-chat`/`deepseek-reasoner` ids retire upstream on 2026-07-24.
+  'deepseek': 'deepseek-v4-pro',
+  'deepseek pro': 'deepseek-v4-pro',
+  'deepseek flash': 'deepseek-v4-flash',
   // Claude — bare 'opus' routes to current flagship 4.8. Latest-only: superseded
   // Opus versions are not offered, so no 4.7/4.6 aliases.
   'claude': 'claude-sonnet-5',

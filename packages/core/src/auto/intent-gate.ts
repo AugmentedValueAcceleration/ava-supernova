@@ -68,11 +68,13 @@ export function resolveIntentGateModel(
     }
   }
 
-  // BYOK — any small/fast model will do the classification
+  // BYOK — any small/fast model will do the classification.
+  // V4 Flash replaces `deepseek-chat` (retired upstream 2026-07-24) and is the
+  // cheaper of the two V4 tiers, which is what this gate wants.
   const fallbacks = [
     'qwen3.5-flash',
     'claude-haiku-4-5-20251001',
-    'deepseek-chat',
+    'deepseek-v4-flash',
   ];
   for (const id of fallbacks) {
     const direct = providerRegistry.resolveModel(id);

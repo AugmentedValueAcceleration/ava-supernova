@@ -40,6 +40,10 @@ const PLATFORM_PRIORITY = [
 
 const BYOK_PRIORITY = [
   { id: 'claude-fable-5',       reason: 'Claude Fable 5 — Anthropic Mythos-class flagship, strongest reasoning available, 1M context' },
+  // Above Opus 4.8 on Moonshot's launch table for agentic work (Terminal Bench
+  // 88.3 vs 84.6, BrowseComp 91.2 vs 84.3) at 60% of the price — and with
+  // Fable 5 disabled, the strongest coordinator we can actually reach.
+  { id: 'kimi-k3',              reason: 'Kimi K3 — Moonshot frontier model, 2.8T MoE, 1M context, leads agentic + browsing benchmarks' },
   { id: 'kimi-k2.7-code',       reason: 'Kimi K2.7 Code — Moonshot flagship agentic coder, ~30% fewer reasoning tokens than K2.6, 256K context' },
   { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — agentic coding fallback (SWE-Bench Pro 58.6), 256K context' },
   { id: 'claude-opus-4-8',      reason: 'Claude Opus 4.8 — strongest general reasoning' },

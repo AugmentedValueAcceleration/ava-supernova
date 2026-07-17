@@ -3945,8 +3945,8 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'جولة الترحيب',
   'ext.settings.replay_tour': 'إعادة عرض جولة الترحيب',
   'ext.settings.replay_tour_hint': 'شاهد الدليل الأول مرة أخرى.',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': 'نص فقط — لا يمكن لهذا النموذج قراءة مرفقات الصور',
+  'library.use_in_project': 'استخدام في المشروع',
+  'library.rename': 'إعادة تسمية',
+  'library.rename_save': 'حفظ',
 };

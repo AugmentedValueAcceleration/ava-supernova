@@ -3943,8 +3943,8 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Tur perkenalan',
   'ext.settings.replay_tour': 'Putar ulang tur perkenalan',
   'ext.settings.replay_tour_hint': 'Lihat panduan awal lagi.',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': 'Hanya teks — model ini tidak dapat membaca lampiran gambar',
+  'library.use_in_project': 'Gunakan dalam proyek',
+  'library.rename': 'Ubah Nama',
+  'library.rename_save': 'Simpan',
 };

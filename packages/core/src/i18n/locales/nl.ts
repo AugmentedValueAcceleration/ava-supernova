@@ -3945,8 +3945,8 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Welkomsttour',
   'ext.settings.replay_tour': 'Welkomsttour opnieuw afspelen',
   'ext.settings.replay_tour_hint': 'Bekijk de rondleiding bij de eerste keer opnieuw.',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': 'Alleen tekst — dit model kan geen afbeeldingsbijlagen lezen',
+  'library.use_in_project': 'Gebruiken in project',
+  'library.rename': 'Hernoemen',
+  'library.rename_save': 'Opslaan',
 };

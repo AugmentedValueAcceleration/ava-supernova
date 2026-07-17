@@ -23,16 +23,30 @@ interface ProviderRate {
 /** BYOK provider rate cards. Sourced from each provider's public pricing
  *  page — verify before adding entries. Update in PRs only, never via
  *  silent commits, so the rate-card history is auditable in git blame.
- *  Last verified: 2026-05-31 (provider /models + official pricing pages). */
+ *  Last verified: 2026-07-17 — every id below re-checked against the
+ *  providers' live /models endpoints and official pricing pages. */
 const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
+  // MiniMax was absent entirely until 2026-07-17, so BYOK MiniMax turns
+  // costed at $0.00 in the audit rather than being estimated.
+  minimax: {
+    // M3 ≤512k rate ("Permanent 50% off"); >512k turns bill at 2x this.
+    'MiniMax-M3': { inputPerMillion: 0.30, outputPerMillion: 1.20 },
+    'MiniMax-M2.7': { inputPerMillion: 0.30, outputPerMillion: 1.20 },
+    'MiniMax-M2.7-highspeed': { inputPerMillion: 0.60, outputPerMillion: 2.40 },
+  },
   deepseek: {
     'deepseek-v4-pro':   { inputPerMillion: 0.435, outputPerMillion: 0.87 },
     'deepseek-v4-flash': { inputPerMillion: 0.14,  outputPerMillion: 0.28 },
   },
   kimi: {
+    // All four verified against Moonshot's per-model pricing pages 2026-07-17.
+    // K2.6/K2.5 were previously 0.60/2.40 and 0.55/2.20 here — both wrong, and
+    // both disagreed with providers/kimi/models.ts. Cost audits under-reported
+    // Kimi spend by ~37% until this was corrected.
+    'kimi-k3': { inputPerMillion: 3.00, outputPerMillion: 15.00 },
     'kimi-k2.7-code': { inputPerMillion: 0.95, outputPerMillion: 4.00 },
-    'kimi-k2.6': { inputPerMillion: 0.60,  outputPerMillion: 2.40 },
-    'kimi-k2.5': { inputPerMillion: 0.55,  outputPerMillion: 2.20 },
+    'kimi-k2.6': { inputPerMillion: 0.95,  outputPerMillion: 4.00 },
+    'kimi-k2.5': { inputPerMillion: 0.60,  outputPerMillion: 3.00 },
   },
   qwen: {
     'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 }, // BYOK-only, DashScope intl

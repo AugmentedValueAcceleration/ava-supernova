@@ -3945,8 +3945,8 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'ทัวร์ต้อนรับ',
   'ext.settings.replay_tour': 'ดูทัวร์ต้อนรับอีกครั้ง',
   'ext.settings.replay_tour_hint': 'ดูขั้นตอนการเริ่มต้นใช้งานอีกครั้ง',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': 'เฉพาะข้อความ — โมเดลนี้ไม่สามารถอ่านไฟล์แนบรูปภาพได้',
+  'library.use_in_project': 'ใช้ในโปรเจกต์',
+  'library.rename': 'เปลี่ยนชื่อ',
+  'library.rename_save': 'บันทึก',
 };

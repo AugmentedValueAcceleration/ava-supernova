@@ -207,9 +207,15 @@ export class ModelRouter {
     }
 
     // BYOK models (dynamic — try whatever providers are available, best first).
-    // Fable 5 first: Anthropic's Mythos-class flagship. K2.7 Code next: SoTA
-    // agentic coding. K2.6/K2.5 kept as fallbacks. MiniMax excluded — BYOK chat only.
-    const byokModels = ['claude-fable-5', 'kimi-k2.7-code', 'kimi-k2.6', 'claude-opus-4-8', 'claude-sonnet-5', 'kimi-k2.5', 'deepseek-chat', 'glm-5.2', 'mistral-medium-3.5', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
+    // Fable 5 first: Anthropic's Mythos-class flagship. K3 next: Moonshot's
+    // frontier model, ahead of Opus 4.8 on agentic benchmarks. K2.7 Code after
+    // it as the cheaper agentic coder, K2.6/K2.5 as fallbacks. MiniMax excluded
+    // — BYOK chat only.
+    //
+    // `deepseek-chat` was here until 2026-07-17: DeepSeek retires that id (and
+    // `deepseek-reasoner`) on 2026-07-24, after which it 400s. V4 Pro is the
+    // current frontier DeepSeek and is what the catalogue already ships.
+    const byokModels = ['claude-fable-5', 'kimi-k3', 'kimi-k2.7-code', 'kimi-k2.6', 'claude-opus-4-8', 'claude-sonnet-5', 'kimi-k2.5', 'deepseek-v4-pro', 'glm-5.2', 'mistral-medium-3.5', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {

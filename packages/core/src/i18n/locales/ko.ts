@@ -3945,8 +3945,8 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': '소개 투어',
   'ext.settings.replay_tour': '소개 투어 다시 보기',
   'ext.settings.replay_tour_hint': '첫 실행 안내를 다시 보세요.',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': '텍스트 전용 — 이 모델은 이미지 첨부 파일을 읽을 수 없습니다',
+  'library.use_in_project': '프로젝트에서 사용',
+  'library.rename': '이름 변경',
+  'library.rename_save': '저장',
 };

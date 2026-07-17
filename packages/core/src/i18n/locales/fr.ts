@@ -3941,8 +3941,8 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': 'Visite guidée',
   'ext.settings.replay_tour': 'Rejouer la visite guidée',
   'ext.settings.replay_tour_hint': 'Voir à nouveau le guide de prise en main.',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': 'Texte uniquement — ce modèle ne peut pas lire les pièces jointes d\'images',
+  'library.use_in_project': 'Utiliser dans le projet',
+  'library.rename': 'Renommer',
+  'library.rename_save': 'Enregistrer',
 };

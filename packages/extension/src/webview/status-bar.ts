@@ -8,9 +8,9 @@ export type StatusBarState = 'ready' | 'busy' | 'error' | 'generating';
 
 /** Display labels for orchestration modes — when one is set, the
  *  status bar shows the mode name instead of the resolved coordinator's
- *  model name. Picking Aurora used to show "Ava: Mistral Large 3"
- *  because Large 3 is Aurora's coordinator — but Aurora actually
- *  routes across Large 3 + Medium 3.5 + Small 4 depending on the
+ *  model name. Picking Aurora used to show "Ava: Mistral Medium 3.5"
+ *  because Medium 3.5 is Aurora's coordinator — but Aurora actually
+ *  routes across Medium 3.5 + Small 4 + Large 3 depending on the
  *  task, so showing one model name was misleading. The mode name is
  *  the honest single-string answer. */
 const MODE_LABELS: Record<string, string> = {
@@ -18,6 +18,19 @@ const MODE_LABELS: Record<string, string> = {
   supernova: 'Supernova',
   auto:      'Maestro',
 };
+
+/** One line of what each fleet actually is, for the tooltip. The status bar is
+ *  the only place a user sees the fleet without opening the picker. */
+const MODE_BLURB: Record<string, string> = {
+  aurora:    'Mistral-only, EU-resident end to end',
+  supernova: 'Polyglot — best specialist per task',
+  auto:      'Single conductor, predictable cost',
+};
+
+/** VS Code hard-limits status-bar backgrounds to exactly these two theme
+ *  colours — there is no brand-colour option, by design. Anything else is
+ *  silently ignored, so `error` is the only state that can own the bar. */
+const ERROR_BG = new vscode.ThemeColor('statusBarItem.errorBackground');
 
 export class StatusBar {
   private readonly item: vscode.StatusBarItem;
@@ -29,6 +42,9 @@ export class StatusBar {
   constructor(command: string) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     this.item.command = command;
+    // Names the entry in the status bar's right-click menu, so a user can find
+    // and hide it like any first-class item instead of an anonymous blob.
+    this.item.name = 'Ava Supernova';
     this.render();
     this.item.show();
   }
@@ -76,11 +92,50 @@ export class StatusBar {
       default:
         this.item.text = `$(sparkle) Ava: ${label}`;
     }
-    // Tooltip shows BOTH the mode and the coordinator so the operator
-    // can see what Aurora actually resolves to without having to open
-    // the picker. Only adds the mode line when one is set.
-    this.item.tooltip = modeLabel
-      ? `Ava Supernova — ${modeLabel} mode\nCoordinator: ${modelName}\nClick to switch model`
-      : `Ava Supernova — ${modelName}\nClick to switch model`;
+
+    // The one styling lever VS Code actually gives us: the bar itself turns red
+    // on error. Everything else (brand colour, custom background) is refused by
+    // the API, so an error used to be a small icon you could scroll past.
+    this.item.backgroundColor = this.state === 'error' ? ERROR_BG : undefined;
+
+    this.item.accessibilityInformation = {
+      label: `Ava Supernova, ${label}${this.state === 'error' ? ', error' : ''}`,
+      role: 'button',
+    };
+
+    this.item.tooltip = this.buildTooltip(modeLabel, modelName);
+  }
+
+  /**
+   * A MarkdownString rather than a plain string — the tooltip is the only part
+   * of the status bar VS Code lets us design, so it does the work the bar can't:
+   * bold, icons, and a rule between what's running and what to do about it.
+   *
+   * NOT `isTrusted`: BYOK users can set their own model display name, which
+   * lands in here. Trusting the markdown would let a display name inject a
+   * clickable `command:` link. The item itself is already clickable, so a
+   * command link would buy nothing and cost a real injection surface.
+   */
+  private buildTooltip(modeLabel: string | undefined, modelName: string): vscode.MarkdownString {
+    const md = new vscode.MarkdownString(undefined, true); // supportThemeIcons
+    md.appendMarkdown(`$(sparkle) **Ava Supernova**\n\n`);
+
+    if (modeLabel) {
+      md.appendMarkdown(`**${modeLabel}** — orchestrated\n\n`);
+      const blurb = this.modeId ? MODE_BLURB[this.modeId] : undefined;
+      if (blurb) md.appendMarkdown(`${blurb}\n\n`);
+      // The coordinator is the honest detail the one-word label can't carry —
+      // it's how you spot a fleet resolving to the wrong seat without opening
+      // the picker. (It's how the Aurora/Large 3 bug surfaced.)
+      md.appendMarkdown(`Coordinator: \`${modelName}\`\n\n`);
+    } else {
+      md.appendMarkdown(`Model: \`${modelName}\`\n\n`);
+    }
+
+    if (this.state === 'error') md.appendMarkdown(`$(error) ${this.detail || 'Something went wrong'}\n\n`);
+    else if (this.state === 'busy' || this.state === 'generating') md.appendMarkdown(`$(loading~spin) ${this.detail || 'Working…'}\n\n`);
+
+    md.appendMarkdown(`---\n\n$(arrow-swap) Click to switch model`);
+    return md;
   }
 }

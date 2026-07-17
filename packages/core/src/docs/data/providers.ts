@@ -80,9 +80,11 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'minimax',
     name: 'MiniMax',
     kind: 'byok',
-    notes: 'BYOK chat — bring your own MiniMax API key. M3 only.',
+    notes: 'BYOK chat — bring your own MiniMax API key. M3 is the flagship (1M context, native multimodal); M2.7 is the cheaper 204K text tier, with a highspeed variant for latency-sensitive work. MiniMax does not document vision support for M2.7, so we treat it as text-only.',
     models: [
-      { id: 'MiniMax-M3', displayName: 'MiniMax M3', inputPricePerM: 0.60, outputPricePerM: 2.40, contextWindow: 1_048_576, capabilities: ['tools', 'thinking', 'streaming', 'vision'] },
+      { id: 'MiniMax-M3', displayName: 'MiniMax M3 — prices shown are the ≤512k tier; turns above 512k bill at double', inputPricePerM: 0.30, outputPricePerM: 1.20, contextWindow: 1_048_576, capabilities: ['tools', 'thinking', 'streaming', 'vision'] },
+      { id: 'MiniMax-M2.7', displayName: 'MiniMax M2.7', inputPricePerM: 0.30, outputPricePerM: 1.20, contextWindow: 204_800, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'MiniMax-M2.7-highspeed', displayName: 'MiniMax M2.7 Highspeed', inputPricePerM: 0.60, outputPricePerM: 2.40, contextWindow: 204_800, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
   {
@@ -126,12 +128,30 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', inputPricePerM: 0.14, outputPricePerM: 0.28, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
+  // Qwen has a managed section above (models we serve on your plan). This is the
+  // BYOK half — the same split DeepSeek and Mistral already have. It exists
+  // because qwen3.7-max is BYOK-only and so had no home in the managed section:
+  // it shipped in the catalogue and the picker while being absent from the docs
+  // entirely, which meant docs_lookup could not answer questions about it.
+  {
+    id: 'qwen-byok',
+    name: 'Qwen (Alibaba Cloud) — your own key',
+    kind: 'byok',
+    notes: 'Bring your own DashScope (international) key. Qwen 3.7 Max is BYOK-only — it is not served on any plan. Prices are Alibaba\'s published international rates; 3.7 Plus is tiered (input rises above 256K tokens) and the figure shown is the base tier. 3.5 Plus and 3.5 Flash still answer but Alibaba now treats them as legacy.',
+    models: [
+      { id: 'qwen3.7-max', displayName: 'Qwen 3.7 Max — BYOK-only, Alibaba\'s heavy flagship', inputPricePerM: 2.50, outputPricePerM: 7.50, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — legacy', inputPricePerM: 0.40, outputPricePerM: 2.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — legacy, text only', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 262_000, capabilities: ['tools', 'streaming'] },
+    ],
+  },
   {
     id: 'kimi',
     name: 'Kimi (Moonshot AI)',
     kind: 'byok',
-    notes: 'K2.7 Code is Moonshot\'s current flagship agentic coder (Modified MIT, 256K context; benchmarks Moonshot-reported). The prior K2.6 scored 58.6 on SWE-Bench Pro (Moonshot, 10-run average).',
+    notes: 'K3 is Moonshot\'s frontier model (2.8T MoE, 1M context, native vision; open weights due 2026-07-27). K2.7 Code remains the cheaper agentic coder at roughly a third of K3\'s price. All benchmarks Moonshot-reported: K3 leads Opus 4.8 on most agentic rows but trails Claude Fable 5 on FrontierSWE, HLE and GDPval.',
     models: [
+      { id: 'kimi-k3', displayName: 'Kimi K3', inputPricePerM: 3.00, outputPricePerM: 15.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.7-code', displayName: 'Kimi K2.7 Code', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.6', displayName: 'Kimi K2.6', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.5', displayName: 'Kimi K2.5', inputPricePerM: 0.60, outputPricePerM: 3.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
@@ -154,11 +174,9 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'zhipu',
     name: 'Zhipu AI',
     kind: 'byok',
-    notes: 'GLM-5 posts 77.8% on SWE-Bench Verified.',
+    notes: 'GLM-5.2 is Zhipu\'s open-weights (MIT) flagship with a 1M-token context window. Both GLM models we offer are TEXT ONLY — Zhipu keeps vision in a separate "V" line (GLM-5V, GLM-4.6V) that we do not carry, so a higher GLM version number does not mean it can read images. Verified against Zhipu\'s API 2026-07-17.',
     models: [
-      { id: 'glm-5.1', displayName: 'GLM-5.1', inputPricePerM: 1.40, outputPricePerM: 4.40, contextWindow: 200_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'glm-5', displayName: 'GLM-5', inputPricePerM: 1.00, outputPricePerM: 3.20, contextWindow: 200_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'glm-4.7', displayName: 'GLM-4.7', inputPricePerM: 0.60, outputPricePerM: 2.20, contextWindow: 200_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'glm-5.2', displayName: 'GLM-5.2', inputPricePerM: 1.40, outputPricePerM: 4.40, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'glm-4.5-air', displayName: 'GLM-4.5 Air', inputPricePerM: 0.20, outputPricePerM: 1.10, contextWindow: 128_000, capabilities: ['tools', 'streaming'] },
     ],
   },

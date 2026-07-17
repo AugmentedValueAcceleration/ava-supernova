@@ -3925,8 +3925,8 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'ext.settings.welcome_tour': '欢迎向导',
   'ext.settings.replay_tour': '重播欢迎向导',
   'ext.settings.replay_tour_hint': '再次查看首次运行引导。',
-  'model.no_vision_title': 'Text only — this model cannot read image attachments',
-  'library.use_in_project': 'Use in project',
-  'library.rename': 'Rename',
-  'library.rename_save': 'Save',
+  'model.no_vision_title': '仅文本 — 此模型无法读取图片附件',
+  'library.use_in_project': '在项目中使用',
+  'library.rename': '重命名',
+  'library.rename_save': '保存',
 };
