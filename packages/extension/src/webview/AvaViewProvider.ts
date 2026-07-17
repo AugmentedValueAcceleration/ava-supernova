@@ -50,6 +50,7 @@ import {
   HEALTH_PROFILE_FIELDS,
   humaniseSlug,
   summariseCookingTime,
+  DESKTOP_TOOL_NAMES,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
 import { creditsFor } from '@ava/core/billing/credits';
@@ -1832,7 +1833,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   private async setupAgent(provider: Provider, model: ModelDefinition, routingModeOverride?: 'auto' | 'supernova' | 'aurora'): Promise<void> {
     this.toolRegistry = new ToolRegistry();
-    this.toolRegistry.registerBuiltins();
+    // Desktop automation + browser control are NOT part of the extension.
+    // Microsoft blocked this extension over exactly these tools and required
+    // their removal to reinstate it (v0.48.1, 2026-04-21). Desktop Automation
+    // is IDE-only — the IDE ships outside the marketplace and isn't gated.
+    //
+    // Excluding here means they are never CONSTRUCTED on this surface: no
+    // schema, no confirmation prompt, no reachable name. Until 2026-07-17 this
+    // call was bare, so all 12 were registered and the only thing between a
+    // marketplace user and a desktop_* schema was mode detection — which keys
+    // off a literal '[Desktop Automation Mode]' prefix in the user's own text
+    // and had no idea which surface it ran on. They were inert (no
+    // uiaProvider/inputProvider here) but present, and "inert" was not the
+    // promise we made to MS.
+    this.toolRegistry.registerBuiltins({
+      exclude: [...DESKTOP_TOOL_NAMES],
+      allowDesktopMode: false,
+    });
 
     // Apply permission mode from settings
     const config = vscode.workspace.getConfiguration('ava-supernova');

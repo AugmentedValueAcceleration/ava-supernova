@@ -106,21 +106,14 @@ import { CuratorTool } from './curator.js';
 import { SecretRequestTool } from './secret-request.js';
 import { EnvWriteTool } from './env-write.js';
 // Desktop automation — native UIA tree + Playwright DOM (no screenshots).
-// Tool classes are thin wrappers over host-side providers populated by the
-// Ava IDE (Tauri) on sharedState. Mode-gated: only exposed in `desktop` mode.
-import { DesktopListElementsTool } from './desktop-list-elements.js';
-import { DesktopClickByNameTool } from './desktop-click-by-name.js';
-import { DesktopFocusWindowTool } from './desktop-focus-window.js';
-import { DesktopTypeTool } from './desktop-type.js';
-import { DesktopKeyPressTool } from './desktop-key-press.js';
-import { DesktopLaunchAppTool } from './desktop-launch-app.js';
-import { DesktopPlanApproveTool } from './desktop-plan-approve.js';
+//
+// The Desktop*/Browser* tool classes are DELIBERATELY NOT IMPORTED HERE. They
+// live in ./desktop-tools.js and are registered only by hosts allowed to ship
+// them (the Tauri IDE, the CLI) via registerDesktopTools(). Importing them into
+// this module would re-link them into the VS Code extension's bundle, which is
+// the exact thing Microsoft required us to remove to get reinstated.
+// See ./desktop-tools.ts for the full reasoning before adding an import here.
 import { RecordMachineRuleTool } from './record-machine-rule.js';
-import { BrowserNavigateTool } from './browser-navigate.js';
-import { BrowserSnapshotTool } from './browser-snapshot.js';
-import { BrowserClickTool } from './browser-click.js';
-import { BrowserTypeTool } from './browser-type.js';
-import { BrowserCloseTool } from './browser-close.js';
 
 import { bashDangerTier } from './bash.js';
 
@@ -389,8 +382,21 @@ export class ToolRegistry {
 
   // ── Tool registration ───────────────────────────────────────────────────
 
-  registerBuiltins(options?: { exclude?: string[] }): void {
+  /**
+   * Construct and register the builtin tools.
+   *
+   * @param options.exclude Tool names to NOT construct at all. The VS Code
+   *   extension passes DESKTOP_TOOL_NAMES here: Microsoft blocked the
+   *   extension over the desktop/browser tools and required their removal to
+   *   reinstate it (v0.48.1, 2026-04-21). Excluding at construction means
+   *   they never reach a schema, a confirmation prompt, or the model.
+   * @param options.allowDesktopMode Whether switch_mode offers 'desktop' as a
+   *   transition target. Defaults true (IDE + CLI ship the full agent — they
+   *   are distributed outside the marketplace and are not subject to the ban).
+   */
+  registerBuiltins(options?: { exclude?: string[]; allowDesktopMode?: boolean }): void {
     const excludeSet = new Set(options?.exclude || []);
+    const allowDesktopMode = options?.allowDesktopMode ?? true;
     const builtins: Tool[] = [
       new FileReadTool(),
       new FileWriteTool(),
@@ -476,25 +482,15 @@ export class ToolRegistry {
       new EmailDraftTool(),
       new ReportGenerateTool(),
       new RemoveBackgroundTool(),
-      new SwitchModeTool(),
+      new SwitchModeTool(allowDesktopMode),
       new BrowseLibraryTool(),
       new CuratorTool(),
       new SecretRequestTool(),
       new EnvWriteTool(),
-      // Desktop automation — native (UIA) + browser (Playwright DOM)
-      new DesktopPlanApproveTool(),
-      new DesktopLaunchAppTool(),
-      new DesktopListElementsTool(),
-      new DesktopClickByNameTool(),
-      new DesktopFocusWindowTool(),
-      new DesktopTypeTool(),
-      new DesktopKeyPressTool(),
+      // Desktop automation + browser control are NOT built here — see the
+      // import block above and ./desktop-tools.ts. Hosts that may ship them
+      // call registerDesktopTools() themselves.
       new RecordMachineRuleTool(),
-      new BrowserNavigateTool(),
-      new BrowserSnapshotTool(),
-      new BrowserClickTool(),
-      new BrowserTypeTool(),
-      new BrowserCloseTool(),
     ];
     for (const tool of builtins) {
       if (!excludeSet.has(tool.name)) {

@@ -68,7 +68,12 @@ const ALL_TOOL_NAMES = [
   'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
   'bash', 'git_status', 'git_diff', 'rollback', 'git_commit', 'git_create_pr',
   'web_search', 'http_request', 'browser',
-  'generate_image', 'generate_video', 'generate_voice', 'remove_background',
+  // These were 'generate_image' / 'generate_video' / 'generate_voice' until
+  // 2026-07-17 — three tools that have never existed. getTool() returns
+  // undefined for all three; the registry only ever built the design_* names.
+  // Ava was told every turn that she had them, so she'd reach for a tool that
+  // wasn't there. Verified against the runtime registry, not the source.
+  'design_generate_image', 'design_generate_video', 'design_generate_voice', 'remove_background',
   'database_query', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete',
   'present_plan', 'todo_write', 'task_manage', 'journal_write', 'document_manage',
   'learning_create', 'learning_teach', 'learning_progress',

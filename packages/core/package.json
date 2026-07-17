@@ -31,6 +31,11 @@
       "require": "./dist/desktop/index.js",
       "types": "./dist/desktop/index.d.ts"
     },
+    "./desktop-tools": {
+      "import": "./dist/tools/desktop-tools.js",
+      "require": "./dist/tools/desktop-tools.js",
+      "types": "./dist/tools/desktop-tools.d.ts"
+    },
     "./request-shaping": {
       "import": "./dist/providers/request-shaping/index.js",
       "require": "./dist/providers/request-shaping/index.js",

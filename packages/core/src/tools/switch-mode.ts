@@ -1,13 +1,29 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
+/** Modes offered on every surface. */
+const CROSS_SURFACE_MODES = ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'] as const;
+
 export class SwitchModeTool implements Tool {
   readonly name = 'switch_mode';
   readonly description = 'Offer to transition to a different mode when the current mode\'s work is complete. Always check with the user first.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = true;
 
-  readonly schema: FunctionSchema = {
+  readonly schema: FunctionSchema;
+
+  /**
+   * @param allowDesktopMode Whether 'desktop' is offered as a target. FALSE on
+   *   the VS Code extension: Microsoft blocked us over the desktop/browser
+   *   tools and required their removal to reinstate (v0.48.1). The tools
+   *   themselves are excluded at registerBuiltins there, but this enum is a
+   *   separate leak — it's the one place Ava could still *offer* a marketplace
+   *   user a mode that must not exist for them, which is a bad look even
+   *   though the transition would go nowhere. Desktop Automation is IDE-only.
+   */
+  constructor(allowDesktopMode = true) {
+    const targets = allowDesktopMode ? [...CROSS_SURFACE_MODES, 'desktop'] : [...CROSS_SURFACE_MODES];
+    this.schema = {
     name: 'switch_mode',
     description:
       'Offer to switch to a different mode when a natural transition point is reached. ' +
@@ -20,7 +36,7 @@ export class SwitchModeTool implements Tool {
       properties: {
         target_mode: {
           type: 'string',
-          enum: ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write', 'desktop'],
+          enum: targets,
           description: 'The mode to transition to',
         },
         reason: {
@@ -34,7 +50,8 @@ export class SwitchModeTool implements Tool {
       },
       required: ['target_mode', 'reason', 'context_summary'],
     },
-  };
+    };
+  }
 
   async execute(_args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
     // Normally bypassed — the confirmation handler in the extension/IDE handles this.

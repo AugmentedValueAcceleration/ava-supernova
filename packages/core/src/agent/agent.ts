@@ -177,14 +177,31 @@ function looksLikePostToolDrift(content: string, toolCallCount: number): boolean
   return GREETING_PATTERNS.some(p => p.test(lower));
 }
 
-// Tools that are only valid in desktop mode. The corresponding entries
-// appear inside MODE_ALLOWED_TOOLS.desktop, but they're tracked here as a
-// flat set for the no-prefix default path (work / code turns where a
-// mode prefix wasn't applied) — those turns must still keep desktop-only
-// tools out of the schema, because the model otherwise hallucinates
-// desktop_click_by_name in the middle of a coding session and the
-// safety gate has to swallow the noise.
-const DESKTOP_ONLY_TOOLS: Set<string> = new Set([
+/**
+ * Desktop-automation + browser-control tools. Two separate jobs ride on this
+ * one list, which is why it's exported rather than local:
+ *
+ * 1. MODE GATING (any surface) — they're only valid in desktop mode, so the
+ *    no-prefix default path filters them out. Otherwise the model hallucinates
+ *    desktop_click_by_name mid-coding-session and the safety gate eats the noise.
+ *
+ * 2. MARKETPLACE COMPLIANCE (extension only) — Microsoft blocked this extension
+ *    over exactly these tools and required their removal to reinstate it
+ *    (v0.48.1, 2026-04-21). The extension host passes this list to
+ *    registerBuiltins({ exclude }) so they are NEVER CONSTRUCTED there.
+ *
+ * Until 2026-07-17 only job 1 existed, and job 2 was believed done but wasn't:
+ * the tools were registered on every surface and the only thing standing
+ * between a marketplace user and a desktop_* schema was mode detection, which
+ * keys off a literal '[Desktop Automation Mode]' prefix in the user's own
+ * message text and had no idea which surface it was running on. They couldn't
+ * actually drive anything (the extension supplies no uiaProvider/inputProvider),
+ * but "inert" is not the promise we made to MS.
+ *
+ * Keep this list as the ONE definition. If a desktop_* or browser_* tool is
+ * added to the registry and not added here, it ships to the marketplace.
+ */
+export const DESKTOP_TOOL_NAMES = [
   'desktop_plan_approve',
   'desktop_launch_app',
   'desktop_list_elements',
@@ -197,7 +214,9 @@ const DESKTOP_ONLY_TOOLS: Set<string> = new Set([
   'browser_click',
   'browser_type',
   'browser_close',
-]);
+] as const;
+
+const DESKTOP_ONLY_TOOLS: Set<string> = new Set(DESKTOP_TOOL_NAMES);
 
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // Work mode — the bread-and-butter coding surface. Ships every turn
@@ -884,6 +903,30 @@ export class Agent {
    * conversation boundary and silently clear user scrollback. Returning
    * only new messages makes that class of bug impossible by construction.
    */
+  /**
+   * Mode detection with the surface rule applied.
+   *
+   * `detectModeFromMessages` keys off a literal prefix in the USER's own
+   * message text ('[Desktop Automation Mode]'), and knows nothing about which
+   * surface it's running on. On the VS Code extension, desktop mode does not
+   * exist: Microsoft blocked us over the desktop/browser tools and required
+   * their removal to reinstate (v0.48.1). Without this, a marketplace user
+   * could type the prefix by hand and pull desktop_* into the turn — schemas,
+   * personas, mode-switch events, the lot.
+   *
+   * This is the second of two locks. The first is the extension host excluding
+   * DESKTOP_TOOL_NAMES at registerBuiltins, so the tools are never constructed
+   * there at all. Two locks, because we already broke this promise once by
+   * assuming one implicit one was enough.
+   */
+  private detectModeForSurface(messages: Message[]): string | null {
+    const mode = detectModeFromMessages(messages);
+    if (mode === 'desktop' && this.toolContext.sharedState?.clientSurface === 'extension') {
+      return null;
+    }
+    return mode;
+  }
+
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
     // Open a dataset trajectory for the entire run. Every avaEvents.emit()
     // inside (sync or async, in this method or any helper it calls) inherits
@@ -891,7 +934,7 @@ export class Agent {
     // packages/core/src/dataset/consumer.ts only writes if a user has
     // explicitly opted in via ~/.ava/datasets/config.json — defaults are
     // all-off so this scope opens but emits nothing for unconsenting users.
-    const detectedMode = (detectModeFromMessages(messages) ?? 'work') as AvaMode;
+    const detectedMode = (this.detectModeForSurface(messages) ?? 'work') as AvaMode;
     const previousMode = this.lastDetectedMode;
     this.lastDetectedMode = detectedMode;
     // Reset per-run tool evidence for the honesty gate (claims-auditor).
@@ -1190,7 +1233,7 @@ export class Agent {
     }
 
     // Detect mode early — needed for tool filtering downstream.
-    const detectedMode = detectModeFromMessages(messages);
+    const detectedMode = this.detectModeForSurface(messages);
 
     // Knowledge-pack auto-activation removed in v0.59.2. The 12 builtin
     // domain packs (marketing, finance, devops, etc.) added ~750-1000

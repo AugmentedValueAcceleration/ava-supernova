@@ -29,6 +29,9 @@ import {
   resolveLocale,
   installDatasetConsumer,
 } from '@ava/core';
+// Deep import, not from the index — keeping desktop tools out of the main
+// module graph is what stops them reaching the VS Code extension's bundle.
+import { registerDesktopTools } from '@ava/core/desktop-tools';
 import type { ProviderSettings } from '@ava/core';
 import { runSetupWizard } from './setup-wizard.js';
 import { Repl } from './cli/repl.js';
@@ -119,6 +122,11 @@ async function main(): Promise<void> {
   // Set up tool registry
   const toolRegistry = new ToolRegistry();
   toolRegistry.registerBuiltins();
+  // Desktop automation + browser control are split out of registerBuiltins so
+  // the VS Code extension never bundles them (MS required their removal to
+  // reinstate it). The CLI is distributed outside the marketplace and gets the
+  // full toolkit, so it opts in. See core/src/tools/desktop-tools.ts.
+  registerDesktopTools(toolRegistry);
 
   // Load persistent memory (pass project instructions as context for episodic retrieval)
   const memory = await memoryManager.loadAll(projectInstructions ?? undefined);

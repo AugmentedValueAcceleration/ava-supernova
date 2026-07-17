@@ -1,5 +1,9 @@
 // Agent
 export { Agent } from './agent/agent.js';
+// The desktop/browser tools MS requires the extension not to ship. Exported so
+// the extension host can exclude them at registerBuiltins from the same single
+// definition the mode gate uses — two copies of this list is how it drifts.
+export { DESKTOP_TOOL_NAMES } from './agent/agent.js';
 export type { AgentEvent, AgentEventHandler, ContextUsage } from './agent/agent.js';
 export { Conversation } from './agent/conversation.js';
 export { isStopCommand, haltIntent } from './agent/stop-command.js';
