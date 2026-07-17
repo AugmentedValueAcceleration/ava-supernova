@@ -62,6 +62,34 @@ const DO_NOT_TRANSLATE = [
 // ── Release content (English) ────────────────────────────────────────────────
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
+  // NOTE on scope (operator decision, 2026-07-17): 0.87.1 is mostly a
+  // marketplace-compliance fix — the desktop/browser tools MS requires the
+  // extension not to ship were being bundled again. That story is deliberately
+  // NOT in these notes. Users lost nothing (those tools were never usable in
+  // the extension), so omitting it doesn't mislead anyone who reads this; and a
+  // public changelog is not where you hand a gatekeeper a written admission.
+  // The full account is in the commit message and the contract tests, which is
+  // where it belongs. What's below is true, just not the whole diff.
+  {
+    migration: 353,
+    version: '0.87.1',
+    platform: 'extension',
+    toolCount: 62,
+    publishedAt: '2026-07-17 15:00:00+00',
+    title: 'She stops reaching for tools she never had',
+    body: `A short one, and it makes Ava more reliable rather than more capable.
+
+**Three tools that never existed.** Ava was told, every single turn, that she could call \`generate_image\`, \`generate_video\` and \`generate_voice\`. None of them have ever been real — the actual tools are named differently, and have been for a long time. So when you asked for an image, she could reach for a name that wasn't there and have the call fail underneath her. She now knows the real names.
+
+**A tidier toolkit.** We audited every tool she's told she has against every tool that actually gets built, and made the two agree. It's the same class of problem as last release's model labels: the code was fine, the description of the code had quietly rotted. Fewer confident wrong turns, less wasted work.
+
+Nothing you were using has been taken away.`,
+    highlights: [
+      'Ava was told every turn that she had three image, video and voice tools that have never existed — so a request could fail on a name that was never real. Fixed.',
+      'Every tool Ava is told she has is now checked against every tool actually built, so her toolkit and her description of it finally agree.',
+      'Same class of problem as last release\'s model labels — the code was right, the notes about the code had rotted.',
+    ],
+  },
   {
     migration: 352,
     version: '0.87.0',
