@@ -63,6 +63,34 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 352,
+    version: '0.87.0',
+    platform: 'extension',
+    toolCount: 62,
+    publishedAt: '2026-07-17 09:00:00+00',
+    title: 'Kimi K3 on day one — and every model tells you what it can see',
+    body: `Moonshot released Kimi K3 yesterday. It is in this build, and you can point your own key at it today.
+
+**Kimi K3, the day after it landed.** Moonshot's new frontier model — a 2.8-trillion-parameter sparse mix-of-experts with a one-million-token context window and native vision over text, images and video. On Moonshot's own published benchmarks it leads Claude Opus 4.8 across most agentic work at roughly 60% of the price, while trailing Claude Fable 5 on the hardest reasoning sets. Those are the lab's own numbers and nobody has replicated them yet, so treat them as a starting point rather than a verdict. K2.7 Code stays exactly where it was — K3 costs about three times as much, so it is the heavy option, not the replacement.
+
+**Every model now shows whether it can see.** Each model in the picker carries a camera icon, and models that cannot read images carry a camera with a line through it. Attach a picture to a text-only model and Ava tells you before you send, instead of after the provider rejects it.
+
+**And the marker now tells the truth.** GLM-5.2 was labelled as vision-capable in this app. It is not — Zhipu keeps vision in a separate model line we do not carry. If you use GLM with your own key and attached a screenshot, you got a raw provider error with no explanation. We checked every model in the catalogue against its provider's live API this time, rather than trusting our own notes.
+
+**Your Creative Studio work can reach your projects.** Anything you make in the Studio is now visible to Ava, so she stops offering to generate things you already own. You can drop an asset straight into your project, and rename things in your library.
+
+**Aurora is led by the right model.** Aurora is meant to be led by Mistral Medium 3.5. It was actually being coordinated by Large 3 — the heavy reserve — which is a text-only, non-reasoning model. Fixed on both the extension and the IDE. Aurora remains Mistral-only and EU-resident end to end.
+
+**Housekeeping you would rather we did quietly.** DeepSeek retires its old model names on 24 July; anything still pointing at them has been moved to V4 so nothing breaks next week. MiniMax M2.7 joins the list with a fast tier alongside it. Several price tables were wrong — MiniMax M3 was quoted at double its real rate — so your cost estimates are now accurate.`,
+    highlights: [
+      'Kimi K3 is here the day after Moonshot shipped it — 1M context, native vision, and ahead of Claude Opus 4.8 on most agentic benchmarks at around 60% of the price (Moonshot-reported, not yet independently replicated).',
+      'Every model shows whether it can read images — a camera icon, struck through when it cannot — so you find out before you send, not after the provider rejects it.',
+      'GLM-5.2 was wrongly labelled vision-capable and would fail with a raw provider error on any image; every model in the catalogue has now been checked against its provider\'s live API.',
+      'Creative Studio work is finally visible to Ava and can be dropped straight into your project, or renamed in your library.',
+      'Aurora is now led by Mistral Medium 3.5 as intended, rather than the text-only heavy reserve it had quietly been coordinating on.',
+    ],
+  },
+  {
     migration: 293,
     version: '0.63.0',
     platform: 'extension',
