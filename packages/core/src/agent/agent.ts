@@ -234,8 +234,15 @@ const DESKTOP_ONLY_TOOLS: Set<string> = new Set(DESKTOP_TOOL_NAMES);
  *
  * This is a union rather than twelve list edits on purpose: a new mode gets it
  * automatically, so it can't rot back out the way it did the first time.
+ *
+ * conversation_recall joins it for the same reason. The system prompt tells Ava
+ * every turn to "call conversation_recall to read the real transcript instead
+ * of guessing" — but it was in no mode's list, so the filter dropped it in every
+ * mode that carries a prefix (which the dashboard always sends). The exact-recall
+ * backstop was unreachable on the main surface. Read-only: it reads the current
+ * run's transcript off sharedState, writes nothing.
  */
-const ALWAYS_ALLOWED_TOOLS: Set<string> = new Set(['self_inspect']);
+const ALWAYS_ALLOWED_TOOLS: Set<string> = new Set(['self_inspect', 'conversation_recall']);
 
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // Work mode — the bread-and-butter coding surface. Ships every turn
@@ -288,6 +295,14 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'debug_logs',
     // Interaction
     'ask_user', 'support_request',
+    // Secret vault → project. The prompt tells Ava to call secret_request for a
+    // {{secret:<id>}} handle, then env_write to put a granted key into the
+    // project's gitignored .env — the host swaps the real value in at write
+    // time so she never sees it. Both were missing from every build surface
+    // (secret_request was desktop-only, env_write in no mode), so the flow the
+    // prompt describes couldn't run. Confirmation-gated writes; env_write
+    // refuses any non-gitignored target.
+    'secret_request', 'env_write',
     // Self
     'docs_lookup', 'propose_tool', 'self_inspect', 'release_notes',
     // Taste specialist — fresh-context Curator for design/voice/microcopy
@@ -361,6 +376,11 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'journal_write',
     // Learning subsystem
     'learning_create', 'learning_teach', 'learning_progress',
+    // Scientific Papers library — "Read with Ava" hands her an arXiv/DOI paper
+    // to explain. The tool's own description says "use this in Teach mode", and
+    // this was the one mode that didn't allow it, so the button pointed at a
+    // tool she couldn't reach.
+    'paper_fetch_full_text',
     // Interaction + utilities
     'ask_user', 'get_datetime', 'detect_language',
     'switch_mode',
@@ -415,8 +435,11 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'scan_industry',
     // Ground every product claim in the real docs, never training memory
     'docs_lookup', 'release_notes',
-    // Visuals for posts
-    'generate_image',
+    // Visuals for posts are made in the Creative Studio, not inline. Point the
+    // user there (open_design_studio) and reuse what they already have
+    // (browse_library). 'generate_image' used to sit here — a name the registry
+    // never builds — so a post's visual silently did nothing.
+    'open_design_studio', 'browse_library',
     // Research to make the angle current
     'web_search',
     // Memory carries the mission voice; journal her read on the brand
@@ -434,8 +457,10 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // evidence from a publisher. Coding / file / shell tools are out entirely.
   news: new Set([
     'discover_news', 'suggest_stories', 'research_story', 'fact_check', 'write_article',
-    // Header images she authors herself — never a lifted press photo.
-    'generate_image',
+    // Header images are authored in the Creative Studio, never a lifted press
+    // photo — point the user there rather than generating inline. 'generate_image'
+    // used to be here, but the registry never builds that name.
+    'open_design_studio', 'browse_library',
     // Continuity: running stories, corrections owed, what she has already covered.
     'memory_save', 'memory_recall', 'memory_update', 'journal_write',
     'ask_user', 'get_datetime',
@@ -453,8 +478,12 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'list_directory',
     // Research to ground the writing
     'web_search', 'http_request', 'browser',
-    // Illustrations / covers
-    'generate_image', 'remove_background',
+    // Illustrations / covers are made in the Creative Studio — hand off there
+    // and reuse existing assets. 'generate_image' used to sit here (a name the
+    // registry never builds), which is why write mode's "cover image she
+    // generates herself" never actually generated one. remove_background stays:
+    // it's a one-shot edit utility, not creative generation.
+    'open_design_studio', 'browse_library', 'remove_background',
     // Memory — house style, saved templates, continuity across a long piece
     'memory_save', 'memory_recall', 'memory_update',
     // Light planning for long documents

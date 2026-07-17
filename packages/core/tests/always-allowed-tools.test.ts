@@ -51,15 +51,22 @@ describe('always-allowed tools', () => {
     expect(reg.getTool('self_inspect')).toBeDefined();
   });
 
-  it('self_inspect survives the filter in every single mode', () => {
-    const always = new Set(parseNamedSet('ALWAYS_ALLOWED_TOOLS'));
+  it('conversation_recall is in the always-allowed set', () => {
+    // The prompt instructs Ava to call it every turn; it must not be filtered out.
+    expect(parseNamedSet('ALWAYS_ALLOWED_TOOLS')).toContain('conversation_recall');
+  });
+
+  it('every always-allowed tool survives the filter in every single mode', () => {
+    const always = parseNamedSet('ALWAYS_ALLOWED_TOOLS');
     const modes = parseModeAllowedTools();
     expect(Object.keys(modes).length).toBeGreaterThan(5); // sanity: parser worked
 
-    for (const [mode, allowed] of Object.entries(modes)) {
-      // Mirrors the real filter: modeAllowed.has(name) || ALWAYS_ALLOWED.has(name)
-      const reaches = allowed.includes('self_inspect') || always.has('self_inspect');
-      expect(reaches, `self_inspect cannot reach Ava in ${mode} mode`).toBe(true);
+    for (const tool of always) {
+      for (const [mode, allowed] of Object.entries(modes)) {
+        // Mirrors the real filter: modeAllowed.has(name) || ALWAYS_ALLOWED.has(name)
+        const reaches = allowed.includes(tool) || always.includes(tool);
+        expect(reaches, `${tool} cannot reach Ava in ${mode} mode`).toBe(true);
+      }
     }
   });
 
