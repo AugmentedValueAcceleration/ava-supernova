@@ -63,6 +63,73 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 358,
+    version: '0.3.0',
+    platform: 'companion',
+    toolCount: 12,
+    publishedAt: '2026-07-19 09:00:00+00',
+    title: 'She can actually do things now',
+    body: `The companion could always talk. This is the release where she can act — and where you can see exactly what she is doing and what is stored on your phone.
+
+**She does things now, and they land on your device.** Ask her to add a task, write a journal entry, remember something, or build a training plan, and it appears in the app. Before this she would say "done" and nothing happened: her tools ran on the server, your data lives on your phone, and the write went nowhere. That gap is closed. Tasks, journal entries — yours and her own — memories and plans all land locally.
+
+**She knows you.** Each turn she can see your tasks, your recent journal entries with what you actually wrote, your saved memories, and what your active plan has you doing today. That is what turns storage into learning: she picks up what you told her last week instead of meeting you fresh every time.
+
+**Ask her how she works.** Ava Supernova is open source, so she can read her own source code and quote it back to you. Ask whether she really keeps your data on your device and she will show you the code that does it, rather than asking you to take her word for it.
+
+**You can see what she is doing.** When she searches the web, updates a task or saves a memory, a small pill shows which tool is running — and three dots while she is thinking.
+
+**A news desk.** More → News gives you a category-filtered front page with Ava's read on each story, and a button to carry any story straight into the chat.
+
+**Signing out is a choice now.** It used to leave your memories, journal, health profile and plans sitting on the device. Now it asks: keep your data here, or erase everything. Because there is no cloud copy, erasing tells you plainly that it cannot be undone.
+
+**See exactly what is stored.** Settings → Local data lists every store on your device — memories, tasks, chats, journal, plans, profile — with counts and contents. Nothing hidden.
+
+**We removed a promise we were not keeping.** The app said "sign in to sync across devices". There is no sync. Your data stays on your device, and signing in gets you the orchestrated fleets and credits — which is now what it says.`,
+    highlights: [
+      'Ava can finally act — tasks, journal entries (yours and her own), memories and plans now actually land on your device instead of quietly going nowhere.',
+      'She reads your tasks, journal, memories and today\'s plan each turn, so she learns who you are instead of starting fresh every conversation.',
+      'Ask how she works and she reads her own source code back to you — open-source transparency you can check rather than a claim you have to trust.',
+      'Signing out now asks whether to keep or erase your data, and Settings → Local data shows exactly what is stored on your phone.',
+    ],
+  },
+  {
+    migration: 356,
+    version: '0.87.3',
+    platform: 'extension',
+    toolCount: 62,
+    publishedAt: '2026-07-19 09:00:00+00',
+    title: 'Fable 5 is back, and your credits go further',
+    body: `Two changes: one model returns, and everything gets cheaper to run.
+
+**Claude Fable 5 is available again.** The US-government restriction that forced us to pull it has been lifted, so Fable 5 is selectable once more for anyone bringing an Anthropic key. It remains the strongest model we can offer for the hardest reasoning work.
+
+**Your credits go further.** We have cut our margin from 40% to 30% across every model in all three fleets. This is not a promotion we claw back later — it is a permanent recalibration, and it means the same plan buys more work at the same price. The saving is largest where the work is heaviest: a full orchestration on Maestro drops from 14 credits to 12, on Supernova from 38 to 33, and Aurora's heavy specialist work from 13 to 11.`,
+    highlights: [
+      'Claude Fable 5 is selectable again — the US-government restriction that forced us to pull it has been lifted.',
+      'We cut our margin from 40% to 30% across every model in all three fleets, so the same plan buys more work at the same price.',
+      'Heavy work benefits most: a full Maestro orchestration drops from 14 credits to 12, Supernova from 38 to 33, and Aurora from 13 to 11.',
+    ],
+  },
+  {
+    migration: 357,
+    version: '0.35.1',
+    platform: 'ide',
+    toolCount: 62,
+    publishedAt: '2026-07-19 09:05:00+00',
+    title: 'Fable 5 is back, and your credits go further',
+    body: `The desktop IDE picks up both of this week's platform changes.
+
+**Claude Fable 5 is available again.** The US-government restriction that forced us to pull it has been lifted, so Fable 5 is selectable once more for anyone bringing an Anthropic key. It remains the strongest model we can offer for the hardest reasoning work.
+
+**Your credits go further.** We have cut our margin from 40% to 30% across every model in all three fleets. This is not a promotion we claw back later — it is a permanent recalibration, and it means the same plan buys more work at the same price. The saving is largest where the work is heaviest: a full orchestration on Maestro drops from 14 credits to 12, on Supernova from 38 to 33, and Aurora's heavy specialist work from 13 to 11.`,
+    highlights: [
+      'Claude Fable 5 is selectable again — the US-government restriction that forced us to pull it has been lifted.',
+      'We cut our margin from 40% to 30% across every model in all three fleets, so the same plan buys more work at the same price.',
+      'Heavy work benefits most: a full Maestro orchestration drops from 14 credits to 12, Supernova from 38 to 33, and Aurora from 13 to 11.',
+    ],
+  },
+  {
     migration: 355,
     version: '0.35.0',
     platform: 'ide',
