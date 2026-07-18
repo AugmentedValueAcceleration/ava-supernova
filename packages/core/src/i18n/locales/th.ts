@@ -3954,4 +3954,5 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': 'เพิ่มคีย์ Moonshot',
   'dash.model.sub.connect_longxiang': 'เชื่อมต่อหรือเพิ่ม 3 คีย์',
   'dash.model.longxiang_title': 'Longxiang (龙翔) — กลุ่มโมเดลน้ำหนักเปิด. Kimi K3 ทำหน้าที่เป็นผู้ประสานงานและผู้สร้าง, Qwen 3.7 Plus ดูแลการสร้างระดับกลางและวิทัศน์, DeepSeek V4 Flash จัดการปริมาณงาน. พร้อมใช้งานในแผน หรือด้วยคีย์ Moonshot + Qwen + DeepSeek ของคุณเอง. K3 เป็นโมเดลที่มีราคาแพงที่สุดในที่นี้, ดังนั้นจึงใช้เครดิตรอบละมากกว่าฟลีตอื่นๆ.',
+  'docs.show_details': 'Show me the details',
 };

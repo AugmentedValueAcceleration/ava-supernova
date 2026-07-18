@@ -3934,4 +3934,5 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': 'Dodaj klucz Moonshot',
   'dash.model.sub.connect_longxiang': 'Połącz lub dodaj 3 klucze',
   'dash.model.longxiang_title': 'Longxiang (龙翔) — flota z otwartymi wagami. Kimi K3 pełni rolę koordynatora i Budowniczego, Qwen 3.7 Plus obsługuje budowy średniej klasy i wizję, DeepSeek V4 Flash obsługuje wolumen. Dostępne w ramach planu lub z własnymi kluczami Moonshot + Qwen + DeepSeek. K3 jest najdroższym modelem, jaki obsługujemy, więc zużywa więcej kredytów na turę niż pozostałe floty.',
+  'docs.show_details': 'Show me the details',
 };

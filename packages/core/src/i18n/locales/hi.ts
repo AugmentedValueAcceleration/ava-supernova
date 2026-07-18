@@ -3954,4 +3954,5 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': 'Moonshot कुंजी जोड़ें',
   'dash.model.sub.connect_longxiang': 'कनेक्ट करें या 3 कुंजियाँ जोड़ें',
   'dash.model.longxiang_title': 'Longxiang (龙翔) — खुले वजन वाला फ्लीट। Kimi K3 समन्वयक और बिल्डर के रूप में अग्रणी है, Qwen 3.7 Plus मिड-टियर बिल्ड्स और विज़न को संभालती है, DeepSeek V4 Flash वॉल्यूम संभालती है। योजना पर उपलब्ध है, या अपनी स्वयं की Moonshot + Qwen + DeepSeek कुंजियों के साथ। K3 हमारी सेवा करने वाली सबसे महंगी मॉडल है, इसलिए यह अन्य फ्लीट्स की तुलना में प्रति टर्न अधिक क्रेडिट्स उपयोग करता है।',
+  'docs.show_details': 'Show me the details',
 };

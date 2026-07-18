@@ -3954,4 +3954,5 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': 'إضافة مفتاح Moonshot',
   'dash.model.sub.connect_longxiang': 'ربط أو إضافة 3 مفاتيح',
   'dash.model.longxiang_title': 'لونغشيانغ (龙翔) — أسطول الأوزان المفتوحة. تقود Kimi K3 دور المنسق والمُنشئ، يتولى Qwen 3.7 Plus النسخ المتوسطة والرؤية، ويتعامل DeepSeek V4 Flash مع الأحجام الكبيرة. متاح ضمن خطة، أو بمفاتيحك الخاصة من Moonshot + Qwen + DeepSeek. يُعد K3 أغلى نموذج نقدمه، لذا يستهلك رصيدًا أكثر لكل جولة مقارنة بالأساطيل الأخرى.',
+  'docs.show_details': 'Show me the details',
 };

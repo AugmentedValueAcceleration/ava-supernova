@@ -3954,4 +3954,5 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': 'Добавить ключ Moonshot',
   'dash.model.sub.connect_longxiang': 'Подключить или добавить 3 ключа',
   'dash.model.longxiang_title': 'Longxiang (龙翔) — флот моделей с открытыми весами. Kimi K3 выступает в роли координатора и разработчика, Qwen 3.7 Plus обрабатывает задачи среднего уровня и визуальный анализ, DeepSeek V4 Flash справляется с объемом запросов. Доступно по подписке или со своими ключами Moonshot + Qwen + DeepSeek. K3 — самая дорогая модель из тех, что мы предлагаем, поэтому она потребляет больше кредитов за ход, чем другие флоты.',
+  'docs.show_details': 'Show me the details',
 };

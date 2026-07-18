@@ -3956,4 +3956,5 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': 'Moonshot キーを追加',
   'dash.model.sub.connect_longxiang': '接続または 3 つのキーを追加',
   'dash.model.longxiang_title': 'Longxiang (龙翔) — オープンウェイトのフリート。Kimi K3 はコーディネーターおよびビルダーとしてリードし、Qwen 3.7 Plus はミッドティアの構築とビジョン機能を担い、DeepSeek V4 Flash はボリュームを処理します。プラン契約時、または独自の Moonshot + Qwen + DeepSeek キーを使用する際に利用可能です。K3 は当社が提供するモデルの中で最も高額であり、他のフリートよりも 1 ターンあたりのクレジット消費が多くなります。',
+  'docs.show_details': 'Show me the details',
 };

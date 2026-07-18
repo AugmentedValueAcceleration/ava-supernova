@@ -3934,4 +3934,5 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': '添加月之暗面密钥',
   'dash.model.sub.connect_longxiang': '连接或添加 3 个密钥',
   'dash.model.longxiang_title': 'Longxiang（龙翔）——开源权重模型集群。Kimi K3 担任协调者与构建者，Qwen 3.7 Plus 负责中阶构建与视觉任务，DeepSeek V4 Flash 处理高吞吐量。支持订阅计划，或使用您自己的月之暗面 + Qwen + DeepSeek 密钥。K3 是我们提供的最昂贵模型，因此每轮消耗的积分多于其他模型集群。',
+  'docs.show_details': 'Show me the details',
 };

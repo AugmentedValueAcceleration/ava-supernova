@@ -3926,4 +3926,5 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': 'Agregar clave de Moonshot',
   'dash.model.sub.connect_longxiang': 'Conectar o agregar 3 claves',
   'dash.model.longxiang_title': 'Longxiang (龙翔) — la flota de modelos de pesos abiertos. Kimi K3 lidera como coordinador y constructor; Qwen 3.7 Plus maneja construcciones de nivel medio y visión; DeepSeek V4 Flash gestiona el volumen. Disponible en un plan, o con tus propias claves de Moonshot + Qwen + DeepSeek. K3 es el modelo más caro que ofrecemos, por lo que consume más créditos por turno que las demás flotas.',
+  'docs.show_details': 'Show me the details',
 };

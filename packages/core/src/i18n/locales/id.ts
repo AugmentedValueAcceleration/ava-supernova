@@ -3952,4 +3952,5 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': 'Tambahkan kunci Moonshot',
   'dash.model.sub.connect_longxiang': 'Hubungkan atau tambahkan 3 kunci',
   'dash.model.longxiang_title': 'Longxiang (龙翔) — armada bobot terbuka. Kimi K3 memimpin sebagai koordinator dan Pembangun, Qwen 3.7 Plus menangani pembangunan tingkat menengah dan visi, DeepSeek V4 Flash menangani volume. Tersedia dalam paket, atau dengan kunci Moonshot + Qwen + DeepSeek Anda sendiri. K3 adalah model paling mahal yang kami layani, sehingga menggunakan lebih banyak kredit per giliran daripada armada lainnya.',
+  'docs.show_details': 'Show me the details',
 };

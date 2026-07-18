@@ -1927,6 +1927,10 @@ export const enStrings = {
   'dash.model.sub.connect_ds_qwen': 'Connect or add DeepSeek + Qwen keys',
   'dash.model.sub.connect_mistral': 'Connect or add Mistral key',
   'dash.model.sub.connect_qwen': 'Connect or add Qwen key',
+  // Docs "deeper" expander. Was hardcoded English in BOTH the IDE
+  // (DocumentationPage) and the companion (CompanionDocs), so it stayed
+  // English inside otherwise fully translated documentation.
+  'docs.show_details': 'Show me the details',
   // Longxiang — plan runs it on credits, BYOK unlocks it with all three keys.
   // NOT "open weights end to end" — that is only true once Qwen 3.7 Plus
   // weights are public. Purely factual until then.

@@ -3954,4 +3954,5 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.add_moonshot': '문샷 키 추가',
   'dash.model.sub.connect_longxiang': '연결 또는 3 개 키 추가',
   'dash.model.longxiang_title': '롱샹 (龙翔) — 오픈 웨이트 플릿입니다. Kimi K3 는 조정자이자 빌더로서 주도하고, Qwen 3.7 플러스는 미드 티어 빌드와 비전을 담당하며, DeepSeek V4 플래시는 볼륨을 처리합니다. 플랜으로 이용하거나 사용자의 문샷 + Qwen + DeepSeek 키로도 연결할 수 있습니다. K3 는 우리가 제공하는 모델 중 가장 비싸므로 다른 플릿보다 턴당 더 많은 크레딧을 사용합니다.',
+  'docs.show_details': 'Show me the details',
 };
