@@ -125,7 +125,14 @@ function parseKeepEnglish(filePath) {
   // extract every quoted string inside the Set array literal
   const setMatch = text.match(/new Set<\s*StringKey\s*>\(\s*\[([\s\S]*?)\]/);
   if (!setMatch) return keys;
-  for (const m of setMatch[1].matchAll(/['"]([^'"]+)['"]/g)) {
+  // Strip line comments BEFORE pairing quotes. These files annotate each entry
+  // with `// why`, and a single apostrophe in one of those comments ("the
+  // flow's keys") desynchronises the naive quote pairing below — every key
+  // after it parses as garbage and silently stops being excluded. That failure
+  // is invisible: the check just starts reporting false positives with no hint
+  // that the keep-english file has been half-ignored.
+  const body = setMatch[1].replace(/\/\/[^\n]*/g, '');
+  for (const m of body.matchAll(/['"]([^'"]+)['"]/g)) {
     keys.add(m[1]);
   }
   return keys;

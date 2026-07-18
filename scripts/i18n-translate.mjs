@@ -176,6 +176,21 @@ const SURFACES = [
     },
   },
   {
+    // Companion — registered 2026-07-18, completing the seed -> translate ->
+    // check pipeline for this surface. It was absent from all three scripts,
+    // so companion strings could be neither seeded nor translated nor
+    // verified, despite having its own locales and keep-english.ts.
+    name: 'companion',
+    dir: path.join(repoRoot, 'packages/mobile/src/locales'),
+    kind: 'ts',
+    enFile: 'en.ts',
+    keepEnglishFile: path.join(repoRoot, 'packages/mobile/src/locales/keep-english.ts'),
+    localeCodeFromFile: (f) => f.replace(/\.ts$/, ''),
+    listLocaleFiles() {
+      return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts' && f !== 'en.ts');
+    },
+  },
+  {
     name: 'nls',
     dir: path.join(repoRoot, 'packages/extension'),
     kind: 'nls',
