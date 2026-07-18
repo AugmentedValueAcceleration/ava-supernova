@@ -33,14 +33,14 @@ export const REFERENCE_PAGES: DocPage[] = [
     section: 'reference',
     body: [
       { type: 'paragraph', text: 'A "model" is the AI brain doing the thinking — Qwen, DeepSeek, Mistral and others. This page lists every model Ava can use. The short version: you do not have to choose one. Ava picks the right model for each step herself. Read on only if you want to understand or override that.' },
-      { type: 'paragraph', text: 'Every model Ava can route to, plus the three orchestration strategies — the rules that decide which model handles each part of a job. Pick a routing mode and let Ava dispatch, or pick a single model and skip routing entirely.' },
+      { type: 'paragraph', text: 'Every model Ava can route to, plus the four orchestration strategies — the rules that decide which model handles each part of a job. Pick a routing mode and let Ava dispatch, or pick a single model and skip routing entirely.' },
 
       { type: 'heading', level: 3, text: 'Routing modes' },
-      { type: 'paragraph', text: 'Three orchestrated strategies. The same persona pipeline (the small team of specialist helpers Ava runs behind the scenes) runs on all three; what changes is the underlying fleet of models. Pick a mode in the model selector and Ava handles the rest. Each card below shows the constituent specialists the conductor routes to.' },
+      { type: 'paragraph', text: 'Four orchestrated strategies. The same persona pipeline (the small team of specialist helpers Ava runs behind the scenes) runs on all four; what changes is the underlying fleet of models. Pick a mode in the model selector and Ava handles the rest. Each card below shows the constituent specialists the conductor routes to.' },
       { type: 'paragraph', text: 'You do not need to memorise the cards below — they are here so you can see what each strategy is made of.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'orchestration' } },
       { type: 'callout', variant: 'note', text: 'Aurora is deliberately Mistral-only. If a Mistral model is unavailable the router returns an error rather than cross-routing — that is the EU-stack guarantee. Pick Maestro or Supernova for graceful degradation.' },
-      { type: 'callout', variant: 'tip', text: 'All three modes are universally available — on platform credits and on your own keys. BYOK adds the option to bypass orchestration and drive a single model directly.' },
+      { type: 'callout', variant: 'tip', text: 'All four modes are universally available — on platform credits and on your own keys. BYOK adds the option to bypass orchestration and drive a single model directly.' },
 
       { type: 'heading', level: 3, text: 'Platform-managed models' },
       { type: 'paragraph', text: 'Available on every plan, including the free tier. Tokens (the units of text AI is measured in — roughly three-quarters of a word each) count against your plan allowance. The keys (the private passwords that unlock each paid model) are rotated and monitored by the platform — nothing for you to configure.' },
