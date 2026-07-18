@@ -1283,6 +1283,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // was actually routing across Large 3 + Medium 3.5 + Small 4).
     this.statusBar.setMode(this.getActiveModelId());
     this.statusBar.setModel(this.activeModelDef);
+    // Switching fleet/model invalidates whatever ran last — otherwise the bar
+    // would keep showing the previous fleet's tier against the new fleet name.
+    this.statusBar.setRunningModel(undefined);
     this.statusBar.setState(state, detail);
   }
 
@@ -3813,6 +3816,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           // Prep/routing status for the thinking indicator (covers the silent
           // classify + intent-gate + routing window, worst in the modes).
           this.postMessage({ type: 'progress', labelKey: (event as any).labelKey, model: (event as any).model });
+          // Surface the model that ACTUALLY runs this turn in the status bar.
+          // Without this the bar shows the fleet's coordinator forever, so a
+          // chat turn correctly routed to a cheap tier still read "Kimi K3" —
+          // indistinguishable from the routing being broken.
+          if ((event as any).model) {
+            this.statusBar.setRunningModel((event as any).model);
+            this.log(`Running turn on: ${(event as any).model}`);
+          }
           break;
         case 'auto_routing':
           this.postMessage({ type: 'auto_routing', category: (event as any).category, model: (event as any).model, reason: (event as any).reason });

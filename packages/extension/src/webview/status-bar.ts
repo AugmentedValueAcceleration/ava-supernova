@@ -45,6 +45,13 @@ export class StatusBar {
   private readonly item: vscode.StatusBarItem;
   private modelDef?: ModelDefinition;
   private modeId?: string;
+  /** Model that actually ran the most recent turn, from the coordinator's
+   *  progress event. `modelDef` is the fleet's COORDINATOR, fixed when the
+   *  fleet is picked — it cannot tell you which tier a given turn used, so on
+   *  a fleet it would read "Kimi K3" whether a chat turn routed to V4 Flash or
+   *  not. Persisted after the turn rather than cleared: "what did that just
+   *  cost me" is a question you ask once the answer has arrived. */
+  private runningModelName?: string;
   private state: StatusBarState = 'ready';
   private detail?: string;
 
@@ -73,6 +80,13 @@ export class StatusBar {
     this.render();
   }
 
+  /** Name the model actually executing the current turn. Cleared by passing
+   *  undefined (e.g. on fleet switch, where the old turn's model is stale). */
+  setRunningModel(name: string | undefined): void {
+    this.runningModelName = name;
+    this.render();
+  }
+
   /** Update the run state. `detail` is an optional extra string shown for custom states. */
   setState(state: StatusBarState, detail?: string): void {
     this.state = state;
@@ -86,7 +100,10 @@ export class StatusBar {
 
   private render(): void {
     const modeLabel = this.modeId ? MODE_LABELS[this.modeId] : undefined;
-    const modelName = this.modelDef?.name || 'No model';
+    // The running model wins over the coordinator — on a fleet, that is the
+    // difference between "Longxiang · Kimi K3" (the lead seat, always) and
+    // "Longxiang · DeepSeek V4 Flash" (what the chat turn actually used).
+    const modelName = this.runningModelName || this.modelDef?.name || 'No model';
     // Fleet AND model — "Longxiang · Kimi K3". A fleet name alone hides what
     // is actually being billed; a model name alone hides which fleet you are
     // on. Falls back to whichever is available: a raw BYOK model has no fleet,
