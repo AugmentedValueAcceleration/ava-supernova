@@ -88,6 +88,10 @@ export class AutoCoordinator {
   // or a Builder spawned by TaskExecutor. inject() forwards to whichever is
   // active so user mid-run messages reach the agent that's actually running.
   private activeAgent: Agent | null = null;
+  /** Agents for direct (no-team) turns, keyed `provider:model`. Built lazily
+   *  by resolveDirectAgent and reused — a chat-heavy session would otherwise
+   *  construct a fresh Agent on every turn. */
+  private readonly directAgents = new Map<string, Agent>();
   /** Surface and session for dataset trajectory attribution. */
   private readonly surface: AvaSurface;
   private readonly sessionId: string;
@@ -592,7 +596,20 @@ export class AutoCoordinator {
       classifier_model: 'task-classifier',
     });
 
-    // Direct handling — no spawn needed
+    // Direct handling — no spawn needed.
+    //
+    // "Direct" means NO SPECIALIST TEAM. It does not mean "run on the
+    // coordinator". Those two were conflated, and it was expensive: a chat
+    // turn skipped the router entirely and ran on the fleet's most costly
+    // model, so every fleet's cheap chat tier was dead code and the credits
+    // page quoted prices we weren't charging. Aurora chat cost 7 credits
+    // against a quoted 2 (Medium 3.5 at 3.64x instead of Small 4 at 0.99x);
+    // Longxiang cost 15 against a quoted 1 (K3 at 7.28x instead of V4 Flash
+    // at 0.43x). Billing was accurate for the model that ran — the wrong
+    // model was running.
+    //
+    // Now the router picks the model and it runs DIRECTLY (still no spawn,
+    // still no persona team). Vision is deliberately excluded below.
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
       // Image inputs: a text-only coordinator (Supernova's DeepSeek V4) is blind
       // to images. Rather than hand the whole turn to the vision model (which
@@ -601,8 +618,9 @@ export class AutoCoordinator {
       // image, then acts on that description itself. So Supernova "sees" the
       // image and still does the work. No-op when the coordinator already
       // supports vision (a BYOK Claude/Qwen that can see images directly).
-      onEvent({ type: 'progress', labelKey: 'thinking.working', model: this.coordinatorModel.name });
-      return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
+      const directAgent = this.resolveDirectAgent(classification.category);
+      onEvent({ type: 'progress', labelKey: 'thinking.working', model: directAgent.modelName });
+      return this.runWithActiveAgent(directAgent.agent, messages, onEvent, signal);
     }
 
     // ── Upstream Flash intent gate ────────────────────────────────────
@@ -629,8 +647,13 @@ export class AutoCoordinator {
         // Flip the flag so shouldOrchestrate() short-circuits. Saves ~300
         // tokens + ~2.5s on every direct route that happens to spawn tasks.
         if (this.sharedState) this.sharedState.conductorSynthesizedThisTurn = true;
-        onEvent({ type: 'progress', labelKey: 'thinking.working', model: this.coordinatorModel.name });
-        return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
+        // Same reasoning as DIRECT_CATEGORIES above: the gate has ruled out a
+        // specialist TEAM, not ruled in the coordinator. Use the category's
+        // routed model so a gate-passed turn isn't silently billed at
+        // coordinator rates.
+        const gatedAgent = this.resolveDirectAgent(classification.category);
+        onEvent({ type: 'progress', labelKey: 'thinking.working', model: gatedAgent.modelName });
+        return this.runWithActiveAgent(gatedAgent.agent, messages, onEvent, signal);
       }
     }
 
@@ -701,6 +724,56 @@ export class AutoCoordinator {
       onEvent({ type: 'error', error: err instanceof Error ? err : new Error(String(err)) });
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
+  }
+
+  /**
+   * Pick the agent for a DIRECT turn — one that needs no specialist team.
+   *
+   * Asks the router for the category's model and builds a peer of the
+   * coordinator agent on it: same tools, cwd, shared state and vision
+   * bridge, only the model differs. That keeps a direct turn behaving
+   * exactly as before while running on the tier the fleet actually
+   * designed for the job.
+   *
+   * Falls back to the coordinator agent when:
+   *   - the category is `vision` — the coordinator agent carries the vision
+   *     bridge (it runs a vision model to DESCRIBE an image, then acts on
+   *     that description itself). Routing vision away would hand the whole
+   *     turn to the vision model and lose the coordinator's agentic depth,
+   *     which is the opposite of what the bridge exists for.
+   *   - the router returns nothing, or returns the coordinator's own model.
+   *
+   * Agents are cached per model id: a chat-heavy session would otherwise
+   * construct a fresh Agent every turn.
+   */
+  private resolveDirectAgent(category: TaskCategory): { agent: Agent; modelName: string } {
+    const coordinator = { agent: this.coordinatorAgent, modelName: this.coordinatorModel.name };
+    if (category === 'vision') return coordinator;
+
+    const route = this.router.route(category);
+    if (!route) return coordinator;
+    if (
+      route.model.id === this.coordinatorModel.id &&
+      route.provider.name === this.coordinatorProvider.name
+    ) {
+      return coordinator;
+    }
+
+    const cacheKey = `${route.provider.name}:${route.model.id}`;
+    let agent = this.directAgents.get(cacheKey);
+    if (!agent) {
+      agent = new Agent({
+        provider: route.provider,
+        model: route.model,
+        visionProvider: this.visionProvider ?? undefined,
+        visionModel: this.visionModel ?? undefined,
+        toolRegistry: this.toolRegistry,
+        cwd: this.cwd,
+        sharedState: this.sharedState,
+      });
+      this.directAgents.set(cacheKey, agent);
+    }
+    return { agent, modelName: route.model.name };
   }
 
   /**

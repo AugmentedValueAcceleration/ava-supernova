@@ -6,17 +6,25 @@ import type { ModelDefinition } from '@ava/core';
 
 export type StatusBarState = 'ready' | 'busy' | 'error' | 'generating';
 
-/** Display labels for orchestration modes — when one is set, the
- *  status bar shows the mode name instead of the resolved coordinator's
- *  model name. Picking Aurora used to show "Ava: Mistral Medium 3.5"
- *  because Medium 3.5 is Aurora's coordinator — but Aurora actually
- *  routes across Medium 3.5 + Small 4 + Large 3 depending on the
- *  task, so showing one model name was misleading. The mode name is
- *  the honest single-string answer. */
+/** Display labels for orchestration modes.
+ *
+ *  The bar shows BOTH the fleet and the model actually running —
+ *  "Ava: Longxiang · Kimi K3" — rather than one or the other.
+ *
+ *  History: it originally showed the model alone, which was misleading
+ *  ("Ava: Mistral Medium 3.5" tells you nothing about Aurora routing across
+ *  Medium 3.5 + Small 4 + Large 3). The fix at the time was to show only the
+ *  fleet name — but that hid which model was actually being billed, and a
+ *  fleet's name doesn't tell you what you're paying for. Showing both is what
+ *  surfaced the direct-category routing problem in the first place: the fleet
+ *  said Longxiang while the model said Kimi K3, on a chat turn that was
+ *  supposed to run on V4 Flash. Operator's call, and the right one — a user
+ *  should always be able to see which model their credits are going to. */
 const MODE_LABELS: Record<string, string> = {
   aurora:    'Aurora',
   supernova: 'Supernova',
   auto:      'Maestro',
+  longxiang: 'Longxiang',
 };
 
 /** One line of what each fleet actually is, for the tooltip. The status bar is
@@ -25,6 +33,7 @@ const MODE_BLURB: Record<string, string> = {
   aurora:    'Mistral-only, EU-resident end to end',
   supernova: 'Polyglot — best specialist per task',
   auto:      'Single conductor, predictable cost',
+  longxiang: 'Open weights — K3 leads and builds',
 };
 
 /** VS Code hard-limits status-bar backgrounds to exactly these two theme
@@ -78,7 +87,13 @@ export class StatusBar {
   private render(): void {
     const modeLabel = this.modeId ? MODE_LABELS[this.modeId] : undefined;
     const modelName = this.modelDef?.name || 'No model';
-    const label = modeLabel ?? modelName;
+    // Fleet AND model — "Longxiang · Kimi K3". A fleet name alone hides what
+    // is actually being billed; a model name alone hides which fleet you are
+    // on. Falls back to whichever is available: a raw BYOK model has no fleet,
+    // and a fleet whose coordinator hasn't resolved yet has no model.
+    const label = modeLabel && this.modelDef
+      ? `${modeLabel} · ${modelName}`
+      : (modeLabel ?? modelName);
     switch (this.state) {
       case 'busy':
         this.item.text = `$(loading~spin) Ava: ${label}`;

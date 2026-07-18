@@ -38,8 +38,19 @@ export class HistoryCoordinator {
     return this.deps.context.globalState.get<string>(this.LAST_CONVERSATION_KEY);
   }
 
-  setLastConversationId(id: string | undefined): void {
-    this.deps.context.globalState.update(this.LAST_CONVERSATION_KEY, id);
+  /**
+   * Persist the "reopen this one next time" pointer.
+   *
+   * Returns the promise — `globalState.update()` is asynchronous, and this
+   * used to be fire-and-forget. The conversation itself is saved with an
+   * awaited `saveConversation()`, so a window closed just after a turn kept
+   * the transcript on disk but could lose the pointer to it: the chat was
+   * still in history, it just never reopened. That is the intermittent
+   * "starts a new chat each time" report — it depended on whether the write
+   * flushed before the host was disposed.
+   */
+  setLastConversationId(id: string | undefined): Thenable<void> {
+    return this.deps.context.globalState.update(this.LAST_CONVERSATION_KEY, id);
   }
 
   async restoreLast(): Promise<void> {
@@ -139,7 +150,10 @@ export class HistoryCoordinator {
     conversation.setMessages(messages);
     this.deps.setConversation(conversation);
 
-    this.setLastConversationId(record.id);
+    // Awaited — see setLastConversationId. Picking a chat from history and
+    // then closing the window is exactly the case where an unflushed pointer
+    // write sends you back to a new chat next launch.
+    await this.setLastConversationId(record.id);
 
     console.log(`[history] loaded conversation ${record.id}: ${record.messages.length} messages (${record.messages.length - messages.length} stale primer(s) dropped)`);
     this.deps.postMessage({

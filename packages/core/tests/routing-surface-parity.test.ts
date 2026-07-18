@@ -156,6 +156,33 @@ describe('Longxiang — open-weights fleet, plan or BYOK', () => {
   });
 });
 
+describe('Chat routes to the cheap tier, never the coordinator', () => {
+  // Regression guard for the direct-category billing bug (2026-07-18).
+  //
+  // `chat` is in DIRECT_CATEGORIES, meaning "no specialist team needed". That
+  // was conflated with "run on the coordinator", so chat turns skipped the
+  // router and ran on each fleet's most expensive model. Every fleet's cheap
+  // chat tier was dead code, and the credits page quoted prices we were not
+  // charging: Aurora chat cost 7 credits against a quoted 2, Longxiang 15
+  // against a quoted 1.
+  //
+  // Asserting the ROUTE here — that chat resolves to the volume tier and not
+  // the fleet's lead seat — is what stops it silently reverting.
+  const cases = [
+    { mode: 'aurora'    as const, setup: byok('mistral'),                    chat: 'mistral-small-4',   coordinator: 'mistral-medium-3.5' },
+    { mode: 'supernova' as const, setup: byok('deepseek', 'qwen'),           chat: 'deepseek-v4-flash', coordinator: 'deepseek-v4-pro' },
+    { mode: 'longxiang' as const, setup: byok('kimi', 'qwen', 'deepseek'),   chat: 'deepseek-v4-flash', coordinator: 'kimi-k3' },
+  ];
+
+  for (const c of cases) {
+    it(`${c.mode}: chat -> ${c.chat}, not ${c.coordinator}`, () => {
+      const r = router(c.mode, c.setup);
+      expect(modelFor(r, 'chat')).toBe(c.chat);
+      expect(modelFor(r, 'chat')).not.toBe(c.coordinator);
+    });
+  }
+});
+
 describe('Maestro — Qwen on both surfaces', () => {
   for (const [label, setup] of [['platform', platform], ['BYOK qwen', byok('qwen')]] as const) {
     it(`routes core work to Qwen 3.7 Plus (${label})`, () => {

@@ -2513,8 +2513,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Session Persistence ───────────────────────────────────────────────────
 
-  private setLastConversationId(id: string | undefined): void {
-    this.history.setLastConversationId(id);
+  private setLastConversationId(id: string | undefined): Thenable<void> {
+    return this.history.setLastConversationId(id);
   }
 
   private async restoreLastConversation(): Promise<void> {
@@ -3995,7 +3995,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // a health-room turn must never make the health thread the one the main
       // chat reopens into.
       if (this.activeLane === 'main') {
-        this.setLastConversationId(this.conversation.id);
+        // Awaited deliberately. The transcript save above is awaited, so
+        // leaving this fire-and-forget meant a window closed right after a
+        // turn could persist the conversation but lose the pointer to it —
+        // the chat stayed in history and simply never reopened.
+        await this.setLastConversationId(this.conversation.id);
       }
     } catch (error) {
       // Abort errors from cancellation — not a real error, just clean up
