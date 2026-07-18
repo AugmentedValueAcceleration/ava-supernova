@@ -35,7 +35,7 @@ import { registerDesktopTools } from '@ava/core/desktop-tools';
 import type { ProviderSettings } from '@ava/core';
 import { runSetupWizard } from './setup-wizard.js';
 import { Repl } from './cli/repl.js';
-import { CommandHandler } from './cli/commands.js';
+import { CommandHandler, type RoutingMode } from './cli/commands.js';
 
 async function main(): Promise<void> {
   // Install the dataset capture consumer once at boot. It's a no-op for
@@ -230,9 +230,9 @@ async function main(): Promise<void> {
   if (appConfig.providers?.mistral?.apiKey || process.env.MISTRAL_API_KEY) availableProviders.add('mistral');
 
   // Routing mode — persisted in config, defaults to 'auto' (Maestro / Qwen-only).
-  // Changed at runtime via /route maestro|supernova|aurora — onRouteSwitch
-  // below rebuilds the AutoCoordinator with the new mode.
-  let routingMode: 'auto' | 'supernova' | 'aurora' = appConfig.routingMode ?? 'auto';
+  // Changed at runtime via /route maestro|supernova|aurora|longxiang —
+  // onRouteSwitch below rebuilds the AutoCoordinator with the new mode.
+  let routingMode: RoutingMode = appConfig.routingMode ?? 'auto';
 
   // Auto Mode — picks the right coordinator for the routing mode.
   const autoCoordinator = (availableProviders.size > 1 || availableProviders.has('platform')

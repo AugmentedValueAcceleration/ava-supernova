@@ -28,6 +28,10 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // Managed DeepSeek V4 — strip the `-platform` disambiguator
   'deepseek-v4-pro-platform':   'deepseek-v4-pro',
   'deepseek-v4-flash-platform': 'deepseek-v4-flash',
+  // Managed Kimi K3 (Longxiang's lead seat) — strip the disambiguator.
+  // Moonshot only knows `kimi-k3`; sending the suffixed id returns
+  // 404 "Not found the model kimi-k3-platform or Permission denied".
+  'kimi-k3-platform':           'kimi-k3',
   // Managed Mistral (Aurora's fleet) — friendly name -> the id Mistral accepts.
   // Large 3 and Small 4 use date-stamped snapshots. Medium 3.5 is pinned to the
   // SEMANTIC id `mistral-medium-3-5` (what Mistral's own rate-limit console

@@ -13,9 +13,15 @@ async function seedAvaHome(dir: string) {
   await mkdir(join(dir, 'memory'), { recursive: true });
   await mkdir(join(dir, 'history'), { recursive: true });
   await mkdir(join(dir, 'journal'), { recursive: true });
+  await mkdir(join(dir, 'tasks'), { recursive: true });
   await writeFile(join(dir, 'memory', 'graph.json'), JSON.stringify({ nodes: [{ id: 'n1', content: 'the operator is a 30-year programmer' }], edges: [] }));
   await writeFile(join(dir, 'history', 'conv-1.json'), JSON.stringify({ id: 'conv-1', messages: [{ role: 'user', content: 'hello' }] }));
-  await writeFile(join(dir, 'tasks.json'), JSON.stringify({ version: 1, entries: [{ id: 't1', title: 'ship it' }] }));
+  // tasks/tasks.json — a file INSIDE a directory. This test used to seed a
+  // root-level `tasks.json`, the path the allowlist wrongly used and which has
+  // never existed in a real ~/.ava. The bug (backups silently containing zero
+  // tasks) is fixed in bundle.ts + data-types.ts; this seeds the real layout so
+  // the test guards the fix instead of asserting the old broken shape.
+  await writeFile(join(dir, 'tasks', 'tasks.json'), JSON.stringify({ version: 1, entries: [{ id: 't1', title: 'ship it' }] }));
   await writeFile(join(dir, 'journal', '2026-06-04.json'), JSON.stringify({ date: '2026-06-04' }));
   // A file NOT on the allowlist (operational) — must be excluded.
   await writeFile(join(dir, 'usage.json'), JSON.stringify({ credits: 300 }));
@@ -66,7 +72,7 @@ describe('portability bundle', () => {
     const bundle = await gatherBundle(src, { source: 'test' });
     expect(bundle.files['memory/graph.json']).toContain('30-year programmer');
     expect(bundle.files['history/conv-1.json']).toContain('hello');
-    expect(bundle.files['tasks.json']).toContain('ship it');
+    expect(bundle.files['tasks/tasks.json']).toContain('ship it');
     expect(bundle.files['journal/2026-06-04.json']).toBeDefined();
     // Operational file excluded.
     expect(bundle.files['usage.json']).toBeUndefined();
@@ -89,16 +95,17 @@ describe('portability bundle', () => {
 
   it('safe-merges by default and overwrites when asked', async () => {
     const envelope = await exportEncryptedBackup(src, 'p', { source: 'test' });
-    // Pre-existing differing file on dst.
-    await writeFile(join(dst, 'tasks.json'), JSON.stringify({ version: 1, entries: [{ id: 'keep' }] }));
+    // Pre-existing differing file on dst — same real path as the bundle uses.
+    await mkdir(join(dst, 'tasks'), { recursive: true });
+    await writeFile(join(dst, 'tasks', 'tasks.json'), JSON.stringify({ version: 1, entries: [{ id: 'keep' }] }));
 
     const merge = await importEncryptedBackup(dst, envelope, 'p');
     expect(merge.result.skipped).toBeGreaterThan(0);
-    expect(await readFile(join(dst, 'tasks.json'), 'utf8')).toContain('keep');
+    expect(await readFile(join(dst, 'tasks', 'tasks.json'), 'utf8')).toContain('keep');
 
     const over = await importEncryptedBackup(dst, envelope, 'p', { overwrite: true });
     expect(over.result.written).toBeGreaterThan(0);
-    expect(await readFile(join(dst, 'tasks.json'), 'utf8')).toContain('ship it');
+    expect(await readFile(join(dst, 'tasks', 'tasks.json'), 'utf8')).toContain('ship it');
   });
 
   it('rejects path-traversal entries', async () => {

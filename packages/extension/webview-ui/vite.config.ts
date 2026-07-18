@@ -14,6 +14,12 @@ export default defineConfig({
         __dirname,
         '../src/webview/message-types.ts',
       ),
+      // Fleet picker copy shared with dashboard-ui — the two ModelSelectors
+      // are near-duplicates and used to drift apart.
+      '@ava-extension/fleet-copy': path.resolve(
+        __dirname,
+        '../src/webview/fleet-copy.ts',
+      ),
     },
   },
   build: {

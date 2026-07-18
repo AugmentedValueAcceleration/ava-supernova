@@ -19,6 +19,7 @@ import { resolveCoordinatorModel } from './coordinator-model.js';
 import { classifyIntent, classifyTeachDepth, resolveIntentGateModel } from './intent-gate.js';
 import { SUPERNOVA_COORDINATOR_ID, SUPERNOVA_BUILDER_ID, SUPERNOVA_VISION_ID } from './supernova-router.js';
 import { AURORA_COORDINATOR_ID, AURORA_BUILDER_ID, AURORA_VISION_ID } from './aurora-router.js';
+import { LONGXIANG_COORDINATOR_ID, LONGXIANG_BUILDER_ID, LONGXIANG_VISION_ID } from './longxiang-router.js';
 import type { RoutingMode } from './model-router.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
 import { TaskExecutor } from './task-executor.js';
@@ -172,6 +173,15 @@ export class AutoCoordinator {
         ?? opts.providerRegistry.resolveModel(AURORA_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
+    } else if (this.mode === 'longxiang') {
+      // K3 builds as well as coordinates. Platform-managed first, then the
+      // user's own Moonshot key — same ladder as the other fleets.
+      const resolved = opts.providerRegistry.resolveModel(`platform:${LONGXIANG_BUILDER_ID}-platform`)
+        ?? opts.providerRegistry.resolveModel(`platform:${LONGXIANG_BUILDER_ID}`)
+        ?? opts.providerRegistry.resolveModel(`kimi:${LONGXIANG_BUILDER_ID}`)
+        ?? opts.providerRegistry.resolveModel(LONGXIANG_BUILDER_ID);
+      this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
+      this.builderModel = resolved?.model ?? opts.coordinatorModel;
     } else {
       this.builderProvider = opts.coordinatorProvider;
       this.builderModel = opts.coordinatorModel;
@@ -179,7 +189,11 @@ export class AutoCoordinator {
 
     // Resolve the vision model for image inputs (see field doc). Mirrors the
     // builder resolution: platform-managed first, then BYOK, then null.
-    const visionId = this.mode === 'aurora' ? AURORA_VISION_ID : SUPERNOVA_VISION_ID;
+    const visionId = this.mode === 'aurora'
+      ? AURORA_VISION_ID
+      : this.mode === 'longxiang'
+        ? LONGXIANG_VISION_ID
+        : SUPERNOVA_VISION_ID;
     const visionResolved =
       opts.providerRegistry.resolveModel(`platform:${visionId}`)
       ?? opts.providerRegistry.resolveModel(visionId)
@@ -270,6 +284,31 @@ export class AutoCoordinator {
             provider: resolved.provider,
             model: resolved.model,
             reason: `${resolved.model.name} — Aurora coordinator (Mistral-only routing)`,
+          };
+          break;
+        }
+      }
+    } else if (opts.mode === 'longxiang') {
+      // Longxiang pins Kimi K3 in BOTH the coordinator and Builder seats —
+      // it's the strongest open coder we have and a strong tool-driver, so
+      // there's nothing to gain by splitting them.
+      //
+      // Resolves platform-managed first, then BYOK — the same ladder every
+      // other fleet uses. A plan runs Longxiang on credits; a BYOK user runs
+      // it on their own Moonshot key.
+      const tries = [
+        `platform:${LONGXIANG_COORDINATOR_ID}-platform`,
+        `platform:${LONGXIANG_COORDINATOR_ID}`,
+        `kimi:${LONGXIANG_COORDINATOR_ID}`,
+        LONGXIANG_COORDINATOR_ID,
+      ];
+      for (const id of tries) {
+        const resolved = opts.providerRegistry.resolveModel(id);
+        if (resolved) {
+          coordinator = {
+            provider: resolved.provider,
+            model: resolved.model,
+            reason: `${resolved.model.name} — Longxiang coordinator (open-weights routing)`,
           };
           break;
         }

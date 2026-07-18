@@ -63,6 +63,22 @@ const SURFACES = [
     keepEnglishFile: path.join(repoRoot, 'packages/extension/webview-ui/src/locales/keep-english.ts'),
   },
   {
+    // The companion. Its locale files and keep-english.ts existed from the
+    // start — and keep-english.ts even documents itself as "used by
+    // scripts/i18n-check.mjs" — but the surface was never registered here, so
+    // the companion has had NO parity guard and those exclusions never
+    // applied. Added 2026-07-18.
+    name: 'companion',
+    dir: path.join(repoRoot, 'packages/mobile/src/locales'),
+    kind: 'ts',
+    enFile: 'en.ts',
+    localeCodeFromFile: (f) => f.replace(/\.ts$/, ''),
+    localeFiles() {
+      return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts');
+    },
+    keepEnglishFile: path.join(repoRoot, 'packages/mobile/src/locales/keep-english.ts'),
+  },
+  {
     name: 'package.nls',
     dir: path.join(repoRoot, 'packages/extension'),
     kind: 'nls',

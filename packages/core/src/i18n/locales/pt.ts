@@ -3947,4 +3947,9 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'library.use_in_project': 'Usar no projeto',
   'library.rename': 'Renomear',
   'library.rename_save': 'Salvar',
+  'dash.model.sub.longxiang_open': 'Kimi K3 + Qwen + DeepSeek',
+  'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
+  'dash.model.sub.add_moonshot': 'Adicionar chave Moonshot',
+  'dash.model.sub.connect_longxiang': 'Conectar ou adicionar 3 chaves',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — uma frota de pesos abertos. O Kimi K3 lidera como coordenador e Construtor, o Qwen 3.7 Plus executa tarefas de nível médio e visão, o DeepSeek V4 Flash processa o volume. Disponível em um plano, ou com suas próprias chaves Moonshot + Qwen + DeepSeek. O K3 é o modelo mais caro que oferecemos, então ele usa mais créditos por turno do que as outras frotas.',
 };

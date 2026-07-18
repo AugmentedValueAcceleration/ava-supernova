@@ -29,6 +29,14 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   'dash.connections.slack',
   'dash.nav.connections_desc',
 
+  // Longxiang fleet roster subtitles — these are model NAMES end to end
+  // ("Kimi K3 + Qwen + DeepSeek"), plus the BYOK acronym. There is no prose
+  // to translate, and localising a model name would make it wrong. The other
+  // Longxiang strings (add_moonshot, connect_longxiang, longxiang_title) DO
+  // contain real sentences and are translated normally.
+  'dash.model.sub.longxiang_open',
+  'dash.model.sub.byok_longxiang',
+
   // Product component names (cross-surface branding)
   'dash.releases.ide',
   'dash.releases.core',

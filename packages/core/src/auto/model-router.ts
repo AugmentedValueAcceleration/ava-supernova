@@ -2,8 +2,9 @@ import type { ProviderRegistry } from '../providers/provider-registry.js';
 import type { TaskCategory, RouteResult, UserRoutePreferences } from './types.js';
 import { SUPERNOVA_ROUTES } from './supernova-router.js';
 import { AURORA_ROUTES } from './aurora-router.js';
+import { LONGXIANG_ROUTES } from './longxiang-router.js';
 
-export type RoutingMode = 'auto' | 'supernova' | 'aurora';
+export type RoutingMode = 'auto' | 'supernova' | 'aurora' | 'longxiang';
 
 // ─── Default routing table (platform users with all 3 providers) ─────────────
 
@@ -115,7 +116,9 @@ export class ModelRouter {
       ? SUPERNOVA_ROUTES
       : this.mode === 'aurora'
         ? AURORA_ROUTES
-        : DEFAULT_ROUTES;
+        : this.mode === 'longxiang'
+          ? LONGXIANG_ROUTES
+          : DEFAULT_ROUTES;
     const entry = routes[category];
     if (!entry) return null;
 

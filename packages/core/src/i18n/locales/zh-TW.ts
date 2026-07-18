@@ -3949,4 +3949,9 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'library.use_in_project': '在專案中使用',
   'library.rename': '重新命名',
   'library.rename_save': '儲存',
+  'dash.model.sub.longxiang_open': 'Kimi K3 + Qwen + DeepSeek',
+  'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
+  'dash.model.sub.add_moonshot': '新增 Moonshot 金鑰',
+  'dash.model.sub.connect_longxiang': '連線或新增 3 組金鑰',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — 開放權重艦隊。Kimi K3 擔任協調者與建構者，Qwen 3.7 Plus 負責中階構建與視覺，DeepSeek V4 Flash 處理大量請求。可透過方案使用，或使用您自有的 Moonshot + Qwen + DeepSeek 金鑰。K3 是我們提供的最昂貴模型，因此每回合消耗的積分比其他艦隊更多。',
 };

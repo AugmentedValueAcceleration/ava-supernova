@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { t, useLocale } from '../../i18n';
+import { FLEET_COPY, isFleetModelId } from '@ava-extension/fleet-copy';
 
 interface ModelSelectorProps {
-  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
+  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }>;
   activeModel: string | null;
   needsSetup: boolean;
   onSwitch: (modelId: string) => void;
@@ -90,8 +91,10 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
 
   // useMemo MUST run before any conditional return — hook rules.
   const { orchestrated, byProvider, providerOrder } = useMemo(() => {
-    const orch = models.filter(m => m.id === 'auto' || m.id === 'supernova' || m.id === 'aurora');
-    const rest = models.filter(m => m.id !== 'auto' && m.id !== 'supernova' && m.id !== 'aurora');
+    // The host omits an unlaunched fleet from `models`, so anything here is
+    // meant to be shown.
+    const orch = models.filter(m => isFleetModelId(m.id));
+    const rest = models.filter(m => !isFleetModelId(m.id));
     const groups = new Map<string, typeof models>();
     for (const m of rest) {
       const arr = groups.get(m.provider) ?? [];
@@ -123,13 +126,9 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
 
   if (models.length === 0) return null;
 
-  const activeModelName = activeModel === 'auto'
-    ? 'Maestro'
-    : activeModel === 'supernova'
-      ? 'Supernova'
-      : activeModel === 'aurora'
-        ? 'Aurora'
-        : models.find(m => m.id === activeModel)?.name ?? 'Select model';
+  const activeModelName = FLEET_COPY[activeModel ?? '']?.label.replace('✦ ', '')
+    ?? models.find(m => m.id === activeModel)?.name
+    ?? 'Select model';
 
   // Vision state of the model you're actually on — surfaced on the collapsed
   // toggle so "can this see?" doesn't require opening the picker. The fleets
@@ -186,21 +185,17 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
             <>
               <div style={sectionHeaderStyle}>Orchestrated</div>
               {orchestrated.map(o => {
-                const isPreview = (o.id === 'supernova' || o.id === 'aurora') && !o.available;
+                // Maestro is excluded from the locked state as before — it is
+                // the baseline fleet and was never rendered as a preview row.
+                const isPreview = o.id !== 'auto' && !o.available;
                 const active = activeModel === o.id;
-                const label = o.id === 'auto'
-                  ? '✦ Maestro'
-                  : o.id === 'supernova'
-                    ? '✦ Supernova'
-                    : '✦ Aurora';
+                const copy = FLEET_COPY[o.id];
+                const label = copy?.label ?? o.name;
                 // Admin gate retired 2026-04-30 — locked state only fires
                 // when the user has neither a platform connection nor the
                 // BYOK keys for this mode's fleet.
-                const subtitle = o.id === 'auto'
-                  ? 'Best model per task'
-                  : o.id === 'aurora'
-                    ? (isPreview ? 'Add Mistral key' : 'EU stack — Mistral end-to-end')
-                    : isPreview ? 'Add DeepSeek + Qwen keys' : 'Polyglot ensemble';
+                // Host-supplied reason wins — names the one key actually missing.
+                const subtitle = isPreview ? (o.lockedReason ?? copy?.subLocked) : copy?.sub;
                 return (
                   <button
                     key={o.id}
@@ -210,15 +205,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                       onSwitch(o.id);
                       setOpen(false);
                     }}
-                    title={isPreview
-                      ? (o.id === 'aurora'
-                          ? 'Aurora — EU-stack Mistral-only routing. Sign in for platform access, or add a Mistral API key for BYOK.'
-                          : 'Supernova — DeepSeek + Qwen polyglot ensemble. Sign in for platform access, or add DeepSeek + Qwen API keys for BYOK.')
-                      : o.id === 'auto'
-                        ? 'One coordinator handles everything — proven, production-tuned'
-                        : o.id === 'aurora'
-                          ? 'Aurora — Mistral-only three-tier EU stack. Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Large 3 is the heavy reserve. Stays inside European infrastructure.'
-                          : 'Multi-model orchestration — coordinator picks the best specialist for each task'}
+                    title={isPreview ? copy?.tipLocked : copy?.tip}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       width: '100%', padding: '8px 10px',

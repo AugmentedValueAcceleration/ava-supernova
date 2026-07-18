@@ -3929,4 +3929,9 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'library.use_in_project': 'Використати в проєкті',
   'library.rename': 'Перейменувати',
   'library.rename_save': 'Зберегти',
+  'dash.model.sub.longxiang_open': 'Kimi K3 + Qwen + DeepSeek',
+  'dash.model.sub.byok_longxiang': 'Власний ключ · Moonshot + Qwen + DeepSeek',
+  'dash.model.sub.add_moonshot': 'Додати ключ Moonshot',
+  'dash.model.sub.connect_longxiang': 'Підключити або додати 3 ключі',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — флот моделей з відкритим доступом. Kimi K3 виступає координатором і Будівником, Qwen 3.7 Plus обробляє збірки середнього рівня та візуальні можливості, DeepSeek V4 Flash опрацьовує великі обсяги. Доступно за планом або зі своїми ключами Moonshot + Qwen + DeepSeek. K3 — найдорожча модель, яку ми надаємо, тому вона витрачає більше кредитів за хід, ніж інші флоти.',
 };

@@ -64,6 +64,18 @@ const SURFACES = [
     },
   },
   {
+    // Companion — registered 2026-07-18 alongside i18n-check. Its locales were
+    // in full parity already (maintained by hand), but without the surface
+    // registered here a NEW en key could never be seeded into them.
+    name: 'companion',
+    dir: path.join(repoRoot, 'packages/mobile/src/locales'),
+    kind: 'ts',
+    enFile: 'en.ts',
+    listLocaleFiles() {
+      return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts' && f !== 'en.ts');
+    },
+  },
+  {
     name: 'nls',
     dir: path.join(repoRoot, 'packages/extension'),
     kind: 'nls',

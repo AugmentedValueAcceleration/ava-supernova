@@ -1252,6 +1252,12 @@ export interface ChatModel {
   provider: string;
   supportsVision?: boolean;
   available: boolean;
+  /** Locked-state subtitle naming the ONE key the user is missing, e.g.
+   *  "Add Moonshot key". Only the host knows which provider keys are present,
+   *  so a static per-fleet string in the picker could only ever list all of
+   *  them — too long for the subtitle column and out of step with the IDE,
+   *  which names them one at a time. Undefined = use the fleet's default. */
+  lockedReason?: string;
 }
 
 export interface ChatState {

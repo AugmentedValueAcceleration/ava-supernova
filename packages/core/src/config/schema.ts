@@ -1,3 +1,5 @@
+import type { RoutingMode } from '../auto/model-router.js';
+
 export interface ProviderSettings {
   apiKey: string;
   baseUrl?: string;
@@ -11,10 +13,14 @@ export interface AvaConfig {
    *  • 'auto'      = Maestro, Qwen-only tier-differentiated (default)
    *  • 'supernova' = DeepSeek polyglot with Qwen builder fallback
    *  • 'aurora'    = Mistral-only EU-sovereign three-tier
+   *  • 'longxiang' = open-weights Kimi/Qwen/DeepSeek, BYOK-only
    * The CLI exposes this via the /route command; the extension and IDE
    * surface it in their Auto Mode settings.
+   *
+   * Typed off core's `RoutingMode` rather than re-declaring the union — it
+   * had been hand-copied into five files and drifted when Longxiang landed.
    */
-  routingMode?: 'auto' | 'supernova' | 'aurora';
+  routingMode?: RoutingMode;
   platformKey?: string;
   providers: {
     anthropic?: ProviderSettings;

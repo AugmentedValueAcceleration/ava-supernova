@@ -10,7 +10,8 @@ export { isStopCommand, haltIntent } from './agent/stop-command.js';
 export type { HaltIntent } from './agent/stop-command.js';
 
 // Auto Mode
-export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker, resolveCoordinatorModel } from './auto/index.js';
+export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker, resolveCoordinatorModel, LONGXIANG_ENABLED } from './auto/index.js';
+export type { RoutingMode } from './auto/index.js';
 export type { TaskCategory as AutoTaskCategory, ClassificationResult, RouteResult, UserRoutePreferences, TaskBrief, AutoEvent, CoordinatorModelResult } from './auto/index.js';
 
 // Memory Agent

@@ -28,7 +28,7 @@ export interface PlatformStatus {
 export type ExtToWebviewMessage =
   | {
       type: 'init';
-      models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
+      models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }>;
       activeModel: string | null;
       needsSetup: boolean;
       consentRequired: boolean;
@@ -420,7 +420,7 @@ export interface ChatState {
    * to this single bubble's events array instead of spawning new bubbles.
    */
   currentAssistantId: string | null;
-  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
+  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }>;
   activeModel: string | null;
   isStreaming: boolean;
   isThinking: boolean;

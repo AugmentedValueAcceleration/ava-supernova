@@ -51,8 +51,24 @@ import {
   humaniseSlug,
   summariseCookingTime,
   DESKTOP_TOOL_NAMES,
+  LONGXIANG_ENABLED,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
+import type { RoutingMode } from '@ava/core';
+
+/** The orchestrated fleet ids — anything else is a raw model id.
+ *  Longxiang is only a fleet id once its launch flag is live, so a stale
+ *  `activeModel: 'longxiang'` in settings can't route through the fleet path
+ *  while the fleet is still dark. */
+const FLEET_IDS: readonly RoutingMode[] = ['auto', 'supernova', 'aurora', 'longxiang'];
+/** Type predicate, not just a boolean — the fleet ids ARE the RoutingMode
+ *  values, so narrowing here lets callers pass the id straight through to
+ *  setupAgent without a cast that could hide a genuine mismatch later. */
+function isFleetId(id: string | null | undefined): id is RoutingMode {
+  if (!id) return false;
+  if (id === 'longxiang') return LONGXIANG_ENABLED;
+  return (FLEET_IDS as readonly string[]).includes(id);
+}
 import { creditsFor } from '@ava/core/billing/credits';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
@@ -1609,7 +1625,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         // would return null and the user got reset to a free model on
         // every reload. Route them through setActiveModel which knows how
         // to resolve their coordinator chains.
-        if (activeModelId === 'auto' || activeModelId === 'supernova' || activeModelId === 'aurora') {
+        if (isFleetId(activeModelId)) {
           this.log(`Restoring orchestrated mode "${activeModelId}" from saved setting`);
           await this.setActiveModel(activeModelId);
         } else {
@@ -1831,7 +1847,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private async setupAgent(provider: Provider, model: ModelDefinition, routingModeOverride?: 'auto' | 'supernova' | 'aurora'): Promise<void> {
+  private async setupAgent(provider: Provider, model: ModelDefinition, routingModeOverride?: RoutingMode): Promise<void> {
     this.toolRegistry = new ToolRegistry();
     // Desktop automation + browser control are NOT part of the extension.
     // Microsoft blocked this extension over exactly these tools and required
@@ -2155,10 +2171,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // config here would lag a fleet switch by one selection (the classic cause
     // of "switched to Aurora but it still ran Supernova's DeepSeek coordinator").
     const activeModel = vscode.workspace.getConfiguration('ava-supernova').get<string>('activeModel');
-    const routingMode: 'auto' | 'supernova' | 'aurora' =
+    const routingMode: RoutingMode =
       routingModeOverride
       ?? (activeModel === 'supernova' ? 'supernova'
         : activeModel === 'aurora' ? 'aurora'
+        : activeModel === 'longxiang' ? 'longxiang'
         : 'auto');
 
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
@@ -2201,7 +2218,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Mistral Medium 3.5 (AURORA_COORDINATOR_ID) with Small 4 carrying the
     // volume — Mistral-only routing for the EU-stack guarantee. Large 3 is
     // the heavy reserve, not the coordinator.
-    if (modelId === 'auto' || modelId === 'supernova' || modelId === 'aurora') {
+    if (isFleetId(modelId)) {
       const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
       const hasPlatform = !!platformKey;
       const availableProviders = new Set<string>();
@@ -2258,13 +2275,26 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             break;
           }
         }
+      } else if (modelId === 'longxiang') {
+        // Kimi K3 holds BOTH coordinator and Builder (LONGXIANG_COORDINATOR_ID
+        // / LONGXIANG_BUILDER_ID). Platform-managed first, then the user's own
+        // Moonshot key — the same ladder Aurora and Supernova use.
+        const tries = ['platform:kimi-k3-platform', 'kimi:kimi-k3', 'kimi-k3'];
+        for (const id of tries) {
+          if (this.providerRegistry.resolveModel(id)) {
+            preferredCoordinatorId = id;
+            break;
+          }
+        }
       }
       const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, hasPlatform, preferredCoordinatorId);
       const modeLabel = modelId === 'supernova'
         ? 'Supernova'
         : modelId === 'aurora'
           ? 'Aurora'
-          : 'Maestro';
+          : modelId === 'longxiang'
+            ? 'Longxiang'
+            : 'Maestro';
       if (!coordinator) {
         this.log(`${modeLabel}: no coordinator model available`);
         this.postMessage({ type: 'error', message: `${modeLabel} needs at least one configured provider. Add an API key or sign in.` });
@@ -2369,6 +2399,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const hasQwen = filtered.some(m => m.provider === 'qwen' && m.available);
     const hasDeepSeek = filtered.some(m => m.provider === 'deepseek' && m.available);
     const hasMistral = filtered.some(m => m.provider === 'mistral' && m.available);
+    // Moonshot/Kimi — only needed by Longxiang, which is the one fleet with no
+    // managed path, so this is a BYOK-only signal by design.
+    const hasKimi = filtered.some(m => m.provider === 'kimi' && m.available);
 
     // Individual models = the BYOK catalogue, ALWAYS shown (available reflects
     // whether the key is set). Platform-section raw models stay collapsed into
@@ -2389,7 +2422,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // therefore never fire and images were sent to blind models. Absent on a
     // ModelDefinition means no vision (the convention across the catalogue),
     // so `=== true` is the honest coercion.
-    const modelList: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> =
+    const modelList: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }> =
       byokOnly.map((m) => ({
         id: `${m.provider}:${m.id}`,
         name: m.name,
@@ -2419,6 +2452,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: maestroAvailable, supportsVision: true });
     modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: supernovaAvailable, supportsVision: true });
     modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable, supportsVision: true });
+    // Longxiang — BYOK-only, so no `hasPlatform ||` branch: a plan can never
+    // unlock it (Moonshot won't invoice us for the K3 lead seat). While the
+    // launch flag is off it is not pushed at all, rather than pushed-and-
+    // greyed — an unavailable row still shows the name, and the fleet is
+    // unannounced until K3's weights land.
+    if (LONGXIANG_ENABLED) {
+      // Same access rule as the other three: plan OR the full BYOK key set.
+      const longxiangAvailable = hasPlatform || (hasKimi && hasQwen && hasDeepSeek);
+      // Name the ONE key still missing, in the same priority order the IDE
+      // uses (mode-availability.ts: Moonshot → Qwen → DeepSeek). Listing all
+      // three is both too long for the picker's subtitle column and out of
+      // step with the IDE, and these two surfaces must read identically.
+      // With none of them held, fall through to the shared connect-or-add copy.
+      const anyKey = hasKimi || hasQwen || hasDeepSeek;
+      const lockedReason = longxiangAvailable || !anyKey
+        ? undefined
+        : !hasKimi ? 'Add Moonshot key'
+        : !hasQwen ? 'Add Qwen key'
+        : 'Add DeepSeek key';
+      modelList.unshift({ id: 'longxiang', name: 'Longxiang', provider: 'Ava', available: longxiangAvailable, supportsVision: true, lockedReason });
+    }
 
     return modelList;
   }

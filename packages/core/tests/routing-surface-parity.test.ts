@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ProviderRegistry } from '../src/providers/provider-registry.js';
 import { PlatformProvider } from '../src/providers/platform/index.js';
 import { ModelRouter, type RoutingMode } from '../src/auto/model-router.js';
+import { LONGXIANG_ENABLED } from '../src/auto/longxiang-router.js';
 import { AutoCoordinator } from '../src/auto/auto-coordinator.js';
 import { ToolRegistry } from '../src/tools/tool-registry.js';
 
@@ -96,6 +97,63 @@ describe('Supernova — DeepSeek reachable on both surfaces', () => {
       expect(modelFor(r, 'coding')).toBe('qwen3.7-plus');
     });
   }
+});
+
+describe('Longxiang — open-weights fleet, plan or BYOK', () => {
+  const fleet = byok('kimi', 'qwen', 'deepseek');
+
+  it('pins K3 to the depth routes (coding, planning, security)', () => {
+    const r = router('longxiang', fleet);
+    for (const c of ['coding', 'planning', 'security'] as const) {
+      expect(modelFor(r, c)).toBe('kimi-k3');
+    }
+  });
+
+  it('puts vision + long context on Qwen and volume on V4 Flash', () => {
+    const r = router('longxiang', fleet);
+    for (const c of ['vision', 'long_context', 'teach'] as const) {
+      expect(modelFor(r, c)).toBe('qwen3.7-plus');
+    }
+    for (const c of ['chat', 'brainstorm', 'image_gen'] as const) {
+      expect(modelFor(r, c)).toBe('deepseek-v4-flash');
+    }
+  });
+
+  it('coordinator is Kimi K3 on BYOK', () => {
+    expect(coordinatorFor('longxiang', fleet)).toBe('kimi-k3');
+  });
+
+  it('plan access follows the launch flag', () => {
+    if (LONGXIANG_ENABLED) {
+      // Live: Longxiang is NOT special-cased — a signed-in plan runs it on
+      // credits, exactly like Maestro / Supernova / Aurora.
+      expect(coordinatorFor('longxiang', platform)).not.toBeNull();
+    } else {
+      // Dark: the managed K3 entry is gated out of PLATFORM_MODELS entirely,
+      // so a plan cannot reach it. This is the leak guard — a bookable
+      // managed model must not exist for a fleet nobody can select yet.
+      // BYOK still resolves (see the test above), because that runs on the
+      // user's own key and costs us nothing.
+      expect(coordinatorFor('longxiang', platform)).toBeNull();
+    }
+  });
+
+  it('launch flag is LIVE — operator activated 2026-07-18', () => {
+    // Tripwire. Flipping LONGXIANG_ENABLED makes the fleet visible across
+    // every surface at once, so this test exists to force that flip to be a
+    // deliberate, reviewable diff rather than something riding along in a
+    // refactor. Operator activated it on 2026-07-18.
+    //
+    // Still open at activation, and deliberately NOT blocking it:
+    //   - "Longxiang" trademark search (classes 9 + 42) — uncleared. This is
+    //     the real risk; the name is public the moment this ships.
+    //   - Kimi K3 weights due 2026-07-27 — not yet published.
+    //   - Qwen 3.7 Plus is still closed.
+    // The shipped copy deliberately never claims "open weights end to end",
+    // so none of the above makes any user-facing string false today. If that
+    // wording is ever strengthened, it must wait on the weights.
+    expect(LONGXIANG_ENABLED).toBe(true);
+  });
 });
 
 describe('Maestro — Qwen on both surfaces', () => {

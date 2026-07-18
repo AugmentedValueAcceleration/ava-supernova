@@ -14,8 +14,9 @@
     "noUnusedParameters": true,
     "baseUrl": ".",
     "paths": {
-      "@ava-extension/messages": ["../src/webview/message-types.ts"]
+      "@ava-extension/messages": ["../src/webview/message-types.ts"],
+      "@ava-extension/fleet-copy": ["../src/webview/fleet-copy.ts"]
     }
   },
-  "include": ["src", "../src/webview/message-types.ts"]
+  "include": ["src", "../src/webview/message-types.ts", "../src/webview/fleet-copy.ts"]
 }

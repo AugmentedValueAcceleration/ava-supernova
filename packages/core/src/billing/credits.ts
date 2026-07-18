@@ -182,6 +182,17 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // Medium 3.5's per-model cost when used outside Aurora).
   'mistral-medium-3.5':           3.64,
   'mistral-medium-3.5-platform':  3.64,
+  // Kimi K3 — Longxiang's coordinator AND Builder, so it drives most of that
+  // fleet's turns. $3.00/$15.00, which is EXACTLY 2× Mistral Medium 3.5
+  // ($1.50/$7.50) on both input and output, so the multiplier is derived
+  // straight off that already-calibrated anchor: 3.64 × 2 = 7.28. Same 30%
+  // margin, no new calibration guesswork.
+  //
+  // This is the priciest multiplier in the table by some way — that is the
+  // model's real cost, not a markup. Worth knowing before Longxiang traffic
+  // lands on plan credits.
+  'kimi-k3':                      7.28,
+  'kimi-k3-platform':             7.28,
 };
 
 /** Per-mode cost multiplier — applied AFTER the model multiplier in
@@ -202,6 +213,12 @@ export const MODE_COST_MULTIPLIER: Record<string, number> = {
   supernova: 1.0,
   maestro:   1.0,
   auto:      1.0, // alias used by clients — same as maestro
+  // Longxiang works like every other fleet: a plan runs it on credits, BYOK
+  // runs it on the user's own keys once all three are present. Flat 1.0× —
+  // K3's cost is carried honestly by its per-model multiplier (7.28) above
+  // rather than hidden in a fleet-level bump, matching the reasoning that
+  // moved Aurora's premium off a mode multiplier and onto Medium 3.5.
+  longxiang: 1.0,
 };
 
 /** Apply per-mode cost multiplier. Default 1.0 for unlisted modes. */

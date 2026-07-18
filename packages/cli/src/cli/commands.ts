@@ -16,6 +16,7 @@ import {
   t, scaffoldProjectInstructions, detectProjectRoot, getInstructionsPath,
   loadDatasetConfig, saveDatasetConfig, configPathFor, ALL_DATASETS,
   AVA_HOME,
+  LONGXIANG_ENABLED,
   type DatasetConfig, type DatasetName, type AvaMode,
 } from '@ava/core';
 import { join } from 'node:path';
@@ -32,7 +33,7 @@ export type RetryHandler = () => void;
 export type CompactHandler = () => Promise<void>;
 export type SecurityHandler = (focus: string) => Promise<void>;
 export type BrainstormHandler = (topic: string) => Promise<void>;
-export type RoutingMode = 'auto' | 'supernova' | 'aurora';
+export type RoutingMode = 'auto' | 'supernova' | 'aurora' | 'longxiang';
 export type RouteSwitchHandler = (next: RoutingMode) => Promise<void>;
 export type RouteGetter = () => RoutingMode;
 
@@ -40,14 +41,29 @@ const ROUTE_INFO: Record<RoutingMode, { label: string; stack: string; tagline: s
   auto:      { label: 'Maestro',   stack: 'Qwen',            tagline: 'orchestration-tuned, balanced cost' },
   supernova: { label: 'Supernova', stack: 'DeepSeek + Qwen', tagline: 'polyglot depth for serious work' },
   aurora:    { label: 'Aurora',    stack: 'Mistral',         tagline: 'EU-sovereign three-tier' },
+  longxiang: { label: 'Longxiang', stack: 'Kimi + Qwen + DeepSeek', tagline: 'open weights, BYOK-only, zero credits' },
 };
+
+/** Routes the user can actually pick right now. Longxiang is built but dark
+ *  until LONGXIANG_ENABLED flips — see longxiang-router.ts for what has to be
+ *  verified first. Filtering here (rather than deleting the ROUTE_INFO entry)
+ *  keeps its label/tagline in one place for the day it goes live. */
+function liveRoutes(): RoutingMode[] {
+  const all: RoutingMode[] = ['auto', 'supernova', 'aurora', 'longxiang'];
+  return all.filter(r => r !== 'longxiang' || LONGXIANG_ENABLED);
+}
 
 function resolveRouteArg(raw: string): RoutingMode | null {
   const a = raw.trim().toLowerCase();
-  if (a === 'auto' || a === 'maestro' || a === 'm') return 'auto';
-  if (a === 'supernova' || a === 'sn' || a === 's') return 'supernova';
-  if (a === 'aurora' || a === 'a') return 'aurora';
-  return null;
+  let match: RoutingMode | null = null;
+  if (a === 'auto' || a === 'maestro' || a === 'm') match = 'auto';
+  else if (a === 'supernova' || a === 'sn' || a === 's') match = 'supernova';
+  else if (a === 'aurora' || a === 'a') match = 'aurora';
+  else if (a === 'longxiang' || a === 'lx' || a === '龙翔') match = 'longxiang';
+  // A dark route must behave exactly like an unknown one — no "coming soon"
+  // hint that leaks an unannounced fleet name.
+  if (match && !liveRoutes().includes(match)) return null;
+  return match;
 }
 
 export class CommandHandler {
@@ -138,7 +154,8 @@ export class CommandHandler {
           console.log(`  Current route: ${chalk.bold(ROUTE_INFO[current].label)} — ${ROUTE_INFO[current].stack} (${ROUTE_INFO[current].tagline})`);
           console.log('');
           console.log('  Available:');
-          for (const [, info] of Object.entries(ROUTE_INFO)) {
+          for (const route of liveRoutes()) {
+            const info = ROUTE_INFO[route];
             console.log(`    ${chalk.bold('/route ' + info.label.toLowerCase())} - ${info.stack} · ${info.tagline}`);
           }
           console.log('');
@@ -146,7 +163,7 @@ export class CommandHandler {
         }
         const next = resolveRouteArg(args);
         if (!next) {
-          console.log(`  ${chalk.red('Unknown route')} — use one of: maestro, supernova, aurora`);
+          console.log(`  ${chalk.red('Unknown route')} — use one of: ${liveRoutes().map(r => ROUTE_INFO[r].label.toLowerCase()).join(', ')}`);
           return true;
         }
         if (next === current) {

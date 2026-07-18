@@ -1,4 +1,5 @@
 import type { ModelDefinition } from '../../core/types.js';
+import { LONGXIANG_ENABLED } from '../../auto/longxiang-router.js';
 
 /**
  * Platform models — available on managed plans + free accounts.
@@ -6,9 +7,40 @@ import type { ModelDefinition } from '../../core/types.js';
  * Free accounts: Qwen only (3.5 Flash default).
  * MiniMax is BYOK only — users supply their own MiniMax API key (see
  *   providers/minimax/models.ts). It carries no managed/platform entry.
- * Kimi is BYOK only — users supply a Moonshot API key to use K2.6 / K2.5.
+ * Kimi: K2.6 / K2.5 / K2.7 Code remain BYOK only. K3 is the exception — it
+ *   is served managed as Longxiang's coordinator + Builder seat, so that
+ *   fleet is reachable on a plan like every other fleet. Operator decision
+ *   2026-07-18, superseding the earlier blanket "Kimi is BYOK-only" position.
  */
+/**
+ * Kimi K3 as a MANAGED model — Longxiang's lead seat (coordinator AND
+ * Builder). 2.8T Stable LatentMoE, 1M context, native vision. The priciest
+ * model we serve at $3.00/$15.00, hence the largest credit multiplier in
+ * credits.ts (7.28x) — real cost passed through, not margin.
+ *
+ * Only K3 is promoted to managed; the rest of the Kimi line stays BYOK.
+ *
+ * GATED on LONGXIANG_ENABLED. A managed K3 exists solely to make Longxiang
+ * reachable on a plan, so while the fleet is dark this entry must not exist
+ * either — otherwise it is registerable through the provider registry (CLI,
+ * IDE sidecar) as a bookable managed model for a fleet nobody can select.
+ */
+const KIMI_K3_PLATFORM: ModelDefinition = {
+  id: 'kimi-k3-platform',
+  name: 'Kimi K3',
+  provider: 'platform',
+  contextWindow: 1000000,
+  maxOutputTokens: 8192,
+  supportsToolCalls: true,
+  supportsStreaming: true,
+  supportsThinking: true,
+  supportsVision: true,
+  desktopCapable: true, // Frontier agentic model — strongest coordinator we serve.
+  pricing: { inputPerMillion: 3.00, outputPerMillion: 15.00 },
+};
+
 export const PLATFORM_MODELS: ModelDefinition[] = [
+  ...(LONGXIANG_ENABLED ? [KIMI_K3_PLATFORM] : []),
   // Qwen 3.7 Plus — flagship Maestro conductor. Agentic coding, 1M context,
   // vision + video, reasoning. Supersedes Qwen 3.6 Plus + the 3.5 Omni tier:
   // better agentic coding, multimodal, and cheaper.

@@ -14,6 +14,11 @@ export default defineConfig({
         __dirname,
         '../src/webview/dashboard-message-types.ts',
       ),
+      // Fleet picker copy shared with webview-ui — see fleet-copy.ts.
+      '@ava-extension/fleet-copy': path.resolve(
+        __dirname,
+        '../src/webview/fleet-copy.ts',
+      ),
     },
   },
   build: {

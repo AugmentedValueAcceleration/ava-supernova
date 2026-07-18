@@ -3949,4 +3949,9 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'library.use_in_project': 'Sử dụng trong dự án',
   'library.rename': 'Đổi tên',
   'library.rename_save': 'Lưu',
+  'dash.model.sub.longxiang_open': 'Kimi K3 + Qwen + DeepSeek',
+  'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
+  'dash.model.sub.add_moonshot': 'Thêm khóa Moonshot',
+  'dash.model.sub.connect_longxiang': 'Kết nối hoặc thêm 3 khóa',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — đội mô hình trọng lượng mở. Kimi K3 dẫn đầu với vai trò điều phối và người xây dựng, Qwen 3.7 Plus đảm nhận các bản dựng tầm trung và thị giác, DeepSeek V4 Flash xử lý khối lượng lớn. Có sẵn theo gói, hoặc với khóa Moonshot + Qwen + DeepSeek của riêng bạn. K3 là mô hình đắt nhất chúng tôi cung cấp, nên tiêu tốn nhiều tín dụng hơn mỗi lượt so với các đội khác.',
 };

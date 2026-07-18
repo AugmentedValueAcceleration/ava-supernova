@@ -3929,4 +3929,9 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'library.use_in_project': 'Im Projekt verwenden',
   'library.rename': 'Umbenennen',
   'library.rename_save': 'Speichern',
+  'dash.model.sub.longxiang_open': 'Kimi K3 + Qwen + DeepSeek',
+  'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
+  'dash.model.sub.add_moonshot': 'Moonshot-Schlüssel hinzufügen',
+  'dash.model.sub.connect_longxiang': 'Verbinden oder 3 Schlüssel hinzufügen',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — die Open-Weights-Flotte. Kimi K3 führt als Koordinator und Builder, Qwen 3.7 Plus übernimmt Mid-Tier-Builds und Vision, DeepSeek V4 Flash bewältigt das Volumen. Verfügbar auf einem Plan oder mit Ihren eigenen Moonshot + Qwen + DeepSeek Schlüsseln. K3 ist das teuerste Modell, das wir anbieten, daher verbraucht es pro Runde mehr Credits als die anderen Flotten.',
 };
