@@ -3,15 +3,15 @@
 // Decoupled from raw provider tokens: 1 credit ≈ $0.0038 at Pro's rate
 // ($19 / 5,000 credits + rounding). Action costs reflect value delivered,
 // not linear raw cost — a Flash call burns 1 credit, a full orchestration
-// burns 10, a video generation burns 100. Target 55% net margin at typical
-// (60%) utilisation, sized against published Qwen 3.7 Plus rates with no
-// provider-discount assumption.
+// burns 10, a video generation burns 100. Target 30% net margin at typical
+// (60%) utilisation (was 55% → 40% → 30%; see MODEL_COST_MULTIPLIER), sized
+// against published Qwen 3.7 Plus rates with no provider-discount assumption.
 //
 // Rebalanced 2026-04-23 after Alibaba walked back the 50% discount on
 // 3.7 Plus. Prior allowances (Free 1,500 / Pro 15,000 / Ultra 35,000 /
 // Enterprise 75,000) were penciled against a $0.0025/credit design and a
 // discount cushion, neither of which held at launch. New allowances
-// (5K / 10K / 20K paid) make 55% margin achievable on published rates.
+// (5K / 10K / 20K paid) were sized for margin on published rates.
 // Existing users stay on their current cycle's higher allowance — the
 // rollover logic in increment_credits (migration 203) materialises new
 // rates on the next period boundary, no forced clawback.
@@ -115,13 +115,17 @@ export function cacheHitMultiplier(model: string | null | undefined): number {
  *  on chat_turn loses money on every call. The multiplier scales the
  *  bracket cost to track actual spend.
  *
- *  Recalibrated 2026-04-29 to a 40% net margin target (was 55%). Trade
- *  is deliberate — thinner margin per existing user, materially more
- *  credits per dollar, the difference goes back to the user. Lever for
- *  conversion: Free's allowance now feels like a real evaluation tool
- *  rather than a paywall teaser, and Pro's daily Maestro budget roughly
- *  doubles at the same price. "Value over margin" — sustainability
- *  floor, not ceiling.
+ *  Recalibrated 2026-07-19 to a 30% net margin target (was 40%, was 55%
+ *  before that). Every multiplier scaled by 6/7 — the exact factor to
+ *  move 40% → 30% (price = cost / (1 − margin)). Trade is deliberate:
+ *  thinner margin per existing user, materially more credits per dollar,
+ *  the difference goes back to the user. "Value over margin" —
+ *  sustainability floor, not ceiling.
+ *
+ *  NOTE: 30% is the *typical* target at ~60% utilisation. The margin at
+ *  100% utilisation has NOT been re-modelled since the 40% rebalance —
+ *  see MARGIN_TARGETS. Derive it before cutting further; heavy users are
+ *  where a low target turns negative first.
  *
  *  Mirror of web's credits-pricing.ts MODEL_COST_MULTIPLIER — keep them
  *  in sync; web is the authoritative billing surface and core's meter
@@ -131,21 +135,21 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // price ($1.74/$3.48); the real price is $0.435/$0.87, so the multiplier
   // scales down ~4× to restore the 40% margin. V4 Pro is the Supernova
   // coordinator — this stops a ~4× overcharge on every orchestration.
-  'deepseek-v4-pro':            0.9,
-  'deepseek-v4-pro-platform':   0.9,
+  'deepseek-v4-pro':            0.77,
+  'deepseek-v4-pro-platform':   0.77,
   // V4 Flash: explicit 0.5× (was falling through to default 1.0×, which
   // would over-charge it relative to its $0.14/$0.28 per-million rate).
   // Now Supernova's chat tier — fast, MIT open-weight, 13B active params,
   // 2 credits per typical chat turn at the 40% margin floor.
-  'deepseek-v4-flash':            0.5,
-  'deepseek-v4-flash-platform':   0.5,
+  'deepseek-v4-flash':            0.43,
+  'deepseek-v4-flash-platform':   0.43,
   // Qwen 3.7 Plus: 1.5 → 0.7. Maestro chat used to charge 6 credits/turn
   // (~79% margin); now 3 credits (~40%). The biggest concrete win for
   // users — daily-driver Maestro doubles at the same plan price.
-  'qwen3.7-plus':               0.7,
-  'qwen-plus':                  0.7,
-  'qwen3.5-plus':               0.6,
-  'qwen3.5-omni-plus':          0.6,
+  'qwen3.7-plus':               0.6,
+  'qwen-plus':                  0.6,
+  'qwen3.5-plus':               0.51,
+  'qwen3.5-omni-plus':          0.51,
   // Qwen 3.5 Flash + Omni Flash — added 2026-04-30 when v0.59.0 routed
   // Maestro chat / image_gen / intent gate to 3.5 Flash and Supernova
   // image_gen orchestration to Omni Flash. Without explicit entries they
@@ -153,22 +157,22 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // actual per-million rates ($0.07/$0.26 for Flash). 0.3× (Flash) and
   // 0.4× (Omni Flash, vision encoder lift) keeps margin at the 40% floor
   // while passing the genuine cost saving through to users.
-  'qwen3.5-flash':              0.3,
-  'qwen-flash':                 0.3,
-  'qwen3.5-omni-flash':         0.4,
+  'qwen3.5-flash':              0.26,
+  'qwen-flash':                 0.26,
+  'qwen3.5-omni-flash':         0.34,
   // Mistral Small 4: 0.6 → 1.15. The old 0.6× was calibrated against a wrong,
   // too-low price ($0.10/$0.30); the real price is $0.15/$0.60 (~1.9× higher
   // blended), so the multiplier scales ~1.9× to restore the 40% margin target.
   // Sits below Large 3 (1.25×, pricier) as it should. Small 4 is now Aurora's
   // high-volume workhorse, so this drives a lot of turns — calibrating it
   // right matters.
-  'mistral-small-4':            1.15,
-  'mistral-small-4-platform':   1.15,
+  'mistral-small-4':            0.99,
+  'mistral-small-4-platform':   0.99,
   // Mistral Large 3: 1.25× — cost-accurate at $0.50/$1.50 (price unchanged).
   // Now Aurora's heavy reserve/fallback, not the coordinator, so it sees
   // far less traffic.
-  'mistral-large-3':            1.25,
-  'mistral-large-3-platform':   1.25,
+  'mistral-large-3':            1.07,
+  'mistral-large-3-platform':   1.07,
   // Mistral Medium 3.5: 3.0 → 4.25. The ONE multiplier that goes UP at
   // the 40% rebalance — it was sitting at ~36% margin (below the new
   // floor) because the original 3.0× was set against a 55% target with
@@ -176,8 +180,8 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // Raising the model multiplier directly is more honest than hiding
   // the cost in an Aurora-only mode bump (which would lie about
   // Medium 3.5's per-model cost when used outside Aurora).
-  'mistral-medium-3.5':           4.25,
-  'mistral-medium-3.5-platform':  4.25,
+  'mistral-medium-3.5':           3.64,
+  'mistral-medium-3.5-platform':  3.64,
 };
 
 /** Per-mode cost multiplier — applied AFTER the model multiplier in
@@ -439,7 +443,20 @@ export const CREDIT_TOPUPS: CreditTopupDefinition[] = [
  *  financials page + anywhere we want to sanity-check plan economics at a
  *  glance. Not consumed at billing time. */
 export const MARGIN_TARGETS = {
-  typicalNetMargin: 0.55,    // 55% at 60% utilisation — design point
-  maxUtilisationNet: 0.30,   // 30% floor at 100% utilisation — safety
-  freeSubsidyPerUser: 0.72,  // USD / month worst case on Free
+  /** 30% at ~60% utilisation — the live design point as of 2026-07-19.
+   *  MODEL_COST_MULTIPLIER is the source of truth; this mirrors its target
+   *  so the hub's financials page reports what we actually charge. It sat
+   *  at 0.55 while billing was calibrated to 0.40, which overstated margin
+   *  in our own planning for months. */
+  typicalNetMargin: 0.30,
+  /** ⚠ UNVERIFIED — not re-derived since the 2026-04-29 rebalance. The old
+   *  pair (0.55 typical / 0.30 max) implied a ~25pt drop between 60% and
+   *  100% utilisation; carrying that spread onto a 30% typical lands here.
+   *  Treat as a flag to model properly, NOT as a measured figure — heavy
+   *  users are where a thin target goes negative first, and this is the
+   *  number that must be derived before any further cut. */
+  maxUtilisationNet: 0.05,
+  /** USD / month worst case on Free — funded out of paid margin, so it
+   *  gets harder to carry as the target comes down. */
+  freeSubsidyPerUser: 0.72,
 } as const;
