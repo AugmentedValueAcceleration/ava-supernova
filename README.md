@@ -86,15 +86,16 @@ Chat and Write run without personas — just Ava.
 
 ## Models & Fleets
 
-You don't pick a model — you pick the work, and the right fleet falls out of it. Two orchestrated fleets ship today; a third is rolling out.
+You don't pick a model — you pick the work, and the right fleet falls out of it. Four orchestrated fleets, three of them fully live.
 
 | Fleet | Status | Coordinator | Best for |
 |---|---|---|---|
 | **Maestro** | **Ships now** | Qwen 3.7 Plus | Daily work, predictable cost — a tier-differentiated Qwen ensemble |
 | **Aurora** | **Ships now** | Mistral Medium 3.5 | GDPR-strict / sovereign EU work — Mistral-only, open weights, never leaves EU infrastructure |
 | **Supernova** | BYOK now · managed preview | DeepSeek V4 Pro | Heavy multi-step work — a polyglot fleet picking the best model per role |
+| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Work you want run entirely on Chinese models — K3 leads and builds, Qwen 3.7 Plus takes vision and long context, DeepSeek V4 Flash handles chat |
 
-**Supernova** runs today with your own DeepSeek + Qwen keys; the managed (platform-hosted) version is in preview. **Maestro** unlocks with a Qwen key, **Aurora** with a Mistral key.
+**Supernova** runs today with your own DeepSeek + Qwen keys; the managed (platform-hosted) version is in preview. **Maestro** unlocks with a Qwen key, **Aurora** with a Mistral key, and **Longxiang** with Moonshot + Qwen + DeepSeek keys.
 
 ### Supported models
 

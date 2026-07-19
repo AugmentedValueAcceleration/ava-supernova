@@ -5,7 +5,7 @@ All notable changes to Ava Supernova will be documented in this file.
 ## Extension [0.88.0] - 2026-07-19
 
 ### Longxiang joins the fleet
-- **A fourth orchestrated fleet, built entirely on Chinese open-weight models.** Kimi K3 leads and builds, Qwen 3.7 Plus takes vision, long context and teaching, and DeepSeek V4 Flash handles chat and brainstorming. On a plan it runs on credits; with your own keys it appears once all three provider keys are present.
+- **A fourth orchestrated fleet, built entirely on Chinese models.** Kimi K3 leads and builds, Qwen 3.7 Plus takes vision, long context and teaching, and DeepSeek V4 Flash handles chat and brainstorming. On a plan it runs on credits; with your own keys it appears once all three provider keys are present.
 
 ### Fixed
 - **Chat turns were being overcharged, on every fleet.** Chat, brainstorm and image turns are routed to each fleet's cheap tier, but they were running on the fleet's coordinator and billed at coordinator rates. An Aurora chat turn cost 7 credits against a published 2. Wrong on all four fleets, our mistake, and fixed — direct turns now run on the model they were always routed to.
@@ -15,7 +15,7 @@ All notable changes to Ava Supernova will be documented in this file.
 ## IDE [0.36.0] - 2026-07-19
 
 ### Longxiang joins the fleet
-- **A fourth orchestrated fleet, built entirely on Chinese open-weight models** — Kimi K3 leading and building, Qwen 3.7 Plus on vision and long context, DeepSeek V4 Flash on chat. It appears in every picker alongside Aurora, Supernova and Maestro.
+- **A fourth orchestrated fleet, built entirely on Chinese models** — Kimi K3 leading and building, Qwen 3.7 Plus on vision and long context, DeepSeek V4 Flash on chat. It appears in every picker alongside Aurora, Supernova and Maestro.
 
 ### Fixed
 - **Chat turns were being overcharged, on every fleet.** Same fix as the extension: chat, brainstorm and image turns were billed at coordinator rates rather than the cheap tier they were routed to. An Aurora chat turn cost 7 credits against a published 2.

@@ -64,12 +64,13 @@ export const PROVIDERS: ProviderFact[] = [
   },
   {
     id: 'longxiang',
-    name: '✦ Longxiang — open-weights stack',
+    name: '✦ Longxiang — Chinese-model stack',
     kind: 'orchestration',
-    // Deliberately does NOT claim "open weights end to end": Kimi K3's weights
-    // are due 2026-07-27 and Qwen 3.7 Plus is still API-only. Describe the
-    // fleet accurately today; strengthen the wording when it becomes true.
-    notes: 'Kimi K3 holds both the coordinator and Builder seats — the strongest open coder we serve (88.3 Terminal-Bench 2.1, 81.2 FrontierSWE). Qwen 3.7 Plus takes mid-tier builds and vision; DeepSeek V4 Flash carries chat, brainstorm and the intent gate. K3 is the priciest model we serve, so Longxiang uses more credits per turn than the other fleets — or none at all on your own keys.',
+    // Deliberately does NOT claim open weights, in the name or anywhere below:
+    // Kimi K3's weights are due 2026-07-27 and Qwen 3.7 Plus is still API-only,
+    // so today only DeepSeek V4 Flash is genuinely open. Describe the fleet
+    // accurately now; strengthen the wording when it becomes true.
+    notes: 'Kimi K3 holds both the coordinator and Builder seats — the strongest coder we serve (88.3 Terminal-Bench 2.1, 81.2 FrontierSWE). Qwen 3.7 Plus takes mid-tier builds and vision; DeepSeek V4 Flash carries chat, brainstorm and the intent gate. K3 is the priciest model we serve, so Longxiang uses more credits per turn than the other fleets — or none at all on your own keys.',
     models: [
       { id: 'kimi-k3-platform', displayName: 'Kimi K3 — lead seat: coordinator AND Builder, plus deep specialists (Architect, Researcher, CVE Researcher, Ideator). 2.8T Stable LatentMoE, native vision', inputPricePerM: 3.00, outputPricePerM: 15.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — mid-tier builds, vision input, long context, teach delivery, long-form writing', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
