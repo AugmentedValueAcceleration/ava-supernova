@@ -1,5 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { getLocale } from '../i18n/index.js';
 
 export class NewsTool implements Tool {
   readonly name = 'news';
@@ -56,6 +57,13 @@ export class NewsTool implements Tool {
       let url = `https://ava-supernova.com/api/news?limit=${limit}`;
       if (category) url += `&category=${category}`;
       if (query) url += `&q=${encodeURIComponent(query)}`;
+      // Ava answers in the user's language, so the headlines she is answering
+      // *from* have to be in it too — otherwise she is summarising English
+      // copy into Spanish and the quotes drift. Every host (CLI, extension,
+      // IDE sidecar) calls setLocale() at startup, so this is already correct
+      // without threading language through ToolExecutionContext.
+      const locale = getLocale();
+      if (locale && locale !== 'en') url += `&locale=${encodeURIComponent(locale)}`;
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
@@ -93,7 +101,10 @@ export class NewsTool implements Tool {
         const cat = post.category as string ?? '';
         const excerpt = (post.excerpt as string ?? '').slice(0, 200);
         const readingTime = post.reading_time as string | number ?? '';
-        const published = post.published as string ?? post.publishedAt as string ?? '';
+        // The feed API returns `created_at`; `published` is a boolean filter,
+        // not a date, and `publishedAt` does not exist — so this line silently
+        // never rendered and Ava could not tell you how old a story was.
+        const published = (post.created_at as string ?? '').slice(0, 10);
 
         output += `### ${title}\n`;
         if (cat) output += `**Category:** ${cat}`;

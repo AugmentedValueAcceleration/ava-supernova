@@ -30,6 +30,7 @@ function httpGetJson(url: string): Promise<unknown> {
 }
 import {
   MemoryManager, TaskManager, migrateGlobalTasksToSubfolder, JournalManager, AVA_HOME,
+  resolveLocale,
   listOpenAICompatibleModels,
   loadPersonality, savePersonality, resetPersonality,
   loadDatasetConfig, saveDatasetConfig, configPathFor,
@@ -5338,10 +5339,28 @@ export class DashboardPanel {
     }
   }
 
+  /**
+   * The user's effective language, for platform content that is served
+   * translated (news, roadmap, releases).
+   *
+   * `preferences.language` is the setting the user actually chose; `auto`
+   * means "follow the editor", which is what vscode.env.language reports.
+   * Same resolution AvaViewProvider uses for chat, so the dashboard and the
+   * assistant can never disagree about what language you are in.
+   */
+  private effectiveLocale(): string {
+    const setting = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
+    return resolveLocale(setting === 'auto' ? vscode.env.language : setting);
+  }
+
   private async handleLoadNews(category?: string): Promise<void> {
     try {
       const params = new URLSearchParams({ limit: '24' });
       if (category) params.set('category', category);
+      // Platform has every article in all supported locales; without this the
+      // reader shows English no matter what language the user is running in.
+      const locale = this.effectiveLocale();
+      if (locale !== 'en') params.set('locale', locale);
 
       const data = await httpGetJson(`https://ava-supernova.com/api/news?${params}`) as
         { posts?: Array<Record<string, unknown>>; articles?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
@@ -5380,7 +5399,9 @@ export class DashboardPanel {
     // Send loading state immediately
     this.post({ type: 'news_article_loaded', post: null, related: [], loading: true });
     try {
-      const data = await httpGetJson(`https://ava-supernova.com/api/news/${encodeURIComponent(slug)}`) as
+      const locale = this.effectiveLocale();
+      const qs = locale !== 'en' ? `?locale=${encodeURIComponent(locale)}` : '';
+      const data = await httpGetJson(`https://ava-supernova.com/api/news/${encodeURIComponent(slug)}${qs}`) as
         { post?: Record<string, unknown>; related?: Array<Record<string, unknown>> };
       this.post({
         type: 'news_article_loaded',
