@@ -2,6 +2,37 @@
 
 All notable changes to Ava Supernova will be documented in this file.
 
+## Extension [0.88.0] - 2026-07-19
+
+### Longxiang joins the fleet
+- **A fourth orchestrated fleet, built entirely on Chinese open-weight models.** Kimi K3 leads and builds, Qwen 3.7 Plus takes vision, long context and teaching, and DeepSeek V4 Flash handles chat and brainstorming. On a plan it runs on credits; with your own keys it appears once all three provider keys are present.
+
+### Fixed
+- **Chat turns were being overcharged, on every fleet.** Chat, brainstorm and image turns are routed to each fleet's cheap tier, but they were running on the fleet's coordinator and billed at coordinator rates. An Aurora chat turn cost 7 credits against a published 2. Wrong on all four fleets, our mistake, and fixed — direct turns now run on the model they were always routed to.
+- **The status bar names the model actually running**, not just the fleet you picked, so you can see a chat turn drop to the cheap tier.
+- **The news desk reads in your language.** Every published article is translated ahead of time, so headlines, body, quotes, coverage and sources arrive in the language you are working in.
+
+## IDE [0.36.0] - 2026-07-19
+
+### Longxiang joins the fleet
+- **A fourth orchestrated fleet, built entirely on Chinese open-weight models** — Kimi K3 leading and building, Qwen 3.7 Plus on vision and long context, DeepSeek V4 Flash on chat. It appears in every picker alongside Aurora, Supernova and Maestro.
+
+### Fixed
+- **Chat turns were being overcharged, on every fleet.** Same fix as the extension: chat, brainstorm and image turns were billed at coordinator rates rather than the cheap tier they were routed to. An Aurora chat turn cost 7 credits against a published 2.
+- **The news desk reads in your language**, and switching language reloads what is already on screen — including an article you have open — instead of leaving it in English until you navigate away.
+- **"Show me the details" is translated.** It was hardcoded English in every language, sitting in the middle of otherwise translated pages.
+
+## Companion [0.4.0] - 2026-07-19
+
+### Longxiang joins the fleet
+- **The fourth fleet is in the model picker** with the other three. Also fixes the provider key name the companion looked for when checking whether your own Moonshot key was present — it was looking under the wrong name, so the fleet would never have unlocked for BYOK users.
+
+### Your language, properly this time
+- **The news desk reads in your language** — headlines, articles and category filters.
+- **So does the rest of the app.** App chrome, Help & Docs, the personality screen, and the news and catalogue filters were all sitting in hardcoded English behind an otherwise translated interface.
+- **Your language choice saves.** It was being written to storage after a reload had already fired, so it never survived. Changing language no longer reloads the app at all — it switches in place and keeps you where you were.
+- **The welcome tour is rebuilt** on the same shared onboarding model the IDE and extension use, so the three surfaces cannot drift apart, with a language picker in the tour itself.
+
 ## Extension [0.86.0] - 2026-07-16
 
 ### Your language, the whole way through — and live
