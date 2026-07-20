@@ -36,6 +36,14 @@ export type {
 } from './news/index.js';
 export { clusterCoverage, summariseCoverage, verifyQuote } from './news/index.js';
 
+// Pantry contracts — the recipe-desk store the tools write through, plus the
+// pure shopping-list check that makes a recipe cookable-from-its-own-list.
+export type {
+  SkillLevel, RecipeIngredientInput, RecipeStepInput, RecipeVersionInput,
+  RecipeInput, SeedSuggestion, RecipeCheckFinding, RecipeCheckResult, RecipeStore,
+} from './recipes/index.js';
+export { findPhantomIngredients, checkRecipeShoppingList } from './recipes/index.js';
+
 // Social Studio contracts — the surface-injected stores the Posts-floor tools
 // (write_post, propose_hooks) write through, plus the shared char-limit map.
 export type {
