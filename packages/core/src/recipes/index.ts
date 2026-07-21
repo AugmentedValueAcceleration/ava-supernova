@@ -104,9 +104,25 @@ export interface RecipeCheckResult {
  * database — injected by the surface (the web supplies it against Supabase and
  * its provider).
  */
+/** An existing recipe's current state, for Ava to READ before she repairs it —
+ *  the fix for blind repair. Working only from the check findings, she cannot
+ *  tell "flour is missing" from "flour is here as harina"; seeing the real list
+ *  she reasons across the gap the deterministic check cannot. */
+export interface RecipeSnapshot {
+  id: string;
+  name: string;
+  ingredients: Array<{ name: string; level: SkillLevel | null }>;
+  versions: Array<{ level: SkillLevel; steps: string[] }>;
+  validation?: RecipeCheckResult;
+}
+
 export interface RecipeStore {
   /** Persist a drafted recipe (UNPUBLISHED) and return its id. */
   save(recipe: RecipeInput): Promise<{ id: string | null }>;
+
+  /** Read an existing recipe's full current state — the shopping list (shared
+   *  and per level) and the method — so a repair is done with eyes open. */
+  readRecipe(recipeId: string): Promise<RecipeSnapshot | null>;
 
   /**
    * The shopping-list check. The host reads each version's method with the

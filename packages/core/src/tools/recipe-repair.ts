@@ -5,6 +5,64 @@ import type { RecipeStore, SkillLevel } from '../recipes/index.js';
 const LEVELS: SkillLevel[] = ['beginner', 'intermediate', 'expert'];
 
 /**
+ * read_recipe — see the recipe before repairing it.
+ *
+ * The fix for blind repair. Working from the check findings alone, Ava cannot
+ * tell a genuinely missing ingredient from one that is already there under
+ * another name or another language ("flour" missing, when the list says
+ * "harina"). The deterministic check cannot bridge that; Ava can, but only if
+ * she can SEE the actual list. So: read first, then repair.
+ */
+export class ReadRecipeTool implements Tool {
+  readonly name = 'read_recipe';
+  readonly description =
+    'Read an existing recipe by id — its full shopping list (shared and per skill level) and its method. Do this BEFORE repairing, so you can tell a truly missing ingredient from one already listed under another name or language. Read-only.';
+  readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'read_recipe',
+    description: 'Read an existing recipe: name, the ingredient list (marking which are shared vs level-specific), each version\'s steps, and its current check verdict. Read this before add_ingredient so you do not add something the recipe already has under a different name.',
+    parameters: {
+      type: 'object',
+      properties: { recipe_id: { type: 'string' } },
+      required: ['recipe_id'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = context.sharedState?.recipeStore as RecipeStore | undefined;
+    if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
+
+    const recipeId = String(args.recipe_id ?? '').trim();
+    if (!recipeId) return { success: false, output: 'read_recipe requires recipe_id.' };
+
+    const snap = await store.readRecipe(recipeId);
+    if (!snap) return { success: false, output: 'No such recipe, or it could not be read.' };
+
+    const shared = snap.ingredients.filter((i) => !i.level).map((i) => i.name);
+    const byLevel = (lvl: SkillLevel) => snap.ingredients.filter((i) => i.level === lvl).map((i) => i.name);
+
+    return {
+      success: true,
+      output: JSON.stringify({
+        id: snap.id,
+        name: snap.name,
+        ingredients: {
+          shared,
+          beginner: byLevel('beginner'),
+          intermediate: byLevel('intermediate'),
+          expert: byLevel('expert'),
+        },
+        methods: Object.fromEntries(snap.versions.map((v) => [v.level, v.steps])),
+        check: snap.validation ? { status: snap.validation.status, missing: snap.validation.findings.map((f) => `${f.level}: ${f.term}`) } : 'not checked',
+        note: 'This is the ACTUAL list. Before adding anything the check flagged, confirm it is not already here under another name or language — "flour" may be present as "harina". Add only what is genuinely absent.',
+      }),
+    };
+  }
+}
+
+/**
  * add_ingredient — the targeted repair.
  *
  * This is the tool the whole "repair, don't re-roll" doctrine rests on. When a
