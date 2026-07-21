@@ -473,8 +473,8 @@ importers:
         specifier: ^0.20.16
         version: 0.20.16
       '@ava-supernova/core':
-        specifier: ^0.2.17
-        version: 0.2.17(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
+        specifier: ^0.2.18
+        version: 0.2.18(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@ffmpeg-installer/ffmpeg':
         specifier: ^1.1.0
         version: 1.1.0
@@ -663,8 +663,8 @@ packages:
       screenshot-desktop:
         optional: true
 
-  '@ava-supernova/core@0.2.17':
-    resolution: {integrity: sha512-41kRXbE6RGhvn096NeyOvOufjWD27X6oZlPCcAmCRAJ1BR4039VfoIBdiBErvdapNPVmeBRXtugkvkc1AIAubw==}
+  '@ava-supernova/core@0.2.18':
+    resolution: {integrity: sha512-4ytP/reAK9GJ3X9GS/mDz+9iEIw3VhVjznPIjXD0xxDm15hfOceMNSOo3PtdgggIiUvMV1cNkwMV8sXpKIppZA==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -6468,7 +6468,7 @@ snapshots:
       playwright: 1.58.2
       screenshot-desktop: 1.15.3
 
-  '@ava-supernova/core@0.2.17(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+  '@ava-supernova/core@0.2.18(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
     dependencies:
       glob: 13.0.6
       marked: 17.0.3

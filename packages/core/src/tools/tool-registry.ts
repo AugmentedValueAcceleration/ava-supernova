@@ -55,7 +55,7 @@ import { ResearchStoryTool } from './research-story.js';
 import { FactCheckTool } from './fact-check.js';
 import { WriteArticleTool } from './write-article.js';
 import { WriteRecipeTool } from './write-recipe.js';
-import { AddIngredientTool, SetNutritionTool, CheckRecipeTool, ReviseSectionTool, ProposeSeedsTool, ReadRecipeTool, FindRecipeTool } from './recipe-repair.js';
+import { AddIngredientTool, SetNutritionTool, RegenerateHeroTool, CheckRecipeTool, ReviseSectionTool, ProposeSeedsTool, ReadRecipeTool, FindRecipeTool } from './recipe-repair.js';
 import { PostPerformanceTool } from './post-performance.js';
 import { SuggestBeatsTool } from './suggest-beats.js';
 import { ScanIndustryTool } from './scan-industry.js';
@@ -462,6 +462,7 @@ export class ToolRegistry {
       new FindRecipeTool(),
       new AddIngredientTool(),
       new SetNutritionTool(),
+      new RegenerateHeroTool(),
       new CheckRecipeTool(),
       new ReviseSectionTool(),
       new ProposeSeedsTool(),

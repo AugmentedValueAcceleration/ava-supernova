@@ -119,6 +119,44 @@ export class FindRecipeTool implements Tool {
  * clean. A full regeneration is a fresh recipe with fresh gaps; this is a needle
  * and thread.
  */
+/** Re-shoot a hero that came from a superseded engine. Part of a repair, not a
+ *  question to put to the operator — a recipe carrying a visibly older picture
+ *  is half-fixed. */
+export class RegenerateHeroTool implements Tool {
+  readonly name = 'regenerate_hero';
+  readonly description =
+    'Re-shoot a recipe\'s hero photograph on the current image engine. Use it when read_recipe reports the hero is outdated, or when the recipe has none.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'regenerate_hero',
+    description:
+      'Re-shoot the hero photograph for an existing recipe and make it the primary image. The previous one stays in the gallery — nothing is deleted. You author the prompt: the finished dish, plated honestly, as it actually looks when cooked from THIS recipe. No garnish the method never mentions.',
+    parameters: {
+      type: 'object',
+      properties: {
+        recipe_id: { type: 'string' },
+        image_prompt: { type: 'string', description: 'The subject of the photograph — the finished dish as this recipe actually produces it.' },
+      },
+      required: ['recipe_id', 'image_prompt'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = context.sharedState?.recipeStore as RecipeStore | undefined;
+    if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
+
+    const recipeId = String(args.recipe_id ?? '').trim();
+    const prompt = String(args.image_prompt ?? '').trim();
+    if (!recipeId || !prompt) return { success: false, output: 'regenerate_hero requires recipe_id and image_prompt.' };
+
+    const result = await store.regenerateHero(recipeId, prompt);
+    if (!result.ok) return { success: false, output: `Could not regenerate the hero: ${result.error ?? 'unknown error'}` };
+    return { success: true, output: JSON.stringify({ ok: true, engine: result.engine, is_primary: true }) };
+  }
+}
+
 /** The nutrition repair. Separate from add_ingredient because a missing figure
  *  is not a missing ingredient — the dish is cookable, the meal plan just can't
  *  count it. */

@@ -124,6 +124,10 @@ export interface RecipeSnapshot {
   /** has_nutrition matters: a version without it is a hole a meal plan falls
    *  through, and the absence is invisible unless we say so here. */
   versions: Array<{ level: SkillLevel; steps: string[]; has_nutrition: boolean }>;
+  /** The hero photograph, and whether it is any good. `outdated` means it came
+   *  from a superseded engine — the picture is not wrong, it just looks a
+   *  generation behind, and a repair is the natural moment to replace it. */
+  hero?: { exists: boolean; engine: string | null; outdated: boolean; prompt: string | null };
   validation?: RecipeCheckResult;
 }
 
@@ -146,6 +150,10 @@ export interface RecipeStore {
   /** Read an existing recipe's full current state — the shopping list (shared
    *  and per level) and the method — so a repair is done with eyes open. */
   readRecipe(recipeId: string): Promise<RecipeSnapshot | null>;
+
+  /** Re-shoot the hero on the current engine and make it primary. The old one
+   *  stays in the gallery — this replaces what is shown, it deletes nothing. */
+  regenerateHero(recipeId: string, prompt: string): Promise<{ ok: boolean; engine?: string; error?: string }>;
 
   /** Fill in a version's per-serving nutrition. Stored as an ESTIMATE — the
    *  host stamps the source, so this can never masquerade as a lab figure. */
