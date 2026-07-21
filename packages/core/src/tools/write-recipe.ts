@@ -39,6 +39,7 @@ export class WriteRecipeTool implements Tool {
       type: 'object',
       properties: {
         name: { type: 'string', description: 'The canonical dish name.' },
+        seed_id: { type: 'string', description: 'If you were asked to write a dish FROM a seed (the request names a seed id), pass it here so the seed is marked built and leaves the backlog.' },
         cuisine_slug: { type: 'string', description: 'Cuisine slug, if known.' },
         origin_country: { type: 'string' },
         course: { type: 'string', enum: ['main', 'starter', 'dessert', 'breakfast', 'side', 'snack'] },
@@ -89,9 +90,17 @@ export class WriteRecipeTool implements Tool {
               },
               diets: { type: 'array', items: { type: 'string' } },
               dietary_flags: { type: 'array', items: { type: 'string' } },
-              nutrition: { type: 'object', description: 'Per-serving ESTIMATE. Total the version, divide by servings. Stored as an estimate, never a lab figure.' },
+              nutrition: {
+                type: 'object',
+                description: 'REQUIRED. Per-serving estimate for THIS version: total the dish from this version\'s ingredient quantities, then divide by default_servings. Give calories (kcal) plus protein_g, carbs_g, fat_g, fibre_g, sugar_g, saturated_fat_g and sodium_mg. Estimate honestly and conservatively — it is stored and shown AS an estimate, never as a lab figure. A meal plan cannot total a day without this, so do not omit it.',
+                properties: {
+                  calories: { type: 'number' }, protein_g: { type: 'number' }, carbs_g: { type: 'number' },
+                  fat_g: { type: 'number' }, fibre_g: { type: 'number' }, sugar_g: { type: 'number' },
+                  saturated_fat_g: { type: 'number' }, sodium_mg: { type: 'number' },
+                },
+              },
             },
-            required: ['steps'],
+            required: ['steps', 'nutrition'],
           }])),
         },
       },
@@ -166,8 +175,24 @@ export class WriteRecipeTool implements Tool {
       return { success: false, output: 'REFUSED: a recipe needs at least one skill-level version with steps.' };
     }
 
+    // Nutrition is what a meal plan totals a day from. A version without it is
+    // a hole in the Plans feature, and the omission is invisible once saved —
+    // so catch it here rather than discovering empty columns later.
+    const missingNutrition = versions.filter((v) => !v.nutrition || Object.keys(v.nutrition).length === 0);
+    if (missingNutrition.length) {
+      return {
+        success: false,
+        output:
+          `REFUSED: no nutrition on ${missingNutrition.map((v) => v.level).join(', ')}. ` +
+          'Give a per-serving estimate for each version — total that version\'s ingredient quantities and divide by its servings. ' +
+          'Calories plus protein, carbs, fat, fibre, sugar, saturated fat and sodium. Estimate honestly; it is stored and shown as an estimate, not a lab figure. ' +
+          'A meal plan cannot total a day without it.',
+      };
+    }
+
     const recipe: RecipeInput = {
       name,
+      seed_id: args.seed_id ? String(args.seed_id) : null,
       cuisine_slug: args.cuisine_slug ? String(args.cuisine_slug) : null,
       origin_country: args.origin_country ? String(args.origin_country) : null,
       course: args.course ? String(args.course) : null,

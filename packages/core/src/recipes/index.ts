@@ -58,6 +58,10 @@ export interface RecipeVersionInput {
 export interface RecipeInput {
   name: string;
   slug?: string;
+  /** The catalogue seed this was written from, if any. Set it and the seed is
+   *  marked built, so it leaves the "to make" backlog instead of lingering
+   *  after the dish exists. */
+  seed_id?: string | null;
   cuisine_slug?: string | null;
   origin_country?: string | null;
   course?: string | null;
@@ -112,7 +116,9 @@ export interface RecipeSnapshot {
   id: string;
   name: string;
   ingredients: Array<{ name: string; level: SkillLevel | null }>;
-  versions: Array<{ level: SkillLevel; steps: string[] }>;
+  /** has_nutrition matters: a version without it is a hole a meal plan falls
+   *  through, and the absence is invisible unless we say so here. */
+  versions: Array<{ level: SkillLevel; steps: string[]; has_nutrition: boolean }>;
   validation?: RecipeCheckResult;
 }
 
@@ -133,6 +139,14 @@ export interface RecipeStore {
   /** Read an existing recipe's full current state — the shopping list (shared
    *  and per level) and the method — so a repair is done with eyes open. */
   readRecipe(recipeId: string): Promise<RecipeSnapshot | null>;
+
+  /** Fill in a version's per-serving nutrition. Stored as an ESTIMATE — the
+   *  host stamps the source, so this can never masquerade as a lab figure. */
+  setNutrition(
+    recipeId: string,
+    level: SkillLevel,
+    nutrition: Record<string, number>,
+  ): Promise<{ ok: boolean; error?: string }>;
 
   /** Search existing recipes by dish name — so Ava checks BEFORE she writes.
    *  If a dish already exists she associates the cuisine rather than making a

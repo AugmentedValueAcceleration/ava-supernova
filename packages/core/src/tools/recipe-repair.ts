@@ -119,6 +119,61 @@ export class FindRecipeTool implements Tool {
  * clean. A full regeneration is a fresh recipe with fresh gaps; this is a needle
  * and thread.
  */
+/** The nutrition repair. Separate from add_ingredient because a missing figure
+ *  is not a missing ingredient — the dish is cookable, the meal plan just can't
+ *  count it. */
+export class SetNutritionTool implements Tool {
+  readonly name = 'set_nutrition';
+  readonly description =
+    'Fill in one version\'s per-serving nutrition on an existing recipe. Use it when read_recipe shows a version has none.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'set_nutrition',
+    description:
+      'Set the per-serving nutrition estimate for ONE skill level of an existing recipe. Total that version from its own ingredient quantities, then divide by its servings. Stored and shown as an estimate, never as a lab figure — so estimate carefully and round conservatively rather than leaving anything out.',
+    parameters: {
+      type: 'object',
+      properties: {
+        recipe_id: { type: 'string' },
+        level: { type: 'string', enum: ['beginner', 'intermediate', 'expert'] },
+        calories: { type: 'number', description: 'kcal per serving.' },
+        protein_g: { type: 'number' },
+        carbs_g: { type: 'number' },
+        fat_g: { type: 'number' },
+        fibre_g: { type: 'number' },
+        sugar_g: { type: 'number' },
+        saturated_fat_g: { type: 'number' },
+        sodium_mg: { type: 'number' },
+      },
+      required: ['recipe_id', 'level', 'calories'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = context.sharedState?.recipeStore as RecipeStore | undefined;
+    if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
+
+    const recipeId = String(args.recipe_id ?? '').trim();
+    const level = String(args.level ?? '').toLowerCase().trim();
+    if (!recipeId || !(LEVELS as string[]).includes(level)) {
+      return { success: false, output: 'set_nutrition requires recipe_id and a level of beginner, intermediate or expert.' };
+    }
+
+    const FIELDS = ['calories', 'protein_g', 'carbs_g', 'fat_g', 'fibre_g', 'sugar_g', 'saturated_fat_g', 'sodium_mg'];
+    const nutrition: Record<string, number> = {};
+    for (const f of FIELDS) if (typeof args[f] === 'number') nutrition[f] = args[f] as number;
+    if (typeof nutrition.calories !== 'number') {
+      return { success: false, output: 'set_nutrition needs at least calories — a version with no calories cannot be counted in a day\'s total.' };
+    }
+
+    const result = await store.setNutrition(recipeId, level as SkillLevel, nutrition);
+    if (!result.ok) return { success: false, output: `Could not set nutrition: ${result.error ?? 'unknown error'}` };
+    return { success: true, output: JSON.stringify({ ok: true, level, nutrition, stored_as: 'estimate' }) };
+  }
+}
+
 export class AddIngredientTool implements Tool {
   readonly name = 'add_ingredient';
   readonly description =
