@@ -63,6 +63,54 @@ export class ReadRecipeTool implements Tool {
 }
 
 /**
+ * find_recipe — does this dish already exist?
+ *
+ * The check that stops duplication before it starts. Before writing a dish, Ava
+ * searches. If it already exists as the same dish, she associates the new
+ * cuisine rather than making a second copy; if it is a genuine variant (fava vs
+ * chickpea falafel), she writes a distinct one. And when a search turns up two
+ * of the same, she can propose a merge. Read-only — it finds, it never changes
+ * anything, and it never merges: the merge is the operator's click, not hers.
+ */
+export class FindRecipeTool implements Tool {
+  readonly name = 'find_recipe';
+  readonly description =
+    'Search existing recipes by dish name BEFORE writing a new one. Returns matches with the cuisines each belongs to. If the dish already exists as the same dish, associate the cuisine instead of duplicating; if it is a genuine regional variant, write a distinct recipe. Read-only.';
+  readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'find_recipe',
+    description: 'Find existing recipes whose name matches a dish. Use this before write_recipe so you never create a duplicate — the same dish already in the library should gain a cuisine, not a second copy. Returns id, name, and the cuisines each belongs to. Read-only.',
+    parameters: {
+      type: 'object',
+      properties: { query: { type: 'string', description: 'The dish name to look for.' } },
+      required: ['query'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = context.sharedState?.recipeStore as RecipeStore | undefined;
+    if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
+
+    const query = String(args.query ?? '').trim();
+    if (!query) return { success: false, output: 'find_recipe requires a query.' };
+
+    const matches = await store.findRecipe(query);
+    return {
+      success: true,
+      output: JSON.stringify({
+        query,
+        matches: matches.map((m) => ({ id: m.id, name: m.name, cuisines: m.cuisines, live: m.visible })),
+        note: matches.length
+          ? 'If one of these IS the same dish, do not write another — associate the cuisine to it. If two of these are the same dish, propose a merge (the operator confirms). Only write a new recipe if this is a genuine variant.'
+          : 'Nothing matches — safe to write it as new.',
+      }),
+    };
+  }
+}
+
+/**
  * add_ingredient — the targeted repair.
  *
  * This is the tool the whole "repair, don't re-roll" doctrine rests on. When a

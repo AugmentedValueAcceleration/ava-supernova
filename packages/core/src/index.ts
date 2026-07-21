@@ -40,7 +40,7 @@ export { clusterCoverage, summariseCoverage, verifyQuote } from './news/index.js
 // pure shopping-list check that makes a recipe cookable-from-its-own-list.
 export type {
   SkillLevel, RecipeIngredientInput, RecipeStepInput, RecipeVersionInput,
-  RecipeInput, SeedSuggestion, RecipeCheckFinding, RecipeCheckResult, RecipeStore, RecipeSnapshot,
+  RecipeInput, SeedSuggestion, RecipeCheckFinding, RecipeCheckResult, RecipeStore, RecipeSnapshot, RecipeMatch,
 } from './recipes/index.js';
 export { findPhantomIngredients, checkRecipeShoppingList } from './recipes/index.js';
 

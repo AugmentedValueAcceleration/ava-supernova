@@ -116,6 +116,16 @@ export interface RecipeSnapshot {
   validation?: RecipeCheckResult;
 }
 
+/** A recipe found by search — enough for Ava to judge "already exists / genuine
+ *  variant / duplicate to merge" without reading the whole thing. */
+export interface RecipeMatch {
+  id: string;
+  name: string;
+  /** Every cuisine it currently belongs to (primary first). */
+  cuisines: string[];
+  visible: boolean;
+}
+
 export interface RecipeStore {
   /** Persist a drafted recipe (UNPUBLISHED) and return its id. */
   save(recipe: RecipeInput): Promise<{ id: string | null }>;
@@ -123,6 +133,12 @@ export interface RecipeStore {
   /** Read an existing recipe's full current state — the shopping list (shared
    *  and per level) and the method — so a repair is done with eyes open. */
   readRecipe(recipeId: string): Promise<RecipeSnapshot | null>;
+
+  /** Search existing recipes by dish name — so Ava checks BEFORE she writes.
+   *  If a dish already exists she associates the cuisine rather than making a
+   *  duplicate; if she spots two of the same, she proposes a merge. Read-only:
+   *  it finds, it never changes anything. */
+  findRecipe(query: string): Promise<RecipeMatch[]>;
 
   /**
    * The shopping-list check. The host reads each version's method with the
