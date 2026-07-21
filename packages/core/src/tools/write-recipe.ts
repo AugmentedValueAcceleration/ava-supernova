@@ -203,6 +203,20 @@ export class WriteRecipeTool implements Tool {
 
     const { id } = await store.save(recipe);
 
+    // A save that returns no id did NOT happen. Reporting success here is how a
+    // recipe that was never written got announced as "written and checked
+    // clean" — the tool lied to her, and she passed the lie on in good faith.
+    // If the store could not persist it, say so and let her raise it.
+    if (!id) {
+      return {
+        success: false,
+        output:
+          'The recipe passed its checks but COULD NOT BE SAVED — the store returned no id, so nothing was written. ' +
+          'Do not report this recipe as created. Tell the operator it failed to save so they can look at the logs; ' +
+          'retrying the same call is unlikely to help if the cause is server-side.',
+      };
+    }
+
     return {
       success: true,
       output: JSON.stringify({
