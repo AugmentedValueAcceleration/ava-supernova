@@ -62,6 +62,11 @@ export interface RecipeInput {
    *  marked built, so it leaves the "to make" backlog instead of lingering
    *  after the dish exists. */
   seed_id?: string | null;
+  /** Every cuisine this dish belongs to, first one primary. A dish eaten
+   *  across a region — pita, hummus, dolma — is ONE recipe listed under all of
+   *  them, never a copy per cuisine. Names or slugs; the host resolves them. */
+  cuisines?: string[];
+  /** @deprecated single-cuisine form, kept so older callers still resolve. */
   cuisine_slug?: string | null;
   origin_country?: string | null;
   course?: string | null;
@@ -133,8 +138,10 @@ export interface RecipeMatch {
 }
 
 export interface RecipeStore {
-  /** Persist a drafted recipe (UNPUBLISHED) and return its id. */
-  save(recipe: RecipeInput): Promise<{ id: string | null }>;
+  /** Persist a drafted recipe (UNPUBLISHED) and return its id. On failure the
+   *  reason comes back too — a bare null once had write_recipe reporting a
+   *  recipe that was never written. */
+  save(recipe: RecipeInput): Promise<{ id: string | null; error?: string }>;
 
   /** Read an existing recipe's full current state — the shopping list (shared
    *  and per level) and the method — so a repair is done with eyes open. */

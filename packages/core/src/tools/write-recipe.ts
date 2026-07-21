@@ -40,7 +40,11 @@ export class WriteRecipeTool implements Tool {
       properties: {
         name: { type: 'string', description: 'The canonical dish name.' },
         seed_id: { type: 'string', description: 'If you were asked to write a dish FROM a seed (the request names a seed id), pass it here so the seed is marked built and leaves the backlog.' },
-        cuisine_slug: { type: 'string', description: 'Cuisine slug, if known.' },
+        cuisines: {
+          type: 'array', items: { type: 'string' },
+          description: 'REQUIRED. Every cuisine this dish belongs to, most-associated FIRST — that one becomes its primary. Names or slugs both work ("Argentine", "argentine"). A dish eaten across a whole region — pita, hummus, dolma, baklava — is ONE recipe listed under every cuisine that claims it, never a separate copy each. Most dishes have exactly one.',
+        },
+        cuisine_slug: { type: 'string', description: 'Deprecated — use cuisines. A single cuisine slug.' },
         origin_country: { type: 'string' },
         course: { type: 'string', enum: ['main', 'starter', 'dessert', 'breakfast', 'side', 'snack'] },
         overview: { type: 'string', description: 'What the dish is and why it matters. No breathless food-blog throat-clearing.' },
@@ -175,6 +179,23 @@ export class WriteRecipeTool implements Tool {
       return { success: false, output: 'REFUSED: a recipe needs at least one skill-level version with steps.' };
     }
 
+    // A recipe with no cuisine is invisible: the library browses BY cuisine, so
+    // it lands in the database and nowhere a cook would ever find it. Every one
+    // of the other 930 recipes has one — the two that didn't were both written
+    // through this tool, back when it collected the field and dropped it.
+    const cuisineList = [
+      ...(Array.isArray(args.cuisines) ? args.cuisines.map((c) => String(c).trim()) : []),
+      ...(args.cuisine_slug ? [String(args.cuisine_slug).trim()] : []),
+    ].filter(Boolean);
+    if (!cuisineList.length) {
+      return {
+        success: false,
+        output:
+          'REFUSED: no cuisine. Give `cuisines` — every cuisine this dish belongs to, most-associated first. ' +
+          'A recipe with none is browsable from nowhere. If the dish is eaten across a region, list them all on THIS recipe rather than writing a copy per cuisine.',
+      };
+    }
+
     // Nutrition is what a meal plan totals a day from. A version without it is
     // a hole in the Plans feature, and the omission is invisible once saved —
     // so catch it here rather than discovering empty columns later.
@@ -193,6 +214,7 @@ export class WriteRecipeTool implements Tool {
     const recipe: RecipeInput = {
       name,
       seed_id: args.seed_id ? String(args.seed_id) : null,
+      cuisines: cuisineList,
       cuisine_slug: args.cuisine_slug ? String(args.cuisine_slug) : null,
       origin_country: args.origin_country ? String(args.origin_country) : null,
       course: args.course ? String(args.course) : null,
@@ -226,7 +248,7 @@ export class WriteRecipeTool implements Tool {
       };
     }
 
-    const { id } = await store.save(recipe);
+    const { id, error: saveError } = await store.save(recipe);
 
     // A save that returns no id did NOT happen. Reporting success here is how a
     // recipe that was never written got announced as "written and checked
@@ -235,10 +257,13 @@ export class WriteRecipeTool implements Tool {
     if (!id) {
       return {
         success: false,
-        output:
-          'The recipe passed its checks but COULD NOT BE SAVED — the store returned no id, so nothing was written. ' +
-          'Do not report this recipe as created. Tell the operator it failed to save so they can look at the logs; ' +
-          'retrying the same call is unlikely to help if the cause is server-side.',
+        output: saveError
+          // A stated reason is usually something she can act on — a cuisine
+          // that didn't match, say. Give it to her verbatim and let her retry.
+          ? `The recipe passed its checks but COULD NOT BE SAVED: ${saveError}. Nothing was written. Do not report this recipe as created — fix the cause and call write_recipe again.`
+          : 'The recipe passed its checks but COULD NOT BE SAVED — the store returned no id, so nothing was written. ' +
+            'Do not report this recipe as created. Tell the operator it failed to save so they can look at the logs; ' +
+            'retrying the same call is unlikely to help if the cause is server-side.',
       };
     }
 
