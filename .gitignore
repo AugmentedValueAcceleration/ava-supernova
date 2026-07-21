@@ -18,3 +18,7 @@ packages/plugins/
 
 # Planning docs — private, not for public repo
 /docs/
+
+# scratch esbuild bundles
+*.bb.mjs
+.bb.mjs
