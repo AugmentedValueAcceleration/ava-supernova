@@ -231,6 +231,15 @@ const COLLECTIVE_NOUNS = new Set([
   'aromatics', 'seasoning', 'seasonings', 'ingredient', 'ingredients',
   'topping', 'toppings', 'filling', 'garnish', 'garnishes', 'marinade',
   'mixture', 'remainder', 'rest', 'solids', 'liquids', 'greens', 'produce',
+  // Found by repairing 250 recipes: the gate kept demanding these be added to
+  // shopping lists, and every time it was asked for a quantity the answer was
+  // "that is not a thing you buy". A method saying "balance with acid" or
+  // "add the spice blend" is pointing at what is already listed.
+  'acid', 'acidity', 'fat', 'starch', 'starches', 'protein', 'proteins',
+  'seafood', 'shellfish', 'meat', 'meats', 'seasoning packet', 'spice blend',
+  'spice mix', 'spice paste', 'blend', 'nuts', 'pulses', 'legumes', 'grains',
+  'sweetener', 'thickener', 'condiment', 'condiments', 'accompaniment',
+  'accompaniments', 'leftovers', 'trimmings', 'scraps', 'base', 'components',
 ]);
 
 /** Composed sub-preparations — made in-recipe from listed components, not bought.
@@ -242,6 +251,13 @@ const COMPOSED_PREPARATIONS = new Set([
   'ganache', 'praline', 'dough', 'batter', 'slurry', 'brine', 'stock', 'sauce',
   'paste', 'marinade', 'dressing', 'glaze', 'reduction', 'sofrito', 'mirepoix',
   'gremolata',
+  // Made DURING cooking, from things already bought. Aglio e olio failed its
+  // check for not listing "pasta water" — you cannot buy the water the pasta
+  // was boiled in, and a cook who needed telling would be lost long before.
+  'pasta water', 'cooking water', 'cooking liquid', 'poaching liquid',
+  'blanching water', 'starchy water', 'vinaigrette', 'emulsion', 'crumb',
+  'breadcrumb', 'breadcrumbs', 'zest', 'juice', 'puree', 'purée', 'coulis',
+  'stock cube', 'pan juices', 'drippings', 'fond', 'syrup', 'compote',
 ]);
 
 /** Kit, not food. */
