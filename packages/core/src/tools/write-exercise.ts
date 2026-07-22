@@ -77,7 +77,7 @@ export class WriteExerciseTool implements Tool {
         },
         steps: {
           type: 'array',
-          description: 'The movement in order — set-up, then execution. Imperative and specific.',
+          description: 'The movement in order — set-up, then execution. Imperative and specific. Plain strings are fine; use objects with an "action" field only when a step needs notes or a safety flag.',
           items: {
             type: 'object',
             properties: {
@@ -154,17 +154,26 @@ export class WriteExerciseTool implements Tool {
     const name = String(args.name ?? '').trim();
     if (!name) return { success: false, output: 'write_exercise requires a name.' };
 
-    const muscles: ExerciseMuscleInput[] = Array.isArray(args.muscles)
-      ? (args.muscles as Record<string, unknown>[]).map((m): ExerciseMuscleInput => ({
-          muscle: String(m?.muscle ?? '').trim(),
-          role: m?.role === 'primary' ? 'primary' : 'secondary',
-        })).filter((m) => m.muscle)
-      : [];
+    // Same tolerance as steps. A bare string is read as a PRIMARY muscle —
+    // if she names a muscle without qualifying it, what the exercise is for is
+    // the only sensible reading.
+    const rawMuscles = Array.isArray(args.muscles) ? args.muscles : [];
+    const muscles: ExerciseMuscleInput[] = rawMuscles.map((m): ExerciseMuscleInput => {
+      if (typeof m === 'string') return { muscle: m.trim(), role: 'primary' };
+      const o = m as Record<string, unknown>;
+      return {
+        muscle: String(o?.muscle ?? o?.name ?? o?.muscle_group ?? '').trim(),
+        role: o?.role === 'primary' ? 'primary' : 'secondary',
+      };
+    }).filter((m) => m.muscle);
 
     if (!muscles.some((m) => m.role === 'primary')) {
       return {
         success: false,
         output:
+          (rawMuscles.length && !muscles.length
+            ? `REFUSED: ${rawMuscles.length} muscles were supplied but none could be read. Send them as {"muscle": "Forearms", "role": "primary"}, or as plain names which are taken as primary. `
+            : '') +
           'REFUSED: no primary muscle. Mark at least one muscle as primary — what the exercise is FOR. ' +
           'Without it no plan can ever select this movement: it would exist in the library and be unreachable.',
       };
@@ -182,14 +191,33 @@ export class WriteExerciseTool implements Tool {
       };
     }
 
-    const steps = Array.isArray(args.steps)
-      ? (args.steps as Record<string, unknown>[]).map((s) => ({
-          action: String(s?.action ?? '').trim(),
-          notes: s?.notes ? String(s.notes) : null,
-          safety_flag: s?.safety_flag === true,
-        })).filter((s) => s.action)
-      : [];
-    if (!steps.length) return { success: false, output: 'REFUSED: no steps. A movement with no method cannot be performed or checked.' };
+    // Accept a plain string OR an object. The library's 170 existing exercises
+    // store steps as an array of strings, so that is the shape she reaches for;
+    // insisting on {action} objects made this tool refuse eight perfectly good
+    // exercises in a row. Where the meaning is unambiguous, be tolerant of the
+    // shape.
+    const rawSteps = Array.isArray(args.steps) ? args.steps : [];
+    const steps = rawSteps.map((s) => {
+      if (typeof s === 'string') return { action: s.trim(), notes: null, safety_flag: false };
+      const o = s as Record<string, unknown>;
+      return {
+        action: String(o?.action ?? o?.step ?? o?.text ?? '').trim(),
+        notes: o?.notes ? String(o.notes) : null,
+        safety_flag: o?.safety_flag === true,
+      };
+    }).filter((s) => s.action);
+
+    if (!steps.length) {
+      // Distinguish "you sent none" from "you sent some I could not read".
+      // Telling her "no steps" when she supplied eight sent her round the same
+      // loop four times, which is a failure of the ERROR, not of her.
+      return {
+        success: false,
+        output: rawSteps.length
+          ? `REFUSED: ${rawSteps.length} steps were supplied but none could be read. Send steps as an array of plain strings, e.g. ["Set your feet shoulder-width apart.", "Brace and drive up."], or as objects with an "action" field.`
+          : 'REFUSED: no steps. A movement with no method cannot be performed or checked.',
+      };
+    }
 
     const contraindications: ContraindicationInput[] = Array.isArray(args.contraindications)
       ? (args.contraindications as Record<string, unknown>[]).map((c) => ({
