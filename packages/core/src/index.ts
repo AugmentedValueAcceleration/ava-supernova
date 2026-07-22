@@ -24,7 +24,7 @@ export type { UserIntent, IntentClassifierOptions } from './agent/intent-classif
 
 export type { SystemPromptOptions } from './agent/system-prompt.js';
 export * from './exercises/index.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, getNewsroomPrefix, getPantryPrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, getNewsroomPrefix, getPantryPrefix, getGymPrefix } from './agent/system-prompt.js';
 
 // Newsroom contracts — the surface-injected news index + article store the
 // Correspondent's tools write through, plus the syndication clusterer that

@@ -56,6 +56,8 @@ import { FactCheckTool } from './fact-check.js';
 import { WriteArticleTool } from './write-article.js';
 import { WriteRecipeTool } from './write-recipe.js';
 import { AddIngredientTool, SetNutritionTool, RegenerateHeroTool, CheckRecipeTool, ReviseSectionTool, ProposeSeedsTool, ReadRecipeTool, FindRecipeTool } from './recipe-repair.js';
+import { WriteExerciseTool } from './write-exercise.js';
+import { ReadExerciseTool, FindExerciseTool, AddEquipmentTool, SetMusclesTool, RegenerateDemoTool, CheckExerciseTool, ProposeExerciseSeedsTool } from './exercise-repair.js';
 import { PostPerformanceTool } from './post-performance.js';
 import { SuggestBeatsTool } from './suggest-beats.js';
 import { ScanIndustryTool } from './scan-industry.js';
@@ -463,6 +465,15 @@ export class ToolRegistry {
       new AddIngredientTool(),
       new SetNutritionTool(),
       new RegenerateHeroTool(),
+      // The gym — Ava as Personal Trainer. Same shape as the Pantry set.
+      new WriteExerciseTool(),
+      new ReadExerciseTool(),
+      new FindExerciseTool(),
+      new AddEquipmentTool(),
+      new SetMusclesTool(),
+      new RegenerateDemoTool(),
+      new CheckExerciseTool(),
+      new ProposeExerciseSeedsTool(),
       new CheckRecipeTool(),
       new ReviseSectionTool(),
       new ProposeSeedsTool(),
