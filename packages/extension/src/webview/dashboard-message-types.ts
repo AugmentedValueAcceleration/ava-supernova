@@ -618,6 +618,9 @@ export interface HealthRecipeIngredient {
   name: string;
   notes: string | null;
   optional: boolean;
+  /** Skill level that owns this line — null = shared, a level = that
+   *  version's own. */
+  level?: HealthRecipeSkillLevel | null;
 }
 
 export interface HealthRecipeStep {

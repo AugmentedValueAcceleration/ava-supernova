@@ -2505,6 +2505,8 @@ export const enStrings = {
   'health.browse.equipment': 'Equipment',
   'health.browse.ingredients': 'Ingredients',
   'health.browse.opt': '(opt.)',
+  'health.browse.just_for_level': 'Just for',
+  'health.browse.per_serving_est': 'per serving, estimated',
   'health.browse.method': 'Method',
   // Detail view — tabs, sections, nutrition table, storage panel.
   'health.browse.overview': 'Overview',

@@ -1203,80 +1203,28 @@ const EXT_NUTRITION: Array<[ExtNutKey, string]> = [
   ['calories', 'Calories (kcal)'], ['protein_g', 'Protein (g)'], ['carbs_g', 'Carbs (g)'], ['fat_g', 'Fat (g)'],
   ['fibre_g', 'Fibre (g)'], ['sugar_g', 'Sugar (g)'], ['sodium_mg', 'Sodium (mg)'], ['saturated_fat_g', 'Saturated fat (g)'],
 ];
-// i18n key per nutrient for the table header (units dropped — the column is compact).
-const NUTRI_LABEL_KEY: Record<ExtNutKey, string> = {
-  calories: 'health.browse.nutri.calories', protein_g: 'health.browse.nutri.protein',
-  carbs_g: 'health.browse.nutri.carbs', fat_g: 'health.browse.nutri.fat',
-  fibre_g: 'health.browse.nutri.fibre', sugar_g: 'health.browse.nutri.sugar',
-  sodium_mg: 'health.browse.nutri.sodium', saturated_fat_g: 'health.browse.nutri.sat_fat',
-};
 
 /** Per-serving nutrition as a table — one row per skill level, so the macro
  *  differences across beginner / intermediate / expert read at a glance.
  *  Columns with no data on any level are dropped. */
-function NutritionTable({ versions }: { versions: HealthRecipeDetail['versions'] }) {
-  const cols = EXT_NUTRITION.filter(([k]) => versions.some((vv) => typeof vv.nutrition?.[k] === 'number'));
-  if (cols.length === 0) return null;
-  return (
-    <div>
-      <div className="overflow-x-auto rounded-lg border border-vscode-panelBorder/60">
-        <table className="w-full border-collapse text-[12px]">
-          <thead>
-            <tr className="border-b border-vscode-panelBorder/60 text-left text-vscode-descriptionForeground">
-              <th className="py-2 pl-3 pr-3 font-medium">{t('health.browse.per_serving')}</th>
-              {cols.map(([k]) => (
-                <th key={k} className="whitespace-nowrap px-3 py-2 font-medium">{t(NUTRI_LABEL_KEY[k])}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {versions.map((vv, i) => (
-              <tr key={vv.level} className={i < versions.length - 1 ? 'border-b border-vscode-panelBorder/60' : ''}>
-                <td className="py-2 pl-3 pr-3 capitalize text-vscode-foreground/90">{t(`health.browse.level.${vv.level}`)}</td>
-                {cols.map(([k]) => (
-                  <td key={k} className="px-3 py-2 text-vscode-foreground">{typeof vv.nutrition?.[k] === 'number' ? vv.nutrition[k] : '—'}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-2 text-[10px] text-vscode-descriptionForeground">{t('health.browse.per_serving_estimated')}</p>
-    </div>
-  );
-}
 
 export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
+  // Single-scroll, matching the hub's redesigned recipe view: identity,
+  // overview, skill-level tabs that drive everything below, times, the shopping
+  // list split into shared plus "just for this level", the method, then
+  // nutrition. No operator diagnostics — a user does not need a gate verdict.
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   const v = r.versions.find((vv) => vv.level === level) || r.versions[0];
-
-  type RTab = 'overview' | 'ingredients' | 'method' | 'storage';
-  const hasNutrition = r.versions.some((vv) => EXT_NUTRITION.some(([k]) => typeof vv.nutrition?.[k] === 'number'));
   const st = r.storage;
-  const hasStorage = !!st && (st.keeps_fridge_days != null || st.keeps_freezer_months != null || !!st.from_frozen_notes);
-  // Nutrition now lives inside Overview (less tab clutter).
-  const tabs: { key: RTab; label: string }[] = [
-    { key: 'overview', label: t('health.browse.overview') },
-    ...(r.ingredients.length > 0 ? [{ key: 'ingredients' as RTab, label: t('health.browse.ingredients') }] : []),
-    ...(r.versions.length > 0 ? [{ key: 'method' as RTab, label: t('health.browse.method') }] : []),
-    ...(hasStorage ? [{ key: 'storage' as RTab, label: t('health.browse.storage') }] : []),
-  ];
-  const [tab, setTab] = useState<RTab>('overview');
+  const nut = v?.nutrition ?? null;
+  const cuisineLine = (r.cuisines && r.cuisines.length ? r.cuisines.join(' · ') : r.cuisine_name) || '';
 
-  const levelPills = (
-    <div className="mb-3 flex gap-1">
-      {(['beginner', 'intermediate', 'expert'] as const).map((l) => {
-        if (!r.versions.some((vv) => vv.level === l)) return null;
-        const isActive = l === level;
-        return (
-          <button key={l} type="button" onClick={() => setLevel(l)}
-            className={`rounded px-2.5 py-1 text-[10px] uppercase tracking-wider transition ${isActive ? 'bg-amber-400/20 text-amber-300' : 'text-vscode-descriptionForeground hover:text-vscode-foreground'}`}>
-            {t(`health.browse.level.${l}`)}
-          </button>
-        );
-      })}
-    </div>
-  );
+  const shared = r.ingredients.filter((ing) => !ing.level);
+  const own = r.ingredients.filter((ing) => ing.level && ing.level === level);
+  const qty = (ing: HealthRecipeDetail['ingredients'][number]) =>
+    ing.quantity != null ? String(ing.quantity) + (ing.unit ? ' ' + ing.unit : '') : (ing.unit ?? '');
+
+  const levels = (['beginner', 'intermediate', 'expert'] as const).filter((l) => r.versions.some((vv) => vv.level === l));
 
   return (
     <div className="flex h-full flex-col">
@@ -1287,142 +1235,125 @@ export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
       )}
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex-none px-6 pt-6 sm:px-8">
-        <header className="mb-4">
-          {/* All the cuisines it belongs to, not just one — a merged pita is
-              Greek AND Turkish AND Lebanese. */}
-          {(r.cuisines && r.cuisines.length ? r.cuisines.join(' · ') : r.cuisine_name) && (
-            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-amber-300">{r.cuisines && r.cuisines.length ? r.cuisines.join(' · ') : r.cuisine_name}</div>
-          )}
-          <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{r.name}</h2>
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-            {r.origin_country && (
-              <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-vscode-descriptionForeground">{r.origin_country}</span>
+        <DetailScroll>
+          <div className="space-y-6 px-6 pb-8 pt-6 sm:px-8">
+            <header>
+              {cuisineLine && (
+                <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-amber-300">{cuisineLine}</div>
+              )}
+              <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{r.name}</h2>
+              <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                {r.course && <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize text-vscode-descriptionForeground">{courseLabel(r.course)}</span>}
+                {r.origin_country && <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-vscode-descriptionForeground">{r.origin_country}</span>}
+              </div>
+            </header>
+
+            {r.overview && <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{r.overview}</p>}
+
+            {levels.length > 1 && (
+              <div className="flex gap-1 border-b border-vscode-panelBorder/60">
+                {levels.map((l) => (
+                  <button key={l} type="button" onClick={() => setLevel(l)}
+                    className={l === level
+                      ? 'px-3 py-2 text-[12px] border-b-2 border-amber-400 text-amber-300'
+                      : 'px-3 py-2 text-[12px] text-vscode-descriptionForeground hover:text-vscode-foreground'}>
+                    {t('health.browse.level.' + l)}
+                  </button>
+                ))}
+              </div>
             )}
-            {r.course && (
-              <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize text-vscode-descriptionForeground">{courseLabel(r.course)}</span>
+
+            {v && (
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-vscode-descriptionForeground">
+                {v.prep_time_minutes != null && <span>{t('health.browse.prep')} <strong className="text-vscode-foreground">{v.prep_time_minutes}m</strong></span>}
+                {v.cook_time_minutes != null && <span>{t('health.browse.cook')} <strong className="text-vscode-foreground">{v.cook_time_minutes}m</strong></span>}
+                {v.total_time_minutes != null && <span>{t('health.browse.total')} <strong className="text-vscode-foreground">{v.total_time_minutes}m</strong></span>}
+                {v.default_servings != null && <span>{t('health.browse.serves')} <strong className="text-vscode-foreground">{v.default_servings}</strong></span>}
+                {st?.keeps_fridge_days != null && <span>{t('health.storage.fridge')} <strong className="text-vscode-foreground">{st.keeps_fridge_days}d</strong></span>}
+                {st?.keeps_freezer_months != null && <span>{t('health.storage.freezer')} <strong className="text-vscode-foreground">{st.keeps_freezer_months}mo</strong></span>}
+              </div>
+            )}
+
+            {v?.description && <p className="text-[12px] italic leading-relaxed text-vscode-descriptionForeground">{v.description}</p>}
+
+            {r.ingredients.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.ingredients')}</h3>
+                <div className="text-[13px] leading-8 text-vscode-foreground/90">
+                  {shared.map((ing, idx) => (
+                    <div key={'s' + idx}>{qty(ing) && <span className="text-vscode-descriptionForeground">{qty(ing)} </span>}{ing.name}{ing.optional && <span className="text-vscode-descriptionForeground"> {t('health.browse.opt')}</span>}</div>
+                  ))}
+                  {own.length > 0 && (
+                    <>
+                      <div className="mb-0.5 mt-2.5 text-[10px] uppercase tracking-wider text-vscode-descriptionForeground">{t('health.browse.just_for_level')} {t('health.browse.level.' + level)}</div>
+                      {own.map((ing, idx) => (
+                        <div key={'o' + idx}>{qty(ing) && <span className="text-vscode-descriptionForeground">{qty(ing)} </span>}{ing.name}{ing.optional && <span className="text-vscode-descriptionForeground"> {t('health.browse.opt')}</span>}</div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {v?.equipment && v.equipment.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {v.equipment.map((e, i) => (
+                    <span key={i} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[11px] text-vscode-descriptionForeground">{e.name}{e.optional ? ' ' + t('health.browse.optional') : ''}</span>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {((v?.diets && v.diets.length > 0) || (v?.dietary_flags && v.dietary_flags.length > 0)) && (
+              <div className="flex flex-wrap gap-1.5">
+                {v?.diets?.map((d) => <span key={'d' + d} className="rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/8 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[#c084fc]">{d}</span>)}
+                {v?.dietary_flags?.map((f) => <span key={'f' + f} className="rounded-full border border-amber-400/30 bg-amber-400/5 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300">{f}</span>)}
+              </div>
+            )}
+
+            {v && v.steps.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.method')}</h3>
+                <ol className="space-y-2">
+                  {v.steps.map((s, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-400 text-[11px] font-medium text-amber-300">{i + 1}</span>
+                      <div className="flex-1 text-[13px] leading-relaxed">
+                        <p className="text-vscode-foreground/95">
+                          {s.action}
+                          {s.tricky_flag && <span className="ml-2 align-middle rounded-sm bg-amber-400/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">{t('health.browse.tricky')}</span>}
+                        </p>
+                        {s.technique_term && <p className="mt-1 text-[11px] uppercase tracking-wider text-amber-300/80">{s.technique_term}</p>}
+                        {s.notes && <p className="mt-1 text-[12px] italic text-vscode-descriptionForeground">{s.notes}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+
+            {nut && EXT_NUTRITION.some(([k]) => typeof nut[k] === 'number') && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">
+                  {t('health.browse.nutrition')} <span className="normal-case tracking-normal text-vscode-descriptionForeground/70">· {t('health.browse.per_serving_est')}</span>
+                </h3>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-vscode-descriptionForeground">
+                  {EXT_NUTRITION.map(([k, label]) => typeof nut[k] === 'number' && (
+                    <span key={k}>{label} <strong className="text-vscode-foreground">{nut[k]}</strong></span>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {st?.from_frozen_notes && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.storage.cooking_frozen')}</h3>
+                <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{st.from_frozen_notes}</p>
+              </section>
             )}
           </div>
-        </header>
-
-        <DetailTabBar tabs={tabs} active={tab} onChange={setTab} />
-        </div>
-
-        <DetailScroll>
-          {tab === 'overview' && (
-            <div className="space-y-5">
-              {r.overview
-                ? <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{r.overview}</p>
-                : <p className="text-[13px] text-vscode-descriptionForeground">{t('health.browse.no_overview')}</p>}
-              {hasNutrition && (
-                <section>
-                  <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.nutrition')}</h3>
-                  <NutritionTable versions={r.versions} />
-                </section>
-              )}
-            </div>
-          )}
-
-          {tab === 'ingredients' && (
-            <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
-              {r.ingredients.map((ing, i) => (
-                <li key={i} className="flex gap-2 text-[13px]">
-                  <span className="min-w-[80px] font-mono text-[11px] text-vscode-descriptionForeground">
-                    {ing.quantity != null ? `${ing.quantity}${ing.unit ? ' ' + ing.unit : ''}` : ing.unit ?? '—'}
-                  </span>
-                  <span className="text-vscode-foreground/95">
-                    {ing.name}
-                    {ing.optional && <span className="ml-1 text-vscode-descriptionForeground">{t('health.browse.opt')}</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {tab === 'method' && v && (
-            <div>
-              {levelPills}
-              <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] text-vscode-descriptionForeground">
-                {v.prep_time_minutes != null && <span><span className="opacity-60">{t('health.browse.prep')}</span> {v.prep_time_minutes}m</span>}
-                {v.cook_time_minutes != null && <span><span className="opacity-60">{t('health.browse.cook')}</span> {v.cook_time_minutes}m</span>}
-                {v.total_time_minutes != null && <span><span className="opacity-60">{t('health.browse.total')}</span> {v.total_time_minutes}m</span>}
-                {v.default_servings != null && <span><span className="opacity-60">{t('health.browse.serves')}</span> {v.default_servings}</span>}
-              </div>
-              {v.description && <p className="mb-3 text-[13px] leading-relaxed text-vscode-foreground/90">{v.description}</p>}
-              {v.equipment && v.equipment.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h4>
-                  <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
-                    {v.equipment.map((e, i) => (
-                      <li key={i} className="flex items-baseline gap-2 text-[13px]">
-                        <span className="text-vscode-foreground/95">{e.name}</span>
-                        {e.optional && <span className="text-[10px] text-vscode-descriptionForeground">{t('health.browse.optional')}</span>}
-                        {e.notes && <span className="text-[11px] italic text-vscode-descriptionForeground">— {e.notes}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {((v.diets && v.diets.length > 0) || (v.dietary_flags && v.dietary_flags.length > 0)) && (
-                <div className="mb-4 flex flex-wrap gap-1.5">
-                  {v.diets?.map((d) => (
-                    <span key={`d-${d}`} className="rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/8 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[#c084fc]">{d}</span>
-                  ))}
-                  {v.dietary_flags?.map((f) => (
-                    <span key={`f-${f}`} className="rounded-full border border-amber-400/30 bg-amber-400/5 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300">{f}</span>
-                  ))}
-                </div>
-              )}
-              <ol className="space-y-2">
-                {v.steps.map((s, i) => (
-                  <li key={i} className="flex gap-3 rounded-md border border-vscode-panelBorder/60 px-3 py-2.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-400 text-[11px] font-medium text-amber-300">{i + 1}</span>
-                    <div className="flex-1 text-[13px] leading-relaxed">
-                      <p className="text-vscode-foreground/95">
-                        {s.action}
-                        {s.tricky_flag && <span className="ml-2 align-middle rounded-sm bg-amber-400/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">{t('health.browse.tricky')}</span>}
-                      </p>
-                      {s.technique_term && <p className="mt-1 text-[11px] uppercase tracking-wider text-amber-300/80">{s.technique_term}</p>}
-                      {s.notes && <p className="mt-1 text-[12px] italic text-vscode-descriptionForeground">{s.notes}</p>}
-                      {s.time_estimate_seconds != null && s.time_estimate_seconds > 0 && (
-                        <p className="mt-1 text-[10px] text-vscode-descriptionForeground/80">~{Math.round(s.time_estimate_seconds / 60)}m</p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-
-          {tab === 'storage' && st && (
-            <div className="space-y-4">
-              {(st.keeps_fridge_days != null || st.keeps_freezer_months != null) && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {st.keeps_fridge_days != null && (
-                    <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
-                      <div className="text-[var(--accent)]" aria-hidden><Icon.frozen size={18} /></div>
-                      <div className="mt-1 text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{t('health.storage.fridge')}</div>
-                      <div className="mt-0.5 text-[18px] font-light text-vscode-foreground">{st.keeps_fridge_days} {t(st.keeps_fridge_days === 1 ? 'health.storage.day' : 'health.storage.days')}</div>
-                    </div>
-                  )}
-                  {st.keeps_freezer_months != null && (
-                    <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
-                      <div className="text-[var(--accent)]" aria-hidden><Icon.frozen size={18} /></div>
-                      <div className="mt-1 text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{t('health.storage.freezer')}</div>
-                      <div className="mt-0.5 text-[18px] font-light text-vscode-foreground">{st.keeps_freezer_months} {t(st.keeps_freezer_months === 1 ? 'health.storage.month' : 'health.storage.months')}</div>
-                    </div>
-                  )}
-                </div>
-              )}
-              {st.from_frozen_notes && (
-                <div>
-                  <h4 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.storage.cooking_frozen')}</h4>
-                  <p className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3 text-[13px] leading-relaxed text-vscode-foreground/90">{st.from_frozen_notes}</p>
-                </div>
-              )}
-              <p className="text-[10px] text-vscode-descriptionForeground">{t('health.storage.disclaimer')}</p>
-            </div>
-          )}
         </DetailScroll>
       </div>
     </div>
