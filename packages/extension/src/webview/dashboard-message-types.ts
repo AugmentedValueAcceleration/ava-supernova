@@ -512,6 +512,36 @@ export interface HealthExerciseRoutine {
   tempo: string | null;
   frequency_per_week: string | null;
   progression: string | null;
+  rpe?: number | null;
+  percent_1rm?: string | null;
+  seconds_per_set?: number | null;
+}
+
+/** Cardio is its own prescription — steady state and intervals are not sets
+ *  and reps. Present only on cardio exercises. */
+export interface HealthCardioPrescription {
+  style?: string | null;
+  duration_minutes?: number | null;
+  heart_rate_zone?: string | null;
+  work_seconds?: number | null;
+  rest_seconds?: number | null;
+  rounds?: number | null;
+}
+
+/** Who should not do this movement and what to do instead — the safety floor,
+ *  structured not prose, shown before the method. */
+export interface HealthExerciseContraindication {
+  slug: string;
+  name: string;
+  category: string | null;
+  severity: string;
+  note: string | null;
+}
+
+/** A different movement doing the same job. */
+export interface HealthExerciseAlternative {
+  slug: string;
+  name: string;
 }
 
 export interface HealthExerciseSummary {
@@ -552,6 +582,16 @@ export interface HealthExerciseDetail extends HealthExerciseSummary {
   thumbnail_url: string | null;
   muscles: HealthMuscleTag[];
   equipment: HealthEquipmentTag[];
+  movement_pattern: string | null;
+  force_type: string | null;
+  laterality: string | null;
+  session_role: string | null;
+  coaching_cues: string[];
+  cardio: HealthCardioPrescription | null;
+  contraindications: HealthExerciseContraindication[];
+  regression: HealthExerciseAlternative | null;
+  progression: HealthExerciseAlternative | null;
+  substitutions: HealthExerciseAlternative[];
 }
 
 export type HealthRecipeSkillLevel = 'beginner' | 'intermediate' | 'expert';
@@ -640,6 +680,9 @@ export interface HealthRecipeDetail extends HealthRecipeSummary {
   storage?: HealthRecipeStorage;
   ingredients: HealthRecipeIngredient[];
   versions: HealthRecipeVersionDetail[];
+  /** Every cuisine this dish belongs to, primary first. cuisine_name stays the
+   *  primary for the card; this is the full set for the detail view. */
+  cuisines?: string[];
 }
 
 // ─── Submission flow (community contributions) ─────────────────────────────

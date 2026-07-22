@@ -976,7 +976,27 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
   if (ex.routine.reps_target) routineEntries.push([t('health.browse.routine.reps'), ex.routine.reps_target]);
   if (ex.routine.rest_seconds != null) routineEntries.push([t('health.browse.routine.rest'), `${ex.routine.rest_seconds}s`]);
   if (ex.routine.tempo) routineEntries.push([t('health.browse.routine.tempo'), ex.routine.tempo]);
+  if (ex.routine.rpe != null) routineEntries.push(['RPE', String(ex.routine.rpe)]);
+  else if (ex.routine.percent_1rm) routineEntries.push(['%1RM', ex.routine.percent_1rm]);
+  if (ex.routine.seconds_per_set != null) routineEntries.push(['Per set', `~${ex.routine.seconds_per_set}s`]);
   if (ex.routine.frequency_per_week) routineEntries.push([t('health.browse.routine.freq'), ex.routine.frequency_per_week]);
+
+  const cardioEntries: Array<[string, string]> = [];
+  if (ex.cardio) {
+    const c = ex.cardio;
+    if (c.style) cardioEntries.push(['Style', c.style]);
+    if (c.duration_minutes != null) cardioEntries.push(['Duration', `${c.duration_minutes} min`]);
+    if (c.heart_rate_zone) cardioEntries.push(['HR zone', c.heart_rate_zone]);
+    if (c.work_seconds != null) cardioEntries.push(['Work', `${c.work_seconds}s`]);
+    if (c.rest_seconds != null) cardioEntries.push(['Rest', `${c.rest_seconds}s`]);
+    if (c.rounds != null) cardioEntries.push(['Rounds', String(c.rounds)]);
+  }
+  const alternatives = [
+    ...(ex.regression ? [{ ...ex.regression, kind: 'Easier' }] : []),
+    ...(ex.progression ? [{ ...ex.progression, kind: 'Harder' }] : []),
+    ...ex.substitutions.map((s) => ({ ...s, kind: 'Instead' })),
+  ];
+  const SEV: Record<string, string> = { avoid: '#f87171', modify: '#fbbf24', caution: '#fbbf24' };
 
   type ExTab = 'overview' | 'howto';
   const hasRoutine = routineEntries.length > 0 || !!ex.routine.progression;
@@ -1008,6 +1028,9 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
           </span>
           <Dots value={ex.difficulty} accent={accent} />
           <span>{t('health.browse.difficulty_n', { n: ex.difficulty })}</span>
+          {ex.movement_pattern && <span className="capitalize opacity-70">{ex.movement_pattern.replace(/_/g, ' ')}</span>}
+          {ex.session_role && <span className="capitalize opacity-70">{ex.session_role}</span>}
+          {ex.laterality && <span className="capitalize opacity-70">{ex.laterality}</span>}
         </div>
       </header>
 
@@ -1017,6 +1040,21 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
       <DetailScroll>
         {tab === 'overview' && (
           <div className="space-y-5">
+            {/* Who should take care — the safety floor, ABOVE the method so it
+                is read before anyone starts. */}
+            {ex.contraindications.length > 0 && (
+              <section className="rounded-lg border px-4 py-3" style={{ borderColor: 'rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.06)' }}>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em]" style={{ color: '#f87171' }}>Take care with</h3>
+                <ul className="space-y-1.5">
+                  {ex.contraindications.map((c) => (
+                    <li key={c.slug} className="text-[12px] leading-relaxed text-vscode-foreground/85">
+                      <span className="font-semibold uppercase" style={{ color: SEV[c.severity] ?? '#fbbf24' }}>{c.severity}</span>
+                      {' · '}{c.name}{c.note ? ` — ${c.note}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             {ex.description && <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{ex.description}</p>}
             {ex.beginner_detail && (
               <section>
@@ -1052,6 +1090,43 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
                 </div>
               </section>
             )}
+            {cardioEntries.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Cardio</h3>
+                <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
+                  <dl className="grid grid-cols-3 gap-x-5 gap-y-3 sm:grid-cols-5">
+                    {cardioEntries.map(([label, value]) => (
+                      <div key={label}>
+                        <dt className="text-[9px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">{label}</dt>
+                        <dd className="mt-1 text-[14px] text-vscode-foreground">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              </section>
+            )}
+            {ex.coaching_cues.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Cues</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {ex.coaching_cues.map((c, i) => (
+                    <span key={i} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[11px] text-vscode-foreground/85">{c}</span>
+                  ))}
+                </div>
+              </section>
+            )}
+            {alternatives.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Easier, harder, instead</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {alternatives.map((a) => (
+                    <span key={a.slug} className="rounded border border-vscode-panelBorder/60 px-2 py-0.5 text-[11px] text-vscode-descriptionForeground">
+                      <span className="uppercase tracking-wider opacity-60">{a.kind}</span>{' '}{a.name}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
             {hasMuscles && (
               <section className="grid gap-4 sm:grid-cols-2">
                 {(primaries.length > 0 || secondaries.length > 0) && (
@@ -1079,7 +1154,9 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
                 )}
               </section>
             )}
-            {!ex.description && !ex.beginner_detail && !ex.common_mistakes && !hasRoutine && !hasMuscles && (
+            {!ex.description && !ex.beginner_detail && !ex.common_mistakes && !hasRoutine && !hasMuscles
+              && ex.contraindications.length === 0 && cardioEntries.length === 0
+              && ex.coaching_cues.length === 0 && alternatives.length === 0 && (
               <p className="text-[13px] text-vscode-descriptionForeground">{t('health.browse.nothing_here')}</p>
             )}
           </div>
@@ -1212,8 +1289,10 @@ export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex-none px-6 pt-6 sm:px-8">
         <header className="mb-4">
-          {r.cuisine_name && (
-            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-amber-300">{r.cuisine_name}</div>
+          {/* All the cuisines it belongs to, not just one — a merged pita is
+              Greek AND Turkish AND Lebanese. */}
+          {(r.cuisines && r.cuisines.length ? r.cuisines.join(' · ') : r.cuisine_name) && (
+            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-amber-300">{r.cuisines && r.cuisines.length ? r.cuisines.join(' · ') : r.cuisine_name}</div>
           )}
           <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{r.name}</h2>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
