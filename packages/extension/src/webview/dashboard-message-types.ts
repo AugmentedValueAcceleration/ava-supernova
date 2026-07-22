@@ -582,16 +582,16 @@ export interface HealthExerciseDetail extends HealthExerciseSummary {
   thumbnail_url: string | null;
   muscles: HealthMuscleTag[];
   equipment: HealthEquipmentTag[];
-  movement_pattern: string | null;
-  force_type: string | null;
-  laterality: string | null;
-  session_role: string | null;
-  coaching_cues: string[];
-  cardio: HealthCardioPrescription | null;
-  contraindications: HealthExerciseContraindication[];
-  regression: HealthExerciseAlternative | null;
-  progression: HealthExerciseAlternative | null;
-  substitutions: HealthExerciseAlternative[];
+  movement_pattern?: string | null;
+  force_type?: string | null;
+  laterality?: string | null;
+  session_role?: string | null;
+  coaching_cues?: string[];
+  cardio?: HealthCardioPrescription | null;
+  contraindications?: HealthExerciseContraindication[];
+  regression?: HealthExerciseAlternative | null;
+  progression?: HealthExerciseAlternative | null;
+  substitutions?: HealthExerciseAlternative[];
 }
 
 export type HealthRecipeSkillLevel = 'beginner' | 'intermediate' | 'expert';

@@ -994,7 +994,7 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
   const alternatives = [
     ...(ex.regression ? [{ ...ex.regression, kind: 'Easier' }] : []),
     ...(ex.progression ? [{ ...ex.progression, kind: 'Harder' }] : []),
-    ...ex.substitutions.map((s) => ({ ...s, kind: 'Instead' })),
+    ...(ex.substitutions ?? []).map((s) => ({ ...s, kind: 'Instead' })),
   ];
   const SEV: Record<string, string> = { avoid: '#f87171', modify: '#fbbf24', caution: '#fbbf24' };
 
@@ -1042,11 +1042,11 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
           <div className="space-y-5">
             {/* Who should take care — the safety floor, ABOVE the method so it
                 is read before anyone starts. */}
-            {ex.contraindications.length > 0 && (
+            {(ex.contraindications?.length ?? 0) > 0 && (
               <section className="rounded-lg border px-4 py-3" style={{ borderColor: 'rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.06)' }}>
                 <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em]" style={{ color: '#f87171' }}>Take care with</h3>
                 <ul className="space-y-1.5">
-                  {ex.contraindications.map((c) => (
+                  {ex.contraindications!.map((c) => (
                     <li key={c.slug} className="text-[12px] leading-relaxed text-vscode-foreground/85">
                       <span className="font-semibold uppercase" style={{ color: SEV[c.severity] ?? '#fbbf24' }}>{c.severity}</span>
                       {' · '}{c.name}{c.note ? ` — ${c.note}` : ''}
@@ -1105,11 +1105,11 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
                 </div>
               </section>
             )}
-            {ex.coaching_cues.length > 0 && (
+            {(ex.coaching_cues?.length ?? 0) > 0 && (
               <section>
                 <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Cues</h3>
                 <div className="flex flex-wrap gap-1.5">
-                  {ex.coaching_cues.map((c, i) => (
+                  {ex.coaching_cues!.map((c, i) => (
                     <span key={i} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[11px] text-vscode-foreground/85">{c}</span>
                   ))}
                 </div>
@@ -1155,8 +1155,8 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
               </section>
             )}
             {!ex.description && !ex.beginner_detail && !ex.common_mistakes && !hasRoutine && !hasMuscles
-              && ex.contraindications.length === 0 && cardioEntries.length === 0
-              && ex.coaching_cues.length === 0 && alternatives.length === 0 && (
+              && (ex.contraindications?.length ?? 0) === 0 && cardioEntries.length === 0
+              && (ex.coaching_cues?.length ?? 0) === 0 && alternatives.length === 0 && (
               <p className="text-[13px] text-vscode-descriptionForeground">{t('health.browse.nothing_here')}</p>
             )}
           </div>
