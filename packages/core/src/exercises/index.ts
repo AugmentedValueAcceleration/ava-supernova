@@ -244,6 +244,46 @@ const AMBIENT = new Set([
   'floor', 'ground', 'wall', 'mirror', 'ceiling', 'air', 'space', 'room',
   'gym', 'mat', 'surface', 'seat', 'position', 'stance', 'grip', 'form',
   'rep', 'reps', 'set', 'sets', 'breath', 'tempo', 'range', 'motion',
+  'chair',
+]);
+
+/**
+ * PARTS of equipment, not equipment.
+ *
+ * Found by repairing the library rather than guessed: the check kept demanding
+ * that exercises list a "shoulder rest", a "footplate", a "rope handle", a
+ * "landmine base". A hack squat machine HAS shoulder rests; a cable machine HAS
+ * handles and a rope attachment; a barbell HAS plates. Naming the part of a
+ * thing you already listed is not a missing piece of kit — it is the same
+ * mistake as the recipe gate insisting a cook buy the water their pasta boiled
+ * in.
+ *
+ * NOTE what is deliberately absent: 'bar' and 'machine'. A method reaching for
+ * a pull-up bar or a stepper on an exercise that lists neither is a REAL
+ * finding, and folding those in here to make a number go down would hide it.
+ */
+const EQUIPMENT_PARTS = new Set([
+  'handle', 'handles', 'grip', 'grips', 'attachment', 'attachments',
+  'pad', 'pads', 'padded', 'roller', 'rollers', 'rest', 'rests',
+  'support', 'supports', 'backrest', 'footplate', 'footplates',
+  'plate', 'plates', 'weight', 'weights', 'frame', 'base', 'platform',
+  'collar', 'collars', 'sleeve', 'sleeves', 'carriage', 'sled',
+  'pin', 'pins', 'clip', 'clips', 'strap', 'straps', 'stack',
+]);
+
+/**
+ * Adjectives that describe a piece of kit rather than name one.
+ *
+ * Needed because stripping the part-nouns leaves the adjective behind:
+ * "lower roller pad" reduced to "lower", which matches nothing and therefore
+ * flagged forever. A phrase that is only adjectives names no equipment, and
+ * findPhantomEquipment already skips a phrase with no words left.
+ */
+const KIT_MODIFIERS = new Set([
+  'lower', 'upper', 'side', 'front', 'rear', 'flat', 'adjustable', 'standard',
+  'small', 'large', 'heavy', 'light', 'short', 'long', 'wide', 'narrow',
+  'single', 'double', 'dual', 'fixed', 'free', 'olympic', 'sturdy', 'stable',
+  'suitable', 'appropriate', 'moderate', 'proper',
 ]);
 
 const EQUIPMENT_SYNONYMS: string[][] = [
@@ -273,7 +313,7 @@ function equipmentWords(phrase: string): string[] {
     .toLowerCase()
     .replace(/[^a-z\s-]/g, ' ')
     .split(/[\s-]+/)
-    .filter((w) => w.length > 2 && !BODY_WORDS.has(w) && !AMBIENT.has(w))
+    .filter((w) => w.length > 2 && !BODY_WORDS.has(w) && !AMBIENT.has(w) && !EQUIPMENT_PARTS.has(w) && !KIT_MODIFIERS.has(w))
     .map((w) => {
       const s = w.endsWith('s') && w.length > 3 ? w.slice(0, -1) : w;
       const g = eqGroup.get(s);
