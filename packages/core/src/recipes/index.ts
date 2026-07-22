@@ -240,6 +240,11 @@ const COLLECTIVE_NOUNS = new Set([
   'spice mix', 'spice paste', 'blend', 'nuts', 'pulses', 'legumes', 'grains',
   'sweetener', 'thickener', 'condiment', 'condiments', 'accompaniment',
   'accompaniments', 'leftovers', 'trimmings', 'scraps', 'base', 'components',
+  // "Rehydrated fungi" is the dried mushrooms already on the list, soaked.
+  // "Alliums" is the onion and garlic. "Joints" is the chicken. A method
+  // reaching for the general word is pointing at the particular ones.
+  'dairy', 'allium', 'alliums', 'joint', 'joints', 'fungi', 'fungus',
+  'coagulant', 'culture', 'starter', 'packet', 'sachet', 'cube',
 ]);
 
 /** Composed sub-preparations — made in-recipe from listed components, not bought.
@@ -268,6 +273,11 @@ const EQUIPMENT_WORDS = new Set([
   'colander', 'ricer', 'blender', 'processor', 'mixer', 'thermometer', 'tin',
   'mould', 'mold', 'paper', 'foil', 'cloth', 'towel', 'jar', 'lid', 'oven',
   'griddle', 'steamer', 'basket', 'ladle', 'tongs', 'peeler', 'roller', 'pin',
+  // Kit a method names but nobody eats. Charcoal is for the dhungar smoking
+  // trick in a dal; pimento wood is what jerk is smoked over; a corn husk
+  // wraps a tamale and is thrown away.
+  'parchment', 'cheesecloth', 'muslin', 'twine', 'charcoal', 'wood', 'husk',
+  'husks', 'toothpick', 'skewers', 'weight', 'weights', 'wrap', 'film',
 ]);
 
 const SYNONYMS: string[][] = [
@@ -284,6 +294,16 @@ const SYNONYMS: string[][] = [
   // listed "Parmigiano-Reggiano"). Head token only — phrases split on
   // spaces/hyphens before folding.
   ['parmesan', 'parmigiano'],
+  // Single words only. synGroup indexes each entry verbatim and contentWords
+  // looks up word by word, so a multi-word entry like 'spring onion' can only
+  // ever match through its single-word siblings.
+  ['lentil', 'dal', 'dhal', 'daal'],
+  // Ghee IS clarified butter — a recipe that lists butter and then says ghee
+  // is not missing anything.
+  ['ghee', 'butter'],
+  // beyaz peynir, queso, fromage: the word for cheese in the cuisine's own
+  // language, against a list that wrote it in English.
+  ['peynir', 'cheese', 'queso'],
 ];
 const synGroup = new Map<string, number>();
 SYNONYMS.forEach((grp, i) => grp.forEach((w) => synGroup.set(w, i)));
@@ -326,8 +346,18 @@ const headNoun = (item: string): string => {
 /** True when a named item is not really a bought ingredient — kit, a collective,
  *  a composed preparation, or nothing distinctive once staples are stripped. */
 function isNonIngredient(item: string): boolean {
+  // Test the WHOLE phrase as well as the head noun, and stem the head before
+  // looking it up. Neither was true before, and it quietly disabled a third of
+  // these lists: "pasta water" was checked as "water", "pan juices" as
+  // "juices" (never matching the entry "juice"), and every multi-word entry —
+  // "seasoning packet", "cooking liquid" — could not match anything at all.
+  // Adding more words to a list that is not consulted is not a fix.
+  const phrase = fold(item ?? '').toLowerCase().replace(/[^a-z\s]/g, ' ').trim().replace(/\s+/g, ' ');
   const head = headNoun(item);
-  if (EQUIPMENT_WORDS.has(head) || COLLECTIVE_NOUNS.has(head) || COMPOSED_PREPARATIONS.has(head)) return true;
+  const inAnyList = (k: string) =>
+    !!k && (EQUIPMENT_WORDS.has(k) || COLLECTIVE_NOUNS.has(k) || COMPOSED_PREPARATIONS.has(k));
+  if (inAnyList(phrase) || inAnyList(head) || inAnyList(stem(head))) return true;
+
   const words = contentWords(item);
   return words.length > 0 && words.every((w) => PANTRY_STAPLES.has(w));
 }
