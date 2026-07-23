@@ -38,7 +38,8 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     rateLimit: 20,
     features: [
       '300 credits / month',
-      'All supported models via BYOK',
+      '4 fleets + single models on credits',
+      'Any model via BYOK — costs no credits',
       'Every surface — extension, IDE, companion',
     ],
   },
@@ -50,6 +51,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     rateLimit: 60,
     features: [
       '5,000 credits / month',
+      '4 fleets + single models on credits',
       'Top-up credits anytime',
       '60 requests / minute',
       'Priority support',
@@ -63,6 +65,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     rateLimit: 120,
     features: [
       '10,000 credits / month',
+      '4 fleets + single models on credits',
       '120 requests / minute',
       'Highest-priority routing',
       'Early access to new models',
@@ -76,6 +79,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     rateLimit: 200,
     features: [
       '20,000 credits / month',
+      '4 fleets + single models on credits',
       '200 requests / minute',
       'SSO + dedicated support',
       'Custom integrations on request',

@@ -2,6 +2,45 @@
 
 All notable changes to Ava Supernova will be documented in this file.
 
+## Extension [0.89.0] - 2026-07-23
+
+### Pick a single model, not just a fleet
+- **Every model the fleets are built from is now yours to drive directly, on your plan.** Qwen 3.7 Max / 3.7 Plus / 3.5 Flash, DeepSeek V4 Pro / V4 Flash, Mistral Medium 3.5 / Small 4 / Large 3, Kimi K3 / K2.7 Code — each sits under its own vendor heading in the picker and bills at that model's own credit rate. Single-model picking used to require your own API key. It doesn't any more.
+- **It still runs inside Ava.** Choosing one model doesn't drop you into a bare chat — that model fills every persona seat, so you keep the specialist pipeline with one brain doing all of it. A pricier model therefore costs more per turn, which is why each carries its own rate.
+- **Kimi K2.7 Code and Qwen 3.7 Max join the lineup**, both available on credits.
+
+### Your credits go further
+- **Every model's credit rate came down.** The whole pricing table moved to a 30% margin, so the same allowance buys materially more work. What you get didn't change — only what it costs.
+
+### Fixed
+- **Mistral Large 3 can see.** It was flagged text-only, so image attachments were struck through on a model that handles them perfectly well.
+- **Codestral and Devstral retired.** Mistral Small 4 and Medium 3.5 supersede both and cost less, so they've been removed from the picker rather than left sitting there looking current.
+
+## IDE [0.37.0] - 2026-07-23
+
+### Pick a single model, not just a fleet
+- **The single models behind the fleets are selectable on your plan** — Qwen, DeepSeek, Mistral and Kimi — each grouped under its vendor and billed at its own credit rate. This previously needed your own API key.
+- **It still runs the persona team**, just with one model filling every seat instead of a fleet sharing the roles.
+- **Kimi K2.7 Code and Qwen 3.7 Max join the lineup** on credits.
+
+### Your credits go further
+- **Every model's credit rate came down** with the move to a 30% margin — the same allowance buys more work.
+
+### Fixed
+- **Mistral Large 3 is no longer marked text-only**, so image attachments work on it.
+- **Codestral and Devstral retired**, superseded by Mistral Small 4 and Medium 3.5.
+
+## Companion [0.5.0] - 2026-07-23
+
+### Single models, and a say in what pays for them
+- **The companion runs single models now.** Driving a whole orchestrated fleet from your phone spent credits on coordination that a single model handles just as well, so the fleets have stepped back to the coding surfaces and the models they're built from are all here instead — each at its own credit rate.
+- **A Platform / API Key switch.** You choose whether a turn runs on your plan credits or your own API key. Before, simply having a key saved quietly meant it got used, even for a model your plan already covered. It's your call now, from the model picker or Settings.
+- **Qwen 3.7 Max is available** alongside the rest.
+
+### Fixed
+- **Running out of credits now says so.** An exhausted allowance was being reported as "you're sending messages a bit fast" — the rate-limit message — which explained nothing. It now tells you plainly that you're out of credits, and offers both ways on: top up, or switch to your own key.
+- **Codestral and Devstral retired**, superseded by Mistral Small 4 and Medium 3.5.
+
 ## Extension [0.88.0] - 2026-07-19
 
 ### Longxiang joins the fleet
