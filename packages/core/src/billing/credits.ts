@@ -131,68 +131,54 @@ export function cacheHitMultiplier(model: string | null | undefined): number {
  *  in sync; web is the authoritative billing surface and core's meter
  *  dual-writes for dataset audit. Default 1.0 for unlisted models. */
 export const MODEL_COST_MULTIPLIER: Record<string, number> = {
-  // V4 Pro: 3.75 → 0.9. The 3.75× was calibrated against a wrong, 4×-inflated
-  // price ($1.74/$3.48); the real price is $0.435/$0.87, so the multiplier
-  // scales down ~4× to restore the 40% margin. V4 Pro is the Supernova
-  // coordinator — this stops a ~4× overcharge on every orchestration.
-  'deepseek-v4-pro':            0.77,
-  'deepseek-v4-pro-platform':   0.77,
-  // V4 Flash: explicit 0.5× (was falling through to default 1.0×, which
-  // would over-charge it relative to its $0.14/$0.28 per-million rate).
-  // Now Supernova's chat tier — fast, MIT open-weight, 13B active params,
-  // 2 credits per typical chat turn at the 40% margin floor.
-  'deepseek-v4-flash':            0.43,
-  'deepseek-v4-flash-platform':   0.43,
-  // Qwen 3.7 Plus: 1.5 → 0.7. Maestro chat used to charge 6 credits/turn
-  // (~79% margin); now 3 credits (~40%). The biggest concrete win for
-  // users — daily-driver Maestro doubles at the same plan price.
-  'qwen3.7-plus':               0.6,
-  'qwen-plus':                  0.6,
-  'qwen3.5-plus':               0.51,
-  'qwen3.5-omni-plus':          0.51,
-  // Qwen 3.5 Flash + Omni Flash — added 2026-04-30 when v0.59.0 routed
-  // Maestro chat / image_gen / intent gate to 3.5 Flash and Supernova
-  // image_gen orchestration to Omni Flash. Without explicit entries they
-  // fell through to default 1.0× which over-charged relative to their
-  // actual per-million rates ($0.07/$0.26 for Flash). 0.3× (Flash) and
-  // 0.4× (Omni Flash, vision encoder lift) keeps margin at the 40% floor
-  // while passing the genuine cost saving through to users.
-  'qwen3.5-flash':              0.26,
-  'qwen-flash':                 0.26,
-  'qwen3.5-omni-flash':         0.34,
-  // Mistral Small 4: 0.6 → 1.15. The old 0.6× was calibrated against a wrong,
-  // too-low price ($0.10/$0.30); the real price is $0.15/$0.60 (~1.9× higher
-  // blended), so the multiplier scales ~1.9× to restore the 40% margin target.
-  // Sits below Large 3 (1.25×, pricier) as it should. Small 4 is now Aurora's
-  // high-volume workhorse, so this drives a lot of turns — calibrating it
-  // right matters.
-  'mistral-small-4':            0.99,
-  'mistral-small-4-platform':   0.99,
-  // Mistral Large 3: 1.25× — cost-accurate at $0.50/$1.50 (price unchanged).
-  // Now Aurora's heavy reserve/fallback, not the coordinator, so it sees
-  // far less traffic.
-  'mistral-large-3':            1.07,
-  'mistral-large-3-platform':   1.07,
-  // Mistral Medium 3.5: 3.0 → 4.25. The ONE multiplier that goes UP at
-  // the 40% rebalance — it was sitting at ~36% margin (below the new
-  // floor) because the original 3.0× was set against a 55% target with
-  // a 1.3× Aurora mode bump on top, not against 40% with a flat mode.
-  // Raising the model multiplier directly is more honest than hiding
-  // the cost in an Aurora-only mode bump (which would lie about
-  // Medium 3.5's per-model cost when used outside Aurora).
-  'mistral-medium-3.5':           3.64,
-  'mistral-medium-3.5-platform':  3.64,
-  // Kimi K3 — Longxiang's coordinator AND Builder, so it drives most of that
-  // fleet's turns. $3.00/$15.00, which is EXACTLY 2× Mistral Medium 3.5
-  // ($1.50/$7.50) on both input and output, so the multiplier is derived
-  // straight off that already-calibrated anchor: 3.64 × 2 = 7.28. Same 30%
-  // margin, no new calibration guesswork.
+  // 30% margin (2026-07-23). Every value below is the prior 40% multiplier
+  // scaled by 6/7 — the exact factor to move 40% → 30% (price = cost/(1−m),
+  // so 0.6/0.7 = 6/7). The relative calibration between models is preserved;
+  // only the margin moved. The 2026-07-19 header noted this recalibration but
+  // the numbers were never actually scaled — this completes it.
   //
-  // This is the priciest multiplier in the table by some way — that is the
-  // model's real cost, not a markup. Worth knowing before Longxiang traffic
-  // lands on plan credits.
-  'kimi-k3':                      7.28,
-  'kimi-k3-platform':             7.28,
+  // V4 Pro — Supernova coordinator. Real price $0.435/$0.87 (was mis-set 4×
+  // high once; corrected). 0.77 → 0.66.
+  'deepseek-v4-pro':            0.66,
+  'deepseek-v4-pro-platform':   0.66,
+  // V4 Flash — Supernova's chat tier. $0.14/$0.28. 0.43 → 0.37.
+  'deepseek-v4-flash':            0.37,
+  'deepseek-v4-flash-platform':   0.37,
+  // Qwen 3.7 Plus — Maestro conductor. $0.40/$1.60. 0.6 → 0.51.
+  'qwen3.7-plus':               0.51,
+  'qwen-plus':                  0.51,  // legacy DashScope alias
+  // Qwen 3.7 Max — heavy flagship, opened to account credits 2026-07-23.
+  // $2.50/$7.50 → 0.4952 × (2.50 + 4×7.50)/5 = 3.22. Priciest Qwen we serve.
+  'qwen3.7-max':                3.22,
+  'qwen3.5-plus':               0.44,
+  'qwen3.5-omni-plus':          0.44,
+  // Qwen 3.5 Flash + Omni Flash — Maestro chat / image_gen / intent gate.
+  // $0.05/$0.40 (Flash). 0.26 → 0.22 / 0.34 → 0.29.
+  'qwen3.5-flash':              0.22,
+  'qwen-flash':                 0.22,
+  'qwen3.5-omni-flash':         0.29,
+  // Mistral Small 4 — Aurora's high-volume workhorse. $0.15/$0.60. 0.99 → 0.85.
+  'mistral-small-4':            0.85,
+  'mistral-small-4-platform':   0.85,
+  // Mistral Large 3 — Aurora's heavy reserve/fallback. $0.50/$1.50. 1.07 → 0.92.
+  'mistral-large-3':            0.92,
+  'mistral-large-3-platform':   0.92,
+  // Mistral Medium 3.5 — Aurora's lead seat. $1.50/$7.50 — the calibration
+  // anchor. 3.64 → 3.12.
+  'mistral-medium-3.5':           3.12,
+  'mistral-medium-3.5-platform':  3.12,
+  // Kimi K3 — Longxiang's coordinator AND Builder. $3.00/$15.00, EXACTLY 2×
+  // Medium 3.5 on both input and output, so it stays 2× the anchor: 3.12 × 2
+  // = 6.24. Priciest in the table — real cost, not markup. 7.28 → 6.24.
+  'kimi-k3':                      6.24,
+  'kimi-k3-platform':             6.24,
+  // Kimi K2.7 Code — Longxiang fleet member, now openable as a single credit
+  // model. $0.95/$4.00 (verified against the Moonshot API). Multiplier from
+  // the 30% formula, 0.4952 × (in + 4×out)/5 = 0.4952 × 3.39 = 1.68. Native
+  // vision. NEW entry — had no multiplier, so it was silently defaulting to
+  // 1.0× (an undercharge) wherever the router used it.
+  'kimi-k2.7-code':               1.68,
+  'kimi-k2.7-code-platform':      1.68,
 };
 
 /** Per-mode cost multiplier — applied AFTER the model multiplier in

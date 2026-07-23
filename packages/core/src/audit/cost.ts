@@ -62,7 +62,6 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'mistral-large-3':    { inputPerMillion: 0.50, outputPerMillion: 1.50 },
     'mistral-medium-3.5': { inputPerMillion: 1.50, outputPerMillion: 7.50 },
     'mistral-small-4':    { inputPerMillion: 0.10, outputPerMillion: 0.30 },
-    'codestral-latest':   { inputPerMillion: 0.30, outputPerMillion: 0.90 },
   },
   anthropic: {
     'claude-fable-5':             { inputPerMillion: 10.00, outputPerMillion: 50.00 },

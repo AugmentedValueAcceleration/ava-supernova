@@ -59,26 +59,8 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     desktopCapable: true,
     pricing: { inputPerMillion: 1.50, outputPerMillion: 7.50 },
   },
-  {
-    id: 'codestral-latest',
-    name: 'Codestral',
-    provider: 'mistral',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    desktopCapable: true, // Coding-tuned, tool calls solid.
-    pricing: { inputPerMillion: 0.30, outputPerMillion: 0.90 },
-  },
-  {
-    id: 'devstral-latest',
-    name: 'Devstral 2',
-    provider: 'mistral',
-    contextWindow: 262000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    desktopCapable: true, // Agentic coding model, tool-call reliable.
-    pricing: { inputPerMillion: 0.40, outputPerMillion: 2.00 },
-  },
+  // Codestral + Devstral 2 retired 2026-07-23 (superseded by Mistral Small 4,
+  // which unifies Magistral + Pixtral + Devstral in one weight set). Removed
+  // from the code registry — the source the extension/IDE BYOK picker actually
+  // reads. Setting enabled=false in the DB alone did NOT hide them here.
 ];

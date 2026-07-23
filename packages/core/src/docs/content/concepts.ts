@@ -15,7 +15,7 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'You pick one of three styles — Maestro, Supernova, or Aurora — and Ava sends each piece of work to the model that handles it best. Maestro is the default, it is live on every plan, and it is a good choice for almost everyone.' },
       { type: 'heading', level: 3, text: 'Why bother routing?' },
       { type: 'paragraph', text: 'Putting the right model on each step costs less than running everything on one big expensive model — and gives better results, because each model does what it is best at. You get steady cost and high quality without ever needing to know which model is which.' },
-      { type: 'callout', variant: 'note', text: 'All three styles work on platform credits and on your own keys. With your own key you can also skip routing and drive a single model directly. The full fleet breakdown is under "Show me the details".' },
+      { type: 'callout', variant: 'note', text: 'Every style works on platform credits and on your own keys. You can also pick a single model directly instead of a fleet — on a plan it runs on credits at that model\'s rate, on your own key it runs on your key. The full fleet breakdown is under "Show me the details".' },
     ],
     deeper: [
       { type: 'callout', variant: 'note', text: 'The "B" numbers below are billions of parameters — roughly how big a model\'s brain is; bigger usually means smarter but slower and pricier. This is the under-the-hood detail; you never need it to use Ava.' },

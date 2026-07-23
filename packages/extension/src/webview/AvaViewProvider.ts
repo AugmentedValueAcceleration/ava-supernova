@@ -2406,10 +2406,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // managed path, so this is a BYOK-only signal by design.
     const hasKimi = filtered.some(m => m.provider === 'kimi' && m.available);
 
-    // Individual models = the BYOK catalogue, ALWAYS shown (available reflects
-    // whether the key is set). Platform-section raw models stay collapsed into
-    // the 3 orchestrated modes below (project_byok_mode_gating). Dedup by id so
-    // a model defined for two BYOK providers isn't listed twice.
+    // Individual models = the vendor catalogue, ALWAYS shown, grouped by their
+    // real provider (Mistral under Mistral, Kimi under Kimi — no separate
+    // "Platform" section). Dedup by id so a model defined for two providers
+    // isn't listed twice.
     const seen = new Set<string>();
     const byokOnly = filtered.filter((m) => {
       if (m.provider === 'platform') return false;
@@ -2419,6 +2419,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return true;
     });
 
+    // Fleet single models opened to the account tier (2026-07-23). A vendor
+    // model the platform ALSO serves can run on plan CREDITS. `filtered` only
+    // carries platform entries in Platform mode (providerSource gate at the top
+    // of this method), so this set is EMPTY in API Key mode and the credit
+    // branch below is a pure no-op there — API Key mode stays exactly as before.
+    // Platform ids are `-platform`-suffixed for DeepSeek/Kimi/Mistral and bare
+    // for Qwen; strip the suffix so both forms match their vendor twin.
+    const platformServedIds = new Set(
+      filtered.filter((m) => m.provider === 'platform').map((m) => m.id.replace(/-platform$/, '')),
+    );
+
     // supportsVision is sent as an EXPLICIT boolean. It used to be spread in
     // only when true, so a text-only model arrived as `undefined` — which the
     // composer reads as "unknown, don't block". The attach gate could
@@ -2426,13 +2437,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // ModelDefinition means no vision (the convention across the catalogue),
     // so `=== true` is the honest coercion.
     const modelList: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }> =
-      byokOnly.map((m) => ({
-        id: `${m.provider}:${m.id}`,
-        name: m.name,
-        provider: m.provider,
-        available: m.available,
-        supportsVision: m.supportsVision === true,
-      }));
+      byokOnly.map((m) => {
+        // On Platform, a fleet single is selectable on credits even without the
+        // provider key. It STAYS in its vendor group (provider unchanged — no
+        // new section); only its id routes to the platform provider so the pick
+        // draws credits, not a key the user may not hold. The agent's registry
+        // bridges `platform:<bare-id>` to the `-platform` row and bills at the
+        // model's multiplier. In API Key mode platformServedIds is empty, so
+        // this is exactly the old BYOK behaviour (vendor id, key-gated).
+        const creditPath = platformServedIds.has(m.id);
+        return {
+          id: creditPath ? `platform:${m.id}` : `${m.provider}:${m.id}`,
+          name: m.name,
+          provider: m.provider,
+          available: creditPath || m.available,
+          supportsVision: m.supportsVision === true,
+        };
+      });
 
     // Three orchestrated modes. Admin gate retired 2026-04-30 — public
     // launch of Aurora + Supernova alongside Maestro. Any signed-in

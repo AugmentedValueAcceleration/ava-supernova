@@ -39,8 +39,49 @@ const KIMI_K3_PLATFORM: ModelDefinition = {
   pricing: { inputPerMillion: 3.00, outputPerMillion: 15.00 },
 };
 
+/**
+ * Kimi K2.7 Code as a MANAGED single model — a Longxiang fleet member opened
+ * for direct credit selection (2026-07-23). 1T MoE / 32B active, 256K context,
+ * native vision, agentic-coding leader at $0.95/$4.00. Credit multiplier 1.68×
+ * in credits.ts. Unlike K3 this is NOT gated on Longxiang — it stands on its
+ * own as a pickable single model, served through the same Moonshot billing
+ * path that made K3 managed. The "Kimi is BYOK-only" rule was retired.
+ */
+const KIMI_K2_7_CODE_PLATFORM: ModelDefinition = {
+  id: 'kimi-k2.7-code-platform',
+  name: 'Kimi K2.7 Code',
+  provider: 'platform',
+  contextWindow: 256000,
+  maxOutputTokens: 8192,
+  supportsToolCalls: true,
+  supportsStreaming: true,
+  supportsThinking: true,
+  supportsVision: true,
+  desktopCapable: true, // Agentic-coding leader.
+  pricing: { inputPerMillion: 0.95, outputPerMillion: 4.00 },
+};
+
 export const PLATFORM_MODELS: ModelDefinition[] = [
   ...(LONGXIANG_ENABLED ? [KIMI_K3_PLATFORM] : []),
+  KIMI_K2_7_CODE_PLATFORM,
+  // Qwen 3.7 Max — Alibaba's heavy flagship, opened to account credits
+  // 2026-07-23 (operator: it's in the Qwen family, price it honestly). Bare id
+  // on both surfaces like the rest of Qwen. $2.50/$7.50 = the priciest Qwen we
+  // serve → credit multiplier 3.22× in credits.ts. NOT a fleet coordinator; a
+  // standalone single pick for users who want the flagship on credits.
+  {
+    id: 'qwen3.7-max',
+    name: 'Qwen 3.7 Max',
+    provider: 'platform',
+    contextWindow: 1000000,
+    maxOutputTokens: 65536,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 2.50, outputPerMillion: 7.50 },
+  },
   // Qwen 3.7 Plus — flagship Maestro conductor. Agentic coding, 1M context,
   // vision + video, reasoning. Supersedes Qwen 3.6 Plus + the 3.5 Omni tier:
   // better agentic coding, multimodal, and cheaper.
@@ -147,7 +188,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
-    supportsVision: false,
+    supportsVision: true, // multimodal (text + image) per the vendor def — was wrongly false here + in the DB
     desktopCapable: true,
     pricing: { inputPerMillion: 0.50, outputPerMillion: 1.50 },
   },

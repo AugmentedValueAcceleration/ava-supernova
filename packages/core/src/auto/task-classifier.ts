@@ -41,7 +41,6 @@ const MODEL_ALIASES: Record<string, string> = {
   // Mistral — "use mistral" should give the flagship: Medium 3.5 is the
   // current frontier model (Index 39), above Large 3 (23).
   'mistral': 'mistral-medium-3.5',
-  'codestral': 'codestral-latest',
 };
 
 // Build regex pattern from all aliases: @kimi, use kimi, with kimi, etc.

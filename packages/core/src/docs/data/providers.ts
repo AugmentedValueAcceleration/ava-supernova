@@ -182,8 +182,7 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5 (frontier flagship)', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-large-3', displayName: 'Mistral Large 3', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'codestral-latest', displayName: 'Codestral', inputPricePerM: 0.30, outputPricePerM: 0.90, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
-      { id: 'devstral-latest', displayName: 'Devstral 2', inputPricePerM: 0.40, outputPricePerM: 2.00, contextWindow: 262_000, capabilities: ['tools', 'streaming'] },
+      // Codestral + Devstral 2 retired 2026-07-23 — superseded by Mistral Small 4.
     ],
   },
   {
