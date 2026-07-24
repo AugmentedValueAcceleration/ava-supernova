@@ -110,6 +110,78 @@ export class AddEquipmentTool implements Tool {
   }
 }
 
+/** Fix who should NOT do it, or should do it differently.
+ *
+ *  This existed as a hole for a long time: the repair kit could fix equipment,
+ *  muscles and the demo photograph, but nothing could add a contraindication to
+ *  an exercise already in the library. The gate FAILS any loaded, overhead or
+ *  high-impact movement with an empty contraindication list, so those exercises
+ *  were permanently unpublishable — and the only workaround, rewriting the whole
+ *  exercise to add one line, would have created a duplicate. Found when Ava hit
+ *  it on Farmer's Carry, Bear Crawl and Sled Push and correctly refused to fake
+ *  a fix. */
+export class AddContraindicationTool implements Tool {
+  readonly name = 'add_contraindication';
+  readonly description =
+    'Add one contraindication to an existing exercise — a condition someone should avoid, modify or take care with. Use it when read_exercise or check_exercise shows a loaded, overhead or high-impact movement with none.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'add_contraindication',
+    description:
+      'Add ONE condition to an exercise, with how serious it is for THIS movement and what to do instead. Call it once per condition. Severity belongs to the pairing, not the condition: a bad knee is "modify" for a goblet squat and "avoid" for a depth jump.',
+    parameters: {
+      type: 'object',
+      properties: {
+        exercise_id: { type: 'string' },
+        condition: {
+          type: 'string',
+          description: 'Condition name, e.g. "Lower back pain", "Shoulder impingement", "Knee pain". Must match one the library already carries.',
+        },
+        severity: {
+          type: 'string',
+          enum: ['avoid', 'caution', 'modify'],
+          description: 'avoid = do not do it with this condition; modify = do it differently; caution = proceed carefully.',
+        },
+        note: {
+          type: 'string',
+          description: 'Why, and what to do instead. "Avoid" with no alternative is a dead end for the person reading it.',
+        },
+      },
+      required: ['exercise_id', 'condition', 'severity'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
+    if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
+
+    const id = String(args.exercise_id ?? '').trim();
+    const condition = String(args.condition ?? '').trim();
+    const severity = String(args.severity ?? '').trim() as 'avoid' | 'caution' | 'modify';
+    const note = String(args.note ?? '').trim() || undefined;
+
+    if (!id || !condition) return { success: false, output: 'add_contraindication requires exercise_id and condition.' };
+    if (!['avoid', 'caution', 'modify'].includes(severity)) {
+      return { success: false, output: 'severity must be one of: avoid, caution, modify.' };
+    }
+
+    const result = await store.addContraindication(id, condition, severity, note);
+    if (!result.ok) return { success: false, output: `Could not add contraindication: ${result.error ?? 'unknown error'}` };
+
+    const recheck = await store.recheck(id);
+    return {
+      success: true,
+      output: JSON.stringify({
+        ok: true, added: condition, severity,
+        recheck: recheck ? recheck.status : 'not re-checked',
+        remaining: recheck?.findings?.map((f) => `${f.kind}: ${f.term}`) ?? [],
+      }),
+    };
+  }
+}
+
 /** Fix what it works, and which of those is the point of it. */
 export class SetMusclesTool implements Tool {
   readonly name = 'set_muscles';

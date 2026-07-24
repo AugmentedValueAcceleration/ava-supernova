@@ -209,6 +209,18 @@ export interface ExerciseStore {
   recheck(exerciseId: string): Promise<ExerciseCheckResult | null>;
   addEquipment(exerciseId: string, equipment: string): Promise<{ ok: boolean; error?: string }>;
   setMuscles(exerciseId: string, muscles: ExerciseMuscleInput[]): Promise<{ ok: boolean; error?: string }>;
+  /** Add ONE contraindication to an existing exercise. Without this there was no
+   *  repair path at all: the gate fails any loaded, overhead or high-impact
+   *  movement with an empty contraindication list, so those exercises could
+   *  never pass and never publish — and rewriting them whole to add one line
+   *  would have created duplicates. Severity lives on the LINK because a bad
+   *  knee is "modify" for a goblet squat and "avoid" for a depth jump. */
+  addContraindication(
+    exerciseId: string,
+    condition: string,
+    severity: 'avoid' | 'caution' | 'modify',
+    note?: string,
+  ): Promise<{ ok: boolean; error?: string }>;
   /** Re-shoot the demonstration and VERIFY it shows the right movement before
    *  keeping it. Generation alone is not enough: asked for a hack squat, the
    *  model rendered an immaculate leg press. */

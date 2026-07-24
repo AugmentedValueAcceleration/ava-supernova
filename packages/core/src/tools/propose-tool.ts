@@ -64,7 +64,7 @@ export class ProposeToolTool implements Tool {
             'Brief description of what the user was working on when you identified this gap (optional).',
         },
       },
-      required: ['email', 'tool_name', 'description', 'risk_level', 'justification'],
+      required: ['tool_name', 'description', 'risk_level', 'justification'],
     },
   };
 
@@ -78,9 +78,12 @@ export class ProposeToolTool implements Tool {
     const justification = (args.justification as string)?.trim();
     const taskContext = (args.task_context as string)?.trim() || undefined;
 
-    // Validate
-    if (!email || !email.includes('@')) {
-      return { success: false, output: 'A valid email address is required to credit the proposal.' };
+    // Email is OPTIONAL. It exists so an end user can be credited and replied
+    // to — but the operator running this in their own hub IS the dev team, and
+    // demanding their address to propose a tool to themselves blocked the call
+    // outright. Record it uncredited rather than refusing to file the gap.
+    if (email && !email.includes('@')) {
+      return { success: false, output: 'That does not look like a valid email address. Leave it out to file the proposal uncredited.' };
     }
 
     if (!toolName) {
