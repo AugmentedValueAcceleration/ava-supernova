@@ -2031,10 +2031,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // returns the days. Replaces the old turn-by-turn fill.
       generateHealthPlanDays: async (i: { type: string; duration_days: number; goal: string | null; title: string }) => {
         if (!platformKey) throw new Error('Sign in to your Ava account to generate a plan.');
-        let profile = '';
+        // Send the profile as an OBJECT. It used to be JSON.stringify'd and cut
+        // at 1500 characters, which routinely truncated mid-object — so the
+        // server received text it couldn't parse and fell back to asking the
+        // model nicely to respect injuries. Structured, it filters the exercise
+        // and recipe pools instead: an allergen or an 'avoid' contraindication
+        // removes the item before the prompt exists, and daily targets are
+        // computed from body + goal. The conditions never reach the model.
+        let profile: unknown = null;
         try {
           const raw = await readFile(join(this.accountScopedDir, 'health', 'profile.json'), 'utf-8');
-          profile = JSON.stringify(JSON.parse(raw)).slice(0, 1500);
+          profile = JSON.parse(raw);
         } catch { /* no local profile — the server handles its absence */ }
         const res = await fetch('https://ava-supernova.com/api/health/generate/plan', {
           method: 'POST',
