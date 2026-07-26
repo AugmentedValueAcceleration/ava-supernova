@@ -122,6 +122,10 @@ function makeHealthPlanDirective(type: 'meal' | 'fitness' | 'combined'): Palette
   const LABELS = { meal: 'Meal plan', fitness: 'Fitness plan', combined: 'Combined plan' } as const;
   const label = LABELS[type];
   const perWeek = type === 'combined' ? 10 : 5;
+  // Priced by the DAY at the weekly rate now, rounded up — a one-day plan no
+  // longer costs what a seven-day plan costs. Quoting the old whole-week figure
+  // here would have Ava confidently tell someone the wrong price.
+  const costFor = (days: number) => Math.max(1, Math.ceil((days * perWeek) / 7));
 
   return {
     label,
@@ -132,12 +136,15 @@ function makeHealthPlanDirective(type: 'meal' | 'fitness' | 'combined'): Palette
       `Ava's plan engine builds the whole plan for you from the user's exercise/recipe library and ` +
       `charges one flat fee. You do NOT design the plan yourself, search the catalogue, or fill days — ` +
       `just gather the inputs, confirm, and create.\n` +
-      `1. Ask the user for: (a) a clear title; (b) duration in days — one of 1, 7, 28, 56, 84; ` +
-      `(c) an optional free-text goal; (d) status — \`draft\` (save without starting) or ` +
+      `1. Ask the user for: (a) a clear title; (b) duration in days — 1, 3 or 7. Short plans are the ` +
+      `default on purpose: people finish them, and REPEATING a finished plan advances it from what ` +
+      `they actually logged, which is how a programme gets built out of evidence rather than guesswork. ` +
+      `Longer blocks (28, 56, 84) still work if they insist; (c) an optional free-text goal; ` +
+      `(d) status — \`draft\` (save without starting) or ` +
       `\`active\` (begin today; archives any existing active ${type} plan). Status has NO DEFAULT — ask explicitly.\n` +
-      `2. CONFIRM the summary before creating, and TELL THEM THE COST: this plan costs ${perWeek} credits ` +
-      `per week (e.g. a 4-week plan = ${perWeek * 4} credits). When status=active, name the plan that ` +
-      `will be archived if any.\n` +
+      `2. CONFIRM the summary before creating, and TELL THEM THE COST: ` +
+      `1 day = ${costFor(1)} credit${costFor(1) === 1 ? '' : 's'}, 3 days = ${costFor(3)}, 1 week = ${costFor(7)}. ` +
+      `When status=active, name the plan that will be archived if any.\n` +
       `3. Call \`health_plan_create\` with \`type\`, \`title\`, \`goal\`, \`duration_days\` and \`status\` ` +
       `and NO \`days\` array — the engine generates and prices the full plan from the library. Do NOT call ` +
       `\`health_plan_update_day\` as part of creation; it is only for later manual edits.\n\n` +
