@@ -253,15 +253,25 @@ export const PLAN_CREDITS_PER_WEEK: Record<'single' | 'combined', number> = {
  * that REPLACES per-turn billing for plan generation (the route that builds
  * the plan server-side charges this once instead of metering each turn).
  *
- * Scales by whole weeks (min 1), so a 1- or 7-day plan is one week and an
- * 84-day plan is twelve. Single (fitness | meal) = 5 cr/week; combined = 10.
- *   single 7d = 5 · 28d = 20 · 84d = 60
- *   combined 7d = 10 · 28d = 40 · 84d = 120
+ * Scales by DAY at the weekly rate, rounded up, minimum 1. Single
+ * (fitness | meal) = 5 cr/week; combined = 10.
+ *   single   1d = 1 · 3d = 3 · 7d = 5 · 28d = 20 · 84d = 60
+ *   combined 1d = 2 · 3d = 5 · 7d = 10 · 28d = 40 · 84d = 120
+ *
+ * It used to round UP TO WHOLE WEEKS, which meant a 1-day plan cost exactly
+ * what a 7-day plan cost. That was a harmless edge case while the offered
+ * durations were 1/7/28/56/84 and nobody picked 1. It stopped being harmless
+ * when the durations became 1/3/7: we would have been steering people toward
+ * the shortest plan while charging them a full week for a seventh of the
+ * output, which is indefensible however you dress it up.
+ *
+ * Every price that existed before is unchanged — 7, 14, 21, 28, 56 and 84 days
+ * all come out identical, because 28/7 x 5 is 20 by either route. Only the two
+ * new short durations move, and only downward.
  */
 export function creditsForPlan(type: HealthPlanKind, durationDays: number): number {
-  const weeks = Math.max(1, Math.ceil((durationDays || 1) / 7));
   const perWeek = type === 'combined' ? PLAN_CREDITS_PER_WEEK.combined : PLAN_CREDITS_PER_WEEK.single;
-  return weeks * perWeek;
+  return Math.max(1, Math.ceil(((durationDays || 1) * perWeek) / 7));
 }
 
 // ── Token-bracket scaling (proposal H, 2026-04-25) ────────────────────────
