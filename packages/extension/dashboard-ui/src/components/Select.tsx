@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckIcon, ChevronDownIcon } from './Icons';
 
@@ -59,9 +59,20 @@ export function Select({ value, onChange, options, size = 'md', className = '', 
     });
   }, []);
 
+  // Position BEFORE the browser paints.
+  //
+  // With a plain effect the menu painted once at whatever `menuStyle` held from
+  // the last time it was open — a different scroll offset, or nothing at all on
+  // the first open — and only then jumped into place. That one frame is the
+  // flicker: the menu visibly ping-ponged as it opened. useLayoutEffect runs
+  // after the DOM mutation and before paint, so the first frame the user sees
+  // is already correct.
+  useLayoutEffect(() => {
+    if (open) reposition();
+  }, [open, reposition]);
+
   useEffect(() => {
     if (!open) return;
-    reposition();
     function handleClick(e: MouseEvent) {
       const target = e.target as Node;
       if (ref.current?.contains(target)) return;

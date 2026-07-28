@@ -6,11 +6,19 @@ import { Select } from '../components/Select';
 // from a plan or the day view reads identically to the library, with the full
 // schema (skill levels, full nutrition, diets, equipment, per-step technique).
 import { ExerciseDetailBody, RecipeDetailBody } from './Health';
+import { ShoppingListSheet } from '../components/ShoppingListSheet';
+import { PrepSheet } from '../components/PrepSheet';
+import { fillDayMeta } from '../lib/plan-meal-meta';
+import { StartersSheet } from '../components/StartersSheet';
+import { DuplicateSheet } from '../components/DuplicateSheet';
+import { AssistSheet, dayDate, type DayProposal } from '../components/AssistSheet';
 import type {
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
   HealthPlanDay, HealthPlanExercise, HealthPlanMeal,
   HealthExerciseSummary, HealthRecipeSummary,
   HealthExerciseDetail, HealthRecipeDetail, HealthRecipeNutrition,
+  HealthProfile,
+  CuratedPlanSummary, CuratedPlanDetail,
 } from '../types/messages';
 
 /**
@@ -34,7 +42,7 @@ const EXERCISE_CATEGORIES = ['strength', 'hypertrophy', 'conditioning', 'mobilit
 const RECIPE_CATEGORIES = ['breakfast', 'starter', 'main', 'side', 'dessert', 'snack', 'beverage', 'sauce', 'bread'];
 const PICKER_PAGE_SIZE = 24;
 
-interface Props {
+export interface HealthPlansProps {
   plans: HealthPlanSummary[];
   /** Full (dated) plans with days — gives the calendar real per-day content. */
   fullPlans?: HealthPlan[];
@@ -59,25 +67,55 @@ interface Props {
    *  (catalogue-aware, profile-loaded) instead of the manual builder.
    *  Omitted on surfaces that only offer manual building. */
   onAskAva?: (type: HealthPlanType) => void;
+  /** For the shopping list (household) and the prep plan (cooking-time
+   *  budget). Optional so a caller that has no profile still renders. */
+  healthProfile?: HealthProfile | null;
+  /** Ask Ava to change ONE day. She PROPOSES — the reply is shown beside the
+   *  current day and nothing is written until the operator accepts. */
+  dayAssist?: {
+    busy: boolean;
+    error: string | null;
+    proposal: DayProposal | null;
+    onAsk: (args: {
+      planType: HealthPlanType; goal: string | null; day: HealthPlanDay; week: HealthPlanDay[];
+      instruction: string; date: string | null; profile: unknown;
+    }) => void;
+    onDiscard: () => void;
+  };
+  /** The starter shelf. A curated plan is a TEMPLATE: starting one takes a
+   *  copy, so the week becomes theirs and a later correction to the template
+   *  never changes it under them. See @ava/core health/starters. */
+  curated?: {
+    plans: CuratedPlanSummary[];
+    loading: boolean;
+    error: string | null;
+    detail: CuratedPlanDetail | null;
+    detailLoading: boolean;
+    onLoad: () => void;
+    onLoadDetail: (id: string) => void;
+    onStart: (plan: HealthPlan, curatedId: string) => void;
+  };
 }
 
 export function HealthPlans({
   plans, fullPlans, planOpen, onOpenPlan, onSavePlan, onDeletePlan, onClosePlan,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
-  onAskAva,
-}: Props) {
+  onAskAva, healthProfile = null, curated, dayAssist,
+}: HealthPlansProps) {
   useLocale();
   const [setupOpen, setSetupOpen] = useState(false);
 
   return (
     <>
-      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan}
+      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} healthProfile={healthProfile}
         onSavePlan={onSavePlan}
         exerciseResults={exerciseResults} recipeResults={recipeResults} catalogSearching={catalogSearching} onSearchExercises={onSearchExercises} onSearchRecipes={onSearchRecipes} />
       {(setupOpen || planOpen) && (
         <PlanOverlay
           planOpen={planOpen}
+        curated={curated}
+        dayAssist={dayAssist}
           onCancelSetup={() => setSetupOpen(false)}
           onCreate={onSavePlan}
           onAskAva={onAskAva ? (type) => { setSetupOpen(false); onAskAva(type); } : undefined}
@@ -110,7 +148,7 @@ export function HealthPlans({
 function PlanOverlay({
   planOpen, onCancelSetup, onCreate, onAskAva, onClose, onSave, onDelete,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
-  exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
+  exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, healthProfile, curated, dayAssist,
 }: {
   planOpen: HealthPlan | null;
   onCancelSetup: () => void;
@@ -130,6 +168,9 @@ function PlanOverlay({
   recipeDetails: Record<string, HealthRecipeDetail>;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
+  healthProfile?: HealthProfile | null;
+  curated?: HealthPlansProps['curated'];
+  dayAssist?: HealthPlansProps['dayAssist'];
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6">
@@ -153,9 +194,11 @@ function PlanOverlay({
             recipeDetails={recipeDetails}
             onLoadExerciseDetail={onLoadExerciseDetail}
             onLoadRecipeDetail={onLoadRecipeDetail}
+            healthProfile={healthProfile}
+            dayAssist={dayAssist}
           />
         ) : (
-          <PlanSetup onCancel={onCancelSetup} onCreate={onCreate} onAskAva={onAskAva} />
+          <PlanSetup onCancel={onCancelSetup} onCreate={onCreate} onAskAva={onAskAva} curated={curated} healthProfile={healthProfile} />
         )}
       </div>
     </div>
@@ -309,7 +352,7 @@ function dayTotals(day: HealthPlanDay, recipeDetails: Record<string, HealthRecip
  *  month grid sized to one page) and Programs (the plan list) — so the
  *  list is never stacked under the calendar forcing a scroll. */
 function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete,
-  onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes }: {
+  onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes, healthProfile }: {
   plans: HealthPlanSummary[];
   /** Full (dated) plans with their days — drives the per-day content shown in
    *  the calendar cells AND the day view. Summaries alone can only draw a dot. */
@@ -329,11 +372,13 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   catalogSearching: boolean;
   onSearchExercises: PlanSearch;
   onSearchRecipes: PlanSearch;
+  healthProfile?: HealthProfile | null;
 }) {
   // A clicked calendar day opens the DAY view (what's on that date across every
   // plan), not a single plan's editor.
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [tab, setTab] = useState<'calendar' | 'programs'>('calendar');
+  const [weekShopping, setWeekShopping] = useState(false);
   // Default the calendar to the month of a dated plan so a created plan is
   // visible the moment the tab opens — not a blank current month.
   const [month, setMonth] = useState<Date>(() => {
@@ -397,14 +442,39 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
             {t('health.plans.your_plans_blurb')}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onNew}
-          className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
-        >
-          {t('health.plans.new_plan')}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* The WEEK, not a plan. Activating a plan only archives other active
+              plans of the same TYPE, so a meal plan and a combined plan can
+              both be live across the same seven days — and you make one trip to
+              the shop, not one per plan. */}
+          {(fullPlans ?? []).some(p => p.start_date && p.days.some(d => d.meals.length > 0)) && (
+            <button
+              type="button"
+              onClick={() => setWeekShopping(true)}
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition cursor-pointer hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]"
+            >
+              {t('health.shopping.open')}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onNew}
+            className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
+          >
+            {t('health.plans.new_plan')}
+          </button>
+        </div>
       </div>
+
+      {weekShopping && (
+        <ShoppingListSheet
+          plan={null}
+          allPlans={(fullPlans ?? []).filter(p => p.status !== 'archived')}
+          profile={healthProfile ?? null}
+          onClose={() => setWeekShopping(false)}
+          onLoadRecipeDetail={onLoadRecipeDetail}
+        />
+      )}
 
       {/* Inner tabs */}
       <div className="flex items-center gap-1 border-b border-[var(--border)]">
@@ -913,7 +983,18 @@ function PlanCard({ plan, onOpen, onDelete }: {
           <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${s.cls}`}>{planStatusLabel(plan.status)}</span>
         </div>
         <div className="mt-2 text-[13px] leading-snug text-[var(--text-primary)]">{plan.title}</div>
-        <div className="mt-1 text-[10px] text-[var(--text-muted)]">{durationLabel(plan.duration_days)} · {t('health.plans.built_by_you')}</div>
+        {/* Provenance, said accurately.
+            This line read "built by you" on EVERY plan, including ones Ava
+            wrote and (now) starters copied off the shelf — three different
+            claims printed identically. Manual keeps the original wording
+            because it is the one case where it was true. */}
+        <div className="mt-1 text-[10px] text-[var(--text-muted)]">
+          {durationLabel(plan.duration_days)} · {
+            plan.source === 'ava' ? t('health.plans.source.ava')
+              : plan.source === 'curated' ? t('health.plans.source.curated')
+              : t('health.plans.built_by_you')
+          }
+        </div>
       </button>
 
       {confirming ? (
@@ -935,13 +1016,16 @@ function PlanCard({ plan, onOpen, onDelete }: {
 // ── Overlay phase: Setup ─────────────────────────────────────────────
 // Fills the overlay panel — header / scrolling body / footer.
 
-function PlanSetup({ onCancel, onCreate, onAskAva }: {
+function PlanSetup({ onCancel, onCreate, onAskAva, curated, healthProfile }: {
   onCancel: () => void;
   onCreate: (plan: HealthPlan) => void;
   onAskAva?: (type: HealthPlanType) => void;
+  curated?: HealthPlansProps['curated'];
+  healthProfile?: HealthProfile | null;
 }) {
   const [type, setType] = useState<HealthPlanType | null>(null);
   const [duration, setDuration] = useState<number>(28);
+  const [shelfOpen, setShelfOpen] = useState(false);
 
   return (
     <div className="flex flex-col">
@@ -1041,8 +1125,38 @@ function PlanSetup({ onCancel, onCreate, onAskAva }: {
             )}
           </div>
           {!type && <p className="mt-2 text-[10px] italic text-[var(--text-muted)]">{t('health.plans.pick_type_first')}</p>}
+
+          {/* The third door, and the fastest one. Deliberately NOT gated on
+              picking a type or a length first: a starter already declares its
+              own, so asking for both up front would be two questions guarding
+              a shelf that answers them. */}
+          {curated && (
+            <button
+              type="button"
+              onClick={() => setShelfOpen(true)}
+              className="mt-3 w-full cursor-pointer rounded-lg border border-[var(--border)] bg-transparent px-4 py-3 text-left transition hover:border-[var(--accent)]/40"
+            >
+              <div className="text-[13px] font-medium text-[var(--text-primary)]">{t('health.starters.open')}</div>
+              <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{t('health.starters.subtitle')}</div>
+            </button>
+          )}
         </div>
       </div>
+
+      {shelfOpen && curated && (
+        <StartersSheet
+          plans={curated.plans}
+          loading={curated.loading}
+          error={curated.error}
+          detail={curated.detail}
+          detailLoading={curated.detailLoading}
+          profile={healthProfile ?? null}
+          onLoad={curated.onLoad}
+          onLoadDetail={curated.onLoadDetail}
+          onStart={(plan, id) => { curated.onStart(plan, id); onCancel(); }}
+          onClose={() => setShelfOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1050,7 +1164,7 @@ function PlanSetup({ onCancel, onCreate, onAskAva }: {
 // ── Overlay phase: Builder ───────────────────────────────────────────
 
 function PlanBuilder({
-  plan, onClose, onSave, onDelete,
+  plan, onClose, onSave, onDelete, healthProfile, dayAssist,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
 }: {
@@ -1069,11 +1183,16 @@ function PlanBuilder({
   recipeDetails: Record<string, HealthRecipeDetail>;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
+  healthProfile?: HealthProfile | null;
+  dayAssist?: HealthPlansProps['dayAssist'];
 }) {
   const [draft, setDraft] = useState<HealthPlan>(plan);
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [confirming, setConfirming] = useState(false);
   const [picker, setPicker] = useState<'exercise' | 'recipe' | null>(null);
+  const [sheet, setSheet] = useState<'shopping' | 'prep' | null>(null);
+  const [duplicating, setDuplicating] = useState<number | null>(null);
+  const [assisting, setAssisting] = useState(false);
   const saveTimer = useRef<number | undefined>(undefined);
   const prefilled = useRef<Set<string>>(new Set());
 
@@ -1141,6 +1260,30 @@ function PlanBuilder({
     });
     if (changed) commit({ ...draft, days });
   }, [exerciseDetails, draft, commit]);
+
+  /**
+   * Capture what the library knows about each meal, once its recipe arrives.
+   *
+   * Same shape as the exercise pre-fill above, and the same reason: a plan has
+   * to be complete on its own. A shopping list must work in a shop with no
+   * signal, so the ingredients travel WITH the plan rather than being fetched
+   * when the list is opened.
+   *
+   * This also BACKFILLS. Every plan written before capture existed carries no
+   * meta at all, so without this the shopping list would only ever work on
+   * plans made from today — and the person most likely to want one already has
+   * a plan. It only ever adds; a meal that has meta is never rewritten, so the
+   * plan stays a record of what was chosen at the time.
+   */
+  useEffect(() => {
+    let changed = false;
+    const days = draft.days.map(day => {
+      const filled = fillDayMeta(day, recipeDetails, exerciseDetails);
+      if (filled.changed) changed = true;
+      return filled.day;
+    });
+    if (changed) commit({ ...draft, days });
+  }, [recipeDetails, exerciseDetails, draft, commit]);
 
   const upsertDay = (day: HealthPlanDay) => {
     const days = draft.days.filter(d => d.day_index !== day.day_index);
@@ -1264,6 +1407,26 @@ function PlanBuilder({
             );
           })}
         </div>
+        {/* Copy acts on the SELECTED day, so it sits with the day strip rather
+            than in the footer with the plan-level actions. */}
+        <div className="mb-3 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setDuplicating(selectedDay)}
+            className="rounded-md border border-[var(--border)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-muted)] transition cursor-pointer hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]"
+          >
+            {t('health.dup.open')}
+          </button>
+          {dayAssist && (
+            <button
+              type="button"
+              onClick={() => setAssisting(true)}
+              className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-1 text-[10px] font-medium text-[var(--accent)] transition cursor-pointer hover:bg-[var(--accent)]/20"
+            >
+              {t('health.assist.open')}
+            </button>
+          )}
+        </div>
         <DayPanel
           day={selDay}
           startDate={draft.start_date}
@@ -1283,7 +1446,7 @@ function PlanBuilder({
       </div>
 
       {/* Footer */}
-      <div className="flex shrink-0 items-center border-t border-[var(--accent)]/14 px-6 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--accent)]/14 px-6 py-3">
         {confirming ? (
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-[var(--text-secondary)]">{t('health.plans.delete_confirm')}</span>
@@ -1293,7 +1456,71 @@ function PlanBuilder({
         ) : (
           <button type="button" onClick={() => setConfirming(true)} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-red-300 transition cursor-pointer">{t('health.plans.delete_plan')}</button>
         )}
+        {/* What turns a plan into food and into a week you can actually cook.
+            Only offered when the plan HAS meals — a fitness plan has nothing to
+            shop for, and a disabled button would be a question with one answer. */}
+        {showMeals && draft.days.some(d => d.meals.length > 0) && (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSheet('prep')}
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition cursor-pointer hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]"
+            >
+              {t('health.prep.open')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSheet('shopping')}
+              className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] transition cursor-pointer hover:bg-[var(--accent)]/20"
+            >
+              {t('health.shopping.open')}
+            </button>
+          </div>
+        )}
       </div>
+
+      {sheet === 'shopping' && (
+        <ShoppingListSheet
+          plan={draft}
+          allPlans={[draft]}
+          profile={healthProfile ?? null}
+          onClose={() => setSheet(null)}
+          onLoadRecipeDetail={onLoadRecipeDetail}
+        />
+      )}
+      {sheet === 'prep' && <PrepSheet plan={draft} profile={healthProfile ?? null} onClose={() => setSheet(null)} />}
+      {assisting && dayAssist && (
+        <AssistSheet
+          plan={draft}
+          day={selDay}
+          busy={dayAssist.busy}
+          error={dayAssist.error}
+          proposal={dayAssist.proposal}
+          onAsk={(instruction) => dayAssist.onAsk({
+            planType: draft.type,
+            goal: draft.goal,
+            day: selDay,
+            // The rest of the week goes with it, so the day is balanced against
+            // its neighbours rather than written in isolation.
+            week: draft.days.filter(d =>
+              Math.floor((d.day_index - 1) / 7) === Math.floor((selDay.day_index - 1) / 7)),
+            instruction,
+            date: dayDate(draft, selDay),
+            profile: healthProfile ?? null,
+          })}
+          onApply={(next) => upsertDay(next)}
+          onDiscard={dayAssist.onDiscard}
+          onClose={() => { setAssisting(false); dayAssist.onDiscard(); }}
+        />
+      )}
+      {duplicating != null && (
+        <DuplicateSheet
+          plan={draft}
+          fromDay={duplicating}
+          onApply={next => commit(next)}
+          onClose={() => setDuplicating(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1722,6 +1949,52 @@ function routineSets(detail: HealthExerciseDetail | undefined): number | null {
   return null;
 }
 
+
+// ── Prescription pickers ─────────────────────────────────────────────────
+//
+// Sets, reps, weight, rest and servings were free-text boxes. Typing "3x8-12"
+// into a reps field, or "60" into weight, is how a plan ends up unreadable to
+// everything downstream — and typing on a numeric field is slower than picking
+// from a list of what people actually prescribe.
+//
+// THE SAFETY IS `withCurrent`. A plan already on disk may hold a value no list
+// has a home for: "12 per side", "red band", "3.5". A naive picker renders
+// those as blank and overwrites them the moment anything else on the row is
+// touched — silent data loss. So the current value is always injected as an
+// option when it is not already there, and stays selected until somebody
+// deliberately changes it.
+
+const SETS_OPTIONS = ['1', '2', '3', '4', '5', '6', '8', '10'].map(v => ({ value: v, label: v }));
+
+const REPS_OPTIONS = [
+  '3-5', '5', '6-8', '8-10', '8-12', '10-12', '12-15', '15-20', '20+',
+  'AMRAP', '20s', '30s', '45s', '60s', '90s',
+].map(v => ({ value: v, label: v }));
+
+/** Deliberately descriptive rather than numeric. A plan is written to be
+ *  followed on a day nobody can predict, so "moderate" travels where "12.5kg"
+ *  does not — and somebody's own numbers still survive via withCurrent. */
+const WEIGHT_OPTIONS = [
+  'bodyweight', 'light', 'light to moderate', 'moderate', 'moderate to heavy',
+  'heavy', 'band', 'assisted',
+].map(v => ({ value: v, label: v }));
+
+const REST_OPTIONS = ['0', '15', '30', '45', '60', '75', '90', '120', '150', '180'].map(v => ({
+  value: v, label: v === '0' ? tt('health.plans.rest_none', 'none') : `${v}s`,
+}));
+
+const SERVINGS_OPTIONS = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8'].map(v => ({
+  value: v, label: v,
+}));
+
+/** The list, plus a blank, plus whatever is already set if the list has no home
+ *  for it. This is the whole safety of the change. */
+function withCurrent(options: { value: string; label: string }[], current: string) {
+  const base = [{ value: '', label: '\u2014' }, ...options];
+  if (!current || base.some(o => o.value === current)) return base;
+  return [...base, { value: current, label: current }];
+}
+
 function ExerciseRow({ ex, detail, onChange, onRemove, onSwap }: {
   ex: HealthPlanExercise;
   detail: HealthExerciseDetail | undefined;
@@ -1749,10 +2022,26 @@ function ExerciseRow({ ex, detail, onChange, onRemove, onSwap }: {
         <button type="button" onClick={onRemove} title={t('health.plans.remove')} className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <NumInput label={t('health.plans.field.sets')} value={ex.sets} onChange={(v) => onChange({ ...ex, sets: v })} />
-        <TextInput label={t('health.plans.field.reps')} value={ex.reps} placeholder="8-12" onChange={(v) => onChange({ ...ex, reps: v })} />
-        <TextInput label={t('health.plans.field.weight')} value={ex.weight} placeholder="60 kg / RPE 7" onChange={(v) => onChange({ ...ex, weight: v })} />
-        <NumInput label={t('health.plans.field.rest_s')} value={ex.rest_seconds} onChange={(v) => onChange({ ...ex, rest_seconds: v })} />
+        <Cell label={t('health.plans.field.sets')}>
+          <Select size="sm" value={ex.sets != null ? String(ex.sets) : ''}
+            onChange={(v) => onChange({ ...ex, sets: v ? Number(v) : null })}
+            options={withCurrent(SETS_OPTIONS, ex.sets != null ? String(ex.sets) : '')} />
+        </Cell>
+        <Cell label={t('health.plans.field.reps')}>
+          <Select size="sm" value={ex.reps ?? ''}
+            onChange={(v) => onChange({ ...ex, reps: v || null })}
+            options={withCurrent(REPS_OPTIONS, ex.reps ?? '')} />
+        </Cell>
+        <Cell label={t('health.plans.field.weight')}>
+          <Select size="sm" value={ex.weight ?? ''}
+            onChange={(v) => onChange({ ...ex, weight: v || null })}
+            options={withCurrent(WEIGHT_OPTIONS, ex.weight ?? '')} />
+        </Cell>
+        <Cell label={t('health.plans.field.rest_s')}>
+          <Select size="sm" value={ex.rest_seconds != null ? String(ex.rest_seconds) : ''}
+            onChange={(v) => onChange({ ...ex, rest_seconds: v ? Number(v) : null })}
+            options={withCurrent(REST_OPTIONS, ex.rest_seconds != null ? String(ex.rest_seconds) : '')} />
+        </Cell>
       </div>
       <input value={ex.notes ?? ''} onChange={(e) => onChange({ ...ex, notes: e.target.value || null })} placeholder={t('health.plans.exercise_notes_placeholder')} className={`${editInput} w-full`} />
       {warnings.length > 0 && (
@@ -1797,7 +2086,11 @@ function MealRow({ meal, recipeDetails, onChange, onRemove, onSwap }: {
 
       {isRecipe ? (
         <div className="flex items-center gap-2">
-          <NumInput label={t('health.plans.field.servings')} value={meal.servings} onChange={(v) => onChange({ ...meal, servings: v })} />
+          <Cell label={t('health.plans.field.servings')}>
+            <Select size="sm" className="min-w-[92px]" value={meal.servings != null ? String(meal.servings) : ''}
+              onChange={(v) => onChange({ ...meal, servings: v ? Number(v) : null })}
+              options={withCurrent(SERVINGS_OPTIONS, meal.servings != null ? String(meal.servings) : '')} />
+          </Cell>
           <div className="flex-1">
             <div className="text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{estimated ? t('health.plans.per_meal_est') : t('health.plans.per_meal')}</div>
             {pending ? (
@@ -1828,6 +2121,17 @@ function MealRow({ meal, recipeDetails, onChange, onRemove, onSwap }: {
   );
 }
 
+/** Label above a control — the shape NumInput/TextInput already render, lifted
+ *  out so a picker sits flush beside a text field. */
+function Cell({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-0.5 block text-[9px] uppercase tracking-wider text-[var(--text-muted)]">{label}</span>
+      {children}
+    </label>
+  );
+}
+
 function NumInput({ label, value, onChange }: { label: string; value: number | null; onChange: (v: number | null) => void }) {
   return (
     <label className="flex flex-col gap-1">
@@ -1842,19 +2146,6 @@ function NumInput({ label, value, onChange }: { label: string; value: number | n
   );
 }
 
-function TextInput({ label, value, placeholder, onChange }: {
-  label: string;
-  value: string | null;
-  placeholder?: string;
-  onChange: (v: string | null) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
-      <input value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value || null)} className={editInput} />
-    </label>
-  );
-}
 
 // ── Overlay phase: catalogue picker ──────────────────────────────────
 // Fills the overlay panel — same fixed size as the builder.

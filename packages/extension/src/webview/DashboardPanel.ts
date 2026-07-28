@@ -68,6 +68,9 @@ import type {
   HealthRecipeSummary,
   HealthRecipeDetail,
   HealthTaxonomies,
+  CuratedPlanSummary,
+  HealthPlanDay,
+  CuratedPlanDetail,
   HealthMySubmissions,
   HealthProfile,
   GeneralProfile,
@@ -1281,6 +1284,111 @@ export class DashboardPanel {
       // platformKey). Submission POSTs require platformKey since they
       // write to the catalog as the authenticated user.
 
+      // ── Ask Ava to change ONE day ────────────────────────────────────
+      // Same dual auth as the draft generators: a platform key spends credits,
+      // the caller's own provider key spends nothing. It PROPOSES — the reply
+      // is a day the operator can accept or discard, never a write.
+      case 'generate_health_day': {
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          const byokKey = await this.secrets.get('ava-supernova.provider.qwen.apiKey');
+          const extraHeaders: Record<string, string> = {};
+          if (!platformKey && byokKey) extraHeaders['X-BYOK-Key'] = byokKey;
+          if (!platformKey && !byokKey) {
+            this.post({
+              type: 'health_day_generated',
+              ok: false,
+              error: 'Ava generation needs a platform account or your own provider key in Settings.',
+            });
+            break;
+          }
+          const res = await apiFetch('/health/generate/day', {
+            platformKey,
+            method: 'POST',
+            body: {
+              type: msg.planType,
+              goal: msg.goal,
+              profile: msg.profile,
+              day: msg.day,
+              week: msg.week,
+              instruction: msg.instruction,
+              date: msg.date,
+              ...(byokKey && !platformKey ? { providerApiKey: byokKey } : {}),
+            },
+            extraHeaders,
+            timeoutMs: 120000,
+          });
+          if (!res.ok) {
+            const errorMsg = res.data && typeof res.data === 'object' && 'error' in res.data
+              ? String((res.data as { error?: string }).error ?? `HTTP ${res.status}`)
+              : `HTTP ${res.status}`;
+            this.log(`[health] day assist failed: ${errorMsg}`);
+            this.post({ type: 'health_day_generated', ok: false, error: errorMsg });
+            break;
+          }
+          const data = res.data as {
+            day?: HealthPlanDay; note?: string; credits_charged?: number; unverifiable_allergens?: string[];
+          };
+          this.post({
+            type: 'health_day_generated',
+            ok: true,
+            day: data.day,
+            note: data.note ?? '',
+            credits_charged: data.credits_charged ?? 0,
+            unverifiable_allergens: data.unverifiable_allergens ?? [],
+          });
+        } catch (err) {
+          this.post({ type: 'health_day_generated', ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+        return;
+      }
+      // ── Curated plans ────────────────────────────────────────────────
+      // The shelf, and one template in full. Read-only and unauthenticated:
+      // a starter is public, and gating it behind an account would break the
+      // one promise the feature makes — a good week on day one, for free.
+      case 'load_curated_plans': {
+        try {
+          const raw = await httpGetJson('https://ava-supernova.com/api/health/curated-plans') as
+            { plans?: CuratedPlanSummary[] } | CuratedPlanSummary[] | null;
+          const plans = Array.isArray(raw) ? raw : (raw?.plans ?? []);
+          this.log(`[health] curated plans loaded n=${plans.length}`);
+          this.post({ type: 'curated_plans_loaded', plans });
+        } catch (err) {
+          const error = err instanceof Error ? err.message : String(err);
+          this.log(`[health] curated plans failed: ${error}`);
+          this.post({ type: 'curated_plans_failed', error });
+        }
+        return;
+      }
+      case 'load_curated_plan': {
+        const id = msg.id;
+        try {
+          const raw = await httpGetJson(
+            `https://ava-supernova.com/api/health/curated-plans?id=${encodeURIComponent(id)}`,
+          ) as { plan?: CuratedPlanDetail } | CuratedPlanDetail | null;
+          const plan = (raw && 'plan' in (raw as object) ? (raw as { plan?: CuratedPlanDetail }).plan : raw as CuratedPlanDetail) ?? null;
+          if (!plan || !plan.id) throw new Error('Plan not found');
+          this.post({ type: 'curated_plan_loaded', plan });
+        } catch (err) {
+          const error = err instanceof Error ? err.message : String(err);
+          this.log(`[health] curated plan ${id} failed: ${error}`);
+          this.post({ type: 'curated_plan_failed', id, error });
+        }
+        return;
+      }
+      case 'curated_plan_started': {
+        // Deliberately silent both ways. A counter must never be the reason
+        // somebody's plan fails to start, and there is nothing for the UI to
+        // do about it either way.
+        try {
+          await apiFetch('/health/curated-plans/started', {
+            method: 'POST',
+            body: JSON.stringify({ id: msg.id }),
+            timeoutMs: 5000,
+          });
+        } catch { /* the start already happened locally */ }
+        return;
+      }
       case 'load_health_taxonomies': {
         const empty: HealthTaxonomies = { allergens: [], contraindications: [], cuisines: [], diets: [], dietary_flags: [], collections: [] };
         this.log('[health] load taxonomies — start');

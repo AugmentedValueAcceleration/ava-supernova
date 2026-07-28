@@ -5,24 +5,26 @@ import { Billing } from './Billing';
 import { Connections } from './Connections';
 import { Personality } from './Personality';
 import { GeneralProfilePage } from './GeneralProfilePage';
-import { HealthProfilePage } from './HealthProfilePage';
-import { HealthPlans } from './HealthPlans';
 import { HealthMySubmissions } from './HealthMySubmissions';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
 import type {
   DashboardSettings, ProviderKeyStatus, PersonalityData,
   ConnectionStatus, Page, AccountInfo,
-  GeneralProfile, HealthProfile, HealthTaxonomies, HealthPlanType,
+  GeneralProfile,
 } from '../types/messages';
 
 type AccountTab = 'settings' | 'billing' | 'connections' | 'personality' | 'profile';
-type ProfileSubTab = 'general' | 'health' | 'plans' | 'submissions';
+type ProfileSubTab = 'general' | 'submissions';
 
-/** The user's own data lives under "{name}'s profile": identity + body,
- *  health goals, their plans, and their catalogue contributions. Plans + the
- *  submission flow relocated here from Health & Nutrition (2026-06-21) so the
- *  library page stays lean and the user's data is one coherent hub. */
-type HealthPlansBundle = Omit<ComponentProps<typeof HealthPlans>, 'onAskAva'>;
+/** The user's own data lives under "{name}'s profile": identity + body, and
+ *  their catalogue contributions.
+ *
+ *  The health profile and plans moved OUT to Nutrition & Fitness on 2026-07-28,
+ *  reversing the 2026-06-21 consolidation. That move kept the library page lean
+ *  but filed the health profile — which every generated plan is built from — in
+ *  account settings, where it went unfilled. What stays here is what is
+ *  genuinely account-shaped: the general profile (reused beyond health) and
+ *  submissions (a contribution concern). */
 type HealthSubmissionsBundle =
   Omit<ComponentProps<typeof HealthMySubmissions>, 'onContribute'> &
   Omit<ComponentProps<typeof HealthSubmissionModal>, 'open' | 'onClose'>;
@@ -45,16 +47,9 @@ interface AccountPageProps {
   // "Your profile" tab — General (identity/body) + Health Profile sub-tabs.
   generalProfile: GeneralProfile | null;
   onSaveGeneralProfile: (next: GeneralProfile) => void;
-  healthProfile: HealthProfile | null;
-  onSaveHealthProfile: (next: HealthProfile) => void;
-  healthTaxonomies: HealthTaxonomies | null;
-  onLoadHealthTaxonomies: () => void;
-  // Plans + My submissions — relocated from Health & Nutrition.
-  healthPlans: HealthPlansBundle;
+  /** Taxonomies for the submission pickers ride along INSIDE this bundle
+   *  (.taxonomies / .onRetryTaxonomies) — no separate props needed. */
   healthSubmissions: HealthSubmissionsBundle;
-  /** Launch Ava in the focused health room (Health page) seeded with the
-   *  chosen plan type — cross-page since the room lives in Health. */
-  onAskAvaPlan: (type: HealthPlanType) => void;
   /** When set, the profile tab opens on this sub-tab (deep-link from Health). */
   profileInitialSubTab?: ProfileSubTab | null;
   onConsumeProfileInitialSubTab?: () => void;
@@ -79,9 +74,7 @@ export function AccountPage({
   personality, account, avatarDataUrl,
   connections, isPlatform,
   generalProfile, onSaveGeneralProfile,
-  healthProfile, onSaveHealthProfile,
-  healthTaxonomies, onLoadHealthTaxonomies,
-  healthPlans, healthSubmissions, onAskAvaPlan,
+  healthSubmissions,
   profileInitialSubTab, onConsumeProfileInitialSubTab,
 }: AccountPageProps) {
   useLocale();
@@ -151,12 +144,10 @@ export function AccountPage({
 
       {activeTab === 'profile' && (
         <div className="space-y-4">
-          {/* Inner sub-tabs: General (identity/body) + Health Profile. */}
+          {/* Inner sub-tabs: General (identity/body) + My submissions. */}
           <div className="flex items-center gap-1 border-b border-[var(--border-card)] pb-px">
             {([
               { key: 'general' as const, label: t('general.profile.tab') },
-              { key: 'health' as const, label: t('general.profile.health_tab') },
-              { key: 'plans' as const, label: t('health.browse.tab.plans') },
               { key: 'submissions' as const, label: t('health.browse.tab.mine') },
             ]).map(({ key, label }) => (
               <button
@@ -178,17 +169,6 @@ export function AccountPage({
               accountName={account?.name ?? null}
               onSave={onSaveGeneralProfile}
             />
-          )}
-          {profileSubTab === 'health' && (
-            <HealthProfilePage
-              profile={healthProfile}
-              taxonomies={healthTaxonomies}
-              onSave={onSaveHealthProfile}
-              onLoadTaxonomies={onLoadHealthTaxonomies}
-            />
-          )}
-          {profileSubTab === 'plans' && (
-            <HealthPlans {...healthPlans} onAskAva={onAskAvaPlan} />
           )}
           {profileSubTab === 'submissions' && (
             <>

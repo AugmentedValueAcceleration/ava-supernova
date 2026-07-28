@@ -883,6 +883,38 @@ export interface HealthProfile {
      *  Optional so existing profiles stay valid; absent = no constraint. */
     cooking_time?: { by_day: Record<string, { breakfast: string | null; lunch: string | null; dinner: string | null }> };
   };
+  /** How they train. The companion has carried these since 27 Jul and the web
+   *  generate routes already parse them; the extension had the fields nowhere,
+   *  so an extension-only user's plans were shaped without them. Optional so
+   *  profiles written before this section stay valid — mirrors the companion's
+   *  shape exactly (`mobile/src/lib/health-types.ts`) because it is ONE synced
+   *  blob, not two schemas that happen to overlap. */
+  training?: {
+    experience: 'beginner' | 'intermediate' | 'advanced' | null;
+    days_per_week: number | null;
+    /** WHICH days, not just how many. `schedule.training_window` gives the time
+     *  of day but nothing said "Mon/Wed/Fri", and you cannot shape a week
+     *  without knowing that. */
+    training_days: ('mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun')[];
+    /** A lift they can already do, so weight prescription has somewhere to
+     *  start. No editor yet on either surface — a repeating sub-form, not a
+     *  field — but the shape round-trips so nothing is lost in sync. */
+    baseline_lifts: { ref?: { kind: 'exercise'; slug: string } | null; name: string; weight_kg: number | null; reps: number | null }[];
+  } | null;
+  kitchen?: {
+    /** Deliberately the same values as `recipe_versions.level`, so a profile
+     *  picks the right VERSION of a recipe, not just the right recipe. */
+    level: 'beginner' | 'intermediate' | 'expert' | null;
+    /** Coarse writers into `schedule.cooking_time`, which is canonical
+     *  (decision 25, 28 Jul). Weekday fills Mon–Fri, weekend fills Sat–Sun,
+     *  all three meals. They are NOT a second source of truth. */
+    minutes_weekday: number | null;
+    minutes_weekend: number | null;
+    /** Drives servings, leftovers and the shopping list — all wrong without it. */
+    household_size: number | null;
+    /** Matches `recipes.cost_tier`. No editor yet on either surface. */
+    cost_tier: string | null;
+  } | null;
 }
 
 /**
@@ -962,11 +994,32 @@ export interface HealthMySubmissions {
  * it can't drift). On-device only.
  */
 export type HealthPlanType = 'fitness' | 'meal' | 'combined';
-export type HealthPlanSource = 'manual' | 'ava';
+/** Who wrote this plan. 'Ava wrote this for you' and 'this is a
+ *  professionally built starter' are different claims, and a plan card must
+ *  not show them identically. Mirrors @ava/core's HealthPlanSource. */
+export type HealthPlanSource = 'manual' | 'ava' | 'curated';
 export type HealthPlanStatus = 'draft' | 'active' | 'completed' | 'archived';
 
 /** A planned training exercise within a plan day. Links to a catalog
  *  exercise by slug, or stands alone as a custom entry (ref null). */
+/**
+ * What the library knew about this movement when it was added.
+ *
+ * Captured at add time like PlanMealMeta, and for a sharper reason than
+ * convenience: `session_role` is what stops a progression adding a set to a
+ * warm-up. Without it that guard is decorative. Mirrors @ava/core.
+ */
+export interface PlanExerciseMeta {
+  movement_pattern?: string | null;
+  force_type?: string | null;
+  /** warmup / main / accessory / finisher / cooldown / mobility */
+  session_role?: string | null;
+  laterality?: string | null;
+  exercise_type?: string | null;
+  difficulty?: number | null;
+  equipment?: string[] | null;
+}
+
 export interface HealthPlanExercise {
   id: string;
   ref?: { kind: 'exercise'; slug: string } | null;
@@ -977,6 +1030,8 @@ export interface HealthPlanExercise {
   rest_seconds: number | null;
   tempo: string | null;         // "3-1-1-0" or null
   notes: string | null;
+  /** Absent on rows added before capture existed. */
+  meta?: PlanExerciseMeta | null;
 }
 
 /** A planned meal within a plan day.
@@ -991,6 +1046,42 @@ export interface HealthPlanExercise {
  *
  *  `servings` is how many recipe servings this meal is on the day — the
  *  one genuinely per-plan number for a catalog meal. */
+/** One line on a recipe, as the plan captured it. */
+export interface PlanIngredient {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  optional?: boolean;
+}
+
+/**
+ * What the library knew about this dish when it was added to the plan.
+ *
+ * Captured at ADD time, read at USE time. A shopping list has to work standing
+ * in a shop with no signal — so the facts travel with the plan rather than
+ * being fetched when needed, the same reason sets and macros already do.
+ *
+ * Mirrors `@ava/core`'s `PlanMealMeta` exactly. Two declarations exist because
+ * the dashboard message types are their own file; they must not diverge.
+ */
+export interface PlanMealMeta {
+  course?: string | null;
+  total_time_minutes?: number | null;
+  prep_time_minutes?: number | null;
+  cook_time_minutes?: number | null;
+  level?: string | null;
+  default_servings?: number | null;
+  /** Round-trip fidelity only — NOT to be reasoned over. 78% of the library
+   *  says exactly 12, which is a seeded default rather than a judgement about
+   *  the dish. Batch cooking is derived from the PLAN instead. */
+  batch_portions?: number | null;
+  keeps_fridge_days?: number | null;
+  dietary_flags?: string[] | null;
+  diets?: string[] | null;
+  allergens?: string[] | null;
+  ingredients?: PlanIngredient[] | null;
+}
+
 export interface HealthPlanMeal {
   id: string;
   slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -1003,6 +1094,10 @@ export interface HealthPlanMeal {
   fat_g: number | null;
   cook_time_minutes: number | null;  // recipe's real cook/prep time; shown so it visibly fits the slot's ceiling
   notes: string | null;
+  /** Absent on meals added before capture existed. Absent is not empty: a plan
+   *  with no meta cannot be shopped for, and the surface says so rather than
+   *  producing a short list that looks complete. */
+  meta?: PlanMealMeta | null;
 }
 
 /** One day of a Plan. `day_index` locates it absolutely (1-based);
@@ -1015,6 +1110,35 @@ export interface HealthPlanDay {
   training: HealthPlanExercise[]; // empty on rest days / meal-only plans
   meals: HealthPlanMeal[];        // empty on fitness-only plans
   notes: string | null;
+}
+
+
+// ─── Curated plans (starter shelf) ─────────────────────────────────────────
+//
+// A curated plan is a TEMPLATE on a shelf. Starting one takes a COPY — it does
+// not subscribe. From that moment the week belongs to the person; equally, if
+// the template is later corrected or retired, their week does not change under
+// them halfway through. The copy rules live in @ava/core health/starters.
+
+export interface CuratedPlanSummary {
+  id: string;
+  title: string;
+  summary: string | null;
+  type: HealthPlanType;
+  goal: string | null;
+  level: string | null;
+  duration_days: number;
+  days_per_week: number | null;
+  minutes_per_session: number | null;
+  tags: string[];
+  equipment: string[];
+  cover_image_url: string | null;
+  start_count: number;
+}
+
+export interface CuratedPlanDetail extends CuratedPlanSummary {
+  description: string | null;
+  days: HealthPlanDay[];
 }
 
 export interface HealthPlan {
@@ -1521,6 +1645,19 @@ export type ExtToDashboardMessage =
   | { type: 'health_recipe_detail_loaded'; recipe: HealthRecipeDetail | null }
   // Health submission flow (community contributions)
   | { type: 'health_taxonomies_loaded'; taxonomies: HealthTaxonomies }
+  | { type: 'curated_plans_loaded'; plans: CuratedPlanSummary[] }
+  | { type: 'curated_plans_failed'; error: string }
+  | { type: 'curated_plan_loaded'; plan: CuratedPlanDetail }
+  | { type: 'curated_plan_failed'; id: string; error: string }
+  | {
+      type: 'health_day_generated';
+      ok: boolean;
+      day?: HealthPlanDay;
+      note?: string;
+      credits_charged?: number;
+      unverifiable_allergens?: string[];
+      error?: string;
+    }
   | { type: 'health_submission_result'; kind: 'exercise' | 'recipe'; ok: boolean; error?: string; submission?: { id: string; slug: string; name: string; status: HealthSubmissionStatus } }
   | { type: 'health_my_submissions_loaded'; data: HealthMySubmissions }
   | { type: 'health_my_submissions_cleared'; ok: boolean; exercises_cleared?: number; recipes_cleared?: number; error?: string }
@@ -1846,6 +1983,25 @@ export type DashboardToExtMessage =
   // limit + offset are optional; the host defaults to limit=24 offset=0
   // if either is missing.
   | { type: 'load_health_exercises'; limit?: number; offset?: number; workoutType?: string; q?: string; seq?: number; locale?: string }
+  /** Ask Ava to change ONE day. Charged server-side (or free on the caller's
+   *  own key), and it PROPOSES — nothing is written until the operator says so. */
+  | {
+      type: 'generate_health_day';
+      planType: HealthPlanType;
+      goal: string | null;
+      profile: unknown;
+      day: HealthPlanDay;
+      week: HealthPlanDay[];
+      instruction: string;
+      /** The real date this day falls on, when the plan has started. Lets the
+       *  server use that weekday's cooking ceiling rather than the tightest. */
+      date: string | null;
+    }
+  | { type: 'load_curated_plans' }
+  | { type: 'load_curated_plan'; id: string }
+  /** Fire-and-forget: the only signal we get about which starters work.
+   *  Never allowed to fail a start. */
+  | { type: 'curated_plan_started'; id: string }
   | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string; collection?: string; q?: string; seq?: number; locale?: string; collections?: string[]; diets?: string[]; flags?: string[]; cuisines?: string[]; maxTime?: number; sort?: 'name' }
   | { type: 'load_health_exercise_detail'; slug: string; locale?: string }
   | { type: 'load_health_recipe_detail'; slug: string; locale?: string }

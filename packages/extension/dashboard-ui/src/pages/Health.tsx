@@ -1,15 +1,18 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode, type ComponentProps } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { Chat } from './Chat';
 import type { ExtToDashboardMessage } from '../types/messages';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
+import { HealthPlans } from './HealthPlans';
+import { HealthProfilePage } from './HealthProfilePage';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
   HealthRecipeSummary, HealthRecipeDetail,
   HealthWorkoutType,
   HealthTaxonomies, HealthSubmissionStatus,
+  HealthProfile, HealthPlanType,
 } from '../types/messages';
 
 /**
@@ -60,7 +63,23 @@ const WORKOUT_TYPE_ACCENT: Record<HealthWorkoutType, string> = {
 const COURSE_ORDER = ['breakfast', 'main', 'starter', 'side', 'snack', 'dessert'] as const;
 const courseLabel = (course: string): string => t(`health.browse.course.${course}`);
 
-type Tab = 'exercises' | 'recipes' | 'ava';
+/**
+ * PLANS AND PROFILE MOVED HERE, 28 Jul.
+ *
+ * They lived under Account → Profile, alongside billing and submissions. So
+ * somebody opened the section named after the thing they wanted to do and
+ * found a catalogue, while the plan they were following and the profile every
+ * plan is built from were filed in their account settings.
+ *
+ * That is almost certainly why profiles sit empty — and an empty profile is
+ * upstream of everything: no training days, no cooking time, no household, so
+ * generation plans against nulls however good the room is.
+ *
+ * Order is do → browse → configure: the plan you are following first, the
+ * library you build from next, the profile behind it, and Ava last because she
+ * is reached from everywhere.
+ */
+type Tab = 'plans' | 'exercises' | 'recipes' | 'profile' | 'ava';
 /** Card layout for the browse grids. Persisted + shared across both tabs. */
 type View = 'grid' | 'list';
 const VIEW_KEY = 'ava-health-view';
@@ -89,9 +108,23 @@ interface Props {
   // Recipe/exercise taxonomies — used by the browse filters.
   taxonomies: HealthTaxonomies | null;
   onLoadTaxonomies: () => void;
-  // Profile + the user's own data (plans, submissions) now live in
-  // Account → "{name}'s profile". This deep-links there.
-  onNavigateToProfile: (subTab: 'general' | 'health' | 'plans' | 'submissions') => void;
+  /** Still needed for what genuinely IS account-shaped: the general profile
+   *  (reused beyond health) and submissions (a contribution concern). */
+  onNavigateToProfile: (subTab: 'general' | 'submissions') => void;
+
+  // ── Plans and profile, now rendered here rather than under Account ──────
+  /** The whole HealthPlans prop bundle, passed through untouched. */
+  healthPlans: Omit<ComponentProps<typeof HealthPlans>, 'onAskAva' | 'healthProfile' | 'curated' | 'dayAssist'>;
+  /** Hands the chosen plan type to Ava in the room — the conversational door.
+   *  Deliberately NOT a one-shot form: she can ask what she is missing
+   *  (health_profile_ask), which a form cannot. */
+  onAskAvaPlan: (type: HealthPlanType) => void;
+  healthProfile: HealthProfile | null;
+  onSaveHealthProfile: (next: HealthProfile) => void;
+  /** The starter shelf, passed straight through to the plans surface. */
+  curated: NonNullable<ComponentProps<typeof HealthPlans>['curated']>;
+  /** Ask-Ava-about-this-day, likewise. */
+  dayAssist: NonNullable<ComponentProps<typeof HealthPlans>['dayAssist']>;
   /** Registers the Ava-tab chat's dispatch with App so host events tagged
    *  lane:'health' route to this focused room (not the main chat). */
   onRegisterHealthChatDispatch: (fn: (msg: ExtToDashboardMessage) => void) => void;
@@ -126,6 +159,8 @@ export function Health({
   taxonomies,
   onLoadTaxonomies,
   onNavigateToProfile,
+  healthPlans, onAskAvaPlan,
+  healthProfile, onSaveHealthProfile, curated, dayAssist,
   onRegisterHealthChatDispatch,
   userName,
   userAvatarUrl,
@@ -133,7 +168,10 @@ export function Health({
   onConsumeInitialTab,
 }: Props) {
   useLocale();
-  const [tab, setTab] = useState<Tab>(() => initialTab ?? 'exercises');
+  // Lands on Plans, not the catalogue: the section is named after the thing
+  // you are trying to do, and your plan is that thing. Browsing is how you
+  // build one, not the destination.
+  const [tab, setTab] = useState<Tab>(() => initialTab ?? 'plans');
   // Grid/list view — shared across both browse tabs, persisted across sessions.
   const [view, setView] = useState<View>(() => {
     try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid'; } catch { return 'grid'; }
@@ -194,7 +232,7 @@ export function Health({
       onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter, undefined, undefined, recipeExtra());
     }
     // Filter chips need the taxonomies (collections / diets / flags / cuisines).
-    if (tab === 'recipes' && !taxonomies) onLoadTaxonomies();
+    if ((tab === 'recipes' || tab === 'profile') && !taxonomies) onLoadTaxonomies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -305,20 +343,15 @@ export function Health({
               {t('health.browse.summary', { exercises: exercisesError ? '—' : exercisesTotal, recipes: recipesError ? '—' : recipesTotal })}
             </p>
           </div>
+          {/* The "Your plans →" and "Edit your profile →" escape hatches into
+              Account are gone: both are tabs on this page now. */}
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => onNavigateToProfile('plans')}
+              onClick={() => onNavigateToProfile('submissions')}
               className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition cursor-pointer"
             >
-              {t('health.browse.your_plans')}
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigateToProfile('health')}
-              className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
-            >
-              {t('health.browse.edit_profile')}
+              {t('health.browse.tab.mine')}
             </button>
           </div>
         </div>
@@ -326,15 +359,17 @@ export function Health({
         {/* Top tabs — canonical dashboard style (border-b-2 + --accent var,
             matches Settings/Planner/History/Overview). */}
         <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
-          {(['exercises', 'recipes', 'ava'] as Tab[]).map((tabKey) => {
+          {(['plans', 'exercises', 'recipes', 'profile', 'ava'] as Tab[]).map((tabKey) => {
             const isActive = tab === tabKey;
             const count =
               tabKey === 'exercises' ? exercisesTotal :
               tabKey === 'recipes' ? recipesTotal :
               0; // ava tab has no count
             const label =
+              tabKey === 'plans' ? t('health.browse.tab.plans') :
               tabKey === 'exercises' ? t('health.browse.tab.exercises') :
               tabKey === 'recipes' ? t('health.browse.tab.recipes') :
+              tabKey === 'profile' ? t('health.browse.tab.profile') :
               t('health.browse.tab.ava');
             return (
               <button
@@ -383,6 +418,20 @@ export function Health({
             />
           </div>
         </div>
+        {tab === 'plans' && (
+          // Household for the shopping list, cooking budget for the prep plan.
+          // Plans carry profile_snapshot: null on this surface, so the live
+          // profile is the only source there is.
+          <HealthPlans {...healthPlans} onAskAva={onAskAvaPlan} healthProfile={healthProfile} curated={curated} dayAssist={dayAssist} />
+        )}
+        {tab === 'profile' && (
+          <HealthProfilePage
+            profile={healthProfile}
+            taxonomies={taxonomies}
+            onSave={onSaveHealthProfile}
+            onLoadTaxonomies={onLoadTaxonomies}
+          />
+        )}
         {tab === 'exercises' && (
           modalExerciseSlug ? (
             <DetailPageView onBack={() => setModalExerciseSlug(null)} backLabel={t('health.browse.tab.exercises')}>

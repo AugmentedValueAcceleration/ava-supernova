@@ -89,6 +89,33 @@ const ALLERGEN_OPTIONS: ProfileFieldOption[] = [
   'soy', 'wheat', 'gluten', 'sesame', 'mustard', 'celery',
 ].map((value) => ({ value }));
 
+const EXPERIENCE_OPTIONS: ProfileFieldOption[] = [
+  { value: 'beginner',     labelKey: 'health.profile.level.beginner' },
+  { value: 'intermediate', labelKey: 'health.profile.level.intermediate' },
+  { value: 'advanced',     labelKey: 'health.profile.level.advanced' },
+];
+
+// Deliberately the same values as `recipe_versions.level`, so this picks the
+// right VERSION of a recipe rather than filtering which recipes are offered.
+const COOKING_LEVEL_OPTIONS: ProfileFieldOption[] = [
+  { value: 'beginner',     labelKey: 'health.profile.level.beginner' },
+  { value: 'intermediate', labelKey: 'health.profile.level.intermediate' },
+  { value: 'expert',       labelKey: 'health.profile.level.expert' },
+];
+
+// Stored Mon-first as three-letter slugs (the companion's `Weekday`), which is
+// NOT the 0–6 Sun-first keying the cooking grid uses. Two different fields, two
+// different shapes already on disk — converging them would rewrite live data.
+const WEEKDAY_OPTIONS: ProfileFieldOption[] = [
+  { value: 'mon', labelKey: 'health.plans.weekday.1' },
+  { value: 'tue', labelKey: 'health.plans.weekday.2' },
+  { value: 'wed', labelKey: 'health.plans.weekday.3' },
+  { value: 'thu', labelKey: 'health.plans.weekday.4' },
+  { value: 'fri', labelKey: 'health.plans.weekday.5' },
+  { value: 'sat', labelKey: 'health.plans.weekday.6' },
+  { value: 'sun', labelKey: 'health.plans.weekday.0' },
+];
+
 const SEX_OPTIONS: ProfileFieldOption[] = [
   { value: 'female', labelKey: 'health.fill.sex.female' },
   { value: 'male',   labelKey: 'health.fill.sex.male' },
@@ -135,6 +162,17 @@ export const HEALTH_PROFILE_FIELDS: Record<string, ProfileFieldDef> = {
   // control). One card gathers the lot; the host renders the SAME grid as the
   // profile page and saves the whole { by_day } object. See summariseCookingTime.
   cooking_time:   { target: 'health', path: 'schedule.cooking_time',          control: 'cooking_grid', labelKey: 'health.fill.field.cooking_time' },
+
+  // — Training & kitchen —
+  // These reached the web generate routes long before Ava could ask for them,
+  // so a gap here was silently planned around rather than turned into a
+  // question. `training_days` is which days, not how many: `days_per_week`
+  // sizes the week and this one places it.
+  experience:     { target: 'health', path: 'training.experience',    control: 'select',      labelKey: 'health.fill.field.experience',     options: EXPERIENCE_OPTIONS },
+  days_per_week:  { target: 'health', path: 'training.days_per_week', control: 'number',      labelKey: 'health.fill.field.days_per_week' },
+  training_days:  { target: 'health', path: 'training.training_days', control: 'multiselect', labelKey: 'health.fill.field.training_days',   options: WEEKDAY_OPTIONS },
+  cooking_level:  { target: 'health', path: 'kitchen.level',          control: 'select',      labelKey: 'health.fill.field.cooking_level',   options: COOKING_LEVEL_OPTIONS },
+  household:      { target: 'health', path: 'kitchen.household_size', control: 'number',      labelKey: 'health.fill.field.household' },
 };
 
 export const HEALTH_PROFILE_FIELD_IDS = Object.keys(HEALTH_PROFILE_FIELDS);

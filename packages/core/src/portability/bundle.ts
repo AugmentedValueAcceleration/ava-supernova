@@ -47,7 +47,9 @@ export const ACCOUNT_DATA_PATHS: readonly string[] = [
                             // every backup taken so far contained zero tasks.
   'journal',                // {date}.json
   'learning.json',
-  'health',                 // profile.json, plans/, daily-plans/
+  'health',                 // profile.json, plans/, daily-plans/, sessions/
+                            // A whole DIRECTORY, so the training log added on
+                            // 28 Jul is swept without touching this list.
   // Creative metadata only (binaries go via large-file transfer)
   'creative/metadata.json',
   // Personalisation

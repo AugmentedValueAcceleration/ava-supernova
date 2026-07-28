@@ -2348,6 +2348,11 @@ export const enStrings = {
   'health.fill.field.lunch': 'Lunch time',
   'health.fill.field.dinner': 'Dinner time',
   'health.fill.field.cooking_time': 'Cooking time per meal',
+  'health.fill.field.experience': 'Training experience',
+  'health.fill.field.days_per_week': 'Training days per week',
+  'health.fill.field.training_days': 'Which days you train',
+  'health.fill.field.cooking_level': 'Cooking level',
+  'health.fill.field.household': 'People you cook for',
   'health.fill.cooking_grid_hint': 'Set how long you have to cook each meal, per day. Leave any slot on "Any".',
   'health.fill.time_any': 'Any time',
   'health.fill.sex.female': 'Female',
@@ -2752,6 +2757,182 @@ export const enStrings = {
   'health.profile.cooking_60': '≤60 min',
   'health.profile.cooking_60plus': '60+ min',
   'health.profile.no_options': 'No options available',
+
+  // ── Health · Profile · Training & Kitchen ──────────────────────────────
+  // The two sections generation plans against and the extension had nowhere to
+  // type in. Their absence is why a plan could prescribe a five-day split to a
+  // twice-a-week trainer and a ninety-minute braise on a Tuesday.
+  'health.profile.training': 'Training',
+  'health.profile.training_subtitle': 'How often you train, and which days. Ava shapes the week around this rather than guessing.',
+  'health.profile.experience': 'Experience',
+  // No inner double quotes: a translator returning German or French quotation
+  // marks inside a JSON string value breaks the batch it arrives in.
+  'health.profile.experience_hint': 'Sets how progressions are written. Without it Ava can only fall back to a vague effort rating, which is a dodge dressed up as a prescription.',
+  'health.profile.days_per_week': 'Training days per week',
+  'health.profile.training_days': 'Which days',
+  'health.profile.training_days_hint': 'Leave blank and Ava spaces them for you.',
+  'health.profile.kitchen': 'Kitchen',
+  'health.profile.kitchen_subtitle': 'What you can realistically cook, and for how many. Every quantity on a shopping list depends on it.',
+  'health.profile.household': 'People you cook for',
+  'health.profile.household_hint': 'Drives servings, leftovers and the shopping list. Left blank, everything assumes one.',
+  'health.profile.cooking_level': 'Cooking level',
+  'health.profile.cooking_level_hint': 'Recipes carry a method per level — this picks which one you get, not which recipes.',
+  'health.profile.minutes_weekday': 'Weekday minutes',
+  'health.profile.minutes_weekend': 'Weekend minutes',
+  'health.profile.minutes_fill_hint': 'A shortcut into the grid above: weekday fills Monday to Friday, weekend fills Saturday and Sunday. Edit any cell afterwards and your edit wins.',
+  'health.profile.minutes_fill_action': 'Fill the grid',
+  'health.profile.level.beginner': 'Beginner',
+  'health.profile.level.intermediate': 'Intermediate',
+  'health.profile.level.advanced': 'Advanced',
+  'health.profile.level.expert': 'Expert',
+  'health.profile.unset': 'Not set',
+
+  // ── Health · Ask Ava about THIS day ────────────────────────────────────
+  // The hybrid the builder exists for: you drive, Ava helps with the part you
+  // ask about. It PROPOSES — nothing is written until you accept — and it says
+  // what it did, because a change you cannot see the reasoning for is a change
+  // you cannot trust.
+  'health.assist.open': 'Ask Ava about this day',
+  'health.assist.title': 'Ask Ava',
+  'health.assist.placeholder': 'What would you like changed about this day?',
+  'health.assist.ask': 'Ask',
+  'health.assist.working': 'Ava is working on it. This takes about a minute.',
+  'health.assist.failed': 'That did not work.',
+  'health.assist.current': 'This day now',
+  'health.assist.proposed': "Ava's suggestion",
+  'health.assist.accept': 'Use this',
+  'health.assist.discard': 'Discard',
+  'health.assist.nothing_changed': 'Ava did not change anything.',
+  'health.assist.rest': 'Rest',
+  'health.assist.empty_day': 'Nothing on this day yet',
+  'health.assist.unverifiable': 'The library holds no allergen information for some of these. They were not checked, only left alone:',
+  // Openers, so nobody faces a blank box. Real sentences to edit, not modes.
+  'health.assist.prompt.fill': 'Fill this day in for me.',
+  'health.assist.prompt.finisher': 'Add a short finisher at the end.',
+  'health.assist.prompt.warmup': 'Add a proper warm-up.',
+  'health.assist.prompt.easier': 'Make this day easier — I am not recovered.',
+  'health.assist.prompt.protein': 'Get more protein into this day.',
+  'health.assist.prompt.quicker': 'Swap these for something quicker to cook.',
+
+  // ── Health · Duplicate a day or a week ─────────────────────────────────
+  // Copying is the ONE action in the builder that destroys work — every other
+  // edit changes a single field — so it says what it will overwrite first.
+  'health.dup.open': 'Copy this day',
+  'health.dup.title': 'Copy',
+  'health.dup.mode_day': 'Onto other days',
+  'health.dup.mode_week': 'Onto another week',
+  'health.dup.pick_days': 'Copy day {n} onto',
+  'health.dup.pick_week': 'Copy week {n} onto',
+  'health.dup.week_n': 'Week {n}',
+  'health.dup.day_n': 'Day {n}',
+  'health.dup.has_content': 'has something on it',
+  'health.dup.apply': 'Copy',
+  'health.dup.will_replace_one': 'This replaces what is on 1 day.',
+  'health.dup.will_replace_many': 'This replaces what is on {n} days.',
+  'health.dup.nothing_to_copy': 'There is nothing on this day to copy.',
+  // Progression is an explicit choice, never a silent rule — see the note in
+  // core health/duplicate.ts on why load cannot be stepped honestly here.
+  'health.dup.progression': 'As it lands',
+  'health.dup.prog_same': 'Exactly the same',
+  'health.dup.prog_rep': 'One more rep',
+  'health.dup.prog_set': 'One more set',
+  'health.dup.prog_hint': 'Steps the COPY, never the original. Warm-ups, cool-downs and recovery days are left alone.',
+
+  // ── Health · Curated starters ──────────────────────────────────────────
+  // A shelf of plans somebody can start on day one, for free. Starting takes a
+  // COPY: from that moment the week is theirs, and a later correction to the
+  // template never changes it under them halfway through.
+  // Provenance on a plan card. 'manual' gets NO chip — a plan you built
+  // yourself needs no label, and badging everything makes the badge mean
+  // nothing.
+  'health.plans.source.ava': 'Written by Ava',
+  'health.plans.source.curated': 'Starter plan',
+  'health.starters.title': 'Starter plans',
+  'health.starters.subtitle': 'Built and tested. Start one and it becomes yours to change.',
+  'health.starters.open': 'Start from a plan',
+  'health.starters.loading': 'Loading the shelf…',
+  'health.starters.failed': 'The shelf could not be loaded. Check your connection and try again.',
+  'health.starters.retry': 'Try again',
+  'health.starters.empty': 'No starter plans published yet.',
+  'health.starters.start': 'Start this plan',
+  'health.starters.starting': 'Starting…',
+  'health.starters.back': 'All starters',
+  'health.starters.one_week': '1 week',
+  'health.starters.single_session': 'Single session',
+  'health.starters.days': 'days',
+  'health.starters.day': 'Day',
+  'health.starters.sessions': 'sessions',
+  'health.starters.rest_days': 'rest days',
+  'health.starters.rest': 'Rest',
+  'health.starters.exercises': 'exercises',
+  'health.starters.minutes': 'min a session',
+  'health.starters.equipment': 'What you need',
+  'health.starters.no_equipment': 'Nothing — bodyweight only',
+  'health.starters.started_count': 'started',
+  // Said before the button, not after. Starting should be an informed act.
+  'health.starters.copy_note': 'This becomes your own copy. Change anything you like — the original is untouched, and it will never change under you.',
+  'health.starters.not_adapted': 'Started exactly as written, not reshaped around your profile. The builder flags anything that clashes with an injury or kit you have not got, and a swap is one tap away.',
+
+  // ── Health · Shopping list ─────────────────────────────────────────────
+  // The step that turns a meal plan into food. Everything before it is a
+  // proposal; this is the bit you take to a shop.
+  'health.shopping.title': 'Shopping list',
+  'health.shopping.open': 'Shopping list',
+  'health.shopping.looking': 'Reading the recipes…',
+  'health.shopping.no_meals': 'No meals in this plan yet.',
+  'health.shopping.no_meals_week': 'Nothing planned to eat this week.',
+  'health.shopping.week_n': 'Week',
+  'health.shopping.this_week': 'This week',
+  'health.shopping.back_to_this_week': 'Back to this week',
+  'health.shopping.prev_week': 'Previous week',
+  'health.shopping.next_week': 'Next week',
+  'health.shopping.meals': 'meals',
+  'health.shopping.hide_optional': 'Hide optional',
+  'health.shopping.reset': 'Clear ticks',
+  'health.shopping.retry': 'Try again',
+  'health.shopping.scope_plan': 'This plan',
+  'health.shopping.scope_week': 'The whole week',
+  // Honesty: a list that looks complete and is not sends somebody home
+  // without dinner. The two reasons need different words and different fixes.
+  'health.shopping.incomplete': 'These meals are missing from the list — their ingredients could not be read:',
+  'health.shopping.not_in_library': 'These meals are not library recipes, so nothing knows what goes in them. Swap them for a recipe to shop for them:',
+  'health.shopping.aisle.produce': 'Fruit & veg',
+  'health.shopping.aisle.meat_fish': 'Meat & fish',
+  'health.shopping.aisle.dairy_eggs': 'Dairy & eggs',
+  'health.shopping.aisle.bakery': 'Bakery',
+  'health.shopping.aisle.cupboard': 'Cupboard',
+  'health.shopping.aisle.spices': 'Herbs & spices',
+  'health.shopping.aisle.tins_jars': 'Tins & jars',
+  'health.shopping.aisle.oils_vinegars': 'Oils & vinegars',
+  'health.shopping.aisle.frozen': 'Frozen',
+  'health.shopping.aisle.other': 'Other',
+  'health.shopping.loose_lines': 'to taste',
+  'health.shopping.optional': 'optional',
+  'health.shopping.for_people': 'Quantities are for the number of people on your profile.',
+
+  // ── Health · Prep & batch cooking ──────────────────────────────────────
+  // Where the cooking actually lands in a week — the difference between a plan
+  // that survives a work week and one abandoned on day three.
+  'health.prep.title': 'Prep & batch cooking',
+  'health.prep.open': 'Prep plan',
+  'health.prep.nothing': 'Nothing to cook in this plan yet.',
+  'health.prep.hands_on': 'Hands-on this week',
+  'health.prep.heaviest': 'Heaviest day',
+  'health.prep.over_budget': 'over your budget',
+  'health.prep.no_budget': 'No cooking-time budget set — add one on your profile and this will flag the days that run over.',
+  'health.prep.start_ahead': 'Start ahead',
+  'health.prep.start_ahead_hint': 'Unattended time, not work — it just has to begin earlier.',
+  'health.prep.day_before': 'the day before',
+  'health.prep.days_before': 'days before',
+  'health.prep.cook_once': 'Cook once, eat more than once',
+  'health.prep.cook_once_hint': 'Same dish, more than once, inside the days the recipe says it keeps.',
+  'health.prep.cook_on_day': 'Cook on day',
+  'health.prep.covers_days': 'covers days',
+  'health.prep.make_servings': 'servings',
+  'health.prep.keeps_days': 'keeps',
+  'health.prep.saves': 'saves',
+  'health.prep.rest_day': 'Rest',
+  'health.prep.no_cooking': 'nothing to cook',
 
   // ── Health · Submission modal (contribute) ─────────────────────────────
   'health.submit.close': 'Close',

@@ -22,6 +22,7 @@ import { ArticleReader } from './pages/ArticleReader';
 import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import { Health } from './pages/Health';
 import { LearningRoom } from './pages/LearningRoom';
+import type { DayProposal } from './components/AssistSheet';
 import type {
   Page,
   AccountInfo,
@@ -73,6 +74,9 @@ import type {
   StorageScan,
   PersonalityData,
   RoadmapTheme,
+  CuratedPlanSummary, CuratedPlanDetail,
+  HealthPlanDay,
+  HealthPlanType,
 } from './types/messages';
 
 export { post };
@@ -334,6 +338,20 @@ export function App() {
   // submissions for the My Submissions tab, and the last submission
   // result so the modal can show success/error inline.
   const [healthTaxonomies, setHealthTaxonomies] = useState<HealthTaxonomies | null>(null);
+  // Curated starters — the shelf, and one template in full. Kept here rather
+  // than in the sheet so reopening it does not refetch a shelf that has not
+  // changed, and so a start survives the sheet closing.
+  const [curatedPlans, setCuratedPlans] = useState<CuratedPlanSummary[]>([]);
+  const [curatedLoading, setCuratedLoading] = useState(false);
+  const [curatedError, setCuratedError] = useState<string | null>(null);
+  const [curatedDetail, setCuratedDetail] = useState<CuratedPlanDetail | null>(null);
+  const [curatedDetailLoading, setCuratedDetailLoading] = useState(false);
+  // Ask-Ava-about-this-day. The proposal lives here rather than in the sheet
+  // so a slow generation is not lost by an accidental dismissal — it took the
+  // better part of a minute and, on a platform key, real credits.
+  const [dayAssistBusy, setDayAssistBusy] = useState(false);
+  const [dayAssistError, setDayAssistError] = useState<string | null>(null);
+  const [dayAssistProposal, setDayAssistProposal] = useState<DayProposal | null>(null);
   const [healthMySubmissions, setHealthMySubmissions] = useState<HealthMySubmissions>({ exercises: [], recipes: [] });
   const [healthClearingMySubmissions, setHealthClearingMySubmissions] = useState(false);
   // Health profile — local-first goals + constraints + schedule (body basics
@@ -344,12 +362,12 @@ export function App() {
   const [generalProfile, setGeneralProfile] = useState<GeneralProfile | null>(null);
   // Deep-link into the Account profile tab's sub-tab (set by Health's "Edit
   // profile →"). Consumed once by AccountPage.
-  const [profileInitialSubTab, setProfileInitialSubTab] = useState<'general' | 'health' | 'plans' | 'submissions' | null>(null);
+  const [profileInitialSubTab, setProfileInitialSubTab] = useState<'general' | 'submissions' | null>(null);
   // Deep-link target for the Health page's inner tab. Set when another
   // surface (e.g. the Health Dashboard's "Set your goals" pointer)
   // navigates here wanting a specific tab; Health consumes it once on
   // mount then clears it so a later sidebar visit lands on the default.
-  const [healthInitialTab, setHealthInitialTab] = useState<'exercises' | 'recipes' | 'ava' | null>(null);
+  const [healthInitialTab, setHealthInitialTab] = useState<'plans' | 'exercises' | 'recipes' | 'profile' | 'ava' | null>(null);
   const [learningInitialTab, setLearningInitialTab] = useState<'courses' | 'my-learning' | 'ava' | null>(null);
   // Multi-week Plans — the library (lightweight summaries) plus the one
   // full plan currently open in the editor. Loaded on dashboard mount.
@@ -468,6 +486,40 @@ export function App() {
   // list loads via the dashboard-mount pre-warm.
   const handleOpenHealthPlan = useCallback((id: string) => {
     post({ type: 'load_health_plan', id });
+  }, []);
+  const handleAssistDay = useCallback((args: {
+    planType: HealthPlanType; goal: string | null; day: HealthPlanDay; week: HealthPlanDay[];
+    instruction: string; date: string | null; profile: unknown;
+  }) => {
+    setDayAssistBusy(true);
+    setDayAssistError(null);
+    setDayAssistProposal(null);
+    post({ type: 'generate_health_day', ...args });
+  }, []);
+  const handleDiscardDayAssist = useCallback(() => {
+    setDayAssistProposal(null);
+    setDayAssistError(null);
+  }, []);
+  const handleLoadCuratedPlans = useCallback(() => {
+    setCuratedLoading(true);
+    setCuratedError(null);
+    post({ type: 'load_curated_plans' });
+  }, []);
+  const handleLoadCuratedPlan = useCallback((id: string) => {
+    setCuratedDetail(null);
+    setCuratedDetailLoading(true);
+    post({ type: 'load_curated_plan', id });
+  }, []);
+  /**
+   * Save the copy, then report the start.
+   *
+   * In that order, and the report is fire-and-forget: a counter must never be
+   * the reason somebody's plan fails to start. The plan is already theirs by
+   * the time the network is touched.
+   */
+  const handleStartCuratedPlan = useCallback((plan: HealthPlan, curatedId: string) => {
+    post({ type: 'save_health_plan', plan });
+    post({ type: 'curated_plan_started', id: curatedId });
   }, []);
   const handleSaveHealthPlan = useCallback((plan: HealthPlan) => {
     post({ type: 'save_health_plan', plan });
@@ -1017,6 +1069,37 @@ export function App() {
         break;
       case 'health_taxonomies_loaded':
         setHealthTaxonomies(msg.taxonomies);
+        break;
+      case 'health_day_generated':
+        setDayAssistBusy(false);
+        if (msg.ok && msg.day) {
+          setDayAssistProposal({
+            day: msg.day,
+            note: msg.note ?? '',
+            credits: msg.credits_charged ?? 0,
+            unverifiable: msg.unverifiable_allergens ?? [],
+          });
+        } else {
+          setDayAssistError(msg.error ?? 'Unknown error');
+        }
+        break;
+      case 'curated_plans_loaded':
+        setCuratedPlans(msg.plans);
+        setCuratedLoading(false);
+        setCuratedError(null);
+        break;
+      case 'curated_plans_failed':
+        setCuratedLoading(false);
+        // Named, not swallowed: an empty shelf and an unreachable one look
+        // identical otherwise, and only one of them is worth retrying.
+        setCuratedError(msg.error);
+        break;
+      case 'curated_plan_loaded':
+        setCuratedDetail(msg.plan);
+        setCuratedDetailLoading(false);
+        break;
+      case 'curated_plan_failed':
+        setCuratedDetailLoading(false);
         break;
       case 'health_my_submissions_loaded':
         setHealthMySubmissions(msg.data);
@@ -1604,30 +1687,6 @@ export function App() {
             isPlatform={!!account}
             generalProfile={generalProfile}
             onSaveGeneralProfile={handleSaveGeneralProfile}
-            healthProfile={healthProfile}
-            onSaveHealthProfile={handleSaveHealthProfile}
-            healthTaxonomies={healthTaxonomies}
-            onLoadHealthTaxonomies={handleLoadHealthTaxonomies}
-            healthPlans={{
-              plans: healthPlans,
-              fullPlans: activeHealthPlans,
-              planOpen: healthPlanOpen,
-              onOpenPlan: handleOpenHealthPlan,
-              onSavePlan: handleSaveHealthPlan,
-              onDeletePlan: handleDeleteHealthPlan,
-              onClosePlan: handleCloseHealthPlan,
-              exerciseResults: planExerciseResults,
-              recipeResults: planRecipeResults,
-              catalogSearching: planCatalogSearching,
-              exerciseTotal: planExerciseTotal,
-              recipeTotal: planRecipeTotal,
-              onSearchExercises: handleSearchPlanExercises,
-              onSearchRecipes: handleSearchPlanRecipes,
-              exerciseDetails: planExerciseDetails,
-              recipeDetails: planRecipeDetails,
-              onLoadExerciseDetail: handleLoadPlanExerciseDetail,
-              onLoadRecipeDetail: handleLoadPlanRecipeDetail,
-            }}
             healthSubmissions={{
               data: healthMySubmissions,
               onRefresh: handleLoadMyHealthSubmissions,
@@ -1649,13 +1708,6 @@ export function App() {
               onGenerateExerciseDraft: handleGenerateHealthExerciseDraft,
               onGenerateRecipeDraft: handleGenerateHealthRecipeDraft,
               onClearDraft: handleClearHealthDraft,
-            }}
-            onAskAvaPlan={(type) => {
-              // The room lives in Health — navigate there, open the Ava tab,
-              // and seed Ava with the chosen plan type.
-              setHealthInitialTab('ava');
-              setPagePersist('health');
-              post({ type: 'palette_intent', tool: 'plans', action: type, mode: 'health', surface: 'health' });
             }}
             profileInitialSubTab={profileInitialSubTab}
             onConsumeProfileInitialSubTab={() => setProfileInitialSubTab(null)}
@@ -1765,6 +1817,52 @@ export function App() {
             taxonomies={healthTaxonomies}
             onLoadTaxonomies={handleLoadHealthTaxonomies}
             onNavigateToProfile={(subTab) => { setProfileInitialSubTab(subTab); setPagePersist('account'); }}
+            healthPlans={{
+              plans: healthPlans,
+              fullPlans: activeHealthPlans,
+              planOpen: healthPlanOpen,
+              onOpenPlan: handleOpenHealthPlan,
+              onSavePlan: handleSaveHealthPlan,
+              onDeletePlan: handleDeleteHealthPlan,
+              onClosePlan: handleCloseHealthPlan,
+              exerciseResults: planExerciseResults,
+              recipeResults: planRecipeResults,
+              catalogSearching: planCatalogSearching,
+              exerciseTotal: planExerciseTotal,
+              recipeTotal: planRecipeTotal,
+              onSearchExercises: handleSearchPlanExercises,
+              onSearchRecipes: handleSearchPlanRecipes,
+              exerciseDetails: planExerciseDetails,
+              recipeDetails: planRecipeDetails,
+              onLoadExerciseDetail: handleLoadPlanExerciseDetail,
+              onLoadRecipeDetail: handleLoadPlanRecipeDetail,
+            }}
+            onAskAvaPlan={(type) => {
+              // Same page now — just move to the Ava tab and seed her with the
+              // chosen plan type. (Was a cross-page hop from Account.)
+              setHealthInitialTab('ava');
+              setPagePersist('health');
+              post({ type: 'palette_intent', tool: 'plans', action: type, mode: 'health', surface: 'health' });
+            }}
+            healthProfile={healthProfile}
+            onSaveHealthProfile={handleSaveHealthProfile}
+            dayAssist={{
+              busy: dayAssistBusy,
+              error: dayAssistError,
+              proposal: dayAssistProposal,
+              onAsk: handleAssistDay,
+              onDiscard: handleDiscardDayAssist,
+            }}
+            curated={{
+              plans: curatedPlans,
+              loading: curatedLoading,
+              error: curatedError,
+              detail: curatedDetail,
+              detailLoading: curatedDetailLoading,
+              onLoad: handleLoadCuratedPlans,
+              onLoadDetail: handleLoadCuratedPlan,
+              onStart: handleStartCuratedPlan,
+            }}
             onRegisterHealthChatDispatch={registerHealthChatDispatch}
             userName={account?.name?.split(' ')[0] ?? null}
             userAvatarUrl={account?.avatar_url ?? null}

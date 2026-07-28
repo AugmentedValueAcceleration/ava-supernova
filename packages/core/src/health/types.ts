@@ -9,11 +9,33 @@
 // See COMMAND_PALETTE_PLAN.md §10.
 
 export type HealthPlanType = 'fitness' | 'meal' | 'combined';
-export type HealthPlanSource = 'manual' | 'ava';
+/** Who wrote this plan. 'Ava wrote this for you' and 'this is a
+ *  professionally built starter' are different claims, and a plan card must
+ *  not show them identically. */
+export type HealthPlanSource = 'manual' | 'ava' | 'curated';
 export type HealthPlanStatus = 'draft' | 'active' | 'completed' | 'archived';
 
 /** A planned training exercise within a plan day. Links to a catalogue
  *  exercise by slug, or stands alone as a custom entry (ref null). */
+/**
+ * What the library knew about this movement when it was added.
+ *
+ * Captured at add time like PlanMealMeta, and for a sharper reason than
+ * convenience: `session_role` is what stops a progression adding a set to a
+ * warm-up. Without it that guard is decorative.
+ */
+export interface PlanExerciseMeta {
+  movement_pattern?: string | null;
+  force_type?: string | null;
+  /** warmup / main / accessory / finisher / cooldown / mobility */
+  session_role?: string | null;
+  laterality?: string | null;
+  /** compound / isolation / bodyweight / plyometric / mobility / … */
+  exercise_type?: string | null;
+  difficulty?: number | null;
+  equipment?: string[] | null;
+}
+
 export interface HealthPlanExercise {
   id: string;
   ref?: { kind: 'exercise'; slug: string } | null;
@@ -24,11 +46,55 @@ export interface HealthPlanExercise {
   rest_seconds: number | null;
   tempo: string | null;           // "3-1-1-0" or null
   notes: string | null;
+  /** Absent on rows added before capture existed. */
+  meta?: PlanExerciseMeta | null;
 }
 
 /** A planned meal within a plan day. A catalogue recipe (ref set) derives
  *  its nutrition from the recipe × `servings`; a custom meal (ref null)
  *  carries hand-entered macros. */
+/** One line on a recipe, as the plan captured it. */
+export interface PlanIngredient {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  optional?: boolean;
+}
+
+/**
+ * What the library knew about this dish when it was added to the plan.
+ *
+ * Captured at ADD time, read at USE time. A shopping list has to work standing
+ * in a shop with no signal, and a prep plan has to work on a train — so the
+ * facts travel with the plan rather than being fetched when needed, for the
+ * same reason sets and macros already do.
+ *
+ * Every field optional: a custom meal somebody typed has none of this, and that
+ * is a legitimate meal, not a broken one.
+ */
+export interface PlanMealMeta {
+  /** main / side / breakfast / dessert — what the dish IS, so a swap can offer
+   *  a dinner in place of a dinner even when the meal carries no macros. */
+  course?: string | null;
+  total_time_minutes?: number | null;
+  prep_time_minutes?: number | null;
+  cook_time_minutes?: number | null;
+  level?: string | null;
+  default_servings?: number | null;
+  /** Present for round-trip fidelity only. NOT to be reasoned over: 78% of the
+   *  library says exactly 12 and 1,407 versions are exactly 3x their own
+   *  default servings, which is a seeded default rather than a judgement about
+   *  the dish. Batch cooking is derived from the PLAN instead — see prep.ts. */
+  batch_portions?: number | null;
+  keeps_fridge_days?: number | null;
+  /** Free-from flags as slugs — what proves an allergen absent. */
+  dietary_flags?: string[] | null;
+  diets?: string[] | null;
+  allergens?: string[] | null;
+  /** The lines this meal needs, already narrowed to its skill level. */
+  ingredients?: PlanIngredient[] | null;
+}
+
 export interface HealthPlanMeal {
   id: string;
   slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -43,6 +109,10 @@ export interface HealthPlanMeal {
    *  meal fits the cooking-time ceiling they set for that slot. null = unstated. */
   cook_time_minutes: number | null;
   notes: string | null;
+  /** Absent on meals added before capture existed. Absent is not empty: a plan
+   *  with no meta cannot be shopped for, and the surface says so rather than
+   *  producing a short list that looks complete. */
+  meta?: PlanMealMeta | null;
 }
 
 /** One day of a plan. `day_index` is 1-based and absolute within the plan

@@ -5,6 +5,7 @@
 //   - profile.json
 //   - plans/<id>.json
 //   - daily-plans/<date>.json
+//   - sessions/<id>.json      — the training log: what ACTUALLY happened
 //
 // Health used to live in VS Code globalState, which meant it was NOT in
 // ~/.ava and so the file-based export + `.ava-backup` captured none of it.
@@ -40,6 +41,7 @@ async function atomicWriteSerialized(path: string, data: string): Promise<void> 
 }
 import type * as vscode from 'vscode';
 import type { HealthProfile, HealthDailyPlan, HealthPlan } from './dashboard-message-types.js';
+import type { GymSession, GymExercise } from '@ava/core/health';
 
 const PROFILE_KEY = 'ava.healthProfile';
 const PLAN_PREFIX = 'ava.plan.';
@@ -48,15 +50,50 @@ const DAILY_PREFIX = 'ava.healthPlan.';
 export const profilePath = (healthDir: string): string => join(healthDir, 'profile.json');
 export const plansDir = (healthDir: string): string => join(healthDir, 'plans');
 export const dailyDir = (healthDir: string): string => join(healthDir, 'daily-plans');
+export const sessionsDir = (healthDir: string): string => join(healthDir, 'sessions');
 
 function readJson<T>(path: string): T | null {
   try { return JSON.parse(readFileSync(path, 'utf-8')) as T; } catch { return null; }
 }
 
 // ── Profile ────────────────────────────────────────────────────────────────
+
+/**
+ * Fill `training` / `kitchen` out to complete objects when they are present but
+ * partial.
+ *
+ * Two writers can leave a half-object behind: the profile-fill card, which
+ * builds missing path segments as `{}` and sets one leaf (`training.experience`
+ * on a profile that had no `training` yields `{ experience }` and nothing else),
+ * and any older synced blob from before a field existed. Normalising on read
+ * means every consumer can treat the sections as whole rather than each one
+ * inventing its own defaults — and absent stays absent, because a section
+ * nobody has touched is different from one deliberately left empty.
+ */
+function normaliseSections(p: HealthProfile): HealthProfile {
+  if (p.training) {
+    p.training = {
+      experience: p.training.experience ?? null,
+      days_per_week: p.training.days_per_week ?? null,
+      training_days: Array.isArray(p.training.training_days) ? p.training.training_days : [],
+      baseline_lifts: Array.isArray(p.training.baseline_lifts) ? p.training.baseline_lifts : [],
+    };
+  }
+  if (p.kitchen) {
+    p.kitchen = {
+      level: p.kitchen.level ?? null,
+      minutes_weekday: p.kitchen.minutes_weekday ?? null,
+      minutes_weekend: p.kitchen.minutes_weekend ?? null,
+      household_size: p.kitchen.household_size ?? null,
+      cost_tier: p.kitchen.cost_tier ?? null,
+    };
+  }
+  return p;
+}
+
 export function readProfile(healthDir: string): HealthProfile | null {
   const p = readJson<HealthProfile>(profilePath(healthDir));
-  return p && p.schema_version === 1 ? p : null;
+  return p && p.schema_version === 1 ? normaliseSections(p) : null;
 }
 export async function writeProfile(healthDir: string, profile: HealthProfile): Promise<void> {
   await mkdir(healthDir, { recursive: true });
@@ -144,4 +181,57 @@ export async function migrateHealthFromGlobalState(
     }
   }
   return moved;
+}
+
+// ── Training log ─────────────────────────────────────────────────────────────
+//
+// What actually happened, as opposed to what the plan asked for. Implements
+// core's `GymSessionStore` contract; the companion and the IDE implement the
+// same one over their own storage, so "same Ava, same memory" holds across all
+// three rather than each surface knowing a different half of the week.
+//
+// One file per session rather than one per date: a plan day and a freestyle
+// drop-in on the same date are two sessions, and folding them into one file
+// would silently lose whichever was written second.
+
+export function listSessionIds(healthDir: string): string[] {
+  try {
+    return readdirSync(sessionsDir(healthDir)).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5));
+  } catch { return []; }
+}
+
+export function readSession(healthDir: string, id: string): GymSession | null {
+  const s = readJson<GymSession>(join(sessionsDir(healthDir), `${id}.json`));
+  return s && s.schema_version === 1 ? s : null;
+}
+
+export async function writeSession(healthDir: string, session: GymSession): Promise<void> {
+  await mkdir(sessionsDir(healthDir), { recursive: true });
+  await atomicWriteSerialized(join(sessionsDir(healthDir), `${session.id}.json`), JSON.stringify(session, null, 2));
+}
+
+export async function deleteSession(healthDir: string, id: string): Promise<void> {
+  await unlink(join(sessionsDir(healthDir), `${id}.json`)).catch(() => {});
+}
+
+/** Every session, newest first. Small local JSON — a year of training is a few
+ *  hundred files, and reading them beats maintaining an index that can drift
+ *  out of step with what is actually on disk. */
+export function readAllSessions(healthDir: string): GymSession[] {
+  return listSessionIds(healthDir)
+    .map((id) => readSession(healthDir, id))
+    .filter((s): s is GymSession => !!s)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/**
+ * Exercises with at least one logged set — NOT exercises queued.
+ *
+ * A session with eight exercises and nothing logged is not eight-eighths of a
+ * workout, it is a session that did not happen. Counting the queue would let
+ * an abandoned session read as a completed one, which is precisely the
+ * misreading the training log exists to prevent.
+ */
+export function loggedExerciseCount(session: GymSession): number {
+  return (session.exercises ?? []).filter((e: GymExercise) => (e.sets?.length ?? 0) > 0).length;
 }

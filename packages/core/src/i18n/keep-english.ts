@@ -88,6 +88,18 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   'health.home.water.sub_250',
   'health.plans.per_week',
   'health.plans.weekday_initial.6',
+  // Genuine cognates, not missed translations. "Training" is the German and
+  // Dutch word; "Expert" is the French and Dutch word; "Beginner" is Dutch;
+  // "optional" is German and "Week" is Dutch. The leak check compares strings,
+  // so it cannot tell a word that is the same in two languages from one nobody
+  // translated — these are the former, and every other locale translates them.
+  'health.profile.training',
+  'health.profile.level.beginner',
+  'health.profile.level.expert',
+  'health.shopping.optional',
+  'health.shopping.week_n',
+  'health.starters.one_week',   // "1 week" is Dutch for "1 week"
+  'health.dup.week_n',          // likewise "Week {n}"
   'health.profile.diet.halal',
   'health.profile.diet.keto',
   'health.profile.diet.kosher',

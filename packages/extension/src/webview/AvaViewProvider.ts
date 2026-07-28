@@ -2030,7 +2030,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // 10/week), builds the whole plan from the exercise/recipe library, and
       // returns the days. Replaces the old turn-by-turn fill.
       generateHealthPlanDays: async (i: { type: string; duration_days: number; goal: string | null; title: string }) => {
-        if (!platformKey) throw new Error('Sign in to your Ava account to generate a plan.');
+        // WHICH MODEL, AND WHOSE KEY.
+        //
+        // This sent neither. So a BYOK user's plan was generated on the
+        // platform's Qwen key AND charged to their credits — the same billing
+        // fault fixed on the companion, in the surface that has had the feature
+        // longest. It also refused outright without a platform key, which meant
+        // a BYOK-only user could not generate a plan at all despite paying for
+        // every token themselves.
+        //
+        // The active model id goes with the request so the server resolves the
+        // right provider, and the user's OWN key goes with it whenever they are
+        // not on the platform provider. Their key, their bill, no credits.
+        const byokKey = provider.name === 'platform'
+          ? undefined
+          : await this.context.secrets.get(`ava-supernova.provider.${provider.name}.apiKey`) || undefined;
+        if (!platformKey && !byokKey) {
+          throw new Error('Sign in to your Ava account, or add your own provider key, to generate a plan.');
+        }
         // Send the profile as an OBJECT. It used to be JSON.stringify'd and cut
         // at 1500 characters, which routinely truncated mid-object — so the
         // server received text it couldn't parse and fell back to asking the
@@ -2043,10 +2060,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           const raw = await readFile(join(this.accountScopedDir, 'health', 'profile.json'), 'utf-8');
           profile = JSON.parse(raw);
         } catch { /* no local profile — the server handles its absence */ }
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (platformKey) headers.Authorization = `Bearer ${platformKey}`;
+        // No account at all — authenticate as BYOK instead. The header pair is
+        // what the route's door accepts; the body still carries the model so
+        // the provider is resolved from it rather than assumed.
+        if (!platformKey && byokKey) {
+          headers['X-BYOK-Provider'] = provider.name;
+          headers['X-BYOK-Key'] = byokKey;
+        }
         const res = await fetch('https://ava-supernova.com/api/health/generate/plan', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformKey}` },
-          body: JSON.stringify({ type: i.type, duration_days: i.duration_days, goal: i.goal, title: i.title, profile }),
+          headers,
+          body: JSON.stringify({
+            type: i.type, duration_days: i.duration_days, goal: i.goal, title: i.title, profile,
+            model: model.id,
+            ...(byokKey ? { providerApiKey: byokKey } : {}),
+            // Which weekday each generated day lands on. A plan created from the
+            // room starts today unless the person moves it, and today is what
+            // the store stamps on an active plan without a date.
+            start_date: new Date().toISOString().slice(0, 10),
+          }),
         });
         const data = await res.json().catch(() => ({} as Record<string, unknown>));
         if (!res.ok) throw new Error((data as { error?: string })?.error || `Plan generation failed (${res.status})`);
@@ -4457,6 +4491,28 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
       const cookLine = summariseCookingTime(p?.schedule?.cooking_time);
       if (cookLine) lines.push(cookLine);
+      // Training + kitchen. Omitted until 28 Jul, so the room planned somebody's
+      // week without knowing how often they can train or who they cook for —
+      // and would cheerfully write a five-day split for a twice-a-week trainer.
+      const tr = p?.training;
+      if (tr?.experience) lines.push(`Training experience: ${tr.experience}`);
+      if (tr?.days_per_week) lines.push(`Training days per week: ${tr.days_per_week}`);
+      if (tr?.training_days?.length) lines.push(`Trains on: ${tr.training_days.join(', ')}`);
+      if (tr?.baseline_lifts?.length) {
+        type Lift = { name?: string; weight_kg?: number | null; reps?: number | null };
+        const lifts = (tr.baseline_lifts as Lift[])
+          .filter((l) => l?.name)
+          .map((l) => [l.name, l.weight_kg != null ? `${l.weight_kg} kg` : null, l.reps != null ? `× ${l.reps}` : null].filter(Boolean).join(' '));
+        if (lifts.length) lines.push(`Baseline lifts: ${lifts.join('; ')}`);
+      }
+      const k = p?.kitchen;
+      if (k?.level) lines.push(`Cooking level: ${k.level}`);
+      if (k?.household_size) lines.push(`Cooks for: ${k.household_size} ${k.household_size === 1 ? 'person' : 'people'}`);
+      if (k?.cost_tier) lines.push(`Budget: ${k.cost_tier}`);
+      // `minutes_weekday` / `_weekend` are NOT summarised: they are a shortcut
+      // that writes the cooking grid, and the grid is already on `cookLine`
+      // above. Restating them would put a second, coarser answer to the same
+      // question in front of the model — exactly what decision 25 removed.
       if (p?.food?.likes?.length) lines.push(`Food likes: ${p.food.likes.join(', ')}`);
       if (p?.food?.dislikes?.length) lines.push(`Food dislikes (keep out of plans): ${p.food.dislikes.join(', ')}`);
       if (p?.food?.cuisines?.length) lines.push(`Favourite cuisines: ${p.food.cuisines.join(', ')}`);

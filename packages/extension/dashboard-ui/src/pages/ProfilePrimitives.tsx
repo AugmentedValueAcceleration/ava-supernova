@@ -32,11 +32,14 @@ export function FieldGrid({ children }: { children: React.ReactNode }) {
 // to the first labelable control inside it, which for our custom Select/time
 // pickers (buttons) meant clicking the empty space to the right of a dropdown
 // popped it open. A div scopes the click to the control itself.
-export function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+/** `hint` sits UNDER the control, not above it: it explains what the answer
+ *  changes, which is only worth reading once you have seen the choices. */
+export function Field({ label, children, hint, className }: { label: string; children: React.ReactNode; hint?: string; className?: string }) {
   return (
     <div className={`block ${className ?? ''}`}>
       <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] mb-1">{label}</div>
       {children}
+      {hint && <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{hint}</p>}
     </div>
   );
 }
@@ -70,11 +73,17 @@ export function TimeInput({ value, onChange }: { value: string | null; onChange:
   // Keep an off-step saved minute (e.g. "23") selectable rather than dropping it.
   const minOptions = m && !TIME_MINS.includes(m) ? [...TIME_MINS, m].sort() : TIME_MINS;
   const dash = { value: '', label: t('health.fill.time_any') };
+  // Both boxes are sized for the LONGEST label they can hold, not for "23:45".
+  // At 88/72px the unset state truncated to "Any ti…" / "An…", which reads as a
+  // broken control rather than an empty one — and the label is the only thing
+  // telling you the field is optional. Equal widths because the menu is at
+  // least as wide as its trigger, so unequal boxes make the pair look ragged
+  // the moment either one opens.
   return (
     <div className="flex items-center gap-1.5">
       <Select
         size="sm"
-        className="w-[88px]"
+        className="w-[108px]"
         value={h}
         onChange={(hh) => onChange(hh === '' ? null : `${hh}:${m || '00'}`)}
         options={[dash, ...TIME_HOURS.map((x) => ({ value: x, label: x }))]}
@@ -82,7 +91,7 @@ export function TimeInput({ value, onChange }: { value: string | null; onChange:
       <span className="text-[12px] text-[var(--text-muted)]">:</span>
       <Select
         size="sm"
-        className="w-[72px]"
+        className="w-[108px]"
         value={m}
         onChange={(mm) => onChange(`${h || '00'}:${mm || '00'}`)}
         options={[dash, ...minOptions.map((x) => ({ value: x, label: x }))]}
