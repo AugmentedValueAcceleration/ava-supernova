@@ -13,6 +13,7 @@
 
 import type {
   HealthPlanStore,
+  HealthPlanUpdateInput,
   HealthPlanCreateInput,
   HealthPlanCreated,
   HealthPlanDay,
@@ -115,7 +116,12 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
       source: 'ava',
       status: input.status,
       duration_days: input.duration_days,
-      start_date: input.status === 'active' ? now.slice(0, 10) : null,
+      // A supplied date wins. Falling back to "today when active" keeps every
+      // existing caller identical, but "start it tomorrow" is now sayable
+      // instead of silently becoming today.
+      start_date: input.start_date !== undefined
+        ? input.start_date
+        : (input.status === 'active' ? now.slice(0, 10) : null),
       // profile_snapshot left null in the tool-driven path for v1. The UI
       // path fills it from the active HealthProfile in globalState; wiring
       // that into the tool path is a follow-up — the plan still works.
@@ -134,6 +140,55 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
       duration_days: plan.duration_days,
       status: plan.status,
       filled_days,
+    };
+  }
+
+  /**
+   * Change title / goal / status / start date on an existing plan.
+   *
+   * Activating runs the SAME one-active-per-type archive rule as create, so
+   * promoting a draft cannot leave two active plans of one type behind — which
+   * is exactly what happened when the only way to "activate" was to create a
+   * second plan.
+   */
+  async update(planId: string, input: HealthPlanUpdateInput): Promise<HealthPlanSummary | null> {
+    return this.serialize(() => this._update(planId, input));
+  }
+  private async _update(planId: string, input: HealthPlanUpdateInput): Promise<HealthPlanSummary | null> {
+    const dir = this.getHealthDir();
+    const plan = healthStore.readPlan(dir, planId);
+    if (!plan) return null;
+    const now = new Date().toISOString();
+
+    if (input.status === 'active' && plan.status !== 'active') {
+      for (const otherId of healthStore.listPlanIds(dir)) {
+        if (otherId === planId) continue;
+        const other = healthStore.readPlan(dir, otherId);
+        if (other && other.type === plan.type && other.status === 'active') {
+          await healthStore.writePlan(dir, { ...other, status: 'archived', updated_at: now });
+        }
+      }
+    }
+
+    const status = input.status ?? plan.status;
+    const next: HealthPlan = {
+      ...plan,
+      title: input.title?.trim() || plan.title,
+      goal: input.goal !== undefined ? input.goal : plan.goal,
+      status,
+      start_date: input.start_date !== undefined
+        ? input.start_date
+        // Newly activated with no date given: today, matching create.
+        : (status === 'active' && !plan.start_date ? now.slice(0, 10) : plan.start_date),
+      updated_at: now,
+    };
+    await healthStore.writePlan(dir, next);
+    this.onPlansChanged?.();
+
+    return {
+      id: next.id, type: next.type, title: next.title, status: next.status,
+      duration_days: next.duration_days, start_date: next.start_date,
+      source: next.source, updated_at: next.updated_at,
     };
   }
 

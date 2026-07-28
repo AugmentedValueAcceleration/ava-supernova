@@ -15,6 +15,7 @@ import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import type {
+  HealthPlanUpdateInput,
   HealthPlanStore,
   HealthPlanCreateInput,
   HealthPlanCreated,
@@ -155,7 +156,12 @@ export class NodeHealthPlanStore implements HealthPlanStore {
       source: 'ava',
       status: input.status,
       duration_days: input.duration_days,
-      start_date: input.status === 'active' ? now.slice(0, 10) : null,
+      // A supplied date wins. Falling back to "today when active" keeps every
+      // existing caller behaving exactly as before, but "start it tomorrow" is
+      // now sayable instead of silently becoming today.
+      start_date: input.start_date !== undefined
+        ? input.start_date
+        : (input.status === 'active' ? now.slice(0, 10) : null),
       // profile_snapshot left null in the tool-driven path for v1; the
       // renderer-driven UI path fills it from the active HealthProfile.
       profile_snapshot: null,
@@ -172,6 +178,47 @@ export class NodeHealthPlanStore implements HealthPlanStore {
       duration_days: plan.duration_days,
       status: plan.status,
       filled_days,
+    };
+  }
+
+  /**
+   * Change title / goal / status / start date on an existing plan.
+   *
+   * Activating here runs the SAME one-active-per-type archive rule as create,
+   * so promoting a draft cannot leave two active plans of one type behind.
+   * Activating without a date stamps today; an explicit date is honoured, and
+   * null unschedules.
+   */
+  async update(planId: string, input: HealthPlanUpdateInput): Promise<HealthPlanSummary | null> {
+    const plan = await this.readPlan(planId);
+    if (!plan) return null;
+    const now = new Date().toISOString();
+
+    if (input.status === 'active' && plan.status !== 'active') {
+      for (const s of await this.list()) {
+        if (s.id === planId || s.type !== plan.type || s.status !== 'active') continue;
+        const full = await this.readPlan(s.id);
+        if (full) await this.writePlan({ ...full, status: 'archived', updated_at: now });
+      }
+    }
+
+    const status = input.status ?? plan.status;
+    const next: StoredPlan = {
+      ...plan,
+      title: input.title?.trim() || plan.title,
+      goal: input.goal !== undefined ? input.goal : plan.goal,
+      status,
+      start_date: input.start_date !== undefined
+        ? input.start_date
+        // Newly activated with no date given: today, matching create.
+        : (status === 'active' && !plan.start_date ? now.slice(0, 10) : plan.start_date),
+      updated_at: now,
+    };
+    await this.writePlan(next);
+    return {
+      id: next.id, type: next.type, title: next.title, status: next.status,
+      duration_days: next.duration_days, start_date: next.start_date,
+      source: next.source, updated_at: next.updated_at,
     };
   }
 

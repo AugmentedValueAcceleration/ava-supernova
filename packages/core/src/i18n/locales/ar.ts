@@ -1714,7 +1714,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': 'مساء متأخر',
   'health.profile.loading': 'جاري تحميل ملفك الشخصي…',
   'health.profile.your_profile': 'ملفك الشخصي',
-  'health.profile.intro_blurb': 'ما تقرأه Ava لتقيس الخطط والوصفات والتدريب لك. كل شيء يحفظ تلقائيًا محليًا — يعمل بالكامل بدون حساب. مزامنة أي فئة إلى السحابة فقط إذا أردتها على أجهزة أخرى.',
+  'health.profile.intro_blurb': 'ما تقرأه Ava لتخصيص الخطط والوصفات والتدريب لك. يبقى على هذا الجهاز — لا يُرفع أي شيء هنا، ويعمل بالكامل بدون حساب. استخدم التصدير إذا أردت استخدامه على جهاز آخر.',
   'health.profile.body': 'الجسم',
   'health.profile.body_subtitle': 'ما تقرأه Ava لتقيس الخطط وأهداف التغذية لك.',
   'health.profile.sex': 'الجنس',

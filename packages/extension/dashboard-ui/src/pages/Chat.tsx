@@ -538,6 +538,17 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'model_switched': {
+      // A switch is now mirrored to EVERY surface, because each one shows its
+      // own picker and they were all frozen on whatever chat_init gave them at
+      // mount — the UI naming one model while another ran.
+      //
+      // Only the surface the operator was standing on gets the transcript line.
+      // Announcing it in three rooms nobody was looking at turns a fact into
+      // noise, and switching several times would stack a pile of stale notices
+      // at the top of a room opened hours later. The picker is the truth; the
+      // line is just the courtesy of saying it happened where you were.
+      const state2 = { ...state, activeModel: action.modelId };
+      if (!action.announce) return state2;
       const switchMsg: UIMessage = {
         id: nextId(),
         role: 'system',
@@ -545,7 +556,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         toolCalls: [],
         isStreaming: false,
       };
-      return { ...state, activeModel: action.modelId, messages: [...state.messages, switchMsg] };
+      return { ...state2, messages: [...state.messages, switchMsg] };
     }
 
     case 'history_list':

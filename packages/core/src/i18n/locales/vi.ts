@@ -1714,7 +1714,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': 'Muộn tối',
   'health.profile.loading': 'Đang tải hồ sơ của bạn…',
   'health.profile.your_profile': 'Hồ sơ của bạn',
-  'health.profile.intro_blurb': 'Thông tin Ava dùng để điều chỉnh kế hoạch, công thức và bài tập cho bạn. Mọi thứ tự động lưu cục bộ — hoạt động đầy đủ mà không cần tài khoản. Đồng bộ bất kỳ danh mục nào lên đám mây chỉ khi bạn muốn truy cập trên thiết bị khác.',
+  'health.profile.intro_blurb': 'Những gì Ava đọc để tinh chỉnh kế hoạch, công thức và huấn luyện cho bạn. Dữ liệu này chỉ lưu trên máy này — không có gì được tải lên, và nó hoạt động hoàn toàn mà không cần tài khoản. Chọn Xuất nếu bạn muốn dùng trên thiết bị khác.',
   'health.profile.body': 'Cơ thể',
   'health.profile.body_subtitle': 'Thông tin Ava dùng để điều chỉnh kế hoạch và mục tiêu dinh dưỡng cho bạn.',
   'health.profile.sex': 'Giới tính',

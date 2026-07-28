@@ -730,6 +730,33 @@ export function App() {
     } else if (msg.type === 'chat_platform_status') {
       const { type: _t, ...ps } = msg;
       setDesignModel(s => ({ ...s, platformStatus: ps as ChatPlatformStatus }));
+    } else if (msg.type === 'model_switched') {
+      // Same staleness, same fix: this top bar tracked chat_init and nothing
+      // after it.
+      setDesignModel(s => ({ ...s, activeModel: msg.modelId }));
+    }
+    // A MODEL SWITCH IS SHARED STATE, NOT TURN TRAFFIC.
+    //
+    // The lane split exists so a health turn's stream deltas cannot leak into
+    // the main chat. But the host stamps every outbound message with the
+    // current lane, and `activeLane` resets to 'main' the moment a turn ends —
+    // so a switch made BETWEEN turns always went out as lane:'main'. Routed
+    // strictly, it reached the main chat alone and every room's picker stayed
+    // frozen on whatever chat_init gave it at mount: the UI naming one model
+    // while another was actually running.
+    //
+    // So it goes to every surface. Only the one in view says so out loud —
+    // announcing it in rooms nobody is looking at turns a fact into a pile of
+    // stale notices at the top of a room opened hours later.
+    if (msg.type === 'model_switched') {
+      const here = page === 'health' ? 'health' : page === 'learning-room' ? 'learning' : null;
+      const say = (target: 'main' | 'health' | 'learning' | 'design') =>
+        ({ ...msg, announce: target === (here ?? 'main') });
+      chatDispatchRef.current?.(say('main'));
+      healthChatDispatchRef.current?.(say('health'));
+      learningChatDispatchRef.current?.(say('learning'));
+      designChatDispatchRef.current?.(say('design'));
+      return;
     }
     if (lane === 'health') {
       healthChatDispatchRef.current?.(msg);

@@ -1712,7 +1712,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': 'Noite avançada',
   'health.profile.loading': 'Carregando seu perfil…',
   'health.profile.your_profile': 'Seu perfil',
-  'health.profile.intro_blurb': 'O que Ava lê para ajustar planos, receitas e treinos para você. Tudo é salvo automaticamente localmente — funciona totalmente sem uma conta. Sincronize qualquer categoria na nuvem apenas se quiser usá-la em outros dispositivos.',
+  'health.profile.intro_blurb': 'O que a Ava lê para personalizar planos, receitas e treinamento para você. Ela fica neste computador — nada aqui é enviado, e funciona totalmente sem uma conta. Use Exportar se quiser em outro dispositivo.',
   'health.profile.body': 'Corpo',
   'health.profile.body_subtitle': 'O que Ava lê para ajustar planos e metas nutricionais para você.',
   'health.profile.sex': 'Sexo',

@@ -741,6 +741,21 @@ export class Agent {
    */
   private currentRunRecoveryHook: (() => Message[]) | null = null;
   /**
+   * Consecutive identical failures, per tool+arguments, within one run.
+   *
+   * A tool that fails the SAME WAY on the same arguments is not a retry
+   * situation — nothing has changed, so the next attempt cannot go differently.
+   * Observed in the wild: health_plan_create failed seven times running while
+   * the model cheerfully called it again each time, spending credits per turn,
+   * until the operator hit Stop. Nothing counted the repeats and nothing told
+   * anyone.
+   *
+   * Keyed on tool + arguments so a genuine retry with DIFFERENT arguments is
+   * untouched — changing the call is exactly the productive response to a
+   * failure, and this must not punish it.
+   */
+  private repeatedToolFailures = new Map<string, number>();
+  /**
    * Trajectory metadata from the previous Agent.run() in this session.
    * Used to attach `correction_received` events to the trajectory the
    * user is correcting, and to record whether that prior trajectory
@@ -1171,6 +1186,7 @@ export class Agent {
     // Reassigned every run; the previous run's reference becomes stale
     // (closes over a dead realEvents) but is never read again.
     this.currentRunRecoveryHook = finalHistory;
+    this.repeatedToolFailures.clear();
 
     // ─── Recoverability backstop for compression ───────────────────────────
     // Stash the uncompressed transcript as it stands at the START of this turn
@@ -2832,13 +2848,34 @@ export class Agent {
       metadata: result.metadata,
     });
 
+    // ── Same call, same failure, again ──────────────────────────────────
+    //
+    // Two identical failures is evidence. The third attempt is told to stop and
+    // ask, because nothing about the call has changed and nothing about the
+    // result will. The message replaces the tool output rather than joining it:
+    // repeating the same error text a third time is what convinced the model to
+    // try a fourth.
+    const failKey = `${toolCall.function.name}:${toolCall.function.arguments}`;
+    let output = result.output;
+    if (!result.success) {
+      const n = (this.repeatedToolFailures.get(failKey) ?? 0) + 1;
+      this.repeatedToolFailures.set(failKey, n);
+      if (n >= 3) {
+        output = `${result.output}
+
+[This is attempt ${n} of \`${toolCall.function.name}\` with identical arguments, and it has failed the same way every time. Do NOT call it again with these arguments — nothing has changed, so nothing will. Tell the user plainly what failed and what the error said, and either change the approach or ask them how they want to proceed.]`;
+      }
+    } else {
+      this.repeatedToolFailures.delete(failKey);
+    }
+
     if (useNativeTools) {
       messages = [
         ...messages,
         {
           role: 'tool' as const,
           tool_call_id: toolCall.id,
-          content: result.output,
+          content: output,
         },
       ];
     } else {
@@ -2847,7 +2884,7 @@ export class Agent {
         ...messages,
         {
           role: 'user' as const,
-          content: formatToolResult(toolCall.function.name, result.output, result.success),
+          content: formatToolResult(toolCall.function.name, output, result.success),
         },
       ];
     }

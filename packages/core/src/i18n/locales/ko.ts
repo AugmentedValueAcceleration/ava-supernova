@@ -1714,7 +1714,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': '늦은 저녁',
   'health.profile.loading': '프로필 로딩 중…',
   'health.profile.your_profile': '내 프로필',
-  'health.profile.intro_blurb': 'Ava 가 계획, 레시피, 훈련을 당신에게 맞게 조정하기 위해 읽는 정보입니다. 모든 데이터는 로컬에서 자동 저장되며 계정 없이도 완전히 작동합니다. 다른 기기에서도 사용하려면 원하는 카테고리만 클라우드에 동기화하세요.',
+  'health.profile.intro_blurb': 'Ava 가 계획, 레시피 및 훈련을 맞춤화하여 제공하는 데 참고하는 정보입니다. 이 정보는 이 기기에만 보관되며 업로드되지 않고 계정 없이도 완전히 작동합니다. 다른 기기에서 사용하려면 내보내기를 선택하세요.',
   'health.profile.body': '신체',
   'health.profile.body_subtitle': 'Ava 가 계획과 영양 목표를 당신에게 맞게 조정하기 위해 읽는 정보입니다.',
   'health.profile.sex': '성별',

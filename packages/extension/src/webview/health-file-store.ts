@@ -71,6 +71,29 @@ function readJson<T>(path: string): T | null {
  * nobody has touched is different from one deliberately left empty.
  */
 function normaliseSections(p: HealthProfile): HealthProfile {
+  // Array fields the editors call .join()/.includes() on directly. A profile
+  // Ava filled in carries `food: { cuisines: [...] }` and NOTHING else, because
+  // the fill card writes one leaf at a time and builds its parent as `{}` — so
+  // `food.likes.join()` threw and the whole Profile tab went blank. The parent
+  // being present is what made the `?? {}` fallbacks in the page useless.
+  const arr = (v: unknown): string[] => (Array.isArray(v) ? v as string[] : []);
+  if (p.food) {
+    p.food = {
+      likes: arr(p.food.likes),
+      dislikes: arr(p.food.dislikes),
+      cuisines: arr(p.food.cuisines),
+    };
+  }
+  if (p.constraints) {
+    p.constraints = {
+      ...p.constraints,
+      allergens: arr(p.constraints.allergens),
+      dietary: arr(p.constraints.dietary),
+      injuries: arr(p.constraints.injuries),
+      equipment_available: arr(p.constraints.equipment_available),
+      minutes_per_day_target: p.constraints.minutes_per_day_target ?? null,
+    };
+  }
   if (p.training) {
     p.training = {
       experience: p.training.experience ?? null,

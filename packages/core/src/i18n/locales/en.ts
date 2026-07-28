@@ -2661,7 +2661,12 @@ export const enStrings = {
   // ── Health · Profile ───────────────────────────────────────────────────
   'health.profile.loading': 'Loading your profile…',
   'health.profile.your_profile': 'Your profile',
-  'health.profile.intro_blurb': 'What Ava reads to scale plans, recipes, and training to you. Everything autosaves locally — works fully without an account. Sync any category to the cloud only if you want it on other devices.',
+  // Was: "Sync any category to the cloud only if you want it on other
+  // devices." That describes a feature that does not exist — the privacy
+  // sync flags are stored and never touch the network, and cloud storage is
+  // sunsetting. Promising sync for the most personal data in the product is
+  // the worst place to be inaccurate.
+  'health.profile.intro_blurb': 'What Ava reads to scale plans, recipes, and training to you. It stays on this machine — nothing here is uploaded, and it works fully without an account. Use Export if you want it on another device.',
   'general.profile.title': 'General',
   'general.profile.intro': 'The basics about you — name and body facts. Ava reads these everywhere, including when she builds your health plans. Autosaves locally.',
   'general.profile.identity': 'Identity',

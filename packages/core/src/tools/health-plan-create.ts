@@ -55,6 +55,13 @@ export class HealthPlanCreateTool implements Tool {
           enum: [1, 7, 28, 56, 84],
           description: 'Length of the plan in days. One of the supported presets.',
         },
+        start_date: {
+          type: 'string',
+          description:
+            'YYYY-MM-DD — the day the plan begins. An active plan with no date given '
+            + 'starts TODAY, so pass one whenever the user names a day. Call get_datetime '
+            + 'and compute it rather than guessing what tomorrow is.',
+        },
         goal: {
           type: 'string',
           description: 'Optional free-text goal — what the user wants to achieve (e.g. "lose 4kg", "first 5k").',
@@ -198,7 +205,18 @@ export class HealthPlanCreateTool implements Tool {
       }
     }
 
-    const input: HealthPlanCreateInput = { type, title, goal, duration_days, status, days };
+    // A date the store cannot read becomes null, which silently unschedules the
+    // plan — worse than refusing, because it looks like it worked.
+    let start_date: string | undefined;
+    if (args.start_date !== undefined && args.start_date !== null) {
+      const d = String(args.start_date);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || Number.isNaN(Date.parse(`${d}T00:00:00Z`))) {
+        return { success: false, output: `Invalid \`start_date\` "${d}" — must be YYYY-MM-DD. Call get_datetime and compute the date rather than guessing.` };
+      }
+      start_date = d;
+    }
+
+    const input: HealthPlanCreateInput = { type, title, goal, duration_days, status, days, start_date };
 
     try {
       const created = await store.create(input);

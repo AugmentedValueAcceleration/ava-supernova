@@ -1686,7 +1686,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': 'Noche avanzada',
   'health.profile.loading': 'Cargando tu perfil…',
   'health.profile.your_profile': 'Tu perfil',
-  'health.profile.intro_blurb': 'Lo que Ava lee para ajustar planes, recetas y entrenamientos a ti. Todo se guarda automáticamente localmente — funciona completamente sin cuenta. Sincroniza cualquier categoría en la nube solo si quieres tenerla en otros dispositivos.',
+  'health.profile.intro_blurb': 'Lo que Ava lee para adaptar planes, recetas y entrenamiento a ti. Se mantiene en este equipo — nada se sube, y funciona totalmente sin cuenta. Usa Exportar si lo deseas en otro dispositivo.',
   'health.profile.body': 'Cuerpo',
   'health.profile.body_subtitle': 'Lo que Ava lee para ajustar planes y objetivos nutricionales a ti.',
   'health.profile.sex': 'Sexo',

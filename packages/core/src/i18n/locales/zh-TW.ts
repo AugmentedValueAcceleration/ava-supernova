@@ -1714,7 +1714,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': '夜晚',
   'health.profile.loading': '載入您的個人資料…',
   'health.profile.your_profile': '您的個人資料',
-  'health.profile.intro_blurb': 'Ava 用來為您調整計劃、食譜和訓練的內容。所有內容均本地自動保存 — 無需帳戶即可完全使用。僅當您需要在其他設備上使用時，才將任何類別同步至雲端。',
+  'health.profile.intro_blurb': 'Ava 讀取這些內容以為您調整計劃、食譜和訓練。它僅保留在此機器上 — 不會上傳任何內容，且無需帳戶即可完整使用。若要在其他裝置上使用，請使用匯出。',
   'health.profile.body': '身體',
   'health.profile.body_subtitle': 'Ava 用來調整計劃和營養目標以適合您的內容。',
   'health.profile.sex': '性別',

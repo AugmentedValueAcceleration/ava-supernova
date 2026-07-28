@@ -343,6 +343,17 @@ function dayTotals(day: HealthPlanDay, recipeDetails: Record<string, HealthRecip
       if (typeof v === 'number') totals[f.key] = (totals[f.key] ?? 0) + v;
     }
   }
+  // Round ONCE, at the end. Adding 28 per-serving figures in binary floating
+  // point lands on 270.29999999999995 — arithmetically fine and unreadable.
+  // Rounding each meal before summing would instead drift the total, so the
+  // sum stays exact and only the presentation is tidied.
+  for (const f of MACRO_FIELDS) {
+    const v = totals[f.key];
+    if (typeof v !== 'number') continue;
+    // Calories whole; grams to one decimal — a tenth of a gram of fat is not
+    // a number anybody acts on, and three decimals is just noise.
+    totals[f.key] = f.key === 'calories' ? Math.round(v) : Math.round(v * 10) / 10;
+  }
   return { totals, estimated };
 }
 
@@ -631,18 +642,16 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   // Flush any pending save when the modal unmounts so nothing is lost.
   useEffect(() => () => flushSaves(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Hold the modal's size steady while editing: freeze its height the moment
-  // Edit is clicked so adding / deleting scrolls inside a stable frame instead
-  // of resizing the whole overlay. A min height stops it ever collapsing.
+  // The frozen-height dance is gone with the centred modal that needed it: it
+  // pinned the overlay's size on entering Edit so adding a row could not resize
+  // the whole box. A full-height drawer has nothing to resize, so holding a
+  // measured height would only cap it on a long day.
   const panelRef = useRef<HTMLDivElement>(null);
-  const MIN_PANEL_H = 400;
-  const [frozenH, setFrozenH] = useState<number | null>(null);
   const enterEdit = () => {
-    setFrozenH(panelRef.current?.offsetHeight ?? null);
     setWorking(plans.map(p => JSON.parse(JSON.stringify(p)) as HealthPlan));
     setEditing(true);
   };
-  const exitEdit = () => { flushSaves(); setInlineSearch(null); setConfirmingId(null); setFrozenH(null); setEditing(false); };
+  const exitEdit = () => { flushSaves(); setInlineSearch(null); setConfirmingId(null); setEditing(false); };
 
   // Apply a mutation to one plan's day (building the day if it doesn't exist
   // yet), persist it, and reflect it in the working copies.
@@ -756,14 +765,23 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   const anything = sections.some(s => s.items.length > 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6" onClick={onClose}>
+    /* A DRAWER, not a centred modal.
+       A day is somewhere you step into and back out of, and the calendar it
+       came from should stay visible behind it — a centred box hides the very
+       thing that gives the day its context. Sliding from the right matches the
+       direction of travel: you clicked a date over there, the day arrives here.
+       Full height rather than max-h, because a training day runs to sixteen
+       exercises and a panel that shrink-wraps its content resizes every time
+       you step between days, which reads as the UI flinching. */
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-[2px]" onClick={onClose}
+      style={{ animation: 'ava-fade-in 160ms ease-out' }}>
       <div ref={panelRef} onClick={(e) => e.stopPropagation()}
-        style={{ minHeight: MIN_PANEL_H, ...(editing && frozenH ? { height: Math.max(frozenH, MIN_PANEL_H) } : {}) }}
-        className="flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-xl border border-[var(--accent)]/25 bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_color-mix(in_srgb,_var(--accent)_15%,_transparent)]">
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--accent)]/14 px-6 py-3">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{tt('health.plans.on_this_day', 'On this day')}</div>
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">{dateLabel}</h2>
+        style={{ animation: 'ava-slide-in-right 220ms cubic-bezier(0.32, 0.72, 0, 1)' }}
+        className="flex h-full w-full max-w-[560px] flex-col overflow-hidden border-l border-[var(--accent)]/25 bg-gradient-to-b from-[#100d1a] to-[#150f22] shadow-[-24px_0_60px_rgba(0,0,0,0.5)]">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--accent)]/14 px-5 py-4">
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]/70">{tt('health.plans.on_this_day', 'On this day')}</div>
+            <h2 className="mt-0.5 text-[19px] font-semibold leading-tight text-[var(--text-primary)]">{dateLabel}</h2>
           </div>
           <div className="flex items-center gap-2">
             {covered && (
@@ -775,7 +793,7 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
           {!editing && !anything ? (
             <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-12 text-center">
               <div className="text-[12px] text-[var(--text-secondary)]">{tt('health.plans.day_empty', 'Nothing scheduled this day.')}</div>

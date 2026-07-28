@@ -1752,7 +1752,10 @@ export type ExtToDashboardMessage =
   | { type: 'audit_findings'; findings: unknown[] }
   | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cached_tokens?: number }; cost?: number; contextWindow?: number; credits?: number }
   | { type: 'done' }
-  | { type: 'model_switched'; modelId: string; modelName: string }
+  /** `announce` is added by the dashboard router, not the host: the switch is
+   *  mirrored to every surface so no picker is left stale, but only the one
+   *  the operator was standing on writes a line into its transcript. */
+  | { type: 'model_switched'; modelId: string; modelName: string; announce?: boolean }
   | { type: 'history_list'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
   | { type: 'history_search_results'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
   /**

@@ -1716,7 +1716,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': '夜遅く',
   'health.profile.loading': 'プロフィールを読み込み中…',
   'health.profile.your_profile': 'あなたのプロフィール',
-  'health.profile.intro_blurb': 'Ava があなたに合わせて計画、レシピ、トレーニングを調整するために参照する情報です。すべてはローカルで自動保存され、アカウントなしでも完全に動作します。他のデバイスでも使用したい場合のみ、カテゴリをクラウドに同期できます。',
+  'health.profile.intro_blurb': 'アバがあなたの計画、レシピ、トレーニングに合わせて調整するために読み込む情報です。これはこのマシン上に保存され、何もアップロードされず、アカウントなしでも完全に動作します。別のデバイスで使いたい場合はエクスポートを使用してください。',
   'health.profile.body': '身体',
   'health.profile.body_subtitle': 'Ava が計画と栄養目標をあなたに合わせて調整するために参照する情報です。',
   'health.profile.sex': '性別',

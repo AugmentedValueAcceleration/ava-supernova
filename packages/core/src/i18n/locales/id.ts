@@ -1712,7 +1712,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': 'Malam',
   'health.profile.loading': 'Memuat profil Anda…',
   'health.profile.your_profile': 'Profil Anda',
-  'health.profile.intro_blurb': 'Yang dibaca Ava untuk menyesuaikan rencana, resep, dan latihan untuk Anda. Semua tersimpan otomatis secara lokal — berfungsi sepenuhnya tanpa akun. Sinkronkan kategori apa pun ke awan hanya jika Anda menginginkannya di perangkat lain.',
+  'health.profile.intro_blurb': 'Apa yang dibaca Ava untuk menyesuaikan rencana, resep, dan pelatihan untuk Anda. Ini tetap di mesin ini — tidak ada yang diunggah di sini, dan berfungsi sepenuhnya tanpa akun. Gunakan Ekspor jika Anda ingin menyimpannya di perangkat lain.',
   'health.profile.body': 'Tubuh',
   'health.profile.body_subtitle': 'Yang dibaca Ava untuk menyesuaikan rencana dan target nutrisi untuk Anda.',
   'health.profile.sex': 'Jenis Kelamin',

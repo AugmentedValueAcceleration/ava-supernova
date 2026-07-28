@@ -2083,7 +2083,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           }),
         });
         const data = await res.json().catch(() => ({} as Record<string, unknown>));
-        if (!res.ok) throw new Error((data as { error?: string })?.error || `Plan generation failed (${res.status})`);
+        if (!res.ok) {
+          // KEEP `detail`. The route sends a friendly line in `error` and the
+          // real cause in `detail`; reading only `error` meant every failure
+          // reached Ava as "please try again" with the explanation discarded
+          // at the last possible moment. She then retried the same call seven
+          // times because nothing she could see said otherwise.
+          const d = data as { error?: string; detail?: string };
+          const parts = [d.error || `Plan generation failed (${res.status})`, d.detail].filter(Boolean);
+          const msg = parts.join(' — ');
+          this.log(`[health] plan generation failed (${res.status}): ${msg}`);
+          throw new Error(msg);
+        }
         return { days: (data as { days?: unknown[] }).days ?? [], credits_charged: (data as { credits_charged?: number }).credits_charged ?? 0 };
       },
       // Design Studio control — the Design Architect's tools (design_find_shape,

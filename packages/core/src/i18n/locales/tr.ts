@@ -1714,7 +1714,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': 'Geç akşam',
   'health.profile.loading': 'Profiliniz yükleniyor…',
   'health.profile.your_profile': 'Profiliniz',
-  'health.profile.intro_blurb': 'Ava\'nın size özel planlar, tarifler ve antrenmanları ölçeklendirmek için okuduğu şeyler. Her şey yerel olarak otomatik kaydedilir — hesap olmadan tam çalışır. İsterseniz herhangi bir kategoriyi buluta senkronize edin.',
+  'health.profile.intro_blurb': 'Ava\'nın size ölçekli planlar, tarifler ve eğitimler sunması için okuduğu şey. Bu makinede kalır — burada hiçbir şey yüklenmez ve hesap olmadan tam olarak çalışır. Başka bir cihazda istiyorsanız Dışa Aktar\'ı kullanın.',
   'health.profile.body': 'Vücut',
   'health.profile.body_subtitle': 'Ava\'nın size özel planlar ve beslenme hedeflerini ölçeklendirmek için okuduğu şeyler.',
   'health.profile.sex': 'Cinsiyet',

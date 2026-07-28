@@ -80,7 +80,17 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
     setDraft({ ...draft, schedule: { ...draft.schedule, ...next } });
   // Food section is optional on legacy profiles — default it so the controls
   // always have arrays to bind to.
-  const food = draft.food ?? { likes: [], dislikes: [], cuisines: [] };
+  // Field-by-field, not `?? {}`. A profile Ava filled in has `food` PRESENT
+  // with only the one key she wrote, so the object-level fallback never fires
+  // and `food.likes.join()` throws — blanking the whole tab. The store
+  // normalises this on read too; this is the cheap insurance that a bad
+  // profile from any other path cannot take the page down.
+  const rawFood = draft.food;
+  const food = {
+    likes: rawFood?.likes ?? [],
+    dislikes: rawFood?.dislikes ?? [],
+    cuisines: rawFood?.cuisines ?? [],
+  };
   const patchFood = (next: Partial<NonNullable<HealthProfile['food']>>) =>
     setDraft({ ...draft, food: { ...food, ...next } });
 
@@ -142,12 +152,12 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
       <Section title={t('health.profile.constraints')} subtitle={t('health.profile.constraints_subtitle')}>
         <Field label={t('health.profile.allergens')}>
           <PickerChips
-            selected={draft.constraints.allergens}
+            selected={draft.constraints.allergens ?? []}
             options={(taxonomies?.allergens ?? []).map(a => ({ slug: a.slug, label: a.name }))}
             onToggle={slug => {
-              const exists = draft.constraints.allergens.includes(slug);
+              const exists = (draft.constraints.allergens ?? []).includes(slug);
               const next = exists
-                ? draft.constraints.allergens.filter(s => s !== slug)
+                ? (draft.constraints.allergens ?? []).filter(s => s !== slug)
                 : [...draft.constraints.allergens, slug];
               patchConstraints({ allergens: next });
             }}
@@ -156,12 +166,12 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
         </Field>
         <Field label={t('health.profile.dietary')}>
           <PickerChips
-            selected={draft.constraints.dietary}
+            selected={draft.constraints.dietary ?? []}
             options={DEFAULT_DIETARY_OPTIONS.map(o => ({ slug: o.slug, label: t(o.labelKey) }))}
             onToggle={slug => {
-              const exists = draft.constraints.dietary.includes(slug);
+              const exists = (draft.constraints.dietary ?? []).includes(slug);
               const next = exists
-                ? draft.constraints.dietary.filter(s => s !== slug)
+                ? (draft.constraints.dietary ?? []).filter(s => s !== slug)
                 : [...draft.constraints.dietary, slug];
               patchConstraints({ dietary: next });
             }}
@@ -169,12 +179,12 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
         </Field>
         <Field label={t('health.profile.equipment')}>
           <PickerChips
-            selected={draft.constraints.equipment_available}
+            selected={draft.constraints.equipment_available ?? []}
             options={DEFAULT_EQUIPMENT_OPTIONS.map(o => ({ slug: o.slug, label: t(o.labelKey) }))}
             onToggle={slug => {
-              const exists = draft.constraints.equipment_available.includes(slug);
+              const exists = (draft.constraints.equipment_available ?? []).includes(slug);
               const next = exists
-                ? draft.constraints.equipment_available.filter(s => s !== slug)
+                ? (draft.constraints.equipment_available ?? []).filter(s => s !== slug)
                 : [...draft.constraints.equipment_available, slug];
               patchConstraints({ equipment_available: next });
             }}
@@ -183,7 +193,7 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
         <Field label={t('health.profile.injuries')}>
           <textarea
             rows={2}
-            value={draft.constraints.injuries.join('\n')}
+            value={(draft.constraints.injuries ?? []).join('\n')}
             onChange={e => patchConstraints({ injuries: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
             placeholder={t('health.profile.injuries_placeholder')}
             className={`${inputCls} resize-y font-[inherit]`}

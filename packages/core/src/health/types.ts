@@ -154,4 +154,24 @@ export interface HealthPlanCreateInput {
   /** Optional initial day fill. Omit for a blank skeleton: the adapter
    *  generates empty rest-day entries for day_index 1..duration_days. */
   days?: HealthPlanDay[];
+  /**
+   * The day the plan begins, YYYY-MM-DD.
+   *
+   * Without this, an activated plan was always stamped with TODAY, so "start
+   * it tomorrow" was not expressible — Ava would agree, activate, and the plan
+   * would begin today while she described a week that never existed.
+   *
+   * Omit to keep the old behaviour: today for an active plan, null for a draft.
+   */
+  start_date?: string | null;
+}
+
+/** Fields of an existing plan that can be changed after creation. Every one
+ *  optional; only what is present is written. */
+export interface HealthPlanUpdateInput {
+  title?: string;
+  goal?: string | null;
+  status?: HealthPlanStatus;
+  /** YYYY-MM-DD, or null to unschedule. */
+  start_date?: string | null;
 }

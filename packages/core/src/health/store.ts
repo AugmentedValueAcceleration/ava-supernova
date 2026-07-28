@@ -16,6 +16,7 @@
 
 import type {
   HealthPlanCreateInput,
+  HealthPlanUpdateInput,
   HealthPlanDay,
   HealthPlanSummary,
   HealthPlanStatus,
@@ -52,4 +53,15 @@ export interface HealthPlanStore {
   /** Upsert one day of an existing plan. Returns null when the plan id
    *  is unknown (let the tool surface the error). */
   updateDay(planId: string, day: HealthPlanDay): Promise<HealthPlanDayUpdated | null>;
+  /**
+   * Change an existing plan's title, goal, status or start date.
+   *
+   * Without this there was no way to ACTIVATE a plan that already existed —
+   * so "make that draft active" could only be answered by creating a second
+   * plan, which is exactly what happened: two identical plans, one draft, one
+   * active, starting on the wrong day.
+   *
+   * Returns null when the plan id is unknown.
+   */
+  update(planId: string, input: HealthPlanUpdateInput): Promise<HealthPlanSummary | null>;
 }

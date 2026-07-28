@@ -41,6 +41,7 @@ import { TaskManageTool } from './task-manage.js';
 import { TaskSuggestTool } from './task-suggest.js';
 import { JournalWriteTool } from './journal.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
+import { HealthPlanUpdateTool } from './health-plan-update.js';
 import { WritePostTool } from './write-post.js';
 import { ProposeHooksTool } from './propose-hooks.js';
 import { ResearchPostTool } from './research-post.js';
@@ -450,6 +451,7 @@ export class ToolRegistry {
       new DesignBrandKitTool(),
       new DesignSaveTool(),
       new HealthPlanCreateTool(),
+      new HealthPlanUpdateTool(),
       new HealthPlanUpdateDayTool(),
       new WritePostTool(),
       new ProposeHooksTool(),

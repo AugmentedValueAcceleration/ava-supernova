@@ -5374,6 +5374,14 @@ export class DashboardPanel {
    *  Plans-tab calendar shows the new plan live, without a dashboard reload. */
   public notifyHealthPlansUpdated(): void {
     this.post({ type: 'health_plans_loaded', plans: this.getHealthPlanIndex() });
+    // The DATED plans too, not just the summary index.
+    //
+    // The UI's own save/delete paths post `load_active_health_plans` after
+    // every write; this callback — the one Ava's tools fire — did not. So a
+    // plan she created appeared in the Programs list (summaries) and never in
+    // the Calendar, which reads the full dated plans. The plan was real and
+    // correctly stored; only this surface never heard about it.
+    this.post({ type: 'active_health_plans_loaded', plans: this.getActiveHealthPlans() });
   }
 
   // ─── Overview Widgets (Weather, News, Release) ─────────────────────────────

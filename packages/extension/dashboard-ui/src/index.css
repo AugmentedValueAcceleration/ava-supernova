@@ -75,3 +75,21 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ava-skeleton::after { animation: none; }
 }
+
+/* Drawer motion — the health day panel.
+   Short and decelerating: a panel opened dozens of times must never feel like
+   it is performing. It arrives rather than bounces. */
+@keyframes ava-slide-in-right {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes ava-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Honoured properly rather than merely shortened — motion sensitivity is not
+     impatience. */
+  @keyframes ava-slide-in-right { from { opacity: 1; } to { opacity: 1; } }
+  @keyframes ava-fade-in        { from { opacity: 1; } to { opacity: 1; } }
+}

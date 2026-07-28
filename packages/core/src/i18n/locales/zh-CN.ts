@@ -1694,7 +1694,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'health.home.greeting.late_evening': '夜晚',
   'health.profile.loading': '正在加载您的资料…',
   'health.profile.your_profile': '您的资料',
-  'health.profile.intro_blurb': 'Ava 读取这些信息以为您定制计划、食谱和训练。所有内容本地自动保存——无需账户即可完全使用。仅当您需要在其他设备上查看时，才将任何类别同步到云端。',
+  'health.profile.intro_blurb': 'Ava 读取的内容用于为您定制计划、食谱和训练。它仅保留在此设备上——此处不会上传任何内容，且无需账户即可完全使用。如需在其他设备上使用，请导出数据。',
   'health.profile.body': '身体数据',
   'health.profile.body_subtitle': 'Ava 读取这些信息以为您调整计划和营养目标。',
   'health.profile.sex': '性别',
