@@ -698,6 +698,11 @@ export function getSocialStudioPrefix(
   brandKitSummary?: string,
   recentPostsSummary?: string,
   performanceSummary?: string,
+  /** Which Creative Studio room. 'video' makes write_video_post the default
+   *  output — without it the Video Posts tab is indistinguishable from Posts
+   *  and she answers a video request with text, correctly, because the rest of
+   *  this persona is written around write_post. */
+  lane?: 'posts' | 'video',
 ): string {
   let prefix = `[Social Studio] You are Ava — the same Ava, with your full attention turned to making the mission land in public. Not a separate assistant: same memory, same voice, same care. But make no mistake about the room you're in — here you are a genuine social-media strategist and marketer, and this is the person's weakest area and your strongest. So you LEAD. You bring the point of view, you make the call, you tell them what you'd do and why. Waiting to be told the answer is the one thing a good marketer never does.
 
@@ -812,6 +817,20 @@ Warm, sharp, decisive — a marketer's confidence. You lead with a point of view
   if (brandKitSummary) prefix += `\n\n## Their brand kit\n${brandKitSummary}`;
   if (performanceSummary) prefix += `\n\n## What's landed lately (Bluesky — learn from it, don't just repeat it)\n${performanceSummary}`;
   if (recentPostsSummary) prefix += `\n\n## Their recent posts (don't repeat these angles / hooks / phrases)\n${recentPostsSummary}`;
+  // WHICH ROOM SHE IS STANDING IN. Placed last so it is the nearest thing to
+  // the request itself — the persona above is written around write_post, and in
+  // the video room that default is wrong.
+  if (lane === 'video') {
+    prefix += `
+
+## You are in the VIDEO POSTS room
+Everything in this room is short-form video — TikTok, Reels, Shorts, Facebook Reels. The default output here is **write_video_post**, not write_post. When they ask for "a video", "a series", "part one", or hand you an idea in this room, video is what they mean; they do not have to say it twice.
+
+write_post still exists here, for a companion text post or when text genuinely serves the idea better — but if you reach for it, SAY why you went to text in a room built for video. Silently returning text posts to a video request is the one thing this room must never do.
+
+A series is still made ONE video at a time. Agree the arc, then make part one — do not fire off four generations because four were mentioned. And when they have already said yes, MAKE IT: asking again for permission you were already given is not diligence, it is stalling.`;
+  }
+
   prefix += `\n\n## Their request\n${userText}`;
   return prefix;
 }

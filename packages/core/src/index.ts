@@ -49,12 +49,13 @@ export { findPhantomIngredients, checkRecipeShoppingList } from './recipes/index
 // (write_post, propose_hooks) write through, plus the shared char-limit map.
 export type {
   SocialPostInput, SocialPostWritten, PostStore,
+  VideoPostInput, VideoPostWritten, VideoPostStore,
   HookOption, HookProposal, HookStore,
   WebSearchResult, WebSearchFn,
   PostMetric, PostMetricsReader,
   Beat, BeatStore,
 } from './social/index.js';
-export { POST_HARD_LIMITS, PLATFORM_TAG_POLICY } from './social/index.js';
+export { POST_HARD_LIMITS, PLATFORM_TAG_POLICY, VIDEO_CAPTION_LIMITS } from './social/index.js';
 
 // Health profile-fill registry (the "Ava fills your profile" flow)
 export {

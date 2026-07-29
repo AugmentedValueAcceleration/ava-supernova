@@ -41,6 +41,56 @@ export interface PostStore {
   write(post: SocialPostInput): Promise<SocialPostWritten>;
 }
 
+/** A finished short-form video post: the clip, the voiceover, and the caption. */
+export interface VideoPostInput {
+  /** tiktok | instagram | youtube | facebook — all vertical short-form. */
+  platform: string;
+  /** What is ON SCREEN, as a generation prompt. */
+  visual: string;
+  /** What she SAYS over it. Empty for a silent clip carried by on-screen text. */
+  script?: string;
+  /** The caption — the post itself. */
+  caption: string;
+  /** Clip length in seconds. */
+  duration?: number;
+  title?: string;
+  hashtags?: string[];
+  tagNote?: string;
+}
+
+/** What the surface reports back once the job is accepted. */
+export interface VideoPostWritten {
+  /** Generation job id — the surface polls this; the clip is NOT ready yet. */
+  taskId: string;
+  /** False when the voiceover failed, so the clip carries the model's own dub
+   *  rather than her voice. She must say so rather than let it pass as hers. */
+  voiced: boolean;
+  voiceError?: string | null;
+}
+
+/**
+ * Surface-injected sink for finished video posts.
+ *
+ * The split matters: core validates and enforces the caption cap (surface-free
+ * work it can do anywhere), while the IMPLEMENTATION renders the voiceover and
+ * submits the generation job — because those need provider keys and a wallet,
+ * which core has no business holding. Same shape as PostStore, one extra fact:
+ * write() returns a job, not a finished video, because generation outlives the
+ * turn and the caption is usable long before the picture is.
+ */
+export interface VideoPostStore {
+  write(post: VideoPostInput): Promise<VideoPostWritten>;
+}
+
+/** Caption caps for the short-form platforms. Same deterministic enforcement as
+ *  POST_HARD_LIMITS — models cannot count characters, so we count for them. */
+export const VIDEO_CAPTION_LIMITS: Readonly<Record<string, number>> = {
+  tiktok: 4000,
+  instagram: 2200,
+  youtube: 5000,
+  facebook: 63206,
+};
+
 /** A hook option the model proposed via propose_hooks. */
 export interface HookOption {
   /** The opening line itself. */

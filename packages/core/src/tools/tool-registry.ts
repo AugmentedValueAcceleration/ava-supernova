@@ -43,6 +43,7 @@ import { JournalWriteTool } from './journal.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateTool } from './health-plan-update.js';
 import { WritePostTool } from './write-post.js';
+import { WriteVideoPostTool } from './write-video-post.js';
 import { ProposeHooksTool } from './propose-hooks.js';
 import { ResearchPostTool } from './research-post.js';
 // Newsroom — Ava as Correspondent. She writes her OWN account and cites the
@@ -454,6 +455,7 @@ export class ToolRegistry {
       new HealthPlanUpdateTool(),
       new HealthPlanUpdateDayTool(),
       new WritePostTool(),
+      new WriteVideoPostTool(),
       new ProposeHooksTool(),
       new ResearchPostTool(),
       new DiscoverNewsTool(),
