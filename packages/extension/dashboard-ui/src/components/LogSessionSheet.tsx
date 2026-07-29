@@ -35,7 +35,7 @@ function num(v: string): number | null {
 
 /** Seed the session from the plan's targets so the common case — did it as
  *  written — is a single click, and only the differences need typing. */
-function seedFrom(day: HealthPlanDay, planId: string | null, date: string): GymSession {
+export function seedFrom(day: HealthPlanDay, planId: string | null, date: string): GymSession {
   const now = new Date().toISOString();
   return {
     schema_version: 1,

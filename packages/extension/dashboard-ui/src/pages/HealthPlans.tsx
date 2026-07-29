@@ -12,7 +12,8 @@ import { fillDayMeta } from '../lib/plan-meal-meta';
 import { StartersSheet } from '../components/StartersSheet';
 import { DuplicateSheet } from '../components/DuplicateSheet';
 import { AssistSheet, dayDate, type DayProposal } from '../components/AssistSheet';
-import { LogSessionSheet } from '../components/LogSessionSheet';
+import { LogSessionSheet, seedFrom as seedSessionFrom } from '../components/LogSessionSheet';
+import type { GymSession, GymExercise } from '../../../../core/dist/health/session-types.js';
 import type {
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
   HealthPlanDay, HealthPlanExercise, HealthPlanMeal,
@@ -634,12 +635,98 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   useLocale();
   // Clicking an item opens what you clicked — its exercise / recipe detail —
   // not the plan editor.
-  const [detail, setDetail] = useState<{ kind: 'exercise' | 'recipe'; slug: string; name: string } | null>(null);
+  const [detail, setDetail] = useState<
+    { kind: 'exercise' | 'recipe'; slug: string; name: string; planId?: string; itemId?: string } | null
+  >(null);
   const openItem = (item: DayAgendaItem) => {
     if (!item.slug) return;
     if (item.kind === 'exercise') onLoadExerciseDetail(item.slug); else onLoadRecipeDetail(item.slug);
-    setDetail({ kind: item.kind, slug: item.slug, name: item.title });
+    // planId + itemId ride along so a record written from here knows exactly
+    // which row on which plan it belongs to.
+    setDetail({ kind: item.kind, slug: item.slug, name: item.title, planId: item.planId, itemId: item.itemId });
   };
+  /* ── Reading and writing what happened ───────────────────────────────
+     Two destinations on purpose, each the store that already owns that data:
+
+       meals     → the PLAN ROW (`meal.logged`). The plan store exists on every
+                   surface and travels with export/import.
+       exercises → the SESSION record, which is what the observing loop and
+                   summariseTrainingLog already read. A tick there is the same
+                   fact as a logged set, just without the numbers — so there is
+                   one source of truth about whether Thursday happened. */
+
+  const readItemLog = (kind: 'exercise' | 'recipe', planId: string, itemId: string): ItemLogState => {
+    if (kind === 'recipe') {
+      for (const p of plans) {
+        if (p.id !== planId) continue;
+        const day = planDayForDate(p, dateKey);
+        const meal = day?.meals.find(m => m.id === itemId);
+        if (meal?.logged) return { state: meal.logged.state, note: meal.logged.note ?? '' };
+      }
+      return { state: null, note: '' };
+    }
+    const session = (trainingLog?.open ?? null) as { date?: string; exercises?: Array<Record<string, unknown>> } | null;
+    const live = session?.date === dateKey ? session : null;
+    const ex = live?.exercises?.find(e => (e as { ref?: { slug?: string } }).ref?.slug === (detail?.slug));
+    if (!ex) return { state: null, note: '' };
+    const st = (ex as { state?: string }).state;
+    return {
+      state: st === 'done' || st === 'skipped' ? st : null,
+      note: typeof ex.notes === 'string' && ex.notes !== 'skipped' ? ex.notes : '',
+    };
+  };
+
+  const saveItemLog = (kind: 'exercise' | 'recipe', planId: string, itemId: string, next: ItemLogState) => {
+    if (kind === 'recipe') {
+      const plan = plans.find(p => p.id === planId);
+      const day = plan ? planDayForDate(plan, dateKey) : null;
+      if (!plan || !day) return;
+      const meals = day.meals.map(m => m.id === itemId
+        ? {
+            ...m,
+            logged: next.state
+              ? { state: next.state as 'ate' | 'skipped' | 'other', note: next.note.trim() || null, at: new Date().toISOString() }
+              // Clearing writes null, not a blank record. Unrecorded and
+              // "recorded as nothing" are different, and only one is honest.
+              : null,
+          }
+        : m);
+      // Through onSavePlan, the path every other day edit already takes.
+      onSavePlan({
+        ...plan,
+        days: plan.days.map(d => (d.day_index === day.day_index ? { ...day, meals } : d)),
+      });
+      return;
+    }
+
+    // Exercise: into the SESSION, which is what the observing loop reads. Patch
+    // the loaded session when it is this date, otherwise seed one from the plan
+    // day so a tick works even when nothing has been logged yet.
+    if (!trainingLog) return;
+    const live = (trainingLog.open ?? null) as GymSession | null;
+    const base: GymSession | null = live?.date === dateKey
+      ? live
+      : (loggableDay ? seedSessionFrom(loggableDay.day, loggableDay.plan.id, dateKey) : null);
+    if (!base) return;
+
+    const exercises: GymExercise[] = base.exercises.map((e: GymExercise) =>
+      (e.ref?.slug && e.ref.slug === detail?.slug)
+        ? {
+            ...e,
+            state: next.state === 'done' || next.state === 'skipped' ? next.state : null,
+            notes: next.note.trim() || null,
+          }
+        : e);
+    const anyDone = exercises.some((e: GymExercise) => e.state === 'done' || e.sets.length > 0);
+    const anySkipped = exercises.some((e: GymExercise) => e.state === 'skipped');
+    trainingLog.onSave({
+      ...base,
+      exercises,
+      status: anyDone ? 'completed' : anySkipped ? 'skipped' : 'in-progress',
+      updated_at: new Date().toISOString(),
+    });
+  };
+
   const date = new Date(`${dateKey}T00:00:00`);
   const dateLabel = date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -1005,6 +1092,15 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
           detail={detail}
           exercise={detail.kind === 'exercise' ? exerciseDetails[detail.slug] : undefined}
           recipe={detail.kind === 'recipe' ? recipeDetails[detail.slug] : undefined}
+          /* Recording is offered only for a day that has already happened. A
+             tick on tomorrow is a fiction, and the whole point of this log is
+             that it does not contain any. */
+          log={dateKey <= todayISO() && detail.planId && detail.itemId
+            ? {
+                current: readItemLog(detail.kind, detail.planId, detail.itemId),
+                onSave: (next) => saveItemLog(detail.kind, detail.planId!, detail.itemId!, next),
+              }
+            : undefined}
           onClose={() => setDetail(null)}
         />
       )}
@@ -2096,19 +2192,53 @@ function DayReadView({ day, exerciseDetails, recipeDetails, totals, estimated, o
 
 /** Drill-down detail for a plan item — the exercise's technique guide or the
  *  recipe. Renders from the detail cache; shows a loading note until it lands. */
-function ItemDetailModal({ detail, exercise, recipe, onClose }: {
+/** What happened with one planned item, recorded where you are already looking
+ *  at it. `null` state = unrecorded, which is NOT the same as skipped. */
+export interface ItemLogState {
+  /** 'ate' | 'other' only apply to recipes; 'done' | 'skipped' to exercises. */
+  state: 'done' | 'skipped' | 'ate' | 'other' | null;
+  note: string;
+}
+
+function ItemDetailModal({ detail, exercise, recipe, log, onClose }: {
   detail: { kind: 'exercise' | 'recipe'; slug: string; name: string };
   exercise: HealthExerciseDetail | undefined;
   recipe: HealthRecipeDetail | undefined;
+  /** Present ONLY when the item was opened from a dated plan row that has
+   *  already happened. Absent in the catalogue (nothing to attach a fact to)
+   *  and absent on future days (ticking tomorrow is a fiction). */
+  log?: {
+    current: ItemLogState;
+    onSave: (next: ItemLogState) => void;
+  };
   onClose: () => void;
 }) {
   const loaded = detail.kind === 'exercise' ? !!exercise : !!recipe;
+  const [draft, setDraft] = useState<ItemLogState>(log?.current ?? { state: null, note: '' });
+  const dirty = !!log && (draft.state !== log.current.state || draft.note !== log.current.note);
+
+  // The three (or two) things that can be true, in the order they are likeliest.
+  const options: { key: NonNullable<ItemLogState['state']>; label: string; tint: string }[] =
+    detail.kind === 'recipe'
+      ? [
+          { key: 'ate',     label: tt('health.log.ate', 'Ate it'),            tint: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300' },
+          { key: 'other',   label: tt('health.log.ate_other', 'Ate something else'), tint: 'border-amber-400/40 bg-amber-400/10 text-amber-300' },
+          { key: 'skipped', label: tt('health.log.skipped', 'Skipped'),       tint: 'border-[var(--border)] bg-white/5 text-[var(--text-secondary)]' },
+        ]
+      : [
+          { key: 'done',    label: tt('health.log.did_it', 'Did it'),         tint: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300' },
+          { key: 'skipped', label: tt('health.log.skipped', 'Skipped'),       tint: 'border-[var(--border)] bg-white/5 text-[var(--text-secondary)]' },
+        ];
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 sm:p-6" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_color-mix(in_srgb,_var(--accent)_12%,_transparent)]"
-        style={{ height: 'min(760px, 86vh)' }}
+        /* Wider when there is something to record — the guide keeps its column
+           and the recording sits beside it, rather than the guide shrinking to
+           make room for a checkbox. */
+        className={`relative flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_color-mix(in_srgb,_var(--accent)_12%,_transparent)] ${log ? 'max-w-[1140px]' : 'max-w-[820px]'}`}
+        style={{ height: 'min(820px, 90vh)' }}
       >
         <button
           type="button"
@@ -2118,17 +2248,85 @@ function ItemDetailModal({ detail, exercise, recipe, onClose }: {
         >
           ×
         </button>
-        {/* The rich, tabbed catalogue detail — the SAME component the library
-            uses, so a recipe/exercise reads identically wherever it's opened. */}
-        {!loaded ? (
-          <div className="flex flex-1 items-center justify-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.loading')}</div>
-        ) : exercise ? (
-          <ExerciseDetailBody ex={exercise} />
-        ) : recipe ? (
-          <RecipeDetailBody r={recipe} />
-        ) : (
-          <div className="flex flex-1 items-center justify-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.no_detail')}</div>
-        )}
+        <div className="flex min-h-0 flex-1">
+          {/* The rich, tabbed catalogue detail — the SAME component the library
+              uses, so a recipe/exercise reads identically wherever it's opened. */}
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            {!loaded ? (
+              <div className="flex flex-1 items-center justify-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.loading')}</div>
+            ) : exercise ? (
+              <ExerciseDetailBody ex={exercise} />
+            ) : recipe ? (
+              <RecipeDetailBody r={recipe} />
+            ) : (
+              <div className="flex flex-1 items-center justify-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.no_detail')}</div>
+            )}
+          </div>
+
+          {/* WHAT ACTUALLY HAPPENED — recorded here, beside the thing itself.
+              Only present when this was opened from a dated plan row that has
+              already been; the catalogue has no day to attach a fact to, and a
+              future day would let you tick something you have not done. */}
+          {log && (
+            <div className="flex w-[320px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-[var(--accent)]/14 bg-black/20 p-4">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]/70">
+                  {tt('health.log.what_happened', 'What happened')}
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                  {tt('health.log.what_happened_hint', 'Only you know this. Blank means unrecorded — it does not mean skipped.')}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                {options.map(o => {
+                  const active = draft.state === o.key;
+                  return (
+                    <button key={o.key} type="button"
+                      /* Tapping the active one again clears it — a mis-tap that
+                         cannot be undone is how a log stops being trusted. */
+                      onClick={() => setDraft(d => ({ ...d, state: active ? null : o.key }))}
+                      className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-[12px] font-medium transition cursor-pointer ${
+                        active ? o.tint : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'
+                      }`}>
+                      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border text-[10px] ${
+                        active ? 'border-current bg-current/20' : 'border-[var(--border)]'
+                      }`}>{active ? '✓' : ''}</span>
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex min-h-0 flex-1 flex-col">
+                <label className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  {tt('health.log.your_note', 'Your note')}
+                </label>
+                {/* Say she reads it. People write differently when they know,
+                    and finding out afterwards feels like being watched. */}
+                <p className="mb-1.5 mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                  {tt('health.log.note_seen', 'Ava reads this. Say what she could not see — how it felt, what you changed, what hurt.')}
+                </p>
+                <textarea
+                  value={draft.note}
+                  onChange={(e) => setDraft(d => ({ ...d, note: e.target.value }))}
+                  placeholder={tt('health.log.note_placeholder', 'Lower back tight, cut the last set short…')}
+                  className="min-h-[110px] flex-1 resize-none rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/40 px-3 py-2 text-[12px] leading-relaxed text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)]/50"
+                />
+              </div>
+
+              <button type="button" disabled={!dirty}
+                onClick={() => { log.onSave(draft); onClose(); }}
+                className={`rounded-lg px-3 py-2.5 text-[12px] font-medium transition ${
+                  dirty
+                    ? 'cursor-pointer bg-[var(--accent)] text-white hover:opacity-90'
+                    : 'cursor-default border border-[var(--border)] text-[var(--text-muted)] opacity-50'
+                }`}>
+                {tt('health.log.save_record', 'Save')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

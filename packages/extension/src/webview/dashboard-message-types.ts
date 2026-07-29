@@ -1082,6 +1082,15 @@ export interface PlanMealMeta {
   ingredients?: PlanIngredient[] | null;
 }
 
+/** Three states, because a tick and a blank cannot express the commonest truth
+ *  of a Thursday — that you ate, just not this. 'other' is the informative one.
+ *  Mirrors core's MealLogged. */
+export interface MealLogged {
+  state: 'ate' | 'skipped' | 'other';
+  note: string | null;
+  at: string;
+}
+
 export interface HealthPlanMeal {
   id: string;
   slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -1098,6 +1107,9 @@ export interface HealthPlanMeal {
    *  with no meta cannot be shopped for, and the surface says so rather than
    *  producing a short list that looks complete. */
   meta?: PlanMealMeta | null;
+  /** What actually happened at the table. Absent = unrecorded, which is NOT
+   *  the same as skipped. Mirrors core's MealLogged. */
+  logged?: MealLogged | null;
 }
 
 /** One day of a Plan. `day_index` locates it absolutely (1-based);
