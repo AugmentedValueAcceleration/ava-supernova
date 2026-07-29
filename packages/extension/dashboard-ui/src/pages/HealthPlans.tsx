@@ -12,6 +12,7 @@ import { fillDayMeta } from '../lib/plan-meal-meta';
 import { StartersSheet } from '../components/StartersSheet';
 import { DuplicateSheet } from '../components/DuplicateSheet';
 import { AssistSheet, dayDate, type DayProposal } from '../components/AssistSheet';
+import { LogSessionSheet } from '../components/LogSessionSheet';
 import type {
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
   HealthPlanDay, HealthPlanExercise, HealthPlanMeal,
@@ -19,6 +20,7 @@ import type {
   HealthExerciseDetail, HealthRecipeDetail, HealthRecipeNutrition,
   HealthProfile,
   CuratedPlanSummary, CuratedPlanDetail,
+  TrainingSessionSummary,
 } from '../types/messages';
 
 /**
@@ -70,6 +72,15 @@ export interface HealthPlansProps {
   /** For the shopping list (household) and the prep plan (cooking-time
    *  budget). Optional so a caller that has no profile still renders. */
   healthProfile?: HealthProfile | null;
+  /** The training log — what actually happened, as opposed to what was
+   *  planned. Recorded after the fact on this surface; the phone runs it live. */
+  trainingLog?: {
+    sessions: TrainingSessionSummary[];
+    open: unknown | null;
+    onLoad: (from: string, to: string) => void;
+    onLoadOne: (id: string) => void;
+    onSave: (session: unknown) => void;
+  };
   /** Ask Ava to change ONE day. She PROPOSES — the reply is shown beside the
    *  current day and nothing is written until the operator accepts. */
   dayAssist?: {
@@ -101,14 +112,14 @@ export function HealthPlans({
   plans, fullPlans, planOpen, onOpenPlan, onSavePlan, onDeletePlan, onClosePlan,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
-  onAskAva, healthProfile = null, curated, dayAssist,
+  onAskAva, healthProfile = null, curated, dayAssist, trainingLog,
 }: HealthPlansProps) {
   useLocale();
   const [setupOpen, setSetupOpen] = useState(false);
 
   return (
     <>
-      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} healthProfile={healthProfile}
+      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} healthProfile={healthProfile} trainingLog={trainingLog}
         onSavePlan={onSavePlan}
         exerciseResults={exerciseResults} recipeResults={recipeResults} catalogSearching={catalogSearching} onSearchExercises={onSearchExercises} onSearchRecipes={onSearchRecipes} />
       {(setupOpen || planOpen) && (
@@ -363,7 +374,7 @@ function dayTotals(day: HealthPlanDay, recipeDetails: Record<string, HealthRecip
  *  month grid sized to one page) and Programs (the plan list) — so the
  *  list is never stacked under the calendar forcing a scroll. */
 function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete,
-  onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes, healthProfile }: {
+  onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes, healthProfile, trainingLog }: {
   plans: HealthPlanSummary[];
   /** Full (dated) plans with their days — drives the per-day content shown in
    *  the calendar cells AND the day view. Summaries alone can only draw a dot. */
@@ -384,6 +395,7 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   onSearchExercises: PlanSearch;
   onSearchRecipes: PlanSearch;
   healthProfile?: HealthProfile | null;
+  trainingLog?: HealthPlansProps['trainingLog'];
 }) {
   // A clicked calendar day opens the DAY view (what's on that date across every
   // plan), not a single plan's editor.
@@ -542,6 +554,7 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
           onLoadRecipeDetail={onLoadRecipeDetail}
           onClose={() => setDayKey(null)}
           onNewPlan={() => { setDayKey(null); onNew(); }}
+          trainingLog={trainingLog}
           onSavePlan={onSavePlan}
           exerciseResults={exerciseResults}
           recipeResults={recipeResults}
@@ -583,7 +596,7 @@ function planDayForDate(plan: HealthPlan, dateKey: string): HealthPlanDay | null
 interface DayAgendaItem { id: string; kind: 'exercise' | 'recipe'; slug?: string; title: string; meta?: string; slot?: string; thumb?: string | null; planId: string; planTitle: string; itemId: string; dayIndex: number }
 interface DayAgendaSection { key: string; label: string; icon: React.ReactNode; accent: string; items: DayAgendaItem[] }
 
-function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onClose, onNewPlan,
+function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onClose, onNewPlan, trainingLog,
   onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes }: {
   dateKey: string;
   plans: HealthPlan[];
@@ -599,6 +612,7 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   catalogSearching: boolean;
   onSearchExercises: PlanSearch;
   onSearchRecipes: PlanSearch;
+  trainingLog?: HealthPlansProps['trainingLog'];
 }) {
   useLocale();
   // Clicking an item opens what you clicked — its exercise / recipe detail —
@@ -616,6 +630,21 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   // mode; every change mutates the matching plan's day and autosaves (debounced)
   // through the same path the plan builder uses. ──────────────────────────────
   const covered = plans.some(p => dayIndexForDate(p, dateKey) != null);
+
+  // The one plan day this date belongs to, and whether it has been logged.
+  // Meals are not logged here — eating is tracked elsewhere and a food diary
+  // is a different feature with a different failure mode.
+  const loggableDay = useMemo(() => {
+    for (const p of plans) {
+      const d = planDayForDate(p, dateKey);
+      if (d && d.training.length > 0) return { plan: p, day: d };
+    }
+    return null;
+  }, [plans, dateKey]);
+  const loggedSession = useMemo(
+    () => (trainingLog?.sessions ?? []).find(s => s.date === dateKey) ?? null,
+    [trainingLog?.sessions, dateKey],
+  );
   const [editing, setEditing] = useState(false);
   const [working, setWorking] = useState<HealthPlan[]>([]);
   // Add / swap happens INLINE inside a section (no second overlay): a compact
@@ -647,6 +676,7 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   // the whole box. A full-height drawer has nothing to resize, so holding a
   // measured height would only cap it on a long day.
   const panelRef = useRef<HTMLDivElement>(null);
+  const [logging, setLogging] = useState(false);
   const enterEdit = () => {
     setWorking(plans.map(p => JSON.parse(JSON.stringify(p)) as HealthPlan));
     setEditing(true);
@@ -764,6 +794,26 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
 
   const anything = sections.some(s => s.items.length > 0);
 
+  if (logging && trainingLog && loggableDay) {
+    return (
+      <LogSessionSheet
+        day={loggableDay.day}
+        planId={loggableDay.plan.id}
+        date={dateKey}
+        // Only pass a loaded session when it IS this day's — the host replies
+        // asynchronously, and handing over a stale one would silently overwrite
+        // a different day's work.
+        existing={
+          (trainingLog.open as { id?: string; date?: string } | null)?.date === dateKey
+            ? trainingLog.open as never
+            : null
+        }
+        onSave={(s) => trainingLog.onSave(s)}
+        onClose={() => setLogging(false)}
+      />
+    );
+  }
+
   return (
     /* A DRAWER, not a centred modal.
        A day is somewhere you step into and back out of, and the calendar it
@@ -784,6 +834,25 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
             <h2 className="mt-0.5 text-[19px] font-semibold leading-tight text-[var(--text-primary)]">{dateLabel}</h2>
           </div>
           <div className="flex items-center gap-2">
+            {/* Logging is offered only where there is training to log, and only
+                for days that have already happened — you cannot record a
+                session you have not done, and offering it for tomorrow invites
+                exactly the fiction the log exists to avoid. */}
+            {trainingLog && loggableDay && dateKey <= todayISO() && (
+              <button type="button" onClick={() => {
+                if (loggedSession) trainingLog.onLoadOne(loggedSession.id);
+                setLogging(true);
+              }}
+                className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition cursor-pointer ${
+                  loggedSession
+                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20'
+                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'
+                }`}>
+                {loggedSession
+                  ? `${loggedSession.logged_exercises} ${t('health.log.logged_count')}`
+                  : t('health.log.open')}
+              </button>
+            )}
             {covered && (
               <button type="button" onClick={() => (editing ? exitEdit() : enterEdit())} className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 cursor-pointer">
                 {editing ? tt('health.plans.done', 'Done') : tt('health.plans.edit', 'Edit')}

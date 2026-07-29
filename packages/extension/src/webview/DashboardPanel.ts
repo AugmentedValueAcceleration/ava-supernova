@@ -83,6 +83,7 @@ import type {
   RoadmapTheme,
 } from './dashboard-message-types.js';
 import * as healthStore from './health-file-store.js';
+import type { GymSession } from '@ava/core/health';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
@@ -1387,6 +1388,42 @@ export class DashboardPanel {
             timeoutMs: 5000,
           });
         } catch { /* the start already happened locally */ }
+        return;
+      }
+      // ── The training log ─────────────────────────────────────────────
+      // Local-first and account-scoped, on the same file substrate as plans
+      // and the profile. Nothing here touches the network: what somebody
+      // lifted is the most personal record in the product.
+      case 'load_training_sessions': {
+        const sessions = healthStore.readAllSessions(this.healthDir())
+          .filter((s) => s.date >= msg.from && s.date <= msg.to)
+          .map((s) => ({
+            id: s.id,
+            date: s.date,
+            status: s.status,
+            title: s.title,
+            plan_id: s.plan_id ?? null,
+            day_index: s.day_index ?? null,
+            logged_exercises: healthStore.loggedExerciseCount(s),
+            updated_at: s.updated_at,
+          }));
+        this.post({ type: 'training_sessions_loaded', sessions });
+        return;
+      }
+      case 'load_training_session': {
+        const session = healthStore.readSession(this.healthDir(), msg.id);
+        if (session) this.post({ type: 'training_session_loaded', session });
+        return;
+      }
+      case 'save_training_session': {
+        const session = msg.session as GymSession;
+        if (!session?.id) return;
+        await healthStore.writeSession(this.healthDir(), session);
+        this.post({ type: 'training_session_saved', id: session.id });
+        return;
+      }
+      case 'delete_training_session': {
+        await healthStore.deleteSession(this.healthDir(), msg.id);
         return;
       }
       case 'load_health_taxonomies': {

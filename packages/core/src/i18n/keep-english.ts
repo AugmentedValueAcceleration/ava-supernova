@@ -76,6 +76,7 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   'health.browse.workout.pilates',
   'health.browse.workout.yoga',
   'health.home.meal.kcal',
+  'health.log.weight',          // 'kg' — SI symbol, identical everywhere
   'health.home.n_min',
   'health.home.nutrition.kcal',
   'health.home.quick.ml',

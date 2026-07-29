@@ -77,6 +77,7 @@ import type {
   CuratedPlanSummary, CuratedPlanDetail,
   HealthPlanDay,
   HealthPlanType,
+  TrainingSessionSummary,
 } from './types/messages';
 
 export { post };
@@ -346,6 +347,10 @@ export function App() {
   const [curatedError, setCuratedError] = useState<string | null>(null);
   const [curatedDetail, setCuratedDetail] = useState<CuratedPlanDetail | null>(null);
   const [curatedDetailLoading, setCuratedDetailLoading] = useState(false);
+  // The training log. Summaries drive the 'logged' markers; the full session
+  // is fetched only when one is reopened for editing.
+  const [trainingSessions, setTrainingSessions] = useState<TrainingSessionSummary[]>([]);
+  const [openSession, setOpenSession] = useState<unknown | null>(null);
   // Ask-Ava-about-this-day. The proposal lives here rather than in the sheet
   // so a slow generation is not lost by an accidental dismissal — it took the
   // better part of a minute and, on a platform key, real credits.
@@ -499,6 +504,16 @@ export function App() {
   const handleDiscardDayAssist = useCallback(() => {
     setDayAssistProposal(null);
     setDayAssistError(null);
+  }, []);
+  const handleLoadTrainingSessions = useCallback((from: string, to: string) => {
+    post({ type: 'load_training_sessions', from, to });
+  }, []);
+  const handleLoadTrainingSession = useCallback((id: string) => {
+    setOpenSession(null);
+    post({ type: 'load_training_session', id });
+  }, []);
+  const handleSaveTrainingSession = useCallback((session: unknown) => {
+    post({ type: 'save_training_session', session });
   }, []);
   const handleLoadCuratedPlans = useCallback(() => {
     setCuratedLoading(true);
@@ -1110,6 +1125,17 @@ export function App() {
           setDayAssistError(msg.error ?? 'Unknown error');
         }
         break;
+      case 'training_sessions_loaded':
+        setTrainingSessions(msg.sessions);
+        break;
+      case 'training_session_loaded':
+        setOpenSession(msg.session);
+        break;
+      case 'training_session_saved':
+        // Refresh the window around today so the day drawer's marker updates
+        // without the caller having to know which range is on screen.
+        post({ type: 'load_training_sessions', from: '2000-01-01', to: '2100-01-01' });
+        break;
       case 'curated_plans_loaded':
         setCuratedPlans(msg.plans);
         setCuratedLoading(false);
@@ -1380,6 +1406,10 @@ export function App() {
     // Plan-builder catalogue — pre-warm the picker's first page so it
     // opens instantly, the same way Health's Exercises / Recipes do.
     handleSearchPlanExercises({ q: '', offset: 0, category: null });
+    // The training log — small local JSON, and the day drawer needs it the
+    // moment a date is clicked, so it is warmed with everything else rather
+    // than fetched on first open.
+    post({ type: 'load_training_sessions', from: '2000-01-01', to: '2100-01-01' });
     handleSearchPlanRecipes({ q: '', offset: 0, category: null });
     // Health + general profiles — local-first host round-trips (no network).
     // Loaded once per dashboard mount so the profile tabs open instantly.
@@ -1873,6 +1903,13 @@ export function App() {
             }}
             healthProfile={healthProfile}
             onSaveHealthProfile={handleSaveHealthProfile}
+            trainingLog={{
+              sessions: trainingSessions,
+              open: openSession,
+              onLoad: handleLoadTrainingSessions,
+              onLoadOne: handleLoadTrainingSession,
+              onSave: handleSaveTrainingSession,
+            }}
             dayAssist={{
               busy: dayAssistBusy,
               error: dayAssistError,

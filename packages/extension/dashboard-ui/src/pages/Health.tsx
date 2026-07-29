@@ -114,7 +114,7 @@ interface Props {
 
   // ── Plans and profile, now rendered here rather than under Account ──────
   /** The whole HealthPlans prop bundle, passed through untouched. */
-  healthPlans: Omit<ComponentProps<typeof HealthPlans>, 'onAskAva' | 'healthProfile' | 'curated' | 'dayAssist'>;
+  healthPlans: Omit<ComponentProps<typeof HealthPlans>, 'onAskAva' | 'healthProfile' | 'curated' | 'dayAssist' | 'trainingLog'>;
   /** Hands the chosen plan type to Ava in the room — the conversational door.
    *  Deliberately NOT a one-shot form: she can ask what she is missing
    *  (health_profile_ask), which a form cannot. */
@@ -125,6 +125,8 @@ interface Props {
   curated: NonNullable<ComponentProps<typeof HealthPlans>['curated']>;
   /** Ask-Ava-about-this-day, likewise. */
   dayAssist: NonNullable<ComponentProps<typeof HealthPlans>['dayAssist']>;
+  /** The training log — what actually happened. */
+  trainingLog: NonNullable<ComponentProps<typeof HealthPlans>['trainingLog']>;
   /** Registers the Ava-tab chat's dispatch with App so host events tagged
    *  lane:'health' route to this focused room (not the main chat). */
   onRegisterHealthChatDispatch: (fn: (msg: ExtToDashboardMessage) => void) => void;
@@ -160,7 +162,7 @@ export function Health({
   onLoadTaxonomies,
   onNavigateToProfile,
   healthPlans, onAskAvaPlan,
-  healthProfile, onSaveHealthProfile, curated, dayAssist,
+  healthProfile, onSaveHealthProfile, curated, dayAssist, trainingLog,
   onRegisterHealthChatDispatch,
   userName,
   userAvatarUrl,
@@ -422,7 +424,7 @@ export function Health({
           // Household for the shopping list, cooking budget for the prep plan.
           // Plans carry profile_snapshot: null on this surface, so the live
           // profile is the only source there is.
-          <HealthPlans {...healthPlans} onAskAva={onAskAvaPlan} healthProfile={healthProfile} curated={curated} dayAssist={dayAssist} />
+          <HealthPlans {...healthPlans} onAskAva={onAskAvaPlan} healthProfile={healthProfile} curated={curated} dayAssist={dayAssist} trainingLog={trainingLog} />
         )}
         {tab === 'profile' && (
           <HealthProfilePage

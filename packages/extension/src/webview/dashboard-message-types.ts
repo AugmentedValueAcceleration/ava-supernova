@@ -1161,6 +1161,27 @@ export interface HealthPlan {
 
 /** Lightweight summary for the Plans library grid — held in
  *  `ava.planIndex` so the card view skips loading every full plan. */
+// ─── The training log ──────────────────────────────────────────────────────
+//
+// What ACTUALLY happened, as opposed to what the plan asked for. The shapes
+// live in @ava/core (health/session-types) so the companion, the extension and
+// the IDE record one thing rather than three; these are the webview <-> host
+// messages only.
+
+/** Enough to draw a history row without loading every set. `logged_exercises`
+ *  counts exercises with at least one set RECORDED, never the number queued —
+ *  a session with eight exercises and nothing logged did not happen. */
+export interface TrainingSessionSummary {
+  id: string;
+  date: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'skipped';
+  title: string | null;
+  plan_id: string | null;
+  day_index: number | null;
+  logged_exercises: number;
+  updated_at: string;
+}
+
 export interface HealthPlanSummary {
   id: string;
   type: HealthPlanType;
@@ -1649,6 +1670,9 @@ export type ExtToDashboardMessage =
   | { type: 'curated_plans_failed'; error: string }
   | { type: 'curated_plan_loaded'; plan: CuratedPlanDetail }
   | { type: 'curated_plan_failed'; id: string; error: string }
+  | { type: 'training_sessions_loaded'; sessions: TrainingSessionSummary[] }
+  | { type: 'training_session_loaded'; session: unknown }
+  | { type: 'training_session_saved'; id: string }
   | {
       type: 'health_day_generated';
       ok: boolean;
@@ -2000,6 +2024,10 @@ export type DashboardToExtMessage =
        *  server use that weekday's cooking ceiling rather than the tightest. */
       date: string | null;
     }
+  | { type: 'load_training_sessions'; from: string; to: string }
+  | { type: 'load_training_session'; id: string }
+  | { type: 'save_training_session'; session: unknown }
+  | { type: 'delete_training_session'; id: string }
   | { type: 'load_curated_plans' }
   | { type: 'load_curated_plan'; id: string }
   /** Fire-and-forget: the only signal we get about which starters work.

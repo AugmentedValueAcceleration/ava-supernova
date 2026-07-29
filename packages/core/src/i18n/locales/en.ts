@@ -2792,6 +2792,30 @@ export const enStrings = {
   'health.profile.level.expert': 'Expert',
   'health.profile.unset': 'Not set',
 
+  // ── Health · The training log ──────────────────────────────────────────
+  // What actually happened, as opposed to what the plan asked for. Filled in
+  // AFTER the session on desktop — nobody logs sets between reps at a
+  // keyboard — so it opens pre-filled with the targets and you correct them.
+  'health.log.open': 'Log this session',
+  'health.log.title': 'What you actually did',
+  'health.log.nothing': 'No training planned this day.',
+  'health.log.planned': 'planned',
+  'health.log.sets': 'Sets',
+  'health.log.weight': 'kg',
+  'health.log.reps': 'reps',
+  'health.log.add_set': 'Add set',
+  'health.log.remove_set': 'Remove',
+  'health.log.did_it': 'Did it',
+  'health.log.skipped': 'Skipped',
+  'health.log.skipped_hint': 'Marking it skipped is worth more than leaving it blank — blank is unknown, skipped is a fact.',
+  'health.log.notes': 'Anything worth remembering?',
+  'health.log.notes_placeholder': 'Felt strong / lower back twinged / cut it short',
+  'health.log.save': 'Save session',
+  'health.log.saved': 'Saved',
+  'health.log.logged_count': 'logged',
+  'health.log.prefill_note': 'Filled in with what the plan asked for. Change what was different — that difference is the whole point.',
+  'health.log.nothing_logged': 'Nothing logged yet',
+
   // ── Health · Ask Ava about THIS day ────────────────────────────────────
   // The hybrid the builder exists for: you drive, Ava helps with the part you
   // ask about. It PROPOSES — nothing is written until you accept — and it says
