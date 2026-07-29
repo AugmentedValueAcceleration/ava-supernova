@@ -23,6 +23,20 @@ export type MemoryCategory =
   | 'tool-config'   // Tool settings, environment setup
   | 'decision'      // Key decisions made during development
   | 'person'        // People, roles, contacts
+  /**
+   * How this person actually lives and trains.
+   *
+   * The other nine are code-shaped, so a health memory landed in `preference`
+   * or `general` — filed in a drawer that was not made for it, and impossible
+   * to recall selectively or delete as a set. It is one dimension: whichever
+   * room writes it, every persona reads it, which is the point.
+   *
+   * Bounded by two rules that live in the prompt, not the type: log the SHAPE
+   * ("evenings do not work for training"), never a ledger of failures
+   * ("missed 6 of 12"); and a memory must change future advice or it is not
+   * written.
+   */
+  | 'health'
   | 'general';      // Catch-all for anything that doesn't fit
 
 /** A single structured memory entry. */
@@ -146,7 +160,7 @@ export interface MemoryStoreSummary {
 /** All valid categories as an array (for validation). */
 export const MEMORY_CATEGORIES: MemoryCategory[] = [
   'pattern', 'preference', 'architecture', 'bug-fix',
-  'convention', 'tool-config', 'decision', 'person', 'general',
+  'convention', 'tool-config', 'decision', 'person', 'health', 'general',
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -46,7 +46,7 @@ export interface AccountInfo {
   } | null;
 }
 
-export type MemoryCategory = 'pattern' | 'preference' | 'architecture' | 'bug-fix' | 'convention' | 'tool-config' | 'decision' | 'person' | 'general';
+export type MemoryCategory = 'pattern' | 'preference' | 'architecture' | 'bug-fix' | 'convention' | 'tool-config' | 'decision' | 'person' | 'health' | 'general';
 
 export interface MemoryEntry {
   id: string;

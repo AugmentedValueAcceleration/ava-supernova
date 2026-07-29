@@ -23,6 +23,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'bug-fix': '#ef4444',
   convention: '#f59e0b',
   'tool-config': '#10b981',
+  health: '#fb7185',
   decision: '#f97316',
   person: '#ec4899',
   general: '#6b7280',

@@ -20,6 +20,7 @@ import type { MemoryCategory, AvaMode } from './types.js';
  */
 export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, number>> = {
   work: {
+    health: 0.2,   // coding; how somebody trains is noise here
     architecture: 1.5,
     pattern: 1.5,
     'bug-fix': 1.3,
@@ -31,6 +32,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     general: 1.0,
   },
   chat: {
+    health: 1.6,   // the room most likely to be asked "how am I doing"
     person: 2.0,
     preference: 1.5,
     general: 1.2,
@@ -42,6 +44,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     'tool-config': 0.2,
   },
   write: {
+    health: 0.6,   // may be writing about themselves
     preference: 1.8,   // house style, voice, tone
     general: 1.4,
     decision: 1.2,     // what we decided about this document
@@ -53,6 +56,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     'tool-config': 0.3,
   },
   teach: {
+    health: 0.5,   // relevant only when the subject is their own body
     pattern: 1.5,
     general: 1.3,
     convention: 1.3,
@@ -64,6 +68,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     'tool-config': 0.5,
   },
   security: {
+    health: 0.1,   // never relevant, and the most sensitive data we hold
     'bug-fix': 2.0,
     architecture: 1.5,
     convention: 1.3,
@@ -75,6 +80,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     person: 0.2,
   },
   plan: {
+    health: 1.2,   // planning a week is exactly when this matters
     decision: 2.0,
     architecture: 1.5,
     general: 1.2,
@@ -86,6 +92,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     'tool-config': 0.5,
   },
   brainstorm: {
+    health: 0.8,   // occasionally the subject
     person: 1.5,
     preference: 1.5,
     decision: 1.3,

@@ -14,6 +14,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'bug-fix': 'bg-red-500/15 text-red-400 border-red-500/20',
   convention: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
   'tool-config': 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20',
+  health: 'bg-rose-500/15 text-rose-300 border-rose-500/20',
   decision: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20',
   person: 'bg-pink-500/15 text-pink-400 border-pink-500/20',
   general: 'bg-gray-500/15 text-gray-400 border-gray-500/20',
@@ -21,7 +22,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const ALL_CATEGORIES: MemoryCategory[] = [
   'pattern', 'preference', 'architecture', 'bug-fix',
-  'convention', 'tool-config', 'decision', 'person', 'general',
+  'convention', 'tool-config', 'decision', 'person', 'health', 'general',
 ];
 
 type ViewMode = 'active' | 'stale' | 'archived' | 'contradictions' | 'patterns';
