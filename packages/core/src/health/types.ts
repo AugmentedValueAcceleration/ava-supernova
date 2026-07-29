@@ -113,6 +113,29 @@ export interface HealthPlanMeal {
    *  with no meta cannot be shopped for, and the surface says so rather than
    *  producing a short list that looks complete. */
   meta?: PlanMealMeta | null;
+  /** What actually happened at the table. Absent = unrecorded, which is NOT the
+   *  same as skipped. See MealLogged. */
+  logged?: MealLogged | null;
+}
+
+/**
+ * Whether a planned meal happened — recorded ON THE PLAN ROW rather than in a
+ * store of its own.
+ *
+ * Deliberate: the plan store already exists on every surface (extension, IDE,
+ * companion, web) and travels with export/import, where a separate meal log
+ * would need injecting four times and would fall out of a bundle silently.
+ *
+ * THREE states, not two. A tick and a blank cannot express the most common
+ * truth of a Thursday — that you ate, just not this. 'other' is the one that
+ * actually teaches her something, and it is why a checkbox alone was not enough.
+ */
+export interface MealLogged {
+  state: 'ate' | 'skipped' | 'other';
+  /** What they had instead, or why not — free text, read by Ava. */
+  note: string | null;
+  /** ISO timestamp of when it was recorded, not of the meal. */
+  at: string;
 }
 
 /** One day of a plan. `day_index` is 1-based and absolute within the plan

@@ -39,8 +39,23 @@ function performed(ex: GymExercise): { sets: number; topWeight: number | null; r
  * can see completion without being handed a verdict about it.
  */
 function describeExercise(ex: GymExercise): string | null {
-  if (ex.notes === 'skipped') return `${ex.name} — SKIPPED`;
+  // Read the FIELD first; fall back to the old magic string so sessions logged
+  // before `state` existed still report their skips instead of going silent.
+  const skipped = ex.state === 'skipped' || ex.notes === 'skipped';
+  if (skipped) {
+    // Carry the reason when there is one — "skipped, shoulder still sore" is
+    // the sentence that actually informs what happens next week.
+    const why = ex.notes && ex.notes !== 'skipped' ? `: ${ex.notes}` : '';
+    return `${ex.name} — SKIPPED${why}`;
+  }
   const p = performed(ex);
+  // Ticked without set detail: it HAPPENED, and saying so beats silence. The
+  // absence of numbers is itself worth reporting — she should not infer a load
+  // that was never recorded.
+  if (p.sets === 0 && ex.state === 'done') {
+    const note = ex.notes ? ` — ${ex.notes}` : '';
+    return `${ex.name} — done (no sets recorded)${note}`;
+  }
   if (p.sets === 0) return null; // untouched: silence, not a zero
 
   const did = [`${p.sets} set${p.sets === 1 ? '' : 's'}`];

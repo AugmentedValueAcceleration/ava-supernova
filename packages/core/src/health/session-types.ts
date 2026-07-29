@@ -42,6 +42,21 @@ export interface GymExercise {
   target_rest_seconds: number | null;
   tempo: string | null;
   notes: string | null;
+  /**
+   * What happened, as a FIELD rather than a magic string.
+   *
+   * 'skipped' used to be encoded as notes === 'skipped', which meant the skip
+   * marker and the user's own note shared one slot: writing a note destroyed
+   * the skip, and marking a skip destroyed the note. Now they are separate, so
+   * "skipped — shoulder was still sore" is expressible, which is the version
+   * worth having.
+   *
+   *   'done'    — did it, no set detail (a tick)
+   *   'skipped' — deliberately did not do it. A FACT, never a blank.
+   *   null/absent with sets    — logged with detail
+   *   null/absent without sets — unrecorded, which is not the same as skipped
+   */
+  state?: 'done' | 'skipped' | null;
   /** Sets actually performed this session. Grows as the user logs each one. */
   sets: GymSet[];
 }
