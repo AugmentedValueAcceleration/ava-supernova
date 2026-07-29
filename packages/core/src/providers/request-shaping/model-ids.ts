@@ -32,6 +32,12 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // Moonshot only knows `kimi-k3`; sending the suffixed id returns
   // 404 "Not found the model kimi-k3-platform or Permission denied".
   'kimi-k3-platform':           'kimi-k3',
+  // Same for K2.7 Code. Migration 373 created the `kimi-k2.7-code-platform`
+  // row so it could be picked as a credit single, but no strip was added
+  // alongside it — so every surface reading that row (extension, IDE, hub)
+  // would have sent the suffixed id to Moonshot and taken the same 404 the
+  // line above exists to prevent.
+  'kimi-k2.7-code-platform':    'kimi-k2.7-code',
   // Managed Mistral (Aurora's fleet) — friendly name -> the id Mistral accepts.
   // Large 3 and Small 4 use date-stamped snapshots. Medium 3.5 is pinned to the
   // SEMANTIC id `mistral-medium-3-5` (what Mistral's own rate-limit console
