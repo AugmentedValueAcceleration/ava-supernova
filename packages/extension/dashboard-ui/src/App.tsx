@@ -140,8 +140,29 @@ export function App() {
   // can replay on registration; otherwise the room is stuck on "Loading your
   // account…" / "No providers configured" forever.
   const lastChatSetupRef = useRef<Map<string, ExtToDashboardMessage>>(new Map());
+  /**
+   * A restore waiting for its room to mount.
+   *
+   * Opening a room conversation from History navigates AND posts the load at
+   * the same moment, so the payload routinely arrives before that room's Chat
+   * has registered its dispatch — and `ref.current?.(msg)` drops it silently.
+   * The main chat has had this protection all along (`lastRestoreRef`); the
+   * rooms did not, which is exactly why the thread landed on the right tab with
+   * nothing in it.
+   *
+   * Consumed on registration, not merely read: replaying a stale restore the
+   * next time a room mounts would resurrect an old thread over a new one.
+   */
+  const pendingRoomRestoreRef = useRef<Map<string, ExtToDashboardMessage>>(new Map());
+  const takePendingRestore = useCallback((room: string, fn: (msg: ExtToDashboardMessage) => void) => {
+    const pending = pendingRoomRestoreRef.current.get(room);
+    if (!pending) return;
+    pendingRoomRestoreRef.current.delete(room);
+    fn(pending);
+  }, []);
   const registerHealthChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
     healthChatDispatchRef.current = fn;
+    takePendingRestore('health', fn);
     // Replay cached setup so the freshly-mounted room has account/provider/model.
     for (const cached of lastChatSetupRef.current.values()) fn(cached);
   }, []);
@@ -151,6 +172,7 @@ export function App() {
   const learningChatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
   const registerLearningChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
     learningChatDispatchRef.current = fn;
+    takePendingRestore('learning', fn);
     for (const cached of lastChatSetupRef.current.values()) fn(cached);
   }, []);
 
@@ -160,6 +182,7 @@ export function App() {
   const designChatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
   const registerDesignChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
     designChatDispatchRef.current = fn;
+    takePendingRestore('design', fn);
     for (const cached of lastChatSetupRef.current.values()) fn(cached);
   }, []);
 
@@ -746,7 +769,15 @@ export function App() {
       const to = msg.surface === 'health' ? healthChatDispatchRef
         : msg.surface === 'learning' ? learningChatDispatchRef
         : designChatDispatchRef;
-      to.current?.(msg);
+      // Queue it when the room has not mounted yet rather than dropping it on
+      // the floor — that silent drop is what left the Ava tab open and empty.
+      if (to.current) to.current(msg);
+      else pendingRoomRestoreRef.current.set(msg.surface, msg);
+      // Navigating to the health PAGE is not the same as opening the Ava tab on
+      // it — the page lands on Plans, so a restored conversation arrived
+      // correctly in the room's chat and the operator was looking at a
+      // calendar. Put them on the tab the thread is actually in.
+      if (msg.surface === 'health') setHealthInitialTab('ava');
       return;
     }
     // Keep the Design Studio top-bar model/credit state in sync.

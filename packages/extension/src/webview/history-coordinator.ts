@@ -164,19 +164,32 @@ export class HistoryCoordinator {
       }
     }
     conversation.setMessages(messages);
-    this.deps.setConversation(conversation);
+
+    // INTO THE ROOM IT CAME FROM. This is the path a History click takes; the
+    // reload path (restoreLast, above) does the same. Getting it into only one
+    // of the two is exactly the mistake that made this look fixed when it was
+    // not — clicking a health conversation installed it as the MAIN thread and
+    // rendered it in the main chat.
+    const surface = deriveConversationSurface(messages);
+    this.deps.setConversation(conversation, surface);
 
     // Awaited — see setLastConversationId. Picking a chat from history and
     // then closing the window is exactly the case where an unflushed pointer
     // write sends you back to a new chat next launch.
     await this.setLastConversationId(record.id);
 
-    console.log(`[history] loaded conversation ${record.id}: ${record.messages.length} messages (${record.messages.length - messages.length} stale primer(s) dropped)`);
+    // The SURFACE is logged too. Without it, a conversation restoring into the
+    // wrong place was untraceable from the output channel — the log said it
+    // loaded and nothing said where it went.
+    console.log(`[history] loaded conversation ${record.id}: ${record.messages.length} messages, surface=${surface} (${record.messages.length - messages.length} stale primer(s) dropped)`);
     this.deps.postMessage({
       type: 'conversation_loaded',
       conversationId: record.id,
       title: record.title,
       messages: buildUIMessages(messages),
+      // Without this the dashboard has no way to know which chat to render it
+      // in, and every restore falls through to the main one.
+      surface,
     });
 
     // Refresh the context bar now that a potentially-large history is loaded.

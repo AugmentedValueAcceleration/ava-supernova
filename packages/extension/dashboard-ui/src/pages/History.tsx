@@ -322,8 +322,14 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
     return c;
   }, [conversations]);
 
-  // Only offer a tab for a room that actually has conversations — an empty
-  // "Learning" tab is just a dead end to click on.
+  // EVERY room gets a tab, whether or not it has anything in it.
+  //
+  // These used to be filtered to rooms with conversations, on the reasoning
+  // that an empty tab is a dead end. It reads far worse than that: the row
+  // silently changes shape as you use the product, so the tab you clicked
+  // yesterday is missing today and it looks broken rather than tidy. A stable
+  // row of rooms with an honest "nothing here yet" is the better answer — the
+  // count beside each one already says which are empty.
   const tabs = useMemo(() => {
     const order: Array<{ key: 'all' | ConversationSurface; label: string }> = [
       { key: 'all', label: tt('dash.history.tab.all', 'All') },
@@ -333,8 +339,8 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
       { key: 'learning', label: tt('dash.history.tab.learning', 'Learning') },
       { key: 'social', label: tt('dash.history.tab.social', 'Social') },
     ];
-    return order.filter(o => o.key === 'all' || (counts[o.key] ?? 0) > 0);
-  }, [counts]);
+    return order;
+  }, []);
 
   const filtered = useMemo(() => {
     const byRoom = surfaceTab === 'all'
