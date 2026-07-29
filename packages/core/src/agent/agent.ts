@@ -431,6 +431,11 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // this room ships posts, it doesn't touch the codebase.
   social: new Set([
     'research_post', 'propose_hooks', 'write_post', 'post_performance', 'suggest_beats',
+    // Short-form video — the Video Posts room. Registering the tool in the
+    // builtins was not enough: this Set is the real gate, and while it was
+    // missing she reported "write_video_post isn't in my toolset" and pointed
+    // people at the Design Studio instead. She was reading her list correctly.
+    'write_video_post',
     // Industry radar — what AI leaders/labs actually said this week (sourced)
     'scan_industry',
     // Ground every product claim in the real docs, never training memory
