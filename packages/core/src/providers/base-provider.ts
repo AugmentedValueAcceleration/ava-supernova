@@ -79,7 +79,25 @@ export abstract class BaseProvider implements Provider {
   private static readonly BASE_DELAY_MS = 1000;
   private static readonly RATE_LIMIT_BASE_DELAY_MS = 5000;  // 5s base for rate limits (Zhipu free models need ~6s)
   private static readonly FETCH_TIMEOUT_MS = 60_000; // 60s connection timeout
-  private static readonly STREAM_READ_TIMEOUT_MS = 30_000; // 30s per-chunk — if no data for 30s, connection is likely dead
+  /**
+   * Silence allowed between chunks before the stream is declared dead.
+   *
+   * WAS 30s, RAISED TO 90s after two observed false aborts (28 Jul, Qwen 3.7
+   * Plus, ~19k context). Both had already streamed real content — 33 and 50
+   * deltas — and then went quiet while the model moved from prose into a large
+   * tool call. Thirty seconds of silence is simply not evidence that a
+   * connection is dead when a reasoning model is between phases.
+   *
+   * The cost is asymmetric and that is what decides the number. A genuinely
+   * dead stream now takes a minute longer to give up on — annoying. A false
+   * abort destroys the turn: the work is thrown away, the credits are spent,
+   * and the operator is told something failed that had not. Waiting is the
+   * cheaper mistake.
+   *
+   * Still bounded, deliberately: without any ceiling a hung connection would
+   * hang the surface forever with no way to tell it apart from thinking.
+   */
+  private static readonly STREAM_READ_TIMEOUT_MS = 90_000;
 
   protected async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
     // Extract the caller's abort signal (for user cancellation) — it must not

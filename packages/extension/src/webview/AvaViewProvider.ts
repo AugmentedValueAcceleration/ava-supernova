@@ -217,6 +217,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  right surface (main chat vs Ava room) renders them. One run pipeline (the
    *  isRunning guard) → no concurrency, so a scalar is safe. */
   private activeLane: 'main' | 'health' | 'learning' | 'design' = 'main';
+  /** Set when a turn emits an error event; drained into the conversation once
+   *  the run's messages have been appended, so Ava can answer "what happened".
+   *  See the 'error' case in the agent event handler. */
+  private pendingTurnError: string | null = null;
   private toolRegistry?: ToolRegistry;
   private providerRegistry: ProviderRegistry;
   private healthTracker: ProviderHealthTracker;
@@ -3508,6 +3512,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.sharedState.conductorSynthesizedThisTurn = false;
     }
     sessionStats.recordMessage();
+    this.pendingTurnError = null;
     this.updateStatusBar('busy');
 
     const userText = this.applyModePrefix(text, mode);
@@ -3826,6 +3831,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           const info = this.deriveErrorInfo(event.error);
           this.log(`Agent error event [${info.code}]: ${info.message}`);
           this.postMessage({ type: 'error', message: info.message, code: info.code, suggestion: info.suggestion });
+          // AND INTO THE CONVERSATION, not only onto the screen.
+          //
+          // This posted to the UI alone, so the turn ended, the operator saw a
+          // red box, and Ava's history simply stopped one step early with no
+          // marker. Asked "what was the issue there", she answered accurately
+          // from a record that had the failure deleted from it — and said
+          // nothing went wrong. She was not covering; she could not see it.
+          //
+          // Written as a user-role note because that is the only role a
+          // provider will accept mid-turn without a matching tool_call, and it
+          // is the same shape the Stop marker already uses.
+          this.pendingTurnError = info.message;
           break;
         }
         // ── Loop-prevention surfacing ───────────────────────────────────
@@ -4072,7 +4089,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Guard: only append to conversation if still the active run (not cancelled/replaced)
       if (this.isRunning && !this.runAbortController?.signal.aborted) {
         this.conversation.appendMessages(newMessages);
+
+        // A turn that errored leaves a record of it.
+        //
+        // Without this the history just stops one step early with no marker,
+        // which is indistinguishable from a history that is complete — so Ava
+        // answers about a world that moved on without her. Recovering the
+        // partial work first matters as much as the note: agent.run() returned
+        // ZERO messages on the second stall, so her reply was lost outright.
+        if (this.pendingTurnError) {
+          const partial = this.agent?.getCurrentRunPartialMessages() ?? [];
+          const already = new Set(newMessages);
+          const missed = partial.filter((m) => !already.has(m));
+          if (missed.length) {
+            this.conversation.appendMessages(missed);
+            this.log(`Recovered ${missed.length} message(s) from the errored turn`);
+          }
+          this.conversation.appendMessages([{
+            role: 'user' as const,
+            content: `[This turn did not finish: ${this.pendingTurnError}. Anything you were part-way through did NOT complete — do not describe it as done. If the user asks what happened, tell them this plainly.]`,
+          }]);
+        }
       }
+      this.pendingTurnError = null;
 
       await this.historyManager.saveConversation(this.conversation);
       // Only the main thread is the "last conversation" restored on reload —
