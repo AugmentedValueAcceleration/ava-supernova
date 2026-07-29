@@ -92,7 +92,7 @@ export const PLATFORM_TAG_POLICY: Readonly<Record<string, string>> = {
   youtube: 'YouTube Shorts: #Shorts always FIRST, top 3 show above the title. 15 max but >15 = ALL ignored. No URL surfaced in the Shorts feed.',
   linkedin: 'LinkedIn: 3 hashtags max, professional. Link at the end is fine.',
   bluesky: 'Bluesky: 1-2 hashtags max — technical / open-source / federated crowd, low tolerance for tag stacks. 300 char cap.',
-  facebook: 'Facebook dev groups: 0-2 hashtags max — peer-to-peer dev space, tag stacks read as spam. Link at the end is fine. Write like a builder posting in a group of builders, not a brand page.',
+  facebook: 'Facebook Page: 0-2 hashtags max, tag stacks read as spam. Mixed crowd — some builders, but mostly people who just want the thing to work, so plain language over jargon and lead with what it does for them. Long-form is fine here; a story lands better than a headline. Link at the end is fine.',
   instagram: 'Instagram: ~8-12 relevant tags, niche over generic; first few matter most.',
   blog: 'Blog: no hashtags.',
 };
