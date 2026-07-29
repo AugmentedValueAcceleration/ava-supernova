@@ -402,6 +402,13 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [tab, setTab] = useState<'calendar' | 'programs'>('calendar');
   const [weekShopping, setWeekShopping] = useState(false);
+  // Dates with a session that has something recorded in it. A session opened
+  // and left empty is NOT logged — it would put a tick on a day nothing
+  // happened, which is the one thing this marker must never do.
+  const loggedDates = useMemo(
+    () => new Set((trainingLog?.sessions ?? []).filter(s => s.logged_exercises > 0).map(s => s.date)),
+    [trainingLog?.sessions],
+  );
   // Default the calendar to the month of a dated plan so a created plan is
   // visible the moment the tab opens — not a blank current month.
   const [month, setMonth] = useState<Date>(() => {
@@ -520,6 +527,7 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
       {tab === 'calendar' ? (
         <div className="flex min-h-[64vh]">
           <MonthCalendar
+            logged={loggedDates}
             month={month}
             onMonthChange={setMonth}
             marks={planMarks}
@@ -638,6 +646,15 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
     for (const p of plans) {
       const d = planDayForDate(p, dateKey);
       if (d && d.training.length > 0) return { plan: p, day: d };
+    }
+    return null;
+  }, [plans, dateKey]);
+  // The plan day this date lands on when it carries no content — i.e. a
+  // scheduled rest or active-recovery day, as opposed to a date no plan covers.
+  const restDay = useMemo(() => {
+    for (const p of plans) {
+      const d = planDayForDate(p, dateKey);
+      if (d && d.training.length === 0 && d.meals.length === 0) return d;
     }
     return null;
   }, [plans, dateKey]);
@@ -863,9 +880,28 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
         </div>
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
-          {!editing && !anything ? (
+          {/* A REST DAY IS NOT AN EMPTY DAY.
+              Both used to render "Nothing scheduled this day" with a New plan
+              button, so a deliberate recovery day looked like a hole somebody
+              had forgotten to fill — and the entire point of scheduling rest is
+              that it was a decision. A day no plan covers still gets the empty
+              state, because that one genuinely is a gap. */}
+          {!editing && !anything && restDay ? (
+            <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] px-5 py-10 text-center">
+              <div className="text-[22px]" aria-hidden>{restDay.kind === 'active_recovery' ? '🚶' : '🌙'}</div>
+              <div className="mt-2 text-[14px] font-medium text-[var(--text-primary)]">
+                {restDay.title || t(restDay.kind === 'active_recovery' ? 'health.rest.recovery_title' : 'health.rest.title')}
+              </div>
+              <p className="mx-auto mt-1.5 max-w-[34ch] text-[11px] leading-relaxed text-[var(--text-muted)]">
+                {t(restDay.kind === 'active_recovery' ? 'health.rest.recovery_blurb' : 'health.rest.blurb')}
+              </p>
+              {restDay.notes && (
+                <p className="mx-auto mt-3 max-w-[38ch] text-[11px] italic leading-relaxed text-[var(--text-secondary)]">{restDay.notes}</p>
+              )}
+            </div>
+          ) : !editing && !anything ? (
             <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-12 text-center">
-              <div className="text-[12px] text-[var(--text-secondary)]">{tt('health.plans.day_empty', 'Nothing scheduled this day.')}</div>
+              <div className="text-[12px] text-[var(--text-secondary)]">{t('health.rest.uncovered')}</div>
               <button type="button" onClick={onNewPlan} className="mx-auto mt-3 block rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 cursor-pointer">{t('health.plans.new_plan')}</button>
             </div>
           ) : sections.map(section => {
@@ -974,7 +1010,15 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
 function AgendaCardInner({ item, icon, accent }: { item: DayAgendaItem; icon: React.ReactNode; accent: string }) {
   return (
     <>
-      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/[0.06]">
+      {/* Softer corners and a real border rather than a hairline ring: at 48px
+          a rounded-md photo reads as a thumbnail in a table, and these are the
+          only images on the surface — they should look considered. The border
+          tints to the section accent so training and meals stay legible as
+          categories without needing a label on every row. */}
+      <div
+        className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border"
+        style={{ borderColor: `color-mix(in srgb, ${accent} 28%, transparent)` }}
+      >
         {item.thumb ? (
           <img src={item.thumb} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
         ) : (
@@ -1035,7 +1079,7 @@ function InlineCatalogSearch({ kind, mode, accent, results, searching, onSearch,
                   className="group flex items-center gap-2.5 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--bg-input)]/30 p-1.5 text-left transition hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 cursor-pointer">
                   <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded ring-1 ring-inset ring-white/[0.06]">
                     {thumb ? (
-                      <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      <img src={thumb} alt="" loading="lazy" className="h-full w-full rounded-lg object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-[14px] opacity-80" style={{ background: `linear-gradient(135deg, ${accent}2e, ${accent}0d)` }} aria-hidden>{icon}</div>
                     )}
@@ -1280,6 +1324,12 @@ function PlanBuilder({
   const [sheet, setSheet] = useState<'shopping' | 'prep' | null>(null);
   const [duplicating, setDuplicating] = useState<number | null>(null);
   const [assisting, setAssisting] = useState(false);
+  const planWeekCount = Math.max(1, Math.ceil(draft.duration_days / 7));
+  const [visibleWeek, setVisibleWeek] = useState(1);
+  // Follow the selection rather than fighting it: jumping to a day from
+  // anywhere else (Ava, the calendar, a duplicate) must bring its week with it,
+  // or the strip would show week 1 while the panel below showed day 40.
+  useEffect(() => { setVisibleWeek(Math.max(1, Math.ceil(selectedDay / 7))); }, [selectedDay]);
   const saveTimer = useRef<number | undefined>(undefined);
   const prefilled = useRef<Set<string>>(new Set());
 
@@ -1469,8 +1519,31 @@ function PlanBuilder({
       {/* Body — compact: pick a day from the strip, then its Workouts + Meals
           sections. No calendar; the day strip is the navigation. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        {/* A WEEK AT A TIME.
+            This listed every day in one wrapping row, which is fine for seven
+            and unusable for eighty-four — the presets go up that far, and the
+            strip became a wall of near-identical chips with no way to tell
+            week two from week eleven. Weeks are picked first, days second, and
+            the week tabs only appear when there is more than one. */}
+        {planWeekCount > 1 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {Array.from({ length: planWeekCount }, (_, w) => w + 1).map(w => {
+              const active = w === visibleWeek;
+              return (
+                <button key={w} type="button" onClick={() => setVisibleWeek(w)}
+                  className={`rounded-full border px-3 py-1 text-[11px] transition cursor-pointer ${
+                    active
+                      ? 'border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--accent)]'
+                      : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'
+                  }`}>
+                  {t('health.dup.week_n', { n: w })}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="mb-4 flex flex-wrap gap-1.5">
-          {draft.days.map((d) => {
+          {draft.days.filter(d => Math.ceil(d.day_index / 7) === visibleWeek).map((d) => {
             const date = planDate(draft.start_date, d.day_index);
             const active = selectedDay === d.day_index;
             const has = (showTraining && d.training.length > 0) || (showMeals && d.meals.length > 0);
@@ -1614,10 +1687,14 @@ function PlanBuilder({
 
 /** A real month calendar. Weekday columns, the month's dates, training /
  *  meal pills per day. Clicking an in-plan date selects that day. */
-function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelectDate, fill }: {
+function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelectDate, fill, logged }: {
   month: Date;
   onMonthChange: (d: Date) => void;
   marks: Map<string, { training: boolean; meals: boolean }>;
+  /** Dates with a RECORDED session. A planned day and a done day should not
+   *  look the same — the whole reason for keeping a log is being able to see
+   *  what you actually did, and a calendar that only shows intent hides it. */
+  logged?: Set<string>;
   /** Per-date plan content — the session title + the day's moves / meals — so
    *  the cells show what's actually on, not just a dot. Built from the full
    *  (dated) plans; falls back to `marks` dots where there's no detail. */
@@ -1665,6 +1742,7 @@ function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelec
             const isToday = key === today;
             const isSelected = key === selected;
             const hasContent = !!mk && (mk.training || mk.meals);
+            const isLogged = logged?.has(key) ?? false;
             const items = c ? [
               ...c.training.map((name) => ({ icon: <Icon.fitness size={11} />, name })),
               ...c.meals.map((name) => ({ icon: <Icon.meal size={11} />, name })),
@@ -1679,9 +1757,14 @@ function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelec
                 className={`flex min-h-[54px] flex-col gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition cursor-pointer ${
                   isSelected
                     ? 'border-[var(--accent)] bg-[var(--accent)]/15'
-                    : hasContent
-                      ? 'border-[var(--accent)]/22 bg-[var(--accent)]/5 hover:border-[var(--accent)]/50'
-                      : 'border-[var(--accent)]/8 hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5'
+                    // Done outranks planned. Green is used ONLY for a session
+                    // that was actually recorded, nowhere else on this surface,
+                    // so it never means "we think you did this".
+                    : isLogged
+                      ? 'border-emerald-400/35 bg-emerald-400/[0.07] hover:border-emerald-400/60'
+                      : hasContent
+                        ? 'border-[var(--accent)]/22 bg-[var(--accent)]/5 hover:border-[var(--accent)]/50'
+                        : 'border-[var(--accent)]/8 hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5'
                 }`}
               >
                 <div className="flex items-center justify-between gap-1">
@@ -1692,6 +1775,7 @@ function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelec
                   }`}>
                     {date.getDate()}
                   </span>
+                  {isLogged && <span className="text-[10px] leading-none text-emerald-400" title={t('health.log.logged_count')} aria-hidden>✓</span>}
                   {/* Dots only when we have no detailed content to show. */}
                   {!c && (mk?.training || mk?.meals) && (
                     <span className="flex gap-1">

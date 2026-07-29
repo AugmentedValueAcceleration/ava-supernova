@@ -4134,4 +4134,9 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': '記録済み',
   'health.log.prefill_note': '計画に基づいて自動入力されています。異なる点は変更してください — その違いこそが重要です。',
   'health.log.nothing_logged': 'まだ記録されていません',
+  'health.rest.title': '休息日',
+  'health.rest.blurb': 'スケジュール済み、スキップなし。トレーニングは刺激であり、適応はここで起こります。',
+  'health.rest.recovery_title': 'アクティブリカバリー',
+  'health.rest.recovery_blurb': 'ゆっくり動かしてください——散歩、モビリティ、簡単なもの。目的は血流であって、負荷ではありません。',
+  'health.rest.uncovered': 'この日の計画はありません。',
 };

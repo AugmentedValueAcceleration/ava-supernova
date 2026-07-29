@@ -4132,4 +4132,9 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'लॉग किए गए',
   'health.log.prefill_note': 'योजना के अनुसार भरा गया। जो अलग था उसे बदलें — वही अंतर ही मुख्य बात है।',
   'health.log.nothing_logged': 'अभी तक कुछ लॉग नहीं किया गया',
+  'health.rest.title': 'आराम का दिन',
+  'health.rest.blurb': 'योजनाबद्ध, न कि छोड़ा गया। प्रशिक्षण उत्तेजना है; अनुकूलन यहीं होता है।',
+  'health.rest.recovery_title': 'सक्रिय आराम',
+  'health.rest.recovery_blurb': 'हल्के से हिलें — टहलना, लचीलापन, कुछ आसान। उद्देश्य रक्त संचार है, प्रयास नहीं।',
+  'health.rest.uncovered': 'इस दिन के लिए कोई योजना नहीं है।',
 };

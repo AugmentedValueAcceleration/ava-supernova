@@ -4132,4 +4132,9 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'مسجل',
   'health.log.prefill_note': 'تم تعبئتها بناءً على ما طلبته الخطة. غيّر ما اختلف — ذلك الاختلاف هو الهدف الرئيسي.',
   'health.log.nothing_logged': 'لم يُسجّل شيء حتى الآن',
+  'health.rest.title': 'يوم راحة',
+  'health.rest.blurb': 'مجدول، ولم يتم تفويته. التدريب هو المحفز؛ وهنا يحدث التكيف.',
+  'health.rest.recovery_title': 'تعافي نشط',
+  'health.rest.recovery_blurb': 'تحرك بلطف — مشي، مرونة، أو شيء سهل. الهدف هو تدفق الدم، وليس الجهد.',
+  'health.rest.uncovered': 'لا توجد خطة تغطي هذا اليوم.',
 };

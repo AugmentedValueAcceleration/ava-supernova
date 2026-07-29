@@ -4132,4 +4132,9 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'записано',
   'health.log.prefill_note': 'Заполнено тем, что требовал план. Измените то, что отличалось — именно эта разница и есть главное.',
   'health.log.nothing_logged': 'Пока ничего не записано',
+  'health.rest.title': 'День отдыха',
+  'health.rest.blurb': 'Запланировано, а не пропущено. Тренировка — это стимул; именно здесь происходит адаптация.',
+  'health.rest.recovery_title': 'Активное восстановление',
+  'health.rest.recovery_blurb': 'Двигайтесь мягко — прогулка, мобильность, что-то лёгкое. Цель — кровообращение, а не нагрузка.',
+  'health.rest.uncovered': 'На этот день нет плана.',
 };

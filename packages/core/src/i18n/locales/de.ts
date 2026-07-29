@@ -4112,4 +4112,9 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'protokolliert',
   'health.log.prefill_note': 'Vorgefüllt mit dem, was der Plan verlangt hat. Ändere, was anders war – dieser Unterschied ist der Kernpunkt.',
   'health.log.nothing_logged': 'Noch nichts protokolliert',
+  'health.rest.title': 'Ruhetag',
+  'health.rest.blurb': 'Geplant, nicht übersprungen. Training ist der Reiz; hier findet die Anpassung statt.',
+  'health.rest.recovery_title': 'Aktive Erholung',
+  'health.rest.recovery_blurb': 'Bewegen Sie sich sanft — ein Spaziergang, Mobilität, etwas Leichtes. Das Ziel ist Durchblutung, keine Anstrengung.',
+  'health.rest.uncovered': 'Kein Plan für diesen Tag.',
 };

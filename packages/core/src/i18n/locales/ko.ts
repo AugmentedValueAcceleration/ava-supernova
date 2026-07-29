@@ -4132,4 +4132,9 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': '기록됨',
   'health.log.prefill_note': '계획에 따라 채워졌습니다. 달라진 부분을 수정하세요 — 그 차이가 핵심입니다.',
   'health.log.nothing_logged': '아직 기록된 것이 없습니다',
+  'health.rest.title': '휴식일',
+  'health.rest.blurb': '계획된 휴식이지 생략한 것이 아닙니다. 훈련은 자극이며, 적응이 일어나는 곳이 바로 여기입니다.',
+  'health.rest.recovery_title': '능동적 회복',
+  'health.rest.recovery_blurb': '부드럽게 움직이세요 — 산책, 모빌리티, 쉬운 것. 목표는 혈액 순환이지 노력이 아닙니다.',
+  'health.rest.uncovered': '이날을 위한 계획이 없습니다.',
 };

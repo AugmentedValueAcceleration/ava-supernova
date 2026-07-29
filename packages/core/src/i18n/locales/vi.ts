@@ -4132,4 +4132,9 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'đã ghi',
   'health.log.prefill_note': 'Đã điền theo yêu cầu của kế hoạch. Thay đổi những gì khác biệt — sự khác biệt đó chính là mục đích.',
   'health.log.nothing_logged': 'Chưa có dữ liệu nào được ghi',
+  'health.rest.title': 'Ngày nghỉ',
+  'health.rest.blurb': 'Đã lên lịch, không bỏ qua. Tập luyện là kích thích; đây là nơi sự thích ứng diễn ra.',
+  'health.rest.recovery_title': 'Phục hồi chủ động',
+  'health.rest.recovery_blurb': 'Vận động nhẹ nhàng — đi bộ, giãn cơ, hoặc điều gì đó dễ dàng. Mục tiêu là lưu thông máu, không phải gắng sức.',
+  'health.rest.uncovered': 'Không có kế hoạch nào cho ngày này.',
 };

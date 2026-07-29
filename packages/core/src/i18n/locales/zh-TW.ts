@@ -4132,4 +4132,9 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': '已記錄',
   'health.log.prefill_note': '已根據計劃要求填寫。修改不同的部分——差異才是重點所在。',
   'health.log.nothing_logged': '尚未記錄任何內容',
+  'health.rest.title': '休息日',
+  'health.rest.blurb': '已排定，非跳過。訓練是刺激；適應就在此發生。',
+  'health.rest.recovery_title': '主動恢復',
+  'health.rest.recovery_blurb': '輕柔活動 — 散步、伸展、輕鬆事項。目的是促進血液循環，而非耗力。',
+  'health.rest.uncovered': '沒有計劃涵蓋這一天。',
 };

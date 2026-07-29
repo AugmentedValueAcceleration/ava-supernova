@@ -4112,4 +4112,9 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'записано',
   'health.log.prefill_note': 'Заповнено відповідно до плану. Змініть те, що було інакшим — саме ця різниця й є суттю.',
   'health.log.nothing_logged': 'Ще нічого не записано',
+  'health.rest.title': 'День відпочинку',
+  'health.rest.blurb': 'Заплановано, а не пропущено. Тренування — це стимул; саме тут відбувається адаптація.',
+  'health.rest.recovery_title': 'Активне відновлення',
+  'health.rest.recovery_blurb': 'Рухайтеся м\'яко — прогулянка, мобільність, щось легке. Мета — кровообіг, а не зусилля.',
+  'health.rest.uncovered': 'Жоден план не охоплює цей день.',
 };

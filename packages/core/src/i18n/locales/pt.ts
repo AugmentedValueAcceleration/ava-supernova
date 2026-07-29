@@ -4130,4 +4130,9 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'registrado',
   'health.log.prefill_note': 'Preenchido com o que o plano pediu. Altere o que foi diferente — essa diferença é todo o ponto.',
   'health.log.nothing_logged': 'Nada registrado ainda',
+  'health.rest.title': 'Dia de descanso',
+  'health.rest.blurb': 'Agendado, não pulado. O treino é o estímulo; é aqui que a adaptação acontece.',
+  'health.rest.recovery_title': 'Recuperação ativa',
+  'health.rest.recovery_blurb': 'Movimente-se suavemente — uma caminhada, mobilidade, algo fácil. O objetivo é fluxo sanguíneo, não esforço.',
+  'health.rest.uncovered': 'Nenhum plano cobre este dia.',
 };

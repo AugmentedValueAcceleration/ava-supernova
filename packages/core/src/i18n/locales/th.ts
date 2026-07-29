@@ -4132,4 +4132,9 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'บันทึกแล้ว',
   'health.log.prefill_note': 'กรอกตามสิ่งที่แผนกำหนดไว้ เปลี่ยนแปลงในส่วนที่ต่างกัน — ความแตกต่างนั้นคือเป้าหมายหลัก',
   'health.log.nothing_logged': 'ยังไม่มีข้อมูลที่ถูกบันทึก',
+  'health.rest.title': 'วันพัก',
+  'health.rest.blurb': 'กำหนดไว้แล้ว ไม่ใช่การข้าม การฝึกคือสิ่งกระตุ้น; นี่คือจุดที่ร่างกายปรับตัว',
+  'health.rest.recovery_title': 'การฟื้นตัวแบบแอคทีฟ',
+  'health.rest.recovery_blurb': 'ขยับเบาๆ — เดิน, ยืดเหยียด, อะไรก็ตามที่ง่าย เป้าหมายคือการไหลเวียนเลือด, ไม่ใช่ความพยายาม',
+  'health.rest.uncovered': 'ไม่มีแผนครอบคลุมวันนี้',
 };

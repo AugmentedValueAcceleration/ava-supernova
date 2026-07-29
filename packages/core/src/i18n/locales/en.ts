@@ -2792,6 +2792,17 @@ export const enStrings = {
   'health.profile.level.expert': 'Expert',
   'health.profile.unset': 'Not set',
 
+  // ── Health · Rest days ─────────────────────────────────────────────────
+  // A rest day is PART of the programme, not a gap in it. Rendering it with
+  // the same "nothing scheduled" copy as an uncovered date made a deliberate
+  // recovery day look like a hole somebody forgot to fill — and the whole
+  // point of scheduling rest is that it is a decision.
+  'health.rest.title': 'Rest day',
+  'health.rest.blurb': 'Scheduled, not skipped. Training is the stimulus; this is where the adaptation happens.',
+  'health.rest.recovery_title': 'Active recovery',
+  'health.rest.recovery_blurb': 'Move gently — a walk, mobility, something easy. The aim is blood flow, not effort.',
+  'health.rest.uncovered': 'No plan covers this day.',
+
   // ── Health · The training log ──────────────────────────────────────────
   // What actually happened, as opposed to what the plan asked for. Filled in
   // AFTER the session on desktop — nobody logs sets between reps at a

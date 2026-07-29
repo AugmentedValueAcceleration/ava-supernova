@@ -4130,4 +4130,9 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'tercatat',
   'health.log.prefill_note': 'Terisi sesuai permintaan rencana. Ubah apa yang berbeda — perbedaan itulah intinya.',
   'health.log.nothing_logged': 'Belum ada yang tercatat',
+  'health.rest.title': 'Hari Istirahat',
+  'health.rest.blurb': 'Terjadwal, tidak dilewati. Pelatihan adalah rangsangan; di sinilah adaptasi terjadi.',
+  'health.rest.recovery_title': 'Pemulihan Aktif',
+  'health.rest.recovery_blurb': 'Gerakkan dengan lembut — jalan kaki, mobilitas, sesuatu yang mudah. Tujuannya adalah aliran darah, bukan usaha.',
+  'health.rest.uncovered': 'Tidak ada rencana yang mencakup hari ini.',
 };

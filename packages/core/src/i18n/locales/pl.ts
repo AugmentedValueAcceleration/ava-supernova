@@ -4112,4 +4112,9 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'zarejestrowano',
   'health.log.prefill_note': 'Wypełniono zgodnie z planem. Zmień to, co było inne — ta różnica jest najważniejsza.',
   'health.log.nothing_logged': 'Nic jeszcze nie zarejestrowano',
+  'health.rest.title': 'Dzień wolny',
+  'health.rest.blurb': 'Zaplanowany, nie pominięty. Trening to bodziec; tutaj następuje adaptacja.',
+  'health.rest.recovery_title': 'Aktywna regeneracja',
+  'health.rest.recovery_blurb': 'Ruszaj się lekko — spacer, mobilność, coś łatwego. Celem jest przepływ krwi, nie wysiłek.',
+  'health.rest.uncovered': 'Żaden plan nie obejmuje tego dnia.',
 };

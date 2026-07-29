@@ -4132,4 +4132,9 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': 'kayıtlı',
   'health.log.prefill_note': 'Planın istediğiyle dolduruldu. Farklı olanı değiştir — o fark asıl önemli.',
   'health.log.nothing_logged': 'Henüz hiç kayıt yok',
+  'health.rest.title': 'Dinlenme günü',
+  'health.rest.blurb': 'Planlı, atlanmamış. Antrenman uyarıcıdır; adaptasyonun gerçekleştiği yer burasıdır.',
+  'health.rest.recovery_title': 'Aktif toparlanma',
+  'health.rest.recovery_blurb': 'Yavaşça hareket et — bir yürüyüş, hareketlilik, kolay bir şey. Amaç kan akışıdır, çaba değil.',
+  'health.rest.uncovered': 'Bu günü kapsayan bir plan yok.',
 };

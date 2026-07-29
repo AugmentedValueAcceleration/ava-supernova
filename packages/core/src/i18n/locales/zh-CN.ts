@@ -4112,4 +4112,9 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'health.log.logged_count': '已记录',
   'health.log.prefill_note': '已按计划要求填充。修改不同之处——差异正是关键所在。',
   'health.log.nothing_logged': '暂无记录',
+  'health.rest.title': '休息日',
+  'health.rest.blurb': '已安排，非跳过。训练是刺激；适应发生于此。',
+  'health.rest.recovery_title': '主动恢复',
+  'health.rest.recovery_blurb': '轻柔活动——散步、活动度训练或轻松事项。目标是促进血液循环，而非消耗精力。',
+  'health.rest.uncovered': '当日无计划。',
 };
