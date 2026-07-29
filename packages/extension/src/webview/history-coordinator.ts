@@ -3,8 +3,8 @@
 // export, restore-last) without the rest of AvaViewProvider having to know about them.
 
 import * as vscode from 'vscode';
-import { Conversation } from '@ava/core';
-import type { HistoryManager } from '@ava/core';
+import { Conversation, deriveConversationSurface } from '@ava/core';
+import type { HistoryManager, ConversationSurface } from '@ava/core';
 import type { ExtToWebviewMessage } from './message-types.js';
 import { buildUIMessages, isInternalPrimer } from './helpers.js';
 
@@ -15,7 +15,9 @@ export interface HistoryCoordinatorDeps {
   /** Live getter so we see the current conversation even if it was swapped mid-session. */
   getConversation: () => Conversation | undefined;
   /** Replace the active conversation when loading from history. */
-  setConversation: (conversation: Conversation) => void;
+  /** `surface` says which room the thread belongs to. Absent = the main chat,
+   *  which is what every existing caller means. */
+  setConversation: (conversation: Conversation, surface?: ConversationSurface) => void;
   /** Reflect the outgoing session into memory before it's swapped out.
    *  Called on resume/load (a genuine session boundary) — NOT on delete,
    *  where the operator's intent is to discard the conversation. */
@@ -91,13 +93,27 @@ export class HistoryCoordinator {
       messages[0] = { role: 'system' as const, content: await this.deps.buildSystemPrompt() };
     }
     conversation.setMessages(messages);
-    this.deps.setConversation(conversation);
+
+    // INTO THE ROOM IT CAME FROM, not the main chat.
+    //
+    // Every room saves into the same history folder, and restoring always
+    // installed the thread as the MAIN conversation — so opening a health chat
+    // from Conversations put a workout plan in the code chat, with the health
+    // room still showing whatever it had. The surface is already derivable from
+    // the scaffold tag every transcript carries; it just was not being used on
+    // the way back in.
+    const surface = deriveConversationSurface(messages);
+    this.deps.setConversation(conversation, surface);
 
     this.deps.postMessage({
       type: 'conversation_loaded',
       conversationId: record.id,
       title: record.title,
       messages: buildUIMessages(messages),
+      // Tags the payload so the dashboard renders it in that room's chat
+      // rather than the main one. Without it the thread lands host-side in the
+      // right lane and visibly in the wrong one.
+      surface,
     });
 
     // Recompute the context bar from the restored messages so users don't

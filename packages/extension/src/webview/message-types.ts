@@ -1,3 +1,4 @@
+import type { ConversationSurface } from '@ava/core';
 // ─── Shared type definitions ─────────────────────────────────────────────────
 // Single source of truth for messages between the extension host and the
 // chat webview. The webview-ui imports this file directly via a path alias
@@ -105,6 +106,9 @@ export type ExtToWebviewMessage =
       type: 'conversation_loaded';
       conversationId: string;
       title: string;
+      /** Which room the thread came from, so the dashboard renders it there
+       *  rather than always in the main chat. Absent = main. */
+      surface?: ConversationSurface;
       /**
        * Restored transcript. `toolCalls` carries the tool half of the turn —
        * without it a reopened conversation lost every tool chip, because the

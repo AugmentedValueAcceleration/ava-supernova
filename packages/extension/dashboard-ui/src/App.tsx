@@ -739,6 +739,16 @@ export function App() {
     if ((msg.type === 'conversation_loaded' || msg.type === 'chat_cleared') && !lane) {
       lastRestoreRef.current = msg;
     }
+    // A restored thread carries the room it came from. Route it there rather
+    // than letting it fall through to the main chat, which is where every
+    // restore used to land regardless of where it was written.
+    if (msg.type === 'conversation_loaded' && msg.surface && msg.surface !== 'main') {
+      const to = msg.surface === 'health' ? healthChatDispatchRef
+        : msg.surface === 'learning' ? learningChatDispatchRef
+        : designChatDispatchRef;
+      to.current?.(msg);
+      return;
+    }
     // Keep the Design Studio top-bar model/credit state in sync.
     if (msg.type === 'chat_init') {
       setDesignModel({ models: msg.models, activeModel: msg.activeModel, needsSetup: msg.needsSetup, platformStatus: msg.platformStatus ?? null });

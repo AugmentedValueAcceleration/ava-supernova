@@ -353,10 +353,19 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
 
   const loadConversation = (conv: ConversationEntry) => {
     post({ type: 'load_conversation', id: conv.id });
-    // Jump to the chat view so the loaded thread is actually shown —
-    // clicking on the History page otherwise loads it silently in the
-    // background with no visible change.
-    onNavigate('chat');
+    // Jump to the room it belongs to, not always the main chat.
+    //
+    // This navigated to 'chat' unconditionally, so opening a health thread from
+    // Conversations dropped a workout plan into the code chat while the health
+    // room went on showing something else. The entry already knows its surface
+    // — it is what the room filter tabs above are built on.
+    const page = ({
+      health: 'health',
+      learning: 'learning-room',
+      design: 'creative',
+      social: 'creative',
+    } as const)[(conv.surface ?? 'main') as 'health' | 'learning' | 'design' | 'social'] ?? 'chat';
+    onNavigate(page as Parameters<typeof onNavigate>[0]);
   };
 
   const deleteConversation = (id: string) => {

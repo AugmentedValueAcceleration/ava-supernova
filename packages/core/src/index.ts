@@ -341,6 +341,11 @@ export {
 // History
 export { HistoryManager } from './history/history-manager.js';
 export type { ConversationRecord } from './history/storage.js';
+// Which room a conversation belongs to, derived from the scaffold tag its
+// messages already carry. Exported so the surfaces can restore a thread into
+// the room it came from rather than always into the main chat.
+export { deriveConversationSurface } from './history/conversation-title.js';
+export type { ConversationSurface } from './history/conversation-title.js';
 
 // i18n
 export { t, setLocale, setLocaleSync, loadLocaleStrings, getLocale, getSupportedLocales, getLanguageName, resolveLocale } from './i18n/index.js';

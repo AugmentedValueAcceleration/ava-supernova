@@ -1792,6 +1792,9 @@ export type ExtToDashboardMessage =
       type: 'conversation_loaded';
       conversationId: string;
       title: string;
+      /** Which room the thread came from, so the dashboard renders it there
+       *  rather than always in the main chat. Absent = main. */
+      surface?: ConversationSurface;
       messages: Array<{
         role: 'user' | 'assistant';
         content: string;

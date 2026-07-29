@@ -521,7 +521,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       historyManager: this.historyManager,
       postMessage: (m) => this.postMessage(m),
       getConversation: () => this.conversation,
-      setConversation: (c) => { this.conversation = c; },
+      setConversation: (c, surface) => {
+        // A restored room thread replaces THAT room's conversation. Assigning
+        // every restore to `this.conversation` put a health chat into the main
+        // chat and left the room showing something else entirely.
+        if (surface === 'health') { this.healthConversation = c; return; }
+        if (surface === 'design') { this.designConversation = c; return; }
+        if (surface === 'learning') { this.learningConversations.set('__lobby__', c); return; }
+        this.conversation = c;
+      },
       reflectOutgoing: () => this.reflectOutgoingSession(this.conversation),
       buildSystemPrompt: () => this.buildCurrentSystemPrompt(),
       // Refresh the context bar whenever a conversation is loaded /
