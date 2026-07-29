@@ -91,6 +91,86 @@ export const VIDEO_CAPTION_LIMITS: Readonly<Record<string, number>> = {
   facebook: 63206,
 };
 
+/**
+ * Image size per platform, in the `width*height` form DashScope takes.
+ *
+ * DERIVED, never chosen. A model that can pick a resolution can pick the wrong
+ * one, and a 1:1 image on a Reel is a wasted generation — so the tool looks the
+ * size up from the platform and the model never sees a dimension at all.
+ *
+ * Facebook is the trap and the reason the key is platform + FORMAT rather than
+ * platform alone: its feed wants 1.91:1 and its Reels want 9:16, so "facebook"
+ * on its own cannot answer the question.
+ */
+export const PLATFORM_IMAGE_SPECS: Readonly<Record<string, string>> = {
+  // Vertical short-form — the full screen.
+  'tiktok': '1080*1920',
+  'instagram:reel': '1080*1920',
+  'instagram:story': '1080*1920',
+  'youtube:short': '1080*1920',
+  'facebook:reel': '1080*1920',
+  // Instagram's feed: 4:5 over 1:1, because it takes more vertical screen and
+  // therefore more of the scroll.
+  'instagram': '1080*1350',
+  'instagram:feed': '1080*1350',
+  // Landscape / link-card shapes.
+  'tweet': '1600*900',
+  'x': '1600*900',
+  'youtube': '1600*900',
+  'linkedin': '1200*628',
+  'facebook': '1200*628',
+  'facebook:feed': '1200*628',
+  // Long-form headers and anything without a native shape.
+  'blog': '1600*900',
+  'post': '1280*1280',
+};
+
+/** Resolve a platform (optionally `platform:format`) to a DashScope size.
+ *  Falls back to square rather than guessing — a square crops to anything. */
+export function imageSizeFor(platform: string, format?: string): string {
+  const key = format ? `${platform}:${format}`.toLowerCase() : platform.toLowerCase();
+  return PLATFORM_IMAGE_SPECS[key]
+    ?? PLATFORM_IMAGE_SPECS[platform.toLowerCase()]
+    ?? '1280*1280';
+}
+
+/** A picture for a post — generated, or REPAIRED from one that already exists. */
+export interface PostImageInput {
+  /** What the picture shows. */
+  prompt: string;
+  /** Target platform — decides the size. */
+  platform: string;
+  /** Optional format within a platform ('feed' | 'reel' | 'story'). Facebook
+   *  and Instagram both mean different shapes depending on this. */
+  format?: string;
+  /**
+   * An existing image to EDIT rather than replace. Its presence switches the
+   * model to the edit family, so "make the headline bigger" changes only the
+   * headline instead of rolling a new picture and losing what already worked.
+   */
+  referenceImage?: string;
+  /** What to keep out of the frame. */
+  negativePrompt?: string;
+  title?: string;
+}
+
+/** What the surface reports back once the picture exists. */
+export interface PostImageWritten {
+  url: string;
+  /** The size actually used, so she can state it without guessing. */
+  size: string;
+  /** True when this was an edit of a supplied image rather than a fresh one. */
+  edited: boolean;
+}
+
+/**
+ * Surface-injected sink for post images. Core validates and derives the size;
+ * the implementation holds the provider key and makes the call.
+ */
+export interface PostImageStore {
+  write(image: PostImageInput): Promise<PostImageWritten>;
+}
+
 /** A hook option the model proposed via propose_hooks. */
 export interface HookOption {
   /** The opening line itself. */

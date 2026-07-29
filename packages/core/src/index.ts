@@ -50,12 +50,13 @@ export { findPhantomIngredients, checkRecipeShoppingList } from './recipes/index
 export type {
   SocialPostInput, SocialPostWritten, PostStore,
   VideoPostInput, VideoPostWritten, VideoPostStore,
+  PostImageInput, PostImageWritten, PostImageStore,
   HookOption, HookProposal, HookStore,
   WebSearchResult, WebSearchFn,
   PostMetric, PostMetricsReader,
   Beat, BeatStore,
 } from './social/index.js';
-export { POST_HARD_LIMITS, PLATFORM_TAG_POLICY, VIDEO_CAPTION_LIMITS } from './social/index.js';
+export { POST_HARD_LIMITS, PLATFORM_TAG_POLICY, VIDEO_CAPTION_LIMITS, PLATFORM_IMAGE_SPECS, imageSizeFor } from './social/index.js';
 
 // Health profile-fill registry (the "Ava fills your profile" flow)
 export {

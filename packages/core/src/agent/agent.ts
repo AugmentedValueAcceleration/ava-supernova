@@ -436,6 +436,9 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // missing she reported "write_video_post isn't in my toolset" and pointed
     // people at the Design Studio instead. She was reading her list correctly.
     'write_video_post',
+    // A post's picture is part of the post. Made here, not via a trip to the
+    // Design Studio — she cannot finish a post she is not allowed to illustrate.
+    'write_post_image',
     // Industry radar — what AI leaders/labs actually said this week (sourced)
     'scan_industry',
     // Ground every product claim in the real docs, never training memory
