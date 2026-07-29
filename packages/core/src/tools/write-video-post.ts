@@ -2,6 +2,10 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput } from '../social/index.js';
 
+/** Every video carries the link. Lower-case for the idempotency check; the
+ *  appended form is the same string, so it reads as written. */
+const AVA_URL = 'ava-supernova.com';
+
 /**
  * Emit a finished SHORT-FORM VIDEO POST — the clip, the voiceover, and the
  * caption as one artefact.
@@ -45,7 +49,7 @@ export class WriteVideoPostTool implements Tool {
         },
         caption: {
           type: 'string',
-          description: 'The post copy that goes in the caption box, ready to paste. Hashtags inline per the platform tag policy. The first line is the hook that decides whether anyone watches.',
+          description: 'The post copy that goes in the caption box, ready to paste. Hashtags inline per the platform tag policy. The first line is the hook that decides whether anyone watches. The link to ava-supernova.com is appended automatically — do not write it yourself, and never write "link in bio".',
         },
         duration: {
           type: 'number',
@@ -86,16 +90,27 @@ export class WriteVideoPostTool implements Tool {
 
     // Same deterministic enforcement as write_post: count by code point and
     // hand back the exact overage, so she trims and re-calls in the same turn.
+    // THE LINK GOES ON EVERY VIDEO, and it is appended here rather than asked
+    // for. A rule the model has to remember is a rule that is missing from the
+    // one post that mattered — and a video nobody can act on is a video that
+    // did nothing. Idempotent: if she already wrote it, it is not doubled.
+    const withLink = caption.toLowerCase().includes(AVA_URL)
+      ? caption
+      : `${caption}\n\n${AVA_URL}`;
+
+    // Enforced AFTER the link, because the link is not optional — if adding it
+    // breaks the cap then the caption is what gives, not the link.
     const hardLimit = VIDEO_CAPTION_LIMITS[platform];
     if (hardLimit) {
-      const len = Array.from(caption).length;
+      const len = Array.from(withLink).length;
       if (len > hardLimit) {
         const over = len - hardLimit;
         return {
           success: false,
           output:
-            `This ${platform} caption is ${len} characters — ${over} over the ${hardLimit} limit. ` +
-            `Trim ${over}+ characters and call write_video_post again.`,
+            `This ${platform} caption is ${len} characters with the ${AVA_URL} link appended — ` +
+            `${over} over the ${hardLimit} limit. Trim ${over}+ characters from the caption and ` +
+            `call write_video_post again. The link is not optional; the words are what give.`,
         };
       }
     }
@@ -104,7 +119,7 @@ export class WriteVideoPostTool implements Tool {
       platform,
       visual,
       script: script || undefined,
-      caption,
+      caption: withLink,
       duration: typeof args.duration === 'number' ? args.duration : undefined,
       title: ((args.title as string | undefined)?.trim()) || undefined,
       hashtags: Array.isArray(args.hashtags)
