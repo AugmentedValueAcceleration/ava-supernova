@@ -50,6 +50,7 @@ import {
   HEALTH_PROFILE_FIELDS,
   humaniseSlug,
   summariseCookingTime,
+  summariseTrainingLog,
   DESKTOP_TOOL_NAMES,
   LONGXIANG_ENABLED,
 } from '@ava/core';
@@ -73,7 +74,7 @@ import { creditsFor } from '@ava/core/billing/credits';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
 import { ExtensionHealthPlanStore } from './health-plan-store-impl.js';
-import { migrateHealthFromGlobalState, readProfile, writeProfile, emptyHealthProfile, listPlanIds, readPlan } from './health-file-store.js';
+import { migrateHealthFromGlobalState, readProfile, writeProfile, emptyHealthProfile, listPlanIds, readPlan, readAllSessions } from './health-file-store.js';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
@@ -4481,7 +4482,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'write':
         prefixed = getWriteModePrefix(text || 'What would you like to write?'); break;
       case 'health':
-        prefixed = getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary()); break;
+        prefixed = getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary(), this.getTrainingLogSummary()); break;
       case 'design':
         prefixed = getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom, this.activeDesignPanel); break;
       default:
@@ -4567,6 +4568,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (p?.food?.dislikes?.length) lines.push(`Food dislikes (keep out of plans): ${p.food.dislikes.join(', ')}`);
       if (p?.food?.cuisines?.length) lines.push(`Favourite cuisines: ${p.food.cuisines.join(', ')}`);
       return lines.length ? lines.join('\n') : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * What they ACTUALLY did, for the Health Room prefix.
+   *
+   * The room's rules tell her to read the log before planning and to report
+   * what she saw rather than what the plan asked for — this is what she reads.
+   * Reading it costs a directory scan of small JSON files; a year of training
+   * is a few hundred of them and only the last three weeks are summarised.
+   */
+  private getTrainingLogSummary(): string | undefined {
+    try {
+      const sessions = readAllSessions(join(this.accountScopedDir, 'health'));
+      if (!sessions.length) return undefined;
+      return summariseTrainingLog(sessions, new Date().toISOString().slice(0, 10)) ?? undefined;
     } catch {
       return undefined;
     }

@@ -369,7 +369,7 @@ At natural milestones — after a lesson lands, a quiz, a breakthrough, or a str
   return prefix;
 }
 
-export function getHealthRoomPrefix(userText: string, profileSummary?: string, plansSummary?: string): string {
+export function getHealthRoomPrefix(userText: string, profileSummary?: string, plansSummary?: string, trainingSummary?: string): string {
   let prefix = `[Health Room] You are Ava — the same Ava, with your full attention on this person's health and fitness. Not a separate assistant: same memory, same voice, same care. You've just turned to face their health.
 
 ## Tools available
@@ -495,6 +495,12 @@ At natural moments — after building a plan, hearing how a week went, a win or 
 
   if (profileSummary) prefix += `\n\n## What you know about them (their profile)\n${profileSummary}`;
   if (plansSummary) prefix += `\n\n## Their current plans (you can edit these with health_plan_update_day)\n${plansSummary}`;
+  // What they ACTUALLY did. After the plans on purpose: the plan is the
+  // intention, this is the evidence, and she should read them in that order.
+  if (trainingSummary) prefix += `
+
+## What they actually did
+${trainingSummary}`;
   prefix += `\n\n## Their request\n${userText}`;
   return prefix;
 }

@@ -63,6 +63,7 @@ export {
   humaniseSlug,
   summariseCookingTime,
 } from './health/profile-fields.js';
+export { summariseTrainingLog } from './health/session-summary.js';
 export type { ProfileFieldDef, ProfileFieldOption, ProfileFieldControl, CookingTime } from './health/profile-fields.js';
 
 // Personality
