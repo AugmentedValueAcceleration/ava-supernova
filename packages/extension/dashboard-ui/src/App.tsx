@@ -211,6 +211,11 @@ export function App() {
     });
   }, []);
   // Persist active page
+  // Live mirror of `page` for the message handler, which closes over state and
+  // would otherwise read whatever the page was when it was registered.
+  const pageRef = useRef(page);
+  useEffect(() => { pageRef.current = page; }, [page]);
+
   const setPagePersist = (p: Page) => {
     setPage(p);
     localStorage.setItem('ava-dashboard-page', p);
@@ -773,11 +778,21 @@ export function App() {
       // the floor — that silent drop is what left the Ava tab open and empty.
       if (to.current) to.current(msg);
       else pendingRoomRestoreRef.current.set(msg.surface, msg);
-      // Navigating to the health PAGE is not the same as opening the Ava tab on
-      // it — the page lands on Plans, so a restored conversation arrived
-      // correctly in the room's chat and the operator was looking at a
-      // calendar. Put them on the tab the thread is actually in.
-      if (msg.surface === 'health') setHealthInitialTab('ava');
+      // Put them on the tab the thread is in — but ONLY when they are actually
+      // here for it.
+      //
+      // This used to fire on every health restore, including the automatic
+      // restore-last at startup, and it ARMS a tab without navigating. So if
+      // the last conversation was a health one, the request sat primed until
+      // the next time you clicked into Nutrition & Fitness — and that landed
+      // you on Ava instead of Plans, every single session, for a thread you
+      // opened hours ago.
+      //
+      // Opening a conversation from History navigates to the page FIRST, so by
+      // the time the load arrives we are already on health and this is right.
+      // The startup restore arrives while you are somewhere else entirely, and
+      // now leaves the tab alone.
+      if (msg.surface === 'health' && pageRef.current === 'health') setHealthInitialTab('ava');
       return;
     }
     // Keep the Design Studio top-bar model/credit state in sync.
