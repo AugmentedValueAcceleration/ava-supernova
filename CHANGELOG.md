@@ -2,6 +2,36 @@
 
 All notable changes to Ava Supernova will be documented in this file.
 
+## Extension [0.90.0] - 2026-07-29
+
+### Added
+- **Nutrition & Fitness is now where the work happens.** Plans and the health profile moved in from Account, so everything about how you train and eat sits in one room.
+- **Shopping list from the plan** — aisle by aisle, a whole week at once, across every active plan, scaled to the household. States WHY a meal is absent rather than dropping it silently.
+- **Prep plan** — cook-once/eat-twice, per-evening load, and active minutes told apart from waiting minutes.
+- **Curated starters** — begin from a plan that already works instead of a blank fortnight.
+- **Training log** — sets, reps and load as performed. Skipped is recorded as a fact, never as a blank.
+- **The observing loop** — what you log writes to a shared health memory every persona can read. Progression stays the user's choice; Ava reports what she noticed rather than deciding readiness from one week.
+- Presentation: rest days read as rest days, logged days show on the calendar, week strip for long plans, and exercise/recipe photography on plan rows.
+
+### Fixed
+- A failed turn leaves a record instead of vanishing, and a slow model is no longer cut off at 30 seconds.
+- A conversation started in a room reopens in that room rather than the main chat.
+- Opening a plan from Programs now matches the calendar's day design, photography included, instead of being a second flat list.
+- Nutrition & Fitness opens on Plans again — a restored health thread was arming the Ava tab for the next visit.
+
+## Companion [0.6.0] - 2026-07-29
+
+### Added
+- **Weekly shopping list across every active plan**, folded by aisle, scaled to the household, with a reason attached whenever a meal did not make it on.
+- **Prep plan** — what to cook once, and which evenings are genuinely heavy.
+- **A real editor for the health profile** — injuries, equipment, exclusions, and honest weekday-versus-Sunday time.
+- **Start from a curated plan** rather than a blank calendar.
+
+### Fixed
+- Prescription pickers and a servings picker instead of typing numbers on a phone.
+- The month fits one screen, plan cards say what the plan is, and a sheet doing paid work can no longer be dismissed halfway through.
+- Desktop nav was missing Wellbeing and More entirely.
+
 ## Extension [0.89.0] - 2026-07-23
 
 ### Pick a single model, not just a fleet
