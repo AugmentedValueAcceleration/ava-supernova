@@ -184,10 +184,19 @@ function PlanOverlay({
   dayAssist?: HealthPlansProps['dayAssist'];
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6">
-      {/* Both phases are content-sized modals (capped at 88vh, body scrolls if
-          longer) — the builder is a tidy day editor, not a full-screen sprawl. */}
-      <div className={`flex flex-col overflow-hidden rounded-xl border border-[var(--accent)]/25 bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_color-mix(in_srgb,_var(--accent)_15%,_transparent)] max-h-[88vh] ${planOpen ? 'w-full max-w-[860px]' : 'w-full max-w-[720px]'}`}>
+    /* A DRAWER, matching the calendar's day view.
+       Opening a plan from Programs used to throw up a centred box, which hid
+       the list you had just picked from and looked like a different product to
+       the day panel one tab across. Same direction of travel: you clicked a
+       plan over there, it arrives here, and the list stays behind it.
+       Full height rather than max-h — a plan runs to eighty-four days, and a
+       panel that shrink-wraps its content resizes as you move between them. */
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-[2px]"
+      onClick={planOpen ? onClose : onCancelSetup}
+      style={{ animation: 'ava-fade-in 160ms ease-out' }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ animation: 'ava-slide-in-right 220ms cubic-bezier(0.32, 0.72, 0, 1)' }}
+        className={`flex h-full w-full flex-col overflow-hidden border-l border-[var(--accent)]/25 bg-gradient-to-b from-[#100d1a] to-[#150f22] shadow-[-24px_0_60px_rgba(0,0,0,0.5)] ${planOpen ? 'max-w-[860px]' : 'max-w-[720px]'}`}>
         {planOpen ? (
           <PlanBuilder
             plan={planOpen}
@@ -1963,14 +1972,30 @@ function DayReadView({ day, exerciseDetails, recipeDetails, totals, estimated, o
     onLoadExerciseDetail(ex.ref.slug);
     setDetail({ kind: 'exercise', slug: ex.ref.slug, name: ex.name || t('health.plans.exercise_fallback') });
   };
+  /* Pull the catalogue detail for everything on this day, because that is where
+     the images live. The calendar panel does the same on the way in; without it
+     the cards render their fallback icon forever and the redesign looks broken
+     rather than unloaded. */
+  useEffect(() => {
+    for (const ex of day.training) if (ex.ref && !exerciseDetails[ex.ref.slug]) onLoadExerciseDetail(ex.ref.slug);
+    for (const meal of day.meals) if (meal.ref && !recipeDetails[meal.ref.slug]) onLoadRecipeDetail(meal.ref.slug);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day.day_index, day.training.length, day.meals.length]);
+
   const openMeal = (meal: HealthPlanMeal) => {
     if (!meal.ref) return;
     onLoadRecipeDetail(meal.ref.slug);
     setDetail({ kind: 'recipe', slug: meal.ref.slug, name: meal.name || t('health.plans.meal_fallback') });
   };
 
+  /* Same card as the calendar's day panel, via AgendaCardInner — a plan opened
+     from Programs and the same day opened from the calendar were two different
+     designs for identical content: one with demonstration photos and recipe
+     heroes, one a wall of text. The images are the point. A movement you have
+     not done before is a name you cannot picture, and a meal is a decision you
+     make with your eyes. */
   const cardCls = (clickable: boolean) =>
-    `flex flex-col gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-input)]/30 px-3 py-2 text-left transition ${
+    `group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-input)]/30 px-3 py-2.5 text-left transition ${
       clickable ? 'cursor-pointer hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5' : 'cursor-default'
     }`;
   const emptyCls = 'rounded-md border border-dashed border-[var(--border)] px-3 py-2.5 text-[11px] italic text-[var(--text-muted)]';
@@ -1980,18 +2005,28 @@ function DayReadView({ day, exerciseDetails, recipeDetails, totals, estimated, o
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('health.plans.training')}</div>
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          <span aria-hidden><Icon.fitness size={14} /></span>{t('health.plans.training')}
+          {day.training.length > 0 && <span className="opacity-60">· {day.training.length}</span>}
+        </div>
         {day.training.length > 0 ? (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {day.training.map(ex => {
               const clickable = !!ex.ref;
               return (
                 <button key={ex.id} type="button" disabled={!clickable} onClick={() => openExercise(ex)} className={cardCls(clickable)}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{ex.name || t('health.plans.exercise_fallback')}</span>
-                    {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
-                  </div>
-                  <span className="text-[10px] text-[var(--text-muted)]">{exerciseSummary(ex)}</span>
+                  <AgendaCardInner
+                    item={{
+                      id: ex.id, itemId: ex.id, dayIndex: day.day_index, kind: 'exercise',
+                      slug: ex.ref?.slug, title: ex.name || t('health.plans.exercise_fallback'),
+                      meta: exerciseSummary(ex),
+                      thumb: ex.ref ? (exerciseDetails[ex.ref.slug]?.thumbnail_url ?? null) : null,
+                      planId: '', planTitle: '',
+                    }}
+                    icon={<Icon.fitness size={14} />}
+                    accent="var(--accent)"
+                  />
+                  {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
                 </button>
               );
             })}
@@ -2002,7 +2037,10 @@ function DayReadView({ day, exerciseDetails, recipeDetails, totals, estimated, o
       </div>
 
       <div className="space-y-1.5">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('health.plans.meals')}</div>
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          <span aria-hidden><Icon.meal size={14} /></span>{t('health.plans.meals')}
+          {day.meals.length > 0 && <span className="opacity-60">· {day.meals.length}</span>}
+        </div>
         {day.meals.length > 0 ? (
           <>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -2010,13 +2048,18 @@ function DayReadView({ day, exerciseDetails, recipeDetails, totals, estimated, o
                 const clickable = !!meal.ref;
                 return (
                   <button key={meal.id} type="button" disabled={!clickable} onClick={() => openMeal(meal)} className={cardCls(clickable)}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">
-                        <span className="mr-1.5 text-[10px] uppercase text-[var(--text-muted)]">{mealSlotLabel(meal.slot)}</span>{meal.name || t('health.plans.meal_fallback')}
-                      </span>
-                      {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
-                    </div>
-                    <span className="text-[10px] text-[var(--text-muted)]">{mealSummary(meal, recipeDetails)}</span>
+                    <AgendaCardInner
+                      item={{
+                        id: meal.id, itemId: meal.id, dayIndex: day.day_index, kind: 'recipe',
+                        slug: meal.ref?.slug, title: meal.name || t('health.plans.meal_fallback'),
+                        meta: mealSummary(meal, recipeDetails), slot: mealSlotLabel(meal.slot),
+                        thumb: meal.ref ? (recipeDetails[meal.ref.slug]?.hero_image_url ?? null) : null,
+                        planId: '', planTitle: '',
+                      }}
+                      icon={<Icon.meal size={14} />}
+                      accent="#f59e0b"
+                    />
+                    {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
                   </button>
                 );
               })}
