@@ -2,6 +2,17 @@
 
 All notable changes to Ava Supernova will be documented in this file.
 
+## Extension [0.91.0] - 2026-07-30
+
+### Added
+- **Record what happened where you are looking at it.** Opening an exercise or meal from a day that has already been widens the panel: the guide keeps its column, and beside it is what actually happened.
+- Exercises are Did it / Skipped. **Meals have three states** — ate it, ate something else, skipped — because "I ate, just not this" is the commonest truth of a week and the only one Ava learns from.
+- **A note in your own words**, with the box stating outright that Ava reads it.
+
+### Fixed
+- **Skipped now carries its reason.** It shared a field with your note, so writing one destroyed the other; "skipped — shoulder was still sore" now survives intact and reaches the training summary.
+- Nothing can be recorded on a day that has not happened yet, and tapping a choice again clears it.
+
 ## Extension [0.90.0] - 2026-07-29
 
 ### Added

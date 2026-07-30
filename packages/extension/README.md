@@ -186,9 +186,17 @@ Ava's care goes past the codebase. Health mode adds a full fitness and nutrition
 
 **A real catalogue.** Exercises across every style — strength, hypertrophy, conditioning, HIIT, mobility, yoga, pilates, recovery, running, cycling, hybrid — and recipes across every course: breakfast, mains, starters, sides, snacks, desserts. Search, filter, open any entry for full detail. Submit your own, too.
 
-**Plans built around you.** Tell Ava your goal and she generates a structured fitness, meal, or combined plan — day by day, shaped by your profile: level, goals, dietary needs, schedule. Track each day as you go.
+**Plans built around you.** Tell Ava your goal and she generates a structured fitness, meal, or combined plan — day by day, shaped by your profile: level, goals, injuries, dietary needs, equipment, and how much time you actually have on a weekday versus a Sunday.
 
-**Same memory, same Ava.** The goals you set and the progress you log live in the same memory as your code decisions — so it all connects.
+**A shopping list built from the plan.** Aisle by aisle, a whole week at once, across every plan you are running, scaled to how many people you are feeding. When a meal is not on the list, Ava tells you why — an ingredient she could not read is a different problem from one already in your cupboard, and you should know which.
+
+**A prep plan for where the work lands.** What to cook once and eat twice, which evenings are genuinely heavy, and the difference between minutes you stand over a pan and minutes it just sits there.
+
+**A training log that records what actually happened.** The sets, the reps, the load you really used — not the load that was written down. Skipped is recorded as a fact, never as a blank, because those two things mean entirely different things and software that treats them the same is guessing at your life. Tick a movement or a meal off where you are looking at it, and leave a note in your own words.
+
+**And progression stays your call.** One week is not enough evidence for anyone to decide you are ready to add weight. So Ava does not. She tells you what she noticed — you hit the top of the rep range twice, you cut Wednesday short, your note said your back was tight — and you decide, because you know things about your body that no log contains.
+
+**Same memory, same Ava.** What you log writes to the same memory as your code decisions, so the version of her helping in your kitchen knows what your shoulder did on Tuesday.
 
 ---
 
