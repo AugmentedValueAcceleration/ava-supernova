@@ -62,6 +62,10 @@ export class WriteVideoPostTool implements Tool {
           description: 'The hashtags you chose, so the UI can show them as an editable chip row. Within the platform tag policy.',
         },
         tag_note: { type: 'string', description: 'One short line on why these tags.' },
+        seed: {
+          type: 'number',
+          description: 'Reuse the seed a previous clip reported to change ONE thing and see only that thing change. Without it every attempt is a different clip entirely, which is re-rolling rather than fixing. Omit for a genuinely new idea.',
+        },
       },
       required: ['platform', 'visual', 'caption'],
     },
@@ -126,6 +130,7 @@ export class WriteVideoPostTool implements Tool {
         ? (args.hashtags as unknown[]).map(h => String(h).trim().replace(/^#/, '')).filter(Boolean)
         : [],
       tagNote: ((args.tag_note as string | undefined)?.trim()) || undefined,
+      seed: typeof args.seed === 'number' && Number.isFinite(args.seed) ? args.seed : undefined,
     };
 
     try {
@@ -142,7 +147,9 @@ export class WriteVideoPostTool implements Tool {
         success: true,
         output:
           `Video post queued for ${platform} — the caption is on the card now, the clip is still rendering ` +
-          `(job ${written.taskId}). You have not seen it: say what you made and why that angle, never how it looks.${voiceLine}`,
+          `(job ${written.taskId}). Seed ${written.seed} — pass that same seed back if they ask for a change, ` +
+          `so you adjust THIS clip instead of rolling a different one. ` +
+          `You have not seen it: say what you made and why that angle, never how it looks.${voiceLine}`,
       };
     } catch (err) {
       return {

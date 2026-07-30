@@ -56,12 +56,22 @@ export interface VideoPostInput {
   title?: string;
   hashtags?: string[];
   tagNote?: string;
+  /**
+   * Fix the dice. Without a seed every regeneration lands in a different
+   * universe, so changing one word and comparing is impossible — you are not
+   * iterating, you are re-rolling. Pass the seed a previous clip reported to
+   * change ONE thing and see only that thing change.
+   */
+  seed?: number;
 }
 
 /** What the surface reports back once the job is accepted. */
 export interface VideoPostWritten {
   /** Generation job id — the surface polls this; the clip is NOT ready yet. */
   taskId: string;
+  /** The seed actually used. Reported so the next attempt can reuse it and
+   *  change one thing, rather than starting from scratch. */
+  seed: number;
   /** False when the voiceover failed, so the clip carries the model's own dub
    *  rather than her voice. She must say so rather than let it pass as hers. */
   voiced: boolean;
