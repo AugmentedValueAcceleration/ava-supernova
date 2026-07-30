@@ -4070,6 +4070,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': '¿Qué te gustaría cambiar en este día?',
   'health.assist.ask': 'Preguntar',
   'health.assist.working': 'Ava está trabajando en ello. Esto tarda aproximadamente un minuto.',
+  'health.assist.needs_account': 'La generación de Ava necesita una cuenta de plataforma o tu propia clave de proveedor en Ajustes.',
   'health.assist.failed': 'Eso no funcionó.',
   'health.assist.current': 'Este día ahora',
   'health.assist.proposed': 'Sugerencia de Ava',

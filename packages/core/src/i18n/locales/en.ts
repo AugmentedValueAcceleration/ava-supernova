@@ -2845,6 +2845,7 @@ export const enStrings = {
   'health.assist.placeholder': 'What would you like changed about this day?',
   'health.assist.ask': 'Ask',
   'health.assist.working': 'Ava is working on it. This takes about a minute.',
+  'health.assist.needs_account': 'Ava generation needs a platform account or your own provider key in Settings.',
   'health.assist.failed': 'That did not work.',
   'health.assist.current': 'This day now',
   'health.assist.proposed': "Ava's suggestion",

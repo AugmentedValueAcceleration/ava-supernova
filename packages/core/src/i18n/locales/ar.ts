@@ -4098,6 +4098,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'ماذا تود تغييره في هذا اليوم؟',
   'health.assist.ask': 'اسأل',
   'health.assist.working': 'آفا تعمل على ذلك. يستغرق الأمر دقيقة تقريبًا.',
+  'health.assist.needs_account': 'يتطلب التوليد عبر Ava حساباً على المنصة أو مفتاح مزوّد خاصاً بك في الإعدادات.',
   'health.assist.failed': 'لم ينجح ذلك.',
   'health.assist.current': 'هذا اليوم الآن',
   'health.assist.proposed': 'اقتراح آفا',

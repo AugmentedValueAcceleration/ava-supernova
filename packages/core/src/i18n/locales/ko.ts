@@ -4098,6 +4098,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': '이 날에 대해 무엇을 변경하고 싶으신가요?',
   'health.assist.ask': '질문하기',
   'health.assist.working': 'Ava 가 작업 중입니다. 약 1 분이 소요됩니다.',
+  'health.assist.needs_account': 'Ava 생성에는 플랫폼 계정 또는 설정에 등록한 본인의 제공자 키가 필요합니다.',
   'health.assist.failed': '작동하지 않았습니다.',
   'health.assist.current': '현재 이 날',
   'health.assist.proposed': 'Ava 의 제안',

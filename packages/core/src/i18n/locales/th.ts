@@ -4098,6 +4098,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'อยากปรับแก้เรื่องอะไรในวันนี้?',
   'health.assist.ask': 'ถาม',
   'health.assist.working': 'Ava กำลังดำเนินการอยู่ ใช้เวลาประมาณหนึ่งนาที',
+  'health.assist.needs_account': 'การสร้างด้วย Ava ต้องมีบัญชีแพลตฟอร์มหรือคีย์ผู้ให้บริการของคุณเองในการตั้งค่า',
   'health.assist.failed': 'ไม่สำเร็จ',
   'health.assist.current': 'สถานะวันนี้',
   'health.assist.proposed': 'คำแนะนำของ Ava',

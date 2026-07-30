@@ -4098,6 +4098,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': '您希望這天有哪些改變？',
   'health.assist.ask': '詢問',
   'health.assist.working': 'Ava 正在處理中。這大約需要一分鐘。',
+  'health.assist.needs_account': 'Ava 生成需要平台帳號，或在設定中填入你自己的供應商金鑰。',
   'health.assist.failed': '操作失敗。',
   'health.assist.current': '目前這天',
   'health.assist.proposed': 'Ava 的建議',

@@ -4078,6 +4078,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Was möchtest du an diesem Tag ändern?',
   'health.assist.ask': 'Fragen',
   'health.assist.working': 'Ava arbeitet daran. Das dauert etwa eine Minute.',
+  'health.assist.needs_account': 'Für Avas Generierung brauchst du ein Plattform-Konto oder deinen eigenen Provider-Schlüssel in den Einstellungen.',
   'health.assist.failed': 'Das hat nicht funktioniert.',
   'health.assist.current': 'Aktueller Tag',
   'health.assist.proposed': 'Avas Vorschlag',

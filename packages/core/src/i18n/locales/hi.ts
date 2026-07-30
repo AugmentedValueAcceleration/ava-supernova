@@ -4098,6 +4098,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'इस दिन में क्या बदलाव चाहेंगे?',
   'health.assist.ask': 'पूछें',
   'health.assist.working': 'अवा इसके साथ काम कर रही है। इसमें लगभग एक मिनट लगेगा।',
+  'health.assist.needs_account': 'Ava से जनरेट करने के लिए प्लेटफ़ॉर्म खाता या सेटिंग्स में आपकी अपनी प्रोवाइडर की ज़रूरत है।',
   'health.assist.failed': 'यह कामयाब नहीं हुआ।',
   'health.assist.current': 'अभी का यह दिन',
   'health.assist.proposed': 'अवा का सुझाव',

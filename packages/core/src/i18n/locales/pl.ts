@@ -4078,6 +4078,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Co chciałbyś zmienić w tym dniu?',
   'health.assist.ask': 'Zapytaj',
   'health.assist.working': 'Ava pracuje nad tym. To zajmie około minutę.',
+  'health.assist.needs_account': 'Generowanie przez Avę wymaga konta platformy lub własnego klucza dostawcy w Ustawieniach.',
   'health.assist.failed': 'To nie zadziałało.',
   'health.assist.current': 'Aktualny dzień',
   'health.assist.proposed': 'Sugestia Avy',

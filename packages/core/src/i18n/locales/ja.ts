@@ -4100,6 +4100,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'この日に変更したいことはありますか？',
   'health.assist.ask': '聞く',
   'health.assist.working': 'Ava が処理しています。約 1 分かかります。',
+  'health.assist.needs_account': 'Ava の生成には、プラットフォームアカウントか、設定にご自身のプロバイダーキーが必要です。',
   'health.assist.failed': 'うまくいきませんでした。',
   'health.assist.current': '現在のこの日',
   'health.assist.proposed': 'Ava の提案',

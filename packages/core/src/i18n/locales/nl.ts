@@ -4098,6 +4098,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Wat wil je veranderen aan deze dag?',
   'health.assist.ask': 'Vraag',
   'health.assist.working': 'Ava werkt eraan. Dit duurt ongeveer een minuut.',
+  'health.assist.needs_account': 'Ava-generatie vereist een platformaccount of je eigen provider-sleutel in Instellingen.',
   'health.assist.failed': 'Dat werkte niet.',
   'health.assist.current': 'Deze dag nu',
   'health.assist.proposed': 'Suggestie van Ava',

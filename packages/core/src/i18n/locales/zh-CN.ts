@@ -4078,6 +4078,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': '你想修改这一天中的什么内容？',
   'health.assist.ask': '提问',
   'health.assist.working': 'Ava 正在处理。大约需要一分钟。',
+  'health.assist.needs_account': 'Ava 生成需要平台账户，或在设置中填入你自己的服务商密钥。',
   'health.assist.failed': '操作未成功。',
   'health.assist.current': '今日现状',
   'health.assist.proposed': 'Ava 的建议',

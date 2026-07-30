@@ -4098,6 +4098,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Bạn muốn thay đổi gì về ngày này?',
   'health.assist.ask': 'Hỏi',
   'health.assist.working': 'Ava đang xử lý. Việc này mất khoảng một phút.',
+  'health.assist.needs_account': 'Tạo nội dung bằng Ava cần tài khoản nền tảng hoặc khóa nhà cung cấp của riêng bạn trong Cài đặt.',
   'health.assist.failed': 'Việc đó không thành công.',
   'health.assist.current': 'Ngày này hiện tại',
   'health.assist.proposed': 'Gợi ý của Ava',

@@ -4096,6 +4096,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Apa yang ingin Anda ubah tentang hari ini?',
   'health.assist.ask': 'Tanya',
   'health.assist.working': 'Ava sedang mengerjakannya. Ini memakan waktu sekitar satu menit.',
+  'health.assist.needs_account': 'Generasi Ava memerlukan akun platform atau kunci penyedia Anda sendiri di Pengaturan.',
   'health.assist.failed': 'Itu tidak berhasil.',
   'health.assist.current': 'Hari ini sekarang',
   'health.assist.proposed': 'Saran Ava',

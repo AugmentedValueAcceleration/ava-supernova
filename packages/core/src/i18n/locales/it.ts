@@ -4098,6 +4098,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Cosa vorresti cambiare in questa giornata?',
   'health.assist.ask': 'Chiedi',
   'health.assist.working': 'Ava ci sta lavorando. Ci vorrà circa un minuto.',
+  'health.assist.needs_account': 'La generazione di Ava richiede un account della piattaforma o una tua chiave provider nelle Impostazioni.',
   'health.assist.failed': 'Non ha funzionato.',
   'health.assist.current': 'Questa giornata',
   'health.assist.proposed': 'Suggerimento di Ava',

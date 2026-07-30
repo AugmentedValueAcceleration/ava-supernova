@@ -4098,6 +4098,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Bu günle ilgili ne değiştirmek istersiniz?',
   'health.assist.ask': 'Soru Sor',
   'health.assist.working': 'Ava üzerinde çalışıyor. Bu yaklaşık bir dakika sürer.',
+  'health.assist.needs_account': 'Ava üretimi için bir platform hesabı ya da Ayarlar’da kendi sağlayıcı anahtarınız gerekir.',
   'health.assist.failed': 'Bu işe yaramadı.',
   'health.assist.current': 'Bu gün şu an',
   'health.assist.proposed': 'Ava\'nın önerisi',

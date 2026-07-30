@@ -4078,6 +4078,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Що б ви хотіли змінити в цьому дні?',
   'health.assist.ask': 'Запитати',
   'health.assist.working': 'Ава працює над цим. Це займе близько хвилини.',
+  'health.assist.needs_account': 'Для генерації Ava потрібен обліковий запис платформи або ваш власний ключ провайдера в налаштуваннях.',
   'health.assist.failed': 'Це не спрацювало.',
   'health.assist.current': 'Цей день зараз',
   'health.assist.proposed': 'Пропозиція Ави',

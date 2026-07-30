@@ -4098,6 +4098,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'health.assist.placeholder': 'Что бы вы хотели изменить в этом дне?',
   'health.assist.ask': 'Спросить',
   'health.assist.working': 'Ava работает над этим. Это займёт около минуты.',
+  'health.assist.needs_account': 'Для генерации Ava нужен аккаунт платформы или ваш собственный ключ провайдера в настройках.',
   'health.assist.failed': 'Не удалось.',
   'health.assist.current': 'Текущий день',
   'health.assist.proposed': 'Предложение Ava',
