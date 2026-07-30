@@ -137,6 +137,11 @@
       "import": "./dist/health/duplicate.js",
       "require": "./dist/health/duplicate.js",
       "types": "./dist/health/duplicate.d.ts"
+    },
+    "./health/starters": {
+      "import": "./dist/health/starters.js",
+      "require": "./dist/health/starters.js",
+      "types": "./dist/health/starters.d.ts"
     }
   },
   "scripts": {
