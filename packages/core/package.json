@@ -107,6 +107,11 @@
       "import": "./dist/health/session-summary.js",
       "require": "./dist/health/session-summary.js",
       "types": "./dist/health/session-summary.d.ts"
+    },
+    "./health/types": {
+      "import": "./dist/health/types.js",
+      "require": "./dist/health/types.js",
+      "types": "./dist/health/types.d.ts"
     }
   },
   "scripts": {
