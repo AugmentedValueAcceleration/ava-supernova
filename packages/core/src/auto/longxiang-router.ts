@@ -1,13 +1,17 @@
 import type { TaskCategory } from './types.js';
 
 /**
- * Longxiang mode (龙翔, "soaring dragon") — open-weights routing.
+ * Longxiang mode (龙翔, "soaring dragon") — the Chinese-model fleet.
  *
  * The fourth fleet. Where Supernova is the polyglot performance stack and
- * Aurora is the European sovereign stack, Longxiang is the *open-weights*
- * stack: every seat is a model whose weights are published under a licence
- * that permits commercial use, so a Longxiang deployment can in principle be
- * self-hosted end to end with no vendor in the loop.
+ * Aurora is the European sovereign stack, Longxiang is the Chinese-model
+ * stack, led by the strongest coder we serve.
+ *
+ * The AMBITION is open weights end to end — every seat a model whose weights
+ * are published under a licence permitting commercial use, so a deployment
+ * could be self-hosted with no vendor in the loop. That is not true yet; see
+ * the open-weights section below. The user-facing copy says "Chinese-model
+ * fleet" and will keep saying it until the weights are actually public.
  *
  *   - Kimi K3 (Moonshot)     — Coordinator AND Builder. The fleet's lead seat,
  *                              held by one model deliberately: K3 is the

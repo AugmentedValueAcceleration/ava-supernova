@@ -3953,7 +3953,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
   'dash.model.sub.add_moonshot': 'Voeg Moonshot-sleutel toe',
   'dash.model.sub.connect_longxiang': 'Verbind of voeg 3 sleutels toe',
-  'dash.model.longxiang_title': 'Longxiang (龙翔) — de vloot met open gewichten. Kimi K3 leidt als coördinator en Builder, Qwen 3.7 Plus verzorgt middensegment taken en visie, DeepSeek V4 Flash regelt het volume. Beschikbaar op een abonnement, of met uw eigen Moonshot + Qwen + DeepSeek sleutels. K3 is het duurste model dat we bieden, dus het verbruikt meer credits per beurt dan de andere vloten.',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — de Chinese modellenvloot. Kimi K3 leidt als coördinator en Builder, Qwen 3.7 Plus verzorgt middensegment taken en visie, DeepSeek V4 Flash regelt het volume. Beschikbaar op een abonnement, of met uw eigen Moonshot + Qwen + DeepSeek sleutels. K3 is het duurste model dat we bieden, dus het verbruikt meer credits per beurt dan de andere vloten.',
   'docs.show_details': 'Toon details',
   'health.fill.field.experience': 'Trainingservaring',
   'health.fill.field.days_per_week': 'Trainingsdagen per week',

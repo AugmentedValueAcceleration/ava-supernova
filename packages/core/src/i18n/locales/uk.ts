@@ -3933,7 +3933,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.byok_longxiang': 'Власний ключ · Moonshot + Qwen + DeepSeek',
   'dash.model.sub.add_moonshot': 'Додати ключ Moonshot',
   'dash.model.sub.connect_longxiang': 'Підключити або додати 3 ключі',
-  'dash.model.longxiang_title': 'Longxiang (龙翔) — флот моделей з відкритим доступом. Kimi K3 виступає координатором і Будівником, Qwen 3.7 Plus обробляє збірки середнього рівня та візуальні можливості, DeepSeek V4 Flash опрацьовує великі обсяги. Доступно за планом або зі своїми ключами Moonshot + Qwen + DeepSeek. K3 — найдорожча модель, яку ми надаємо, тому вона витрачає більше кредитів за хід, ніж інші флоти.',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — флот китайських моделей. Kimi K3 виступає координатором і Будівником, Qwen 3.7 Plus обробляє збірки середнього рівня та візуальні можливості, DeepSeek V4 Flash опрацьовує великі обсяги. Доступно за планом або зі своїми ключами Moonshot + Qwen + DeepSeek. K3 — найдорожча модель, яку ми надаємо, тому вона витрачає більше кредитів за хід, ніж інші флоти.',
   'docs.show_details': 'Показати деталі',
   'health.fill.field.experience': 'Досвід тренувань',
   'health.fill.field.days_per_week': 'Днів тренувань на тиждень',

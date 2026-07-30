@@ -13,7 +13,7 @@ export interface AvaConfig {
    *  • 'auto'      = Maestro, Qwen-only tier-differentiated (default)
    *  • 'supernova' = DeepSeek polyglot with Qwen builder fallback
    *  • 'aurora'    = Mistral-only EU-sovereign three-tier
-   *  • 'longxiang' = open-weights Kimi/Qwen/DeepSeek, BYOK-only
+   *  • 'longxiang' = Kimi K3 / Qwen / DeepSeek, on a plan or your own keys
    * The CLI exposes this via the /route command; the extension and IDE
    * surface it in their Auto Mode settings.
    *

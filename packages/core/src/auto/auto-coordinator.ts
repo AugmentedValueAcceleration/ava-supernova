@@ -312,7 +312,7 @@ export class AutoCoordinator {
           coordinator = {
             provider: resolved.provider,
             model: resolved.model,
-            reason: `${resolved.model.name} — Longxiang coordinator (open-weights routing)`,
+            reason: `${resolved.model.name} — Longxiang coordinator (Chinese-model routing)`,
           };
           break;
         }

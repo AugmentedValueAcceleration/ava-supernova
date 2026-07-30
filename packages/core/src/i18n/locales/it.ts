@@ -3953,7 +3953,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
   'dash.model.sub.add_moonshot': 'Aggiungi chiave Moonshot',
   'dash.model.sub.connect_longxiang': 'Connetti o aggiungi 3 chiavi',
-  'dash.model.longxiang_title': 'Longxiang (龙翔) — la flotta open-weights. Kimi K3 guida come coordinatore e Costruttore, Qwen 3.7 Plus gestisce versioni di fascia media e visione, DeepSeek V4 Flash gestisce il volume. Disponibile con un piano, o con le tue chiavi Moonshot + Qwen + DeepSeek. K3 è il modello più costoso che offriamo, quindi utilizza più crediti per turno rispetto alle altre flotte.',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — la flotta di modelli cinesi. Kimi K3 guida come coordinatore e Costruttore, Qwen 3.7 Plus gestisce versioni di fascia media e visione, DeepSeek V4 Flash gestisce il volume. Disponibile con un piano, o con le tue chiavi Moonshot + Qwen + DeepSeek. K3 è il modello più costoso che offriamo, quindi utilizza più crediti per turno rispetto alle altre flotte.',
   'docs.show_details': 'Mostra i dettagli',
   'health.fill.field.experience': 'Esperienza di allenamento',
   'health.fill.field.days_per_week': 'Giorni di allenamento a settimana',

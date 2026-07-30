@@ -3953,7 +3953,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
   'dash.model.sub.add_moonshot': 'Moonshot anahtarı ekle',
   'dash.model.sub.connect_longxiang': '3 anahtar bağla veya ekle',
-  'dash.model.longxiang_title': 'Longxiang (龙翔) — açık ağırlıklı filo. Kimi K3 koordinatör ve Oluşturucu olarak önderlik eder, Qwen 3.7 Plus orta seviye oluşturmaları ve görüntü işleme yeteneklerini taşır, DeepSeek V4 Flash ise hacmi yönetir. Bir paket üzerinden veya kendi Moonshot + Qwen + DeepSeek anahtarlarınızla kullanılabilir. K3 sunduğumuz en pahalı modeldir, bu nedenle diğer filolara göre her turda daha fazla kredi kullanır.',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — Çin modeli filosu. Kimi K3 koordinatör ve Oluşturucu olarak önderlik eder, Qwen 3.7 Plus orta seviye oluşturmaları ve görüntü işleme yeteneklerini taşır, DeepSeek V4 Flash ise hacmi yönetir. Bir paket üzerinden veya kendi Moonshot + Qwen + DeepSeek anahtarlarınızla kullanılabilir. K3 sunduğumuz en pahalı modeldir, bu nedenle diğer filolara göre her turda daha fazla kredi kullanır.',
   'docs.show_details': 'Detayları göster',
   'health.fill.field.experience': 'Antrenman deneyimi',
   'health.fill.field.days_per_week': 'Haftada antrenman günleri',

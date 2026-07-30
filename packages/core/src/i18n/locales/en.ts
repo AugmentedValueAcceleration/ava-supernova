@@ -1943,7 +1943,7 @@ export const enStrings = {
   'dash.model.maestro_title': 'Maestro — single Qwen 3.7 Plus conductor. Daily work, predictable cost.',
   // Careful with this string: it must NOT claim "open weights end to end"
   // until Qwen 3.7 Plus weights are actually public. See longxiang-router.ts.
-  'dash.model.longxiang_title': 'Longxiang (龙翔) — the open-weights fleet. Kimi K3 leads as coordinator and Builder, Qwen 3.7 Plus carries mid-tier builds and vision, DeepSeek V4 Flash handles volume. Available on a plan, or with your own Moonshot + Qwen + DeepSeek keys. K3 is the priciest model we serve, so it uses more credits per turn than the other fleets.',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — the Chinese-model fleet. Kimi K3 leads as coordinator and Builder, Qwen 3.7 Plus carries mid-tier builds and vision, DeepSeek V4 Flash handles volume. Available on a plan, or with your own Moonshot + Qwen + DeepSeek keys. K3 is the priciest model we serve, so it uses more credits per turn than the other fleets.',
 
   // ── Command Centre chrome ────────────────────────────────────────────────
   'dash.cc.call_you_ph': 'What should Ava call you?',

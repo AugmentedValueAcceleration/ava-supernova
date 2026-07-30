@@ -3953,7 +3953,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
   'dash.model.sub.add_moonshot': 'Thêm khóa Moonshot',
   'dash.model.sub.connect_longxiang': 'Kết nối hoặc thêm 3 khóa',
-  'dash.model.longxiang_title': 'Longxiang (龙翔) — đội mô hình trọng lượng mở. Kimi K3 dẫn đầu với vai trò điều phối và người xây dựng, Qwen 3.7 Plus đảm nhận các bản dựng tầm trung và thị giác, DeepSeek V4 Flash xử lý khối lượng lớn. Có sẵn theo gói, hoặc với khóa Moonshot + Qwen + DeepSeek của riêng bạn. K3 là mô hình đắt nhất chúng tôi cung cấp, nên tiêu tốn nhiều tín dụng hơn mỗi lượt so với các đội khác.',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — đội mô hình Trung Quốc. Kimi K3 dẫn đầu với vai trò điều phối và người xây dựng, Qwen 3.7 Plus đảm nhận các bản dựng tầm trung và thị giác, DeepSeek V4 Flash xử lý khối lượng lớn. Có sẵn theo gói, hoặc với khóa Moonshot + Qwen + DeepSeek của riêng bạn. K3 là mô hình đắt nhất chúng tôi cung cấp, nên tiêu tốn nhiều tín dụng hơn mỗi lượt so với các đội khác.',
   'docs.show_details': 'Hiển thị chi tiết',
   'health.fill.field.experience': 'Kinh nghiệm tập luyện',
   'health.fill.field.days_per_week': 'Số ngày tập mỗi tuần',
