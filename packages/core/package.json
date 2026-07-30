@@ -132,6 +132,11 @@
       "import": "./dist/health/cooking.js",
       "require": "./dist/health/cooking.js",
       "types": "./dist/health/cooking.d.ts"
+    },
+    "./health/duplicate": {
+      "import": "./dist/health/duplicate.js",
+      "require": "./dist/health/duplicate.js",
+      "types": "./dist/health/duplicate.d.ts"
     }
   },
   "scripts": {
