@@ -97,6 +97,16 @@
       "import": "./dist/learning/progression-export.js",
       "require": "./dist/learning/progression-export.js",
       "types": "./dist/learning/progression-export.d.ts"
+    },
+    "./health/session-types": {
+      "import": "./dist/health/session-types.js",
+      "require": "./dist/health/session-types.js",
+      "types": "./dist/health/session-types.d.ts"
+    },
+    "./health/session-summary": {
+      "import": "./dist/health/session-summary.js",
+      "require": "./dist/health/session-summary.js",
+      "types": "./dist/health/session-summary.d.ts"
     }
   },
   "scripts": {
