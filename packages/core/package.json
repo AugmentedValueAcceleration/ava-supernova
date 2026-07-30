@@ -112,6 +112,26 @@
       "import": "./dist/health/types.js",
       "require": "./dist/health/types.js",
       "types": "./dist/health/types.d.ts"
+    },
+    "./health/shopping-list": {
+      "import": "./dist/health/shopping-list.js",
+      "require": "./dist/health/shopping-list.js",
+      "types": "./dist/health/shopping-list.d.ts"
+    },
+    "./health/aisles": {
+      "import": "./dist/health/aisles.js",
+      "require": "./dist/health/aisles.js",
+      "types": "./dist/health/aisles.d.ts"
+    },
+    "./health/prep": {
+      "import": "./dist/health/prep.js",
+      "require": "./dist/health/prep.js",
+      "types": "./dist/health/prep.d.ts"
+    },
+    "./health/cooking": {
+      "import": "./dist/health/cooking.js",
+      "require": "./dist/health/cooking.js",
+      "types": "./dist/health/cooking.d.ts"
     }
   },
   "scripts": {
