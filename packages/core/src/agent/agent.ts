@@ -439,6 +439,17 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // A post's picture is part of the post. Made here, not via a trip to the
     // Design Studio — she cannot finish a post she is not allowed to illustrate.
     'write_post_image',
+    // Our own catalogue, read-only. A food or fitness post should be about a
+    // dish or a movement we actually have, with the real name, ingredients and
+    // method — and the video store already pulls OUR photography for the hero
+    // image, so the copy has to match the picture it is paired with. Without
+    // these she told users the recipe catalogue "lives in a different part of
+    // the system that I can't query from this room", which was true and is the
+    // same gap write_video_post had: registered in the builtins, missing here.
+    //
+    // Authoring stays out. Recipes are written at the Pantry desk and
+    // exercises in the Gym; this room reads the shelf, it does not stock it.
+    'find_recipe', 'read_recipe', 'find_exercise', 'read_exercise',
     // Industry radar — what AI leaders/labs actually said this week (sourced)
     'scan_industry',
     // Ground every product claim in the real docs, never training memory
