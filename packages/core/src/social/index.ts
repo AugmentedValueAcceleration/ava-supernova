@@ -63,6 +63,16 @@ export interface VideoPostInput {
    * change ONE thing and see only that thing change.
    */
   seed?: number;
+  /**
+   * A dish we already have a photograph of. Naming one animates OUR hero image
+   * instead of generating a plausible stranger's version of the dish.
+   *
+   * Food is the right subject for this and a squat is not: there is no anatomy
+   * to get wrong, and the motion food wants — steam, a slow push, light moving
+   * across a surface — is exactly what these models do well. The picture is
+   * already the dish; animating it does not make it a different dish.
+   */
+  recipe?: string;
 }
 
 /** What the surface reports back once the job is accepted. */
@@ -72,6 +82,10 @@ export interface VideoPostWritten {
   /** The seed actually used. Reported so the next attempt can reuse it and
    *  change one thing, rather than starting from scratch. */
   seed: number;
+  /** The dish whose hero image became the first frame, when one was found.
+   *  Null when she named a recipe we have no photograph of — she is told, so
+   *  she does not claim the clip shows our dish when it was generated. */
+  recipeImageUsed?: string | null;
   /** False when the voiceover failed, so the clip carries the model's own dub
    *  rather than her voice. She must say so rather than let it pass as hers. */
   voiced: boolean;

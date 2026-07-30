@@ -45,7 +45,7 @@ export class WriteVideoPostTool implements Tool {
         },
         script: {
           type: 'string',
-          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". Roughly two words per second, so a 10s clip is about 20-25 words. Omit entirely for a silent clip carried by on-screen text.',
+          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". It must FIT INSIDE the clip with a second of air at each end, so budget roughly two words per second of (duration minus 2): about 16 words for a 10s clip, about 6 for a 5s one. Over that and the tool rejects it, because a voice still talking after the picture stops is the most obviously broken thing a short can do. Omit entirely for a silent clip carried by on-screen text.',
         },
         caption: {
           type: 'string',
@@ -62,6 +62,10 @@ export class WriteVideoPostTool implements Tool {
           description: 'The hashtags you chose, so the UI can show them as an editable chip row. Within the platform tag policy.',
         },
         tag_note: { type: 'string', description: 'One short line on why these tags.' },
+        recipe: {
+          type: 'string',
+          description: 'For a FOOD video: the name of a dish we already have a photograph of. Naming it animates OUR hero image rather than generating a stranger version of the dish — the picture is already the food, so it cannot misrepresent it. Use this for anything about a recipe. When you do, describe only gentle motion in the visual (steam, a slow push in, light shifting) and say what stays STILL; a locked plate is the whole point.',
+        },
         seed: {
           type: 'number',
           description: 'Reuse the seed a previous clip reported to change ONE thing and see only that thing change. Without it every attempt is a different clip entirely, which is re-rolling rather than fixing. Omit for a genuinely new idea.',
@@ -119,6 +123,29 @@ export class WriteVideoPostTool implements Tool {
       }
     }
 
+    // ── The voiceover has to FIT ─────────────────────────────────────────
+    // We hand Wan a finished audio file, so we cannot offset when it starts —
+    // the only lever is making the speech short enough to sit inside the clip.
+    // Budget: the duration minus a second of air at each end, at roughly two
+    // words a second. A 10s clip is therefore about 16 words, NOT the 20-25 the
+    // guidance used to claim — that was 10-12 seconds of speech over a 10 second
+    // clip, which is why the voice ran past the end.
+    const plannedDuration = typeof args.duration === 'number' && args.duration > 7.5 ? 10 : 5;
+    if (script) {
+      const words = script.split(/\s+/).filter(Boolean).length;
+      const speakable = Math.max(1, plannedDuration - 2);
+      const budget = Math.floor(speakable * 2);
+      if (words > budget) {
+        return {
+          success: false,
+          output:
+            `That script is ${words} words and will not fit. A ${plannedDuration}s clip leaves ${speakable}s of ` +
+            `speech once you allow a second of air at each end — about ${budget} words. Cut ${words - budget} ` +
+            `and call write_video_post again, or raise the duration. Say less; the picture is doing work too.`,
+        };
+      }
+    }
+
     const post: VideoPostInput = {
       platform,
       visual,
@@ -131,6 +158,7 @@ export class WriteVideoPostTool implements Tool {
         : [],
       tagNote: ((args.tag_note as string | undefined)?.trim()) || undefined,
       seed: typeof args.seed === 'number' && Number.isFinite(args.seed) ? args.seed : undefined,
+      recipe: ((args.recipe as string | undefined)?.trim()) || undefined,
     };
 
     try {
@@ -138,6 +166,13 @@ export class WriteVideoPostTool implements Tool {
       // Report the voiceover honestly. A failed TTS still produces a clip — the
       // model dubs its own — and she needs to know that is not her on it before
       // she tells the operator otherwise.
+      // Say plainly whether the clip is built on our own photograph or on a
+      // generated dish. She must not claim it shows our food if it does not.
+      const recipeLine = post.recipe
+        ? (written.recipeImageUsed
+            ? ` Built on our own photograph of ${written.recipeImageUsed} — you can say it is our dish.`
+            : ` NO photograph found for "${post.recipe}", so the food is generated, not ours. Do not say it is our dish.`)
+        : '';
       const voiceLine = post.script
         ? written.voiced
           ? ' Voiceover is in your voice.'
@@ -149,7 +184,7 @@ export class WriteVideoPostTool implements Tool {
           `Video post queued for ${platform} — the caption is on the card now, the clip is still rendering ` +
           `(job ${written.taskId}). Seed ${written.seed} — pass that same seed back if they ask for a change, ` +
           `so you adjust THIS clip instead of rolling a different one. ` +
-          `You have not seen it: say what you made and why that angle, never how it looks.${voiceLine}`,
+          `You have not seen it: say what you made and why that angle, never how it looks.${recipeLine}${voiceLine}`,
       };
     } catch (err) {
       return {
