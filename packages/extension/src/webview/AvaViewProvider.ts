@@ -597,7 +597,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // user has a platformKey present.
     let taskSync: PlatformTaskSyncImpl | undefined;
     if (platformKey) {
-      taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
+      taskSync = new PlatformTaskSyncImpl('https://avasupernova.com/api', platformKey);
     }
     // Tasks are LOCAL-FIRST by default (cloud is sunsetting). Tasks live
     // on-device; cloud sync only if the user explicitly opts in. Default →
@@ -1469,7 +1469,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 // memory split it off from those and bought nothing once cloud
                 // sync was removed.
                 this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, localOnly: true, embeddingService: this.resolveEmbeddingService() });
-                const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
+                const taskSync = new PlatformTaskSyncImpl('https://avasupernova.com/api', platformKey);
                 migrateGlobalTasksToSubfolder(newScopedDir);
                 this.taskManager = new TaskManager({ globalDir: join(newScopedDir, 'tasks'), projectRoot: this.projectRoot, sync: taskSync });
                 this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot });
@@ -1515,7 +1515,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               'Open Account'
             );
             if (action === 'Open Account') {
-              vscode.env.openExternal(vscode.Uri.parse('https://ava-supernova.com/dashboard'));
+              vscode.env.openExternal(vscode.Uri.parse('https://avasupernova.com/dashboard'));
             }
             // Clear the invalid key
             await this.context.secrets.delete('ava-supernova.platformKey');
@@ -1595,7 +1595,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           const modelsTimer = setTimeout(() => modelsAbort.abort(), 6000);
           let res: Response;
           try {
-            res = await fetch('https://ava-supernova.com/api/models', { headers, signal: modelsAbort.signal });
+            res = await fetch('https://avasupernova.com/api/models', { headers, signal: modelsAbort.signal });
           } finally {
             clearTimeout(modelsTimer);
           }
@@ -2082,7 +2082,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           headers['X-BYOK-Provider'] = provider.name;
           headers['X-BYOK-Key'] = byokKey;
         }
-        const res = await fetch('https://ava-supernova.com/api/health/generate/plan', {
+        const res = await fetch('https://avasupernova.com/api/health/generate/plan', {
           method: 'POST',
           headers,
           body: JSON.stringify({

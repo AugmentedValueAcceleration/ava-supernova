@@ -221,7 +221,7 @@ export const FEATURE_PAGES: DocPage[] = [
     section: 'features',
     body: [
       { type: 'paragraph', text: 'In plain terms: a running list of what is new and what got fixed in each update, so you can see what changed.' },
-      { type: 'paragraph', text: 'In-app changelog (a changelog is the history of changes). Every shipped version with its highlights, bug fixes, and breaking changes (changes that may require you to adjust how you use something). The web surface maintains the public version at ava-supernova.com/releases.' },
+      { type: 'paragraph', text: 'In-app changelog (a changelog is the history of changes). Every shipped version with its highlights, bug fixes, and breaking changes (changes that may require you to adjust how you use something). The web surface maintains the public version at avasupernova.com/releases.' },
     ],
   },
   {

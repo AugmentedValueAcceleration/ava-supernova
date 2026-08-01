@@ -224,7 +224,7 @@ export class DashboardPanel {
    *  failure (offline / not signed in → no ticker). */
   private async fetchAnnouncement(): Promise<void> {
     try {
-      const res = await fetch('https://ava-supernova.com/api/announcement', { headers: { accept: 'application/json' } });
+      const res = await fetch('https://avasupernova.com/api/announcement', { headers: { accept: 'application/json' } });
       if (!res.ok) return;
       const data = (await res.json()) as { messages?: unknown };
       const messages = Array.isArray(data.messages)
@@ -896,7 +896,7 @@ export class DashboardPanel {
             this.post({ type: 'library_paths_loaded', paths: ((body.paths as LibraryPath[] | undefined) ?? []), total: (body.total as number) || 0 });
           } else {
             // Direct public fetch for BYOK users
-            const res = await fetch(`https://ava-supernova.com/api${url}`);
+            const res = await fetch(`https://avasupernova.com/api${url}`);
             const data = (await res.json()) as { paths?: LibraryPath[]; total?: number };
             this.post({ type: 'library_paths_loaded', paths: data.paths ?? [], total: data.total ?? 0 });
           }
@@ -908,7 +908,7 @@ export class DashboardPanel {
 
       case 'load_library_path_detail': {
         try {
-          const res = await fetch(`https://ava-supernova.com/api/learning/library/${msg.id}`);
+          const res = await fetch(`https://avasupernova.com/api/learning/library/${msg.id}`);
           const data = (await res.json()) as LibraryPathDetail | null;
           if (data && data.id) {
             this.post({ type: 'library_path_detail_loaded', path: data });
@@ -923,7 +923,7 @@ export class DashboardPanel {
         // users can start library courses too. The server fork (learner-count
         // analytics) is a best-effort extra only when signed in. No gate.
         try {
-          const res = await fetch(`https://ava-supernova.com/api/learning/library/${msg.id}`);
+          const res = await fetch(`https://avasupernova.com/api/learning/library/${msg.id}`);
           const detail = (await res.json()) as (LibraryPathInput & { id?: string }) | null;
           if (!detail || !detail.title) {
             this.post({ type: 'error', message: 'Could not load this course to start it.' });
@@ -988,7 +988,7 @@ export class DashboardPanel {
           params.set('tab', msg.tab);
           if (msg.discipline) params.set('discipline', msg.discipline);
           if (msg.limit) params.set('limit', String(msg.limit));
-          const url = `https://ava-supernova.com/api/papers/featured?${params.toString()}`;
+          const url = `https://avasupernova.com/api/papers/featured?${params.toString()}`;
           this.log(`[papers] load tab=${msg.tab} discipline=${msg.discipline ?? 'all'}`);
           const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
           if (!res.ok) {
@@ -1013,7 +1013,7 @@ export class DashboardPanel {
           if (msg.discipline) params.set('discipline', msg.discipline);
           if (msg.sort) params.set('sort', msg.sort);
           params.set('per_page', '25');
-          const url = `https://ava-supernova.com/api/papers/search?${params.toString()}`;
+          const url = `https://avasupernova.com/api/papers/search?${params.toString()}`;
           this.log(`[papers] search "${msg.query}"`);
           const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
           if (!res.ok) {
@@ -1045,7 +1045,7 @@ export class DashboardPanel {
         // loading state clears.
         try {
           const locale = (vscode.env.language || 'en').split('-')[0];
-          const url = `https://ava-supernova.com/api/roadmap?locale=${encodeURIComponent(locale)}`;
+          const url = `https://avasupernova.com/api/roadmap?locale=${encodeURIComponent(locale)}`;
           this.log(`[roadmap] load locale=${locale}`);
           const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
           if (!res.ok) {
@@ -1066,7 +1066,7 @@ export class DashboardPanel {
       case 'load_paper_detail': {
         try {
           const res = await fetch(
-            `https://ava-supernova.com/api/papers/${encodeURIComponent(msg.id)}`,
+            `https://avasupernova.com/api/papers/${encodeURIComponent(msg.id)}`,
             { signal: AbortSignal.timeout(10000) },
           );
           if (!res.ok) {
@@ -1087,7 +1087,7 @@ export class DashboardPanel {
         // Teach-mode user message into the chat that triggers an
         // immediate paper-explanation turn.
         if (msg.paper.id) {
-          void fetch(`https://ava-supernova.com/api/papers/${msg.paper.id}`, { method: 'POST' })
+          void fetch(`https://avasupernova.com/api/papers/${msg.paper.id}`, { method: 'POST' })
             .catch(() => { /* non-fatal */ });
         }
         const ident = msg.paper.arxiv_id
@@ -1349,7 +1349,7 @@ export class DashboardPanel {
       // one promise the feature makes — a good week on day one, for free.
       case 'load_curated_plans': {
         try {
-          const raw = await httpGetJson('https://ava-supernova.com/api/health/curated-plans') as
+          const raw = await httpGetJson('https://avasupernova.com/api/health/curated-plans') as
             { plans?: CuratedPlanSummary[] } | CuratedPlanSummary[] | null;
           const plans = Array.isArray(raw) ? raw : (raw?.plans ?? []);
           this.log(`[health] curated plans loaded n=${plans.length}`);
@@ -1365,7 +1365,7 @@ export class DashboardPanel {
         const id = msg.id;
         try {
           const raw = await httpGetJson(
-            `https://ava-supernova.com/api/health/curated-plans?id=${encodeURIComponent(id)}`,
+            `https://avasupernova.com/api/health/curated-plans?id=${encodeURIComponent(id)}`,
           ) as { plan?: CuratedPlanDetail } | CuratedPlanDetail | null;
           const plan = (raw && 'plan' in (raw as object) ? (raw as { plan?: CuratedPlanDetail }).plan : raw as CuratedPlanDetail) ?? null;
           if (!plan || !plan.id) throw new Error('Plan not found');
@@ -1434,7 +1434,7 @@ export class DashboardPanel {
           // fetch has been unreliable in some VSCode extension host
           // builds; httpGetJson talks to the same endpoint via Node's
           // native https stack with no extra runtime surface.
-          const raw = await httpGetJson('https://ava-supernova.com/api/health/taxonomies') as Partial<HealthTaxonomies> | null;
+          const raw = await httpGetJson('https://avasupernova.com/api/health/taxonomies') as Partial<HealthTaxonomies> | null;
           // Normalise every axis to an array — older API builds (pre-deploy)
           // don't return `collections`, and a missing field must never crash
           // the filter UI's `.length` reads.
@@ -2369,7 +2369,7 @@ export class DashboardPanel {
             this.post({ type: 'error', message: 'Connect a platform account first to export your cloud-stored data.' } as any);
             break;
           }
-          const res = await fetch('https://ava-supernova.com/api/export-my-data', {
+          const res = await fetch('https://avasupernova.com/api/export-my-data', {
             method: 'GET',
             headers: { Authorization: `Bearer ${platformKey}` },
           });
@@ -4224,7 +4224,7 @@ export class DashboardPanel {
     try {
       const https = await import('node:https');
       const releases = await new Promise<ReleaseNote[]>((resolve) => {
-        https.get('https://ava-supernova.com/api/releases', (res) => {
+        https.get('https://avasupernova.com/api/releases', (res) => {
           let raw = '';
           res.on('data', (chunk: string) => (raw += chunk));
           res.on('end', () => {
@@ -4526,12 +4526,12 @@ export class DashboardPanel {
    */
   private async downloadCloudAsset(url: string, filename: string): Promise<void> {
     try {
-      // Validate hostname — must be Supabase storage or ava-supernova.com.
+      // Validate hostname — must be Supabase storage or avasupernova.com.
       let parsed: URL;
       try { parsed = new URL(url); }
       catch { this.post({ type: 'error', message: 'Invalid URL' }); return; }
       const host = parsed.hostname.toLowerCase();
-      const allowed = /\.supabase\.co$/.test(host) || host === 'ava-supernova.com';
+      const allowed = /\.supabase\.co$/.test(host) || host === 'avasupernova.com';
       if (!allowed) {
         this.post({ type: 'error', message: 'Download blocked: URL not on an allowed host.' });
         return;
@@ -4930,7 +4930,7 @@ export class DashboardPanel {
       switch (dataType) {
         case 'memory': {
           const { PlatformMemorySync } = await import('@ava/core');
-          const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey);
+          const sync = new PlatformMemorySync('https://avasupernova.com/api', platformKey);
           const store = await fs.readFile(path.join(this.getUserDataDir(), 'memory.json'), 'utf-8')
             .then(JSON.parse).catch(() => ({ entries: [] }));
           const entries = store.entries || [];
@@ -5371,7 +5371,7 @@ export class DashboardPanel {
     init: { method?: string; body?: string; headers?: Record<string, string> } = {},
   ): Promise<{ ok: boolean; status: number }> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    const url = `https://ava-supernova.com/api${endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`}`;
+    const url = `https://avasupernova.com/api${endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`}`;
     const res = await fetch(url, {
       method: init.method ?? 'GET',
       headers: {
@@ -5515,7 +5515,7 @@ export class DashboardPanel {
       const locale = this.effectiveLocale();
       if (locale !== 'en') params.set('locale', locale);
 
-      const data = await httpGetJson(`https://ava-supernova.com/api/news?${params}`) as
+      const data = await httpGetJson(`https://avasupernova.com/api/news?${params}`) as
         { posts?: Array<Record<string, unknown>>; articles?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
       const list = (Array.isArray(data) ? data : ((data as any).posts ?? (data as any).articles ?? [])) as Array<{
         title?: string; category?: string; reading_time?: number; slug?: string; published_at?: string;
@@ -5554,7 +5554,7 @@ export class DashboardPanel {
     try {
       const locale = this.effectiveLocale();
       const qs = locale !== 'en' ? `?locale=${encodeURIComponent(locale)}` : '';
-      const data = await httpGetJson(`https://ava-supernova.com/api/news/${encodeURIComponent(slug)}${qs}`) as
+      const data = await httpGetJson(`https://avasupernova.com/api/news/${encodeURIComponent(slug)}${qs}`) as
         { post?: Record<string, unknown>; related?: Array<Record<string, unknown>> };
       this.post({
         type: 'news_article_loaded',
@@ -5631,7 +5631,7 @@ export class DashboardPanel {
     };
     try {
       // 1) Generate — the reference image (the shape silhouette) guides the material.
-      const genRes = await fetch('https://ava-supernova.com/api/asset-forge/image', {
+      const genRes = await fetch('https://avasupernova.com/api/asset-forge/image', {
         method: 'POST', headers,
         body: JSON.stringify({
           engine: 'qwen', prompt: body.prompt, referenceImage: body.referenceImage,
@@ -5656,7 +5656,7 @@ export class DashboardPanel {
       let dataUrl = gen.url;
       if (body.matte !== false) {
         try {
-          const bgRes = await fetch('https://ava-supernova.com/api/asset-forge/remove-bg', {
+          const bgRes = await fetch('https://avasupernova.com/api/asset-forge/remove-bg', {
             method: 'POST', headers, body: JSON.stringify({ imageUrl: gen.url }),
           });
           if (bgRes.ok) {
@@ -5696,7 +5696,7 @@ export class DashboardPanel {
       return;
     }
     try {
-      const res = await fetch('https://ava-supernova.com/api/asset-forge/vectorize', {
+      const res = await fetch('https://avasupernova.com/api/asset-forge/vectorize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -5742,7 +5742,7 @@ export class DashboardPanel {
     };
     try {
       // 1) Submit — the route accepts the job (X-DashScope-Async) and hands back a task_id.
-      const submitRes = await fetch('https://ava-supernova.com/api/generate-video', {
+      const submitRes = await fetch('https://avasupernova.com/api/generate-video', {
         method: 'POST', headers,
         body: JSON.stringify({ prompt: body.prompt, duration: body.duration, resolution: body.resolution, aspect: body.aspect }),
       });
@@ -5793,7 +5793,7 @@ export class DashboardPanel {
       'X-Ava-Data-Mode': dataModeHeader(this.context),
     };
     try {
-      const res = await fetch('https://ava-supernova.com/api/generate-voice', {
+      const res = await fetch('https://avasupernova.com/api/generate-voice', {
         method: 'POST', headers,
         body: JSON.stringify({ text: body.text, voice: body.voice, language_type: body.language_type, instructions: body.instructions }),
       });
@@ -5840,7 +5840,7 @@ export class DashboardPanel {
     taskId: string,
     platformKey: string,
   ): Promise<{ success: boolean; data?: unknown; error?: string }> {
-    const statusUrl = `https://ava-supernova.com/api/generate-video/status/${encodeURIComponent(taskId)}`;
+    const statusUrl = `https://avasupernova.com/api/generate-video/status/${encodeURIComponent(taskId)}`;
     const intervalMs = 5000;
     const maxAttempts = 96; // ~8 min ceiling — well past a typical Wan clip
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -5861,7 +5861,7 @@ export class DashboardPanel {
 
   private async handleLoadLatestRelease(): Promise<void> {
     try {
-      const data = await httpGetJson('https://ava-supernova.com/api/releases?limit=25') as
+      const data = await httpGetJson('https://avasupernova.com/api/releases?limit=25') as
         { releases?: Array<{ version: string; title: string; published_at: string; platform?: string }> } | Array<{ version: string; title: string; published_at: string; platform?: string }>;
       const list = Array.isArray(data) ? data : ((data as any).releases ?? []);
 
@@ -6161,7 +6161,7 @@ export class DashboardPanel {
         content="default-src 'none';
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
-                 connect-src https://ava-supernova.com https://*.supabase.co;
+                 connect-src https://avasupernova.com https://*.supabase.co;
                  img-src ${webview.cspSource} data: https: vscode-resource:;
                  media-src ${webview.cspSource} data: https: blob:;">
   <link rel="stylesheet" href="${styleUri}">

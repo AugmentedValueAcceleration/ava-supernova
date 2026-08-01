@@ -38,7 +38,7 @@ const PENDING_SIGN_IN_KEY = 'avaSupernova.pendingSignIn';
 const PLATFORM_KEY_SECRET = 'ava-supernova.platformKey';
 const SIGN_IN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const POLL_INTERVAL_MS = 2500;
-const DEFAULT_WEB_ORIGIN = 'https://ava-supernova.com';
+const DEFAULT_WEB_ORIGIN = 'https://avasupernova.com';
 
 export type SignInMethod = 'github' | 'email';
 

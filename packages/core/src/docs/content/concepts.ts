@@ -105,7 +105,7 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'Extension — Settings → Account, or the credit pill in the chat header.',
         'IDE — Account dashboard tile shows current balance and burn rate.',
-        'Web — ava-supernova.com/dashboard shows balance, history, and renewal date.',
+        'Web — avasupernova.com/dashboard shows balance, history, and renewal date.',
       ]},
       { type: 'callout', variant: 'tip', text: 'Local-first: Ava works without an account on the Custom Model card (Ollama, LM Studio, vLLM, or any OpenAI-compatible endpoint). No credits, no platform tokens — your model, your machine, your bill of zero.' },
     ],

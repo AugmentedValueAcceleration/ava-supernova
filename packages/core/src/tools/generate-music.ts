@@ -13,7 +13,7 @@ import { chargeCredits } from '../billing/meter.js';
  * Routes through the Ava platform API.
  */
 
-const PLATFORM_URL = 'https://ava-supernova.com/api';
+const PLATFORM_URL = 'https://avasupernova.com/api';
 
 export class GenerateMusicTool implements Tool {
   readonly name = 'generate_music';

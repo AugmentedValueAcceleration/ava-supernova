@@ -250,7 +250,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
   const articleHtml = renderMarkdown(article.content || '');
   const gradientIndex = article.slug.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % GRADIENTS.length;
 
-  const articleUrl = `https://ava-supernova.com/news/${article.slug}`;
+  const articleUrl = `https://avasupernova.com/news/${article.slug}`;
 
   const handleCopy = async () => {
     try {

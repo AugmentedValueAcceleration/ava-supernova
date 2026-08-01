@@ -465,7 +465,7 @@ export class GenerateImageTool implements Tool {
   }
 
   private async generateViaPlatform(prompt: string, size: string, platformKey: string, model: string = 'wan2.7'): Promise<string | null> {
-    const res = await fetch('https://ava-supernova.com/api/generate-image', {
+    const res = await fetch('https://avasupernova.com/api/generate-image', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${platformKey}`,

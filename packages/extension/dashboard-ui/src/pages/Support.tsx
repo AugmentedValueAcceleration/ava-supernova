@@ -424,7 +424,7 @@ function LegalLinks() {
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t('dash.support.legal')}</h2>
       <div className="flex gap-4">
         <button
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/terms' })}
           className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition hover:text-white"
         >
           <svg className="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -433,7 +433,7 @@ function LegalLinks() {
           {t('dash.support.terms')}
         </button>
         <button
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/privacy' })}
           className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition hover:text-white"
         >
           <svg className="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

@@ -14,7 +14,7 @@ import type { FunctionSchema } from '../providers/types.js';
  * See COMMAND_PALETTE_PLAN.md §10 (Corrective addendum).
  */
 
-const DEFAULT_API_BASE = 'https://ava-supernova.com';
+const DEFAULT_API_BASE = 'https://avasupernova.com';
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 

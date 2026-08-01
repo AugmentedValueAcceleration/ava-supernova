@@ -7,7 +7,7 @@ export class PlatformProvider extends BaseProvider {
   readonly displayName = 'Ava Platform';
 
   protected getDefaultBaseUrl(): string {
-    return 'https://ava-supernova.com/api';
+    return 'https://avasupernova.com/api';
   }
 
   protected getCompletionUrl(): string {

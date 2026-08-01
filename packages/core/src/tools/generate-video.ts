@@ -16,7 +16,7 @@ import { chargeCredits } from '../billing/meter.js';
  * route until the job reaches a terminal state.
  */
 
-const PLATFORM_URL = 'https://ava-supernova.com/api';
+const PLATFORM_URL = 'https://avasupernova.com/api';
 
 export class GenerateVideoTool implements Tool {
   readonly name = 'generate_video';

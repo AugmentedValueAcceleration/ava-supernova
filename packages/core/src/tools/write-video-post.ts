@@ -4,7 +4,7 @@ import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput } from '
 
 /** Every video carries the link. Lower-case for the idempotency check; the
  *  appended form is the same string, so it reads as written. */
-const AVA_URL = 'ava-supernova.com';
+const AVA_URL = 'avasupernova.com';
 
 /**
  * Emit a finished SHORT-FORM VIDEO POST — the clip, the voiceover, and the
@@ -49,7 +49,7 @@ export class WriteVideoPostTool implements Tool {
         },
         caption: {
           type: 'string',
-          description: 'The post copy that goes in the caption box, ready to paste. Hashtags inline per the platform tag policy. The first line is the hook that decides whether anyone watches. The link to ava-supernova.com is appended automatically — do not write it yourself, and never write "link in bio".',
+          description: 'The post copy that goes in the caption box, ready to paste. Hashtags inline per the platform tag policy. The first line is the hook that decides whether anyone watches. The link to avasupernova.com is appended automatically — do not write it yourself, and never write "link in bio".',
         },
         duration: {
           type: 'number',

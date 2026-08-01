@@ -54,7 +54,7 @@ export class NewsTool implements Tool {
     if (limit > 10) limit = 10;
 
     try {
-      let url = `https://ava-supernova.com/api/news?limit=${limit}`;
+      let url = `https://avasupernova.com/api/news?limit=${limit}`;
       if (category) url += `&category=${category}`;
       if (query) url += `&q=${encodeURIComponent(query)}`;
       // Ava answers in the user's language, so the headlines she is answering

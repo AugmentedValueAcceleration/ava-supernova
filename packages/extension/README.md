@@ -310,18 +310,18 @@ Code context is sent only to your chosen AI provider for processing. All memory 
 
 Built by **Augmented Value Acceleration Ltd**, registered in England and Wales. UK GDPR compliant.
 
-- [Privacy Policy](https://ava-supernova.com/privacy)
-- [Terms of Service](https://ava-supernova.com/terms)
+- [Privacy Policy](https://avasupernova.com/privacy)
+- [Terms of Service](https://avasupernova.com/terms)
 
 ---
 
 ## Links
 
-- [Website](https://ava-supernova.com)
+- [Website](https://avasupernova.com)
 - [GitHub](https://github.com/AugmentedValueAcceleration/ava-supernova)
-- [Companion App](https://companion.ava-supernova.com)
+- [Companion App](https://companion.avasupernova.com)
 - [YouTube](https://youtube.com/@AugmentedValueAcceleration)
-- [Release Notes](https://ava-supernova.com/releases)
+- [Release Notes](https://avasupernova.com/releases)
 
 ---
 

@@ -72,13 +72,13 @@ async function main(): Promise<void> {
   let sync: PlatformMemorySync | undefined;
   if (appConfig.platformKey) {
     const projectId = projectRoot ? createHash('sha256').update(projectRoot).digest('hex').slice(0, 16) : undefined;
-    sync = new PlatformMemorySync('https://ava-supernova.com/api', appConfig.platformKey, projectId);
+    sync = new PlatformMemorySync('https://avasupernova.com/api', appConfig.platformKey, projectId);
   }
   // Scope data directory per account — prevents memory leakage between accounts
   let globalDir = AVA_HOME;
   if (appConfig.platformKey) {
     try {
-      const res = await fetch('https://ava-supernova.com/api/account-info', {
+      const res = await fetch('https://avasupernova.com/api/account-info', {
         headers: { Authorization: `Bearer ${appConfig.platformKey}` },
       });
       if (res.ok) {

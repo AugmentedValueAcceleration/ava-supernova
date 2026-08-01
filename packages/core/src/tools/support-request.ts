@@ -83,7 +83,7 @@ export class SupportRequestTool implements Tool {
     }
 
     // Get the API base URL — prefer platform config, fall back to default
-    const apiBase = (context.sharedState?.platformApiBase as string) || 'https://ava-supernova.com';
+    const apiBase = (context.sharedState?.platformApiBase as string) || 'https://avasupernova.com';
     const platformKey = context.sharedState?.platformKey as string | undefined;
 
     try {

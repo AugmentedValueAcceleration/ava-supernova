@@ -1492,7 +1492,7 @@ export class LearningProgressTool implements Tool {
         }
 
         try {
-          const res = await fetch(`https://ava-supernova.com/api/learning/library?search=${encodeURIComponent(query)}&limit=5`, {
+          const res = await fetch(`https://avasupernova.com/api/learning/library?search=${encodeURIComponent(query)}&limit=5`, {
             headers: { 'Authorization': `Bearer ${platformKey}` },
             signal: AbortSignal.timeout(8000),
           });
@@ -1528,7 +1528,7 @@ export class LearningProgressTool implements Tool {
                 ? 'advanced'
                 : 'beginner';
 
-            const res = await fetch(`https://ava-supernova.com/api/learning/library?sort=popular&level=${nextLevel}&limit=3`, {
+            const res = await fetch(`https://avasupernova.com/api/learning/library?sort=popular&level=${nextLevel}&limit=3`, {
               headers: { 'Authorization': `Bearer ${platformKey}` },
               signal: AbortSignal.timeout(5000),
             });

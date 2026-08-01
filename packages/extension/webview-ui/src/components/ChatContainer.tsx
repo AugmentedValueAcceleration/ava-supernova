@@ -118,7 +118,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
           {/* Links to full policies */}
           <div className="flex gap-3 mb-5 justify-center">
             <a
-              href="https://ava-supernova.com/terms"
+              href="https://avasupernova.com/terms"
               className="text-[11px] font-medium opacity-60 hover:opacity-100 transition-opacity"
               style={{ color: '#C084FC' }}
             >
@@ -126,7 +126,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
             </a>
             <span className="text-[11px] opacity-20">|</span>
             <a
-              href="https://ava-supernova.com/privacy"
+              href="https://avasupernova.com/privacy"
               className="text-[11px] font-medium opacity-60 hover:opacity-100 transition-opacity"
               style={{ color: '#C084FC' }}
             >

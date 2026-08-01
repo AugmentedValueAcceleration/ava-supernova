@@ -1,7 +1,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
-const PLATFORM_URL = 'https://ava-supernova.com';
+const PLATFORM_URL = 'https://avasupernova.com';
 
 export class ReleaseNotesTool implements Tool {
   readonly name = 'release_notes';

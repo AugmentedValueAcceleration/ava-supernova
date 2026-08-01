@@ -113,7 +113,7 @@ export const TOKEN_TOPUPS: CreditTopupDefinition[] = CREDIT_TOPUPS;
 // Tauri's blocked origins) redirect the user to the website. One helper
 // per destination keeps the URL in one place.
 
-export const AVA_SITE_BASE = 'https://ava-supernova.com';
+export const AVA_SITE_BASE = 'https://avasupernova.com';
 
 /** Public pricing page — plan cards + top-ups all on one page. */
 export function pricingUrl(): string {

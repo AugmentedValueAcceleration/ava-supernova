@@ -749,7 +749,7 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
     if (onOpenArticle) {
       onOpenArticle(slug);
     } else {
-      post({ type: 'open_url', url: `https://ava-supernova.com/news/${slug}` });
+      post({ type: 'open_url', url: `https://avasupernova.com/news/${slug}` });
     }
   };
 
@@ -1174,7 +1174,7 @@ function ReleaseStrip({ release }: { release: ReleaseInfo | null }) {
   if (!release) return null;
   return (
     <button
-      onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/releases' })}
+      onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/releases' })}
       className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-[var(--accent)]/25 bg-[var(--accent)]/[0.07] px-3 py-2 text-left transition hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/[0.12]"
     >
       <Rocket weight="duotone" size={14} className="shrink-0 text-[var(--accent)]" />
@@ -1202,7 +1202,7 @@ function ReleaseWidget({ release }: { release: ReleaseInfo | null }) {
           </div>
           <p className="text-xs font-medium text-white">{release.title}</p>
           <button
-            onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/releases' })}
+            onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/releases' })}
             className="text-[10px] text-[var(--accent)] hover:underline"
           >
             {t('dash.nav.release_notes')} &rarr;
@@ -1433,7 +1433,7 @@ function ByokOverview({
                 {t('dash.cc.upgrade_hint')}
               </p>
               <button
-                onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/signup' })}
+                onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/signup' })}
                 className="rounded-lg bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
               >
                 {t('dash.cc.connect_free')}

@@ -17,7 +17,7 @@ import type { FunctionSchema } from '../providers/types.js';
  * This tool is only needed to read actual file contents.
  */
 
-const PLATFORM_SOURCE_URL = 'https://ava-supernova.com/api/source';
+const PLATFORM_SOURCE_URL = 'https://avasupernova.com/api/source';
 
 const REPO_DESCRIPTIONS: Record<string, string> = {
   core: 'Main monorepo — packages/core (agent engine, providers, tools, memory), packages/cli (REPL), packages/extension (VS Code)',

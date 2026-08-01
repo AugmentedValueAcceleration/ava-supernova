@@ -1,7 +1,7 @@
 import * as https from 'node:https';
 import * as crypto from 'node:crypto';
 
-const PLATFORM_API = 'https://ava-supernova.com/api';
+const PLATFORM_API = 'https://avasupernova.com/api';
 
 export { PLATFORM_API };
 

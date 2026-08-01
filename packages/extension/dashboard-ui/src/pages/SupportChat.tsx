@@ -254,14 +254,14 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
       {/* Legal — a single quiet line beneath the chat, not a card. */}
       <div className="flex items-center gap-4 px-1 text-[11px] text-[var(--text-muted)]">
         <button
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/terms' })}
           className="hover:text-[var(--text-secondary)] transition cursor-pointer"
         >
           {t('dash.support.terms')}
         </button>
         <span className="opacity-40">·</span>
         <button
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/privacy' })}
           className="hover:text-[var(--text-secondary)] transition cursor-pointer"
         >
           {t('dash.support.privacy')}
@@ -363,7 +363,7 @@ function ByokChat() {
         </button>
 
         <button
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/docs' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/docs' })}
           className="flex flex-col items-start gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition"
         >
           <span className="text-[var(--accent)] leading-none"><Icon.book size={22} /></span>
@@ -376,14 +376,14 @@ function ByokChat() {
 
       <div className="flex items-center gap-4 px-1 text-[11px] text-[var(--text-muted)]">
         <button
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/terms' })}
           className="hover:text-[var(--text-secondary)] transition cursor-pointer"
         >
           {t('dash.support.terms')}
         </button>
         <span className="opacity-40">·</span>
         <button
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/privacy' })}
           className="hover:text-[var(--text-secondary)] transition cursor-pointer"
         >
           {t('dash.support.privacy')}

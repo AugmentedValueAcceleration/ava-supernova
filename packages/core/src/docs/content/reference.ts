@@ -50,7 +50,7 @@ export const REFERENCE_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'An "API key" is a private password that lets software use a paid service on your own account. "BYOK" just means "bring your own key" — using yours instead of ours. Paste your API key in settings. BYOK requests go direct from Ava to the provider (the company that runs the model) — they do not pass through our infrastructure and do not consume platform tokens. You pay the provider; we do not see the traffic.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'byok' } },
 
-      { type: 'callout', variant: 'tip', text: 'For benchmark scores, capability tags, and side-by-side filtering, see the full Models page at ava-supernova.com/models. Pricing shown above is our best read of each provider rate card at publication — always check the provider website before committing to a workload.' },
+      { type: 'callout', variant: 'tip', text: 'For benchmark scores, capability tags, and side-by-side filtering, see the full Models page at avasupernova.com/models. Pricing shown above is our best read of each provider rate card at publication — always check the provider website before committing to a workload.' },
     ],
   },
   {

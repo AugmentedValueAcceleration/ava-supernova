@@ -53,7 +53,7 @@ export function persistCreativeAsset(
       if (opts.bytes.length > MAX_BYTES) return;
 
       const contentBase64 = Buffer.from(opts.bytes).toString('base64');
-      await fetch('https://ava-supernova.com/api/creative-assets', {
+      await fetch('https://avasupernova.com/api/creative-assets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

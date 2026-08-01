@@ -311,7 +311,7 @@ async function checkForReleaseNotes(context: vscode.ExtensionContext): Promise<v
     const timeout = setTimeout(() => ctrl.abort(), 5000);
     let res: Response;
     try {
-      res = await fetch(`https://ava-supernova.com/api/releases?version=${currentVersion}`, { signal: ctrl.signal });
+      res = await fetch(`https://avasupernova.com/api/releases?version=${currentVersion}`, { signal: ctrl.signal });
     } finally {
       clearTimeout(timeout);
     }

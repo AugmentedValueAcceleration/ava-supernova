@@ -67,7 +67,7 @@ export const TROUBLESHOOTING_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'From inside Ava' },
       { type: 'paragraph', text: 'Ask her to file it. "Ava, can you file a support ticket about this?" She calls support_request, attaches the relevant session context (with credentials redacted), and sends it. Fastest path.' },
       { type: 'heading', level: 3, text: 'From the web' },
-      { type: 'paragraph', text: 'Visit ava-supernova.com/support. Pick a category (bug, feature, account, security, general) and describe what happened. Response within one working day.' },
+      { type: 'paragraph', text: 'Visit avasupernova.com/support. Pick a category (bug, feature, account, security, general) and describe what happened. Response within one working day.' },
       { type: 'heading', level: 3, text: 'What to include' },
       { type: 'list', ordered: false, items: [
         'What you were trying to do.',
@@ -99,7 +99,7 @@ export const TROUBLESHOOTING_PAGES: DocPage[] = [
         'Credit — you are credited in the fix notes unless you prefer anonymity.',
         'No legal retaliation — good-faith research is welcome. We will not send lawyers after you.',
       ]},
-      { type: 'callout', variant: 'note', text: 'The security page at ava-supernova.com/security has the full posture — architecture guarantees, redactor, permission gates.' },
+      { type: 'callout', variant: 'note', text: 'The security page at avasupernova.com/security has the full posture — architecture guarantees, redactor, permission gates.' },
     ],
   },
 ];

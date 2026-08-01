@@ -91,7 +91,7 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
       <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--border-card)] pt-3 text-[11px] text-[var(--text-muted)]">
         <button
           type="button"
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/terms' })}
           className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
         >
           {t('dash.support.terms')}
@@ -99,7 +99,7 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
         <span className="opacity-40">·</span>
         <button
           type="button"
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/privacy' })}
           className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
         >
           {t('dash.support.privacy')}
@@ -107,7 +107,7 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
         <span className="opacity-40">·</span>
         <button
           type="button"
-          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
+          onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/health/safety' })}
           className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
         >
           {t('help.health_safety')}

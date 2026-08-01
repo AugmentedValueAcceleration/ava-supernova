@@ -404,7 +404,7 @@ export function Health({
             {t('health.room.disclaimer')}{' '}
             <button
               type="button"
-              onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
+              onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/health/safety' })}
               className="cursor-pointer border-none bg-transparent p-0 text-vscode-descriptionForeground underline decoration-dotted underline-offset-2 transition hover:text-vscode-foreground"
             >
               {t('health.browse.safety_link')}

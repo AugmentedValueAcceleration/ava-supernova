@@ -36,7 +36,7 @@ The extension includes a **Contribute Shared Learning** setting (disabled by def
 ### AI Model Providers
 Your code context and messages are sent to whichever AI model provider you choose:
 
-- **Platform models** (default): Routed through `https://ava-supernova.com/api` to Qwen (Alibaba Cloud), MiniMax, or other providers based on your selected model. Data passes through our API for routing only — we do not store conversation content.
+- **Platform models** (default): Routed through `https://avasupernova.com/api` to Qwen (Alibaba Cloud), MiniMax, or other providers based on your selected model. Data passes through our API for routing only — we do not store conversation content.
 - **BYOK (Bring Your Own Key)**: Sent directly from your machine to the provider's API (e.g., Anthropic, DeepSeek, Mistral). No data passes through our servers.
 
 ### No Third-Party Analytics

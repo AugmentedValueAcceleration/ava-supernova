@@ -2,7 +2,7 @@
 
 **Start free — 300 credits a month with an account, no card.** Those credits run on managed models; every model spends credits to use, so the 300/month is your free allowance, not a free model.
 
-Sign up at [ava-supernova.com](https://ava-supernova.com) for the free tier, or bring your own API key from any provider.
+Sign up at [avasupernova.com](https://avasupernova.com) for the free tier, or bring your own API key from any provider.
 
 ## Want more models?
 
