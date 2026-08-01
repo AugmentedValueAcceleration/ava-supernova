@@ -36,15 +36,6 @@ function formatNumber(n: number | null | undefined): string {
   return String(Math.round(v));
 }
 
-function timeSince(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(ms / 60000);
-  if (mins < 1) return '<1m';
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  const remaining = mins % 60;
-  return `${hours}h ${remaining}m`;
-}
 
 // ─── Shared visual language ──────────────────────────────────────────────────
 // One tone system feeds cost, status, risk and approval across all three tabs,
@@ -202,9 +193,18 @@ type TopTab = 'conversations' | 'usage' | 'audit';
 
 export function History({ sessionStats, usageHistory, mode, account, auditLog, auditFindings, conversations, loaded, onNavigate }: HistoryProps) {
   useLocale();
+  // Opens on the first tab every time — a page that remembers where you left
+  // it last week is a page that opens somewhere you did not ask for.
+  //
+  // The stored key survives ONLY as a one-shot deep link: the Command Centre's
+  // "Review in audit" writes it immediately before navigating, so it is read
+  // once and cleared. Next open is the first tab again.
   const [activeTab, setActiveTab] = useState<TopTab>(() => {
-    const saved = localStorage.getItem('ava-analytics-tab');
-    if (saved === 'conversations' || saved === 'usage' || saved === 'audit') return saved;
+    try {
+      const deepLink = localStorage.getItem('ava-analytics-tab');
+      localStorage.removeItem('ava-analytics-tab');
+      if (deepLink === 'conversations' || deepLink === 'usage' || deepLink === 'audit') return deepLink;
+    } catch { /* storage off */ }
     return 'conversations';
   });
 
@@ -217,7 +217,6 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, a
 
   const handleTabChange = (tab: TopTab) => {
     setActiveTab(tab);
-    localStorage.setItem('ava-analytics-tab', tab);
     if (tab === 'usage' && mode === 'platform') {
       post({ type: 'load_usage_history' });
     }
@@ -839,13 +838,19 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
   );
 }
 
+/** The 1st of next month — when the counters clear. Derived rather than stored,
+ *  so it stays right across month lengths and year boundaries. */
+function nextMonthStart(): Date {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1);
+}
+
 // ─── Session View ────────────────────────────────────────────────────────────
 
 function SessionView({ stats }: { stats: SessionStats | null }) {
   const totalTokens = stats ? stats.total_input_tokens + stats.total_output_tokens : 0;
   const breakdown = stats?.model_breakdown ?? [];
   const maxTotal = breakdown.length > 0 ? Math.max(...breakdown.map(m => m.input_tokens + m.output_tokens)) : 1;
-  const sessionDuration = stats ? timeSince(stats.session_start) : '--';
 
   const totalCost = useMemo(() => {
     if (!stats) return 0;
@@ -863,7 +868,16 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
             <StatCard label={t('dash.usage.total_tokens')} value={formatNumber(totalTokens)} highlight />
             <StatCard label={t('dash.usage.messages')} value={String(stats?.messages ?? 0)} />
             <StatCard label={t('dash.usage.tool_calls')} value={String(stats?.tool_calls ?? 0)} />
-            <StatCard label={t('dash.usage.duration')} value={sessionDuration} sub={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) }) : undefined} />
+            {/* The window these figures cover, and when it clears. A duration
+                since a session start made sense when this WAS a session; over a
+                month it would have read "since 00:00", which tells nobody
+                anything. Naming the reset date is the useful fact — it is the
+                one thing someone checking their usage needs to know. */}
+            <StatCard
+              label={t('dash.usage.period')}
+              value={new Date(stats?.session_start ?? Date.now()).toLocaleDateString('en-GB', { month: 'long' })}
+              sub={t('dash.usage.resets_on', { date: nextMonthStart().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) })}
+            />
           </div>
         </SectionGroup>
       </div>

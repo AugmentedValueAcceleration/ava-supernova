@@ -574,7 +574,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'Phân tích sử dụng',
   'dash.usage.subtitle': 'Theo dõi sử dụng token, chi phí và hiệu suất mô hình.',
-  'dash.usage.session': 'Phiên',
+  'dash.usage.session': 'Tháng này',
   'dash.usage.all_time': 'Tổng cộng',
   'dash.usage.input_tokens': 'Token đầu vào',
   'dash.usage.output_tokens': 'Token đầu ra',
@@ -854,7 +854,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.personality.reset': 'Khôi phục mặc định',
 
   // ── Missing Usage Page ────────────────────────────────────────────────
-  'dash.usage.session_summary': 'Tóm tắt phiên',
+  'dash.usage.session_summary': 'Tháng này',
   'dash.usage.duration': 'Thời lượng',
   'dash.usage.since': 'Từ {time}',
   'dash.usage.estimated_cost': 'Chi phí ước tính',
@@ -888,6 +888,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'từ {count} yêu cầu',
   'dash.usage.free_tokens': 'Token miễn phí',
   'dash.usage.period': 'Kỳ',
+  'dash.usage.resets_on': 'Đặt lại vào {date}',
   'dash.usage.no_active_period': 'Không có kỳ hoạt động',
   'dash.usage.token_pools': 'Pool token',
   'dash.usage.free_pool': 'Pool miễn phí',

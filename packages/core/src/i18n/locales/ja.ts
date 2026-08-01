@@ -574,7 +574,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': '使用量分析',
   'dash.usage.subtitle': 'トークン使用量、コスト、モデルパフォーマンスを追跡。',
-  'dash.usage.session': 'セッション',
+  'dash.usage.session': '今月',
   'dash.usage.all_time': '累計',
   'dash.usage.input_tokens': '入力トークン',
   'dash.usage.output_tokens': '出力トークン',
@@ -892,7 +892,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.settings.get_api_key': 'API キーを取得',
 
   // ── Usage Page (missing) ──────────────────────────────────────────────
-  'dash.usage.session_summary': 'セッション概要',
+  'dash.usage.session_summary': '今月',
   'dash.usage.duration': '時間',
   'dash.usage.since': '{time} から',
   'dash.usage.estimated_cost': '推定コスト',
@@ -926,6 +926,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': '{count} リクエストから',
   'dash.usage.free_tokens': '無料トークン',
   'dash.usage.period': '期間',
+  'dash.usage.resets_on': '{date} にリセット',
   'dash.usage.no_active_period': 'アクティブな期間なし',
   'dash.usage.token_pools': 'トークンプール',
   'dash.usage.free_pool': '無料プール',

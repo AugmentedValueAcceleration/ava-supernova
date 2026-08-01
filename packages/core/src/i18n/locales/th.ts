@@ -574,7 +574,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'วิเคราะห์การใช้งาน',
   'dash.usage.subtitle': 'ติดตามการใช้โทเค็น ค่าใช้จ่าย และประสิทธิภาพโมเดล',
-  'dash.usage.session': 'เซสชัน',
+  'dash.usage.session': 'เดือนนี้',
   'dash.usage.all_time': 'ทั้งหมด',
   'dash.usage.input_tokens': 'โทเค็นขาเข้า',
   'dash.usage.output_tokens': 'โทเค็นขาออก',
@@ -854,7 +854,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.personality.reset': 'รีเซ็ตเป็นค่าเริ่มต้น',
 
   // ── Usage Page (missing) ──────────────────────────────────────────────
-  'dash.usage.session_summary': 'สรุปเซสชัน',
+  'dash.usage.session_summary': 'เดือนนี้',
   'dash.usage.duration': 'ระยะเวลา',
   'dash.usage.since': 'ตั้งแต่ {time}',
   'dash.usage.estimated_cost': 'ค่าใช้จ่ายโดยประมาณ',
@@ -888,6 +888,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'จาก {count} คำขอ',
   'dash.usage.free_tokens': 'โทเค็นฟรี',
   'dash.usage.period': 'ช่วงเวลา',
+  'dash.usage.resets_on': 'รีเซ็ต {date}',
   'dash.usage.no_active_period': 'ไม่มีช่วงเวลาที่ใช้งาน',
   'dash.usage.token_pools': 'พูลโทเค็น',
   'dash.usage.free_pool': 'พูลฟรี',

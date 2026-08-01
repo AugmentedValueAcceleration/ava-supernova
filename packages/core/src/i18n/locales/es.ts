@@ -643,7 +643,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'An\u00e1lisis de uso',
   'dash.usage.subtitle': 'Seguimiento del uso de tokens, costes y rendimiento del modelo.',
-  'dash.usage.session': 'Sesi\u00f3n',
+  'dash.usage.session': 'Este mes',
   'dash.usage.all_time': 'Todo el tiempo',
   'dash.usage.input_tokens': 'Tokens de entrada',
   'dash.usage.output_tokens': 'Tokens de salida',
@@ -1100,7 +1100,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.personality.reset': 'Restablecer valores predeterminados',
 
   // ── Usage Page (missing) ──────────────────────────────────────────────
-  'dash.usage.session_summary': 'Resumen de sesión',
+  'dash.usage.session_summary': 'Este mes',
   'dash.usage.duration': 'Duración',
   'dash.usage.since': 'Desde {time}',
   'dash.usage.estimated_cost': 'Coste estimado',
@@ -1134,6 +1134,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'de {count} solicitudes',
   'dash.usage.free_tokens': 'Tokens gratuitos',
   'dash.usage.period': 'Período',
+  'dash.usage.resets_on': 'Se reinicia el {date}',
   'dash.usage.no_active_period': 'Sin período activo',
   'dash.usage.token_pools': 'Pools de tokens',
   'dash.usage.free_pool': 'Pool gratuito',

@@ -574,7 +574,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'تحليلات الاستخدام',
   'dash.usage.subtitle': 'تتبّع استهلاك الرموز والتكاليف وأداء النماذج.',
-  'dash.usage.session': 'الجلسة',
+  'dash.usage.session': 'هذا الشهر',
   'dash.usage.all_time': 'الإجمالي التراكمي',
   'dash.usage.input_tokens': 'رموز الإدخال',
   'dash.usage.output_tokens': 'رموز الإخراج',
@@ -854,7 +854,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.personality.reset': 'إعادة التعيين للافتراضي',
 
   // ── Missing Usage Page ────────────────────────────────────────────────
-  'dash.usage.session_summary': 'ملخص الجلسة',
+  'dash.usage.session_summary': 'هذا الشهر',
   'dash.usage.duration': 'المدة',
   'dash.usage.since': 'منذ {time}',
   'dash.usage.estimated_cost': 'التكلفة التقديرية',
@@ -888,6 +888,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'من {count} طلبات',
   'dash.usage.free_tokens': 'الرموز المجانية',
   'dash.usage.period': 'الفترة',
+  'dash.usage.resets_on': 'يُعاد الضبط في {date}',
   'dash.usage.no_active_period': 'لا فترة نشطة',
   'dash.usage.token_pools': 'مجمعات الرموز',
   'dash.usage.free_pool': 'المجمع المجاني',

@@ -13,6 +13,7 @@ import {
   AVA_HOME,
   installDatasetConsumer,
 } from '@ava/core';
+import { sessionStats } from './session-stats.js';
 
 let viewProvider: AvaViewProvider | undefined;
 
@@ -26,6 +27,16 @@ export function activate(context: vscode.ExtensionContext): void {
   // are all-off, so this is just opening the subscription. When the user
   // toggles capture on, events start landing without restarting VS Code.
   installDatasetConsumer();
+
+  // Usage stats persist across reloads, per calendar month. Before this they
+  // lived only in memory and were wiped every time the window reloaded, so the
+  // Usage tab looked as though nothing was ever recorded. Attaching here — the
+  // first thing after activation — means the month's figures are restored
+  // before any turn can add to them.
+  sessionStats.attach({
+    get: <T,>(key: string) => context.globalState.get<T>(key),
+    update: (key: string, value: unknown) => context.globalState.update(key, value),
+  });
 
   // Defensive vault hygiene: older builds briefly stored the platform key
   // in plaintext globalState. Evict any stragglers so SecretStorage stays

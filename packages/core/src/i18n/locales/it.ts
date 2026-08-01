@@ -574,7 +574,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ────────────────────────────────────────────────────────
   'dash.usage.title': 'Analisi utilizzo',
   'dash.usage.subtitle': 'Monitora l\'utilizzo dei token, i costi e le prestazioni dei modelli.',
-  'dash.usage.session': 'Sessione',
+  'dash.usage.session': 'Questo mese',
   'dash.usage.all_time': 'Da sempre',
   'dash.usage.input_tokens': 'Token in ingresso',
   'dash.usage.output_tokens': 'Token in uscita',
@@ -892,7 +892,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.settings.get_api_key': 'Ottieni una chiave API',
 
   // ── Missing Usage Page ──────────────────────────────────────────────
-  'dash.usage.session_summary': 'Riepilogo sessione',
+  'dash.usage.session_summary': 'Questo mese',
   'dash.usage.duration': 'Durata',
   'dash.usage.since': 'Da {time}',
   'dash.usage.estimated_cost': 'Costo stimato',
@@ -926,6 +926,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'da {count} richieste',
   'dash.usage.free_tokens': 'Token gratuiti',
   'dash.usage.period': 'Periodo',
+  'dash.usage.resets_on': 'Azzeramento il {date}',
   'dash.usage.no_active_period': 'Nessun periodo attivo',
   'dash.usage.token_pools': 'Pool di token',
   'dash.usage.free_pool': 'Pool gratuito',

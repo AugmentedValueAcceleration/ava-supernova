@@ -574,7 +574,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   // ── 用量頁面 ──────────────────────────────────────────────────────────────
   'dash.usage.title': '用量分析',
   'dash.usage.subtitle': '追蹤 token 用量、費用與模型效能。',
-  'dash.usage.session': '本次工作階段',
+  'dash.usage.session': '本月',
   'dash.usage.all_time': '歷史總計',
   'dash.usage.input_tokens': '輸入 Token',
   'dash.usage.output_tokens': '輸出 Token',
@@ -926,7 +926,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.support.github_issue': '你也可以在以下位置建立 issue',
 
   // ── 用量頁面（缺漏）────────────────────────────────────────────────────────
-  'dash.usage.session_summary': '工作階段摘要',
+  'dash.usage.session_summary': '本月',
   'dash.usage.duration': '時長',
   'dash.usage.since': '自 {time} 起',
   'dash.usage.estimated_cost': '估計費用',
@@ -960,6 +960,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': '來自 {count} 次請求',
   'dash.usage.free_tokens': '免費 Token',
   'dash.usage.period': '期間',
+  'dash.usage.resets_on': '{date} 重置',
   'dash.usage.no_active_period': '無有效期間',
   'dash.usage.token_pools': 'Token 池',
   'dash.usage.free_pool': '免費池',

@@ -574,7 +574,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'उपयोग विश्लेषण',
   'dash.usage.subtitle': 'टोकन उपयोग, लागत और मॉडल प्रदर्शन ट्रैक करें।',
-  'dash.usage.session': 'सत्र',
+  'dash.usage.session': 'इस महीने',
   'dash.usage.all_time': 'सर्वकालिक',
   'dash.usage.input_tokens': 'इनपुट टोकन',
   'dash.usage.output_tokens': 'आउटपुट टोकन',
@@ -926,7 +926,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.support.github_issue': 'आप यहाँ भी issue खोल सकते हैं',
 
   // ── Missing Usage Page ────────────────────────────────────────────────
-  'dash.usage.session_summary': 'सत्र सारांश',
+  'dash.usage.session_summary': 'इस महीने',
   'dash.usage.duration': 'अवधि',
   'dash.usage.since': '{time} से',
   'dash.usage.estimated_cost': 'अनुमानित लागत',
@@ -960,6 +960,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': '{count} अनुरोधों से',
   'dash.usage.free_tokens': 'मुफ़्त टोकन',
   'dash.usage.period': 'अवधि',
+  'dash.usage.resets_on': '{date} को रीसेट',
   'dash.usage.no_active_period': 'कोई सक्रिय अवधि नहीं',
   'dash.usage.token_pools': 'टोकन पूल',
   'dash.usage.free_pool': 'मुफ़्त पूल',

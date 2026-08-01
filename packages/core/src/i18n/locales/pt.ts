@@ -569,7 +569,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'An\u00e1lise de Uso',
   'dash.usage.subtitle': 'Acompanhe uso de tokens, custos e desempenho dos modelos.',
-  'dash.usage.session': 'Sess\u00e3o',
+  'dash.usage.session': 'Este mês',
   'dash.usage.all_time': 'Desde o In\u00edcio',
   'dash.usage.input_tokens': 'Tokens de Entrada',
   'dash.usage.output_tokens': 'Tokens de Sa\u00edda',
@@ -924,7 +924,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.support.github_issue': 'Você também pode abrir uma issue no',
 
   // ── Usage Page (missing) ──────────────────────────────────────────────
-  'dash.usage.session_summary': 'Resumo da Sessão',
+  'dash.usage.session_summary': 'Este mês',
   'dash.usage.duration': 'Duração',
   'dash.usage.since': 'Desde {time}',
   'dash.usage.estimated_cost': 'Custo Estimado',
@@ -958,6 +958,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'de {count} requisições',
   'dash.usage.free_tokens': 'Tokens Gratuitos',
   'dash.usage.period': 'Período',
+  'dash.usage.resets_on': 'Reinicia em {date}',
   'dash.usage.no_active_period': 'Nenhum período ativo',
   'dash.usage.token_pools': 'Pools de Tokens',
   'dash.usage.free_pool': 'Pool Gratuito',

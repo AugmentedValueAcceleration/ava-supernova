@@ -106,18 +106,11 @@ export function Settings({
   // Tabs mirror the IDE: General · Models · Behavior · Privacy (no Desktop —
   // the extension has no desktop-automation surface).
   type SettingsTab = 'general' | 'models' | 'behavior' | 'privacy';
-  const [tab, setTab] = useState<SettingsTab>(() => {
-    try {
-      const stored = localStorage.getItem('ava-ext-settings-tab');
-      const valid: SettingsTab[] = ['general', 'models', 'behavior', 'privacy'];
-      if (stored && (valid as string[]).includes(stored)) return stored as SettingsTab;
-    } catch { /* */ }
-    return 'general';
-  });
-  const switchTab = (next: SettingsTab) => {
-    setTab(next);
-    try { localStorage.setItem('ava-ext-settings-tab', next); } catch { /* */ }
-  };
+  // Always opens on General. Nothing deep-links into a specific settings tab,
+  // so remembering the last one only meant landing somewhere you did not ask
+  // for — usually whichever tab you were last debugging.
+  const [tab, setTab] = useState<SettingsTab>('general');
+  const switchTab = (next: SettingsTab) => setTab(next);
 
   // Local / custom OpenAI-compatible provider state — Ollama, LM Studio, vLLM.
   // Loads from the host on mount (it reads SecretStorage); writes go back

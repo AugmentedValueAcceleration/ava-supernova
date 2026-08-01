@@ -574,7 +574,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': '사용량 분석',
   'dash.usage.subtitle': '토큰 사용량, 비용, 모델 성능을 추적합니다.',
-  'dash.usage.session': '세션',
+  'dash.usage.session': '이번 달',
   'dash.usage.all_time': '전체 기간',
   'dash.usage.input_tokens': '입력 토큰',
   'dash.usage.output_tokens': '출력 토큰',
@@ -926,7 +926,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.support.github_issue': '다음에서 이슈를 열 수도 있습니다',
 
   // ── Missing Usage ─────────────────────────────────────────────────────
-  'dash.usage.session_summary': '세션 요약',
+  'dash.usage.session_summary': '이번 달',
   'dash.usage.duration': '기간',
   'dash.usage.since': '{time} 이후',
   'dash.usage.estimated_cost': '예상 비용',
@@ -960,6 +960,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': '{count}개 요청 중',
   'dash.usage.free_tokens': '무료 토큰',
   'dash.usage.period': '기간',
+  'dash.usage.resets_on': '{date} 초기화',
   'dash.usage.no_active_period': '활성 기간 없음',
   'dash.usage.token_pools': '토큰 풀',
   'dash.usage.free_pool': '무료 풀',

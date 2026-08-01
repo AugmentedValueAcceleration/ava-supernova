@@ -574,7 +574,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'Аналитика использования',
   'dash.usage.subtitle': 'Отслеживание расхода токенов, затрат и производительности моделей.',
-  'dash.usage.session': 'Сессия',
+  'dash.usage.session': 'В этом месяце',
   'dash.usage.all_time': 'За всё время',
   'dash.usage.input_tokens': 'Входящие токены',
   'dash.usage.output_tokens': 'Исходящие токены',
@@ -892,7 +892,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.settings.get_api_key': 'Получить API-ключ',
 
   // ── Usage Page (missing) ──────────────────────────────────────────────
-  'dash.usage.session_summary': 'Сводка сессии',
+  'dash.usage.session_summary': 'В этом месяце',
   'dash.usage.duration': 'Длительность',
   'dash.usage.since': 'С {time}',
   'dash.usage.estimated_cost': 'Примерная стоимость',
@@ -926,6 +926,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'из {count} запросов',
   'dash.usage.free_tokens': 'Бесплатные токены',
   'dash.usage.period': 'Период',
+  'dash.usage.resets_on': 'Сброс {date}',
   'dash.usage.no_active_period': 'Нет активного периода',
   'dash.usage.token_pools': 'Пулы токенов',
   'dash.usage.free_pool': 'Бесплатный пул',

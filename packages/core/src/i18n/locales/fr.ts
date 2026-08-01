@@ -570,7 +570,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   // ── Dashboard: Usage ────────────────────────────────────────────────────────
   'dash.usage.title': 'Analyse d\u2019utilisation',
   'dash.usage.subtitle': 'Suivez la consommation de tokens, les co\u00fbts et les performances des mod\u00e8les.',
-  'dash.usage.session': 'Session',
+  'dash.usage.session': 'Ce mois-ci',
   'dash.usage.all_time': 'Depuis le d\u00e9but',
   'dash.usage.input_tokens': 'Tokens en entr\u00e9e',
   'dash.usage.output_tokens': 'Tokens en sortie',
@@ -850,7 +850,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.personality.reset': 'R\u00e9initialiser par d\u00e9faut',
 
   // \u2500\u2500 Dashboard: Usage (missing) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'dash.usage.session_summary': 'R\u00e9sum\u00e9 de session',
+  'dash.usage.session_summary': 'Ce mois-ci',
   'dash.usage.duration': 'Dur\u00e9e',
   'dash.usage.since': 'Depuis {time}',
   'dash.usage.estimated_cost': 'Co\u00fbt estim\u00e9',
@@ -884,6 +884,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': '\u00e0 partir de {count} requ\u00eates',
   'dash.usage.free_tokens': 'Tokens gratuits',
   'dash.usage.period': 'P\u00e9riode',
+  'dash.usage.resets_on': 'Réinitialisation le {date}',
   'dash.usage.no_active_period': 'Aucune p\u00e9riode active',
   'dash.usage.token_pools': 'Pools de tokens',
   'dash.usage.free_pool': 'Pool gratuit',

@@ -574,7 +574,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'Analitik Penggunaan',
   'dash.usage.subtitle': 'Lacak penggunaan token, biaya, dan performa model.',
-  'dash.usage.session': 'Sesi',
+  'dash.usage.session': 'Bulan ini',
   'dash.usage.all_time': 'Sepanjang Waktu',
   'dash.usage.input_tokens': 'Token Masuk',
   'dash.usage.output_tokens': 'Token Keluar',
@@ -888,7 +888,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.personality.reset': 'Reset ke Default',
 
   // ── Usage Page (missing) ──────────────────────────────────────────────
-  'dash.usage.session_summary': 'Ringkasan Sesi',
+  'dash.usage.session_summary': 'Bulan ini',
   'dash.usage.duration': 'Durasi',
   'dash.usage.since': 'Sejak {time}',
   'dash.usage.estimated_cost': 'Perkiraan Biaya',
@@ -922,6 +922,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'dari {count} permintaan',
   'dash.usage.free_tokens': 'Token Gratis',
   'dash.usage.period': 'Periode',
+  'dash.usage.resets_on': 'Disetel ulang {date}',
   'dash.usage.no_active_period': 'Tidak ada periode aktif',
   'dash.usage.token_pools': 'Pool Token',
   'dash.usage.free_pool': 'Pool Gratis',

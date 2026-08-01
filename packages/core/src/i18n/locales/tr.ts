@@ -574,7 +574,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'Kullanım Analizi',
   'dash.usage.subtitle': 'Token kullanımını, maliyetleri ve model performansını takip edin.',
-  'dash.usage.session': 'Oturum',
+  'dash.usage.session': 'Bu ay',
   'dash.usage.all_time': 'Tüm Zamanlar',
   'dash.usage.input_tokens': 'Giriş Tokenları',
   'dash.usage.output_tokens': 'Çıkış Tokenları',
@@ -892,7 +892,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.settings.get_api_key': 'API anahtarı alın',
 
   // ── Missing Usage Page ────────────────────────────────────────────────
-  'dash.usage.session_summary': 'Oturum Özeti',
+  'dash.usage.session_summary': 'Bu ay',
   'dash.usage.duration': 'Süre',
   'dash.usage.since': '{time} tarihinden beri',
   'dash.usage.estimated_cost': 'Tahmini Maliyet',
@@ -926,6 +926,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': '{count} istekten',
   'dash.usage.free_tokens': 'Ücretsiz Tokenlar',
   'dash.usage.period': 'Dönem',
+  'dash.usage.resets_on': '{date} sıfırlanır',
   'dash.usage.no_active_period': 'Aktif dönem yok',
   'dash.usage.token_pools': 'Token Havuzları',
   'dash.usage.free_pool': 'Ücretsiz Havuz',

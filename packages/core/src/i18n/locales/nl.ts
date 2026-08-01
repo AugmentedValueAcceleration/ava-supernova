@@ -574,7 +574,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   // ── Usage Page ──────────────────────────────────────────────────────────
   'dash.usage.title': 'Gebruiksanalyse',
   'dash.usage.subtitle': 'Volg tokengebruik, kosten en modelprestaties.',
-  'dash.usage.session': 'Sessie',
+  'dash.usage.session': 'Deze maand',
   'dash.usage.all_time': 'Totaal',
   'dash.usage.input_tokens': 'Invoertokens',
   'dash.usage.output_tokens': 'Uitvoertokens',
@@ -926,7 +926,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.support.github_issue': 'Je kunt ook een issue openen op',
 
   // ── Usage Page (missing) ──────────────────────────────────────────────
-  'dash.usage.session_summary': 'Sessieoverzicht',
+  'dash.usage.session_summary': 'Deze maand',
   'dash.usage.duration': 'Duur',
   'dash.usage.since': 'Sinds {time}',
   'dash.usage.estimated_cost': 'Geschatte kosten',
@@ -960,6 +960,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.from_requests': 'van {count} verzoeken',
   'dash.usage.free_tokens': 'Gratis tokens',
   'dash.usage.period': 'Periode',
+  'dash.usage.resets_on': 'Reset op {date}',
   'dash.usage.no_active_period': 'Geen actieve periode',
   'dash.usage.token_pools': 'Tokenpools',
   'dash.usage.free_pool': 'Gratis pool',
