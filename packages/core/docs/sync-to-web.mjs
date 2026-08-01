@@ -57,8 +57,19 @@ function main() {
     process.exit(1);
   }
 
-  // Wipe and recreate the target so removed files do not linger.
-  if (existsSync(WEB_ROOT)) rmSync(WEB_ROOT, { recursive: true, force: true });
+  // Wipe only the entries this script OWNS, so a file removed from core does
+  // not linger — but anything the web keeps here of its own survives.
+  //
+  // This used to rmSync the whole directory, which silently deleted
+  // product-knowledge.ts: the TF-IDF search the companion chat route imports
+  // to ground Ava's product answers. It lives here because it searches this
+  // corpus, but it is web-only and has no counterpart in core, so every run of
+  // the documented `pnpm docs:sync` broke the web build. It was found by the
+  // build failing, not by the sync saying anything.
+  for (const entry of COPY) {
+    const target = join(WEB_ROOT, entry);
+    if (existsSync(target)) rmSync(target, { recursive: true, force: true });
+  }
   mkdirSync(WEB_ROOT, { recursive: true });
 
   for (const entry of COPY) {
