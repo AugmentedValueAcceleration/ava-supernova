@@ -2926,6 +2926,11 @@ export const enStrings = {
   // The step that turns a meal plan into food. Everything before it is a
   // proposal; this is the bit you take to a shop.
   'health.shopping.title': 'Shopping list',
+  'health.shopping.shopping_for': 'Shopping for',
+  'health.shopping.select_all': 'All',
+  'health.shopping.select_none': 'None',
+  'health.shopping.no_ingredients': 'No ingredients captured for this meal yet',
+  'health.shopping.meals_selected': 'meals',
   'health.shopping.open': 'Shopping list',
   'health.shopping.looking': 'Reading the recipes…',
   'health.shopping.no_meals': 'No meals in this plan yet.',

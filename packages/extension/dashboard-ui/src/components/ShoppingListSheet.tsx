@@ -16,7 +16,7 @@
 // extension's window onto it.
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { Icon } from './Icon';
 import {
   buildShoppingListAcross, daysInRange, weekBounds, shiftWeek,
@@ -136,9 +136,57 @@ export function ShoppingListSheet({ plan, allPlans, profile, onClose, onLoadReci
   // profile edited halfway through must not rewrite quantities already ticked.
   const [household] = useState<number | null>(() => profile?.kitchen?.household_size ?? null);
 
+  // Every meal the current scope covers, with whether it can actually be
+  // shopped for. A meal with no captured ingredients cannot contribute lines,
+  // and saying so HERE — greyed, with the reason — beats a warning underneath
+  // a list that silently came up short.
+  const mealsInScope = useMemo(() => {
+    const out: { key: string; name: string; slot: string; dayIndex: number; shoppable: boolean }[] = [];
+    for (const { day } of sources) {
+      for (const meal of day.meals ?? []) {
+        if (!meal.name) continue;
+        out.push({
+          key: `${day.day_index}:${meal.id}`,
+          name: meal.name,
+          slot: meal.slot,
+          dayIndex: day.day_index,
+          shoppable: !!meal.meta?.ingredients?.length,
+        });
+      }
+    }
+    return out;
+  }, [sources]);
+
+  // EXCLUSIONS, not selections. Empty means everything is on, so the default
+  // costs nothing and a meal whose ingredients land later is included rather
+  // than missed because it wasn't there when the set was built.
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  useEffect(() => { setExcluded(new Set()); }, [tickScope]);
+
+  const selectedCount = mealsInScope.filter(m => !excluded.has(m.key)).length;
+  const allOn = excluded.size === 0;
+
+  const toggleMeal = useCallback((key: string) => {
+    setExcluded(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+
+  // Feed core only the meals still selected. Days are rebuilt rather than
+  // mutated — the plan itself is never touched by looking at a shopping list.
+  const selectedSources = useMemo(() => {
+    if (excluded.size === 0) return sources;
+    return sources.map(s => ({
+      ...s,
+      day: { ...s.day, meals: (s.day.meals ?? []).filter(m => !excluded.has(`${s.day.day_index}:${m.id}`)) },
+    }));
+  }, [sources, excluded]);
+
   const list = useMemo(
-    () => buildShoppingListAcross(sources, { excludeOptional: hideOptional, household }),
-    [sources, hideOptional, household],
+    () => buildShoppingListAcross(selectedSources, { excludeOptional: hideOptional, household }),
+    [selectedSources, hideOptional, household],
   );
 
   const toggle = useCallback((key: string) => {
@@ -169,7 +217,7 @@ export function ShoppingListSheet({ plan, allPlans, profile, onClose, onLoadReci
   const missingCustom = list.missing.filter(m => m.reason === 'not_in_library');
 
   return (
-    <Sheet
+    <Drawer
       title={t('health.shopping.title')}
       subtitle={single ? single.title : rangeLabel(bounds.from, bounds.to)}
       onClose={onClose}
@@ -192,6 +240,57 @@ export function ShoppingListSheet({ plan, allPlans, profile, onClose, onLoadReci
               {t(s === 'plan' ? 'health.shopping.scope_plan' : 'health.shopping.scope_week')}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* WHAT YOU ARE SHOPPING FOR — chosen before the list, not ticked off it.
+          Everything starts on, so the whole-week case looks exactly as it did.
+          Turning a meal off is how you say "I already have that", which used to
+          get muddled with "I've bought that" because the tick meant both. */}
+      {mealsInScope.length > 0 && (
+        <div className="mb-3 rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/20 p-2.5">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              {tt('health.shopping.shopping_for', 'Shopping for')}
+            </span>
+            <button type="button"
+              onClick={() => setExcluded(allOn ? new Set(mealsInScope.map(m => m.key)) : new Set())}
+              className="cursor-pointer border-none bg-transparent text-[10px] text-[var(--accent)] transition hover:opacity-80">
+              {allOn ? tt('health.shopping.select_none', 'None') : tt('health.shopping.select_all', 'All')}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {mealsInScope.map(m => {
+              const on = !excluded.has(m.key);
+              // A meal with no captured ingredients cannot contribute lines, so
+              // it is shown greyed WITH the reason rather than quietly making
+              // the list short and explaining underneath.
+              if (!m.shoppable) {
+                return (
+                  <span key={m.key}
+                    title={tt('health.shopping.no_ingredients', 'No ingredients captured for this meal yet')}
+                    className="cursor-help rounded-md border border-dashed border-[var(--border)] px-2 py-1 text-[10px] text-[var(--text-muted)] line-through opacity-60">
+                    {m.name}
+                  </span>
+                );
+              }
+              return (
+                <button key={m.key} type="button" onClick={() => toggleMeal(m.key)}
+                  className={`rounded-md border px-2 py-1 text-[10px] transition cursor-pointer ${
+                    on
+                      ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--text-primary)]'
+                      : 'border-[var(--border)] text-[var(--text-muted)] line-through opacity-60'
+                  }`}>
+                  {m.name}
+                </button>
+              );
+            })}
+          </div>
+          {!allOn && (
+            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
+              {selectedCount}/{mealsInScope.length} {tt('health.shopping.meals_selected', 'meals')}
+            </p>
+          )}
         </div>
       )}
 
@@ -296,7 +395,7 @@ export function ShoppingListSheet({ plan, allPlans, profile, onClose, onLoadReci
           </div>
         </>
       )}
-    </Sheet>
+    </Drawer>
   );
 }
 
@@ -379,6 +478,56 @@ function rangeLabel(from: string, to: string): string {
 
 /** The modal shell both health sheets sit in — matches the plan overlay's
  *  register so opening one from the other does not feel like leaving. */
+/**
+ * Right-hand drawer, for panels you READ while doing something else.
+ *
+ * A shopping list is a reference document — you check it against the plan, or
+ * against a shelf. A centred modal blacks out everything behind it and has to
+ * be closed to see the calendar, which is the wrong shape for something used
+ * over an hour. Full height rather than max-height for the same reason: a
+ * week's shop is long, and a panel that shrink-wraps its content jumps about
+ * as you fold aisles.
+ *
+ * Deliberately a separate component from Sheet rather than a variant of it.
+ * The five short-lived panels — assist, duplicate, log, prep, starters — are
+ * decisions you make and dismiss, and a centred modal is right for those.
+ */
+export function Drawer({ title, subtitle, onClose, children, footer }: {
+  title: string;
+  subtitle?: string | null;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex justify-end bg-black/60 backdrop-blur-[2px]"
+      onClick={onClose} style={{ animation: 'ava-fade-in 160ms ease-out' }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ animation: 'ava-slide-in-right 220ms cubic-bezier(0.32, 0.72, 0, 1)' }}
+        className="flex h-full w-full max-w-[560px] flex-col overflow-hidden border-l border-[var(--accent)]/25 bg-gradient-to-b from-[#100d1a] to-[#150f22] shadow-[-24px_0_60px_rgba(0,0,0,0.5)]">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--accent)]/14 px-5 py-3">
+          <div className="min-w-0">
+            <h2 className="text-[14px] font-medium text-[var(--text-primary)]">{title}</h2>
+            {subtitle && <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">{subtitle}</p>}
+          </div>
+          <button type="button" onClick={onClose} aria-label={t('health.plans.cancel')}
+            className="shrink-0 cursor-pointer border-none bg-transparent text-lg leading-none text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+            ×
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        {footer && <div className="shrink-0 border-t border-[var(--accent)]/14 px-5 py-3">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
 export function Sheet({ title, subtitle, onClose, children }: {
   title: string;
   subtitle?: string | null;
