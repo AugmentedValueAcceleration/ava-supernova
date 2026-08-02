@@ -81,11 +81,16 @@ export class FindRecipeTool implements Tool {
 
   readonly schema: FunctionSchema = {
     name: 'find_recipe',
-    description: 'Find existing recipes whose name matches a dish. Use this before write_recipe so you never create a duplicate — the same dish already in the library should gain a cuisine, not a second copy. Returns id, name, and the cuisines each belongs to. Read-only.',
+    description: 'Look at the recipe library. CALL IT WITH NO QUERY to browse what we actually have — do that whenever you need a dish and none has been named, before you ever suggest inventing one. Pass a query only to check whether one SPECIFIC dish already exists (the duplicate check before write_recipe). Returns the library total either way, plus id, name and cuisines. Read-only.',
     parameters: {
       type: 'object',
-      properties: { query: { type: 'string', description: 'The dish name to look for.' } },
-      required: ['query'],
+      properties: {
+        query: {
+          type: 'string',
+          description: 'OPTIONAL. A dish name, only when checking for that one dish. Omit it to browse the library.',
+        },
+      },
+      required: [],
     },
   };
 
@@ -94,17 +99,41 @@ export class FindRecipeTool implements Tool {
     if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
 
     const query = String(args.query ?? '').trim();
-    if (!query) return { success: false, output: 'find_recipe requires a query.' };
+
+    // No query — BROWSE. This is the case that did not exist, and its absence
+    // made Ava tell the operator we had no recipes while sitting on 934 of them:
+    // she had no callable way to see the library, so a guessed name that missed
+    // looked exactly like an empty shelf.
+    if (!query) {
+      const { total, sample } = await store.browseRecipes(30);
+      return {
+        success: true,
+        output: JSON.stringify({
+          library_total: total,
+          showing: sample.length,
+          recipes: sample.map((m) => ({ id: m.id, name: m.name, cuisines: m.cuisines, live: m.visible })),
+          note: total > sample.length
+            ? `A sample of ${sample.length} from ${total} recipes. Pick from these, or query a name for a specific dish. Do NOT invent a dish — we have plenty.`
+            : 'The whole library.',
+        }),
+      };
+    }
 
     const matches = await store.findRecipe(query);
+    // The total goes on EVERY response, including misses. Without it "no
+    // matches" reads as "no recipes", which is precisely the misreading that
+    // sent her off to generate a stranger's plate.
+    const { total } = await store.browseRecipes(0);
     return {
       success: true,
       output: JSON.stringify({
         query,
+        library_total: total,
         matches: matches.map((m) => ({ id: m.id, name: m.name, cuisines: m.cuisines, live: m.visible })),
         note: matches.length
           ? 'If one of these IS the same dish, do not write another — associate the cuisine to it. If two of these are the same dish, propose a merge (the operator confirms). Only write a new recipe if this is a genuine variant.'
-          : 'Nothing matches — safe to write it as new.',
+          : `No recipe is NAMED "${query}". That is not an empty library — we have ${total}. `
+            + 'Call find_recipe with no query to see what we do have. Only write this as a new recipe if you are authoring, never as a way to get a dish for a post.',
       }),
     };
   }

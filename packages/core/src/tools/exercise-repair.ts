@@ -49,19 +49,58 @@ export class FindExerciseTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'find_exercise',
     description:
-      'Search existing exercises by name. Read-only. Use it before writing: if the movement already exists, improve that entry rather than adding a second. If two entries are truly the same movement, propose a merge and name both — you never merge anything yourself.',
+      'Look at the exercise library. CALL IT WITH NO QUERY to browse what we actually have — do that whenever you need a movement and none has been named. Pass a query only to check for one SPECIFIC movement (the duplicate check before writing). Returns the library total either way. Read-only.',
     parameters: {
       type: 'object',
-      properties: { query: { type: 'string' } },
-      required: ['query'],
+      properties: {
+        query: {
+          type: 'string',
+          description: 'OPTIONAL. A movement name, only when checking for that one. Omit it to browse the library.',
+        },
+      },
+      required: [],
     },
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
     if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
-    const matches = await store.findExercise(String(args.query ?? '').trim());
-    return { success: true, output: JSON.stringify({ matches, count: matches.length }) };
+
+    const query = String(args.query ?? '').trim();
+
+    // Browse — the case that did not exist. Same failure as find_recipe: with
+    // no way to SEE the library, a guessed name that misses is indistinguishable
+    // from an empty shelf, and the honest-sounding conclusion is the wrong one.
+    if (!query) {
+      const { total, sample } = await store.browseExercises(30);
+      return {
+        success: true,
+        output: JSON.stringify({
+          library_total: total,
+          showing: sample.length,
+          exercises: sample,
+          note: total > sample.length
+            ? `A sample of ${sample.length} from ${total} movements. Pick from these, or query a name for a specific one. Do NOT invent a movement — we have plenty, and ours are form-verified.`
+            : 'The whole library.',
+        }),
+      };
+    }
+
+    const matches = await store.findExercise(query);
+    const { total } = await store.browseExercises(0);
+    return {
+      success: true,
+      output: JSON.stringify({
+        query,
+        library_total: total,
+        matches,
+        count: matches.length,
+        note: matches.length
+          ? undefined
+          : `No movement is NAMED "${query}". That is not an empty library — we have ${total}. `
+            + 'Call find_exercise with no query to see what we do have.',
+      }),
+    };
   }
 }
 

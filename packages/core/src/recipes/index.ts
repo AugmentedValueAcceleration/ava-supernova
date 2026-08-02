@@ -170,6 +170,20 @@ export interface RecipeStore {
   findRecipe(query: string): Promise<RecipeMatch[]>;
 
   /**
+   * Look at the library without knowing a dish name.
+   *
+   * findRecipe answers "does THIS dish exist" — the dedup question, which is the
+   * only one the Pantry asks. It cannot answer "what have we got", and until
+   * this existed nothing could: asked to make a food video with no dish named,
+   * Ava had no callable way to see the library, guessed a name, got no match,
+   * and concluded we owned no recipes at all. We own 934.
+   *
+   * Returns the TOTAL as well as a sample, because the count is what stops an
+   * empty result being read as an empty library.
+   */
+  browseRecipes(limit: number): Promise<{ total: number; sample: RecipeMatch[] }>;
+
+  /**
    * The shopping-list check. The host reads each version's method with the
    * model to list what it NAMES, then compares to what the cook was told to buy
    * using findPhantomIngredients below. Returns the verdict; write_recipe acts

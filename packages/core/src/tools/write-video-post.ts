@@ -49,7 +49,7 @@ export class WriteVideoPostTool implements Tool {
         },
         caption: {
           type: 'string',
-          description: 'The post copy that goes in the caption box, ready to paste. Hashtags inline per the platform tag policy. The first line is the hook that decides whether anyone watches. The link to avasupernova.com is appended automatically — do not write it yourself, and never write "link in bio".',
+          description: 'The post copy that goes in the caption box, ready to paste. The first line is the hook that decides whether anyone watches. It must NOT restate the voiceover — the script is heard and the caption is read, so saying the same thing twice wastes one of them; the caption carries what the voice cannot (the dish or movement by NAME, the concrete detail, why it exists). Write it to be SEARCHED: caption keywords now do more for discovery than hashtags, so the subject belongs in the words and not only in the tags. A one-liner plus two tags is not a caption. Hashtags inline per the platform tag policy. The link to avasupernova.com is appended automatically — do not write it yourself, and never write "link in bio".',
         },
         duration: {
           type: 'number',
@@ -84,7 +84,21 @@ export class WriteVideoPostTool implements Tool {
       };
     }
 
-    const platform = ((args.platform as string | undefined) || 'tiktok').trim();
+    // NO silent default. This used to fall back to 'tiktok', so a video the
+    // operator never chose a home for quietly became a TikTok post — and the
+    // platform decides the aspect, the tag policy and the whole register of the
+    // caption. Guessing it is not a small convenience, it is picking the
+    // audience on their behalf. Missing means ASK, not assume.
+    const platform = ((args.platform as string | undefined) || '').trim();
+    if (!platform) {
+      return {
+        success: false,
+        output:
+          'write_video_post needs a platform and there is no default — the platform decides the tag policy, '
+          + 'the caption register and where this lands. If the operator has not said, ASK which one (or which '
+          + 'ones) before calling this again: tiktok, instagram, youtube or facebook.',
+      };
+    }
     const visual = ((args.visual as string | undefined) || '').trim();
     const caption = ((args.caption as string | undefined) || '').trim();
     const script = ((args.script as string | undefined) || '').trim();

@@ -205,6 +205,12 @@ export interface ExerciseStore {
   save(exercise: ExerciseInput): Promise<{ id: string | null; error?: string }>;
   readExercise(exerciseId: string): Promise<ExerciseSnapshot | null>;
   findExercise(query: string): Promise<ExerciseMatch[]>;
+
+  /** Look at the library without knowing a movement name — the "what have we
+   *  got" question findExercise cannot answer. Returns the TOTAL as well as a
+   *  sample, because the count is what stops an empty search result being read
+   *  as an empty library. See the note on RecipeStore.browseRecipes. */
+  browseExercises(limit: number): Promise<{ total: number; sample: ExerciseMatch[] }>;
   check(exercise: ExerciseInput): Promise<ExerciseCheckResult>;
   recheck(exerciseId: string): Promise<ExerciseCheckResult | null>;
   addEquipment(exerciseId: string, equipment: string): Promise<{ ok: boolean; error?: string }>;
