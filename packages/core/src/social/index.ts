@@ -242,7 +242,7 @@ export const POST_HARD_LIMITS: Readonly<Record<string, number>> = {
 export const PLATFORM_TAG_POLICY: Readonly<Record<string, string>> = {
   tweet: 'X: ~6 hashtags. Bimodal crowd — mix genre/theme tags with dev tags (#buildinpublic #IndieDev #aitools). URL allowed.',
   thread: 'X thread: hashtags on the final tweet only, ~3-4. URL on the last tweet.',
-  tiktok: 'TikTok: 5 hashtags HARD CAP, genre/theme-only — mixing dev tags splits the algo signal. No URL. Avoid #fyp #foryou #foryoupage (oversaturated).',
+  tiktok: 'TikTok: 1-2 hashtags — one niche, one broad. Tags are heavily down-weighted now and a stack of five reads as low-effort to the classifier, so more tags is actively worse. Watch time in the opening seconds decides reach; caption KEYWORDS do more for discovery than tags, so write the caption to be searched. Genre/theme over dev tags. No URL. Avoid #fyp #foryou #foryoupage.',
   youtube: 'YouTube Shorts: #Shorts always FIRST, top 3 show above the title. 15 max but >15 = ALL ignored. No URL surfaced in the Shorts feed.',
   linkedin: 'LinkedIn: 3 hashtags max, professional. Link at the end is fine.',
   bluesky: 'Bluesky: 1-2 hashtags max — technical / open-source / federated crowd, low tolerance for tag stacks. 300 char cap.',
