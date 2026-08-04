@@ -68,7 +68,7 @@ const SURFACES = [
     // in full parity already (maintained by hand), but without the surface
     // registered here a NEW en key could never be seeded into them.
     name: 'companion',
-    dir: path.join(repoRoot, 'packages/mobile/src/locales'),
+    dir: path.join(repoRoot, 'packages/web/src/companion/locales'),
     kind: 'ts',
     enFile: 'en.ts',
     listLocaleFiles() {

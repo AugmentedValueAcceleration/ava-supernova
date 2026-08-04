@@ -25,7 +25,7 @@ const SRC = path.join(repoRoot, 'packages/core/src/docs');
 // generated mirror under src/lib/docs/. Add a target here to keep it in step.
 const DSTS = [
   path.join(repoRoot, 'packages/web/src/lib/docs'),
-  path.join(repoRoot, 'packages/mobile/src/lib/docs'),
+  path.join(repoRoot, 'packages/web/src/companion/lib/docs'),
 ];
 
 const BANNER = [

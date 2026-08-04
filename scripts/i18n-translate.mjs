@@ -180,11 +180,16 @@ const SURFACES = [
     // check pipeline for this surface. It was absent from all three scripts,
     // so companion strings could be neither seeded nor translated nor
     // verified, despite having its own locales and keep-english.ts.
+    //
+    // Repointed 2026-08-04: the companion moved into the website and
+    // packages/mobile was retired, which silently broke this surface in all
+    // three scripts — i18n:check reported "en file missing" and translate
+    // skipped it entirely, so new companion strings stopped being translated.
     name: 'companion',
-    dir: path.join(repoRoot, 'packages/mobile/src/locales'),
+    dir: path.join(repoRoot, 'packages/web/src/companion/locales'),
     kind: 'ts',
     enFile: 'en.ts',
-    keepEnglishFile: path.join(repoRoot, 'packages/mobile/src/locales/keep-english.ts'),
+    keepEnglishFile: path.join(repoRoot, 'packages/web/src/companion/locales/keep-english.ts'),
     localeCodeFromFile: (f) => f.replace(/\.ts$/, ''),
     listLocaleFiles() {
       return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts' && f !== 'en.ts');
