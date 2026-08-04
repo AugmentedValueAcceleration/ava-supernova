@@ -18,7 +18,10 @@
  *   3. ~/.ava/config.json -> platformKey (preferred) or providers.qwen.apiKey
  *
  * When a platform key (sk-ava-*) is used, requests route through
- * https://ava-supernova.com/api/chat. Otherwise requests go direct to Qwen
+ * https://avasupernova.com/api/chat (note: no hyphen — the hyphenated
+ * domain was the old Vercel deployment and has 404'd since 1 Aug, which
+ * made every run through this script fail silently with 'Translated 0
+ * strings'). Otherwise requests go direct to Qwen
  * (DashScope compatible-mode endpoint). Both accept the same OpenAI-compatible
  * JSON schema, so the prompt payload is identical.
  *
@@ -79,7 +82,7 @@ if (!CRED && !DRY_RUN) {
 const COMPLETION_URL = args['base-url']
   ? `${args['base-url'].replace(/\/$/, '')}/chat/completions`
   : (CRED?.kind === 'platform'
-      ? 'https://ava-supernova.com/api/chat'
+      ? 'https://avasupernova.com/api/chat'
       : 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions');
 
 /**

@@ -455,7 +455,7 @@ if (!CRED) {
   process.exit(1);
 }
 const COMPLETION_URL = CRED.kind === 'platform'
-  ? 'https://ava-supernova.com/api/chat'
+  ? 'https://avasupernova.com/api/chat'
   : 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 
 // ── Translate one release's title + highlights into one locale ───────────────

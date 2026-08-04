@@ -48,7 +48,7 @@ function writeOut(obj) {
 async function translate(entries, lang, attempt = 1) {
   const obj = Object.fromEntries(entries);
   try {
-    const res = await fetch('https://ava-supernova.com/api/chat', { method: 'POST', headers: { Authorization: `Bearer ${PK}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'qwen3.5-flash', messages: [
+    const res = await fetch('https://avasupernova.com/api/chat', { method: 'POST', headers: { Authorization: `Bearer ${PK}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'qwen3.5-flash', messages: [
       { role: 'system', content: `You are translating product documentation into ${lang}. Translate the VALUES of the given JSON object into natural, clear ${lang} aimed at non-technical readers. Return ONLY a JSON object with the EXACT same keys, no prose or code fences. Preserve: inline markdown (**bold**, \`code\`), file paths (like ~/.ava/), URLs, the mode shortcut symbols (>> :: .. ?? !! **), numbers, and these tokens unchanged: ${GLOSSARY.join(', ')}. Keep the warm, plain-language tone.` },
       { role: 'user', content: JSON.stringify(obj) },
     ], temperature: 0.3, max_tokens: 8000 }) });
