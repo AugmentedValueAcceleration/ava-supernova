@@ -538,8 +538,11 @@ async function translateOne(locale, release, attempt = 1) {
   if (paras(parsed.body) < paras(release.body)) {
     throw new Error(`body lost paragraphs (${paras(parsed.body)} vs ${paras(release.body)})`);
   }
-  if (parsed.body.length < release.body.length * 0.5) {
-    throw new Error(`body suspiciously short (${parsed.body.length} vs ${release.body.length} chars)`);
+  // Language-aware floor: CJK compresses hard (a good Chinese body is ~27% of
+  // the English source), so a flat ratio rejects every valid zh/ja/ko result.
+  const floor = /^(zh|ja|ko)/.test(locale) ? 0.15 : 0.45;
+  if (parsed.body.length < release.body.length * floor) {
+    throw new Error(`body suspiciously short (${parsed.body.length} vs ${release.body.length} chars, floor ${floor})`);
   }
 
   return { title: parsed.title, highlights, body: parsed.body };
