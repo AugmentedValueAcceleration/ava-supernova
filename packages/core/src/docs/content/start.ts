@@ -27,7 +27,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'VS Code extension — Ava next to your editor: a chat panel, a dashboard, and changes shown inline before they happen.',
         'Desktop IDE — a standalone app with the whole thing in one window. Adds desktop control (opening apps, clicking, typing for you).',
-        'Companion — a mobile app for when you\'re away from your desk: tasks, journal, memory, quick chats.',
+        'Companion — Ava in your browser at avasupernova.com/companion, for when you\'re away from your desk: tasks, journal, memory, quick chats. Nothing to install, and it works on a phone.',
         'CLI — Ava in your terminal, for people who live there.',
       ]},
       { type: 'heading', level: 3, text: 'How she works, in brief' },
