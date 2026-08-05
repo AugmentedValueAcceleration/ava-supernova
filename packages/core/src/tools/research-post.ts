@@ -27,7 +27,7 @@ export class ResearchPostTool implements Tool {
         subject: { type: 'string', description: 'The subject/topic of the post (e.g. "local-first AI privacy", "our latest release", "build-in-public update on the IDE").' },
         platform: {
           type: 'string',
-          enum: ['tweet', 'linkedin', 'thread', 'bluesky', 'eurosky', 'facebook', 'tiktok', 'youtube', 'instagram', 'blog'],
+          enum: ['tweet', 'linkedin', 'thread', 'bluesky', 'eurosky', 'facebook', 'reddit', 'tiktok', 'youtube', 'instagram', 'blog'],
           description: 'Target platform — shapes the tag policy returned. Defaults to tweet.',
         },
       },

@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { POST_HARD_LIMITS, type PostStore, type SocialPostInput } from '../social/index.js';
+import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput } from '../social/index.js';
 
 /**
  * Emit a finished social post to the Social Studio canvas — one call per post.
@@ -31,7 +31,7 @@ export class WritePostTool implements Tool {
           description: 'Target platform. "tweet" for X, "bluesky" for Bluesky (300 char cap), "tiktok" for TikTok, "youtube" for YouTube Shorts. "post" only if none of the above fit.',
         },
         content: { type: 'string', description: 'The finalized post content, ready to publish. Include the hashtags and link inline per the platform tag policy — content must be copy-paste ready.' },
-        title: { type: 'string', description: 'Optional short title for the library (e.g. "Monday Motivation v1"). Auto-generated if omitted.' },
+        title: { type: 'string', description: 'Short title for the library (e.g. "Monday Motivation v1"). Auto-generated if omitted — EXCEPT on Reddit, where the title is published content, is REQUIRED, caps at 300 characters, and does most of the work of the post.' },
         variant: { type: 'string', description: 'Optional variant label when writing multiple versions of the same post (e.g. "punchy", "deeper", "hopeful").' },
         hashtags: { type: 'array', items: { type: 'string' }, description: 'The hashtags you chose for this post (the same ones present in content), so the UI can show them as an editable chip row. Pulled from research_post and kept within the platform tag policy. Omit for platforms that take no tags (e.g. blog).' },
         tag_note: { type: 'string', description: 'One short line on why these tags — e.g. "#buildinpublic + #aitools for reach, #localfirst niche". Shown under the chips.' },
@@ -68,6 +68,32 @@ export class WritePostTool implements Tool {
             `This ${platform} post is ${len} characters — ${over} over the ${hardLimit} limit. ` +
             `Trim ${over}+ characters and call write_post again. Keep the hook and the point; cut ` +
             `filler, not substance. (Hashtags and any link count toward the limit.)`,
+        };
+      }
+    }
+
+    // Reddit's title is not a library label — it is the headline people vote on,
+    // and a Reddit post without one is not a post. Enforced here rather than left
+    // to the prompt, so the failure is a corrective message Ava can act on.
+    if (platform === 'reddit') {
+      const title = ((args.title as string | undefined) || '').trim();
+      if (!title) {
+        return {
+          success: false,
+          output:
+            'A Reddit post needs a title — on Reddit the title is published content, not a library ' +
+            'label. It is what people vote on and often all they read. Write a plain, specific title ' +
+            '(max 300 characters, no hashtags) and call write_post again.',
+        };
+      }
+      const titleLen = Array.from(title).length;
+      if (titleLen > REDDIT_TITLE_LIMIT) {
+        const over = titleLen - REDDIT_TITLE_LIMIT;
+        return {
+          success: false,
+          output:
+            `This Reddit title is ${titleLen} characters — ${over} over the ${REDDIT_TITLE_LIMIT} limit. ` +
+            `Trim ${over}+ characters and call write_post again.`,
         };
       }
     }

@@ -235,7 +235,15 @@ export const POST_HARD_LIMITS: Readonly<Record<string, number>> = {
   linkedin: 3000,
   tiktok: 4000,
   facebook: 63206,
+  reddit: 40000,
 };
+
+/**
+ * Reddit is the one platform where the title is published content rather than a
+ * library label — it is what people vote on, and often all they read. So it has
+ * its own cap, enforced separately from the body.
+ */
+export const REDDIT_TITLE_LIMIT = 300;
 
 /** Per-platform hashtag/link policy — returned by research_post so Ava picks
  *  tags within the platform's real conventions. Single source of truth. */
@@ -248,6 +256,8 @@ export const PLATFORM_TAG_POLICY: Readonly<Record<string, string>> = {
   bluesky: 'Bluesky: 1-2 hashtags max — technical / open-source / federated crowd, low tolerance for tag stacks. 300 char cap.',
   facebook: 'Facebook Page: 0-2 hashtags max, tag stacks read as spam. Mixed crowd — some builders, but mostly people who just want the thing to work, so plain language over jargon and lead with what it does for them. Long-form is fine here; a story lands better than a headline. Link at the end is fine.',
   instagram: 'Instagram: ~8-12 relevant tags, niche over generic; first few matter most.',
+  eurosky: 'Eurosky: 1-2 hashtags max — same AT-protocol crowd and conventions as Bluesky, European and privacy-minded. 300 char cap.',
+  reddit: 'Reddit: NO hashtags — they do nothing here and mark a post as imported from another platform. Discovery is the subreddit plus the title, not tags. Whether a link is allowed at all depends on the individual subreddit\'s self-promotion rules, which vary and are mod-enforced — check the sub rather than assuming. Title max 300 and it carries the post; plain and specific beats a hook, because this crowd reads clickbait as an insult.',
   blog: 'Blog: no hashtags.',
 };
 

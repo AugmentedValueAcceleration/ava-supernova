@@ -24,7 +24,7 @@ export type { UserIntent, IntentClassifierOptions } from './agent/intent-classif
 
 export type { SystemPromptOptions } from './agent/system-prompt.js';
 export * from './exercises/index.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, getNewsroomPrefix, getPantryPrefix, getGymPrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, SOCIAL_STUDIO_PERSONA, getNewsroomPrefix, getPantryPrefix, getGymPrefix } from './agent/system-prompt.js';
 
 // Newsroom contracts — the surface-injected news index + article store the
 // Correspondent's tools write through, plus the syndication clusterer that
@@ -56,7 +56,7 @@ export type {
   PostMetric, PostMetricsReader,
   Beat, BeatStore,
 } from './social/index.js';
-export { POST_HARD_LIMITS, PLATFORM_TAG_POLICY, VIDEO_CAPTION_LIMITS, PLATFORM_IMAGE_SPECS, imageSizeFor } from './social/index.js';
+export { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, PLATFORM_TAG_POLICY, VIDEO_CAPTION_LIMITS, PLATFORM_IMAGE_SPECS, imageSizeFor } from './social/index.js';
 
 // Health profile-fill registry (the "Ava fills your profile" flow)
 export {
