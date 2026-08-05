@@ -106,6 +106,53 @@ export interface VideoPostStore {
   write(post: VideoPostInput): Promise<VideoPostWritten>;
 }
 
+/**
+ * A voiceover asked for on its OWN — audio as the deliverable, with no clip
+ * around it.
+ *
+ * Separate from VideoPostInput on purpose. A video script is written to fit
+ * inside a picture and is capped hard because of it; a standalone read has no
+ * picture to stay inside, so the constraint would be arbitrary. The only reason
+ * these ever shared a path is that the voice happens to come from the same
+ * generator, which is not a reason.
+ */
+export interface VoiceoverInput {
+  /** The exact words to speak, verbatim — authored, never a summary. */
+  script: string;
+  /**
+   * Tone, pace and emotion, in her own words. The brand voice is the default
+   * and the store supplies it; this is the per-read direction on top.
+   */
+  direction?: string;
+  /** What it is for, so the card is identifiable later. */
+  title?: string;
+  /** BCP-47-ish language name the read is voiced in. Defaults to English. */
+  language?: string;
+}
+
+/** What the surface reports back once the audio exists. */
+export interface VoiceoverWritten {
+  /** Where the rendered audio lives. */
+  url: string;
+  /** Measured length, when the surface can determine it. */
+  seconds?: number | null;
+  /** Library id, when the surface saved it. */
+  assetId?: string | null;
+}
+
+/**
+ * Surface-injected sink for standalone voiceovers.
+ *
+ * Same split as VideoPostStore and PostStore: core validates the script, the
+ * implementation holds the provider key and the wallet. A room without this
+ * mounted simply has no voiceover tool, which is the honest failure — the
+ * alternative (a registered tool that answers "no canvas") is how the Design
+ * Studio's voice tool would have behaved if it had been allowlisted here.
+ */
+export interface VoiceoverStore {
+  write(voiceover: VoiceoverInput): Promise<VoiceoverWritten>;
+}
+
 /** Caption caps for the short-form platforms. Same deterministic enforcement as
  *  POST_HARD_LIMITS — models cannot count characters, so we count for them. */
 export const VIDEO_CAPTION_LIMITS: Readonly<Record<string, number>> = {

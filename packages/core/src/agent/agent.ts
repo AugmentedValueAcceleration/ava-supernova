@@ -459,6 +459,15 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // (browse_library). 'generate_image' used to sit here — a name the registry
     // never builds — so a post's visual silently did nothing.
     'open_design_studio', 'browse_library',
+    // A voiceover ON ITS OWN, not attached to a clip — audio is its own
+    // deliverable (a read for footage they already have), and routing it
+    // through a video they don't want burns a video generation.
+    //
+    // NOT design_generate_voice: that tool speaks through `designControl`, the
+    // Design Studio's canvas channel, which this surface never mounts. Adding
+    // it here would have registered a tool that answers "no canvas" every time.
+    // write_voiceover carries its own store, the way write_video_post does.
+    'write_voiceover',
     // Research to make the angle current
     'web_search',
     // Memory carries the mission voice; journal her read on the brand

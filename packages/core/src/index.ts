@@ -50,6 +50,7 @@ export { findPhantomIngredients, checkRecipeShoppingList } from './recipes/index
 export type {
   SocialPostInput, SocialPostWritten, PostStore,
   VideoPostInput, VideoPostWritten, VideoPostStore,
+  VoiceoverInput, VoiceoverWritten, VoiceoverStore,
   PostImageInput, PostImageWritten, PostImageStore,
   HookOption, HookProposal, HookStore,
   WebSearchResult, WebSearchFn,

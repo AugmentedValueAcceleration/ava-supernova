@@ -45,7 +45,7 @@ export class WriteVideoPostTool implements Tool {
         },
         script: {
           type: 'string',
-          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". A voiced clip is ALWAYS 10 seconds and the line must land between 12 and 16 words. The ceiling keeps the voice inside the picture — a voice still talking after the clip stops is the most obviously broken thing a short can do. The FLOOR is not a style note: Wan refuses any voiceover under 3 seconds and the clip then fails to render at all, so too short produces nothing rather than sounding sparse. Both bounds are enforced. Omit entirely for a silent clip carried by on-screen text.',
+          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". A voiced clip is ALWAYS 10 seconds and the line must land between 17 and 22 words — AIM AT 20-22, because that is what fills the clip. Timed against the real voice: 22 words runs ~9.1s, 17 words ~7.0s, and 12 words is under 5s, which leaves half the video playing in silence. The ceiling keeps the voice inside the picture — a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone (and under 3 seconds Wan refuses the audio outright, so the clip fails to render at all). Both bounds are enforced. Omit entirely for a silent clip carried by on-screen text.',
         },
         caption: {
           type: 'string',
@@ -153,38 +153,56 @@ export class WriteVideoPostTool implements Tool {
     // script short enough to fit being too short to accept. So a voiced clip is
     // always 10s. Found the hard way after a six-word line killed every food
     // video with a generic "generation failed".
+    // MEASURED through the real voice — qwen3-tts-instruct-flash, the 'Maia'
+    // brand voice, the shipped voice direction, timed off the returned WAV
+    // headers rather than derived from an assumed rate:
+    //
+    //     6w -> 2.16s   10w -> 3.76s   14w -> 5.52s   17w -> 7.04s   25w -> 10.00s
+    //
+    // She runs 2.41-2.78 words a second, slowest on the longer lines. So a 10s
+    // clip holds about 22 words.
+    //
+    // The floor used to be 12, set to clear Wan's 3s minimum and nothing else.
+    // Twelve words is under five seconds — half a ten second clip — and a floor
+    // is exactly where a model writes to when the tool keeps rejecting it, so
+    // every voiced clip came back half silent. The floor now exists to FILL the
+    // clip rather than merely to be accepted.
+    //
+    // NOTE: this rate belongs to Maia. The brand voice is not yet ratified, and
+    // the roster varies a lot — the same lines through 'Cherry' run 1.92-2.42
+    // w/s, which would put the ceiling at 18 rather than 22. If AVA_BRAND_VOICE
+    // changes, re-measure; do not carry these numbers over.
     const MIN_SPEECH_SECONDS = 3.0;
-    const WORDS_PER_SECOND = 2;
-    // MEASURED through the real voice, not derived: 5 words -> 1.84s,
-    // 10 words -> 3.12s, 12 words -> 5.68s. Speech is not two words a second
-    // and the rate is not constant, so a floor computed from that assumption
-    // lands around 2.2s and is still rejected. Twelve carries real margin.
-    const MIN_WORDS = 12;
+    const SLOWEST_WORDS_PER_SECOND = 2.41;
+    /** Speech has to end before the picture does; 0.5s of air is enough. */
+    const TRAILING_AIR_SECONDS = 0.5;
+    const MIN_WORDS = 17;
     const wantsVoice = !!script;
     const plannedDuration =
       wantsVoice || (typeof args.duration === 'number' && args.duration > 7.5) ? 10 : 5;
     if (script) {
       const words = script.split(/\s+/).filter(Boolean).length;
-      const speakable = Math.max(1, plannedDuration - 2);
-      const budget = Math.floor(speakable * WORDS_PER_SECOND);
+      const speakable = Math.max(1, plannedDuration - TRAILING_AIR_SECONDS);
+      const budget = Math.floor(speakable * SLOWEST_WORDS_PER_SECOND);
       const floor = MIN_WORDS;
       if (words > budget) {
         return {
           success: false,
           output:
-            `That script is ${words} words and will not fit. A ${plannedDuration}s clip leaves ${speakable}s of ` +
-            `speech once you allow a second of air at each end — about ${budget} words. Cut ${words - budget} ` +
-            `and call write_video_post again. Say less; the picture is doing work too.`,
+            `That script is ${words} words and will not fit. A ${plannedDuration}s clip holds about ${budget} words ` +
+            `at the speed you actually speak. Cut ${words - budget} and call write_video_post again — a voice ` +
+            `still talking after the picture stops is the most obviously broken thing a short can do.`,
         };
       }
       if (words < floor) {
         return {
           success: false,
           output:
-            `That script is only ${words} words. Wan refuses any voiceover under ${MIN_SPEECH_SECONDS}s and will ` +
-            `not render the clip at all, so a line this short produces nothing rather than sounding sparse. ` +
-            `Write at least ${floor} words — you have up to ${budget} — or drop the script entirely for a ` +
-            `silent clip carried by on-screen text.`,
+            `That script is only ${words} words — roughly ${(words / SLOWEST_WORDS_PER_SECOND).toFixed(1)}s of speech ` +
+            `in a ${plannedDuration}s clip, so the rest of the video would play in silence. Write ${floor}-${budget} words ` +
+            `and aim at the top of that range: ${budget} words fills the clip, ${floor} barely covers two thirds ` +
+            `of it. (Under ${MIN_SPEECH_SECONDS}s Wan refuses the audio outright and nothing renders at all.) ` +
+            `Or drop the script entirely for a silent clip carried by on-screen text.`,
         };
       }
     }

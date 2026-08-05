@@ -44,6 +44,7 @@ import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateTool } from './health-plan-update.js';
 import { WritePostTool } from './write-post.js';
 import { WriteVideoPostTool } from './write-video-post.js';
+import { WriteVoiceoverTool } from './write-voiceover.js';
 import { WritePostImageTool } from './write-post-image.js';
 import { ProposeHooksTool } from './propose-hooks.js';
 import { ResearchPostTool } from './research-post.js';
@@ -178,6 +179,13 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   design_generate_set: 'media', design_generate_video: 'media',
   design_generate_image: 'media', design_generate_voice: 'media',
   design_brand_kit: 'media', design_save: 'media',
+  // Social Studio's paid outputs. These were in no category at all, so they
+  // fell through to the 'file_ops' default and auto-ran — a video, a picture or
+  // a voiceover could be generated without the operator ever being asked, which
+  // is the one place in this room where being wrong costs money rather than
+  // time. write_post itself stays out: text is free, and gating it would put a
+  // prompt in front of the thing the room exists to do.
+  write_video_post: 'media', write_post_image: 'media', write_voiceover: 'media',
   // Database
   database_query: 'database',
   // System — desktop control, utilities, security
@@ -457,6 +465,7 @@ export class ToolRegistry {
       new HealthPlanUpdateDayTool(),
       new WritePostTool(),
       new WriteVideoPostTool(),
+      new WriteVoiceoverTool(),
       new WritePostImageTool(),
       new ProposeHooksTool(),
       new ResearchPostTool(),
