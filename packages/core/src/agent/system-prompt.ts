@@ -956,7 +956,7 @@ export function getSocialStudioPrefix(
 
   if (brandKitSummary) prefix += `\n\n## Their brand kit\n${brandKitSummary}`;
   if (performanceSummary) prefix += `\n\n## What's landed lately (Bluesky — learn from it, don't just repeat it)\n${performanceSummary}`;
-  if (recentPostsSummary) prefix += `\n\n## Their recent posts (don't repeat these angles / hooks / phrases)\n${recentPostsSummary}`;
+  if (recentPostsSummary) prefix += `\n\n## What you have ALREADY MADE — do not repeat it\nThis is your own back catalogue. Read it before you propose anything. Picking the same subject twice is the fastest way to look like you are not paying attention, and if a SUBJECTS ALREADY COVERED line appears below, those are off the table unless they ask for one by name. There is a whole catalogue you have not touched — go and find something in it.\n\n${recentPostsSummary}`;
   prefix += `\n\n## Their request\n${userText}`;
   return prefix;
 }
