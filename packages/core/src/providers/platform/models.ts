@@ -125,11 +125,16 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: false,
     pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
   },
-  // DeepSeek V4 Pro (managed) — admin-gated rollout (migration 218).
-  // Frontier open-source coordinator candidate: 1.6T / 49B active per
-  // token, SWE-bench Verified 80.6%. Currently only visible to admin
-  // accounts; un-gate by flipping admin_only=false in the models table.
+  // DeepSeek V4 Pro (managed) — LIVE to all accounts. Frontier open-source
+  // coordinator: 1.6T / 49B active per token, SWE-bench Verified 80.6%.
   // ID matches the row in the `models` table so server lookups resolve.
+  //
+  // This comment used to say "admin-gated rollout (migration 218), only
+  // visible to admin accounts". That stopped being true when the row was
+  // un-gated in the table and nobody came back here. The `models` table is
+  // the authority on visibility — admin_only and enabled live there, not in
+  // this file. Read the row, not this comment. (2026-08-06: verified
+  // enabled=true, admin_only=false for both V4 rows.)
   {
     id: 'deepseek-v4-pro-platform',
     name: 'DeepSeek V4 Pro',
