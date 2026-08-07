@@ -49,7 +49,8 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'kimi-k2.5': { inputPerMillion: 0.60,  outputPerMillion: 3.00 },
   },
   qwen: {
-    'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 }, // BYOK-only, DashScope intl
+    'qwen3.8-max':  { inputPerMillion: 2.00,  outputPerMillion: 6.00 }, // flagship from 2026-08-03, DashScope intl
+  'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 }, // superseded by 3.8 Max; still live upstream
     'qwen3.7-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.60 },
     'qwen3.5-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.20 },
     'qwen3.5-flash':{ inputPerMillion: 0.05,  outputPerMillion: 0.15 },

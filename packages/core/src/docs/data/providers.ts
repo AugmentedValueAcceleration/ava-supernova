@@ -146,16 +146,18 @@ export const PROVIDERS: ProviderFact[] = [
   },
   // Qwen has a managed section above (models we serve on your plan). This is the
   // BYOK half — the same split DeepSeek and Mistral already have. It exists
-  // because qwen3.7-max is BYOK-only and so had no home in the managed section:
-  // it shipped in the catalogue and the picker while being absent from the docs
-  // entirely, which meant docs_lookup could not answer questions about it.
+  // because qwen3.7-max shipped in the catalogue and the picker while being
+  // absent from the docs entirely, which meant docs_lookup could not answer
+  // questions about it. (It was BYOK-only when this section was written; Max
+  // was opened to credits on 2026-07-23 and the note here went stale.)
   {
     id: 'qwen-byok',
     name: 'Qwen (Alibaba Cloud) — your own key',
     kind: 'byok',
-    notes: 'Bring your own DashScope (international) key. Qwen 3.7 Max is BYOK-only — it is not served on any plan. Prices are Alibaba\'s published international rates; 3.7 Plus is tiered (input rises above 256K tokens) and the figure shown is the base tier. 3.5 Plus and 3.5 Flash still answer but Alibaba now treats them as legacy.',
+    notes: 'Bring your own DashScope (international) key. Qwen 3.8 Max (3 August 2026) is the current flagship and supersedes 3.7 Max on every axis — cheaper at $2/$6, double the output ceiling at 131K, and video in as well as images. Both Max models are ALSO served on a plan; the earlier note that Max was BYOK-only stopped being true on 2026-07-23. Prices are Alibaba\'s published international rates; 3.7 Plus is tiered (input rises above 256K tokens) and the figure shown is the base tier. 3.5 Plus and 3.5 Flash still answer but Alibaba now treats them as legacy.',
     models: [
-      { id: 'qwen3.7-max', displayName: 'Qwen 3.7 Max — BYOK-only, Alibaba\'s heavy flagship', inputPricePerM: 2.50, outputPricePerM: 7.50, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.8-max', displayName: 'Qwen 3.8 Max — Alibaba\'s flagship, 131K output, video in', inputPricePerM: 2.00, outputPricePerM: 6.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-max', displayName: 'Qwen 3.7 Max — the previous flagship, superseded by 3.8 Max', inputPricePerM: 2.50, outputPricePerM: 7.50, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — legacy', inputPricePerM: 0.40, outputPricePerM: 2.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — legacy, text only', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 262_000, capabilities: ['tools', 'streaming'] },

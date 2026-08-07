@@ -64,6 +64,25 @@ const KIMI_K2_7_CODE_PLATFORM: ModelDefinition = {
 export const PLATFORM_MODELS: ModelDefinition[] = [
   ...(LONGXIANG_ENABLED ? [KIMI_K3_PLATFORM] : []),
   KIMI_K2_7_CODE_PLATFORM,
+  // Qwen 3.8 Max — Alibaba's flagship as of 3 August 2026, and the successor to
+  // 3.7 Max on credits. Strictly better and strictly cheaper: $2/$6 against
+  // $2.50/$7.50, 131,072 output against 65,536. Cheaper input means a LOWER
+  // credit multiplier than 3.7 Max — 2.58 against 3.22, same formula
+  // (0.4952 x (in + 4*out) / 5). Not a fleet coordinator; a standalone single
+  // pick for users who want the flagship on credits.
+  {
+    id: 'qwen3.8-max',
+    name: 'Qwen 3.8 Max',
+    provider: 'platform',
+    contextWindow: 1000000,
+    maxOutputTokens: 131072,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 2.00, outputPerMillion: 6.00 },
+  },
   // Qwen 3.7 Max — Alibaba's heavy flagship, opened to account credits
   // 2026-07-23 (operator: it's in the Qwen family, price it honestly). Bare id
   // on both surfaces like the rest of Qwen. $2.50/$7.50 = the priciest Qwen we

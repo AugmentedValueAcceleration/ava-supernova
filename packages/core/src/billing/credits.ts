@@ -149,6 +149,11 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   'qwen-plus':                  0.51,  // legacy DashScope alias
   // Qwen 3.7 Max — heavy flagship, opened to account credits 2026-07-23.
   // $2.50/$7.50 → 0.4952 × (2.50 + 4×7.50)/5 = 3.22. Priciest Qwen we serve.
+  // Qwen 3.8 Max — the flagship from 2026-08-03. $2.00/$6.00, so the same
+  // formula gives a CHEAPER multiplier than 3.7 Max: 0.4952 x (2.00 + 4x6.00)/5
+  // = 2.58. A newer, better model that costs the user less is worth saying out
+  // loud, because it is not how this usually goes.
+  'qwen3.8-max':                2.58,
   'qwen3.7-max':                3.22,
   'qwen3.5-plus':               0.44,
   'qwen3.5-omni-plus':          0.44,
