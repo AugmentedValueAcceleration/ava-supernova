@@ -886,7 +886,10 @@ export class DashboardPanel {
           if (msg.subject) params.set('subject', msg.subject);
           if (msg.level) params.set('level', msg.level);
           if (msg.sort) params.set('sort', msg.sort);
-          params.set('limit', '30');
+          // The shelf and subject rows are derived from the paths we hold, so a
+          // short page would silently drop entire shelves from the filter —
+          // a browse UI that hides categories is worse than no browse UI.
+          params.set('limit', '100');
           const url = `/learning/library?${params.toString()}`;
           // Public endpoint — try with platform key if available, otherwise direct fetch
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);

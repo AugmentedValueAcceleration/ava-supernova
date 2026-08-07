@@ -411,7 +411,14 @@ export interface LibraryPath {
   id: string;
   title: string;
   description: string | null;
+  /** Top-level shelf: Using Ava, Science & Maths, Trades, and so on. Null on
+   *  anything published before the taxonomy existed. */
+  industry: string | null;
   subject: string;
+  /** WHO the course is written for: School, Exam prep, College or university,
+   *  Career change, Professional development, Personal interest. Independent
+   *  of subject on purpose. Distinct from `target_audience`, which is prose. */
+  audience_type: string | null;
   level: string;
   tags: string[];
   goal: string | null;

@@ -869,6 +869,7 @@ export const enStrings = {
   'dash.learning_library.start_learning': 'Start Learning',
   'dash.learning_library.starting': 'Starting...',
   'dash.learning_library.search': 'Search paths...',
+  'dash.learning_library.all_audiences': 'Anyone',
   'dash.learning_library.all_levels': 'All levels',
   'dash.learning_library.most_popular': 'Most Popular',
   'dash.learning_library.newest': 'Newest',
