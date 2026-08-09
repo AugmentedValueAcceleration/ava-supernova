@@ -29,9 +29,19 @@ import type {
 
 type Tab = 'courses' | 'my-learning' | 'ava';
 
+/** Rating verdicts keyed by course id — the user's OWN score plus any error
+ *  the save returned. Kept in App so it survives tab switches. */
+export interface CourseRatingState {
+  yourRating: number;
+  averageRating: number | null;
+  ratingCount: number;
+  error?: string;
+}
+
 interface Props {
   // Courses tab → LearningLibrary
   paths: LibraryPath[];
+  courseRatings: Record<string, CourseRatingState>;
   pathDetail: LibraryPathDetail | null;
   onNavigate: (page: Page) => void;
   // My Learning tab → MyLearning (Progression + My Courses)
@@ -48,7 +58,7 @@ interface Props {
 }
 
 export function LearningRoom({
-  paths, pathDetail, onNavigate,
+  paths, pathDetail, onNavigate, courseRatings,
   learningCurriculums, learningLoaded, learnerProfile,
   onRegisterLearningChatDispatch, userName, userAvatarUrl,
   initialTab, onConsumeInitialTab,
@@ -150,7 +160,7 @@ export function LearningRoom({
           </div>
         </div>
         {tab === 'courses' && (
-          <LearningLibrary paths={paths} detail={pathDetail} onNavigate={onNavigate} />
+          <LearningLibrary paths={paths} detail={pathDetail} onNavigate={onNavigate} courseRatings={courseRatings} />
         )}
         {tab === 'my-learning' && (
           <MyLearning

@@ -294,6 +294,11 @@ export function App() {
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>(() => {
     try { const saved = localStorage.getItem('ava-dash-learning'); return saved ? JSON.parse(saved) : []; } catch { return []; }
   });
+  /** Per-course rating verdicts, keyed by path id. Holds the user's OWN
+   *  score (not the average) plus any error the save returned. */
+  const [courseRatings, setCourseRatings] = useState<Record<string, {
+    yourRating: number; averageRating: number | null; ratingCount: number; error?: string;
+  }>>({});
   const [libraryPaths, setLibraryPaths] = useState<LibraryPath[]>([]);
   const [libraryPathDetail, setLibraryPathDetail] = useState<LibraryPathDetail | null>(null);
   const [learnerProfilePayload, setLearnerProfilePayload] = useState<LearnerProfilePayload | null>(null);
@@ -1102,6 +1107,20 @@ export function App() {
         break;
       case 'library_paths_loaded':
         setLibraryPaths(msg.paths);
+        break;
+      // What the server said about a rating. Previously this message was
+      // posted by the host and nothing anywhere listened for it, so the user
+      // got no confirmation and no error — the click simply disappeared.
+      case 'library_path_rated':
+        setCourseRatings(prev => ({
+          ...prev,
+          [msg.pathId]: {
+            yourRating: msg.rating,
+            averageRating: msg.averageRating ?? null,
+            ratingCount: msg.ratingCount ?? 0,
+            error: msg.error,
+          },
+        }));
         break;
       case 'library_path_detail_loaded':
         setLibraryPathDetail(msg.path);
@@ -1993,7 +2012,7 @@ export function App() {
       case 'learning-room':
         return (
           <LearningRoom
-            paths={libraryPaths}
+courseRatings={courseRatings}             paths={libraryPaths}
             pathDetail={libraryPathDetail}
             onNavigate={setPagePersist}
             learningCurriculums={learningCurriculums}

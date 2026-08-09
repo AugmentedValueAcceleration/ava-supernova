@@ -84,9 +84,15 @@ interface Props {
   paths: LibraryPath[];
   detail: LibraryPathDetail | null;
   onNavigate: (page: Page) => void;
+  /** What the server said about each rating — the user's own score, and any
+   *  error. Without this the widget can only show the crowd average, which is
+   *  why rating a course used to change nothing on screen. */
+  courseRatings: Record<string, {
+    yourRating: number; averageRating: number | null; ratingCount: number; error?: string;
+  }>;
 }
 
-export function LearningLibrary({ paths, detail }: Props) {
+export function LearningLibrary({ paths, detail, courseRatings }: Props) {
   useLocale();
   const [search, setSearch] = useState('');
   const [shelfFilter, setShelfFilter] = useState('all');
@@ -166,8 +172,19 @@ export function LearningLibrary({ paths, detail }: Props) {
     setTimeout(() => setForking(false), 3000);
   }
 
+  // A low score without a reason is a mood; with one it is a bug report. The
+  // prompt only appears at 3 or below — asking someone who gave 5 stars what
+  // went wrong is how you teach people to stop rating things.
+  const [reasonFor, setReasonFor] = useState<string | null>(null);
+
   function handleRate(id: string, rating: number) {
     post({ type: 'rate_library_path', id, rating });
+    setReasonFor(rating <= 3 ? id : null);
+  }
+
+  function sendReason(id: string, rating: number, reason: string) {
+    post({ type: 'rate_library_path', id, rating, reason });
+    setReasonFor(null);
   }
 
   // ── Detail View ────────────────────────────────────────────────────────
@@ -335,25 +352,74 @@ export function LearningLibrary({ paths, detail }: Props) {
           >
             {forking ? t('dash.learning_library.starting') : t('dash.learning_library.start_learning')}
           </button>
-          {/* Star rating */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{t('learning_library.rate_course')}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {[1, 2, 3, 4, 5].map(star => (
-                <button
-                  key={star}
-                  onClick={() => handleRate(selected.id, star)}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 1, lineHeight: 1,
-                    color: (selected.average_rating || 0) >= star ? '#fbbf24' : 'var(--text-muted)',
-                  }}
-                  title={t('learning_library.rate_star', { star })}
-                >
-                  {'\u2605'}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Star rating. Shows YOUR score once given — the average is a
+              number beside it, never the fill. Filling the stars from the
+              crowd average meant clicking changed nothing and you could not
+              tell whether it had saved. */}
+          {(() => {
+            const verdict = courseRatings[selected.id];
+            const mine = verdict?.yourRating ?? null;
+            const avg = verdict?.averageRating ?? selected.average_rating ?? null;
+            const count = verdict?.ratingCount ?? 0;
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
+                  {mine ? t('learning_library.your_rating') || 'Your rating' : t('learning_library.rate_course')}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => handleRate(selected.id, star)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 1, lineHeight: 1,
+                        color: (mine ?? 0) >= star ? '#fbbf24' : 'var(--text-muted)',
+                      }}
+                      title={t('learning_library.rate_star', { star })}
+                    >
+                      {'\u2605'}
+                    </button>
+                  ))}
+                  {avg != null && (
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 6 }}>
+                      {avg}/5{count ? ` (${count})` : ''}
+                    </span>
+                  )}
+                </div>
+
+                {/* It failed. Say so — the whole reason this was invisible is
+                    that the old path swallowed every error. */}
+                {verdict?.error && (
+                  <span style={{ fontSize: 10, color: '#f87171', maxWidth: 220, textAlign: 'right' }}>
+                    {verdict.error}
+                  </span>
+                )}
+
+                {/* What was wrong? Codes, not a text box — most people will
+                    pick one and almost nobody types. */}
+                {reasonFor === selected.id && !verdict?.error && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end', maxWidth: 260, marginTop: 2 }}>
+                    {[
+                      ['unclear', t('learning_library.reason_unclear') || 'Unclear'],
+                      ['too-fast', t('learning_library.reason_too_fast') || 'Too fast'],
+                      ['too-easy', t('learning_library.reason_too_easy') || 'Too easy'],
+                      ['wrong', t('learning_library.reason_wrong') || 'Something wrong'],
+                      ['translation', t('learning_library.reason_translation') || 'Bad translation'],
+                    ].map(([code, label]) => (
+                      <button
+                        key={code}
+                        onClick={() => sendReason(selected.id, mine ?? 3, code)}
+                        style={{
+                          padding: '2px 8px', borderRadius: 10, fontSize: 10, cursor: 'pointer',
+                          border: '1px solid var(--border-card)', background: 'transparent', color: 'var(--text-secondary)',
+                        }}
+                      >{label}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {selected.prerequisites && (

@@ -42,7 +42,7 @@ import {
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
-import { apiFetch } from '../utils/platform-api.js';
+import { apiFetch, getDeviceId } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
 import { setCloudSync, cloudSyncEnabled, dataModeHeader } from './data-mode.js';
 import type { AvaViewProvider } from './AvaViewProvider.js';
@@ -967,12 +967,55 @@ export class DashboardPanel {
       }
 
       case 'rate_library_path': {
+        // NO EARLY RETURN ON A MISSING KEY. This used to be
+        // `if (!platformKey) break`, which silently discarded every rating
+        // from a user without an account — precisely the BYOK users whose
+        // opinion is worth having. The endpoint accepts anonymous ratings
+        // keyed on the device id.
         const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-        if (!platformKey) break;
         try {
-          await apiFetch(`/learning/library/${msg.id}/rate`, { method: 'POST', body: { rating: msg.rating }, platformKey });
-          this.post({ type: 'library_path_rated', pathId: msg.id, rating: msg.rating });
-        } catch { /* non-fatal */ }
+          const res = await apiFetch('/feedback/content', {
+            method: 'POST',
+            platformKey,
+            body: {
+              subject_type: 'course',
+              subject_id: msg.id,
+              rating: msg.rating,
+              reason: msg.reason,
+              note: msg.note,
+              locale: vscode.env.language || undefined,
+              device_id: getDeviceId(),
+            },
+          });
+          const data = (res.data && typeof res.data === 'object' ? res.data : {}) as {
+            your_rating?: number; average_rating?: number | null; rating_count?: number; error?: string;
+          };
+          if (!res.ok) {
+            // Say so. The empty catch this replaces is why four clicks looked
+            // identical to none.
+            this.post({
+              type: 'library_path_rated',
+              pathId: msg.id,
+              rating: msg.rating,
+              error: data.error || `Could not save your rating (${res.status}).`,
+            });
+            break;
+          }
+          this.post({
+            type: 'library_path_rated',
+            pathId: msg.id,
+            rating: data.your_rating ?? msg.rating,
+            averageRating: data.average_rating ?? null,
+            ratingCount: data.rating_count ?? 0,
+          });
+        } catch (err) {
+          this.post({
+            type: 'library_path_rated',
+            pathId: msg.id,
+            rating: msg.rating,
+            error: err instanceof Error ? err.message : 'Could not reach the server.',
+          });
+        }
         break;
       }
 

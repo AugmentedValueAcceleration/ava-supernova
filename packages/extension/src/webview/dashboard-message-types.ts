@@ -1733,7 +1733,18 @@ export type ExtToDashboardMessage =
   | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
   | { type: 'library_path_forked'; curriculumId: string; title: string }
   | { type: 'library_path_published'; pathId: string; status: string; message: string }
-  | { type: 'library_path_rated'; pathId: string; rating: number }
+  | {
+      type: 'library_path_rated';
+      pathId: string;
+      /** The rating as STORED — the user's own, not the crowd average. The old
+       *  UI showed the average, so rating a course changed nothing on screen. */
+      rating: number;
+      averageRating?: number | null;
+      ratingCount?: number;
+      /** Present when it did NOT save. Shown to the user, because a rating
+       *  that vanishes quietly is worse than no rating button. */
+      error?: string;
+    }
   | { type: 'task_dates_loaded'; dates: string[] }
   // Avatar messages
   | { type: 'avatar_loaded'; dataUrl: string }
@@ -2021,7 +2032,7 @@ export type DashboardToExtMessage =
   | { type: 'load_library_path_detail'; id: string }
   | { type: 'fork_library_path'; id: string }
   | { type: 'publish_to_library'; curriculumId: string }
-  | { type: 'rate_library_path'; id: string; rating: number }
+  | { type: 'rate_library_path'; id: string; rating: number; reason?: string; note?: string }
   // Library → Papers
   | { type: 'load_papers'; tab: PapersTab; discipline?: PaperDiscipline; limit?: number }
   | { type: 'search_papers'; query: string; discipline?: PaperDiscipline; sort?: 'relevance' | 'date' | 'cited' }
