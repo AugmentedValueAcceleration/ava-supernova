@@ -253,7 +253,8 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
           <div style={{ display: 'flex', gap: 20, marginTop: 18, flexWrap: 'wrap' }}>
             {selected.estimated_hours ? <Stat icon={<Icon.clock size={15} />} label={`${selected.estimated_hours}h`} sub={t('learning_library.stat_estimated')} /> : null}
             <Stat icon={<Icon.users size={15} />} label={String(selected.fork_count)} sub={t('dash.learning_library.learners')} />
-            {selected.average_rating ? <Stat icon={<Icon.star size={15} />} label={`${selected.average_rating}/5`} sub={t('learning_library.stat_rating')} /> : null}
+            {/* Shown even at zero — an unrated course is a fact worth stating. */}
+            <Stat icon={<Icon.star size={15} />} label={`${selected.average_rating ?? 0}/5`} sub={t('learning_library.stat_rating')} />
             {moduleCount > 0 ? <Stat icon={<Icon.package size={15} />} label={String(moduleCount)} sub={`module${moduleCount !== 1 ? 's' : ''}`} /> : null}
             {lessonCount > 0 ? <Stat icon={<Icon.note size={15} />} label={String(lessonCount)} sub={`lesson${lessonCount !== 1 ? 's' : ''}`} /> : null}
           </div>
@@ -383,11 +384,9 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
                       {'\u2605'}
                     </button>
                   ))}
-                  {avg != null && (
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 6 }}>
-                      {avg}/5{count ? ` (${count})` : ''}
-                    </span>
-                  )}
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 6 }}>
+                    {avg ?? 0}/5 ({count})
+                  </span>
                 </div>
 
                 {/* It failed. Say so — the whole reason this was invisible is
@@ -670,7 +669,13 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
                 <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border-card)', paddingTop: 10, marginTop: 'auto' }}>
                   {path.estimated_hours && <span>{'\u23f1 '}{path.estimated_hours}h</span>}
                   <span>{'\ud83d\udc65 '}{path.fork_count}</span>
-                  {path.average_rating && <span style={{ color: '#fbbf24' }}>{'\u2605 '}{path.average_rating}</span>}
+                  {/* Always shown, 0 when nobody has rated it. Hiding it gave
+                      unrated courses one fewer stat than their neighbours, so
+                      the tiles came out ragged and the rated ones looked like
+                      the only real ones. "No ratings yet" is information. */}
+                  <span style={{ color: path.average_rating ? '#fbbf24' : 'var(--text-muted)' }}>
+                    {'\u2605 '}{path.average_rating ?? 0}
+                  </span>
                 </div>
               </div>
             </button>
