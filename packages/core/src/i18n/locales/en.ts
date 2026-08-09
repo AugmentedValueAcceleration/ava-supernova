@@ -3301,6 +3301,14 @@ export const enStrings = {
   'feedback.too_verbose': 'Too verbose',
   'feedback.didnt_understand': 'Didn\x27t understand me',
   'feedback.off_topic': 'Off topic',
+  // Free text after a thumbs-down. Optional and skippable -- five fixed chips
+  // cannot say "it invented a function that does not exist", which is the
+  // feedback actually worth reading.
+  'feedback.detail_heading': 'What happened?',
+  'feedback.detail_placeholder': 'Optional — what did it get wrong?',
+  'feedback.detail_skip': 'Skip',
+  'feedback.detail_send': 'Send',
+  'feedback.send_failed': 'Could not reach the server.',
   'secrets.add': 'Add Secret',
   'input.placeholder.teach': 'What do you want to learn?',
   'input.placeholder.brainstorm': 'What do you want to explore?',

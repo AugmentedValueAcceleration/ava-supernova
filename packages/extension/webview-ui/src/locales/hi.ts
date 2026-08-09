@@ -277,6 +277,10 @@ export const hiStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'बहुत अधिक शब्दों वाला',
   'feedback.didnt_understand': 'मुझे नहीं समझा',
   'feedback.off_topic': 'विषय से बाहर',
+  'feedback.detail_heading': 'क्या हुआ?',
+  'feedback.detail_placeholder': 'वैकल्पिक — क्या गलत हुआ?',
+  'feedback.detail_skip': 'छोड़ें',
+  'feedback.detail_send': 'भेजें',
 
   // Secret Vault
   'secrets.title': 'गुप्त वॉल्ट',

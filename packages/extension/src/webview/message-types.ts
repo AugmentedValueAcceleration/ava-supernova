@@ -324,7 +324,7 @@ export type WebviewToExtMessage =
   | { type: 'panel_update_task'; taskId: string; updates: { title?: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number } }
   | { type: 'toggle_subtask'; taskId: string; subtaskId: string }
   | { type: 'open_tasks_folder' }
-  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
+  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; note?: string; model?: string; mode?: string }
   | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
   | { type: 'accept_consent' }
   // OAuth sign-in flow (v0.37.0)

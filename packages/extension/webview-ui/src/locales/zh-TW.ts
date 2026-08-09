@@ -277,6 +277,10 @@ export const zhTWStrings: Record<StringKey, string> = {
   'feedback.too_verbose': '太冗長',
   'feedback.didnt_understand': '沒理解我',
   'feedback.off_topic': '離題',
+  'feedback.detail_heading': '發生什麼事?',
+  'feedback.detail_placeholder': '選填——哪裡錯了?',
+  'feedback.detail_skip': '略過',
+  'feedback.detail_send': '送出',
 
   // Secret Vault
   'secrets.title': '金鑰保險庫',

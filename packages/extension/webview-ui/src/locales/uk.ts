@@ -277,6 +277,10 @@ export const ukStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Занадто багатослівно',
   'feedback.didnt_understand': 'Не зрозумів мене',
   'feedback.off_topic': 'Не по темі',
+  'feedback.detail_heading': 'Що сталося?',
+  'feedback.detail_placeholder': "Необов'язково — що було не так?",
+  'feedback.detail_skip': 'Пропустити',
+  'feedback.detail_send': 'Надіслати',
 
   // Secret Vault
   'secrets.title': 'Сховище секретів',

@@ -44,7 +44,7 @@ type ChatAction =
   | { type: 'toggle_tasks' }
   | { type: 'close_tasks' }
   | { type: 'set_tasks_width'; width: number }
-  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string }
+  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; note?: string }
   | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
   | { type: 'local_thinking' }
   | { type: 'remove_last_error' };
@@ -1133,9 +1133,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
   const handleCompress = useCallback(() => { post({ type: 'compress_context' }); }, []);
 
-  const handleRate = useCallback((messageId: string, rating: 'up' | 'down', reason?: string) => {
+  const handleRate = useCallback((messageId: string, rating: 'up' | 'down', reason?: string, note?: string) => {
     dispatch({ type: 'rate_message', messageId, rating, reason });
-    post({ type: 'rate_message', messageId, rating, reason });
+    post({ type: 'rate_message', messageId, rating, reason, note });
   }, []);
 
   const handleProviderSourceChange = useCallback((source: 'platform' | 'byok') => {

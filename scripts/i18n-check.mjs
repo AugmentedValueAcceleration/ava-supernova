@@ -10,7 +10,10 @@
  * Fails (exit 1) on:
  *   - Missing keys in any non-en locale vs en baseline
  *   - Extra keys in any non-en locale not present in en
- *   - Non-en value identical to en value, key NOT in KEEP_ENGLISH
+ *   - Non-en value identical to en value, unless the key is in KEEP_ENGLISH
+ *     (never translated in ANY language: Git, URL, BYOK) or the exact
+ *     (locale, key, en-value) triple is signed off in the verified-identical
+ *     ledger (correct in THIS language: Dutch "Perfect", French "Journal")
  *   - Placeholder mismatch: en uses {x} but locale value drops or changes it
  *
  * Warns (non-fatal) on: suspect-short values, empty strings.
@@ -23,6 +26,33 @@ import path from 'node:path';
 import url from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
+
+/**
+ * Per-(surface, locale, key) sign-off for values that legitimately match the
+ * English.
+ *
+ * Shape: { "<surface>": { "<locale>": { "<key>": "<the en value signed off>" } } }
+ *
+ * The value is stored, not just the key, ON PURPOSE. A sign-off is a judgement
+ * about one specific piece of text; if the English changes, the judgement no
+ * longer applies and the pair goes back to being an error. That is the whole
+ * difference between a ledger and a mute button.
+ */
+const LEDGER_PATH = path.join(repoRoot, 'scripts', 'i18n-verified-identical.json');
+let VERIFIED = {};
+try {
+  if (fs.existsSync(LEDGER_PATH)) {
+    VERIFIED = JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8')).entries ?? {};
+  }
+} catch (err) {
+  console.error(`i18n-check: could not read ${path.relative(repoRoot, LEDGER_PATH)} - ${err.message}`);
+  process.exit(1);
+}
+
+/** True when this exact (surface, locale, key, en value) has been signed off. */
+function isVerifiedIdentical(surfaceName, locale, key, enVal) {
+  return VERIFIED?.[surfaceName]?.[locale]?.[key] === enVal;
+}
 
 // ── Surface definitions ─────────────────────────────────────────────────────
 
@@ -197,8 +227,12 @@ function auditSurface(surface) {
         continue;
       }
 
-      // English leak
-      if (otherVal === enVal && !keepEnglish.has(k)) {
+      // English leak. Two legitimate escapes: the key never translates in any
+      // language (KEEP_ENGLISH), or this language genuinely uses the same word
+      // and someone has said so for this exact text (the ledger).
+      if (otherVal === enVal
+          && !keepEnglish.has(k)
+          && !isVerifiedIdentical(surface.name, locale, k, enVal)) {
         errors.push(`[${surface.name}/${locale}] UNTRANSLATED: ${k} = ${String(enVal).slice(0, 80)}`);
       }
 

@@ -277,6 +277,10 @@ export const itStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Troppo prolisso',
   'feedback.didnt_understand': 'Non mi ha capito',
   'feedback.off_topic': 'Fuori tema',
+  'feedback.detail_heading': "Cos'è successo?",
+  'feedback.detail_placeholder': "Facoltativo — cos'è andato storto?",
+  'feedback.detail_skip': 'Salta',
+  'feedback.detail_send': 'Invia',
 
   // Secret Vault
   'secrets.title': 'Cassaforte Segreti',

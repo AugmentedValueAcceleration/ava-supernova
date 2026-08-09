@@ -285,6 +285,12 @@ export const enStrings = {
   'feedback.too_verbose': 'Too verbose',
   'feedback.didnt_understand': "Didn't understand me",
   'feedback.off_topic': 'Off topic',
+  // Asked only after a thumbs-down, and always skippable. Five fixed chips
+  // cannot say "it invented a function that does not exist".
+  'feedback.detail_heading': 'What happened?',
+  'feedback.detail_placeholder': 'Optional — what did it get wrong?',
+  'feedback.detail_skip': 'Skip',
+  'feedback.detail_send': 'Send',
 
   // Secret Vault
   'secrets.title': 'Secret Vault',

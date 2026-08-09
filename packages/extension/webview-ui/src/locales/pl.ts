@@ -277,6 +277,10 @@ export const plStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Zbyt rozwlekłe',
   'feedback.didnt_understand': 'Nie zrozumiał mnie',
   'feedback.off_topic': 'Poza tematem',
+  'feedback.detail_heading': 'Co się stało?',
+  'feedback.detail_placeholder': 'Opcjonalnie — co było nie tak?',
+  'feedback.detail_skip': 'Pomiń',
+  'feedback.detail_send': 'Wyślij',
 
   // Secret Vault
   'secrets.title': 'Sejf sekretów',

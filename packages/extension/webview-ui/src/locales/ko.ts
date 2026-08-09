@@ -277,6 +277,10 @@ export const koStrings: Record<StringKey, string> = {
   'feedback.too_verbose': '너무 장황',
   'feedback.didnt_understand': '이해 못 함',
   'feedback.off_topic': '주제에서 벗어남',
+  'feedback.detail_heading': '무슨 일이 있었나요?',
+  'feedback.detail_placeholder': '선택 — 어떤 부분이 잘못됐나요?',
+  'feedback.detail_skip': '건너뛰기',
+  'feedback.detail_send': '보내기',
 
   // Secret Vault
   'secrets.title': '시크릿 저장소',

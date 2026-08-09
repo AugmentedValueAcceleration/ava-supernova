@@ -277,6 +277,10 @@ export const frStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Trop verbeux',
   'feedback.didnt_understand': 'Ne m\'a pas compris',
   'feedback.off_topic': 'Hors sujet',
+  'feedback.detail_heading': "Que s'est-il passé ?",
+  'feedback.detail_placeholder': 'Facultatif — quelle erreur ?',
+  'feedback.detail_skip': 'Passer',
+  'feedback.detail_send': 'Envoyer',
 
   // Secret Vault
   'secrets.title': 'Coffre à secrets',

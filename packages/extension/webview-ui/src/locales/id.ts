@@ -277,6 +277,10 @@ export const idStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Terlalu bertele-tele',
   'feedback.didnt_understand': 'Tidak memahami saya',
   'feedback.off_topic': 'Tidak sesuai topik',
+  'feedback.detail_heading': 'Apa yang terjadi?',
+  'feedback.detail_placeholder': 'Opsional — apa yang salah?',
+  'feedback.detail_skip': 'Lewati',
+  'feedback.detail_send': 'Kirim',
 
   // Secret Vault
   'secrets.title': 'Brankas Rahasia',

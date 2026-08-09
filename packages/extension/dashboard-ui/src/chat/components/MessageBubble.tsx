@@ -20,7 +20,7 @@ interface MessageBubbleProps {
   message: UIMessage;
   onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue?: () => void;
-  onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
+  onRate?: (messageId: string, rating: 'up' | 'down', reason?: string, note?: string) => void;
   /** User's auth-provider avatar (Supabase users.avatar_url). Null
    *  falls back to a name-initials gradient circle, then the generic
    *  person SVG. Mirrors webview-ui MessageBubble. */

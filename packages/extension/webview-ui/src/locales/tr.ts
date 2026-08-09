@@ -277,6 +277,10 @@ export const trStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Çok uzun',
   'feedback.didnt_understand': 'Beni anlamadı',
   'feedback.off_topic': 'Konu dışı',
+  'feedback.detail_heading': 'Ne oldu?',
+  'feedback.detail_placeholder': 'İsteğe bağlı — neyi yanlış yaptı?',
+  'feedback.detail_skip': 'Atla',
+  'feedback.detail_send': 'Gönder',
 
   // Secret Vault
   'secrets.title': 'Gizli Kasa',

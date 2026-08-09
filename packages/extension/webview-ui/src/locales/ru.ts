@@ -277,6 +277,10 @@ export const ruStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Слишком многословно',
   'feedback.didnt_understand': 'Не понял меня',
   'feedback.off_topic': 'Не по теме',
+  'feedback.detail_heading': 'Что случилось?',
+  'feedback.detail_placeholder': 'Необязательно — что было не так?',
+  'feedback.detail_skip': 'Пропустить',
+  'feedback.detail_send': 'Отправить',
 
   // Secret Vault
   'secrets.title': 'Хранилище секретов',

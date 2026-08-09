@@ -24,7 +24,7 @@ interface ChatContainerProps {
   onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue: () => void;
   onSuggestion: (prompt: string) => void;
-  onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
+  onRate?: (messageId: string, rating: 'up' | 'down', reason?: string, note?: string) => void;
   chatEndRef: RefObject<HTMLDivElement | null>;
   needsSetup?: boolean;
   initialized?: boolean;

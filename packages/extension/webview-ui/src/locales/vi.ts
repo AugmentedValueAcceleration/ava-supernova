@@ -277,6 +277,10 @@ export const viStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Quá dài dòng',
   'feedback.didnt_understand': 'Không hiểu tôi',
   'feedback.off_topic': 'Lạc đề',
+  'feedback.detail_heading': 'Chuyện gì đã xảy ra?',
+  'feedback.detail_placeholder': 'Tùy chọn — sai ở đâu?',
+  'feedback.detail_skip': 'Bỏ qua',
+  'feedback.detail_send': 'Gửi',
 
   // Secret Vault
   'secrets.title': 'Kho bí mật',

@@ -975,7 +975,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         mapped = { type: 'open_tasks_folder' } as any;
         break;
       case 'rate_message':
-        mapped = { type: 'rate_message', messageId: msg.messageId as string, rating: msg.rating as 'up' | 'down', reason: msg.reason as string | undefined };
+        mapped = { type: 'rate_message', messageId: msg.messageId as string, rating: msg.rating as 'up' | 'down', reason: msg.reason as string | undefined, note: msg.note as string | undefined };
         break;
       case 'save_secrets':
         mapped = { type: 'save_secrets', secrets: msg.secrets as any };
@@ -2886,13 +2886,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     messageId: string;
     rating: 'up' | 'down';
     reason?: string;
+    note?: string;
     model?: string;
     mode?: string;
   }): Promise<void> {
     const entry = {
       messageId: message.messageId,
       rating: message.rating,
+      // A stable code ('too-verbose'), NOT the translated label the user saw.
+      // Sending the label meant one complaint counted as several -- one per
+      // language it happened to be reported in.
       reason: message.reason,
+      note: message.note,
       model: this.activeModelDef?.id ?? message.model ?? 'unknown',
       mode: message.mode ?? 'code',
       timestamp: new Date().toISOString(),
@@ -2924,13 +2929,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const contributeSharedLearning = config.get<boolean>('contributeSharedLearning', false);
       if (contributeSharedLearning) {
         const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
-        if (platformKey) {
-          await apiFetch('/feedback', {
-            method: 'POST',
-            platformKey,
-            body: entry,
-          });
-        }
+        await apiFetch('/feedback', {
+          method: 'POST',
+          platformKey,
+          // Stable per install, not derived from hardware, and already what
+          // VS Code uses to tell installs apart. Enough to stop one person's
+          // rating counting twice; not enough to identify them.
+          body: { ...entry, deviceId: vscode.env.machineId },
+        });
       }
     } catch (err) {
       this.log(`Failed to POST feedback to platform: ${err}`);
@@ -2940,19 +2946,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     try {
       if (message.rating === 'down') {
         const reasonMap: Record<string, string> = {
-          'Wrong': 'Response was factually incorrect or gave wrong code',
-          'Incomplete': 'Response was incomplete — missed parts of the task',
-          'Too verbose': 'Response was too verbose — user prefers concise answers',
-          "Didn't understand me": 'Misunderstood the user\'s intent',
-          'Off topic': 'Response went off topic from what was asked',
+          'wrong': 'Response was factually incorrect or gave wrong code',
+          'incomplete': 'Response was incomplete — missed parts of the task',
+          'too-verbose': 'Response was too verbose — user prefers concise answers',
+          'didnt-understand': 'Misunderstood the user\'s intent',
+          'off-topic': 'Response went off topic from what was asked',
         };
         const typeMap: Record<string, 'preference' | 'pattern'> = {
-          'Too verbose': 'preference',
-          "Didn't understand me": 'pattern',
+          'too-verbose': 'preference',
+          'didnt-understand': 'pattern',
         };
-        const learned = message.reason
-          ? reasonMap[message.reason] || `Negative feedback: ${message.reason}`
-          : 'Response quality issue flagged by user';
+        const learned = message.note?.trim()
+          ? message.note.trim().slice(0, 500)
+          : message.reason
+            ? reasonMap[message.reason] || `Negative feedback: ${message.reason}`
+            : 'Response quality issue flagged by user';
         const learningType = message.reason
           ? (typeMap[message.reason] || 'pattern')
           : 'pattern';

@@ -277,6 +277,10 @@ export const nlStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Te uitvoerig',
   'feedback.didnt_understand': 'Begreep me niet',
   'feedback.off_topic': 'Niet ter zake',
+  'feedback.detail_heading': 'Wat is er gebeurd?',
+  'feedback.detail_placeholder': 'Optioneel — wat ging er mis?',
+  'feedback.detail_skip': 'Overslaan',
+  'feedback.detail_send': 'Versturen',
 
   // Secret Vault
   'secrets.title': 'Secrets-kluis',

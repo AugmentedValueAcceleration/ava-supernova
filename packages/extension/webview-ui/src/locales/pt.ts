@@ -277,6 +277,10 @@ export const ptStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Muito prolixo',
   'feedback.didnt_understand': 'Não me entendeu',
   'feedback.off_topic': 'Fora do tópico',
+  'feedback.detail_heading': 'O que aconteceu?',
+  'feedback.detail_placeholder': 'Opcional — o que deu errado?',
+  'feedback.detail_skip': 'Saltar',
+  'feedback.detail_send': 'Enviar',
 
   // Secret Vault
   'secrets.title': 'Cofre de Segredos',

@@ -277,6 +277,10 @@ export const zhCNStrings: Record<StringKey, string> = {
   'feedback.too_verbose': '太冗长',
   'feedback.didnt_understand': '没理解我',
   'feedback.off_topic': '离题',
+  'feedback.detail_heading': '发生了什么？',
+  'feedback.detail_placeholder': '可选——哪里出错了？',
+  'feedback.detail_skip': '跳过',
+  'feedback.detail_send': '发送',
 
   // Secret Vault
   'secrets.title': '密钥库',

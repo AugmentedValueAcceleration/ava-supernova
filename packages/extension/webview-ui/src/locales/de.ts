@@ -277,6 +277,10 @@ export const deStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Zu ausschweifend',
   'feedback.didnt_understand': 'Hat mich nicht verstanden',
   'feedback.off_topic': 'Am Thema vorbei',
+  'feedback.detail_heading': 'Was ist passiert?',
+  'feedback.detail_placeholder': 'Optional — was war falsch?',
+  'feedback.detail_skip': 'Überspringen',
+  'feedback.detail_send': 'Senden',
 
   // Secret Vault
   'secrets.title': 'Secret-Tresor',

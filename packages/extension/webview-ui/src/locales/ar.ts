@@ -277,6 +277,10 @@ export const arStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'مطول جداً',
   'feedback.didnt_understand': 'لم يفهمني',
   'feedback.off_topic': 'خارج الموضوع',
+  'feedback.detail_heading': 'ماذا حدث؟',
+  'feedback.detail_placeholder': 'اختياري — ما الخطأ؟',
+  'feedback.detail_skip': 'تخطي',
+  'feedback.detail_send': 'إرسال',
 
   // Secret Vault
   'secrets.title': 'خزنة الأسرار',

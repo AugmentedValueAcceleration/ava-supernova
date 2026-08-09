@@ -1,0 +1,337 @@
+{
+  "$comment": "Values that legitimately match the English, per language. Written by scripts/i18n-verify-identical.mjs; each entry was judged in context by a native-level reviewer for that language, not waved through. The stored value is the English text signed off against — change the English and the sign-off lapses, so the pair is flagged again. A genuine leftover NEVER belongs here; translate it instead.",
+  "verifiedBy": "qwen3.8-max (per-language review)",
+  "entries": {
+    "core": {
+      "ar": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "de": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.audit.cat_system": "System",
+        "dash.chat.persona_label.scanner": "Scanner",
+        "dash.studio.logo.title": "Logo",
+        "dash.studio.video.title": "Video",
+        "dash.settings.section.export_import": "Export & Import",
+        "dash.sidebar.legend_training": "Training",
+        "news.sport": "Sport",
+        "dash.history.surface.design": "Design",
+        "dash.creative.filter.video": "Video",
+        "dash.perm.cat.shell": "Shell",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.web": "Web",
+        "dash.perm.cat.system": "System",
+        "dash.studio.group.web_app": "Web / App",
+        "dash.studio.brandkit.palette": "Palette",
+        "dash.studio.dock.design": "Design",
+        "dash.studio.asset.video": "Video",
+        "dash.studio.asset.logo": "Logo",
+        "dash.studio.asset.avatar": "Avatar",
+        "dash.studio.asset.banner": "Banner",
+        "dash.studio.asset.illustration": "Illustration",
+        "dash.docs.type.md": "Markdown",
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.history.tab.design": "Design",
+        "memory.category.person": "Person"
+      },
+      "es": {
+        "health.plans.n_cook": "{n} min",
+        "learning.room.tab.ava": "Ava",
+        "health.profile.cooking_15": "≤15 min",
+        "health.profile.cooking_30": "≤30 min",
+        "health.profile.cooking_60": "≤60 min",
+        "health.profile.cooking_60plus": "60+ min",
+        "dash.audit.cat_git": "Git",
+        "dash.chat.persona_label.tutor": "Tutor",
+        "dash.studio.material.metal": "Metal",
+        "dash.settings.tab.general": "General",
+        "dash.history.surface.social": "Social",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.web": "Web",
+        "dash.studio.asset.avatar": "Avatar",
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.history.tab.social": "Social",
+        "memory.category.general": "General",
+        "health.browse.cardio": "Cardio"
+      },
+      "fr": {
+        "health.plans.n_cook": "{n} min",
+        "learning.room.tab.ava": "Ava",
+        "learning.tab.progression": "Progression",
+        "health.profile.cooking_15": "≤15 min",
+        "health.profile.cooking_30": "≤30 min",
+        "health.profile.cooking_60": "≤60 min",
+        "health.profile.cooking_60plus": "60+ min",
+        "dash.audit.cat_git": "Git",
+        "dash.studio.logo.title": "Logo",
+        "dash.studio.logo.style": "Style",
+        "dash.studio.image.title": "Image",
+        "dash.activity.extensions": "Extensions",
+        "dash.creative.filter.images": "Images",
+        "dash.creative.filter.documents": "Documents",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.documents": "Documents",
+        "dash.studio.transport.volume": "Volume",
+        "dash.studio.brandkit.palette": "Palette",
+        "dash.studio.asset.image": "Image",
+        "dash.studio.asset.logo": "Logo",
+        "dash.studio.asset.avatar": "Avatar",
+        "dash.studio.asset.illustration": "Illustration",
+        "dash.library.source": "Source",
+        "dash.common.description": "Description",
+        "dash.docs.type.md": "Markdown",
+        "ide.papers.primer_etal": "et al.",
+        "ext.memory.contradictions": "Contradictions",
+        "dash.history.tab.design": "Design",
+        "memory.category.architecture": "Architecture",
+        "memory.category.convention": "Convention",
+        "health.browse.cardio.style": "Style"
+      },
+      "hi": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "id": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.audit.cat_web": "Web",
+        "dash.audit.cat_media": "Media",
+        "dash.studio.logo.title": "Logo",
+        "dash.studio.video.title": "Video",
+        "dash.creative.filter.video": "Video",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.web": "Web",
+        "dash.perm.cat.media": "Media",
+        "dash.studio.transport.volume": "Volume",
+        "dash.studio.asset.video": "Video",
+        "dash.studio.asset.logo": "Logo",
+        "dash.studio.asset.avatar": "Avatar",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "it": {
+        "health.plans.n_cook": "{n} min",
+        "learning.room.tab.ava": "Ava",
+        "health.profile.cooking_15": "≤15 min",
+        "health.profile.cooking_30": "≤30 min",
+        "health.profile.cooking_60": "≤60 min",
+        "health.profile.cooking_60plus": "60+ min",
+        "dash.audit.cat_git": "Git",
+        "dash.audit.cat_web": "Web",
+        "dash.audit.cat_media": "Media",
+        "dash.studio.video.title": "Video",
+        "dash.settings.tab.privacy": "Privacy",
+        "news.sport": "Sport",
+        "dash.creative.filter.video": "Video",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.web": "Web",
+        "dash.perm.cat.database": "Database",
+        "dash.studio.group.web_app": "Web / App",
+        "dash.studio.transport.volume": "Volume",
+        "dash.studio.asset.video": "Video",
+        "dash.studio.asset.logo": "Logo",
+        "dash.studio.asset.avatar": "Avatar",
+        "dash.studio.asset.banner": "Banner",
+        "dash.docs.type.md": "Markdown",
+        "dash.model.sub.byok_qwen": "BYOK · Qwen",
+        "dash.model.sub.byok_ds_qwen": "BYOK · DeepSeek + Qwen",
+        "dash.model.sub.byok_mistral": "BYOK · Mistral",
+        "ide.papers.primer_url": "URL: {url}",
+        "health.browse.cardio": "Cardio"
+      },
+      "ja": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "ko": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "nl": {
+        "health.plans.n_cook": "{n} min",
+        "learning.room.tab.ava": "Ava",
+        "health.profile.cooking_15": "≤15 min",
+        "health.profile.cooking_30": "≤30 min",
+        "health.profile.cooking_60": "≤60 min",
+        "health.profile.cooking_60plus": "60+ min",
+        "dash.audit.cat_git": "Git",
+        "dash.audit.cat_web": "Web",
+        "dash.audit.cat_media": "Media",
+        "dash.audit.cat_database": "Database",
+        "dash.audit.integrity_git_sha": "Git HEAD",
+        "dash.chat.persona_label.architect": "Architect",
+        "dash.chat.persona_label.scanner": "Scanner",
+        "dash.studio.logo.title": "Logo",
+        "dash.studio.video.title": "Video",
+        "dash.settings.tab.privacy": "Privacy",
+        "dash.activity.dashboard": "Dashboard",
+        "dash.sidebar.legend_training": "Training",
+        "news.sport": "Sport",
+        "dash.creative.filter.video": "Video",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.web": "Web",
+        "dash.perm.cat.media": "Media",
+        "dash.perm.cat.database": "Database",
+        "dash.studio.group.web_app": "Web / App",
+        "dash.studio.transport.volume": "Volume",
+        "dash.studio.asset.logo": "Logo",
+        "dash.studio.asset.avatar": "Avatar",
+        "dash.studio.asset.banner": "Banner",
+        "dash.support.cat.feedback": "Feedback",
+        "dash.page.account": "Account",
+        "ide.update.later": "Later",
+        "ide.contextbar.context": "Context",
+        "dash.docs.type.md": "Markdown",
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.studio.asset.hero": "Hero",
+        "dash.studio.group.open_canvas": "Open Canvas"
+      },
+      "pl": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.audit.cat_system": "System",
+        "dash.studio.material.metal": "Metal",
+        "news.sport": "Sport",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.system": "System",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "pt": {
+        "health.plans.n_cook": "{n} min",
+        "learning.room.tab.ava": "Ava",
+        "health.profile.cooking_15": "≤15 min",
+        "health.profile.cooking_30": "≤30 min",
+        "health.profile.cooking_60": "≤60 min",
+        "health.profile.cooking_60plus": "60+ min",
+        "dash.audit.cat_git": "Git",
+        "dash.audit.cat_web": "Web",
+        "dash.studio.material.metal": "Metal",
+        "dash.history.surface.design": "Design",
+        "dash.history.surface.social": "Social",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.web": "Web",
+        "dash.studio.transport.volume": "Volume",
+        "dash.studio.dock.design": "Design",
+        "dash.studio.asset.avatar": "Avatar",
+        "dash.docs.type.md": "Markdown",
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.history.tab.design": "Design",
+        "dash.history.tab.social": "Social",
+        "health.browse.cardio": "Cardio"
+      },
+      "ru": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "th": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "tr": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.audit.cat_web": "Web",
+        "dash.studio.logo.title": "Logo",
+        "dash.studio.logo.form": "Form",
+        "dash.studio.material.metal": "Metal",
+        "dash.studio.video.title": "Video",
+        "dash.creative.filter.video": "Video",
+        "dash.perm.cat.git": "Git",
+        "dash.perm.cat.web": "Web",
+        "dash.studio.asset.video": "Video",
+        "dash.studio.asset.logo": "Logo",
+        "dash.studio.asset.avatar": "Avatar",
+        "dash.docs.type.md": "Markdown"
+      },
+      "uk": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "vi": {
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "zh-CN": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      },
+      "zh-TW": {
+        "learning.room.tab.ava": "Ava",
+        "dash.audit.cat_git": "Git",
+        "dash.perm.cat.git": "Git",
+        "ide.papers.primer_url": "URL: {url}"
+      }
+    },
+    "companion": {
+      "de": {
+        "panel.params.topP": "Top-p",
+        "panel.appearance.system": "System"
+      },
+      "fr": {
+        "panel.params.topP": "Top-p",
+        "panel.clear.journal": "Journal"
+      },
+      "id": {
+        "panel.params.model": "Model",
+        "panel.params.topP": "Top-p"
+      },
+      "it": {
+        "panel.params.topP": "Top-p"
+      },
+      "nl": {
+        "chatFeedbackPerfect": "Perfect",
+        "panel.params.model": "Model",
+        "panel.params.topP": "Top-p"
+      },
+      "pl": {
+        "panel.params.model": "Model",
+        "panel.params.topP": "Top-p"
+      },
+      "pt": {
+        "panel.params.topP": "Top-p"
+      },
+      "tr": {
+        "panel.params.model": "Model"
+      },
+      "zh-TW": {
+        "panel.params.topP": "Top-p"
+      }
+    }
+  },
+  "reviewNotes": [
+    {
+      "surface": "core",
+      "locale": "nl",
+      "key": "dash.studio.asset.hero",
+      "value": "Hero",
+      "verdict": "correct",
+      "signedOffBy": "operator (overriding the automated reviewer)",
+      "why": "Hero IMAGE, not a heroic person. The suggested \"Held\" would have been a mistranslation; Dutch design vocabulary uses \"hero\" for this."
+    },
+    {
+      "surface": "core",
+      "locale": "nl",
+      "key": "dash.studio.group.open_canvas",
+      "value": "Open Canvas",
+      "verdict": "correct",
+      "signedOffBy": "operator (overriding the automated reviewer)",
+      "why": "Feature name. The only suggested change was lowercasing the C."
+    }
+  ]
+}

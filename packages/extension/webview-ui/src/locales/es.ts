@@ -276,6 +276,10 @@ export const esStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'Demasiado extenso',
   'feedback.didnt_understand': 'No me entendi\u00f3',
   'feedback.off_topic': 'Fuera de tema',
+  'feedback.detail_heading': '¿Qué pasó?',
+  'feedback.detail_placeholder': 'Opcional — ¿qué salió mal?',
+  'feedback.detail_skip': 'Omitir',
+  'feedback.detail_send': 'Enviar',
 
   // Secret Vault
   'secrets.title': 'Almacen de Secretos',

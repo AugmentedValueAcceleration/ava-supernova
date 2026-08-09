@@ -1,25 +1,66 @@
 import { useState, useCallback } from 'react';
 import { t, useLocale } from '../i18n';
 
-const POSITIVE_REASON_KEYS = ['feedback.perfect', 'feedback.helpful', 'feedback.creative', 'feedback.good_explanation'] as const;
-const NEGATIVE_REASON_KEYS = ['feedback.wrong', 'feedback.incomplete', 'feedback.too_verbose', 'feedback.didnt_understand', 'feedback.off_topic'] as const;
+/**
+ * Thumbs up or down on one of Ava's replies.
+ *
+ * REASONS ARE CODES. This used to call `onRate(messageId, rating, t(key))` —
+ * it sent the translated text it had just rendered. So the same complaint
+ * reached the platform as "Wrong", "Incorrect" or "Falsch" depending on who
+ * left it, the hub counted them as three separate complaints, and the extension's
+ * own self-improvement map (keyed on the English strings) silently stopped
+ * matching for every user not running in English. A stable code goes on the
+ * wire; the words stay here.
+ *
+ * A THUMBS-DOWN CAN SAY WHY. Five fixed chips cannot express "it invented a
+ * function that does not exist", which is the feedback actually worth having.
+ * After picking a reason the popover offers a box — optional, skippable, and
+ * asked for only on the negative path. Asking someone who just said "perfect"
+ * to elaborate is how you teach people to stop rating things.
+ *
+ * The note is sent as a second call about the SAME feedback, and the server
+ * upserts on (message, rater) so it lands on the existing row rather than
+ * becoming a second opinion from the same person.
+ */
+
+/** [code, i18n key] — the code goes to the server, the key to the screen. */
+const POSITIVE_REASONS: Array<[string, string]> = [
+  ['perfect', 'feedback.perfect'],
+  ['helpful', 'feedback.helpful'],
+  ['creative', 'feedback.creative'],
+  ['good-explanation', 'feedback.good_explanation'],
+];
+
+const NEGATIVE_REASONS: Array<[string, string]> = [
+  ['wrong', 'feedback.wrong'],
+  ['incomplete', 'feedback.incomplete'],
+  ['too-verbose', 'feedback.too_verbose'],
+  ['didnt-understand', 'feedback.didnt_understand'],
+  ['off-topic', 'feedback.off_topic'],
+];
+
+const NOTE_MAX = 2000;
 
 interface FeedbackButtonsProps {
   messageId: string;
   rating?: 'up' | 'down';
   ratingReason?: string;
-  onRate: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
+  onRate: (messageId: string, rating: 'up' | 'down', reason?: string, note?: string) => void;
 }
 
 export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsProps) {
   useLocale();
   const [showReasons, setShowReasons] = useState<'up' | 'down' | null>(null);
   const [submitted, setSubmitted] = useState(!!rating);
+  /** Set once a thumbs-down reason is in, which switches the popover to the box. */
+  const [detailFor, setDetailFor] = useState<string | null>(null);
+  const [note, setNote] = useState('');
 
-  const submit = useCallback((r: 'up' | 'down', reason?: string) => {
+  const finish = useCallback((r: 'up' | 'down', reason?: string, text?: string) => {
     setSubmitted(true);
     setShowReasons(null);
-    onRate(messageId, r, reason);
+    setDetailFor(null);
+    onRate(messageId, r, reason, text);
   }, [messageId, onRate]);
 
   const handleThumbsUp = useCallback(() => {
@@ -32,14 +73,19 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
     setShowReasons('down');
   }, [submitted]);
 
-  const handleReasonClick = useCallback((reason: string) => {
-    submit(showReasons!, reason);
-  }, [showReasons, submit]);
+  const handleReasonClick = useCallback((code: string) => {
+    if (showReasons === 'down') {
+      // Recorded NOW, not held until the box is dealt with. Someone who picks a
+      // reason and then closes the panel has still told us something, and it
+      // would be lost if the note step owned the submit.
+      onRate(messageId, 'down', code);
+      setDetailFor(code);
+      return;
+    }
+    finish('up', code);
+  }, [showReasons, messageId, onRate, finish]);
 
-  const handleQuickUp = useCallback(() => {
-    // Allow quick submit without reason for thumbs up
-    submit('up');
-  }, [submit]);
+  const handleQuickUp = useCallback(() => finish('up'), [finish]);
 
   if (submitted) {
     return (
@@ -86,17 +132,17 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
       </div>
 
       {/* Reason selector popover */}
-      {showReasons && (
+      {showReasons && !detailFor && (
         <div className="absolute bottom-full left-0 mb-1 z-10
                         bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)]
                         rounded-lg shadow-lg py-1 min-w-[160px]">
           <div className="px-2 py-1 text-[10px] font-medium text-[var(--vscode-foreground)] opacity-40 uppercase tracking-wider">
             {showReasons === 'up' ? t('feedback.what_good') : t('feedback.what_wrong')}
           </div>
-          {(showReasons === 'up' ? POSITIVE_REASON_KEYS : NEGATIVE_REASON_KEYS).map((key) => (
+          {(showReasons === 'up' ? POSITIVE_REASONS : NEGATIVE_REASONS).map(([code, key]) => (
             <button
-              key={key}
-              onClick={() => handleReasonClick(t(key))}
+              key={code}
+              onClick={() => handleReasonClick(code)}
               className="block w-full text-left px-2.5 py-1.5 text-[11px]
                          border-none cursor-pointer transition-colors
                          bg-transparent hover:bg-[var(--vscode-list-hoverBackground)]
@@ -126,6 +172,51 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
           >
             {t('feedback.cancel')}
           </button>
+        </div>
+      )}
+
+      {/* What actually happened — negative path only, and always skippable. */}
+      {detailFor && (
+        <div className="absolute bottom-full left-0 mb-1 z-10 w-[260px]
+                        bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)]
+                        rounded-lg shadow-lg p-2">
+          <div className="text-[10px] font-medium text-[var(--vscode-foreground)] opacity-40 uppercase tracking-wider mb-1">
+            {t('feedback.detail_heading')}
+          </div>
+          <textarea
+            autoFocus
+            value={note}
+            maxLength={NOTE_MAX}
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) finish('down', detailFor, note.trim() || undefined);
+              if (e.key === 'Escape') finish('down', detailFor);
+            }}
+            rows={3}
+            placeholder={t('feedback.detail_placeholder')}
+            className="w-full resize-none rounded px-1.5 py-1 text-[11px]
+                       bg-[var(--vscode-input-background)] text-[var(--vscode-input-foreground)]
+                       border border-[var(--vscode-panel-border)] outline-none
+                       focus:border-[var(--vscode-focusBorder)]"
+          />
+          <div className="flex items-center justify-between mt-1.5">
+            <button
+              onClick={() => finish('down', detailFor)}
+              className="text-[10px] border-none cursor-pointer bg-transparent
+                         text-[var(--vscode-foreground)] opacity-40 hover:opacity-70"
+            >
+              {t('feedback.detail_skip')}
+            </button>
+            <button
+              onClick={() => finish('down', detailFor, note.trim() || undefined)}
+              disabled={!note.trim()}
+              className="text-[11px] px-2 py-0.5 rounded border-none cursor-pointer
+                         bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]
+                         disabled:opacity-30 disabled:cursor-default"
+            >
+              {t('feedback.detail_send')}
+            </button>
+          </div>
         </div>
       )}
     </div>

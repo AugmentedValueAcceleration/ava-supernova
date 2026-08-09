@@ -277,6 +277,10 @@ export const jaStrings: Record<StringKey, string> = {
   'feedback.too_verbose': '冗長すぎる',
   'feedback.didnt_understand': '理解してもらえなかった',
   'feedback.off_topic': '話題から逸脱',
+  'feedback.detail_heading': '何が起きましたか?',
+  'feedback.detail_placeholder': '任意 — どこが間違っていましたか?',
+  'feedback.detail_skip': 'スキップ',
+  'feedback.detail_send': '送信',
 
   // Secret Vault
   'secrets.title': 'シークレットボールト',

@@ -277,6 +277,10 @@ export const thStrings: Record<StringKey, string> = {
   'feedback.too_verbose': 'ยืดเยื้อเกินไป',
   'feedback.didnt_understand': 'ไม่เข้าใจฉัน',
   'feedback.off_topic': 'นอกเรื่อง',
+  'feedback.detail_heading': 'เกิดอะไรขึ้น?',
+  'feedback.detail_placeholder': 'ไม่บังคับ — ผิดพลาดตรงไหน?',
+  'feedback.detail_skip': 'ข้าม',
+  'feedback.detail_send': 'ส่ง',
 
   // Secret Vault
   'secrets.title': 'ห้องนิรภัยความลับ',

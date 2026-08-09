@@ -108,7 +108,7 @@ type ChatAction =
   | { type: 'toggle_tasks' }
   | { type: 'close_tasks' }
   | { type: 'set_tasks_width'; width: number }
-  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string }
+  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; note?: string }
   | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
   | { type: 'clear_sign_in_error' }
   | { type: 'dismiss_welcome' }
@@ -1239,9 +1239,9 @@ export function App() {
   }, [postMessage]);
 
   const handleRate = useCallback(
-    (messageId: string, rating: 'up' | 'down', reason?: string) => {
+    (messageId: string, rating: 'up' | 'down', reason?: string, note?: string) => {
       dispatch({ type: 'rate_message', messageId, rating, reason });
-      postMessage({ type: 'rate_message', messageId, rating, reason });
+      postMessage({ type: 'rate_message', messageId, rating, reason, note });
     },
     [postMessage],
   );
