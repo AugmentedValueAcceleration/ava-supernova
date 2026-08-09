@@ -49,13 +49,48 @@ interface Props {
   align?: 'start' | 'end';
 }
 
-const REASONS: Array<[string, string, string]> = [
-  ['unclear', 'learning_library.reason_unclear', 'Unclear'],
-  ['too-fast', 'learning_library.reason_too_fast', 'Too fast'],
-  ['too-easy', 'learning_library.reason_too_easy', 'Too easy'],
-  ['wrong', 'learning_library.reason_wrong', 'Something wrong'],
-  ['translation', 'learning_library.reason_translation', 'Bad translation'],
-];
+/**
+ * Reasons, in the language of the thing being rated.
+ *
+ * A course can be "too fast"; a recipe cannot. A recipe "didn't work"; a course
+ * does not. Showing course wording on a recipe is the fastest way to teach
+ * someone that the feedback box is not really for them — they read five
+ * options, none of which describe what happened, and stop bothering.
+ *
+ * Same codes on the wire, different words on screen.
+ */
+const REASONS_BY_TYPE: Record<RatingSubject, Array<[string, string, string]>> = {
+  course: [
+    ['unclear', 'learning_library.reason_unclear', 'Unclear'],
+    ['too-fast', 'learning_library.reason_too_fast', 'Too fast'],
+    ['too-easy', 'learning_library.reason_too_easy', 'Too easy'],
+    ['wrong', 'learning_library.reason_wrong', 'Something wrong'],
+    ['translation', 'learning_library.reason_translation', 'Bad translation'],
+  ],
+  recipe: [
+    ['didnt-work', 'feedback.reason.didnt_work', "Didn't work"],
+    ['too-fiddly', 'feedback.reason.too_fiddly', 'Too fiddly'],
+    ['timings-off', 'feedback.reason.timings_off', 'Timings were off'],
+    ['seasoning', 'feedback.reason.seasoning', 'Tasted off'],
+    ['unclear', 'learning_library.reason_unclear', 'Unclear'],
+  ],
+  exercise: [
+    // Unsafe first, deliberately. It is the only reason here that should ever
+    // pull an exercise rather than merely be noted, so it must not be the
+    // option someone has to hunt for.
+    ['unsafe', 'feedback.reason.unsafe', 'Felt unsafe'],
+    ['too-hard', 'feedback.reason.too_hard', 'Too hard'],
+    ['too-easy', 'learning_library.reason_too_easy', 'Too easy'],
+    ['form-unclear', 'feedback.reason.form_unclear', "Couldn't tell the form"],
+    ['wrong-equipment', 'feedback.reason.wrong_equipment', 'Equipment was wrong'],
+  ],
+  workout: [
+    ['unsafe', 'feedback.reason.unsafe', 'Felt unsafe'],
+    ['too-hard', 'feedback.reason.too_hard', 'Too hard'],
+    ['too-easy', 'learning_library.reason_too_easy', 'Too easy'],
+    ['unclear', 'learning_library.reason_unclear', 'Unclear'],
+  ],
+};
 
 export function ContentRating({
   subjectType, subjectId, average, count, verdict, align = 'end',
@@ -81,7 +116,11 @@ export function ContentRating({
         fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase',
         letterSpacing: 0.5, fontWeight: 600,
       }}>
-        {mine ? tt('learning_library.your_rating', 'Your rating') : t('learning_library.rate_course')}
+        {mine
+          ? tt('learning_library.your_rating', 'Your rating')
+          : subjectType === 'recipe' ? tt('feedback.rate_recipe', 'Rate this recipe')
+          : subjectType === 'exercise' ? tt('feedback.rate_exercise', 'Rate this exercise')
+          : t('learning_library.rate_course')}
       </span>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -118,7 +157,7 @@ export function ContentRating({
           display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2, maxWidth: 280,
           justifyContent: align === 'end' ? 'flex-end' : 'flex-start',
         }}>
-          {REASONS.map(([code, key, fallback]) => (
+          {(REASONS_BY_TYPE[subjectType] ?? REASONS_BY_TYPE.course).map(([code, key, fallback]) => (
             <button
               key={code}
               onClick={() => rate(mine ?? 3, code)}

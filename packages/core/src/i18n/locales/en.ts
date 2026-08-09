@@ -872,6 +872,22 @@ export const enStrings = {
   'learning_library.your_rating': 'Your rating',
   // Reason codes shown when a course is rated 3 or below. Short labels, not
   // sentences — they are chips, and a chip that wraps is a chip nobody taps.
+  // Feedback reasons. Shown as chips when something is rated 3 or below, in
+  // the language of the thing being rated — "Too fast" is a course problem,
+  // "Didn't work" is a recipe problem, and no shared wording covers both
+  // without sounding like neither.
+  'feedback.rate_recipe': 'Rate this recipe',
+  'feedback.rate_exercise': 'Rate this exercise',
+  'feedback.reason.didnt_work': "Didn't work",
+  'feedback.reason.too_fiddly': 'Too fiddly',
+  'feedback.reason.timings_off': 'Timings were off',
+  'feedback.reason.seasoning': 'Tasted off',
+  'feedback.reason.too_hard': 'Too hard',
+  'feedback.reason.form_unclear': "Couldn't tell the form",
+  'feedback.reason.wrong_equipment': 'Equipment was wrong',
+  // The one that matters most: it is the code that should ever cause us to
+  // pull an exercise rather than merely note it.
+  'feedback.reason.unsafe': 'Felt unsafe',
   'learning_library.reason_unclear': 'Unclear',
   'learning_library.reason_too_fast': 'Too fast',
   'learning_library.reason_too_easy': 'Too easy',
