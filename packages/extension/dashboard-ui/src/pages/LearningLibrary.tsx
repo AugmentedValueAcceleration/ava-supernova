@@ -377,7 +377,12 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
                       onClick={() => handleRate(selected.id, star)}
                       style={{
                         background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 1, lineHeight: 1,
-                        color: (mine ?? 0) >= star ? '#fbbf24' : 'var(--text-muted)',
+                        // The average, or YOUR score once given. Solid when
+                        // it is yours, dimmer when it is the crowd's, so the
+                        // two are never read as the same thing.
+                        color: (mine ?? (avg ?? 0)) >= star
+                          ? (mine ? '#fbbf24' : 'rgba(251,191,36,0.55)')
+                          : 'var(--text-muted)',
                       }}
                       title={t('learning_library.rate_star', { star })}
                     >
