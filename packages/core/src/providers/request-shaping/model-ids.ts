@@ -25,6 +25,12 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // Qwen legacy rolling aliases -> current generation
   'qwen-flash':        'qwen3.5-flash',
   'qwen-turbo':        'qwen3.5-flash',
+  // 3.7 Max retired 2026-08-09 in favour of 3.8 Max, which is better on every
+  // axis AND cheaper ($2/$6 against $2.50/$7.50, 131K output against 65K) and
+  // therefore costs FEWER credits (2.58x against 3.22x). Rolled forward rather
+  // than removed: a saved selection keeps working, and the person holding it
+  // gets a better model for less money without being asked to do anything.
+  'qwen3.7-max':       'qwen3.8-max',
   // Managed DeepSeek V4 — strip the `-platform` disambiguator
   'deepseek-v4-pro-platform':   'deepseek-v4-pro',
   'deepseek-v4-flash-platform': 'deepseek-v4-flash',

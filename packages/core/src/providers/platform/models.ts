@@ -83,24 +83,11 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     desktopCapable: true,
     pricing: { inputPerMillion: 2.00, outputPerMillion: 6.00 },
   },
-  // Qwen 3.7 Max — Alibaba's heavy flagship, opened to account credits
-  // 2026-07-23 (operator: it's in the Qwen family, price it honestly). Bare id
-  // on both surfaces like the rest of Qwen. $2.50/$7.50 = the priciest Qwen we
-  // serve → credit multiplier 3.22× in credits.ts. NOT a fleet coordinator; a
-  // standalone single pick for users who want the flagship on credits.
-  {
-    id: 'qwen3.7-max',
-    name: 'Qwen 3.7 Max',
-    provider: 'platform',
-    contextWindow: 1000000,
-    maxOutputTokens: 65536,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    desktopCapable: true,
-    pricing: { inputPerMillion: 2.50, outputPerMillion: 7.50 },
-  },
+  // Qwen 3.7 Max was here until 2026-08-09. Retired, not merely deprecated:
+  // 3.8 Max beats it on price, output ceiling and capability at once, so there
+  // is no task for which it is the right pick. `qwen3.7-max` rolls forward to
+  // `qwen3.8-max` in model-ids.ts, so a saved selection keeps working and gets
+  // the better model for a lower credit multiplier.
   // Qwen 3.7 Plus — flagship Maestro conductor. Agentic coding, 1M context,
   // vision + video, reasoning. Supersedes Qwen 3.6 Plus + the 3.5 Omni tier:
   // better agentic coding, multimodal, and cheaper.

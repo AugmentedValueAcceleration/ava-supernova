@@ -23,23 +23,10 @@ export const QWEN_MODELS: ModelDefinition[] = [
     desktopCapable: true,
     pricing: { inputPerMillion: 2.00, outputPerMillion: 6.00 },
   },
-  // Qwen 3.7 Max (June 2026) — Alibaba's heavy flagship. BYOK-only: exposed
-  // for users with their own DashScope key, NOT wired into the Maestro
-  // coordinator slot ($2.50/$7.50 would break the credit-plan margin).
-  // Qwen 3.7 Plus is the Maestro conductor.
-  {
-    id: 'qwen3.7-max',
-    name: 'Qwen 3.7 Max',
-    provider: 'qwen',
-    contextWindow: 1000000,
-    maxOutputTokens: 65536,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    desktopCapable: true,
-    pricing: { inputPerMillion: 2.50, outputPerMillion: 7.50 },
-  },
+  // Qwen 3.7 Max was here until 2026-08-09, retired in favour of 3.8 Max.
+  // Even on your own key there is no reason to send it: same provider, lower
+  // price, higher output ceiling, more capable. The id rolls forward in
+  // model-ids.ts so a saved selection keeps working.
   // Qwen 3.7 Plus (June 2026) — the Maestro conductor. 1M context, vision +
   // video, reasoning, native function calling. Supersedes Qwen 3.6 Plus and the
   // 3.5 Omni tier: better agentic coding, multimodal, and cheaper ($0.40/$1.60).
