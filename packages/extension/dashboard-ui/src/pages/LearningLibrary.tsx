@@ -367,7 +367,7 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
-                  {mine ? t('learning_library.your_rating') || 'Your rating' : t('learning_library.rate_course')}
+                  {mine ? tt('learning_library.your_rating', 'Your rating') : t('learning_library.rate_course')}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   {[1, 2, 3, 4, 5].map(star => (
@@ -403,11 +403,11 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
                 {reasonFor === selected.id && !verdict?.error && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end', maxWidth: 260, marginTop: 2 }}>
                     {[
-                      ['unclear', t('learning_library.reason_unclear') || 'Unclear'],
-                      ['too-fast', t('learning_library.reason_too_fast') || 'Too fast'],
-                      ['too-easy', t('learning_library.reason_too_easy') || 'Too easy'],
-                      ['wrong', t('learning_library.reason_wrong') || 'Something wrong'],
-                      ['translation', t('learning_library.reason_translation') || 'Bad translation'],
+                      ['unclear', tt('learning_library.reason_unclear', 'Unclear')],
+                      ['too-fast', tt('learning_library.reason_too_fast', 'Too fast')],
+                      ['too-easy', tt('learning_library.reason_too_easy', 'Too easy')],
+                      ['wrong', tt('learning_library.reason_wrong', 'Something wrong')],
+                      ['translation', tt('learning_library.reason_translation', 'Bad translation')],
                     ].map(([code, label]) => (
                       <button
                         key={code}

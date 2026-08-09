@@ -869,6 +869,14 @@ export const enStrings = {
   'dash.learning_library.start_learning': 'Start Learning',
   'dash.learning_library.starting': 'Starting...',
   'dash.learning_library.search': 'Search paths...',
+  'learning_library.your_rating': 'Your rating',
+  // Reason codes shown when a course is rated 3 or below. Short labels, not
+  // sentences — they are chips, and a chip that wraps is a chip nobody taps.
+  'learning_library.reason_unclear': 'Unclear',
+  'learning_library.reason_too_fast': 'Too fast',
+  'learning_library.reason_too_easy': 'Too easy',
+  'learning_library.reason_wrong': 'Something wrong',
+  'learning_library.reason_translation': 'Bad translation',
   'dash.learning_library.all_audiences': 'Anyone',
   'dash.learning_library.all_levels': 'All levels',
   'dash.learning_library.most_popular': 'Most Popular',
