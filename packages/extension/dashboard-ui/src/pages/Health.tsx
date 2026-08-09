@@ -621,9 +621,12 @@ function ExerciseCard({ ex, view, onOpen }: { ex: HealthExerciseSummary; view: V
             <h3 className="text-[13px] font-light leading-tight text-white">{ex.name}</h3>
           </div>
         </div>
-        <div className="flex items-center justify-between px-2.5 py-2">
+        <div className="flex items-center justify-between gap-2 px-2.5 py-2">
           <Dots value={ex.difficulty} accent={accent} />
-          <span className="text-[10px] capitalize text-vscode-descriptionForeground">{exerciseTypeLabel(ex.exercise_type)}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] capitalize text-vscode-descriptionForeground">{exerciseTypeLabel(ex.exercise_type)}</span>
+            <CardRating average={ex.average_rating} />
+          </div>
         </div>
       </button>
     </li>
@@ -647,6 +650,19 @@ interface ExercisesGridProps {
   onRefresh: () => void;
   view: View;
   onView: (v: View) => void;
+}
+
+/**
+ * The rating on a card. Always rendered, 0 when unrated — hiding it left those
+ * cards one item short of their neighbours, so a grid read as ragged and the
+ * rated ones looked like the only real entries.
+ */
+function CardRating({ average }: { average?: number | null }) {
+  return (
+    <span className="flex-shrink-0 text-[10px]" style={{ color: average ? '#fbbf24' : undefined }}>
+      {'★'} {average ?? 0}
+    </span>
+  );
 }
 
 function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: ExercisesGridProps) {
@@ -764,8 +780,9 @@ function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; o
             <h3 className="text-[13px] font-light leading-tight text-white">{r.name}</h3>
           </div>
         </div>
-        <div className="flex items-center px-2.5 py-2">
+        <div className="flex items-center justify-between gap-2 px-2.5 py-2">
           <span className="truncate text-[10px] capitalize text-vscode-descriptionForeground">{footer}</span>
+          <CardRating average={r.average_rating} />
         </div>
       </button>
     </li>

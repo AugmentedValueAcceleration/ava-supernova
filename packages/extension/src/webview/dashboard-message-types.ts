@@ -553,6 +553,12 @@ export interface HealthExerciseAlternative {
 
 export interface HealthExerciseSummary {
   id: string;
+  /** Public average from content_feedback, one decimal, null when unrated.
+   *  The card had nothing to read before this — the rating widget went into
+   *  the detail view and the list was never followed back. */
+  average_rating?: number | null;
+  rating_count?: number;
+
   slug: string;
   name: string;
   exercise_type: HealthExerciseType;
@@ -605,6 +611,12 @@ export type HealthRecipeSkillLevel = 'beginner' | 'intermediate' | 'expert';
 
 export interface HealthRecipeSummary {
   id: string;
+  /** Public average from content_feedback, one decimal, null when unrated.
+   *  The card had nothing to read before this — the rating widget went into
+   *  the detail view and the list was never followed back. */
+  average_rating?: number | null;
+  rating_count?: number;
+
   slug: string;
   name: string;
   cuisine_name: string | null;
