@@ -473,14 +473,17 @@ importers:
         specifier: ^0.20.16
         version: 0.20.16
       '@ava-supernova/core':
-        specifier: ^0.2.27
-        version: 0.2.27(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
+        specifier: 0.2.56
+        version: 0.2.56(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@ffmpeg-installer/ffmpeg':
         specifier: ^1.1.0
         version: 1.1.0
       '@neplex/vectorizer':
         specifier: ^0.1.0
         version: 0.1.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
+      '@noble/hashes':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -663,8 +666,8 @@ packages:
       screenshot-desktop:
         optional: true
 
-  '@ava-supernova/core@0.2.27':
-    resolution: {integrity: sha512-WlSysstbn5dOyiltLDvlatMB1ImfJmt6u3mLXWC1Hd4+BqWXLVchxYw6zFIWKONXN5Lade48RYJJ/jxtDIT8uA==}
+  '@ava-supernova/core@0.2.56':
+    resolution: {integrity: sha512-hDbspmaZFSm9fjzAALl8qu4iHSF/nQsw/Uz9oilJJkvhTlkiHS+fCncS1LJTBPIInVMTCGMi341FtOLQ31K4KQ==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -6468,7 +6471,7 @@ snapshots:
       playwright: 1.58.2
       screenshot-desktop: 1.15.3
 
-  '@ava-supernova/core@0.2.27(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+  '@ava-supernova/core@0.2.56(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
     dependencies:
       glob: 13.0.6
       marked: 17.0.3
