@@ -1091,7 +1091,7 @@ export function ExerciseDetailBody({ ex, rating }: { ex: HealthExerciseDetail; r
                 <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{ex.name}</h2>
                 {/* Rated after doing it. "Too hard" is the signal the
                     progression loop actually wants. */}
-                <ContentRating subjectType="exercise" subjectId={ex.id} verdict={rating} />
+                <ContentRating subjectType="exercise" subjectId={ex.id} average={ex.average_rating} count={ex.rating_count} verdict={rating} />
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-vscode-descriptionForeground">
                 <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize">{exerciseTypeLabel(ex.exercise_type)}</span>
@@ -1285,7 +1285,7 @@ export function RecipeDetailBody({ r, rating }: { r: HealthRecipeDetail; rating?
                 <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{r.name}</h2>
                 {/* Cooked it? Say how it went. The rating is public, anything
                     you type is private and goes only to the operator. */}
-                <ContentRating subjectType="recipe" subjectId={r.id} verdict={rating} />
+                <ContentRating subjectType="recipe" subjectId={r.id} average={r.average_rating} count={r.rating_count} verdict={rating} />
               </div>
               <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
                 {r.course && <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize text-vscode-descriptionForeground">{courseLabel(r.course)}</span>}
