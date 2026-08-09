@@ -42,6 +42,7 @@ interface Props {
   // Courses tab → LearningLibrary
   paths: LibraryPath[];
   courseRatings: Record<string, CourseRatingState>;
+  libraryLoading: boolean;
   pathDetail: LibraryPathDetail | null;
   onNavigate: (page: Page) => void;
   // My Learning tab → MyLearning (Progression + My Courses)
@@ -58,7 +59,7 @@ interface Props {
 }
 
 export function LearningRoom({
-  paths, pathDetail, onNavigate, courseRatings,
+  paths, pathDetail, onNavigate, courseRatings, libraryLoading,
   learningCurriculums, learningLoaded, learnerProfile,
   onRegisterLearningChatDispatch, userName, userAvatarUrl,
   initialTab, onConsumeInitialTab,
@@ -160,7 +161,7 @@ export function LearningRoom({
           </div>
         </div>
         {tab === 'courses' && (
-          <LearningLibrary paths={paths} detail={pathDetail} onNavigate={onNavigate} courseRatings={courseRatings} />
+          <LearningLibrary paths={paths} detail={pathDetail} onNavigate={onNavigate} courseRatings={courseRatings} loading={libraryLoading} />
         )}
         {tab === 'my-learning' && (
           <MyLearning

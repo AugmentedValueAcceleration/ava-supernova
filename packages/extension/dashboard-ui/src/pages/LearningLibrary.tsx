@@ -90,9 +90,12 @@ interface Props {
   courseRatings: Record<string, {
     yourRating: number; averageRating: number | null; ratingCount: number; error?: string;
   }>;
+  /** Fetch in flight. Distinguishes "still loading" from "nothing matches" —
+   *  they looked identical, so a slow load read as an empty library. */
+  loading?: boolean;
 }
 
-export function LearningLibrary({ paths, detail, courseRatings }: Props) {
+export function LearningLibrary({ paths, detail, courseRatings, loading }: Props) {
   useLocale();
   const [search, setSearch] = useState('');
   const [shelfFilter, setShelfFilter] = useState('all');
@@ -555,7 +558,28 @@ export function LearningLibrary({ paths, detail, courseRatings }: Props) {
       </div>
 
       {/* Results */}
-      {filtered.length === 0 ? (
+      {loading && paths.length === 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+          {/* Skeletons, not a spinner: the layout does not jump when the real
+              cards arrive, and it shows roughly how many to expect. Before
+              this, a slow fetch rendered "no courses match your filters",
+              which reads as an empty library rather than a loading one. */}
+          {Array.from({ length: 6 }, (_, i) => (
+            <div
+              key={i}
+              style={{
+                height: 168,
+                borderRadius: 10,
+                border: '1px solid var(--border-card)',
+                background: 'linear-gradient(90deg, var(--bg-input) 25%, rgba(255,255,255,0.05) 50%, var(--bg-input) 75%)',
+                backgroundSize: '200% 100%',
+                animation: 'ava-shimmer 1.4s ease-in-out infinite',
+              }}
+            />
+          ))}
+          <style>{'@keyframes ava-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}'}</style>
+        </div>
+      ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>{'\uD83D\uDCDA'}</div>
           <p style={{ fontSize: 13 }}>{t('learning_library.no_paths_filters')}</p>

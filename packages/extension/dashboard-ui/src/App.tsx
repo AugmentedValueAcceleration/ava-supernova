@@ -300,6 +300,10 @@ export function App() {
     yourRating: number; averageRating: number | null; ratingCount: number; error?: string;
   }>>({});
   const [libraryPaths, setLibraryPaths] = useState<LibraryPath[]>([]);
+  /** True while the catalogue is being fetched. Without it the empty state
+   *  ("no courses match your filters") shows during the fetch, which reads as
+   *  an empty library rather than a slow one. */
+  const [libraryLoading, setLibraryLoading] = useState(true);
   const [libraryPathDetail, setLibraryPathDetail] = useState<LibraryPathDetail | null>(null);
   const [learnerProfilePayload, setLearnerProfilePayload] = useState<LearnerProfilePayload | null>(null);
   // Library → Papers state. Three sub-tabs cached independently so
@@ -1107,6 +1111,7 @@ export function App() {
         break;
       case 'library_paths_loaded':
         setLibraryPaths(msg.paths);
+        setLibraryLoading(false);
         break;
       // What the server said about a rating. Previously this message was
       // posted by the host and nothing anywhere listened for it, so the user
@@ -1519,6 +1524,7 @@ export function App() {
   useEffect(() => {
     if (page === 'learning-room') {
       post({ type: 'load_learning' });
+      setLibraryLoading(true);
       post({ type: 'load_library_paths' });
       post({ type: 'load_learning_profile' });
     }
@@ -1662,6 +1668,7 @@ export function App() {
       beginLibraryLoad();
       post({ type: 'load_cloud_assets' });
       post({ type: 'load_local_creative' });
+      setLibraryLoading(true);
       post({ type: 'load_library_paths' });
       post({ type: 'get_storage_scan' });
     }
@@ -2012,7 +2019,7 @@ export function App() {
       case 'learning-room':
         return (
           <LearningRoom
-courseRatings={courseRatings}             paths={libraryPaths}
+libraryLoading={libraryLoading} courseRatings={courseRatings}             paths={libraryPaths}
             pathDetail={libraryPathDetail}
             onNavigate={setPagePersist}
             learningCurriculums={learningCurriculums}
