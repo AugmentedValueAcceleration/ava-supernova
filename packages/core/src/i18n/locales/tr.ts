@@ -564,8 +564,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Cihazlar arası senkronlanan programınız',
   'dash.sync.settings': 'Ayarlar',
   'dash.sync.settings_desc': 'Tercihler, avatarlar ve yapılandırma',
-  'dash.sync.shared_learnings': 'Paylaşılan Öğrenmeler',
-  'dash.sync.shared_learnings_desc': 'Tüm Ava kullanıcılarına yardımcı olmak için anonimleştirilmiş içgörüler paylaşın',
   'dash.sync.last_synced': 'Son senkronizasyon: {time}',
   'dash.sync.never_synced': 'Hiç senkronlanmadı',
   'dash.sync.sync_now': 'Şimdi senkronla',

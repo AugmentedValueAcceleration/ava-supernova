@@ -564,8 +564,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': '你的排程跨裝置同步',
   'dash.sync.settings': '設定',
   'dash.sync.settings_desc': '偏好、頭像與設定檔',
-  'dash.sync.shared_learnings': '共享學習',
-  'dash.sync.shared_learnings_desc': '貢獻匿名化的洞見，幫助所有 Ava 使用者',
   'dash.sync.last_synced': '上次同步：{time}',
   'dash.sync.never_synced': '從未同步',
   'dash.sync.sync_now': '立即同步',

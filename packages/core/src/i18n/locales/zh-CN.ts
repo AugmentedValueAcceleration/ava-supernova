@@ -673,8 +673,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': '跨设备同步你的作息时间',
   'dash.sync.settings': '设置',
   'dash.sync.settings_desc': '偏好、头像和配置',
-  'dash.sync.shared_learnings': '共享学习成果',
-  'dash.sync.shared_learnings_desc': '贡献匿名化的洞察，帮助所有 Ava 用户',
   'dash.sync.last_synced': '上次同步：{time}',
   'dash.sync.never_synced': '从未同步',
   'dash.sync.sync_now': '立即同步',

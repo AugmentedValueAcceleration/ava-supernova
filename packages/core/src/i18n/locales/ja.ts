@@ -564,8 +564,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'デバイス間で同期されるスケジュール',
   'dash.sync.settings': '設定',
   'dash.sync.settings_desc': '設定、アバター、コンフィグ',
-  'dash.sync.shared_learnings': '共有ラーニング',
-  'dash.sync.shared_learnings_desc': '匿名化されたインサイトを共有して全 Ava ユーザーを支援',
   'dash.sync.last_synced': '最終同期：{time}',
   'dash.sync.never_synced': '未同期',
   'dash.sync.sync_now': '今すぐ同期',

@@ -5,7 +5,7 @@ import { cloudSyncEnabled } from '../lib/data-mode';
 import type { SyncStatus, ExtToDashboardMessage } from '../types/messages';
 import {
   Brain, CheckSquare, GraduationCap,
-  GearSix, MaskHappy, Lightbulb, Heartbeat,
+  GearSix, MaskHappy, Heartbeat,
 } from '@phosphor-icons/react';
 
 /** Sync categories the host accepts on set_sync_pref / push_to_cloud. */
@@ -28,7 +28,6 @@ function getSyncDataTypes() {
     { key: 'learning',    label: t('dash.nav.learning'),          icon: <GraduationCap weight="duotone" size={18} />, description: t('dash.nav.learning_desc') },
     { key: 'settings',    label: t('dash.sync.settings'),         icon: <GearSix weight="duotone" size={18} />,  description: t('dash.sync.settings_desc') },
     { key: 'personality', label: t('dash.sync.personality'),       icon: <MaskHappy weight="duotone" size={18} />, description: t('dash.sync.personality_desc') },
-    { key: 'learnings',   label: t('dash.sync.shared_learnings'), icon: <Lightbulb weight="duotone" size={18} />, description: t('dash.sync.shared_learnings_desc') },
     { key: 'health_profile', label: tt('dash.sync.health_profile', 'Health profile'), icon: <Heartbeat weight="duotone" size={18} />, description: tt('dash.sync.health_profile_desc', 'Body stats, goals, constraints and your schedule — what Ava reads for your daily plan') },
   ] as const;
 }

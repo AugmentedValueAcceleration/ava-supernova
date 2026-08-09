@@ -564,8 +564,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Ваш график, синхронизированный между устройствами',
   'dash.sync.settings': 'Настройки',
   'dash.sync.settings_desc': 'Параметры, аватары и конфигурация',
-  'dash.sync.shared_learnings': 'Общие знания',
-  'dash.sync.shared_learnings_desc': 'Анонимный вклад в улучшение Ava для всех пользователей',
   'dash.sync.last_synced': 'Последняя синхронизация: {time}',
   'dash.sync.never_synced': 'Не синхронизировалось',
   'dash.sync.sync_now': 'Синхронизировать сейчас',

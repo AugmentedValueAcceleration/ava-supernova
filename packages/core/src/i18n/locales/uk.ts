@@ -674,8 +674,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Ваш розклад синхронізований між пристроями',
   'dash.sync.settings': 'Налаштування',
   'dash.sync.settings_desc': 'Параметри, аватари та конфігурація',
-  'dash.sync.shared_learnings': 'Спільні знання',
-  'dash.sync.shared_learnings_desc': 'Анонімні інсайти для покращення Ava для всіх користувачів',
   'dash.sync.last_synced': 'Остання синхронізація: {time}',
   'dash.sync.never_synced': 'Ніколи не синхронізовано',
   'dash.sync.sync_now': 'Синхронізувати зараз',

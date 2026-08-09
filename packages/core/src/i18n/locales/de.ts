@@ -673,8 +673,6 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Dein Zeitplan über Geräte hinweg synchronisiert',
   'dash.sync.settings': 'Einstellungen',
   'dash.sync.settings_desc': 'Präferenzen, Avatare und Konfiguration',
-  'dash.sync.shared_learnings': 'Geteilte Erkenntnisse',
-  'dash.sync.shared_learnings_desc': 'Trage anonymisierte Erkenntnisse bei, um allen Ava-Nutzern zu helfen',
   'dash.sync.last_synced': 'Zuletzt synchronisiert: {time}',
   'dash.sync.never_synced': 'Noch nie synchronisiert',
   'dash.sync.sync_now': 'Jetzt synchronisieren',

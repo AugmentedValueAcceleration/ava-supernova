@@ -564,8 +564,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Jadwal Anda disinkronkan antar perangkat',
   'dash.sync.settings': 'Pengaturan',
   'dash.sync.settings_desc': 'Preferensi, avatar, dan konfigurasi',
-  'dash.sync.shared_learnings': 'Pembelajaran Bersama',
-  'dash.sync.shared_learnings_desc': 'Kontribusikan wawasan anonim untuk membantu semua pengguna Ava',
   'dash.sync.last_synced': 'Terakhir disinkronkan: {time}',
   'dash.sync.never_synced': 'Belum pernah disinkronkan',
   'dash.sync.sync_now': 'Sinkronkan sekarang',

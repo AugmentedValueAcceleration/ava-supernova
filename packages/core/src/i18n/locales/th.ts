@@ -564,8 +564,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'ตารางเวลาของคุณที่ซิงค์ข้ามอุปกรณ์',
   'dash.sync.settings': 'การตั้งค่า',
   'dash.sync.settings_desc': 'การตั้งค่า อวตาร และการกำหนดค่า',
-  'dash.sync.shared_learnings': 'การเรียนรู้ร่วมกัน',
-  'dash.sync.shared_learnings_desc': 'มีส่วนร่วมข้อมูลเชิงลึกที่ไม่ระบุตัวตนเพื่อช่วยผู้ใช้ Ava ทุกคน',
   'dash.sync.last_synced': 'ซิงค์ล่าสุด: {time}',
   'dash.sync.never_synced': 'ยังไม่เคยซิงค์',
   'dash.sync.sync_now': 'ซิงค์ตอนนี้',

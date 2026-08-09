@@ -673,8 +673,6 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Twój harmonogram synchronizowany między urządzeniami',
   'dash.sync.settings': 'Ustawienia',
   'dash.sync.settings_desc': 'Preferencje, awatary i konfiguracja',
-  'dash.sync.shared_learnings': 'Wspólna wiedza',
-  'dash.sync.shared_learnings_desc': 'Przekazuj zanonimizowane spostrzeżenia, aby pomóc wszystkim użytkownikom Avy',
   'dash.sync.last_synced': 'Ostatnia synchronizacja: {time}',
   'dash.sync.never_synced': 'Nigdy nie synchronizowano',
   'dash.sync.sync_now': 'Synchronizuj teraz',

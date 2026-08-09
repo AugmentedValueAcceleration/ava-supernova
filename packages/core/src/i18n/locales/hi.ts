@@ -564,8 +564,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'आपका शेड्यूल सभी डिवाइस पर सिंक होता है',
   'dash.sync.settings': 'सेटिंग्स',
   'dash.sync.settings_desc': 'प्राथमिकताएँ, अवतार और कॉन्फ़िग',
-  'dash.sync.shared_learnings': 'साझा सीख',
-  'dash.sync.shared_learnings_desc': 'सभी Ava उपयोगकर्ताओं की मदद के लिए गुमनाम अंतर्दृष्टि साझा करें',
   'dash.sync.last_synced': 'अंतिम सिंक: {time}',
   'dash.sync.never_synced': 'कभी सिंक नहीं हुआ',
   'dash.sync.sync_now': 'अभी सिंक करें',

@@ -559,8 +559,6 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Sua agenda sincronizada entre dispositivos',
   'dash.sync.settings': 'Configura\u00e7\u00f5es',
   'dash.sync.settings_desc': 'Prefer\u00eancias, avatares e configura\u00e7\u00e3o',
-  'dash.sync.shared_learnings': 'Aprendizados Compartilhados',
-  'dash.sync.shared_learnings_desc': 'Contribua com insights anonimizados para ajudar todos os usu\u00e1rios da Ava',
   'dash.sync.last_synced': '\u00daltima sincroniza\u00e7\u00e3o: {time}',
   'dash.sync.never_synced': 'Nunca sincronizado',
   'dash.sync.sync_now': 'Sincronizar agora',

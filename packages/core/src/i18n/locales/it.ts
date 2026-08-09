@@ -564,8 +564,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Il tuo programma sincronizzato tra i dispositivi',
   'dash.sync.settings': 'Impostazioni',
   'dash.sync.settings_desc': 'Preferenze, avatar e configurazione',
-  'dash.sync.shared_learnings': 'Apprendimenti condivisi',
-  'dash.sync.shared_learnings_desc': 'Contribuisci con informazioni anonime per aiutare tutti gli utenti di Ava',
   'dash.sync.last_synced': 'Ultima sincronizzazione: {time}',
   'dash.sync.never_synced': 'Mai sincronizzato',
   'dash.sync.sync_now': 'Sincronizza ora',

@@ -560,8 +560,6 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Votre planning synchronis\u00e9 entre vos appareils',
   'dash.sync.settings': 'Param\u00e8tres',
   'dash.sync.settings_desc': 'Pr\u00e9f\u00e9rences, avatars et configuration',
-  'dash.sync.shared_learnings': 'Apprentissages partag\u00e9s',
-  'dash.sync.shared_learnings_desc': 'Contribuez des enseignements anonymis\u00e9s pour aider tous les utilisateurs d\u2019Ava',
   'dash.sync.last_synced': 'Derni\u00e8re synchro : {time}',
   'dash.sync.never_synced': 'Jamais synchronis\u00e9',
   'dash.sync.sync_now': 'Synchroniser',

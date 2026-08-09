@@ -564,8 +564,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': '기기 간 동기화되는 일정',
   'dash.sync.settings': '설정',
   'dash.sync.settings_desc': '환경 설정, 아바타, 구성',
-  'dash.sync.shared_learnings': '공유 학습',
-  'dash.sync.shared_learnings_desc': '익명화된 인사이트를 제공하여 모든 Ava 사용자를 도움',
   'dash.sync.last_synced': '마지막 동기화: {time}',
   'dash.sync.never_synced': '동기화한 적 없음',
   'dash.sync.sync_now': '지금 동기화',

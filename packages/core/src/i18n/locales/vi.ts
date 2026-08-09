@@ -564,8 +564,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Lịch trình của bạn được đồng bộ giữa các thiết bị',
   'dash.sync.settings': 'Cài đặt',
   'dash.sync.settings_desc': 'Tùy chọn, avatar và cấu hình',
-  'dash.sync.shared_learnings': 'Kiến thức chia sẻ',
-  'dash.sync.shared_learnings_desc': 'Đóng góp thông tin ẩn danh để giúp tất cả người dùng Ava',
   'dash.sync.last_synced': 'Đồng bộ lần cuối: {time}',
   'dash.sync.never_synced': 'Chưa từng đồng bộ',
   'dash.sync.sync_now': 'Đồng bộ ngay',

@@ -564,8 +564,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'Je schema gesynchroniseerd tussen apparaten',
   'dash.sync.settings': 'Instellingen',
   'dash.sync.settings_desc': 'Voorkeuren, avatars en configuratie',
-  'dash.sync.shared_learnings': 'Gedeelde inzichten',
-  'dash.sync.shared_learnings_desc': 'Draag geanonimiseerde inzichten bij om alle Ava-gebruikers te helpen',
   'dash.sync.last_synced': 'Laatst gesynchroniseerd: {time}',
   'dash.sync.never_synced': 'Nooit gesynchroniseerd',
   'dash.sync.sync_now': 'Nu synchroniseren',

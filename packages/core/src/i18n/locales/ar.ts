@@ -564,8 +564,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.sync.working_hours_desc': 'جدولك مُزامَن عبر الأجهزة',
   'dash.sync.settings': 'الإعدادات',
   'dash.sync.settings_desc': 'التفضيلات والصور الرمزية والتكوين',
-  'dash.sync.shared_learnings': 'التعلّم المشترك',
-  'dash.sync.shared_learnings_desc': 'ساهم برؤى مجهولة الهوية لمساعدة جميع مستخدمي Ava',
   'dash.sync.last_synced': 'آخر مزامنة: {time}',
   'dash.sync.never_synced': 'لم تتم المزامنة بعد',
   'dash.sync.sync_now': 'مزامنة الآن',

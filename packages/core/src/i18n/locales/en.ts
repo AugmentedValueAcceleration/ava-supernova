@@ -992,8 +992,6 @@ export const enStrings = {
   'dash.sync.working_hours_desc': 'Your schedule synced across devices',
   'dash.sync.settings': 'Settings',
   'dash.sync.settings_desc': 'Preferences, avatars, and config',
-  'dash.sync.shared_learnings': 'Shared Learnings',
-  'dash.sync.shared_learnings_desc': 'Contribute anonymised insights to help all Ava users',
   'dash.sync.health_profile': 'Health Profile',
   'dash.sync.health_profile_desc': 'Body stats, goals, constraints, and schedule',
   'dash.sync.last_synced': 'Last synced: {time}',

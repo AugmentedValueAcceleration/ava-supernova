@@ -5149,45 +5149,6 @@ export class DashboardPanel {
           break;
         }
 
-        case 'learnings': {
-          // Push local self-improvement entries to the shared global pool
-          const siPath = path.join(this.avaHome, 'self-improvement.json');
-          let siRaw: string;
-          try {
-            siRaw = await fs.readFile(siPath, 'utf-8');
-          } catch {
-            this.post({ type: 'sync_completed', dataType, count: 0 });
-            break;
-          }
-          const siData = JSON.parse(siRaw);
-          const entries: any[] = Array.isArray(siData) ? siData : (siData.entries || []);
-          // Only share safe types (no preferences, no code)
-          const shareable = entries.filter((e: any) =>
-            ['technique', 'tool-fix', 'error-recovery', 'pattern'].includes(e.type) &&
-            e.confidence >= 0.5
-          );
-          let pushed = 0;
-          for (const entry of shareable) {
-            try {
-              const res = await this.platformFetch('/learnings', {
-                method: 'POST',
-                body: JSON.stringify({
-                  type: entry.type,
-                  category: entry.category,
-                  context: entry.context,
-                  learned: entry.learned?.slice(0, 1000),
-                  confidence: entry.confidence,
-                }),
-              });
-              if (res.ok) pushed++;
-            } catch { /* skip individual failures */ }
-          }
-          await this.saveSyncState('learnings', pushed);
-          this.post({ type: 'sync_completed', dataType, count: pushed });
-          await this.loadSyncStatus();
-          break;
-        }
-
         case 'health_profile': {
           // Single-doc push, mirroring `settings` — the whole profile
           // is one JSONB row per user on the platform.
@@ -5452,26 +5413,6 @@ export class DashboardPanel {
     return this.viewProvider?.getAccountScopedDir() ?? AVA_HOME;
   }
 
-  /** Platform API helper bound to the dashboard's secret store. Used by a
-   *  handful of sync paths that need a raw Response (e.g. POST /learnings).
-   *  Returns a Response-like object so callers can still check `.ok`. */
-  private async platformFetch(
-    endpointPath: string,
-    init: { method?: string; body?: string; headers?: Record<string, string> } = {},
-  ): Promise<{ ok: boolean; status: number }> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    const url = `https://avasupernova.com/api${endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`}`;
-    const res = await fetch(url, {
-      method: init.method ?? 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(platformKey ? { Authorization: `Bearer ${platformKey}` } : {}),
-        ...(init.headers ?? {}),
-      },
-      body: init.body,
-    });
-    return { ok: res.ok, status: res.status };
-  }
 
   /** Notify dashboard that journal data changed (called from AvaViewProvider). */
   public notifyJournalUpdated(date: string): void {
