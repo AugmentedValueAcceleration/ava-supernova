@@ -966,6 +966,49 @@ export class DashboardPanel {
         break;
       }
 
+      // Any rateable thing: course, recipe, exercise, workout. One handler,
+      // because three near-identical ones is how the two star widgets that
+      // already existed managed to drift apart before a third was added.
+      case 'rate_content': {
+        const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+        try {
+          const res = await apiFetch('/feedback/content', {
+            method: 'POST',
+            platformKey,
+            body: {
+              subject_type: msg.subjectType,
+              subject_id: msg.subjectId,
+              rating: msg.rating,
+              reason: msg.reason,
+              note: msg.note,
+              locale: vscode.env.language || undefined,
+              device_id: getDeviceId(),
+            },
+          });
+          const data = (res.data && typeof res.data === 'object' ? res.data : {}) as {
+            your_rating?: number; average_rating?: number | null; rating_count?: number; error?: string;
+          };
+          this.post({
+            type: 'content_rated',
+            subjectType: msg.subjectType,
+            subjectId: msg.subjectId,
+            rating: data.your_rating ?? msg.rating,
+            averageRating: data.average_rating ?? null,
+            ratingCount: data.rating_count ?? 0,
+            ...(res.ok ? {} : { error: data.error || `Could not save your rating (${res.status}).` }),
+          });
+        } catch (err) {
+          this.post({
+            type: 'content_rated',
+            subjectType: msg.subjectType,
+            subjectId: msg.subjectId,
+            rating: msg.rating,
+            error: err instanceof Error ? err.message : 'Could not reach the server.',
+          });
+        }
+        break;
+      }
+
       case 'rate_library_path': {
         // NO EARLY RETURN ON A MISSING KEY. This used to be
         // `if (!platformKey) break`, which silently discarded every rating

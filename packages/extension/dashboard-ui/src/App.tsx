@@ -294,11 +294,19 @@ export function App() {
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>(() => {
     try { const saved = localStorage.getItem('ava-dash-learning'); return saved ? JSON.parse(saved) : []; } catch { return []; }
   });
-  /** Per-course rating verdicts, keyed by path id. Holds the user's OWN
-   *  score (not the average) plus any error the save returned. */
-  const [courseRatings, setCourseRatings] = useState<Record<string, {
+  /** Rating verdicts for ANY rateable thing, keyed "subjectType:subjectId".
+   *  Holds the user's OWN score (not the average) plus any error the save
+   *  returned. One store rather than one per content type — three parallel
+   *  stores is how the two star widgets drifted before a third existed. */
+  const [contentRatings, setContentRatings] = useState<Record<string, {
     yourRating: number; averageRating: number | null; ratingCount: number; error?: string;
   }>>({});
+  /** Courses only, keyed by bare id — what LearningLibrary already consumes. */
+  const courseRatings = Object.fromEntries(
+    Object.entries(contentRatings)
+      .filter(([k]) => k.startsWith('course:'))
+      .map(([k, v]) => [k.slice('course:'.length), v]),
+  );
   const [libraryPaths, setLibraryPaths] = useState<LibraryPath[]>([]);
   /** True while the catalogue is being fetched. Without it the empty state
    *  ("no courses match your filters") shows during the fetch, which reads as
@@ -1116,10 +1124,21 @@ export function App() {
       // What the server said about a rating. Previously this message was
       // posted by the host and nothing anywhere listened for it, so the user
       // got no confirmation and no error — the click simply disappeared.
-      case 'library_path_rated':
-        setCourseRatings(prev => ({
+      case 'content_rated':
+        setContentRatings(prev => ({
           ...prev,
-          [msg.pathId]: {
+          [`${msg.subjectType}:${msg.subjectId}`]: {
+            yourRating: msg.rating,
+            averageRating: msg.averageRating ?? null,
+            ratingCount: msg.ratingCount ?? 0,
+            error: msg.error,
+          },
+        }));
+        break;
+      case 'library_path_rated':
+        setContentRatings(prev => ({
+          ...prev,
+          [`course:${msg.pathId}`]: {
             yourRating: msg.rating,
             averageRating: msg.averageRating ?? null,
             ratingCount: msg.ratingCount ?? 0,
@@ -1948,6 +1967,7 @@ export function App() {
             recipesError={healthRecipesError}
             exerciseDetail={healthExerciseDetail}
             recipeDetail={healthRecipeDetail}
+            contentRatings={contentRatings}
             detailLoading={healthDetailLoading}
             onLoadExercises={handleLoadHealthExercises}
             onLoadRecipes={handleLoadHealthRecipes}

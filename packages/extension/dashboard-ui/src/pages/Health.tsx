@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode, type ComponentProps } from 'react';
+import { ContentRating, type RatingVerdict } from '../components/ContentRating';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { Chat } from './Chat';
@@ -100,6 +101,9 @@ interface Props {
   recipesError: boolean;
   exerciseDetail: HealthExerciseDetail | null;
   recipeDetail: HealthRecipeDetail | null;
+  /** Rating verdicts for every rateable thing, keyed "type:id". Held in App so
+   *  a rating survives closing and reopening the detail within a session. */
+  contentRatings: Record<string, RatingVerdict>;
   detailLoading: boolean;
   onLoadExercises: (limit?: number, offset?: number, workoutType?: string, q?: string) => void;
   onLoadRecipes: (limit?: number, offset?: number, course?: string, q?: string, collection?: string, extra?: { collections?: string[]; diets?: string[]; flags?: string[]; cuisines?: string[]; maxTime?: number; sort?: 'name' }) => void;
@@ -153,6 +157,7 @@ export function Health({
   recipesError,
   exerciseDetail,
   recipeDetail,
+  contentRatings,
   detailLoading,
   onLoadExercises,
   onLoadRecipes,
@@ -438,7 +443,7 @@ export function Health({
           modalExerciseSlug ? (
             <DetailPageView onBack={() => setModalExerciseSlug(null)} backLabel={t('health.browse.tab.exercises')}>
               {exerciseDetail && exerciseDetail.slug === modalExerciseSlug
-                ? <ExerciseDetailBody ex={exerciseDetail} />
+                ? <ExerciseDetailBody ex={exerciseDetail} rating={contentRatings[`exercise:${exerciseDetail.id}`]} />
                 : <div className="flex h-full items-center justify-center p-8">{detailLoading ? <LoadingCard label={t('health.browse.loading_exercise')} /> : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}</div>}
             </DetailPageView>
           ) : (
@@ -464,7 +469,7 @@ export function Health({
           modalRecipeSlug ? (
             <DetailPageView onBack={() => setModalRecipeSlug(null)} backLabel={t('health.browse.tab.recipes')}>
               {recipeDetail && recipeDetail.slug === modalRecipeSlug
-                ? <RecipeDetailBody r={recipeDetail} />
+                ? <RecipeDetailBody r={recipeDetail} rating={contentRatings[`recipe:${recipeDetail.id}`]} />
                 : <div className="flex h-full items-center justify-center p-8">{detailLoading ? <LoadingCard label={t('health.browse.loading_recipe')} /> : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}</div>}
             </DetailPageView>
           ) : (
@@ -1018,7 +1023,7 @@ function DetailPageView({ onBack, backLabel, children }: { onBack: () => void; b
   );
 }
 
-export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
+export function ExerciseDetailBody({ ex, rating }: { ex: HealthExerciseDetail; rating?: RatingVerdict }) {
   // Single-scroll, matching the hub's redesigned exercise view. Contraindications
   // sit ABOVE the method — the safety floor is read before anyone starts. No
   // operator diagnostics (no gate verdict, no draft badge).
@@ -1065,7 +1070,12 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
           <div className="space-y-5 px-6 pb-8 pt-6 sm:px-8">
             <header>
               <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.3em]" style={{ color: accent }}>{workoutTypeLabel(ex.workout_type)}</div>
-              <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{ex.name}</h2>
+              <div className="flex items-start justify-between gap-4">
+                <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{ex.name}</h2>
+                {/* Rated after doing it. "Too hard" is the signal the
+                    progression loop actually wants. */}
+                <ContentRating subjectType="exercise" subjectId={ex.id} verdict={rating} />
+              </div>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-vscode-descriptionForeground">
                 <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize">{exerciseTypeLabel(ex.exercise_type)}</span>
                 <Dots value={ex.difficulty} accent={accent} />
@@ -1221,7 +1231,7 @@ const EXT_NUTRITION: Array<[ExtNutKey, string]> = [
  *  differences across beginner / intermediate / expert read at a glance.
  *  Columns with no data on any level are dropped. */
 
-export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
+export function RecipeDetailBody({ r, rating }: { r: HealthRecipeDetail; rating?: RatingVerdict }) {
   // Single-scroll, matching the hub's redesigned recipe view: identity,
   // overview, skill-level tabs that drive everything below, times, the shopping
   // list split into shared plus "just for this level", the method, then
@@ -1254,7 +1264,12 @@ export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
               {cuisineLine && (
                 <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-amber-300">{cuisineLine}</div>
               )}
-              <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{r.name}</h2>
+              <div className="flex items-start justify-between gap-4">
+                <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{r.name}</h2>
+                {/* Cooked it? Say how it went. The rating is public, anything
+                    you type is private and goes only to the operator. */}
+                <ContentRating subjectType="recipe" subjectId={r.id} verdict={rating} />
+              </div>
               <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
                 {r.course && <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize text-vscode-descriptionForeground">{courseLabel(r.course)}</span>}
                 {r.origin_country && <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-vscode-descriptionForeground">{r.origin_country}</span>}

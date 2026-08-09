@@ -1734,6 +1734,18 @@ export type ExtToDashboardMessage =
   | { type: 'library_path_forked'; curriculumId: string; title: string }
   | { type: 'library_path_published'; pathId: string; status: string; message: string }
   | {
+      type: 'content_rated';
+      subjectType: 'course' | 'recipe' | 'exercise' | 'workout';
+      subjectId: string;
+      /** As STORED — the user's own score, not the crowd average. */
+      rating: number;
+      averageRating?: number | null;
+      ratingCount?: number;
+      /** Present when it did NOT save. Shown to the user, because a rating
+       *  that vanishes quietly is worse than no rating button. */
+      error?: string;
+    }
+  | {
       type: 'library_path_rated';
       pathId: string;
       /** The rating as STORED — the user's own, not the crowd average. The old
@@ -2033,6 +2045,17 @@ export type DashboardToExtMessage =
   | { type: 'fork_library_path'; id: string }
   | { type: 'publish_to_library'; curriculumId: string }
   | { type: 'rate_library_path'; id: string; rating: number; reason?: string; note?: string }
+  /** Rate any rateable thing. Supersedes rate_library_path, which was
+   *  course-only and would have needed a near-identical twin for recipes and
+   *  another for exercises. */
+  | {
+      type: 'rate_content';
+      subjectType: 'course' | 'recipe' | 'exercise' | 'workout';
+      subjectId: string;
+      rating: number;
+      reason?: string;
+      note?: string;
+    }
   // Library → Papers
   | { type: 'load_papers'; tab: PapersTab; discipline?: PaperDiscipline; limit?: number }
   | { type: 'search_papers'; query: string; discipline?: PaperDiscipline; sort?: 'relevance' | 'date' | 'cited' }
