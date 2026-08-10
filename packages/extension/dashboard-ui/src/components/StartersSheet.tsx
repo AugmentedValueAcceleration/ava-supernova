@@ -28,7 +28,7 @@ function durationLabel(days: number): string {
 
 export function StartersSheet({
   plans, loading, error, detail, detailLoading, profile,
-  onLoad, onLoadDetail, onStart, onClose,
+  onLoad, onLoadDetail, onStart, onClose, initialOpenId = null,
 }: {
   plans: CuratedPlanSummary[];
   loading: boolean;
@@ -43,9 +43,12 @@ export function StartersSheet({
    *  persistence, which keeps the copy rules themselves pure. */
   onStart: (plan: HealthPlan, curatedId: string) => void;
   onClose: () => void;
+  /** Opened straight onto this template — a card on the shelf leads to the
+   *  plan it shows, not back to a list of all of them. */
+  initialOpenId?: string | null;
 }) {
   useLocale();
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(initialOpenId);
   const [starting, setStarting] = useState(false);
 
   useEffect(() => { if (!plans.length && !loading && !error) onLoad(); }, [plans.length, loading, error, onLoad]);
@@ -209,5 +212,96 @@ export function StartersSheet({
         </ul>
       )}
     </Sheet>
+  );
+}
+
+/**
+ * The shelf itself — cards, on the page, not behind a button.
+ *
+ * Shares its helpers with the sheet above rather than restating them: the
+ * duration wording and the profile ordering are the same decisions whether you
+ * are browsing or committing, and two copies of them is how they drift.
+ */
+export function StarterShelf({
+  plans, loading, error, profile, onOpen, onLoad,
+}: {
+  plans: CuratedPlanSummary[];
+  loading: boolean;
+  error: string | null;
+  profile: HealthProfile | null;
+  onOpen: (id: string) => void;
+  onLoad: () => void;
+}) {
+  useLocale();
+  useEffect(() => { if (!plans.length && !loading && !error) onLoad(); }, [plans.length, loading, error, onLoad]);
+
+  // Their stated goal first, NOT a filter — the same rule the sheet uses, and
+  // for the same reason: the week someone needs may be the one they would not
+  // have gone looking for.
+  const ordered = useMemo(
+    () => orderForProfile(plans, profile?.goals?.primary ?? null),
+    [plans, profile],
+  );
+
+  if (error) return null;
+  if (!loading && !ordered.length) return null;
+
+  return (
+    <section className="mb-5">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <h3 className="text-[13px] font-medium text-[var(--text-primary)]">{t('health.starters.shelf_title')}</h3>
+        <span className="text-[10px] text-[var(--text-muted)]">{t('health.starters.shelf_hint')}</span>
+      </div>
+
+      {loading && !ordered.length ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="h-[132px] animate-pulse rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/40" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {ordered.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onOpen(p.id)}
+                className="group flex cursor-pointer flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-transparent text-left transition hover:border-[var(--accent)]/40"
+              >
+                <span className="flex h-[74px] w-full items-center justify-center overflow-hidden bg-black/20">
+                  {p.cover_image_url
+                    ? <img src={p.cover_image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    : <Icon.fitness size={18} />}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col p-2.5">
+                  <span className="block truncate text-[12px] font-medium text-[var(--text-primary)]">{p.title}</span>
+                  <span className="mt-1 flex flex-wrap gap-1">
+                    {[
+                      durationLabel(p.duration_days),
+                      p.days_per_week ? `${p.days_per_week}/wk` : null,
+                      p.minutes_per_session ? `${p.minutes_per_session} min` : null,
+                    ].filter(Boolean).map(bit => (
+                      <span key={bit as string} className="rounded-full border border-[var(--border)] px-1.5 py-0.5 text-[9px] text-[var(--text-muted)]">{bit}</span>
+                    ))}
+                  </span>
+                  {/* Rating where there is one; the start count regardless.
+                      A plan nobody has rated yet has only the second, and
+                      "0/5" on its own reads as judged rather than as new. */}
+                  <span className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+                    <span style={{ color: p.average_rating ? '#fbbf24' : 'var(--text-muted)' }}>{'\u2605'}</span>
+                    {p.average_rating ?? 0}/5
+                    {p.rating_count ? ` (${p.rating_count})` : ''}
+                    {p.start_count > 0 && (
+                      <span className="ml-1.5 border-l border-[var(--border)] pl-1.5">
+                        {t('health.starters.started', { count: p.start_count })}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </button>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

@@ -58,7 +58,6 @@ import type {
   HealthRecipeSummary,
   HealthRecipeDetail,
   HealthTaxonomies,
-  HealthMySubmissions,
   HealthProfile,
   GeneralProfile,
   HealthPlan,
@@ -402,8 +401,6 @@ export function App() {
   const [dayAssistBusy, setDayAssistBusy] = useState(false);
   const [dayAssistError, setDayAssistError] = useState<string | null>(null);
   const [dayAssistProposal, setDayAssistProposal] = useState<DayProposal | null>(null);
-  const [healthMySubmissions, setHealthMySubmissions] = useState<HealthMySubmissions>({ exercises: [], recipes: [] });
-  const [healthClearingMySubmissions, setHealthClearingMySubmissions] = useState(false);
   // Health profile — local-first goals + constraints + schedule (body basics
   // moved to the general profile).
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
@@ -412,7 +409,6 @@ export function App() {
   const [generalProfile, setGeneralProfile] = useState<GeneralProfile | null>(null);
   // Deep-link into the Account profile tab's sub-tab (set by Health's "Edit
   // profile →"). Consumed once by AccountPage.
-  const [profileInitialSubTab, setProfileInitialSubTab] = useState<'general' | 'submissions' | null>(null);
   // Deep-link target for the Health page's inner tab. Set when another
   // surface (e.g. the Health Dashboard's "Set your goals" pointer)
   // navigates here wanting a specific tab; Health consumes it once on
@@ -514,13 +510,6 @@ export function App() {
     // instead of flickering between failure → success/failure.
     setHealthTaxonomies(null);
     post({ type: 'load_health_taxonomies' });
-  }, []);
-  const handleLoadMyHealthSubmissions = useCallback(() => {
-    post({ type: 'load_my_health_submissions' });
-  }, []);
-  const handleClearMyRejectedHealthSubmissions = useCallback(() => {
-    setHealthClearingMySubmissions(true);
-    post({ type: 'clear_my_rejected_health_submissions' });
   }, []);
   const handleSaveHealthProfile = useCallback((profile: HealthProfile) => {
     // Optimistic update — the host echoes back the saved state and
@@ -1253,9 +1242,6 @@ export function App() {
       case 'curated_plan_failed':
         setCuratedDetailLoading(false);
         break;
-      case 'health_my_submissions_loaded':
-        setHealthMySubmissions(msg.data);
-        break;
       case 'health_profile_loaded':
         setHealthProfile(msg.profile);
         break;
@@ -1314,13 +1300,6 @@ export function App() {
         if (rec) setPlanRecipeDetails(prev => ({ ...prev, [msg.slug]: rec }));
         break;
       }
-      case 'health_my_submissions_cleared':
-        setHealthClearingMySubmissions(false);
-        // Refresh the list either way — on success the rows are gone,
-        // on failure the user gets the unchanged list back without a
-        // stale "Clearing…" button.
-        post({ type: 'load_my_health_submissions' });
-        break;
       case 'health_submission_result':
         setHealthSubmissionInflight(false);
         setHealthSubmissionResult({
@@ -1330,8 +1309,6 @@ export function App() {
           status: msg.submission?.status,
           submissionName: msg.submission?.name,
         });
-        // Pull a fresh My Submissions snapshot so the new row shows up
-        if (msg.ok) post({ type: 'load_my_health_submissions' });
         break;
       case 'health_exercise_draft_generated':
         setHealthDraftInflight(false);
@@ -1845,30 +1822,6 @@ export function App() {
             isPlatform={!!account}
             generalProfile={generalProfile}
             onSaveGeneralProfile={handleSaveGeneralProfile}
-            healthSubmissions={{
-              data: healthMySubmissions,
-              onRefresh: handleLoadMyHealthSubmissions,
-              onClearRejected: handleClearMyRejectedHealthSubmissions,
-              clearing: healthClearingMySubmissions,
-              taxonomies: healthTaxonomies,
-              inflight: healthSubmissionInflight,
-              result: healthSubmissionResult
-                ? { kind: healthSubmissionResult.kind, ok: healthSubmissionResult.ok, error: healthSubmissionResult.error, submissionName: healthSubmissionResult.submissionName }
-                : null,
-              onSubmitExercise: handleSubmitHealthExercise,
-              onSubmitRecipe: handleSubmitHealthRecipe,
-              onClearResult: handleClearHealthSubmissionResult,
-              onRetryTaxonomies: handleLoadHealthTaxonomies,
-              exerciseDraft: healthExerciseDraft,
-              recipeDraft: healthRecipeDraft,
-              draftInflight: healthDraftInflight,
-              draftError: healthDraftError,
-              onGenerateExerciseDraft: handleGenerateHealthExerciseDraft,
-              onGenerateRecipeDraft: handleGenerateHealthRecipeDraft,
-              onClearDraft: handleClearHealthDraft,
-            }}
-            profileInitialSubTab={profileInitialSubTab}
-            onConsumeProfileInitialSubTab={() => setProfileInitialSubTab(null)}
           />
         );
 
@@ -1975,7 +1928,24 @@ export function App() {
             onLoadRecipeDetail={handleLoadHealthRecipeDetail}
             taxonomies={healthTaxonomies}
             onLoadTaxonomies={handleLoadHealthTaxonomies}
-            onNavigateToProfile={(subTab) => { setProfileInitialSubTab(subTab); setPagePersist('account'); }}
+            healthSubmissions={{
+              taxonomies: healthTaxonomies,
+              inflight: healthSubmissionInflight,
+              result: healthSubmissionResult
+                ? { kind: healthSubmissionResult.kind, ok: healthSubmissionResult.ok, error: healthSubmissionResult.error, submissionName: healthSubmissionResult.submissionName }
+                : null,
+              onSubmitExercise: handleSubmitHealthExercise,
+              onSubmitRecipe: handleSubmitHealthRecipe,
+              onClearResult: handleClearHealthSubmissionResult,
+              onRetryTaxonomies: handleLoadHealthTaxonomies,
+              exerciseDraft: healthExerciseDraft,
+              recipeDraft: healthRecipeDraft,
+              draftInflight: healthDraftInflight,
+              draftError: healthDraftError,
+              onGenerateExerciseDraft: handleGenerateHealthExerciseDraft,
+              onGenerateRecipeDraft: handleGenerateHealthRecipeDraft,
+              onClearDraft: handleClearHealthDraft,
+            }}
             healthPlans={{
               plans: healthPlans,
               fullPlans: activeHealthPlans,

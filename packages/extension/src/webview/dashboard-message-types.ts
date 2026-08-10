@@ -1714,8 +1714,6 @@ export type ExtToDashboardMessage =
       error?: string;
     }
   | { type: 'health_submission_result'; kind: 'exercise' | 'recipe'; ok: boolean; error?: string; submission?: { id: string; slug: string; name: string; status: HealthSubmissionStatus } }
-  | { type: 'health_my_submissions_loaded'; data: HealthMySubmissions }
-  | { type: 'health_my_submissions_cleared'; ok: boolean; exercises_cleared?: number; recipes_cleared?: number; error?: string }
   | { type: 'health_profile_loaded'; profile: HealthProfile }
   | { type: 'health_profile_saved'; profile: HealthProfile }
   | { type: 'general_profile_loaded'; profile: GeneralProfile | null }
@@ -1747,7 +1745,7 @@ export type ExtToDashboardMessage =
   | { type: 'library_path_published'; pathId: string; status: string; message: string }
   | {
       type: 'content_rated';
-      subjectType: 'course' | 'recipe' | 'exercise' | 'workout';
+      subjectType: 'course' | 'recipe' | 'exercise' | 'workout' | 'plan';
       subjectId: string;
       /** As STORED — the user's own score, not the crowd average. */
       rating: number;
@@ -2062,7 +2060,7 @@ export type DashboardToExtMessage =
    *  another for exercises. */
   | {
       type: 'rate_content';
-      subjectType: 'course' | 'recipe' | 'exercise' | 'workout';
+      subjectType: 'course' | 'recipe' | 'exercise' | 'workout' | 'plan';
       subjectId: string;
       rating: number;
       reason?: string;
@@ -2107,8 +2105,6 @@ export type DashboardToExtMessage =
   | { type: 'load_health_taxonomies' }
   | { type: 'submit_health_exercise'; payload: HealthExerciseSubmissionPayload }
   | { type: 'submit_health_recipe'; payload: HealthRecipeSubmissionPayload }
-  | { type: 'load_my_health_submissions' }
-  | { type: 'clear_my_rejected_health_submissions' }
   | { type: 'load_health_profile' }
   | { type: 'save_health_profile'; profile: HealthProfile }
   | { type: 'load_general_profile' }

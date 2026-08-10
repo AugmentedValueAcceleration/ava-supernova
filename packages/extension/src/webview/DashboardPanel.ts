@@ -71,7 +71,6 @@ import type {
   CuratedPlanSummary,
   HealthPlanDay,
   CuratedPlanDetail,
-  HealthMySubmissions,
   HealthProfile,
   GeneralProfile,
   HealthDailyPlan,
@@ -1661,69 +1660,6 @@ export class DashboardPanel {
         }
         break;
       }
-
-      case 'load_my_health_submissions': {
-        try {
-          // Anonymous users get device-id-scoped results (X-Ava-Device
-          // header is always sent by apiFetch). Signed-in users get the
-          // union of their account + device-id rows.
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          this.log(`[health] load my submissions (auth=${platformKey ? 'user' : 'anonymous'})`);
-          const res = await apiFetch('/health/submissions/mine', {
-            platformKey,
-            method: 'GET',
-            timeoutMs: 8000,
-          });
-          if (!res.ok) {
-            this.log(`[health] load my submissions failed: HTTP ${res.status}`);
-            this.post({ type: 'health_my_submissions_loaded', data: { exercises: [], recipes: [] } });
-            break;
-          }
-          const data = res.data as HealthMySubmissions;
-          this.post({ type: 'health_my_submissions_loaded', data });
-        } catch (err) {
-          this.log(`[health] load my submissions error: ${err instanceof Error ? err.message : String(err)}`);
-          this.post({ type: 'health_my_submissions_loaded', data: { exercises: [], recipes: [] } });
-        }
-        break;
-      }
-
-      case 'clear_my_rejected_health_submissions': {
-        try {
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          this.log(`[health] clear rejected submissions (auth=${platformKey ? 'user' : 'anonymous'})`);
-          const res = await apiFetch('/health/submissions/mine', {
-            platformKey,
-            method: 'DELETE',
-            timeoutMs: 8000,
-          });
-          if (!res.ok) {
-            const errorMsg = res.data && typeof res.data === 'object' && 'error' in res.data
-              ? String((res.data as { error?: string }).error ?? `HTTP ${res.status}`)
-              : `HTTP ${res.status}`;
-            this.log(`[health] clear rejected failed: ${errorMsg}`);
-            this.post({ type: 'health_my_submissions_cleared', ok: false, error: errorMsg });
-            break;
-          }
-          const data = res.data as { exercises_cleared?: number; recipes_cleared?: number };
-          this.post({
-            type: 'health_my_submissions_cleared',
-            ok: true,
-            exercises_cleared: data.exercises_cleared ?? 0,
-            recipes_cleared: data.recipes_cleared ?? 0,
-          });
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          this.log(`[health] clear rejected error: ${errorMsg}`);
-          this.post({ type: 'health_my_submissions_cleared', ok: false, error: errorMsg });
-        }
-        break;
-      }
-
-      // ─── Health profile (Profile tab on the Health page) ─────────────
-      // Local-first via globalState. Connected accounts can opt each
-      // category into cloud sync via privacy.sync_* flags — server
-      // sync is layered on later; for now everything is on-device.
 
       case 'load_health_profile': {
         const profile = this.getHealthProfile();

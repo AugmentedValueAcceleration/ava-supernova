@@ -7,6 +7,11 @@ import type { ExtToDashboardMessage } from '../types/messages';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
 import { HealthPlans } from './HealthPlans';
+import { HealthSubmissionModal } from './HealthSubmissionModal';
+
+/** Exactly what the modal needs, minus the bits this page owns. */
+type HealthSubmissionsBundle =
+  Omit<ComponentProps<typeof HealthSubmissionModal>, 'open' | 'onClose'>;
 import { HealthProfilePage } from './HealthProfilePage';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
@@ -112,9 +117,11 @@ interface Props {
   // Recipe/exercise taxonomies — used by the browse filters.
   taxonomies: HealthTaxonomies | null;
   onLoadTaxonomies: () => void;
-  /** Still needed for what genuinely IS account-shaped: the general profile
-   *  (reused beyond health) and submissions (a contribution concern). */
-  onNavigateToProfile: (subTab: 'general' | 'submissions') => void;
+  /** Everything HealthSubmissionModal needs. It lived under Account until
+   *  2026-08-10, reached through "My submissions" — which meant contributing an
+   *  exercise required going to account settings to do it. It belongs beside
+   *  the catalogue you noticed the gap in. */
+  healthSubmissions: HealthSubmissionsBundle;
 
   // ── Plans and profile, now rendered here rather than under Account ──────
   /** The whole HealthPlans prop bundle, passed through untouched. */
@@ -165,7 +172,7 @@ export function Health({
   onLoadRecipeDetail,
   taxonomies,
   onLoadTaxonomies,
-  onNavigateToProfile,
+  healthSubmissions,
   healthPlans, onAskAvaPlan,
   healthProfile, onSaveHealthProfile, curated, dayAssist, trainingLog,
   onRegisterHealthChatDispatch,
@@ -179,6 +186,7 @@ export function Health({
   // you are trying to do, and your plan is that thing. Browsing is how you
   // build one, not the destination.
   const [tab, setTab] = useState<Tab>(() => initialTab ?? 'plans');
+  const [contributeOpen, setContributeOpen] = useState(false);
   // Grid/list view — shared across both browse tabs, persisted across sessions.
   const [view, setView] = useState<View>(() => {
     try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid'; } catch { return 'grid'; }
@@ -351,14 +359,16 @@ export function Health({
             </p>
           </div>
           {/* The "Your plans →" and "Edit your profile →" escape hatches into
-              Account are gone: both are tabs on this page now. */}
+              Account are gone: both are tabs on this page now. And so is
+              contributing — you notice a missing exercise while looking at the
+              exercises, not while reading your account settings. */}
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => onNavigateToProfile('submissions')}
+              onClick={() => setContributeOpen(true)}
               className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition cursor-pointer"
             >
-              {t('health.browse.tab.mine')}
+              {t('health.submit.contribute_title')}
             </button>
           </div>
         </div>
@@ -425,6 +435,12 @@ export function Health({
             />
           </div>
         </div>
+        <HealthSubmissionModal
+          {...healthSubmissions}
+          open={contributeOpen}
+          onClose={() => { setContributeOpen(false); healthSubmissions.onClearDraft(); }}
+        />
+
         {tab === 'plans' && (
           // Household for the shopping list, cooking budget for the prep plan.
           // Plans carry profile_snapshot: null on this surface, so the live

@@ -65,7 +65,14 @@ export interface CuratedPlanSummary {
   tags: string[];
   equipment: string[];
   cover_image_url: string | null;
+  /** Orders the shelf. NEVER shown — see the collecting route: it must not
+   *  become a vanity number. Popularity is not what someone choosing a month
+   *  of training needs to know. */
   start_count: number;
+  /** Attached by the list endpoint, so a card can show what people thought
+   *  before you commit weeks to it. */
+  average_rating?: number | null;
+  rating_count?: number;
 }
 
 export interface CuratedPlanDetail extends CuratedPlanSummary {

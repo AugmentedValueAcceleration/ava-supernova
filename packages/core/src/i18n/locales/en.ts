@@ -878,6 +878,19 @@ export const enStrings = {
   // without sounding like neither.
   'feedback.rate_recipe': 'Rate this recipe',
   'feedback.rate_exercise': 'Rate this exercise',
+  // Rating a curated plan. `doesnt_fit` is the complaint no existing code
+  // covered: a plan can be well built and still be wrong for your week, and
+  // that is why people abandon them without saying anything.
+  'feedback.rate_plan': 'Rate this plan',
+  'feedback.reason.doesnt_fit': "Didn't fit my week",
+  'health.starters.shelf_title': 'Ready-made plans',
+  'health.starters.shelf_hint': 'Built by coaches, free to start, yours to change.',
+  'health.starters.shelf_empty': 'No ready-made plans just now.',
+  'health.starters.started': '{count} started',
+  // NB: start_count is deliberately never shown. It orders the shelf and
+  // nothing else — the route that collects it says in as many words that it
+  // cannot become a vanity number. A rating is quality; a start count is
+  // popularity, and popularity is not what someone choosing a plan needs.
   'feedback.reason.didnt_work': "Didn't work",
   'feedback.reason.too_fiddly': 'Too fiddly',
   'feedback.reason.timings_off': 'Timings were off',

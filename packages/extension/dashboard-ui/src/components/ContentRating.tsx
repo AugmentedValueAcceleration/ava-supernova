@@ -29,7 +29,7 @@ import { post } from '../App';
  * things.
  */
 
-export type RatingSubject = 'course' | 'recipe' | 'exercise' | 'workout';
+export type RatingSubject = 'course' | 'recipe' | 'exercise' | 'workout' | 'plan';
 
 export interface RatingVerdict {
   yourRating: number;
@@ -84,6 +84,16 @@ const REASONS_BY_TYPE: Record<RatingSubject, Array<[string, string, string]>> = 
     ['form-unclear', 'feedback.reason.form_unclear', "Couldn't tell the form"],
     ['wrong-equipment', 'feedback.reason.wrong_equipment', 'Equipment was wrong'],
   ],
+  // A plan is weeks of someone's life, so the reasons are about the SHAPE of
+  // it as much as the difficulty. "Didn't fit my week" is the one that matters:
+  // it is the difference between a bad plan and a good plan aimed wrongly.
+  plan: [
+    ['doesnt-fit', 'feedback.reason.doesnt_fit', "Didn't fit my week"],
+    ['too-hard', 'feedback.reason.too_hard', 'Too hard'],
+    ['too-easy', 'learning_library.reason_too_easy', 'Too easy'],
+    ['unsafe', 'feedback.reason.unsafe', 'Felt unsafe'],
+    ['unclear', 'learning_library.reason_unclear', 'Unclear'],
+  ],
   workout: [
     ['unsafe', 'feedback.reason.unsafe', 'Felt unsafe'],
     ['too-hard', 'feedback.reason.too_hard', 'Too hard'],
@@ -120,6 +130,7 @@ export function ContentRating({
           ? tt('learning_library.your_rating', 'Your rating')
           : subjectType === 'recipe' ? tt('feedback.rate_recipe', 'Rate this recipe')
           : subjectType === 'exercise' ? tt('feedback.rate_exercise', 'Rate this exercise')
+          : subjectType === 'plan' ? tt('feedback.rate_plan', 'Rate this plan')
           : t('learning_library.rate_course')}
       </span>
 
