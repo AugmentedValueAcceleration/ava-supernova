@@ -1699,7 +1699,7 @@ export type ExtToDashboardMessage =
   | { type: 'health_taxonomies_loaded'; taxonomies: HealthTaxonomies }
   | { type: 'curated_plans_loaded'; plans: CuratedPlanSummary[] }
   | { type: 'curated_plans_failed'; error: string }
-  | { type: 'curated_plan_loaded'; plan: CuratedPlanDetail }
+  | { type: 'curated_plan_loaded'; plan: CuratedPlanDetail; thumbnails?: Record<string, string | null> }
   | { type: 'curated_plan_failed'; id: string; error: string }
   | { type: 'training_sessions_loaded'; sessions: TrainingSessionSummary[] }
   | { type: 'training_session_loaded'; session: unknown }

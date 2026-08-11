@@ -883,6 +883,27 @@ export const enStrings = {
   // that is why people abandon them without saying anything.
   'feedback.rate_plan': 'Rate this plan',
   'feedback.reason.doesnt_fit': "Didn't fit my week",
+  // Its own TAB in the health room, not a section inside another one. A tab
+  // is a standing statement that these exist; a section is scrolled past.
+  'health.browse.tab.starters': 'Ready-made',
+  // Choosing WHEN a ready-made plan lands, and on which days. A template is a
+  // sequence; without this it is laid down from today whatever today happens
+  // to be, so a three-session week started on a Wednesday runs Wed/Thu/Fri.
+  'health.starters.shape_summary': '{sessions} sessions over {days} days, {exercises} exercises in total.',
+  'health.starters.rest_seconds': '{seconds}s rest',
+  'health.starters.back_to_plan': 'Back to the plan',
+  'health.starters.session_n': 'Session {n}',
+  'health.starters.active_recovery': 'Active recovery',
+  'health.starters.runs_for': '{sessions} sessions across {days} days. The days you leave between them are rest.',
+  'health.starters.same_day': 'Two sessions are on the same day — move one.',
+  'health.starters.when': 'Start',
+  'health.starters.when_today': 'Today',
+  'health.starters.when_tomorrow': 'Tomorrow',
+  'health.starters.when_next_monday': 'Next Monday',
+  'health.starters.on_days': 'Days you train',
+  'health.starters.on_days_hint': 'Sessions land on these days. From your profile — change it here just for this plan.',
+  'health.starters.no_days_hint': 'No days chosen — the plan runs day after day from the start date.',
+  'health.starters.lands_on': 'Starts {date}, {sessions} sessions over {days} days',
   'health.starters.shelf_title': 'Ready-made plans',
   'health.starters.shelf_hint': 'Built by coaches, free to start, yours to change.',
   'health.starters.shelf_empty': 'No ready-made plans just now.',

@@ -36,7 +36,8 @@
         "dash.docs.type.md": "Markdown",
         "ide.papers.primer_url": "URL: {url}",
         "dash.history.tab.design": "Design",
-        "memory.category.person": "Person"
+        "memory.category.person": "Person",
+        "health.starters.when": "Start"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -193,7 +194,8 @@
         "dash.docs.type.md": "Markdown",
         "ide.papers.primer_url": "URL: {url}",
         "dash.studio.asset.hero": "Hero",
-        "dash.studio.group.open_canvas": "Open Canvas"
+        "dash.studio.group.open_canvas": "Open Canvas",
+        "health.starters.when": "Start"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -203,7 +205,8 @@
         "news.sport": "Sport",
         "dash.perm.cat.git": "Git",
         "dash.perm.cat.system": "System",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "health.starters.when": "Start"
       },
       "pt": {
         "health.plans.n_cook": "{n} min",
@@ -281,7 +284,8 @@
     "companion": {
       "de": {
         "panel.params.topP": "Top-p",
-        "panel.appearance.system": "System"
+        "panel.appearance.system": "System",
+        "startersWhen": "Start"
       },
       "fr": {
         "panel.params.topP": "Top-p",
@@ -297,11 +301,13 @@
       "nl": {
         "chatFeedbackPerfect": "Perfect",
         "panel.params.model": "Model",
-        "panel.params.topP": "Top-p"
+        "panel.params.topP": "Top-p",
+        "startersWhen": "Start"
       },
       "pl": {
         "panel.params.model": "Model",
-        "panel.params.topP": "Top-p"
+        "panel.params.topP": "Top-p",
+        "startersWhen": "Start"
       },
       "pt": {
         "panel.params.topP": "Top-p"
@@ -332,6 +338,15 @@
       "verdict": "correct",
       "signedOffBy": "operator (overriding the automated reviewer)",
       "why": "Feature name. The only suggested change was lowercasing the C."
+    },
+    {
+      "surface": "companion",
+      "locale": "pl",
+      "key": "startersWhen",
+      "value": "Start",
+      "verdict": "correct",
+      "signedOffBy": "operator (overriding the automated reviewer)",
+      "why": "Suggested \"Uruchom\" means launch/run a program. This heads the date options for starting a training plan; Polish UI uses \"Start\" there. Note: the same word was signed off as CORRECT for core/pl in the same run — the reviewer is not deterministic across requests."
     }
   ]
 }

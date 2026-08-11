@@ -1457,7 +1457,27 @@ export class DashboardPanel {
           ) as { plan?: CuratedPlanDetail } | CuratedPlanDetail | null;
           const plan = (raw && 'plan' in (raw as object) ? (raw as { plan?: CuratedPlanDetail }).plan : raw as CuratedPlanDetail) ?? null;
           if (!plan || !plan.id) throw new Error('Plan not found');
-          this.post({ type: 'curated_plan_loaded', plan });
+
+          // Pictures for the movements, in ONE request for the whole plan
+          // rather than a detail call per exercise. Fetched WITH the plan so
+          // the screen arrives finished, instead of popping images in after.
+          const slugs = [...new Set(
+            (plan.days ?? []).flatMap(d => (d.training ?? []).map(ex => ex.ref?.slug).filter(Boolean)),
+          )] as string[];
+          let thumbnails: Record<string, string | null> = {};
+          if (slugs.length) {
+            try {
+              const t = await httpGetJson(
+                `https://avasupernova.com/api/health/exercises/thumbnails?slugs=${encodeURIComponent(slugs.join(','))}`,
+              ) as { exercises?: Array<{ slug: string; thumbnail_url: string | null }> } | null;
+              thumbnails = Object.fromEntries((t?.exercises ?? []).map(e => [e.slug, e.thumbnail_url]));
+            } catch {
+              // A missing picture must never be why somebody cannot read their
+              // plan. The rows fall back to their placeholder.
+            }
+          }
+
+          this.post({ type: 'curated_plan_loaded', plan, thumbnails });
         } catch (err) {
           const error = err instanceof Error ? err.message : String(err);
           this.log(`[health] curated plan ${id} failed: ${error}`);

@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, type ReactNode, type ComponentProps } from 'react';
 import { ContentRating, type RatingVerdict } from '../components/ContentRating';
+import { StarterShelf, StarterDetailBody } from '../components/StartersSheet';
+import { planFromCurated } from '../../../../core/dist/health/starters.js';
+import type { HealthPlan } from '../types/messages';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { Chat } from './Chat';
@@ -85,7 +88,7 @@ const courseLabel = (course: string): string => t(`health.browse.course.${course
  * library you build from next, the profile behind it, and Ava last because she
  * is reached from everywhere.
  */
-type Tab = 'plans' | 'exercises' | 'recipes' | 'profile' | 'ava';
+type Tab = 'plans' | 'starters' | 'exercises' | 'recipes' | 'profile' | 'ava';
 /** Card layout for the browse grids. Persisted + shared across both tabs. */
 type View = 'grid' | 'list';
 const VIEW_KEY = 'ava-health-view';
@@ -186,6 +189,11 @@ export function Health({
   // you are trying to do, and your plan is that thing. Browsing is how you
   // build one, not the destination.
   const [tab, setTab] = useState<Tab>(() => initialTab ?? 'plans');
+  /** A card opened from the Ready-made tab, shown as its full week. */
+  const [starterOpenId, setStarterOpenId] = useState<string | null>(null);
+  /** An exercise opened from inside a plan. Separate from the Exercises
+   *  tab's own slug so backing out returns to the PLAN, not the catalogue. */
+  const [starterExerciseSlug, setStarterExerciseSlug] = useState<string | null>(null);
   const [contributeOpen, setContributeOpen] = useState(false);
   // Grid/list view — shared across both browse tabs, persisted across sessions.
   const [view, setView] = useState<View>(() => {
@@ -376,7 +384,7 @@ export function Health({
         {/* Top tabs — canonical dashboard style (border-b-2 + --accent var,
             matches Settings/Planner/History/Overview). */}
         <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
-          {(['plans', 'exercises', 'recipes', 'profile', 'ava'] as Tab[]).map((tabKey) => {
+          {(['plans', 'starters', 'exercises', 'recipes', 'profile', 'ava'] as Tab[]).map((tabKey) => {
             const isActive = tab === tabKey;
             const count =
               tabKey === 'exercises' ? exercisesTotal :
@@ -384,6 +392,7 @@ export function Health({
               0; // ava tab has no count
             const label =
               tabKey === 'plans' ? t('health.browse.tab.plans') :
+              tabKey === 'starters' ? t('health.browse.tab.starters') :
               tabKey === 'exercises' ? t('health.browse.tab.exercises') :
               tabKey === 'recipes' ? t('health.browse.tab.recipes') :
               tabKey === 'profile' ? t('health.browse.tab.profile') :
@@ -409,7 +418,7 @@ export function Health({
       {/* Content area. The Ava room AND an open detail page need a full-bleed,
           non-scrolling region (they own their own scroll); the catalogue grids
           keep the padded, scrolling layout. */}
-      <div className={`flex-1 min-h-0 ${(tab === 'ava' || (tab === 'exercises' && modalExerciseSlug) || (tab === 'recipes' && modalRecipeSlug)) ? 'overflow-hidden' : 'overflow-y-auto px-6 py-5'}`}>
+      <div className={`flex-1 min-h-0 ${(tab === 'ava' || (tab === 'exercises' && modalExerciseSlug) || (tab === 'recipes' && modalRecipeSlug) || (tab === 'starters' && (starterOpenId || starterExerciseSlug))) ? 'overflow-hidden' : 'overflow-y-auto px-6 py-5'}`}>
         {/* Ava Health & Fitness room — ALWAYS mounted (hidden off-tab) so its
             conversation survives switching between the other Health tabs. Its
             own lane: sends tag surface:'health', host events tagged lane:'health'
@@ -440,6 +449,68 @@ export function Health({
           open={contributeOpen}
           onClose={() => { setContributeOpen(false); healthSubmissions.onClearDraft(); }}
         />
+
+        {/* Ready-made plans: their own tab, so they are a thing people know
+            exists rather than something found by pressing "New plan". */}
+        {/* An exercise opened from inside a plan: the same page the Exercises
+            tab shows, with back returning to the plan you were reading. */}
+        {tab === 'starters' && starterExerciseSlug ? (
+          <DetailPageView onBack={() => setStarterExerciseSlug(null)} backLabel={t('health.starters.back_to_plan')}>
+            {exerciseDetail && exerciseDetail.slug === starterExerciseSlug
+              ? <ExerciseDetailBody ex={exerciseDetail} rating={contentRatings[`exercise:${exerciseDetail.id}`]} />
+              : <div className="flex h-full items-center justify-center p-8">{detailLoading ? <LoadingCard label={t('health.browse.loading_exercise')} /> : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}</div>}
+          </DetailPageView>
+        ) : tab === 'starters' && curated && (
+          starterOpenId ? (
+            // In page, with a back button — the same shape a recipe or an
+            // exercise takes in this room. It used to slide in as an overlay,
+            // which made one room produce two kinds of screen.
+            <DetailPageView onBack={() => setStarterOpenId(null)} backLabel={t('health.browse.tab.starters')}>
+              <div className="flex h-full flex-col">
+                {/* Full-bleed hero, as a recipe has. The cover was on the shelf
+                    card and then disappeared when you opened it, which made the
+                    detail LESS visual than the card that led to it. */}
+                {curated.detail?.id === starterOpenId && curated.detail.cover_image_url && (
+                  <div className="aspect-[2/1] max-h-[200px] w-full flex-none overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+                    <img src={curated.detail.cover_image_url} alt="" className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+                  <StarterDetailBody
+                    open={curated.detail && curated.detail.id === starterOpenId ? curated.detail : null}
+                    detailLoading={curated.detailLoading}
+                    profile={healthProfile}
+                    starting={false}
+                    onOpenExercise={(slug) => { setStarterExerciseSlug(slug); onLoadExerciseDetail(slug); }}
+                    thumbnails={curated.thumbnails}
+                    onStart={(placements) => {
+                      const detail = curated.detail;
+                      if (!detail || detail.id !== starterOpenId) return;
+                      const plan = planFromCurated(detail, {
+                        id: `plan${Date.now()}${Math.floor(Math.random() * 1000)}`,
+                        // start_date comes from the earliest placement.
+                        startDate: placements[0]?.date ?? new Date().toISOString().slice(0, 10),
+                        placements,
+                      });
+                      curated.onStart(plan as unknown as HealthPlan, detail.id);
+                      setStarterOpenId(null);
+                      setTab('plans');
+                    }}
+                  />
+                </div>
+              </div>
+            </DetailPageView>
+          ) : (
+            <StarterShelf
+              plans={curated.plans}
+              loading={curated.loading}
+              error={curated.error}
+              profile={healthProfile}
+              onLoad={curated.onLoad}
+              onOpen={(id) => { setStarterOpenId(id); curated.onLoadDetail(id); }}
+            />
+          )
+        )}
 
         {tab === 'plans' && (
           // Household for the shopping list, cooking budget for the prep plan.

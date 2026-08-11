@@ -391,6 +391,9 @@ export function App() {
   const [curatedError, setCuratedError] = useState<string | null>(null);
   const [curatedDetail, setCuratedDetail] = useState<CuratedPlanDetail | null>(null);
   const [curatedDetailLoading, setCuratedDetailLoading] = useState(false);
+  /** Exercise pictures for the open plan, keyed by slug. Arrives with the
+   *  plan so the screen renders finished rather than popping images in. */
+  const [curatedThumbnails, setCuratedThumbnails] = useState<Record<string, string | null>>({});
   // The training log. Summaries drive the 'logged' markers; the full session
   // is fetched only when one is reopened for editing.
   const [trainingSessions, setTrainingSessions] = useState<TrainingSessionSummary[]>([]);
@@ -1236,6 +1239,7 @@ export function App() {
         setCuratedError(msg.error);
         break;
       case 'curated_plan_loaded':
+        setCuratedThumbnails(msg.thumbnails ?? {});
         setCuratedDetail(msg.plan);
         setCuratedDetailLoading(false);
         break;
@@ -1995,6 +1999,7 @@ export function App() {
               error: curatedError,
               detail: curatedDetail,
               detailLoading: curatedDetailLoading,
+              thumbnails: curatedThumbnails,
               onLoad: handleLoadCuratedPlans,
               onLoadDetail: handleLoadCuratedPlan,
               onStart: handleStartCuratedPlan,

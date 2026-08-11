@@ -189,7 +189,28 @@ async function main() {
     groups.get(g).push(f);
   }
 
-  const ledger = {};
+  // START FROM WHAT IS ALREADY SIGNED OFF. The audit only reports values
+  // still identical to English, so a working sign-off is invisible to the run
+  // that would otherwise rewrite the file — writing it fresh threw away every
+  // previous decision and reported success while doing it.
+  let ledger = {};
+  let priorNotes = [];
+  try {
+    if (fs.existsSync(LEDGER_PATH)) {
+      const existing = JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8'));
+      ledger = existing.entries ?? {};
+      priorNotes = existing.reviewNotes ?? [];
+    }
+  } catch (err) {
+    // Refuse rather than start from empty: an unreadable ledger is a reason to
+    // stop, not a licence to discard it.
+    console.error(`Could not read the existing ledger — refusing to overwrite it.
+${err.message}`);
+    process.exit(1);
+  }
+  const priorCount = Object.values(ledger)
+    .reduce((a, byLocale) => a + Object.values(byLocale).reduce((b, keys) => b + Object.keys(keys).length, 0), 0);
+
   const leftovers = [];
   const unknowns = [];
 
@@ -258,6 +279,13 @@ async function main() {
     return;
   }
 
+  // A run can only ever ADD. If the total came out smaller, something has gone
+  // wrong and the file on disk is worth more than this run's opinion.
+  if (total < priorCount) {
+    console.error(`Refusing to write: ledger would shrink from ${priorCount} to ${total} entries.`);
+    process.exit(1);
+  }
+
   fs.writeFileSync(LEDGER_PATH, `${JSON.stringify({
     $comment: [
       'Values that legitimately match the English, per language.',
@@ -269,9 +297,10 @@ async function main() {
     ].join(' '),
     verifiedBy: `${MODEL} (per-language review)`,
     entries: ledger,
+    ...(priorNotes.length ? { reviewNotes: priorNotes } : {}),
   }, null, 2)}\n`);
 
-  console.log(`✅ Signed off ${total} entr${total === 1 ? 'y' : 'ies'} → ${path.relative(repoRoot, LEDGER_PATH)}`);
+  console.log(`✅ Ledger holds ${total} entr${total === 1 ? 'y' : 'ies'} (${total - priorCount} new) → ${path.relative(repoRoot, LEDGER_PATH)}`);
   console.log(leftovers.length
     ? `   ${leftovers.length} left flagged on purpose. The audit stays red until they are translated.`
     : '   Nothing left flagged.');

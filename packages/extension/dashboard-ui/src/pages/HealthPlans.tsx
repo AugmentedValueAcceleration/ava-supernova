@@ -9,7 +9,7 @@ import { ExerciseDetailBody, RecipeDetailBody } from './Health';
 import { ShoppingListSheet } from '../components/ShoppingListSheet';
 import { PrepSheet } from '../components/PrepSheet';
 import { fillDayMeta } from '../lib/plan-meal-meta';
-import { StartersSheet, StarterShelf } from '../components/StartersSheet';
+import { StartersSheet } from '../components/StartersSheet';
 import { DuplicateSheet } from '../components/DuplicateSheet';
 import { AssistSheet, dayDate, type DayProposal } from '../components/AssistSheet';
 import { LogSessionSheet, seedFrom as seedSessionFrom } from '../components/LogSessionSheet';
@@ -106,6 +106,8 @@ export interface HealthPlansProps {
     onLoad: () => void;
     onLoadDetail: (id: string) => void;
     onStart: (plan: HealthPlan, curatedId: string) => void;
+    /** Exercise pictures for the open plan, keyed by slug. */
+    thumbnails?: Record<string, string | null>;
   };
 }
 
@@ -120,7 +122,7 @@ export function HealthPlans({
 
   return (
     <>
-      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} healthProfile={healthProfile} trainingLog={trainingLog} curated={curated}
+      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} healthProfile={healthProfile} trainingLog={trainingLog}
         onSavePlan={onSavePlan}
         exerciseResults={exerciseResults} recipeResults={recipeResults} catalogSearching={catalogSearching} onSearchExercises={onSearchExercises} onSearchRecipes={onSearchRecipes} />
       {(setupOpen || planOpen) && (
@@ -383,7 +385,7 @@ function dayTotals(day: HealthPlanDay, recipeDetails: Record<string, HealthRecip
 /** The Plans tab itself. Never an overlay. Two inner tabs: Calendar (a
  *  month grid sized to one page) and Programs (the plan list) — so the
  *  list is never stacked under the calendar forcing a scroll. */
-function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete, curated,
+function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete,
   onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes, healthProfile, trainingLog }: {
   plans: HealthPlanSummary[];
   /** Full (dated) plans with their days — drives the per-day content shown in
@@ -406,17 +408,12 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   onSearchRecipes: PlanSearch;
   healthProfile?: HealthProfile | null;
   trainingLog?: HealthPlansProps['trainingLog'];
-  /** The ready-made shelf. Optional so the tab still renders if the shelf
-   *  cannot load — a broken starter list must not take your own plans with it. */
-  curated?: HealthPlansProps['curated'];
 }) {
   // A clicked calendar day opens the DAY view (what's on that date across every
   // plan), not a single plan's editor.
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [tab, setTab] = useState<'calendar' | 'programs'>('calendar');
   const [weekShopping, setWeekShopping] = useState(false);
-  /** A card tapped on the shelf, opened straight onto its full week. */
-  const [shelfOpenId, setShelfOpenId] = useState<string | null>(null);
   // Dates with a session that has something recorded in it. A session opened
   // and left empty is NOT logged — it would put a tick on a day nothing
   // happened, which is the one thing this marker must never do.
@@ -554,17 +551,6 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
         </div>
       ) : (
         <>
-          {curated && (
-            <StarterShelf
-              plans={curated.plans}
-              loading={curated.loading}
-              error={curated.error}
-              profile={healthProfile ?? null}
-              onLoad={curated.onLoad}
-              onOpen={(id) => { setShelfOpenId(id); curated.onLoadDetail(id); }}
-            />
-          )}
-
           {plans.length === 0 ? (
             <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-10 text-center">
               <div className="text-[12px] text-[var(--text-secondary)]">{t('health.plans.empty_title')}</div>
@@ -580,21 +566,6 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
             </div>
           )}
 
-          {shelfOpenId && curated && (
-            <StartersSheet
-              plans={curated.plans}
-              loading={curated.loading}
-              error={curated.error}
-              detail={curated.detail}
-              detailLoading={curated.detailLoading}
-              profile={healthProfile ?? null}
-              initialOpenId={shelfOpenId}
-              onLoad={curated.onLoad}
-              onLoadDetail={curated.onLoadDetail}
-              onStart={(plan, id) => { curated.onStart(plan, id); setShelfOpenId(null); }}
-              onClose={() => setShelfOpenId(null)}
-            />
-          )}
         </>
       )}
 
