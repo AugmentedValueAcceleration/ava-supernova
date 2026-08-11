@@ -412,7 +412,22 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   // A clicked calendar day opens the DAY view (what's on that date across every
   // plan), not a single plan's editor.
   const [dayKey, setDayKey] = useState<string | null>(null);
-  const [tab, setTab] = useState<'calendar' | 'programs'>('calendar');
+  const [tab, setTab] = useState<'calendar' | 'programs' | 'past'>('calendar');
+  /** What you are doing, and what you did. Archive-by-default means the second
+   *  list only grows, and mixing them buries the first. */
+  const current = useMemo(
+    () => plans.filter(p => p.status !== 'archived' && p.status !== 'completed'),
+    [plans],
+  );
+  /** Newest first: the question about an old plan is "what was I doing in
+   *  June", not "what was it called". */
+  const past = useMemo(
+    () => plans
+      .filter(p => p.status === 'archived' || p.status === 'completed')
+      .sort((a, b) => (b.start_date ?? '').localeCompare(a.start_date ?? '')),
+    [plans],
+  );
+
   const [weekShopping, setWeekShopping] = useState(false);
   // Dates with a session that has something recorded in it. A session opened
   // and left empty is NOT logged — it would put a tick on a day nothing
@@ -520,7 +535,14 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
 
       {/* Inner tabs */}
       <div className="flex items-center gap-1 border-b border-[var(--border)]">
-        {([['calendar', t('health.plans.tab.calendar')], ['programs', `${t('health.plans.tab.programs')}${plans.length ? ` · ${plans.length}` : ''}`]] as const).map(([key, label]) => (
+        {/* Always all three, and no counts. A tab that appears once you have
+            archived something is a tab you cannot learn — you go looking for
+            where old plans live and it is not there yet. */}
+        {([
+          ['calendar', t('health.plans.tab.calendar')],
+          ['programs', t('health.plans.tab.programs')],
+          ['past', t('health.plans.tab.past')],
+        ] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -536,7 +558,30 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
         ))}
       </div>
 
-      {tab === 'calendar' ? (
+      {tab === 'past' ? (
+        <>
+          {/* Not a graveyard: the status control on a card still sets an
+              archived plan back to active, which is how somebody picks a plan
+              up again. That is the whole reason archiving beats deleting. */}
+          {past.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-10 text-center">
+              <div className="text-[12px] text-[var(--text-secondary)]">{t('health.plans.past_empty')}</div>
+              <div className="mx-auto mt-1.5 max-w-sm text-[10px] italic leading-relaxed text-[var(--text-muted)]">
+                {t('health.plans.past_hint')}
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="mb-3 text-[10px] leading-relaxed text-[var(--text-muted)]">{t('health.plans.past_hint')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {past.map(p => (
+                  <PlanCard key={p.id} plan={p} onOpen={() => onOpen(p.id)} onDelete={() => onDelete(p.id)} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      ) : tab === 'calendar' ? (
         <div className="flex min-h-[64vh]">
           <MonthCalendar
             logged={loggedDates}
@@ -551,7 +596,7 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
         </div>
       ) : (
         <>
-          {plans.length === 0 ? (
+          {current.length === 0 ? (
             <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-10 text-center">
               <div className="text-[12px] text-[var(--text-secondary)]">{t('health.plans.empty_title')}</div>
               <div className="mx-auto mt-1.5 max-w-sm text-[10px] italic leading-relaxed text-[var(--text-muted)]">
@@ -560,7 +605,7 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {plans.map(p => (
+              {current.map(p => (
                 <PlanCard key={p.id} plan={p} onOpen={() => onOpen(p.id)} onDelete={() => onDelete(p.id)} />
               ))}
             </div>

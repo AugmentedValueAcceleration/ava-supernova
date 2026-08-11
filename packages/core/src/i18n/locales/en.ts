@@ -896,6 +896,11 @@ export const enStrings = {
   'health.starters.active_recovery': 'Active recovery',
   'health.starters.runs_for': '{sessions} sessions across {days} days. The days you leave between them are rest.',
   'health.starters.same_day': 'Two sessions are on the same day — move one.',
+  // Past covers completed AND archived — a plan you finished is equally not
+  // one you are doing, and the user's question is "what have I done".
+  'health.plans.tab.past': 'Past',
+  'health.plans.past_empty': 'Nothing here yet.',
+  'health.plans.past_hint': 'Plans you have finished or set aside. Set one back to active to pick it up again.',
   'health.starters.when': 'Start',
   'health.starters.when_today': 'Today',
   'health.starters.when_tomorrow': 'Tomorrow',

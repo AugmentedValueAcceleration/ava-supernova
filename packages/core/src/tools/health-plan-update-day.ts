@@ -22,7 +22,7 @@ export class HealthPlanUpdateDayTool implements Tool {
     name: 'health_plan_update_day',
     description:
       'Fill or update one day of an existing health plan. Call after `health_plan_create` to ' +
-      'iterate day-by-day on longer plans (28 / 56 / 84 days). Pass the `plan_id` returned by ' +
+      'change a single day of an existing plan without rewriting it. Pass the `plan_id` returned by ' +
       'create and the 1-based `day_index` you are filling. Replaces the existing entry for ' +
       'that day.',
     parameters: {
@@ -103,6 +103,21 @@ export class HealthPlanUpdateDayTool implements Tool {
     }
 
     try {
+      // Every store refuses a day past the end of the plan, and every store
+      // says so by returning the same null it uses for "no such plan". Left
+      // alone, asking for day 9 of a 7-day plan tells Ava the plan does not
+      // exist — so she reports it missing, or writes it again. The summary
+      // carries duration_days, so the difference can be established here once
+      // rather than in four adapters.
+      const summary = (await store.list()).find(p => p.id === plan_id);
+      if (!summary) return { success: false, output: `Plan not found: ${plan_id}` };
+      if (day.day_index > summary.duration_days) {
+        return {
+          success: false,
+          output: `Day ${day.day_index} is past the end of "${summary.title}" — it runs ${summary.duration_days} day${summary.duration_days === 1 ? '' : 's'}. Plans are 1, 3 or 7 days; to cover more, finish this one and start the next.`,
+        };
+      }
+
       const result = await store.updateDay(plan_id, day);
       if (!result) return { success: false, output: `Plan not found: ${plan_id}` };
 

@@ -398,7 +398,14 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // deliberately OUT — this room composes plans from the real catalogue, it
   // doesn't touch the codebase.
   health: new Set([
-    'health_plan_create', 'health_plan_update_day', 'health_catalogue_search',
+    // health_plan_list before create: activating archives another plan of the
+    // same type, and she cannot warn about what she cannot see.
+    // health_plan_update was missing from this set while the room prompt told
+    // her to use it for "make that draft active" — so the only tool she could
+    // reach was create, which is precisely how the library ended up with two
+    // copies of the same week, one draft and one active on the wrong day.
+    'health_plan_list', 'health_plan_create', 'health_plan_update',
+    'health_plan_update_day', 'health_plan_delete', 'health_catalogue_search',
     'health_profile_ask',
     'memory_save', 'memory_recall', 'memory_update',
     // Journal — Ava reflects on the person + their health journey in her voice

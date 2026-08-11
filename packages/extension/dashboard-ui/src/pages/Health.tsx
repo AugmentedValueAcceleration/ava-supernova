@@ -386,10 +386,6 @@ export function Health({
         <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
           {(['plans', 'starters', 'exercises', 'recipes', 'profile', 'ava'] as Tab[]).map((tabKey) => {
             const isActive = tab === tabKey;
-            const count =
-              tabKey === 'exercises' ? exercisesTotal :
-              tabKey === 'recipes' ? recipesTotal :
-              0; // ava tab has no count
             const label =
               tabKey === 'plans' ? t('health.browse.tab.plans') :
               tabKey === 'starters' ? t('health.browse.tab.starters') :
@@ -408,7 +404,6 @@ export function Health({
                 }`}
               >
                 {label}
-                {count > 0 && <span className="ml-1.5 opacity-60">{count}</span>}
               </button>
             );
           })}

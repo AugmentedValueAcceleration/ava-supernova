@@ -243,7 +243,7 @@ export function creditsFor(
 }
 
 // ── Health-plan generation pricing ────────────────────────────────────────
-/** A generated multi-week health plan: training only, nutrition only, or both. */
+/** A generated health plan: training only, nutrition only, or both. */
 export type HealthPlanKind = 'fitness' | 'meal' | 'combined';
 
 /** Per-week credit rate for plan generation. Combined ≈ 2× single because it

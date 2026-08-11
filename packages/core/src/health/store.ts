@@ -15,6 +15,7 @@
 // See COMMAND_PALETTE_PLAN.md §10.
 
 import type {
+  HealthPlanRecord,
   HealthPlanCreateInput,
   HealthPlanUpdateInput,
   HealthPlanDay,
@@ -64,4 +65,39 @@ export interface HealthPlanStore {
    * Returns null when the plan id is unknown.
    */
   update(planId: string, input: HealthPlanUpdateInput): Promise<HealthPlanSummary | null>;
+
+  // ── Deleting a plan ───────────────────────────────────────────────────────
+  //
+  // Optional on purpose. Four adapters implement this interface and two of
+  // them live in another repo against a published core, so a required method
+  // would break them on the next version bump for a capability they may not
+  // want. Absent = "this surface does not delete plans", which the tool says
+  // plainly rather than failing.
+  //
+  // Deleting is not the opposite of creating. Archiving is reversible and is
+  // what the UI's status control already does; deletion destroys the meal logs
+  // held INSIDE the plan — what somebody ate, skipped, or ate instead — and
+  // that is a record of their life, not scaffolding. Hence get() and
+  // loggedSessionCount(): the tool must be able to find out what it is about
+  // to take before it takes it.
+
+  /** The full plan, days included. Needed to count what has been logged
+   *  against it — list() summaries do not carry days. */
+  get?(planId: string): Promise<HealthPlanRecord | null>;
+
+  /** How many gym sessions with at least one logged set point at this plan.
+   *
+   *  Sessions live in their own store keyed by id, so they SURVIVE the plan
+   *  being deleted — but they carry plan_id, and that reference goes dangling.
+   *  Only the surface knows where its sessions are kept, so it answers this
+   *  rather than the tool guessing.
+   *
+   *  Unimplemented means "cannot tell", which the tool treats as a reason to
+   *  stop, not as a zero. */
+  loggedSessionCount?(planId: string): Promise<number>;
+
+  /** Delete the plan and its days for good. Returns false when the id is
+   *  unknown. Callers are expected to have checked for logged history first —
+   *  this method does not second-guess them. */
+  remove?(planId: string): Promise<boolean>;
 }

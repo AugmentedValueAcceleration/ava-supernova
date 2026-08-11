@@ -216,4 +216,40 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
 
     return { plan_id: planId, day_index: day.day_index };
   }
+
+  // ── Deletion, and what has to be checked before it ────────────────────────
+
+  async get(planId: string): Promise<HealthPlan | null> {
+    return healthStore.readPlan(this.getHealthDir(), planId);
+  }
+
+  /** Sessions that carry real evidence of this plan being lived. They survive
+   *  the plan's deletion but hold plan_id, so the reference would dangle — and
+   *  the count is what lets the tool refuse with a number instead of a shrug. */
+  async loggedSessionCount(planId: string): Promise<number> {
+    const dir = this.getHealthDir();
+    let n = 0;
+    for (const id of healthStore.listSessionIds(dir)) {
+      const s = healthStore.readSession(dir, id);
+      if (!s || s.plan_id !== planId) continue;
+      // A queued session nobody touched is unknown, not done. A performed set
+      // is evidence — and so is an exercise marked 'skipped', which is a fact
+      // about their week rather than a blank.
+      const logged = (s.exercises ?? []).some(
+        (e) => (e.sets?.length ?? 0) > 0 || e.state === 'done' || e.state === 'skipped',
+      );
+      if (logged) n++;
+    }
+    return n;
+  }
+
+  async remove(planId: string): Promise<boolean> {
+    return this.serialize(async () => {
+      const dir = this.getHealthDir();
+      if (!healthStore.readPlan(dir, planId)) return false;
+      await healthStore.deletePlan(dir, planId);
+      this.onPlansChanged?.();
+      return true;
+    });
+  }
 }

@@ -11,7 +11,7 @@
 //
 // See COMMAND_PALETTE_PLAN.md §10.
 
-import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import type {
@@ -21,6 +21,7 @@ import type {
   HealthPlanCreated,
   HealthPlanDay,
   HealthPlanDayUpdated,
+  HealthPlanRecord,
   HealthPlanSummary,
   HealthPlanType,
   HealthPlanSource,
@@ -238,5 +239,53 @@ export class NodeHealthPlanStore implements HealthPlanStore {
     const now = new Date().toISOString();
     await this.writePlan({ ...plan, days, updated_at: now });
     return { plan_id: planId, day_index: day.day_index };
+  }
+
+  async get(planId: string): Promise<HealthPlanRecord | null> {
+    return await this.readPlan(planId);
+  }
+
+  /** Sessions sit in `<health>/sessions`, a sibling of the plans directory
+   *  this store owns. Reading them here rather than making the tool guess at
+   *  the layout keeps that knowledge in the one place that already has it. */
+  async loggedSessionCount(planId: string): Promise<number> {
+    const dir = join(this.baseDir, '..', 'sessions');
+    let files: string[];
+    try {
+      files = (await readdir(dir)).filter((f) => f.endsWith('.json'));
+    } catch {
+      // No sessions directory at all — nobody has ever logged a session here.
+      return 0;
+    }
+
+    let n = 0;
+    for (const f of files) {
+      try {
+        const s = JSON.parse(await readFile(join(dir, f), 'utf-8')) as {
+          plan_id?: string | null;
+          exercises?: Array<{ state?: string | null; sets?: unknown[] }>;
+        };
+        if (s?.plan_id !== planId) continue;
+        // A session queued from a plan day and never touched is not history —
+        // an absence is unknown, not skipped. Evidence is a set actually
+        // performed, or an exercise the user marked: 'done' is a tick, and
+        // 'skipped' is equally a fact about their week, not a blank.
+        const logged = (s.exercises ?? []).some(
+          (e) => (e.sets?.length ?? 0) > 0 || e.state === 'done' || e.state === 'skipped',
+        );
+        if (logged) n++;
+      } catch { /* malformed session — not evidence of anything */ }
+    }
+    return n;
+  }
+
+  async remove(planId: string): Promise<boolean> {
+    if (!(await this.readPlan(planId))) return false;
+    try {
+      await unlink(this.planFile(planId));
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

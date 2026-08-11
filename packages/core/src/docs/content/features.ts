@@ -68,7 +68,7 @@ export const FEATURE_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'Building a plan' },
       { type: 'list', ordered: true, items: [
         'Ava asks about your goal and setup through simple controls — goal cards, equipment chips, a number box — not a wall of questions.',
-        'She builds a multi-week plan from the catalogue, one you can actually do with what you have.',
+        'She builds a plan from the catalogue, one you can actually do with what you have.',
         'You follow it day by day; Ava can fill in or adjust any single day as things change.',
       ]},
       { type: 'paragraph', text: 'In a hurry, or not sure where to start? Curated starters are ready-made plans somebody built deliberately. You see the whole week — every day, rest days included — before you start one, and it lands active rather than as a draft, because the promise is a good week on day one.' },

@@ -42,6 +42,8 @@ import { TaskSuggestTool } from './task-suggest.js';
 import { JournalWriteTool } from './journal.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateTool } from './health-plan-update.js';
+import { HealthPlanListTool } from './health-plan-list.js';
+import { HealthPlanDeleteTool } from './health-plan-delete.js';
 import { WritePostTool } from './write-post.js';
 import { WriteVideoPostTool } from './write-video-post.js';
 import { WriteVoiceoverTool } from './write-voiceover.js';
@@ -460,9 +462,11 @@ export class ToolRegistry {
       new DesignExploreLogosTool(),
       new DesignBrandKitTool(),
       new DesignSaveTool(),
+      new HealthPlanListTool(),
       new HealthPlanCreateTool(),
       new HealthPlanUpdateTool(),
       new HealthPlanUpdateDayTool(),
+      new HealthPlanDeleteTool(),
       new WritePostTool(),
       new WriteVideoPostTool(),
       new WriteVoiceoverTool(),

@@ -149,6 +149,31 @@ export interface HealthPlanDay {
   notes: string | null;
 }
 
+/**
+ * A whole plan, days included — what `HealthPlanStore.get()` returns.
+ *
+ * Core had no name for this. Every surface carried its own copy of the same
+ * shape (node-store's StoredPlan, the extension's dashboard HealthPlan), which
+ * is fine until something in core needs to READ a plan rather than write one —
+ * and then there is nothing to refer to.
+ *
+ * Deliberately the common ground rather than the union: `profile_snapshot` and
+ * schema versioning stay the storage layer's business, so an adapter can hold
+ * more than this and still satisfy it.
+ */
+export interface HealthPlanRecord {
+  id: string;
+  type: HealthPlanType;
+  title: string;
+  goal?: string | null;
+  status: HealthPlanStatus;
+  duration_days: number;
+  start_date: string | null;
+  source?: HealthPlanSource;
+  days: HealthPlanDay[];
+  updated_at?: string | null;
+}
+
 /** Library-grid summary — what `HealthPlanStore.list()` returns. */
 export interface HealthPlanSummary {
   id: string;
@@ -170,7 +195,9 @@ export interface HealthPlanCreateInput {
   type: HealthPlanType;
   title: string;
   goal?: string | null;
-  /** Supported presets: 1 / 7 / 28 / 56 / 84. */
+  /** 1 (a single session), 3, or 7 — matching the curated shelf. The user
+   *  places these sessions on their own calendar, so a plan's real span can
+   *  be longer than its day count. */
   duration_days: number;
   /** Operator's chosen status — required (no default), per the locked spec. */
   status: HealthPlanStatus;

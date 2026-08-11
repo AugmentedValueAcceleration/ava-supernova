@@ -20,7 +20,7 @@ import type {
  */
 export class HealthPlanCreateTool implements Tool {
   readonly name = 'health_plan_create';
-  readonly description = 'Create a multi-week health plan — meal, fitness, or combined. Saves locally to the user\'s plan library.';
+  readonly description = 'Create a health plan — meal, fitness, or combined. Saves locally to the user\'s plan library.';
   readonly riskLevel: ToolRiskLevel = 'write';
   // Plan creation writes to the operator's library and (when status=active)
   // archives existing actives — confirm before running.
@@ -34,10 +34,12 @@ export class HealthPlanCreateTool implements Tool {
       'The palette-triggered flow pre-classifies `type`; if invoked from chat without a palette ' +
       'click, ask the user which type they want before calling. Always ask the user for a clear ' +
       'title and an explicit status (`draft` vs `active`) before creating — never pick on their ' +
-      'behalf. For short plans (1 or 7 days) you can populate `days` in the same call; for ' +
-      'longer plans (28 / 56 / 84 days) create the skeleton here and fill the days iteratively ' +
-      'with `health_plan_update_day`. Activating archives any existing active plan — name that ' +
-      'plan in your confirmation question when it applies.',
+      'behalf. Plans are 1, 3 or 7 days and you populate `days` in this same call — they are ' +
+      'short enough to write in one go, and the user places the sessions on their own calendar ' +
+      'afterwards. Activating archives any existing active plan of the same type, so call ' +
+      'health_plan_list first — if one is running, name it and the date it runs to, and ask ' +
+      'whether to follow it or replace it. If nothing of that type is active, say nothing ' +
+      'about conflicts and just build it.',
     parameters: {
       type: 'object',
       properties: {
@@ -52,8 +54,11 @@ export class HealthPlanCreateTool implements Tool {
         },
         duration_days: {
           type: 'number',
-          enum: [1, 7, 28, 56, 84],
-          description: 'Length of the plan in days. One of the supported presets.',
+          enum: [1, 3, 7],
+          description:
+            'Length of the plan in days: 1 (a single session), 3, or 7. Matches the curated ' +
+            'shelf. Longer programmes are not written as one plan — the user places these on ' +
+            'their calendar and starts the next when they are ready.',
         },
         start_date: {
           type: 'string',
@@ -76,10 +81,10 @@ export class HealthPlanCreateTool implements Tool {
         days: {
           type: 'array',
           description:
-            'Optional initial day fill. Omit for a blank skeleton. Each entry contains the ' +
-            'training and/or meals for one day, indexed 1..duration_days. Fill in this call ' +
-            'only for short plans (1 or 7 days); use health_plan_update_day for longer plans ' +
-            'to keep each call bounded.',
+            'The days themselves, indexed 1..duration_days. Fill them in THIS call — at 7 ' +
+            'days or fewer a plan is short enough to write in one go, and a skeleton with no ' +
+            'days in it is not something anybody can look at and agree to. Mark days off as ' +
+            'kind "rest": recovery is part of the prescription, not a gap in it.',
           items: {
             type: 'object',
             properties: {
@@ -163,8 +168,8 @@ export class HealthPlanCreateTool implements Tool {
       return { success: false, output: 'Missing or invalid `type` (must be fitness | meal | combined).' };
     }
     if (!title) return { success: false, output: 'Missing required field: `title`.' };
-    if (!duration_days || ![1, 7, 28, 56, 84].includes(duration_days)) {
-      return { success: false, output: 'Invalid `duration_days` — must be one of 1, 7, 28, 56, or 84.' };
+    if (!duration_days || ![1, 3, 7].includes(duration_days)) {
+      return { success: false, output: 'Invalid `duration_days` — must be 1, 3 or 7.' };
     }
     if (!status || !['draft', 'active'].includes(status)) {
       return { success: false, output: 'Missing or invalid `status` (must be `draft` or `active`). Ask the user explicitly — there is no default.' };
