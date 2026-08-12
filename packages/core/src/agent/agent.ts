@@ -390,6 +390,13 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'bash', 'git_status', 'git_diff', 'web_search', 'analyze_architecture',
     'audit_dependencies', 'debug_logs', 'memory_save', 'memory_recall',
     'test_run', 'ask_user',
+    // get_datetime was missing here and nowhere else — eleven of the twelve
+    // rooms had it. Security is the room where it matters most: whether an
+    // advisory predates the version you run, whether a dependency is actually
+    // behind, how old an unpatched CVE is. Without it she dates from her
+    // training cutoff, which is not a vague answer but a confident wrong one,
+    // and it gets more wrong every month the model ages.
+    'get_datetime',
     'switch_mode',
   ]),
   // Health Room — Ava focused entirely on the user's health & fitness. Same
