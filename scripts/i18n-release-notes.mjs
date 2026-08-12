@@ -68,6 +68,97 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 400,
+    version: '0.94.0',
+    platform: 'extension',
+    toolCount: null,
+    publishedAt: '2026-08-12 09:00:00+00',
+    title: 'You choose the days',
+    body: `A plan is something you have to fit around a life that was already there. This release stops us deciding when your week happens.
+
+**Every session goes on a day you pick.** Start a ready-made plan and you get one row per session with a date on it, seeded from the training days in your profile and yours to change. The days you leave between them become rest, because that is what they are. Three sessions spread across a week make a plan that runs a week, and it tells you so before you start rather than after.
+
+**See what a plan actually is before you take it on.** Opening one now shows every movement with its picture, its cue and its sets, and each one opens the full technique guide in the library. Deciding whether a plan is for you should not mean agreeing to eight words you have never met.
+
+**Ready-made plans have a shelf of their own.** Professionally built starters sit in their own tab, and you can rate one after you have lived with it, so the shelf reflects what actually worked rather than what reads well.
+
+**Plans are 1, 3 or 7 days.** They used to run up to twelve weeks. A plan you place yourself, session by session, is a different thing from a programme that owns three months of your diary — and the short ones are the ones people finish.
+
+**Ava can see the plans you already have.** Activating a plan archives any other active plan of the same type. She had no way to see that, so she would quietly retire the plan you were four days into and tell you nothing. Now she names it, tells you when it runs to, and asks whether to follow it or replace it. When there is no clash she says nothing at all — a meal plan and a training plan have never conflicted, and she no longer pretends otherwise.
+
+**She can clear one out, and she will refuse when she should.** Ask her to delete a plan and she will, unless you have logged anything against it — a meal you ticked off, a session you recorded. Then she declines and archives it instead, because that is your record of what you did and nothing else holds a copy. She never offers deletion herself.
+
+**Finished plans have somewhere to be.** A third tab in Plans holds everything completed or set aside, newest first, and any of them can be set active again to pick up where you left off. Archiving is only honest if the archive is somewhere you can get to.
+
+**Fixed: asking Ava to activate a draft used to create a second copy of it.** The health room was missing the tool that changes a plan's status, while telling her to use it — so the only thing she could reach was "create", and you ended up with two versions of the same week, one of them starting on the wrong day.
+
+**Your avatar is yours.** It had been living in Ava's appearance settings, which is the wrong place for a picture of you. My Submissions is gone, and the tab counts have come off Plans, Exercises and Recipes.`,
+    highlights: [
+      'Every session in a ready-made plan gets a date you choose — the days you leave between them become rest, and a three-session plan across a week says so before you start.',
+      'Plans now show every movement with a picture, a cue and a way through to the full technique guide, instead of a list of names.',
+      'Ava can finally see the plans you already have, so she names the one she would displace and asks — instead of archiving your live plan without a word.',
+      'Finished and set-aside plans get their own tab, and any of them can be made active again.',
+    ],
+  },
+  {
+    migration: 401,
+    version: '0.40.0',
+    platform: 'ide',
+    toolCount: null,
+    publishedAt: '2026-08-12 09:00:00+00',
+    title: 'Your week, on your days',
+    body: `Everything the extension got this week, in the IDE — the same health room, the same rules, the same words.
+
+**You place every session.** Starting a ready-made plan gives you one dated row per session, seeded from your profile's training days and yours to move. The gaps between become rest days, and the plan tells you its real length before you commit — three sessions across a week is a week-long plan, not a three-day one.
+
+**Plans show their movements.** Every exercise with its picture, its cue and its sets, each opening the full guide in the library.
+
+**Plans are 1, 3 or 7 days**, down from twelve weeks. Short enough to finish, and yours to place.
+
+**Ava sees what you already have.** She knows activating a plan archives another of the same type, so she names it and asks first. No clash, no comment — a meal plan and a training plan do not conflict.
+
+**She can delete a plan, and refuses once anything is logged against it,** offering to archive instead. Your record of what you actually did is not hers to throw away.
+
+**A Past tab** holds completed and archived plans, newest first, ready to be set active again.
+
+**Fixed: the health room could not change a plan's status,** though it was told to — so "make that draft active" produced a duplicate plan instead of activating the one you had.`,
+    highlights: [
+      'Pick the date for every session in a ready-made plan; the days you leave between them become rest.',
+      'Movements now carry pictures, cues and a route through to the full technique guide.',
+      'Ava names the plan she would archive and asks first, rather than displacing it silently.',
+      'Past plans get their own tab and can be picked back up.',
+    ],
+  },
+  {
+    migration: 402,
+    version: '0.8.0',
+    platform: 'companion',
+    toolCount: null,
+    publishedAt: '2026-08-12 09:00:00+00',
+    title: 'The whole health room, in your pocket',
+    body: `If you never open a code editor, the companion is not a companion to the product — it is the product. So anything the desktop has here and the phone does not is a hole in what you get. This release closes them.
+
+**Wellbeing is now Health, and Workouts are Exercises.** The same catalogue was called different things depending on which screen you were looking at, which is confusing in English and worse in every other language. Both now read exactly as they do on the desktop, in all twenty.
+
+**Ava has her own tab in Health.** Not a phone-shaped imitation of the desktop one — the same room, with the same rules. She builds from the real exercise and recipe library, keeps plans to 1, 3 or 7 days, and can see the plans you already have, so she will tell you which one she would replace instead of quietly archiving it. Her own conversation, too, kept apart from your main chat.
+
+**Your profile has its own place.** It sets your goals, your equipment, your injuries and the days you train — everything that shapes what Ava writes — and it was two taps deep behind the daily log. It now stands on its own and uses the full width.
+
+**Ready-made plans work the way they do everywhere else.** Choose the date for each session, and see every movement with its picture and a tap through to the exercise page. Tapping a specific plan on the shelf now opens that plan, rather than dropping you on the shelf looking for the thing you just tapped.
+
+**Past plans have a tab.** Finished or set aside, newest first, and any of them can be made active again.
+
+**The app fits the screen.** The Health room ran past the bottom of the phone and took the message box with it. Fixed — and while we were in there, every page on the site had been scrolling by the height of its own header on mobile.
+
+**Update prompts work now.** The app has been checking for new versions against a file that never existed, so it could never tell you one had arrived. It can.`,
+    highlights: [
+      'Ava has her own tab in Health, running the same room as the desktop — same library, same rules, and she can see the plans you already have.',
+      'Wellbeing is now Health and Workouts are Exercises, matching the desktop word for word in all twenty languages.',
+      'Ready-made plans let you date each session, and every movement opens its exercise page with a picture.',
+      'Your profile is its own screen, past plans have their own tab, and the app finally fits the phone without scrolling.',
+    ],
+  },
+  {
     migration: 358,
     version: '0.3.0',
     platform: 'companion',
