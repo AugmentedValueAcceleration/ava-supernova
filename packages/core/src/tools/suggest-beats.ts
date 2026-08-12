@@ -17,7 +17,7 @@ export class SuggestBeatsTool implements Tool {
 
   readonly schema: FunctionSchema = {
     name: 'suggest_beats',
-    description: 'Propose 3-5 things worth posting about TODAY — the studio\'s briefing. Call this when the operator asks "what should I post today" / "today\'s beats" / opens a planning request. First ground yourself: release_notes for anything just shipped, research_post or web_search for what\'s currently landing in our space, memory_recall to avoid repeating recent angles. Then return beats that fit the mission — each a concrete angle, the platform that suits it, and one line on why it lands now. Do NOT write the posts; this is the menu, the operator picks one to draft.',
+    description: 'Propose 3-5 things worth posting about TODAY — the studio\'s briefing. Call this when the operator asks "what should I post today" / "today\'s beats" / opens a planning request. First ground yourself: release_notes for anything just shipped, research_post or web_search for what\'s currently landing in our space, memory_recall to avoid repeating recent angles. Then return STORIES that fit the mission — each a concrete angle, one line on why it lands now, and whether it wants showing as well as saying. Do NOT name platforms: a story goes to every crowd in the same slot, adapted to each, and where it goes is a planning decision the operator makes, not a property of the idea. Do NOT write the posts either; this is the menu, the operator picks one to draft.',
     parameters: {
       type: 'object',
       properties: {
@@ -28,10 +28,10 @@ export class SuggestBeatsTool implements Tool {
             type: 'object',
             properties: {
               angle: { type: 'string', description: 'The concrete thing to post about — specific, not a category (e.g. "the price gap vs $200/mo frontier tools", not "pricing").' },
-              platform: { type: 'string', description: 'Best platform for this beat (tweet, linkedin, bluesky, thread, tiktok, youtube, blog).' },
               why: { type: 'string', description: 'One line on why this lands right now — a current beat, a fresh ship, a gap nobody else is filling.' },
+              needs_video: { type: 'boolean', description: 'True when this story needs SHOWING, not just saying — a demo, a before/after, anything you would rather watch than read. Decides whether Reels and Shorts are on by default. Most arguments and positions are false; be honest rather than generous, because a video nobody needed costs them an hour.' },
             },
-            required: ['angle', 'platform', 'why'],
+            required: ['angle', 'why'],
           },
         },
       },
@@ -54,8 +54,8 @@ export class SuggestBeatsTool implements Tool {
         const o = (b && typeof b === 'object') ? b as Record<string, unknown> : {};
         return {
           angle: String(o.angle || '').trim(),
-          platform: String(o.platform || 'tweet').trim(),
           why: String(o.why || '').trim(),
+          needs_video: o.needs_video === true,
         };
       })
       .filter(b => b.angle)

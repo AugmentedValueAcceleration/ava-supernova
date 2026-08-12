@@ -8,6 +8,10 @@
 // persist to the Library and emit the SSE the client draws), core just defines
 // the contract and does the surface-free logic (validation, char limits).
 
+// The day plan's contract lives in its own file — the store the hub injects so
+// Ava can read the day she and the operator agreed, and add to it.
+export type { DayPlanItem as DayPlanRow, NewDayPlanItem, DayPlanStore } from './day-plan.js';
+
 /** A finished post the model emitted via write_post, normalised. */
 export interface SocialPostInput {
   /** Target platform id — 'tweet', 'bluesky', 'linkedin', … (see write_post enum). */
@@ -344,14 +348,30 @@ export interface PostMetricsReader {
   recent(): Promise<PostMetric[]>;
 }
 
-/** One suggested angle for the day's briefing. */
+/**
+ * One STORY for the day's briefing.
+ *
+ * Not a post on a platform. A beat used to carry the single platform that
+ * "suited" it, which quietly decided the shape of the whole day: one angle per
+ * platform, platforms taking turns, a story's momentum split across three
+ * slots. What actually works is the opposite — one angle to every crowd in the
+ * same slot, adapted to each. Where it goes is a planning decision the operator
+ * makes; it is not a property of the idea.
+ */
 export interface Beat {
-  /** The angle/idea for a post. */
+  /** The angle/idea — the story itself. */
   angle: string;
-  /** Suggested platform for it. */
-  platform: string;
   /** One line on why it fits the mission / the moment. */
   why: string;
+  /**
+   * Does this story want SHOWING as well as saying?
+   *
+   * The one genuinely per-story judgement about medium: a demo, a before/after
+   * or anything visual earns a video for Reels and Shorts; an argument or a
+   * position usually does not. This decides whether the video platforms are on
+   * by default, so the operator is not making that call five times a morning.
+   */
+  needs_video?: boolean;
 }
 
 /**

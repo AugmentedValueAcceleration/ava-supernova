@@ -445,6 +445,13 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // this room ships posts, it doesn't touch the codebase.
   social: new Set([
     'research_post', 'propose_hooks', 'write_post', 'post_performance', 'suggest_beats',
+    // The day plan. She and the operator agree the day together, so she
+    // needs to read it (items may already be carried from yesterday),
+    // write what was agreed, and tick what she can verify. Registering
+    // the tools was not enough on its own — see write_video_post below,
+    // which sat unusable in exactly this way while she correctly reported
+    // it was not in her toolset. This Set is the real gate.
+    'day_plan_read', 'day_plan_write', 'day_plan_item_status',
     // Short-form video — the Video Posts room. Registering the tool in the
     // builtins was not enough: this Set is the real gate, and while it was
     // missing she reported "write_video_post isn't in my toolset" and pointed
