@@ -186,7 +186,11 @@ Ava's care goes past the codebase. Health mode adds a full fitness and nutrition
 
 **A real catalogue.** Exercises across every style — strength, hypertrophy, conditioning, HIIT, mobility, yoga, pilates, recovery, running, cycling, hybrid — and recipes across every course: breakfast, mains, starters, sides, snacks, desserts. Search, filter, open any entry for full detail. Submit your own, too.
 
-**Plans built around you.** Tell Ava your goal and she generates a structured fitness, meal, or combined plan — day by day, shaped by your profile: level, goals, injuries, dietary needs, equipment, and how much time you actually have on a weekday versus a Sunday.
+**Plans built around you.** Tell Ava your goal and she builds a fitness, meal, or combined plan — shaped by your profile: level, goals, injuries, dietary needs, equipment, and how much time you actually have on a weekday versus a Sunday. Plans run 1, 3 or 7 days, composed from the catalogue rather than invented, so every movement and meal carries its technique guide and its real nutrition.
+
+**Ready-made plans, on the days you choose.** A shelf of professionally built starters you can read in full before committing — every movement with its picture, its cue and its sets. Start one and you place each session on a date yourself; the days you leave between them become rest, because that is what they are. Three sessions across a week make a week-long plan, and it says so before you begin rather than after.
+
+**She checks before she replaces anything.** Activating a plan archives any other active plan of the same type, so Ava tells you which one and when it runs to, and asks whether to follow it or replace it. When there is no clash she says nothing — a meal plan and a training plan have never conflicted. Ask her to delete a plan and she will, unless you have logged something against it; then she archives it instead, because that record of what you did exists nowhere else.
 
 **A shopping list built from the plan.** Aisle by aisle, a whole week at once, across every plan you are running, scaled to how many people you are feeding. When a meal is not on the list, Ava tells you why — an ingredient she could not read is a different problem from one already in your cupboard, and you should know which.
 
@@ -251,6 +255,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
 | **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan`, `switch_mode` |
 | **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress` |
+| **Health & Fitness** | `health_catalogue_search`, `health_plan_list`, `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_delete`, `health_profile_ask` |
 | **Security & Data** | `audit_dependencies`, `database_query`, `secret_request`, `env_write` |
 | **System** | `get_datetime`, `detect_language`, `ask_user`, `support_request`, `propose_tool` |
 
