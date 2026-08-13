@@ -53,6 +53,9 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
   'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 }, // superseded by 3.8 Max; still live upstream
     'qwen3.7-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.60 },
     'qwen3.5-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.20 },
+    // Tiered upstream ($0.03/$0.13 <32K, $0.10/$0.40 <256K, $0.20/$0.80 <1M).
+    // Middle tier: a real turn clears 32K almost at once.
+    'qwen3.7-flash': { inputPerMillion: 0.10, outputPerMillion: 0.40 },
     'qwen3.5-flash':{ inputPerMillion: 0.05,  outputPerMillion: 0.15 },
   },
   zhipu: {

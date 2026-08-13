@@ -69,4 +69,41 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsVision: false,
     pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
   },
+  {
+    // Qwen 3.7 Flash (Jul 2026) — 1M context, multimodal, function calling.
+    // Verified against the live DashScope model list, not inferred from a
+    // version number.
+    //
+    // OFFERED, BUT NOT USED AS THE INTENT GATE, and that is deliberate. It is
+    // dramatically cheaper than 3.5 Flash on short prompts and dearer on long
+    // ones, which is fine for a model somebody chooses. The gate is different:
+    // it runs on EVERY request and its whole job is returning a reliable tool
+    // call quickly. Reported figures are an ~8.9% tool-call error rate and a
+    // P99 above 90 seconds, so it stays out of that seat until we have measured
+    // it ourselves.
+    //
+    // IT REASONS BY DEFAULT, AND YOU PAY FOR IT. A live call asking for the
+    // single word "ok" came back with 167 completion tokens, 162 of them
+    // reasoning. That is roughly ten times the output a trivial answer needs,
+    // billed at the output rate — so the real cost of a short exchange is far
+    // above what the per-token price suggests, and it is a second reason the
+    // intent gate stays where it is.
+    //
+    // PRICING IS TIERED BY PROMPT LENGTH and this field is flat, so it cannot
+    // be told the whole truth: $0.03/$0.13 under 32K, $0.10/$0.40 to 256K,
+    // $0.20/$0.80 to 1M. The middle tier is quoted here because an agentic turn
+    // carries a system prompt and context and clears 32K almost immediately —
+    // quoting the $0.03 headline would understate nearly every real call, and a
+    // cost estimate that flatters us is worse than no estimate.
+    id: 'qwen3.7-flash',
+    name: 'Qwen 3.7 Flash',
+    provider: 'qwen',
+    contextWindow: 1000000,
+    maxOutputTokens: 32768,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    pricing: { inputPerMillion: 0.10, outputPerMillion: 0.40 },
+  },
 ];

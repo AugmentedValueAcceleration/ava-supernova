@@ -89,6 +89,10 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'qwen3.5-omni-flash', displayName: 'Qwen 3.5 Omni Flash', inputPricePerM: 0.065, outputPricePerM: 0.26, contextWindow: 256_000, capabilities: ['tools', 'vision', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
+      // Tiered by prompt length: $0.03/$0.13 under 32K, $0.10/$0.40 to 256K,
+      // $0.20/$0.80 to 1M. The middle tier is quoted because a real turn clears
+      // 32K almost immediately, and the headline rate would flatter us.
+      { id: 'qwen3.7-flash', displayName: 'Qwen 3.7 Flash — tiered pricing; reasons by default, so short answers cost more than the rate implies', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {
