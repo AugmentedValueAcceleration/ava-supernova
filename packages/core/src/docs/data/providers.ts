@@ -200,7 +200,7 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'byok',
     notes: 'Hunyuan Hy3 — open-weight MoE (295B total / 21B active), hybrid fast/slow reasoning, built for agentic workflows. OpenAI-compatible, 262K context, very cheap. BYOK.',
     models: [
-      { id: 'hy3-preview', displayName: 'Hunyuan Hy3', inputPricePerM: 0.063, outputPricePerM: 0.210, contextWindow: 262_144, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'hy3', displayName: 'Hunyuan Hy3', inputPricePerM: 0.15, outputPricePerM: 0.59, contextWindow: 262_144, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
   {

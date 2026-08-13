@@ -73,6 +73,8 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'claude-haiku-4-5-20251001':  { inputPerMillion: 1.00,  outputPerMillion: 5.00 },
   },
   tencent: {
+    'hy3':         { inputPerMillion: 0.15,  outputPerMillion: 0.59 },
+    // Kept so usage logged against the April preview still costs out.
     'hy3-preview': { inputPerMillion: 0.063, outputPerMillion: 0.210 },
   },
   nvidia: {
