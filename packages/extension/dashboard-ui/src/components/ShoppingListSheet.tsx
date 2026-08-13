@@ -294,9 +294,15 @@ export function ShoppingListSheet({ plan, allPlans, profile, onClose, onLoadReci
         </div>
       )}
 
-      {list.itemCount === 0 && list.missing.length === 0 ? (
+      {list.itemCount === 0 && list.missing.length === 0 && list.settled.length === 0 ? (
         <div className="py-10 text-center text-[12px] text-[var(--text-muted)]">
           {single ? t('health.shopping.no_meals') : t('health.shopping.no_meals_week')}
+        </div>
+      ) : list.itemCount === 0 && list.missing.length === 0 ? (
+        /* Every meal logged is not an empty week — saying "nothing planned"
+           would deny a week they actually lived. */
+        <div className="py-10 text-center text-[12px] text-[var(--text-muted)]">
+          {t('health.shopping.all_settled')}
         </div>
       ) : (
         <>
@@ -355,6 +361,17 @@ export function ShoppingListSheet({ plan, allPlans, profile, onClose, onLoadReci
               meal for a real recipe. */}
           <Gap meals={missingRead} message={t('health.shopping.incomplete')} />
           <Gap meals={missingCustom} message={t('health.shopping.not_in_library')} />
+
+          {/* Short on purpose. A list quietly missing the meals you logged
+              reads as a bug rather than as the feature it is. */}
+          {list.settled.length > 0 && (
+            <div className="mb-3 rounded-lg border border-[var(--border)] px-3 py-2.5">
+              <div className="text-[11px] font-medium text-[var(--text-muted)]">{t('health.shopping.settled')}</div>
+              <div className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                {list.settled.map(s => `${s.name} (${t(`health.shopping.settled.${s.state}`)})`).join(', ')}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             {list.groups.map(group => {

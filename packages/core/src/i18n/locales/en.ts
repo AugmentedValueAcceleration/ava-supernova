@@ -3011,6 +3011,11 @@ export const enStrings = {
   'health.shopping.scope_week': 'The whole week',
   // Honesty: a list that looks complete and is not sends somebody home
   // without dinner. The two reasons need different words and different fixes.
+  'health.shopping.settled': 'Already logged, so left off the list:',
+  'health.shopping.settled.ate': 'eaten',
+  'health.shopping.settled.skipped': 'skipped',
+  'health.shopping.settled.other': 'had something else',
+  'health.shopping.all_settled': 'Every meal this week is already logged — nothing left to buy.',
   'health.shopping.incomplete': 'These meals are missing from the list — their ingredients could not be read:',
   'health.shopping.not_in_library': 'These meals are not library recipes, so nothing knows what goes in them. Swap them for a recipe to shop for them:',
   'health.shopping.aisle.produce': 'Fruit & veg',

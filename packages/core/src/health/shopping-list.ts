@@ -100,6 +100,12 @@ export interface MissingMeal {
   reason: 'not_in_library' | 'lookup_failed';
 }
 
+/** A meal the list deliberately left out because it has already happened. */
+export interface SettledMeal {
+  name: string;
+  state: 'ate' | 'skipped' | 'other';
+}
+
 export interface ShoppingList {
   groups: ShoppingGroup[];
   itemCount: number;
@@ -107,6 +113,15 @@ export interface ShoppingList {
   /** Meals in range the list could not cover. It is short by exactly these,
    *  and the UI must say so rather than looking complete. */
   missing: MissingMeal[];
+  /**
+   * Meals left off because they were already logged — eaten, skipped, or
+   * swapped for something else.
+   *
+   * Reported for the same reason `missing` is: the list is shorter than the
+   * plan, and a shorter list that does not say why reads as a bug. The
+   * difference is that this one is short ON PURPOSE.
+   */
+  settled: SettledMeal[];
 }
 
 /* ------------------------------------------------------------------ units - */
@@ -326,11 +341,33 @@ function buildFrom(
 ): ShoppingList {
   const buckets = new Map<string, Bucket>();
   const missing: MissingMeal[] = [];
+  const settled: SettledMeal[] = [];
   let mealCount = 0;
 
   for (const { day, planTitle } of sources) {
     for (const meal of day.meals ?? []) {
       mealCount += 1;
+
+      // Already settled at the table — do not shop for it.
+      //
+      // A logged meal is one that has happened: eaten, skipped, or swapped for
+      // something else. Buying for any of the three is wrong, and the skipped
+      // case is the one that stings — the shop kept including a dinner the
+      // person had already decided against, week after week, because the list
+      // read the plan as written and never looked at what actually occurred.
+      //
+      // `logged` absent means UNRECORDED, which is not the same as skipped
+      // (see MealLogged), so an unrecorded meal still gets shopped for. That
+      // asymmetry is deliberate: the cost of shopping for a meal that quietly
+      // did not happen is a spare ingredient, and the cost of NOT shopping for
+      // one that did is no dinner.
+      if (meal.logged?.state) {
+        if (!settled.some((s) => s.name === meal.name)) {
+          settled.push({ name: meal.name, state: meal.logged.state });
+        }
+        continue;
+      }
+
       const lines = meal.meta?.ingredients;
       if (!lines || lines.length === 0) {
         // Ingredients are captured at add time. A meal without them is either
@@ -418,7 +455,62 @@ function buildFrom(
     if (inAisle.length) groups.push({ aisle, items: inAisle });
   }
 
-  return { groups, itemCount: items.length, mealCount, missing };
+  return { groups, itemCount: items.length, mealCount, missing, settled };
+}
+
+/* --------------------------------------------------------------- surplus - */
+
+/**
+ * What was shopped for and never cooked.
+ *
+ * The other half of logging a skip. If somebody shopped for the week and then
+ * did not make Thursday's dinner, those ingredients are in their kitchen right
+ * now — and until this existed, nothing in the system knew that. Ava would
+ * cheerfully propose a shop for entirely different food while a bag of
+ * spinach quietly went off in the fridge.
+ *
+ * Deliberately DERIVED rather than stored. The skip is already recorded on the
+ * meal row, so surplus is a reading of the plan rather than a second source of
+ * truth that could disagree with it. No new store, nothing to migrate, and
+ * nothing to keep in sync on four surfaces — the same reasoning that put
+ * `logged` on the plan row in the first place.
+ *
+ * Only 'skipped' and 'other' count. A meal that was EATEN consumed its
+ * ingredients, and a meal with no log at all has not happened yet.
+ *
+ * It returns a ShoppingList because the shape is exactly right — the same
+ * aisles, the same merging, the same honest handling of "400 g + 2 cloves" —
+ * and because a surplus is best read as a list of what you have.
+ */
+export function buildSurplus(
+  days: HealthPlanDay[],
+  opts: ShoppingListOptions = {},
+): ShoppingList {
+  return buildSurplusAcross(days.map((day) => ({ day })), opts);
+}
+
+/** Surplus across several plans, matching buildShoppingListAcross. */
+export function buildSurplusAcross(
+  sources: PlanDaySource[],
+  opts: ShoppingListOptions = {},
+): ShoppingList {
+  const uneaten = sources.map(({ day, planTitle }) => ({
+    planTitle,
+    day: {
+      ...day,
+      meals: (day.meals ?? []).filter(
+        (m) => m.logged?.state === 'skipped' || m.logged?.state === 'other',
+      ),
+    },
+  }));
+  // Feed them back through with the logs stripped, or buildFrom would
+  // recognise them as settled and leave every one of them out — the very
+  // filter that makes this list possible would empty it.
+  const asPlanned = uneaten.map(({ day, planTitle }) => ({
+    planTitle,
+    day: { ...day, meals: day.meals.map((m) => ({ ...m, logged: null })) },
+  }));
+  return buildFrom(asPlanned, opts);
 }
 
 /* ---------------------------------------------------------------- a week - */
