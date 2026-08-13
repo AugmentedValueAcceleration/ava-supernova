@@ -92,6 +92,8 @@ export const PROVIDERS: ProviderFact[] = [
       // Tiered by prompt length: $0.03/$0.13 under 32K, $0.10/$0.40 to 256K,
       // $0.20/$0.80 to 1M. The middle tier is quoted because a real turn clears
       // 32K almost immediately, and the headline rate would flatter us.
+      { id: 'qwen3-coder-next', displayName: 'Qwen3 Coder Next — 80B/3B active, 70.6% SWE-bench Verified', inputPricePerM: 0.12, outputPricePerM: 0.80, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
+      { id: 'qwen3-coder-flash', displayName: 'Qwen3 Coder Flash — 1M context; dearer than Coder Next despite the name', inputPricePerM: 0.195, outputPricePerM: 0.975, contextWindow: 1_000_000, capabilities: ['tools', 'streaming'] },
       { id: 'qwen3.7-flash', displayName: 'Qwen 3.7 Flash — tiered pricing; reasons by default, so short answers cost more than the rate implies', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },

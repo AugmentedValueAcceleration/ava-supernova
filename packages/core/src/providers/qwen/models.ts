@@ -106,4 +106,45 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.10, outputPerMillion: 0.40 },
   },
+  {
+    // Qwen3 Coder Next — the coder tier we did not have. Ava is an agentic
+    // coding tool that shipped exactly ONE coder-specialised model, while these
+    // sat on an endpoint we already call with a key we already hold.
+    //
+    // 80B total, 3B active, so it prices like a small model and scores like a
+    // large one: 70.6% SWE-bench Verified at $0.12/$0.80 — against kimi-k2.7-code
+    // at $0.95/$4.00 for the same class of work. Native 256K.
+    //
+    // Verified live before shipping: it answers, and it does NOT burn reasoning
+    // tokens on trivial replies (2 completion tokens for "ok", where Qwen 3.7
+    // Flash spent 167).
+    id: 'qwen3-coder-next',
+    name: 'Qwen3 Coder Next',
+    provider: 'qwen',
+    contextWindow: 256000,
+    maxOutputTokens: 65536,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: false,
+    supportsVision: false,
+    pricing: { inputPerMillion: 0.12, outputPerMillion: 0.80 },
+  },
+  {
+    // Qwen3 Coder Flash — 1M context, tool-calling coder.
+    //
+    // The name is misleading and it is worth saying so here rather than letting
+    // somebody assume: this is DEARER than Coder Next ($0.195/$0.975 against
+    // $0.12/$0.80), not cheaper. What it buys is the 1M context window, which
+    // Coder Next does not have. Pick it for context length, never for price.
+    id: 'qwen3-coder-flash',
+    name: 'Qwen3 Coder Flash',
+    provider: 'qwen',
+    contextWindow: 1000000,
+    maxOutputTokens: 65536,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: false,
+    supportsVision: false,
+    pricing: { inputPerMillion: 0.195, outputPerMillion: 0.975 },
+  },
 ];
