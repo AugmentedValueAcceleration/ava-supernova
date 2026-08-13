@@ -104,9 +104,15 @@ describe('Model definitions', () => {
       }
     });
 
-    it('contains codestral-latest', () => {
+    // Codestral and Devstral are not offered. This test asserted the opposite
+    // and had been failing for long enough to be treated as background noise —
+    // which is how the website came to advertise both as BYOK-available for
+    // models nobody could actually select. A red test that everyone steps over
+    // stops being a warning and becomes decoration.
+    it('does not claim coder models we do not serve', () => {
       const ids = MISTRAL_MODELS.map((m) => m.id);
-      expect(ids).toContain('codestral-latest');
+      expect(ids).not.toContain('codestral-latest');
+      expect(ids.some((id) => id.includes('devstral'))).toBe(false);
     });
   });
 
