@@ -15,6 +15,15 @@ import type { FunctionSchema } from '../providers/types.js';
  */
 
 const DEFAULT_API_BASE = 'https://avasupernova.com';
+const DIET_LADDER: Record<string, string[]> = {
+  vegan:        ['vegan'],
+  vegetarian:   ['vegetarian', 'vegan'],
+  pescatarian:  ['pescatarian', 'vegetarian', 'vegan'],
+  // No restriction at all — the whole library is fair game, so send no filter
+  // rather than the 'omnivore' tag, which would exclude every vegan dish.
+  omnivore:     [],
+};
+
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
@@ -81,6 +90,16 @@ export class HealthCatalogueSearchTool implements Tool {
             'to pull a whole class with no name query (e.g. exercise_type="bodyweight" returns every ' +
             'bodyweight movement; raise `limit` to see them all). Ignored for recipes.',
         },
+        diet: {
+          type: 'string',
+          enum: ['vegan', 'vegetarian', 'pescatarian', 'omnivore', 'keto', 'low_carb', 'paleo', 'mediterranean', 'whole30'],
+          description:
+            'kind=recipe only. Only return recipes that satisfy this diet. Diets NEST and this ' +
+            'handles that for you: asking for vegetarian also returns vegan dishes, pescatarian ' +
+            'returns those plus fish, and omnivore filters nothing out. Use this rather than judging ' +
+            'a diet from a recipe name — a name cannot tell you there is fish sauce in it. Ignored ' +
+            'for exercises.',
+        },
         limit: {
           type: 'number',
           description: `Max results to return (default ${DEFAULT_LIMIT}, hard cap ${MAX_LIMIT}).`,
@@ -95,19 +114,20 @@ export class HealthCatalogueSearchTool implements Tool {
     const query = (args.query as string | undefined)?.trim();
     const category = (args.category as string | undefined)?.trim();
     const exerciseType = kind === 'exercise' ? (args.exercise_type as string | undefined)?.trim() : undefined;
+    const diet = kind === 'recipe' ? (args.diet as string | undefined)?.trim() : undefined;
     const rawLimit = args.limit as number | undefined;
     const limit = Math.max(1, Math.min(MAX_LIMIT, typeof rawLimit === 'number' ? rawLimit : DEFAULT_LIMIT));
 
     if (kind !== 'exercise' && kind !== 'recipe') {
       return { success: false, output: 'Missing or invalid `kind` — must be "exercise" or "recipe".' };
     }
-    if (!query && !category && !exerciseType) {
-      return { success: false, output: 'Give a `query`, a `category`, or (for exercises) an `exercise_type` to search by.' };
+    if (!query && !category && !exerciseType && !diet) {
+      return { success: false, output: 'Give a `query`, a `category`, a `diet` (recipes), or an `exercise_type` (exercises) to search by.' };
     }
 
     // Human-readable description of what we searched for — works whether the
     // search was by name, by filter, or both.
-    const criteria = [query ? `"${query}"` : null, category, exerciseType].filter(Boolean).join(' · ') || 'your filters';
+    const criteria = [query ? `"${query}"` : null, category, exerciseType, diet].filter(Boolean).join(' · ') || 'your filters';
 
     const apiBase = (context.sharedState?.platformApiBase as string) || DEFAULT_API_BASE;
     const path = kind === 'exercise' ? '/api/health/exercises' : '/api/health/recipes';
@@ -120,6 +140,12 @@ export class HealthCatalogueSearchTool implements Tool {
       url.searchParams.set(kind === 'exercise' ? 'workout_type' : 'course', category);
     }
     if (exerciseType) url.searchParams.set('exercise_type', exerciseType);
+    if (diet) {
+      // Anything not on the ladder (keto, paleo, whole30 …) is a flat category
+      // with nothing beneath it, so it filters on itself.
+      const wanted = DIET_LADDER[diet] ?? [diet];
+      if (wanted.length) url.searchParams.set('diet', wanted.join(','));
+    }
 
     const headers: Record<string, string> = { Accept: 'application/json' };
     const platformKey = context.sharedState?.platformKey as string | undefined;
