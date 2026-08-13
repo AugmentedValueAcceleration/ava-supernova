@@ -5,7 +5,7 @@
  *
  * Transport-free by design: callers do their own fetch/auth; this only shapes
  * the body. OpenAI-compatible providers use `shapeOpenAICompatBody` (or the
- * granular pieces); Anthropic's distinct format is handled separately.
+ * granular pieces).
  */
 
 export {

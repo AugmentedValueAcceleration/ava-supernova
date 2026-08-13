@@ -134,7 +134,6 @@ export interface DashboardSettings {
 }
 
 export interface ProviderKeyStatus {
-  anthropic: boolean;
   deepseek: boolean;
   kimi: boolean;
   glm: boolean;

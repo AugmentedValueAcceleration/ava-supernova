@@ -110,7 +110,6 @@ const PLATFORM_KEY_SECRET = 'ava-supernova.platformKey';
 
 // BYOK provider key secrets
 const PROVIDER_KEY_SECRETS: Record<string, string> = {
-  anthropic: 'ava-supernova.provider.anthropic.apiKey',
   deepseek: 'ava-supernova.provider.deepseek.apiKey',
   kimi: 'ava-supernova.provider.kimi.apiKey',
   glm: 'ava-supernova.provider.glm.apiKey',
@@ -3107,7 +3106,6 @@ export class DashboardPanel {
 
   private async getProviderKeyStatus(): Promise<ProviderKeyStatus> {
     return {
-      anthropic: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.anthropic)),
       deepseek: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.deepseek)),
       kimi: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.kimi)),
       glm: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.glm)),

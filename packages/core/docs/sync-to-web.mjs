@@ -14,7 +14,16 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const SRC_ROOT = join(__dirname, '..', 'src', 'docs');
-const WEB_ROOT = join(__dirname, '..', '..', 'web', 'src', 'lib', 'docs');
+// TWO mirrors, not one. The website reads src/lib/docs and the companion
+// reads src/companion/lib/docs, and only the first was ever synced — so the
+// companion's copy carried the "GENERATED — run pnpm docs:sync" banner while
+// nothing on earth regenerated it, and it quietly drifted for months. A
+// generated file that lies about being generated is worse than a hand-written
+// one, because nobody thinks to check it.
+const WEB_ROOTS = [
+  join(__dirname, '..', '..', 'web', 'src', 'lib', 'docs'),
+  join(__dirname, '..', '..', 'web', 'src', 'companion', 'lib', 'docs'),
+];
 
 // Files/folders to copy. Everything else in the docs/ dir (outline, sync script itself) stays put.
 // NOTE: i18n.ts + i18n/ MUST be here — the web docs page imports DOC_TRANSLATIONS from them.
@@ -66,23 +75,25 @@ function main() {
   // corpus, but it is web-only and has no counterpart in core, so every run of
   // the documented `pnpm docs:sync` broke the web build. It was found by the
   // build failing, not by the sync saying anything.
-  for (const entry of COPY) {
-    const target = join(WEB_ROOT, entry);
-    if (existsSync(target)) rmSync(target, { recursive: true, force: true });
-  }
-  mkdirSync(WEB_ROOT, { recursive: true });
-
-  for (const entry of COPY) {
-    const src = join(SRC_ROOT, entry);
-    const dst = join(WEB_ROOT, entry);
-    if (!existsSync(src)) {
-      console.error(`Missing source: ${relative(SRC_ROOT, src)}`);
-      process.exit(1);
+  for (const WEB_ROOT of WEB_ROOTS) {
+    for (const entry of COPY) {
+      const target = join(WEB_ROOT, entry);
+      if (existsSync(target)) rmSync(target, { recursive: true, force: true });
     }
-    walk(src, dst);
-  }
+    mkdirSync(WEB_ROOT, { recursive: true });
 
-  console.log(`Synced ${COPY.length} entries to ${relative(process.cwd(), WEB_ROOT)}`);
+    for (const entry of COPY) {
+      const src = join(SRC_ROOT, entry);
+      const dst = join(WEB_ROOT, entry);
+      if (!existsSync(src)) {
+        console.error(`Missing source: ${relative(SRC_ROOT, src)}`);
+        process.exit(1);
+      }
+      walk(src, dst);
+    }
+
+    console.log(`Synced ${COPY.length} entries to ${relative(process.cwd(), WEB_ROOT)}`);
+  }
 }
 
 main();

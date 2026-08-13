@@ -73,11 +73,18 @@ function validateConfig(raw: unknown): AvaConfig {
 
   // providers — validate structure, skip malformed entries. The list must
   // cover EVERY named provider in the schema: this allowlist previously only
-  // knew deepseek/kimi/qwen, so a saved anthropic/glm/minimax/mistral BYOK
-  // key silently vanished on the next load (same audit, same bug class).
+  // knew deepseek/kimi/qwen, so a saved glm/minimax/mistral BYOK key silently
+  // vanished on the next load (same audit, same bug class).
+  //
+  // `anthropic` is absent on purpose and is NOT that bug. Support for it was
+  // withdrawn, so there is no longer a provider for the key to reach; the
+  // registry says so in as many words when something asks for it. The key
+  // itself is left where the user put it — we stopped supporting a provider,
+  // which is not the same as reaching into somebody's config and deleting
+  // their credential.
   if (typeof obj.providers === 'object' && obj.providers !== null) {
     const providers = obj.providers as Record<string, unknown>;
-    const validProviders = ['anthropic', 'deepseek', 'kimi', 'glm', 'qwen', 'minimax', 'mistral'];
+    const validProviders = ['deepseek', 'kimi', 'glm', 'qwen', 'minimax', 'mistral'];
 
     for (const name of validProviders) {
       const entry = providers[name];

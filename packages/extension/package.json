@@ -227,10 +227,6 @@
               "mistral:mistral-small-4",
               "mistral:codestral-latest",
               "mistral:devstral-latest",
-              "anthropic:claude-fable-5",
-              "anthropic:claude-opus-4-8",
-              "anthropic:claude-sonnet-5",
-              "anthropic:claude-haiku-4-5-20251001",
               "tencent:hy3-preview",
               "nvidia:nvidia/nemotron-3-ultra-550b-a55b"
             ],
@@ -256,10 +252,6 @@
               "Mistral Small 4 — agentic + vision unified, 262K, $0.15/$0.60 — Aurora workhorse",
               "Codestral — code-specialized, 256K context, optimised for development",
               "Devstral 2 — 262K context, built for agentic coding workflows",
-              "Claude Fable 5 — Anthropic's Mythos-class flagship, 1M context, vision (premium — $10/$50 per M)",
-              "Claude Opus 4.8 — current Anthropic flagship, strongest reasoning, vision, 200K context",
-              "Claude Sonnet 5 — balanced speed and intelligence, vision",
-              "Claude Haiku 4.5 — fastest Anthropic model, affordable",
               "Hunyuan Hy3 — Tencent open-weight MoE, agentic, 262K, very cheap (BYOK)",
               "Nemotron 3 Ultra — NVIDIA open-weight, 1M context, frontier reasoning (BYOK)"
             ],

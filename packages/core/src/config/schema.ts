@@ -23,7 +23,6 @@ export interface AvaConfig {
   routingMode?: RoutingMode;
   platformKey?: string;
   providers: {
-    anthropic?: ProviderSettings;
     deepseek?: ProviderSettings;
     kimi?: ProviderSettings;
     glm?: ProviderSettings;

@@ -95,7 +95,7 @@ export const CONCEPT_PAGES: DocPage[] = [
         '0.3× — Qwen 3.5 Flash.',
         '1.0× — any model without a listed multiplier. Base rate.',
       ]},
-      { type: 'callout', variant: 'note', text: 'Anthropic models (Claude Opus / Sonnet / Haiku) skip credit billing entirely — they are BYOK only and you pay Anthropic directly. Same for any other BYOK provider when used with your own key.' },
+      { type: 'callout', variant: 'note', text: 'BYOK models skip credit billing entirely — when you use your own key you pay that provider directly, and Ava meters nothing.' },
 
       { type: 'heading', level: 3, text: 'BYOK and credits' },
       { type: 'paragraph', text: 'BYOK ("bring your own key" — you supply your own account with an AI provider and a key, which is a private password that lets software use that paid account) is for people who already pay an AI provider directly. If that is not you, you can ignore this section entirely.' },

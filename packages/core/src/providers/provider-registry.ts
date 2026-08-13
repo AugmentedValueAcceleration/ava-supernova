@@ -6,7 +6,6 @@ import { KimiProvider } from './kimi/index.js';
 import { QwenProvider } from './qwen/index.js';
 import { ZhipuProvider } from './zhipu/index.js';
 import { MistralProvider } from './mistral/index.js';
-import { AnthropicProvider } from './anthropic/index.js';
 import { MiniMaxProvider } from './minimax/index.js';
 import { XiaomiProvider } from './xiaomi/index.js';
 import { TencentProvider } from './tencent/index.js';
@@ -23,11 +22,25 @@ const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
   qwen: (config) => new QwenProvider(config),
   zhipu: (config) => new ZhipuProvider(config),
   mistral: (config) => new MistralProvider(config),
-  anthropic: (config) => new AnthropicProvider(config),
   minimax: (config) => new MiniMaxProvider(config),
   xiaomi: (config) => new XiaomiProvider(config),
   tencent: (config) => new TencentProvider(config),
   nvidia: (config) => new NvidiaProvider(config),
+};
+
+/**
+ * Providers that Ava used to support and deliberately no longer does.
+ *
+ * Named rather than forgotten, because the two are different messages: a
+ * forgotten provider reads as a typo or a bug, and this was a decision. The
+ * key stays on the user's disk untouched — withdrawing support is ours to do,
+ * and deleting somebody's credential is not.
+ */
+const RETIRED_PROVIDERS: Record<string, string> = {
+  anthropic:
+    'Anthropic models are no longer supported in Ava. Pick another model — ' +
+    'the open-weight providers (Qwen, DeepSeek, Kimi, GLM, Mistral) cover the ' +
+    'same ground, and your Anthropic key has been left alone.',
 };
 
 export class ProviderRegistry {
@@ -40,7 +53,11 @@ export class ProviderRegistry {
   register(name: string, config: ProviderConfig): void {
     const factory = BUILT_IN_PROVIDERS[name];
     if (!factory) {
-      throw new Error(`Unknown provider: ${name}`);
+      // Retired providers get their own sentence. Somebody whose key worked
+      // yesterday deserves to be told it was withdrawn on purpose, not handed
+      // "Unknown provider" as though they had typed it wrong.
+      const retired = RETIRED_PROVIDERS[name];
+      throw new Error(retired ?? `Unknown provider: ${name}`);
     }
     this.providers.set(name, factory(config));
   }

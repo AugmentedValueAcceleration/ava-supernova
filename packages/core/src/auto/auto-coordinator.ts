@@ -617,7 +617,7 @@ export class AutoCoordinator {
       // vision bridge — it runs the vision model (Qwen Omni) to DESCRIBE the
       // image, then acts on that description itself. So Supernova "sees" the
       // image and still does the work. No-op when the coordinator already
-      // supports vision (a BYOK Claude/Qwen that can see images directly).
+      // supports vision (a BYOK Qwen or GLM that can see images directly).
       const directAgent = this.resolveDirectAgent(classification.category);
       onEvent({ type: 'progress', labelKey: 'thinking.working', model: directAgent.modelName });
       return this.runWithActiveAgent(directAgent.agent, messages, onEvent, signal);

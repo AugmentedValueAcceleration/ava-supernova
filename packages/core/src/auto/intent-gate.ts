@@ -73,7 +73,6 @@ export function resolveIntentGateModel(
   // cheaper of the two V4 tiers, which is what this gate wants.
   const fallbacks = [
     'qwen3.5-flash',
-    'claude-haiku-4-5-20251001',
     'deepseek-v4-flash',
   ];
   for (const id of fallbacks) {

@@ -44,7 +44,7 @@ export abstract class BaseProvider implements Provider {
    * param quirks (MiniMax max_completion_tokens, Qwen frequency_penalty drop,
    * Zhipu-Flash enable_thinking, stream_options). Providers with a quirk the
    * shaper doesn't cover (e.g. Mistral's tool_choice 'required'->'any') call
-   * super and tweak the result. Non-OpenAI providers (Anthropic) override the
+   * super and tweak the result. Providers whose wire format is not OpenAI-shaped override the
    * transport methods instead and never reach here.
    */
   protected transformRequest(request: ChatCompletionRequest): Record<string, unknown> {

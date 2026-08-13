@@ -8,10 +8,10 @@ export type PersonaPhase = 'idle' | 'active' | 'complete' | 'error';
 
 /**
  * Model tier a persona runs on.
- * - 'heavy' = coordinator model (Qwen 3.7 Plus / Claude Sonnet / Kimi K2.5).
+ * - 'heavy' = coordinator model (Qwen 3.7 Plus / Kimi K3 / DeepSeek V4 Pro).
  *   Architects, Builders, Researchers — the personas doing real reasoning
  *   or generating code. Pays the premium for quality.
- * - 'light' = cheap fast model (Qwen 3.5 Flash / Claude Haiku).
+ * - 'light' = cheap fast model (Qwen 3.5 Flash / DeepSeek V4 Flash).
  *   Critics, gatekeepers, routers, summarisers — personas whose job is to
  *   read, compare, flag, and synthesise. Flash handles these competently
  *   at roughly an eighth of the input cost and a quarter of the output.

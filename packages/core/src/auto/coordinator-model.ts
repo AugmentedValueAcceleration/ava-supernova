@@ -39,15 +39,12 @@ const PLATFORM_PRIORITY = [
 ];
 
 const BYOK_PRIORITY = [
-  { id: 'claude-fable-5',       reason: 'Claude Fable 5 — Anthropic Mythos-class flagship, strongest reasoning available, 1M context' },
-  // Above Opus 4.8 on Moonshot's launch table for agentic work (Terminal Bench
-  // 88.3 vs 84.6, BrowseComp 91.2 vs 84.3) at 60% of the price — and with
-  // Fable 5 disabled, the strongest coordinator we can actually reach.
+  // K3 leads this list on merit as well as by default: Moonshot's launch table
+  // put it ahead on agentic work (Terminal Bench 88.3, BrowseComp 91.2) at a
+  // fraction of closed-frontier pricing.
   { id: 'kimi-k3',              reason: 'Kimi K3 — Moonshot frontier model, 2.8T MoE, 1M context, leads agentic + browsing benchmarks' },
   { id: 'kimi-k2.7-code',       reason: 'Kimi K2.7 Code — Moonshot flagship agentic coder, ~30% fewer reasoning tokens than K2.6, 256K context' },
   { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — agentic coding fallback (SWE-Bench Pro 58.6), 256K context' },
-  { id: 'claude-opus-4-8',      reason: 'Claude Opus 4.8 — strongest general reasoning' },
-  { id: 'claude-sonnet-5',      reason: 'Claude Sonnet 5 — fast, strong reasoning' },
   { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — legacy agentic fallback' },
   { id: 'deepseek-v4-pro',      reason: 'DeepSeek V4 Pro — frontier coding + long-context reasoning' },
   { id: 'qwen3.7-plus',         reason: 'Qwen 3.7 Plus — flagship Maestro coordinator: #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },

@@ -40,7 +40,7 @@ export const REFERENCE_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'You do not need to memorise the cards below — they are here so you can see what each strategy is made of.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'orchestration' } },
       { type: 'callout', variant: 'note', text: 'Aurora is deliberately Mistral-only. If a Mistral model is unavailable the router returns an error rather than cross-routing — that is the EU-stack guarantee. Pick Maestro or Supernova for graceful degradation.' },
-      { type: 'callout', variant: 'tip', text: 'All four modes are universally available — on platform credits and on your own keys. You can also pick a single model directly instead of a fleet: on a plan it runs on credits (that one model fills every persona seat itself, so a pricier model costs more per turn), and on your own key it runs on your key. Anthropic and a few others stay key-only.' },
+      { type: 'callout', variant: 'tip', text: 'All four modes are universally available — on platform credits and on your own keys. You can also pick a single model directly instead of a fleet: on a plan it runs on credits (that one model fills every persona seat itself, so a pricier model costs more per turn), and on your own key it runs on your key. Some providers stay key-only.' },
 
       { type: 'heading', level: 3, text: 'Platform-managed models' },
       { type: 'paragraph', text: 'Available on every plan, including the free tier. Tokens (the units of text AI is measured in — roughly three-quarters of a word each) count against your plan allowance. The keys (the private passwords that unlock each paid model) are rotated and monitored by the platform — nothing for you to configure.' },

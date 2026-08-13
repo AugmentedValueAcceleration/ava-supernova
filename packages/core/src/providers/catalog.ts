@@ -4,7 +4,6 @@ import { KIMI_MODELS } from './kimi/models.js';
 import { QWEN_MODELS } from './qwen/models.js';
 import { ZHIPU_MODELS } from './zhipu/models.js';
 import { MISTRAL_MODELS } from './mistral/models.js';
-import { ANTHROPIC_MODELS } from './anthropic/models.js';
 import { MINIMAX_MODELS } from './minimax/models.js';
 import { XIAOMI_MODELS } from './xiaomi/models.js';
 import { TENCENT_MODELS } from './tencent/models.js';
@@ -25,7 +24,6 @@ export const ALL_MODELS: Record<string, ModelDefinition[]> = {
   qwen: QWEN_MODELS,
   zhipu: ZHIPU_MODELS,
   mistral: MISTRAL_MODELS,
-  anthropic: ANTHROPIC_MODELS,
   minimax: MINIMAX_MODELS,
   xiaomi: XIAOMI_MODELS,
   tencent: TENCENT_MODELS,
