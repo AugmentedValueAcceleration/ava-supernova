@@ -19,7 +19,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { Icon } from './Icon';
 import {
-  buildShoppingListAcross, daysInRange, weekBounds, shiftWeek,
+  buildShoppingListAcross, buildSurplusAcross, daysInRange, weekBounds, shiftWeek,
   type ShoppingItem,
 } from '../../../../core/dist/health/shopping-list.js';
 import { AISLE_ORDER, type Aisle } from '../../../../core/dist/health/aisles.js';
@@ -186,6 +186,14 @@ export function ShoppingListSheet({ plan, allPlans, profile, onClose, onLoadReci
 
   const list = useMemo(
     () => buildShoppingListAcross(selectedSources, { excludeOptional: hideOptional, household }),
+    [selectedSources, hideOptional, household],
+  );
+
+  // Food already bought and never cooked. Shown beside the shop rather than on
+  // a screen of its own: the moment you are deciding what to buy is the moment
+  // it matters that a bag of spinach is already in the fridge.
+  const surplus = useMemo(
+    () => buildSurplusAcross(selectedSources, { excludeOptional: hideOptional, household }),
     [selectedSources, hideOptional, household],
   );
 
@@ -361,6 +369,18 @@ export function ShoppingListSheet({ plan, allPlans, profile, onClose, onLoadReci
               meal for a real recipe. */}
           <Gap meals={missingRead} message={t('health.shopping.incomplete')} />
           <Gap meals={missingCustom} message={t('health.shopping.not_in_library')} />
+
+          {surplus.itemCount > 0 && (
+            <div className="mb-3 rounded-lg border border-[var(--border)] px-3 py-2.5">
+              <div className="text-[11px] font-medium text-[var(--accent)]">{t('health.shopping.surplus')}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">{t('health.shopping.surplus.hint')}</div>
+              <div className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                {surplus.groups.flatMap(g => g.items).map(i =>
+                  `${i.name}${i.amounts.length ? ` — ${i.amounts.map(a => `${a.qty} ${a.unit}`).join(' + ')}` : ''}`,
+                ).join(', ')}
+              </div>
+            </div>
+          )}
 
           {/* Short on purpose. A list quietly missing the meals you logged
               reads as a bug rather than as the feature it is. */}
