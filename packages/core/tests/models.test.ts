@@ -56,10 +56,13 @@ describe('Model definitions', () => {
       expect(k26?.supportsToolCalls).toBe(true);
     });
 
-    it('kimi-k2.5 supports thinking and vision', () => {
-      const k2 = KIMI_MODELS.find((m) => m.id === 'kimi-k2.5');
-      expect(k2?.supportsThinking).toBe(true);
-      expect(k2?.supportsVision).toBe(true);
+    // Moonshot switches kimi-k2.5 off on 2026-08-31 and it is already closed to
+    // new accounts, so it is gone from the catalogue and from the router's
+    // fallback chain. This asserts it STAYS gone: a retired model creeping back
+    // into a fallback is the kind of thing that only shows up as a 404 in
+    // somebody else's terminal.
+    it('kimi-k2.5 is retired and no longer offered', () => {
+      expect(KIMI_MODELS.find((m) => m.id === 'kimi-k2.5')).toBeUndefined();
     });
   });
 

@@ -6,13 +6,13 @@ import type { ClassificationResult } from './types.js';
 const MODEL_ALIASES: Record<string, string> = {
   // Kimi / Moonshot — bare 'kimi' / 'moonshot' route to the current flagship
   // K3. 'k2' stays on the K2 line (K2.7 Code, the value agentic coder); the
-  // 'k2.7'/'k2.6'/'k2.5' aliases pin the older models explicitly.
+  // 'k2.7'/'k2.6' aliases pin the older models explicitly. k2.5 is gone:
+  // Moonshot switches it off on 2026-08-31.
   'kimi': 'kimi-k3',
   'k3': 'kimi-k3',
   'k2': 'kimi-k2.7-code',
   'k2.7': 'kimi-k2.7-code',
   'k2.6': 'kimi-k2.6',
-  'k2.5': 'kimi-k2.5',
   'moonshot': 'kimi-k3',
   // MiniMax (BYOK chat, M3 only) — bare 'minimax'/'m3' route to M3.
   'minimax': 'MiniMax-M3',

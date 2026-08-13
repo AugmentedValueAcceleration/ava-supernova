@@ -45,7 +45,6 @@ const BYOK_PRIORITY = [
   { id: 'kimi-k3',              reason: 'Kimi K3 — Moonshot frontier model, 2.8T MoE, 1M context, leads agentic + browsing benchmarks' },
   { id: 'kimi-k2.7-code',       reason: 'Kimi K2.7 Code — Moonshot flagship agentic coder, ~30% fewer reasoning tokens than K2.6, 256K context' },
   { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — agentic coding fallback (SWE-Bench Pro 58.6), 256K context' },
-  { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — legacy agentic fallback' },
   { id: 'deepseek-v4-pro',      reason: 'DeepSeek V4 Pro — frontier coding + long-context reasoning' },
   { id: 'qwen3.7-plus',         reason: 'Qwen 3.7 Plus — flagship Maestro coordinator: #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },
   { id: 'glm-5.2',              reason: 'Zhipu GLM-5.2 — open-weights, 1M context, tools + vision' },

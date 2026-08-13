@@ -25,7 +25,7 @@ export interface ClassificationResult {
 // ─── Model Routing ───────────────────────────────────────────────────────────
 
 export interface RouteResult {
-  /** Qualified model ID e.g. 'platform:kimi-k2.5' */
+  /** Qualified model ID e.g. 'platform:kimi-k3' */
   modelId: string;
   provider: Provider;
   model: ModelDefinition;

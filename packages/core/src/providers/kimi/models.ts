@@ -58,18 +58,4 @@ export const KIMI_MODELS: ModelDefinition[] = [
     hiddenFromPicker: true, // superseded by Kimi K2.7 Code — kept for routing/fallback only
     pricing: { inputPerMillion: 0.95, outputPerMillion: 4.00 },
   },
-  {
-    id: 'kimi-k2.5',
-    name: 'Kimi K2.5',
-    provider: 'kimi',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    desktopCapable: true,
-    hiddenFromPicker: true, // superseded by Kimi K2.7 Code — kept for routing/fallback only
-    pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
-  },
 ];

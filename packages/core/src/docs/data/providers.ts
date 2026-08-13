@@ -160,7 +160,6 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'kimi-k3', displayName: 'Kimi K3', inputPricePerM: 3.00, outputPricePerM: 15.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.7-code', displayName: 'Kimi K2.7 Code', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.6', displayName: 'Kimi K2.6', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'kimi-k2.5', displayName: 'Kimi K2.5', inputPricePerM: 0.60, outputPricePerM: 3.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {
