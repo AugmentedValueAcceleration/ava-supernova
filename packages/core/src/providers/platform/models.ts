@@ -152,8 +152,11 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: false,
     desktopCapable: true, // Supernova coordinator. Frontier tool-call reliability.
-    // Corrected from $1.74/$3.48 (4× too high) — real DeepSeek API rate.
-    pricing: { inputPerMillion: 0.435, outputPerMillion: 0.87 },
+    // Off-peak rate from the 2026-08-16 tariff; peak (01:00-04:00 and
+    // 06:00-10:00 UTC) is double. Platform-served, so this is OUR cost —
+    // the credit multiplier in billing/credits.ts is derived from measured
+    // traffic against these numbers, not from the list price alone.
+    pricing: { inputPerMillion: 0.66, outputPerMillion: 1.98 },
   },
   // DeepSeek V4 Flash (managed) — admin-gated. 284B / 13B active. 1M ctx.
   // Not desktop-capable: Flash bracket on the V4 line, same caution as
@@ -168,7 +171,8 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: false,
-    pricing: { inputPerMillion: 0.14, outputPerMillion: 0.28 },
+    // Off-peak; peak doubles it. Same 2026-08-16 tariff as V4 Pro.
+    pricing: { inputPerMillion: 0.22, outputPerMillion: 0.66 },
   },
   // Mistral Small 4 (managed, platform key) — Aurora's Builder spawn.
   // Unified Magistral + Pixtral + Devstral merge: vision-aware, agentic

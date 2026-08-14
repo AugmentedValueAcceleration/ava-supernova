@@ -137,13 +137,31 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // only the margin moved. The 2026-07-19 header noted this recalibration but
   // the numbers were never actually scaled — this completes it.
   //
-  // V4 Pro — Supernova coordinator. Real price $0.435/$0.87 (was mis-set 4×
-  // high once; corrected). 0.77 → 0.66.
-  'deepseek-v4-pro':            0.66,
-  'deepseek-v4-pro-platform':   0.66,
-  // V4 Flash — Supernova's chat tier. $0.14/$0.28. 0.43 → 0.37.
-  'deepseek-v4-flash':            0.37,
-  'deepseek-v4-flash-platform':   0.37,
+  // DeepSeek repriced on 2026-08-16 16:00 UTC and split the tariff into peak
+  // (01:00-04:00 + 06:00-10:00 UTC) and off-peak, peak being exactly 2×.
+  //
+  // These two multipliers are the only ones in this table derived from
+  // MEASURED traffic rather than list price. 2140 real calls (2026-05-24 →
+  // 08-11) were re-priced hour by hour under both tariffs:
+  //
+  //   peak exposure   2.2% of input tokens   (a uniform clock would give 29.2%)
+  //   V4 Pro          cost ×1.556  →  0.66 × 1.556 = 1.03
+  //   V4 Flash        cost ×1.686  →  0.37 × 1.686 = 0.62
+  //
+  // Peak exposure is that low because our users work European daytime, which
+  // is DeepSeek's quiet window. It is a real, measured advantage and NOT a
+  // safe assumption to carry forward — if usage spreads to other timezones,
+  // re-measure before trusting these. The 2× peak tariff means the worst case
+  // is roughly double.
+  //
+  // Estimating from list price alone would have got BOTH wrong: the formula
+  // used elsewhere in this table weights output 4× input, but real DeepSeek
+  // turns run about 200:1 input-to-output, so the input line is what matters
+  // and the output rise (which looked alarming at +128%) barely registers.
+  'deepseek-v4-pro':            1.03,
+  'deepseek-v4-pro-platform':   1.03,
+  'deepseek-v4-flash':            0.62,
+  'deepseek-v4-flash-platform':   0.62,
   // Qwen 3.7 Plus — Maestro conductor. $0.40/$1.60. 0.6 → 0.51.
   'qwen3.7-plus':               0.51,
   'qwen-plus':                  0.51,  // legacy DashScope alias

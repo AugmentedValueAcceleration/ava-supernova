@@ -24,11 +24,21 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     // attach button and to strike through the paperclip in the model picker.
     supportsVision: false,
     desktopCapable: true, // V4 Pro = Supernova's coordinator. Frontier tool-call reliability.
-    // Artificial Analysis Intelligence Index 52 (median 31). Price verified
-    // against api.deepseek.com + Artificial Analysis: $0.435/$0.87 — the prior
-    // $1.74/$3.48 was 4× too high, which over-charged the Supernova coordinator
-    // on every turn via the credit multiplier.
-    pricing: { inputPerMillion: 0.435, outputPerMillion: 0.87 },
+    // Artificial Analysis Intelligence Index 52 (median 31).
+    //
+    // Repriced by DeepSeek on 2026-08-16 16:00 UTC, which also split the
+    // tariff by time of day: peak is 01:00-04:00 and 06:00-10:00 UTC, and
+    // costs exactly 2× off-peak on every line (in, out and cache).
+    //
+    //   off-peak  $0.66 in / $1.98 out   (cache hit $0.022)
+    //   peak      $1.32 in / $3.96 out   (cache hit $0.044)
+    //
+    // We record OFF-PEAK because it applies for 17 hours of every 24, and
+    // because 97.8% of our measured token spend lands outside the peak
+    // window — our users work European daytime, which is DeepSeek's quiet
+    // time. A BYOK user in another timezone can pay up to double, so the
+    // models page carries the peak rate alongside this one.
+    pricing: { inputPerMillion: 0.66, outputPerMillion: 1.98 },
   },
   {
     id: 'deepseek-v4-flash',
@@ -40,6 +50,8 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: false,
-    pricing: { inputPerMillion: 0.14, outputPerMillion: 0.28 },
+    // Off-peak, on the same 2026-08-16 tariff as V4 Pro. Peak doubles it to
+    // $0.44/$1.32 between 01:00-04:00 and 06:00-10:00 UTC.
+    pricing: { inputPerMillion: 0.22, outputPerMillion: 0.66 },
   },
 ];
