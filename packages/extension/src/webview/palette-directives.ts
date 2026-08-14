@@ -80,14 +80,24 @@ export function buildPaletteDirective(tool: PaletteTool, action: string): Palett
           CONFIRM,
       };
     case 'learning.create':
+      // Hands off for the same reason as the health plans below: curriculums
+      // are built and taught in the Learning room, which holds the course
+      // catalogue and the user's progress. This used to instruct
+      // learning_teach + learning_create in the main chat, neither of which
+      // is in the main chat's tool list.
       return {
         label: 'New learning path',
         directive:
           '[Palette action] The user clicked "New learning path" in the command palette. ' +
-          'Their intent is confirmed. First use learning_teach with action=assess to gauge the ' +
-          'user\'s level, then learning_create. Gather the subject, level ' +
-          '(beginner/intermediate/advanced/mixed) and goal before creating. ' +
-          CONFIRM,
+          'Their intent is confirmed — do NOT ask whether they want to learn something.\n\n' +
+          'Curriculums are built in the LEARNING ROOM, not here. Do NOT assess their level, ' +
+          'gather a subject and goal, or call learning_create — the room does all of that with ' +
+          'their progress and the course catalogue loaded.\n' +
+          '1. Call `open_learning_room`. If they have already said what they want to learn, pass ' +
+          'it as `topic`, and pass anything specific they gave (current level, goal, why they ' +
+          'want it) as `primer`, written in the FIRST PERSON as their opening message to the ' +
+          'room. Omit both if nothing specific has been said.\n' +
+          '2. Say one short, warm line alongside the button.',
       };
     case 'creative.image':
     case 'creative.music':
@@ -113,19 +123,20 @@ export function buildPaletteDirective(tool: PaletteTool, action: string): Palett
 }
 
 /** Health-plan palette directives — three shapes sharing one template, with
- *  the plan type locked in by which button the user clicked. Generation is
- *  SERVER-SIDE: Ava gathers the inputs, confirms (with the credit cost), and
- *  calls `health_plan_create` with NO inline days. The plan engine then
- *  builds the whole plan from the exercise/recipe library (items link to
- *  technique guides + live nutrition) and charges one flat fee. */
+ *  the plan type locked in by which button the user clicked.
+ *
+ *  These HAND OFF. Plans are built in the Health room, which is where the
+ *  exercise/recipe catalogue and the user's health profile are loaded; the
+ *  main chat does not build them and does not carry the tools to.
+ *
+ *  This used to walk the main chat through gathering a title, duration and
+ *  status and then calling `health_plan_create` directly — a tool the main
+ *  chat's tool list does not include. Its own description says "do NOT
+ *  attempt to build the plan yourself in the main chat". So the button
+ *  instructed an action Ava could not take, and left her to improvise. */
 function makeHealthPlanDirective(type: 'meal' | 'fitness' | 'combined'): PaletteDirective {
   const LABELS = { meal: 'Meal plan', fitness: 'Fitness plan', combined: 'Combined plan' } as const;
   const label = LABELS[type];
-  const perWeek = type === 'combined' ? 10 : 5;
-  // Priced by the DAY at the weekly rate now, rounded up — a one-day plan no
-  // longer costs what a seven-day plan costs. Quoting the old whole-week figure
-  // here would have Ava confidently tell someone the wrong price.
-  const costFor = (days: number) => Math.max(1, Math.ceil((days * perWeek) / 7));
 
   return {
     label,
@@ -133,21 +144,14 @@ function makeHealthPlanDirective(type: 'meal' | 'fitness' | 'combined'): Palette
       `[Palette action] The user clicked "${label}" in the command palette. ` +
       `Their intent is confirmed — do NOT ask whether they want a plan, and do NOT ask the type ` +
       `(${type} is locked in).\n\n` +
-      `Ava's plan engine builds the whole plan for you from the user's exercise/recipe library and ` +
-      `charges one flat fee. You do NOT design the plan yourself, search the catalogue, or fill days — ` +
-      `just gather the inputs, confirm, and create.\n` +
-      `1. Ask the user for: (a) a clear title; (b) duration in days — 1, 3 or 7. Short plans are the ` +
-      `default on purpose: people finish them, and REPEATING a finished plan advances it from what ` +
-      `they actually logged, which is how a programme gets built out of evidence rather than guesswork. ` +
-      `Longer blocks (28, 56, 84) still work if they insist; (c) an optional free-text goal; ` +
-      `(d) status — \`draft\` (save without starting) or ` +
-      `\`active\` (begin today; archives any existing active ${type} plan). Status has NO DEFAULT — ask explicitly.\n` +
-      `2. CONFIRM the summary before creating, and TELL THEM THE COST: ` +
-      `1 day = ${costFor(1)} credit${costFor(1) === 1 ? '' : 's'}, 3 days = ${costFor(3)}, 1 week = ${costFor(7)}. ` +
-      `When status=active, name the plan that will be archived if any.\n` +
-      `3. Call \`health_plan_create\` with \`type\`, \`title\`, \`goal\`, \`duration_days\` and \`status\` ` +
-      `and NO \`days\` array — the engine generates and prices the full plan from the library. Do NOT call ` +
-      `\`health_plan_update_day\` as part of creation; it is only for later manual edits.\n\n` +
-      CONFIRM,
+      `Plans are built in the HEALTH ROOM, not here. Do NOT ask for a title, duration or status, ` +
+      `and do NOT call \`health_plan_create\` — the room asks for all of that with their profile ` +
+      `and the catalogue in front of it.\n` +
+      `1. Call \`open_health_room\` with \`plan_type\`="${type}". If the conversation already ` +
+      `contains anything specific about what they want — a goal, their schedule, equipment, ` +
+      `dietary needs, injuries — pass it as \`primer\`, written in the FIRST PERSON as their ` +
+      `opening message to the room, so it picks up the thread instead of starting cold. ` +
+      `Omit \`primer\` if they have said nothing specific yet.\n` +
+      `2. Say one short, warm line alongside the button. Do not narrate the handoff at length.`,
   };
 }
