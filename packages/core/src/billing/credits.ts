@@ -158,13 +158,28 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // used elsewhere in this table weights output 4× input, but real DeepSeek
   // turns run about 200:1 input-to-output, so the input line is what matters
   // and the output rise (which looked alarming at +128%) barely registers.
-  'deepseek-v4-pro':            1.03,
-  'deepseek-v4-pro-platform':   1.03,
-  'deepseek-v4-flash':            0.62,
-  'deepseek-v4-flash-platform':   0.62,
-  // Qwen 3.7 Plus — Maestro conductor. $0.40/$1.60. 0.6 → 0.51.
-  'qwen3.7-plus':               0.51,
-  'qwen-plus':                  0.51,  // legacy DashScope alias
+  //
+  // SECOND PASS, same day. The first pass scaled the OLD multiplier by the
+  // cost ratio, which holds the previous margin — including any calibration
+  // error already in it. There was one. Re-derived by holding charge-to-cost
+  // constant against the Medium 3.5 anchor across 9782 logged calls (539
+  // token-less error rows excluded), which accounts for the 4× output
+  // weighting in BOTH this multiplier and the bracket count:
+  //
+  //   V4 Pro    2081 calls, 240:1   1.03 → 1.35   (was undercharged)
+  //   V4 Flash    52 calls,  30:1   0.62 → 0.44   (was overcharged)
+  //
+  // V4 Flash's 52 calls are a thin sample — revisit as its volume grows.
+  'deepseek-v4-pro':            1.35,
+  'deepseek-v4-pro-platform':   1.35,
+  'deepseek-v4-flash':            0.44,
+  'deepseek-v4-flash-platform':   0.44,
+  // Qwen 3.7 Plus — Maestro conductor. $0.40/$1.60. Was 0.6 → 0.51 by the
+  // 6/7 margin rescale, and that inherited a bad hand-calibration: measured
+  // over 866 real calls at a 40:1 mix, holding charge-to-cost against the
+  // anchor gives 0.82. The largest single miss in this table.
+  'qwen3.7-plus':               0.82,
+  'qwen-plus':                  0.82,  // legacy DashScope alias
   // Qwen 3.7 Max — heavy flagship, opened to account credits 2026-07-23.
   // $2.50/$7.50 → 0.4952 × (2.50 + 4×7.50)/5 = 3.22. Priciest Qwen we serve.
   // Qwen 3.8 Max — the flagship from 2026-08-03. $2.00/$6.00, so the same
