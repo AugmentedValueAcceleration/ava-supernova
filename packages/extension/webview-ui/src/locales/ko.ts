@@ -4,7 +4,7 @@ export const koStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '코드에 대해 무엇이든 물어보세요.',
-  'welcome.tagline': '60+개 도구 · 7개 공급자 · 2개 무료 모델 · 20개 언어',
+  'welcome.tagline': '110+개 도구 · 7개 공급자 · 2개 무료 모델 · 20개 언어',
 
   // Welcome — Setup
   'welcome.setup_title': '시작하기 — API 키 추가',
@@ -301,7 +301,7 @@ export const koStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': '브레인스토밍',
   'welcome.mode.brainstorm_desc': '아이디어 발상 및 창의적 사고',
-  'input.mode.code.desc': 'Ava 가 대신 만들어 줍니다. 모든 60 개 도구를 사용해 코드를 읽고, 작성하고 실행합니다.',
+  'input.mode.code.desc': 'Ava 가 대신 만들어 줍니다. 모든 110 개 도구를 사용해 코드를 읽고, 작성하고 실행합니다.',
   'input.mode.plan.desc': 'Ava 는 아무것도 건드리기 전에 먼저 계획을 수립합니다. 읽기 전용 — 파일 변경 없음.',
   'input.mode.brainstorm.desc': 'Ava 와 함께 아이디어를 나눕니다. 5 명의 전문가가 탐색하고, 다듬고, 도전합니다.',
   'input.mode.chat.desc': '친구 같은 Ava. 메모리, 검색, 저널, 날씨, 뉴스 — 도구 없이, 대화만 합니다.',

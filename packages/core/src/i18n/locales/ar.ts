@@ -2067,7 +2067,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'دردشة مع Ava',
   'dash.nav.sync': 'مزامنة',
   'dash.nav.releases': 'الإصدارات',
-  'welcome.tagline': '60+ أدوات · 7 مقدمي خدمات · 2 نموذج مجاني · 20 لغة',
+  'welcome.tagline': '110+ أدوات · 7 مقدمي خدمات · 2 نموذج مجاني · 20 لغة',
   'welcome.setup_title': 'ابدأ — أضف مفتاح API',
   'welcome.setup_desc': 'اشترك للحصول على 3 ملايين رمز Qwen مجاني، أو أضف مفتاح API خاص بك من أي مقدم خدمة.',
   'welcome.setup_cta': 'فتح الإعدادات',

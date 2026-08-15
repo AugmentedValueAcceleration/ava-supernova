@@ -2067,7 +2067,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Trò chuyện với Ava',
   'dash.nav.sync': 'Đồng bộ',
   'dash.nav.releases': 'Phiên bản',
-  'welcome.tagline': '60+ công cụ · 7 nhà cung cấp · 2 mô hình Free · 20 ngôn ngữ',
+  'welcome.tagline': '110+ công cụ · 7 nhà cung cấp · 2 mô hình Free · 20 ngôn ngữ',
   'welcome.setup_title': 'Bắt đầu — Thêm khóa API',
   'welcome.setup_desc': 'Đăng ký nhận 3M token Qwen Free, hoặc thêm khóa API của riêng bạn từ bất kỳ nhà cung cấp nào.',
   'welcome.setup_cta': 'Mở Cài đặt',

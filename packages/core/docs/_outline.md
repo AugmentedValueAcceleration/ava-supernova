@@ -33,7 +33,7 @@ The **Beginner/Everything toggle** collapses this whole doc to just section 1 + 
 
 Collapsed when the audience toggle is set to Beginner.
 
-- **3.1 Tool reference** — all 60 tools, 10 categories, risk badges, one-line descriptions, filterable by category/risk. `data: tools.ts`
+- **3.1 Tool reference** — all 110 tools, 10 categories, risk badges, one-line descriptions, filterable by category/risk. `data: tools.ts`
 - **3.2 Provider and model matrix** — managed (Qwen, MiniMax) vs BYOK (Anthropic, DeepSeek, Kimi, Mistral, Zhipu). Pricing, context, capabilities. `data: providers.ts`
 - **3.3 Persona orchestration** — 24 specialists, 5 teams, Conductor dispatch, wave execution. `data: personas.ts`
 - **3.4 CLI commands** — REPL commands (`/help`, `/mode`, `/model`, `/clear`, etc.), flags.

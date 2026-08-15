@@ -58,7 +58,7 @@ export const enStrings = {
   'input.mode.security': 'Security',
   'input.mode.write': 'Write',
   // Plain-English mode descriptions for non-coders. Surfaced in the mode picker.
-  'input.mode.code.desc': 'Ava builds it for you. Reads, writes, and runs code with 60+ tools.',
+  'input.mode.code.desc': 'Ava builds it for you. Reads, writes, and runs code with 110+ tools.',
   'input.mode.plan.desc': 'Ava maps it out before touching anything. Read-only \u2014 no file changes.',
   'input.mode.brainstorm.desc': 'Ava throws ideas with you. Five specialists explore, refine, and challenge.',
   'input.mode.chat.desc': 'Ava as a friend, off the clock. Memory, search, journal, weather, news \u2014 no coding tools.',

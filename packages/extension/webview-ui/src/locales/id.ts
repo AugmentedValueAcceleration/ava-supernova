@@ -4,7 +4,7 @@ export const idStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Tanyakan apa saja tentang kode Anda.',
-  'welcome.tagline': '60+ alat · 7 provider · 2 model gratis · 20 bahasa',
+  'welcome.tagline': '110+ alat · 7 provider · 2 model gratis · 20 bahasa',
 
   // Welcome — Setup
   'welcome.setup_title': 'Mulai — Tambahkan Kunci API',
@@ -301,7 +301,7 @@ export const idStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Curah Ide',
   'welcome.mode.brainstorm_desc': 'Ideasi & pemikiran kreatif',
-  'input.mode.code.desc': 'Ava membuatnya untuk Anda. Membaca, menulis, dan menjalankan kode dengan semua 60 alat.',
+  'input.mode.code.desc': 'Ava membuatnya untuk Anda. Membaca, menulis, dan menjalankan kode dengan semua 110 alat.',
   'input.mode.plan.desc': 'Ava memetakannya sebelum menyentuh apa pun. Hanya baca — tidak ada perubahan file.',
   'input.mode.brainstorm.desc': 'Ava berbagi ide dengan Anda. Lima spesialis mengeksplorasi, menyempurnakan, dan menantang.',
   'input.mode.chat.desc': 'Ava sebagai teman. Memori, pencarian, jurnal, cuaca, berita — tanpa alat, hanya ngobrol.',

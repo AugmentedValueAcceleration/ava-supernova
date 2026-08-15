@@ -2067,7 +2067,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Ava के साथ चैट करें',
   'dash.nav.sync': 'सिंक',
   'dash.nav.releases': 'रिलीज़',
-  'welcome.tagline': '60+ टूल्स · 7 प्रोवाइडर्स · 2 मुफ्त मॉडल · 20 भाषाएं',
+  'welcome.tagline': '110+ टूल्स · 7 प्रोवाइडर्स · 2 मुफ्त मॉडल · 20 भाषाएं',
   'welcome.setup_title': 'शुरुआत करें — API कुंजी जोड़ें',
   'welcome.setup_desc': '3M मुफ्त Qwen टोकन के लिए साइन अप करें, या किसी भी प्रोवाइडर से अपनी API कुंजी जोड़ें।',
   'welcome.setup_cta': 'सेटिंग्स खोलें',

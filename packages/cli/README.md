@@ -2,7 +2,7 @@
 
 **The open-source AI coding agent, in your terminal.**
 
-`@ava/cli` is the terminal surface of [Ava Supernova](https://avasupernova.com) — a full agentic coding agent with 60+ tools, 7 modes, and 24 specialist personas, running the same `@ava/core` engine as the VS Code extension and the desktop IDE. She reads your codebase, plans the work, executes it task by task, and remembers what she learns across sessions.
+`@ava/cli` is the terminal surface of [Ava Supernova](https://avasupernova.com) — a full agentic coding agent with 110+ tools, 7 modes, and 24 specialist personas, running the same `@ava/core` engine as the VS Code extension and the desktop IDE. She reads your codebase, plans the work, executes it task by task, and remembers what she learns across sessions.
 
 > **No account, no credit card, no trial.** Bring your own API key and run fully local — or sign up for **300 free credits a month**.
 

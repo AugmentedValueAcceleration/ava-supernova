@@ -2047,7 +2047,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Gespräch mit Ava',
   'dash.nav.sync': 'Synchronisieren',
   'dash.nav.releases': 'Veröffentlichungen',
-  'welcome.tagline': '60+ Werkzeuge · 7 Anbieter · 2 Free Modelle · 20 Sprachen',
+  'welcome.tagline': '110+ Werkzeuge · 7 Anbieter · 2 Free Modelle · 20 Sprachen',
   'welcome.setup_title': 'Erste Schritte — API-Schlüssel hinzufügen',
   'welcome.setup_desc': 'Registriere dich für 3 Millionen Free Qwen-Token, oder füge deinen eigenen API-Schlüssel von einem beliebigen Anbieter hinzu.',
   'welcome.setup_cta': 'Einstellungen öffnen',

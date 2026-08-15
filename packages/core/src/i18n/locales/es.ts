@@ -2039,7 +2039,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Conversación con Ava',
   'dash.nav.sync': 'Sincronizar',
   'dash.nav.releases': 'Lanzamientos',
-  'welcome.tagline': '60+ herramientas · 7 proveedores · 2 modelos gratis · 20 idiomas',
+  'welcome.tagline': '110+ herramientas · 7 proveedores · 2 modelos gratis · 20 idiomas',
   'welcome.setup_title': 'Comenzar — Agregar una clave API',
   'welcome.setup_desc': 'Regístrate para obtener 3M de tokens Qwen gratis, o agrega tu propia clave API desde cualquier proveedor.',
   'welcome.setup_cta': 'Abrir Configuración',

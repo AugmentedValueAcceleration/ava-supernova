@@ -4,7 +4,7 @@ export const trStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Kodunuz hakkında her şeyi sorun.',
-  'welcome.tagline': '60+ araç · 7 sağlayıcı · 2 ücretsiz model · 20 dil',
+  'welcome.tagline': '110+ araç · 7 sağlayıcı · 2 ücretsiz model · 20 dil',
 
   // Welcome — Setup
   'welcome.setup_title': 'Başlayın — API Anahtarı Ekleyin',
@@ -301,7 +301,7 @@ export const trStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Beyin Fırtınası',
   'welcome.mode.brainstorm_desc': 'Fikir üretimi ve yaratıcı düşünme',
-  'input.mode.code.desc': 'Ava bunu sizin için oluşturur. Tüm 60 araçla kod okur, yazar ve çalıştırır.',
+  'input.mode.code.desc': 'Ava bunu sizin için oluşturur. Tüm 110 araçla kod okur, yazar ve çalıştırır.',
   'input.mode.plan.desc': 'Ava hiçbir şeye dokunmadan önce yolunu çizer. Salt okunur — dosya değişikliği yok.',
   'input.mode.brainstorm.desc': 'Ava sizinle fikirler üretir. Beş uzman keşfeder, geliştirir ve sorgular.',
   'input.mode.chat.desc': 'Arkadaş gibi Ava. Hafıza, arama, günlük, hava durumu, haberler — araç yok, sadece sohbet.',

@@ -4,7 +4,7 @@ export const viStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Hỏi bất kỳ điều gì về mã nguồn của bạn.',
-  'welcome.tagline': '60+ công cụ · 7 nhà cung cấp · 2 mô hình miễn phí · 20 ngôn ngữ',
+  'welcome.tagline': '110+ công cụ · 7 nhà cung cấp · 2 mô hình miễn phí · 20 ngôn ngữ',
 
   // Welcome — Setup
   'welcome.setup_title': 'Bắt đầu — Thêm khóa API',
@@ -301,7 +301,7 @@ export const viStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Động não',
   'welcome.mode.brainstorm_desc': 'Ý tưởng & tư duy sáng tạo',
-  'input.mode.code.desc': 'Ava xây dựng giúp bạn. Đọc, viết và chạy mã với tất cả 60 công cụ.',
+  'input.mode.code.desc': 'Ava xây dựng giúp bạn. Đọc, viết và chạy mã với tất cả 110 công cụ.',
   'input.mode.plan.desc': 'Ava phác thảo trước khi thực hiện. Chỉ đọc — không thay đổi tệp.',
   'input.mode.brainstorm.desc': 'Ava cùng bạn đưa ra ý tưởng. Năm chuyên gia khám phá, tinh chỉnh và phản biện.',
   'input.mode.chat.desc': 'Ava như một người bạn. Bộ nhớ, tìm kiếm, nhật ký, thời tiết, tin tức — không công cụ, chỉ trò chuyện.',

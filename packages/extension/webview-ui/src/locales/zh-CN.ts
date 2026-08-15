@@ -4,7 +4,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '关于你的代码，随便问。',
-  'welcome.tagline': '60+ 个工具 · 7 个服务商 · 2 个免费模型 · 20 种语言',
+  'welcome.tagline': '110+ 个工具 · 7 个服务商 · 2 个免费模型 · 20 种语言',
 
   // Welcome — Setup
   'welcome.setup_title': '开始使用 — 添加 API 密钥',
@@ -301,7 +301,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': '头脑风暴',
   'welcome.mode.brainstorm_desc': '构思与创意思考',
-  'input.mode.code.desc': 'Ava 为你构建。使用全部 60 个工具读取、编写和运行代码。',
+  'input.mode.code.desc': 'Ava 为你构建。使用全部 110 个工具读取、编写和运行代码。',
   'input.mode.plan.desc': 'Ava 在行动前规划一切。只读模式——无文件更改。',
   'input.mode.brainstorm.desc': 'Ava 与你共创想法。五位专家探索、优化并提出挑战。',
   'input.mode.chat.desc': 'Ava 如友相伴。记忆、搜索、日记、天气、新闻——无工具，仅聊天。',

@@ -2067,7 +2067,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'แชทกับ Ava',
   'dash.nav.sync': 'ซิงค์',
   'dash.nav.releases': 'อัปเดต',
-  'welcome.tagline': '60+ เครื่องมือ · 7 ผู้ให้บริการ · 2 โมเดล Free · 20 ภาษา',
+  'welcome.tagline': '110+ เครื่องมือ · 7 ผู้ให้บริการ · 2 โมเดล Free · 20 ภาษา',
   'welcome.setup_title': 'เริ่มต้นใช้งาน — เพิ่มคีย์ API',
   'welcome.setup_desc': 'สมัครรับ 3M Qwen tokens Free หรือเพิ่มคีย์ API ของคุณเองจากผู้ให้บริการใดก็ได้',
   'welcome.setup_cta': 'เปิดการตั้งค่า',
