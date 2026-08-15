@@ -19,7 +19,7 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     // Text-only at the API level despite multimodal training — verified
-    // against api.deepseek.com docs. Server reroutes to qwen3.5-omni-plus
+    // against api.deepseek.com docs. Server reroutes to qwen3.7-plus
     // when an image is attached. The UI reads this flag to disable the
     // attach button and to strike through the paperclip in the model picker.
     supportsVision: false,

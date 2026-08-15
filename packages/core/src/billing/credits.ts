@@ -189,12 +189,10 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   'qwen3.8-max':                2.58,
   'qwen3.7-max':                3.22,
   'qwen3.5-plus':               0.44,
-  'qwen3.5-omni-plus':          0.44,
   // Qwen 3.5 Flash + Omni Flash — Maestro chat / image_gen / intent gate.
   // $0.05/$0.40 (Flash). 0.26 → 0.22 / 0.34 → 0.29.
   'qwen3.5-flash':              0.22,
   'qwen-flash':                 0.22,
-  'qwen3.5-omni-flash':         0.29,
   // Mistral Small 4 — Aurora's high-volume workhorse. $0.15/$0.60. 0.99 → 0.85.
   'mistral-small-4':            0.85,
   'mistral-small-4-platform':   0.85,

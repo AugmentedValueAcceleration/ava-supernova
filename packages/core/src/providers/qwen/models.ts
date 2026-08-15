@@ -65,6 +65,21 @@ export const QWEN_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    // FALSE IS DELIBERATE, AND THE NAME IS MISLEADING. This model DOES reason
+    // by default — measured 2026-08-16, 142 reasoning tokens on "reply with
+    // one word". So read as a capability claim, the flag is simply wrong.
+    //
+    // But the only thing it controls is whether agent.ts REPLAYS
+    // reasoning_content back to the provider on the next turn, and Qwen
+    // rejects that with a 422 (the companion route carries the same note:
+    // "reasoning_content is output-only — replaying it as input 422s on Qwen
+    // and Mistral and 400s on DeepSeek"). So false produces the correct
+    // behaviour — strip it — and flipping it to true to "fix" the label would
+    // start 422-ing every multi-turn Qwen conversation.
+    //
+    // If you want to stop this model reasoning, that is a different lever:
+    // enable_thinking: false on the request (see ChatCompletionRequest). The
+    // intent gate does exactly that.
     supportsThinking: false,
     supportsVision: false,
     pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
