@@ -663,7 +663,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.docs.getting_started': 'はじめに',
   'dash.docs.local_vs_cloud': 'ローカル vs クラウドモード',
   'dash.docs.modes': '6つのモード — 思考の状態',
-  'dash.docs.tools': '54のツール',
+  'dash.docs.tools': '110+のツール',
   'dash.docs.library': 'ライブラリ',
   'dash.docs.images_files': 'チャット内の画像とファイル',
   'dash.docs.personas': 'ペルソナ',

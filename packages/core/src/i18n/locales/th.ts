@@ -663,7 +663,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.docs.getting_started': 'เริ่มต้นใช้งาน',
   'dash.docs.local_vs_cloud': 'โหมดในเครื่อง vs คลาวด์',
   'dash.docs.modes': '6 โหมด — สถานะความคิด',
-  'dash.docs.tools': '54 เครื่องมือ',
+  'dash.docs.tools': '110+ เครื่องมือ',
   'dash.docs.library': 'คลัง',
   'dash.docs.images_files': 'รูปภาพและไฟล์ในแชท',
   'dash.docs.personas': 'เปอร์โซนา',
