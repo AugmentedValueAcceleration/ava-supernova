@@ -30,6 +30,24 @@ export interface ChatCompletionRequest {
   stream_options?: { include_usage: boolean };
   top_p?: number;
   stop?: string | string[];
+  /**
+   * Opt out of a hybrid model's reasoning pass.
+   *
+   * Several models we serve think by DEFAULT — Qwen 3.5 Flash and 3.7 Flash
+   * both do, despite 3.5 Flash carrying supportsThinking: false in our
+   * catalogue. Reasoning tokens bill as output and are generated before any
+   * answer appears, so on a classification the cost is entirely wasted:
+   * measured against the intent gate's own parameters, thinking produced 601
+   * output tokens where the same correct answer took 9.
+   *
+   * Note it is NOT bounded by max_tokens — the gate caps at 120 and still saw
+   * 601, because the reasoning pass is not charged against that budget.
+   *
+   * Leave undefined for anything that benefits from reasoning. Set false for
+   * classifiers, routers and gates, where latency ahead of the real work
+   * matters more than depth.
+   */
+  enable_thinking?: boolean;
 }
 
 // ─── Provider Configuration ──────────────────────────────────────────────────

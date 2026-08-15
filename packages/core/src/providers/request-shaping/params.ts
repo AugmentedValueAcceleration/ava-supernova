@@ -17,6 +17,9 @@ export interface ShapeableParams {
   tool_choice?: unknown;
   stream?: boolean;
   stream_options?: Record<string, unknown>;
+  /** Explicit opt-out of a hybrid model's reasoning pass. Undefined leaves the
+   *  provider default alone; false suppresses it. See ChatCompletionRequest. */
+  enable_thinking?: boolean;
 }
 
 /** Zhipu fast models that ship with thinking ON by default but where we want
@@ -58,6 +61,11 @@ export function shapeParams(
     ...(p.tools !== undefined && { tools: p.tools }),
     ...(p.tool_choice !== undefined && { tool_choice: p.tool_choice }),
     ...(p.stream && { stream_options: { include_usage: true, ...(p.stream_options || {}) } }),
-    ...(isZhipuFlash && { enable_thinking: false }),
+    // Zhipu Flash is forced off unconditionally (see above). Any other caller
+    // can opt out explicitly — classifiers and gates want the answer, not the
+    // reasoning, and the reasoning pass is not bounded by max_tokens.
+    ...(isZhipuFlash
+      ? { enable_thinking: false }
+      : p.enable_thinking !== undefined && { enable_thinking: p.enable_thinking }),
   };
 }

@@ -60,6 +60,11 @@ export abstract class BaseProvider implements Provider {
       tool_choice: request.tool_choice,
       stream: request.stream,
       stream_options: request.stream_options,
+      // Forwarded explicitly, like every field above — this list is an
+      // allow-list, so anything absent is silently dropped rather than
+      // rejected. A caller setting enable_thinking would otherwise see the
+      // flag ignored with no error anywhere.
+      enable_thinking: request.enable_thinking,
     });
   }
 
