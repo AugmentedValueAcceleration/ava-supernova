@@ -74,12 +74,19 @@ export function extractUsage(
     output_tokens?: number;
     cached_tokens?: number;
     prompt_cache_hit_tokens?: number;
+    /** OpenAI-standard nesting. Mistral reports the cache count ONLY here,
+     *  so a top-level-only read loses every Mistral call; DeepSeek and Kimi
+     *  populate both. Verified against all three live APIs 2026-08-15. */
+    prompt_tokens_details?: { cached_tokens?: number };
   } | null | undefined,
 ): RawTokenUsage | undefined {
   if (!usage) return undefined;
   const input = usage.input_tokens ?? usage.prompt_tokens;
   const output = usage.output_tokens ?? usage.completion_tokens;
-  const cached = usage.cached_tokens ?? usage.prompt_cache_hit_tokens;
+  // Nested first — it is the portable location.
+  const cached = usage.prompt_tokens_details?.cached_tokens
+    ?? usage.cached_tokens
+    ?? usage.prompt_cache_hit_tokens;
   if (input == null && output == null) return undefined;
   return {
     input: input ?? 0,
