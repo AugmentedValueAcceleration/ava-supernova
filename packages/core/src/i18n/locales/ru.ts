@@ -662,7 +662,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.docs.subtitle': 'Всё, что нужно знать об Ava Supernova IDE.',
   'dash.docs.getting_started': 'Начало работы',
   'dash.docs.local_vs_cloud': 'Локальный и облачный режимы',
-  'dash.docs.modes': '6 режимов — состояния мышления',
+  'dash.docs.modes': '7 режимов — состояния мышления',
   'dash.docs.tools': '110+ инструментов',
   'dash.docs.library': 'Библиотека',
   'dash.docs.images_files': 'Изображения и файлы в чате',

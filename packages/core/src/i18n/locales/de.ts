@@ -926,7 +926,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.docs.subtitle': 'Alles, was du über die Ava Supernova IDE wissen musst.',
   'dash.docs.getting_started': 'Erste Schritte',
   'dash.docs.local_vs_cloud': 'Lokal- vs. Cloud-Modus',
-  'dash.docs.modes': '6 Modi — Denkweisen',
+  'dash.docs.modes': '7 Modi — Denkweisen',
   'dash.docs.tools': '110+ Werkzeuge',
   'dash.docs.library': 'Bibliothek',
   'dash.docs.images_files': 'Bilder & Dateien im Chat',

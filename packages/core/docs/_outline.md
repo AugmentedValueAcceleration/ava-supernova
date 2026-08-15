@@ -23,7 +23,7 @@ The **Beginner/Everything toggle** collapses this whole doc to just section 1 + 
 
 ## 2. Core concepts — `[both]` surfaces: web, ext, ide
 
-- **2.1 The six modes** — what each mode changes about Ava's mindset and tool access. `data: modes.ts`
+- **2.1 The seven modes** — what each mode changes about Ava's mindset and tool access. `data: modes.ts`
 - **2.2 Memory — how Ava remembers you** — five-layer model in plain language (extract → reflect → accumulate → analyse → consolidate). When each layer runs.
 - **2.3 Tasks and journal** — what is each, when to use which, how they differ from memory.
 - **2.4 Permissions — three modes, ten categories** — Strict / Balanced / Autonomous matrix. `data: permissions.ts`

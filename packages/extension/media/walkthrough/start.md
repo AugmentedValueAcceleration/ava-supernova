@@ -2,7 +2,7 @@
 
 You're all set. Here's what Ava can do:
 
-## Six Modes — States of Thought
+## Seven Modes — States of Thought
 
 - **Work** (`>>`) — Builder mindset. Full agent with 110+ tools. Ava reads, writes, searches, and executes.
 - **Plan** (`::`) — Architect mindset. Read-only analysis. Ava reads your code and creates plans without modifying anything.

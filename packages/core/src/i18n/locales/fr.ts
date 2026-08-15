@@ -658,7 +658,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.docs.subtitle': 'Tout ce qu\u2019il faut savoir sur Ava Supernova IDE.',
   'dash.docs.getting_started': 'Premiers pas',
   'dash.docs.local_vs_cloud': 'Mode local vs cloud',
-  'dash.docs.modes': '6 modes \u2014 \u00c9tats de pens\u00e9e',
+  'dash.docs.modes': '7 modes \u2014 \u00c9tats de pens\u00e9e',
   'dash.docs.tools': '110+ outils',
   'dash.docs.library': 'Biblioth\u00e8que',
   'dash.docs.images_files': 'Images et fichiers dans le chat',

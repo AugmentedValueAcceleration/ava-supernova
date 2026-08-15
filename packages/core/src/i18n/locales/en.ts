@@ -1485,7 +1485,7 @@ export const enStrings = {
   'dash.docs.search_placeholder': 'Search docs...',
   'dash.docs.getting_started': 'Getting Started',
   'dash.docs.local_vs_cloud': 'Local vs Cloud Mode',
-  'dash.docs.modes': '6 Modes — States of Thought',
+  'dash.docs.modes': '7 Modes — States of Thought',
   'dash.docs.tools': '110+ Tools',
   'dash.docs.library': 'Library',
   'dash.docs.images_files': 'Images & Files in Chat',

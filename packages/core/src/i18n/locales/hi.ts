@@ -662,7 +662,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.docs.subtitle': 'Ava Supernova IDE के बारे में सब कुछ जानें।',
   'dash.docs.getting_started': 'शुरू करें',
   'dash.docs.local_vs_cloud': 'Local बनाम Cloud मोड',
-  'dash.docs.modes': '6 मोड — विचार की अवस्थाएँ',
+  'dash.docs.modes': '7 मोड — विचार की अवस्थाएँ',
   'dash.docs.tools': '110+ टूल',
   'dash.docs.library': 'लाइब्रेरी',
   'dash.docs.images_files': 'चैट में छवियाँ और फ़ाइलें',

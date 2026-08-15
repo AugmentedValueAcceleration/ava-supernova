@@ -3,7 +3,7 @@ export const enStrings = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Your open-source agentic coding assistant.',
-  'welcome.tagline': 'Every model \u00B7 Every tool \u00B7 6 modes \u00B7 Local-first',
+  'welcome.tagline': 'Every model \u00B7 Every tool \u00B7 7 modes \u00B7 Local-first',
 
   // Welcome — Setup
   'welcome.setup_title': 'Get Started — Sign in or bring your own keys',

@@ -1,7 +1,7 @@
 /**
  * Mode-Aware Recall — category weighting profiles per Ava mode.
  *
- * Each of Ava's 6 modes has a different recall profile that scales
+ * Each of Ava's 7 modes has a different recall profile that scales
  * category scores during graph-based recall. Work mode weights technical
  * memories heavily; Chat mode weights personal; Teach mode weights
  * learning progress; etc.

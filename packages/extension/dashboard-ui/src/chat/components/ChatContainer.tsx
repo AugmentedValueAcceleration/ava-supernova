@@ -202,7 +202,7 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
  * shown alongside the seeded welcome bubble until the user sends their
  * first message. Clicking a chip calls `onSuggestion(prompt)` which
  * (per Chat.tsx) prefills the input rather than auto-sending so the user
- * can edit before firing. Surfaces all six modes so brand-new users
+ * can edit before firing. Surfaces all seven modes so brand-new users
  * discover the mindset framework without reading docs.
  *
  * Visual: subtle gradient background, animated entrance, hover-lift on
