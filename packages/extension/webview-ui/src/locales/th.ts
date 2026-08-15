@@ -4,7 +4,7 @@ export const thStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'ถามอะไรก็ได้เกี่ยวกับโค้ดของคุณ',
-  'welcome.tagline': '110+ เครื่องมือ · 7 ผู้ให้บริการ · 2 โมเดลฟรี · 20 ภาษา',
+  'welcome.tagline': 'ทุกโมเดล · ทุกเครื่องมือ · 7 โหมด · เก็บในเครื่อง',
 
   // Welcome — Setup
   'welcome.setup_title': 'เริ่มต้น — เพิ่มคีย์ API',
@@ -301,7 +301,7 @@ export const thStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'ระดมสมอง',
   'welcome.mode.brainstorm_desc': 'การระดมความคิด & ความคิดสร้างสรรค์',
-  'input.mode.code.desc': 'Ava สร้างโค้ดให้คุณ อ่าน เขียน และรันโค้ดด้วยเครื่องมือทั้งหมด 60 ตัว',
+  'input.mode.code.desc': 'Ava สร้างโค้ดให้คุณ อ่าน เขียน และรันโค้ดด้วยเครื่องมือทั้งหมด 110+ตัว',
   'input.mode.plan.desc': 'Ava วางแผนก่อนแตะต้องอะไรเลย อ่านอย่างเดียว — ไม่มีการแก้ไขไฟล์',
   'input.mode.brainstorm.desc': 'Ava เสนอไอเดียร่วมกับคุณ ผู้เชี่ยวชาญ 5 คน สำรวจ ปรับปรุง และท้าทาย',
   'input.mode.chat.desc': 'Ava ในฐานะเพื่อน ความจำ ค้นหา บันทึก สภาพอากาศ ข่าว — ไม่มีเครื่องมือ แค่พูดคุย',

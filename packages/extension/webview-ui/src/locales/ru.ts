@@ -4,7 +4,7 @@ export const ruStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Задайте любой вопрос о вашем коде.',
-  'welcome.tagline': '110+ инструментов · 7 провайдеров · 2 бесплатные модели · 20 языков',
+  'welcome.tagline': 'Каждая модель · Каждый инструмент · 7 режимов · Работает локально',
 
   // Welcome — Setup
   'welcome.setup_title': 'Начать — Добавить API-ключ',
@@ -301,7 +301,7 @@ export const ruStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Мозговой штурм',
   'welcome.mode.brainstorm_desc': 'Генерация идей и креативное мышление',
-  'input.mode.code.desc': 'Ava создаёт это за вас. Читает, пишет и запускает код со всеми 110 инструментом.',
+  'input.mode.code.desc': 'Ava создаёт это за вас. Читает, пишет и запускает код со всеми 110+инструментом.',
   'input.mode.plan.desc': 'Ava составляет план перед любыми изменениями. Только чтение — без изменений файлов.',
   'input.mode.brainstorm.desc': 'Ava предлагает идеи вместе с вами. Пять специалистов исследуют, уточняют и оспаривают.',
   'input.mode.chat.desc': 'Ava как друг. Память, поиск, дневник, погода, новости — без инструментов, просто общение.',

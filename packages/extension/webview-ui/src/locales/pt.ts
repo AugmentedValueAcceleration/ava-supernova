@@ -4,7 +4,7 @@ export const ptStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Pergunte qualquer coisa sobre o seu c\u00f3digo.',
-  'welcome.tagline': '110+ ferramentas \u00b7 7 provedores \u00b7 2 modelos gratuitos \u00b7 20 idiomas',
+  'welcome.tagline': 'Todos os modelos · Todas as ferramentas · 7 modos · Prioridade local',
 
   // Welcome \u2014 Setup
   'welcome.setup_title': 'Come\u00e7ar \u2014 Adicionar uma chave API',
@@ -301,7 +301,7 @@ export const ptStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Tempestade de Ideias',
   'welcome.mode.brainstorm_desc': 'Geração de ideias e pensamento criativo',
-  'input.mode.code.desc': 'Ava constrói para você. Lê, escreve e executa código com todas as 110 ferramentas.',
+  'input.mode.code.desc': 'Ava constrói para você. Lê, escreve e executa código com todas as 110+ferramentas.',
   'input.mode.plan.desc': 'Ava mapeia tudo antes de tocar em qualquer coisa. Somente leitura — sem alterações nos arquivos.',
   'input.mode.brainstorm.desc': 'Ava propõe ideias com você. Cinco especialistas exploram, refinam e desafiam.',
   'input.mode.chat.desc': 'Ava como um amigo. Memória, busca, diário, clima, notícias — sem ferramentas, apenas conversa.',

@@ -4,7 +4,7 @@ export const hiStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'अपने कोड के बारे में कुछ भी पूछें।',
-  'welcome.tagline': '110+ टूल · 7 प्रोवाइडर · 2 मुफ़्त मॉडल · 20 भाषाएँ',
+  'welcome.tagline': 'हर मॉडल · हर टूल · 7 मोड · स्थानीय-पहला',
 
   // Welcome — Setup
   'welcome.setup_title': 'शुरू करें — API कुंजी जोड़ें',
@@ -301,7 +301,7 @@ export const hiStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'ब्रेनस्टॉर्म',
   'welcome.mode.brainstorm_desc': 'नई कल्पनाएं और रचनात्मक सोच',
-  'input.mode.code.desc': 'Ava इसे आपके लिए बनाती है। सभी 110 टूल्स के साथ कोड पढ़ती, लिखती और चलाती है।',
+  'input.mode.code.desc': 'Ava इसे आपके लिए बनाती है। सभी 110+टूल्स के साथ कोड पढ़ती, लिखती और चलाती है।',
   'input.mode.plan.desc': 'Ava कुछ भी बदलने से पहले योजना बनाती है। Read-only — कोई फ़ाइल परिवर्तन नहीं।',
   'input.mode.brainstorm.desc': 'Ava आपके साथ विचार साझा करती है। पांच विशेषज्ञ खोजते हैं, सुधारते हैं और चुनौती देते हैं।',
   'input.mode.chat.desc': 'Ava एक दोस्त की तरह। याददाश्त, खोज, डायरी, मौसम, समाचार — कोई टूल नहीं, सिर्फ बातचीत।',
