@@ -226,7 +226,7 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
  *
  *  All modes 1.0× as of the 2026-04-29 40% rebalance. Aurora used to
  *  carry a 1.3× bump to compensate for Medium 3.5's price; that's been
- *  folded into the per-model multiplier (Medium 3.5 = 4.25×) instead.
+ *  folded into the per-model multiplier (Medium 3.5 = 3.12×) instead.
  *  Per-model is the honest place to scale model cost — a BYOK user
  *  picking Medium 3.5 directly outside Aurora pays the same per-token
  *  rate the model genuinely costs us. The mode multiplier stays in the
