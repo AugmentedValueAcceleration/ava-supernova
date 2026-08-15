@@ -7,7 +7,15 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // varsIgnorePattern matters as much as argsIgnorePattern: the
+      // `const { signal: _ignored, ...rest } = init` idiom deliberately names a
+      // binding in order to DISCARD it, which is a destructured variable rather
+      // than an argument. Without this, the standard way to drop a key from an
+      // object is an error.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-console': 'off',

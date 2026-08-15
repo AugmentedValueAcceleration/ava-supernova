@@ -104,7 +104,7 @@ export class IntentClassifier {
   // Constructor accepts options purely for backwards compatibility with
   // call sites that still pass provider/model/timeoutMs. None are read.
   constructor(_opts: IntentClassifierOptions = {}) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+     
     void _opts;
   }
 

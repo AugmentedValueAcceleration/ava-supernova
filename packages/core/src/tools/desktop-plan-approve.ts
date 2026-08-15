@@ -110,7 +110,7 @@ export class DesktopPlanApproveTool implements Tool {
       requiresSecretHandle: false,
     };
 
-    let approved = false;
+    let approved;
     try {
       approved = await handler(this.name, { summary, steps }, classification);
     } catch (err) {

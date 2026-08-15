@@ -1795,11 +1795,16 @@ export class Agent {
           return { ...m, content: '' };
         }
         if (typeof m.content === 'string') {
-          // Strip all ANSI escape sequences and control characters that APIs reject
+          // Strip all ANSI escape sequences and control characters that APIs reject.
+          // no-control-regex is off for this block on purpose: matching control
+          // characters IS the job here, and removing them from the pattern would
+          // stop the sanitiser doing anything.
+          /* eslint-disable no-control-regex */
           const cleaned = m.content
             .replace(/\u001b\[[0-9;]*[a-zA-Z]/g, '')  // Standard ANSI escape codes
             .replace(/\u001b\][^\u0007]*\u0007/g, '')  // OSC sequences
             .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');  // Control chars (keep \n \r \t)
+          /* eslint-enable no-control-regex */
           if (cleaned !== m.content) return { ...m, content: cleaned };
         }
         return m;
@@ -1861,7 +1866,7 @@ export class Agent {
 
       let assistantMessage: AssistantMessage;
       let promptTokens: number;
-      let streamInterrupted = false;
+      let streamInterrupted;
       const estimatedInput = this.estimateTokenCount(messages);
       logger.debug(`[agent] Calling streamResponse (est. ${estimatedInput} input tokens, model context: ${this.model.contextWindow})`);
       try {
@@ -1916,10 +1921,12 @@ export class Agent {
       // Truncation between assistant tool_calls and tool results breaks the
       // message ordering that models require. Truncation happens after tool
       // results are appended, at the top of the next loop iteration.
-      if (false && promptTokens > 0 && promptTokens > this.model.contextWindow * 0.65) {
-        const targetTokens = Math.floor(this.model.contextWindow * 0.5);
-        messages = this.truncateMessages(messages, targetTokens);
-      }
+      //
+      // The truncation call that used to sit here was disabled with
+      // `if (false && ...)` rather than removed. Deleted now: the note above
+      // is the part worth keeping, and dead code behind a constant false is
+      // code that still has to compile, still gets read as if it might run,
+      // and cannot be tested.
 
       // If cancelled during streaming, stop immediately
       if (signal?.aborted) {

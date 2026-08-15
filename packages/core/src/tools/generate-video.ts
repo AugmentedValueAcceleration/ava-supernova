@@ -179,7 +179,7 @@ export class GenerateVideoTool implements Tool {
     const maxAttempts = 96; // ~8 min ceiling — well past a typical Wan clip
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(r => setTimeout(r, intervalMs));
-      let data: { status?: string; url?: string; error?: string } | null = null;
+      let data: { status?: string; url?: string; error?: string } | null;
       try {
         const res = await fetch(statusUrl, { headers: { 'Authorization': `Bearer ${key}` } });
         if (!res.ok) continue; // transient — keep polling

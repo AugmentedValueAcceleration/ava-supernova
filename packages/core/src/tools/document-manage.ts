@@ -411,7 +411,6 @@ export class DocumentManageTool implements Tool {
   ): Promise<ToolResult> {
     let docx: any;
     try {
-      // @ts-ignore — docx is an optional peer dependency
       docx = await import('docx');
     } catch {
       return { success: false, output: 'docx package is not installed. Install it with: npm install docx' };
@@ -461,7 +460,6 @@ export class DocumentManageTool implements Tool {
   private async readDocx(filePath: string): Promise<ToolResult> {
     let mammoth: any;
     try {
-      // @ts-ignore — mammoth is an optional peer dependency for reading docx
       mammoth = await import('mammoth');
     } catch {
       // Fallback: just report file exists
@@ -512,7 +510,6 @@ export class DocumentManageTool implements Tool {
   private async createXlsx(filePath: string, content?: SpreadsheetContent): Promise<ToolResult> {
     let ExcelJS: any;
     try {
-      // @ts-ignore — exceljs is an optional peer dependency
       ExcelJS = await import('exceljs');
     } catch {
       return { success: false, output: 'exceljs package is not installed. Install it with: npm install exceljs' };
@@ -559,7 +556,6 @@ export class DocumentManageTool implements Tool {
   private async readXlsx(filePath: string): Promise<ToolResult> {
     let ExcelJS: any;
     try {
-      // @ts-ignore — exceljs is an optional peer dependency
       ExcelJS = await import('exceljs');
     } catch {
       return { success: false, output: 'exceljs package is not installed. Install it with: npm install exceljs' };
@@ -592,7 +588,6 @@ export class DocumentManageTool implements Tool {
   private async editXlsx(filePath: string, content?: SpreadsheetContent): Promise<ToolResult> {
     let ExcelJS: any;
     try {
-      // @ts-ignore — exceljs is an optional peer dependency
       ExcelJS = await import('exceljs');
     } catch {
       return { success: false, output: 'exceljs package is not installed. Install it with: npm install exceljs' };
@@ -624,7 +619,7 @@ export class DocumentManageTool implements Tool {
   ): Promise<ToolResult> {
     let PDFDocument: any;
     try {
-      // @ts-ignore — pdfkit is an optional peer dependency
+      // @ts-expect-error — pdfkit is an optional peer dependency
       const pdfkit = await import('pdfkit');
       PDFDocument = pdfkit.default || pdfkit;
     } catch {
@@ -669,7 +664,6 @@ export class DocumentManageTool implements Tool {
   private async readPdf(filePath: string): Promise<ToolResult> {
     let pdfParse: any;
     try {
-      // @ts-ignore — pdf-parse is an optional peer dependency
       const mod = await import('pdf-parse') as any;
       pdfParse = mod.default || mod;
     } catch {

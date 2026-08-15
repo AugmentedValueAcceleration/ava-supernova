@@ -8,7 +8,7 @@
 // fast. No async wrapping needed; predictable behaviour matters more
 // than throughput here.
 
-import { existsSync, mkdirSync, appendFileSync, readFileSync, statSync, renameSync } from 'node:fs';
+import { existsSync, mkdirSync, appendFileSync, readFileSync, statSync, renameSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import type { AuditEntry, AuditFilter } from './types.js';
@@ -62,7 +62,6 @@ export function readEntries(filter: AuditFilter = {}): AuditEntry[] {
   // Archives oldest-first so when we sort newest-first at the end, the
   // newest entries (always in the live file) come out on top.
   try {
-    const { readdirSync } = require('node:fs') as typeof import('node:fs');
     const archives = readdirSync(AVA_DIR)
       .filter(f => f.startsWith('audit-log.archive-') && f.endsWith('.jsonl'))
       .sort();

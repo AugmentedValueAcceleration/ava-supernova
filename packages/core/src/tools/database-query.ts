@@ -64,7 +64,7 @@ function formatTable(columns: string[], rows: unknown[][]): string {
 async function queryPostgres(connStr: string, query: string): Promise<{ columns: string[]; rows: unknown[][] }> {
   let pg: any;
   try {
-    // @ts-ignore — pg is an optional peer dependency, only loaded at runtime
+    // @ts-expect-error — pg is an optional peer dependency, only loaded at runtime
     pg = await import('pg');
   } catch {
     throw new Error('pg is not installed. Install it with: npm install pg');
@@ -116,7 +116,6 @@ function querySqlite(dbPath: string, query: string, cwd: string): { columns: str
 async function queryMysql(connStr: string, query: string): Promise<{ columns: string[]; rows: unknown[][] }> {
   let mysql: any;
   try {
-    // @ts-ignore — mysql2 is an optional peer dependency, only loaded at runtime
     mysql = await import('mysql2/promise');
   } catch {
     throw new Error('mysql2 is not installed. Install it with: npm install mysql2');

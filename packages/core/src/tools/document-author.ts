@@ -19,7 +19,7 @@ import type { BrandTokens } from './authoring/doc-model.js';
 /** Optional-peer loaders — graceful when the package isn't installed. */
 async function loadDocx(): Promise<any> { return import('docx'); }
 async function loadPdf(): Promise<any> {
-  // @ts-ignore — pdfkit is an optional peer dependency (types may be absent)
+  // @ts-expect-error — pdfkit is an optional peer dependency (types may be absent)
   return import('pdfkit');
 }
 
@@ -271,7 +271,6 @@ export class DocumentAuthorTool implements Tool {
     }
     if (ext === '.docx') {
       try {
-        // @ts-ignore — mammoth is an optional peer dependency
         const mammoth = await import('mammoth');
         const r = await (mammoth as any).extractRawText({ path: abs });
         return { success: true, output: `${abs}\n\n${r.value.slice(0, 6000)}${r.value.length > 6000 ? '\n… truncated' : ''}` };
@@ -279,7 +278,6 @@ export class DocumentAuthorTool implements Tool {
     }
     if (ext === '.pdf') {
       try {
-        // @ts-ignore — pdf-parse is an optional peer dependency
         const mod = await import('pdf-parse');
         const pdfParse = (mod as any).default || mod;
         const data = await pdfParse(await readFile(abs));

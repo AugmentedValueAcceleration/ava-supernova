@@ -217,7 +217,7 @@ export async function gateDesktopAction(
           'Desktop mode requires the Ava IDE for irreversible / sensitive actions.',
       };
     }
-    let approved = false;
+    let approved;
     try {
       approved = await handler(toolName, args, classification);
     } catch (err) {

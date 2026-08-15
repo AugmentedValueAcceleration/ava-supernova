@@ -30,6 +30,9 @@ import type { DocMeta, BrandTokens, CalloutVariant } from './doc-model.js';
 /** Strip a leading `---\n…\n---` block and parse it into DocMeta. Returns the
  *  remaining body untouched when there's no front-matter. */
 export function parseFrontMatter(raw: string): { meta: DocMeta; body: string } {
+  // The BOM in this pattern is deliberate: frontmatter files genuinely begin
+  // with one and the parser has to match it to find the opening ---.
+  // eslint-disable-next-line no-irregular-whitespace
   const m = /^﻿?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(raw);
   if (!m) return { meta: {}, body: stripBom(raw) };
   return { meta: parseYamlLite(m[1]), body: raw.slice(m[0].length) };

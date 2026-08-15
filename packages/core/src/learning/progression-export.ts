@@ -13,7 +13,7 @@ export { buildCertificateMarkdown, buildCvMarkdown, type CvInput } from './progr
 // pdfkit is an optional peer of @ava/core (installed); loaded lazily only when
 // an export actually runs, so importing this module never eagerly pulls it.
 async function loadPdf(): Promise<unknown> {
-  // @ts-ignore — pdfkit types may be absent
+  // @ts-expect-error — pdfkit types may be absent
   return import('pdfkit');
 }
 

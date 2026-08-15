@@ -66,7 +66,7 @@ export const SECRET_PATTERNS = [
   /sk[-_](?:live|test|ant|proj)[_-]\S{10,}/i,          // Stripe, Anthropic, OpenAI-style keys
   /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}/,       // GitHub tokens
   /\bglpat-[A-Za-z0-9\-_]{20,}/,                        // GitLab PATs
-  /\bxox[baprs]-[A-Za-z0-9\-]{20,}/,                    // Slack tokens
+  /\bxox[baprs]-[A-Za-z0-9-]{20,}/,                    // Slack tokens
   /\beyJ[A-Za-z0-9\-_]{50,}\.[A-Za-z0-9\-_]{50,}/,     // JWT tokens
   /\b(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}\b/,            // AWS access keys
   /\bAIza[A-Za-z0-9\-_]{30,}/,                           // Google API keys

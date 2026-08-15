@@ -1179,7 +1179,7 @@ Should these tasks be executed as a plan? Output yes or no.`;
       const declared = extractChangesSummary(agentResult);
       if (declared && declared.files.length > 0) {
         try {
-          let verifyResult = await this.runPostBuildVerification(
+          const verifyResult = await this.runPostBuildVerification(
             declared.files,
             onEvent,
             signal,

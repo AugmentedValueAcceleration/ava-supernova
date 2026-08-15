@@ -141,7 +141,6 @@ export class BrowserTool implements Tool {
 
     let playwright: any;
     try {
-      // @ts-ignore — playwright is an optional peer dependency, only loaded at runtime
       playwright = await import('playwright');
     } catch {
       throw new Error(

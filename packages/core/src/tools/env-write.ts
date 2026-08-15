@@ -133,7 +133,7 @@ export async function isGitignored(projectRoot: string, relativePath: string): P
 
 /** Append `KEY=value` to `filePath`, replacing any existing line for `KEY`. */
 export async function upsertEnvLine(filePath: string, key: string, value: string): Promise<void> {
-  let body = '';
+  let body;
   try { body = await fs.readFile(filePath, 'utf-8'); } catch { body = ''; }
   const lines = body.split('\n');
   const re = new RegExp(`^${key}=`);

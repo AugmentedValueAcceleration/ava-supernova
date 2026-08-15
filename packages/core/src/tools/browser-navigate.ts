@@ -67,7 +67,7 @@ export class BrowserNavigateTool implements Tool {
       tickBudget(context);
       return {
         success: true,
-        output: `Navigated to ${result.url} — "${result.title}". Call browser_snapshot to see what\'s on the page.`,
+        output: `Navigated to ${result.url} — "${result.title}". Call browser_snapshot to see what's on the page.`,
         metadata: { url: result.url, title: result.title, classification: gate.classification },
       };
     } catch (err) {

@@ -100,7 +100,7 @@ export class NodeHealthPlanStore implements HealthPlanStore {
   }
 
   async list(): Promise<HealthPlanSummary[]> {
-    let entries: string[] = [];
+    let entries: string[];
     try {
       entries = await readdir(this.baseDir);
     } catch {

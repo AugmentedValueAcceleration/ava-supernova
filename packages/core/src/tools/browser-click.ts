@@ -20,7 +20,7 @@ export class BrowserClickTool implements Tool {
       properties: {
         selector: {
           type: 'string',
-          description: 'CSS selector from browser_snapshot (e.g. "button#login", \"a[href=\\\"/compose\\\"]\").',
+          description: `CSS selector from browser_snapshot (e.g. "button#login", 'a[href="/compose"]').`,
         },
         target_text: {
           type: 'string',

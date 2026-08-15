@@ -37,7 +37,7 @@ export class ScreenshotTool implements Tool {
       // Dynamic import — graceful error if not installed
       let screenshotDesktop: (options?: { screen?: number }) => Promise<Buffer>;
       try {
-        // @ts-ignore — screenshot-desktop is an optional peer dependency, only loaded at runtime
+        // @ts-expect-error — screenshot-desktop is an optional peer dependency, only loaded at runtime
         const mod = await import('screenshot-desktop');
         screenshotDesktop = (mod as any).default || mod;
       } catch {

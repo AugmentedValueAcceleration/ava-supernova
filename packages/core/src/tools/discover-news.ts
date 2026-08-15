@@ -199,7 +199,7 @@ export class DiscoverNewsTool implements Tool {
       ? String(args.freshness)
       : 'pd') as 'pd' | 'pw' | 'pm';
 
-    let hits: Awaited<ReturnType<NewsFeedFn>> = [];
+    let hits: Awaited<ReturnType<NewsFeedFn>>;
     let source: string;
 
     if (freeText) {

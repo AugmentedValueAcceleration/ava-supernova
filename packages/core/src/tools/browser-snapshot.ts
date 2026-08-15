@@ -15,7 +15,7 @@ export class BrowserSnapshotTool implements Tool {
     description:
       'Get the DOM-derived list of interactable elements on the current Ava browser page. ' +
       'Each element comes with a stable CSS selector you pass back to browser_click or browser_type. ' +
-      'This is the preferred way to \"see\" a web page in Desktop Automation mode — do NOT request a screenshot.',
+      'This is the preferred way to "see" a web page in Desktop Automation mode — do NOT request a screenshot.',
     parameters: {
       type: 'object',
       properties: {

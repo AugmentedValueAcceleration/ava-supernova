@@ -156,7 +156,7 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
     JSON.stringify([a.kind, a.target ?? '', a.params ?? {}]);
 
   try {
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
       if (signal?.aborted) { trajectory.outcome = 'stopped'; emit({ type: 'narrate', line: 'Stopped.' }); break; }
       if (budget.snapshot().breached) { trajectory.outcome = 'budget_exceeded'; break; }

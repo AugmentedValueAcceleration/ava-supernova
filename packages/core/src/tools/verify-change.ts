@@ -230,7 +230,7 @@ async function runTestCheck(check: Check, cwd: string): Promise<CheckResult> {
       message: 'No package.json — test runner cannot be selected',
     };
   }
-  let hasTestScript = false;
+  let hasTestScript;
   try {
     const pkg = JSON.parse(await readFile(pkgJsonPath, 'utf8')) as { scripts?: Record<string, string> };
     hasTestScript = typeof pkg.scripts?.test === 'string';
@@ -642,7 +642,7 @@ async function probeSurface(
     return { state: 'unverifiable', detail: `${surface.name}: ${surface.url} unreachable` };
   }
 
-  let live: string | null = null;
+  let live: string | null;
   if (surface.markerJsonPath) {
     try {
       live = readJsonPath(await res.json(), surface.markerJsonPath);

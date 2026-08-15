@@ -57,7 +57,7 @@ async function readJsonOr(path: string, fallback: unknown): Promise<string> {
 async function collectDir(dir: string, root: string): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   const walk = async (d: string): Promise<void> => {
-    let entries: Awaited<ReturnType<typeof readdir>> = [];
+    let entries: Awaited<ReturnType<typeof readdir>>;
     try {
       entries = await readdir(d, { withFileTypes: true }) as never;
     } catch {

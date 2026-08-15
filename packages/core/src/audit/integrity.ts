@@ -53,7 +53,7 @@ export function annotateIntegrity(entries: AuditEntry[]): AuditEntry[] {
       current.set(path, h);
       // Distinguish "gone" from "unreadable/too-large": only statSync failing
       // with the file truly absent should read as deleted.
-      let present = false;
+      let present;
       try { present = statSync(path).isFile(); } catch { present = false; }
       exists.set(path, present);
     }
