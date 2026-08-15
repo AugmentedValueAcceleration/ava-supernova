@@ -1,5 +1,6 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -35,6 +36,25 @@ export default tseslint.config(
           message: "Raw English in JSX attribute. Wrap in t('key') and add the key to locales/en.ts.",
         },
       ],
+    },
+  },
+  // React hooks. Registered so `react-hooks/exhaustive-deps` actually EXISTS —
+  // several components carry deliberate `eslint-disable-next-line
+  // react-hooks/exhaustive-deps` comments for effects that intentionally omit a
+  // dependency (one would loop, another would re-fire a fetch). With no plugin
+  // providing the rule, eslint treated each of those comments as a reference to
+  // an unknown rule and ERRORED — which is what stopped `next build` in the web
+  // package outright, with no BUILD_ID produced.
+  //
+  // exhaustive-deps is a WARN deliberately: it is advisory and frequently wants
+  // a dependency that would cause a loop. rules-of-hooks stays an ERROR because
+  // breaking it is a real bug, not a style opinion.
+  {
+    files: ['packages/*/src/**/*.{ts,tsx}', 'packages/*/*-ui/src/**/*.{ts,tsx}'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   {
