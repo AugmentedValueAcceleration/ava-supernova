@@ -23,8 +23,14 @@ interface ProviderRate {
 /** BYOK provider rate cards. Sourced from each provider's public pricing
  *  page — verify before adding entries. Update in PRs only, never via
  *  silent commits, so the rate-card history is auditable in git blame.
- *  Last verified: 2026-07-17 — every id below re-checked against the
- *  providers' live /models endpoints and official pricing pages. */
+ *  Last verified: 2026-08-16 — every id below diffed against the provider
+ *  catalogues in src/providers/<name>/models.ts, which are themselves checked
+ *  against the live /models endpoints and official pricing pages.
+ *
+ *  That diff is worth re-running rather than eyeballing. On 2026-08-16 it
+ *  found three prices that disagreed with the catalogue (qwen3.5-plus,
+ *  qwen3.5-flash, mistral-small-4), six dead Anthropic ids, and three models
+ *  shipped to BYOK with no rate at all. None of it was visible by reading. */
 const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
   // MiniMax was absent entirely until 2026-07-17, so BYOK MiniMax turns
   // costed at $0.00 in the audit rather than being estimated.
@@ -48,19 +54,39 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'kimi-k3': { inputPerMillion: 3.00, outputPerMillion: 15.00 },
     'kimi-k2.7-code': { inputPerMillion: 0.95, outputPerMillion: 4.00 },
     'kimi-k2.6': { inputPerMillion: 0.95,  outputPerMillion: 4.00 },
+    // UNREACHABLE — retained only so existing receipts still cost out.
+    // Dropped from the catalogue ahead of Moonshot's 31 August switch-off, so
+    // nothing can select it and no new call can produce it. The rate stays
+    // purely so audit entries recorded while it was live keep their real cost
+    // instead of silently restating as free. Not a general keep-everything
+    // rule: k2.6 above is a different case, hidden from the picker but still
+    // reachable by fallback, so it can produce new charges.
     'kimi-k2.5': { inputPerMillion: 0.60,  outputPerMillion: 3.00 },
   },
   qwen: {
     'qwen3.8-max':  { inputPerMillion: 2.00,  outputPerMillion: 6.00 }, // flagship from 2026-08-03, DashScope intl
-  'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 }, // superseded by 3.8 Max; still live upstream
+    // UNREACHABLE — retained only so existing receipts still cost out.
+    // Retired from the catalogue 2026-08-09 in favour of 3.8 Max, which is
+    // cheaper and more capable, so nothing routes here any more.
+    'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 },
     'qwen3.7-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.60 },
-    'qwen3.5-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.20 },
+    // Was $0.40 in — double the real rate, so BYOK 3.5 Plus turns were
+    // costed at twice what they actually cost. Corrected 2026-08-16.
+    'qwen3.5-plus': { inputPerMillion: 0.20,  outputPerMillion: 1.20 },
     // Tiered upstream ($0.03/$0.13 <32K, $0.10/$0.40 <256K, $0.20/$0.80 <1M).
     // Middle tier: a real turn clears 32K almost at once.
     'qwen3-coder-next':  { inputPerMillion: 0.12,  outputPerMillion: 0.80 },
     'qwen3-coder-flash': { inputPerMillion: 0.195, outputPerMillion: 0.975 },
     'qwen3.7-flash': { inputPerMillion: 0.10, outputPerMillion: 0.40 },
-    'qwen3.5-flash':{ inputPerMillion: 0.05,  outputPerMillion: 0.15 },
+    // Was $0.15 out against a real $0.40 — a 2.7x under-report on the
+    // highest-volume model we run. Corrected 2026-08-16.
+    'qwen3.5-flash':{ inputPerMillion: 0.05,  outputPerMillion: 0.40 },
+  },
+  xiaomi: {
+    // Absent entirely until 2026-08-16, so BYOK MiMo turns costed at $0.00
+    // — the same hole MiniMax had above.
+    'mimo-v2.5-pro': { inputPerMillion: 1.00, outputPerMillion: 3.00 },
+    'mimo-v2.5':     { inputPerMillion: 0.40, outputPerMillion: 2.00 },
   },
   zhipu: {
     'glm-5.2':     { inputPerMillion: 1.40, outputPerMillion: 4.40 },
@@ -69,23 +95,27 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
   mistral: {
     'mistral-large-3':    { inputPerMillion: 0.50, outputPerMillion: 1.50 },
     'mistral-medium-3.5': { inputPerMillion: 1.50, outputPerMillion: 7.50 },
-    'mistral-small-4':    { inputPerMillion: 0.10, outputPerMillion: 0.30 },
+    // Was $0.10/$0.30 against a real $0.15/$0.60 — Aurora's high-volume
+    // workhorse, under-reported on both figures. Corrected 2026-08-16.
+    'mistral-small-4':    { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
-  anthropic: {
-    'claude-fable-5':             { inputPerMillion: 10.00, outputPerMillion: 50.00 },
-    'claude-opus-4-8':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
-    'claude-opus-4-7':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
-    'claude-opus-4-6':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
-    'claude-sonnet-5':            { inputPerMillion: 3.00,  outputPerMillion: 15.00 },
-    'claude-haiku-4-5-20251001':  { inputPerMillion: 1.00,  outputPerMillion: 5.00 },
-  },
+  // An anthropic block of six models sat here until 2026-08-16. Anthropic
+  // was removed across every surface on 13 August and no catalogue defines
+  // those ids any more, so the rates could never be reached: the lookup is
+  // keyed on a provider we no longer have. Removed rather than kept as
+  // history, unlike the retired ids below — those still cost out real logged
+  // usage, whereas these could only cost out a provider that is gone.
   tencent: {
     'hy3':         { inputPerMillion: 0.15,  outputPerMillion: 0.59 },
-    // Kept so usage logged against the April preview still costs out.
+    // UNREACHABLE — retained only so existing receipts still cost out.
+    // The April preview, replaced by the GA hy3 above.
     'hy3-preview': { inputPerMillion: 0.063, outputPerMillion: 0.210 },
   },
   nvidia: {
-    'nvidia/nemotron-3-ultra-550b-a55b': { inputPerMillion: 0.50, outputPerMillion: 2.20 },
+    'nvidia/nemotron-3-ultra-550b-a55b':  { inputPerMillion: 0.50, outputPerMillion: 2.20 },
+    // Added 2026-08-16, the same day it reached the BYOK surfaces. Shipping a
+    // model without its rate is how the MiniMax and MiMo holes happened.
+    'nvidia/nemotron-3.5-lightning-30b-a3b': { inputPerMillion: 0.05, outputPerMillion: 0.20 },
   },
 };
 
@@ -128,10 +158,21 @@ export function computeCost(opts: {
   };
 }
 
-function estimateByokUsd(provider: string | undefined, model: string | undefined, inputTokens: number, outputTokens: number): number {
-  if (!provider || !model) return 0;
+/** Returns undefined — NOT zero — when there is no rate for the model.
+ *
+ *  This used to return 0, which formatCost then rendered as "$0.0000": a
+ *  receipt claiming a call was free when the truth was that nobody had
+ *  entered a price for it. That is how three separate holes stayed invisible
+ *  — MiniMax until 2026-07-17, then Xiaomi and Nemotron 3.5 Lightning until
+ *  2026-08-16 — because a missing model looked exactly like a free one.
+ *
+ *  undefined renders as "—", which is the honest answer. A cost audit that
+ *  under-reports is worse than one that admits a gap, because only the second
+ *  kind gets fixed. */
+function estimateByokUsd(provider: string | undefined, model: string | undefined, inputTokens: number, outputTokens: number): number | undefined {
+  if (!provider || !model) return undefined;
   const rate = PROVIDER_USD_RATES[provider]?.[model];
-  if (!rate) return 0;
+  if (!rate) return undefined;
   return (inputTokens / 1_000_000) * rate.inputPerMillion + (outputTokens / 1_000_000) * rate.outputPerMillion;
 }
 
