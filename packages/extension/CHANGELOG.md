@@ -1,5 +1,95 @@
 # Changelog
 
+## 0.96.0 — 2026-08-16 — A coder tier at last
+
+- Qwen3 Coder Next and Coder Flash — the first coder-specialised models in the line-up, at a fraction of what the previous coder tier cost.
+- The routing classifier stopped reasoning: 1,294 tokens down to 9, on every prompt, before your work begins.
+- Four models repriced from measured traffic — two cheaper, two dearer, because the old figures were calibrated against a number nobody had checked.
+- Nemotron 3.5 Lightning joins bring-your-own-key, and no longer answers with its own scratchpad.
+
+## 0.95.0 — 2026-08-13 — The shop stops arguing with you
+
+- Skip a meal and its ingredients come off the shopping list, and the food you already bought but never cooked is shown as what is in your kitchen.
+- The list names the meals it deliberately left off, so a short list reads as a decision rather than a bug.
+- Ava can search recipes by diet, so a vegan or vegetarian week is built from dishes that genuinely qualify.
+- Anthropic models are gone, on open-source grounds. Any key you saved is untouched.
+
+## 0.94.0 — 2026-08-12 — You choose the days
+
+- Every session in a ready-made plan gets a date you choose — the days you leave between them become rest, and a three-session plan across a week says so before you start.
+- Plans now show every movement with a picture, a cue and a way through to the full technique guide, instead of a list of names.
+- Ava can finally see the plans you already have, so she names the one she would displace and asks — instead of archiving your live plan without a word.
+- Finished and set-aside plans get their own tab, and any of them can be made active again.
+
+## 0.93.0 — 2026-08-09 — Tell me where I got it wrong
+
+- Rate courses, recipes and exercises from one widget wherever they appear — and it works whether or not you have an account.
+- A thumbs-down can carry what actually happened, in your own words. Optional, skippable, and only ever asked after something went wrong.
+- Ratings used to be dropped silently if you had no platform account, and reasons were counted separately per language. Both fixed.
+- Qwen 3.8 Max replaces 3.7 Max — Alibaba's flagship, and cheaper than the model it retires.
+
+## 0.92.0 — 2026-08-01 — The list you take round the shop
+
+- The shopping list is a right-hand drawer, full height, with your plan still visible beside it — not a box that blacks out the screen you are checking it against.
+- Choose which meals you are shopping for. Everything starts selected; switch one off if you already have it. The tick used to mean both "bought" and "already have", which is what made the list untrustworthy.
+- Meals with no ingredients captured are shown greyed and struck through in place, with the reason — rather than a warning underneath explaining why the list was short.
+- Usage now covers a calendar month and survives a reload. It was held in memory and wiped every restart, which is why the tab looked as though it had never recorded anything.
+
+## 0.91.0 — 2026-07-30 — Tick it off where you are looking at it
+
+- Tick an exercise or a meal off inside its own detail panel, on any day that has already been — no separate screen, no second trip.
+- Meals have three states, not two: ate it, ate something else, or skipped. "I ate, just not this" is the commonest truth of a week and the only one that teaches Ava anything.
+- A note in your own words, and the box says outright that Ava reads it. Skipped now carries its reason too — writing a note used to destroy the skip, and marking a skip used to destroy the note.
+- Nothing can be ticked on a day that has not happened yet. A log with fiction in it is worse than no log, because Ava would believe it.
+
+## 0.90.0 — 2026-07-29 — Your training and your kitchen, in one room
+
+- Your plans and health profile moved into Nutrition & Fitness — everything about how you train and eat is finally in one room instead of a page apart.
+- A shopping list built from your plan: aisle by aisle, a whole week at once, across plans, scaled to your household — and it tells you WHY a meal is not on it.
+- The training log records what you actually did, and skipped is a fact rather than a blank. What you log I learn from, and every one of my personas can read it.
+- Progression is your call. One week is not long enough for me to decide you are ready — I tell you what I noticed, you choose.
+
+## 0.89.0 — 2026-07-23 — Pick a single model, not just a fleet
+
+- Every model the fleets are built from can now be driven directly on your plan — Qwen, DeepSeek, Mistral and Kimi — each billed at its own credit rate. This used to require your own API key.
+- A single model still runs inside Ava: it fills every persona seat, so you keep the specialist pipeline with one brain doing all of it.
+- Every model's credit rate came down. The pricing table moved to a 30% margin, so the same allowance buys more work.
+- Kimi K2.7 Code and Qwen 3.7 Max join the lineup. Codestral and Devstral retire, superseded by Mistral Small 4 and Medium 3.5.
+
+## 0.88.0 — 2026-07-19 — Longxiang joins the fleet — and chat turns cost what they should
+
+- Longxiang — our fourth fleet, built entirely on Chinese models: Kimi K3 leads and builds, Qwen 3.7 Plus takes vision and long context, DeepSeek V4 Flash handles chat.
+- Fixed a billing bug on all four fleets: chat, brainstorm and image turns were charged at coordinator rates. An Aurora chat turn cost 7 credits instead of the published 2. It now costs what the page says.
+- The status bar names the model actually running, not just the fleet you picked.
+- The news desk reads in your language — every article, including quotes, coverage and sources.
+
+## 0.87.3 — 2026-07-19 — Fable 5 is back, and your credits go further
+
+- Claude Fable 5 is selectable again — the US-government restriction that forced us to pull it has been lifted.
+- We cut our margin from 40% to 30% across every model in all three fleets, so the same plan buys more work at the same price.
+- Heavy work benefits most: a full Maestro orchestration drops from 14 credits to 12, Supernova from 38 to 33, and Aurora from 13 to 11.
+
+## 0.87.2 — 2026-07-17 — The right tools in the right rooms
+
+- Ava can read the exact earlier conversation back in every mode now — including chat, where the tool had been switched off, so she stops guessing or asking you to repeat yourself.
+- "Read with Ava" on a scientific paper works again — Teach mode was the one room missing the tool it needed to fetch the paper.
+- Asking for an image in the Posts, Newsroom and Writing rooms now points you to the Creative Studio instead of silently doing nothing.
+- Ava can put a vault-granted API key into a project's ignored env file end to end — never seeing the value, asking before each write — a flow that was described but never actually switched on.
+
+## 0.87.1 — 2026-07-17 — She stops reaching for tools she never had
+
+- Ava was told every turn that she had three image, video and voice tools that have never existed — so a request could fail on a name that was never real. Fixed.
+- Every tool Ava is told she has is now checked against every tool actually built, so her toolkit and her description of it finally agree.
+- Same class of problem as last release's model labels — the code was right, the notes about the code had rotted.
+
+## 0.87.0 — 2026-07-17 — Kimi K3 on day one — and every model tells you what it can see
+
+- Kimi K3 is here the day after Moonshot shipped it — 1M context, native vision, and ahead of Claude Opus 4.8 on most agentic benchmarks at around 60% of the price (Moonshot-reported, not yet independently replicated).
+- Every model shows whether it can read images — a camera icon, struck through when it cannot — so you find out before you send, not after the provider rejects it.
+- GLM-5.2 was wrongly labelled vision-capable and would fail with a raw provider error on any image; every model in the catalogue has now been checked against its provider's live API.
+- Creative Studio work is finally visible to Ava and can be dropped straight into your project, or renamed in your library.
+- Aurora is now led by Mistral Medium 3.5 as intended, rather than the text-only heavy reserve it had quietly been coordinating on.
+
 ## 0.86.0 — 2026-07-16 — Your language, the whole way through — and live
 
 ### Changed

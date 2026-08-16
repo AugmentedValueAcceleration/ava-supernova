@@ -2,6 +2,132 @@
 
 All notable changes to Ava Supernova will be documented in this file.
 
+## Companion [0.10.0] - 2026-08-16
+
+### It knows you're signed in
+
+- Sign in on the website and the companion sees it straight away, instead of showing you as a guest until you refreshed.
+- The model picker shows your plan's catalogue when you are signed in, rather than staying stuck on the bring-your-own-key list.
+- A signed-in session no longer slips back to guest a few seconds after loading.
+- Cached turns cost less in the companion too, so the same conversation costs the same wherever you have it.
+
+## Extension [0.96.0] - 2026-08-16
+
+### A coder tier at last
+
+- Qwen3 Coder Next and Coder Flash — the first coder-specialised models in the line-up, at a fraction of what the previous coder tier cost.
+- The routing classifier stopped reasoning: 1,294 tokens down to 9, on every prompt, before your work begins.
+- Four models repriced from measured traffic — two cheaper, two dearer, because the old figures were calibrated against a number nobody had checked.
+- Nemotron 3.5 Lightning joins bring-your-own-key, and no longer answers with its own scratchpad.
+
+## IDE [0.42.0] - 2026-08-16
+
+### A coder tier, and pictures that arrive
+
+- Qwen3 Coder Next and Coder Flash — the first coder-specialised models in the line-up, at a fraction of what the previous coder tier cost.
+- Attaching an image works on every model again; the bridge that routes pictures to a vision model had been resolving to nothing.
+- The routing classifier stopped reasoning: 1,294 tokens down to 9, on every prompt, before your work begins.
+- Xiaomi, Tencent and NVIDIA keys can be saved at last, and four models were repriced from measured traffic.
+
+## Extension [0.95.0] - 2026-08-13
+
+### The shop stops arguing with you
+
+- Skip a meal and its ingredients come off the shopping list, and the food you already bought but never cooked is shown as what is in your kitchen.
+- The list names the meals it deliberately left off, so a short list reads as a decision rather than a bug.
+- Ava can search recipes by diet, so a vegan or vegetarian week is built from dishes that genuinely qualify.
+- Anthropic models are gone, on open-source grounds. Any key you saved is untouched.
+
+## IDE [0.41.0] - 2026-08-13
+
+### The shop stops arguing with you
+
+- Skip a meal and its ingredients come off the shopping list, and the food you already bought but never cooked is shown as what is in your kitchen.
+- The list names the meals it deliberately left off, so a short list reads as a decision rather than a bug.
+- Ava can search recipes by diet, so a vegan or vegetarian week is built from dishes that genuinely qualify.
+- Anthropic models are gone, on open-source grounds. Any key you saved is untouched.
+
+## Companion [0.9.0] - 2026-08-13
+
+### It remembers what you actually ate
+
+- Skipping a meal now takes its ingredients off the shopping list, and what you bought but never cooked is shown as surplus beside it.
+- Repeating a plan drops the meals you kept turning down or rated badly, instead of serving them again.
+- It never swaps food for you and never acts on silence: with nothing logged, a repeat works exactly as before.
+- Fixed a recipe filter fault that silently dropped hundreds of matching dishes when diets were combined.
+
+## IDE [0.40.0] - 2026-08-12
+
+### Your week, on your days
+
+- Pick the date for every session in a ready-made plan; the days you leave between them become rest.
+- Movements now carry pictures, cues and a route through to the full technique guide.
+- Ava names the plan she would archive and asks first, rather than displacing it silently.
+- Past plans get their own tab and can be picked back up.
+
+## Companion [0.8.0] - 2026-08-12
+
+### The whole health room, in your pocket
+
+- Ava has her own tab in Health, running the same room as the desktop — same library, same rules, and she can see the plans you already have.
+- Wellbeing is now Health and Workouts are Exercises, matching the desktop word for word in all twenty languages.
+- Ready-made plans let you date each session, and every movement opens its exercise page with a picture.
+- Your profile is its own screen, past plans have their own tab, and the app finally fits the phone without scrolling.
+
+## Extension [0.94.0] - 2026-08-12
+
+### You choose the days
+
+- Every session in a ready-made plan gets a date you choose — the days you leave between them become rest, and a three-session plan across a week says so before you start.
+- Plans now show every movement with a picture, a cue and a way through to the full technique guide, instead of a list of names.
+- Ava can finally see the plans you already have, so she names the one she would displace and asks — instead of archiving your live plan without a word.
+- Finished and set-aside plans get their own tab, and any of them can be made active again.
+
+## Extension [0.93.0] - 2026-08-09
+
+### Tell me where I got it wrong
+
+- Rate courses, recipes and exercises from one widget wherever they appear — and it works whether or not you have an account.
+- A thumbs-down can carry what actually happened, in your own words. Optional, skippable, and only ever asked after something went wrong.
+- Ratings used to be dropped silently if you had no platform account, and reasons were counted separately per language. Both fixed.
+- Qwen 3.8 Max replaces 3.7 Max — Alibaba's flagship, and cheaper than the model it retires.
+
+## IDE [0.39.0] - 2026-08-09
+
+### You can tell me when I get it wrong
+
+- Thumbs up or down on any reply, with room to say what actually happened. The IDE had no way to report a bad answer at all.
+- Rate courses, recipes and exercises — the same averages the extension reads, so a rating you left there shows up here.
+- Courses browse by shelf, subject and who they are for, with the average rating on the card. Course pages scroll properly now.
+- Qwen 3.8 Max, and the desktop-capable model list is derived from the catalogue instead of maintained by hand, so it cannot drift again.
+
+## Companion [0.7.0] - 2026-08-09
+
+### The companion comes home
+
+- The companion lives at /companion on the site. Every view has a real URL, the back button behaves, and the old address no longer 404s.
+- Rate recipes and exercises, signed in or not, with the average shown alongside and a reason asked for when something was poor.
+- Thumbs up or down on any reply, with room to say what actually went wrong — visible rather than hidden behind a long-press.
+- Switching language now changes the whole app. Navigation ignored your locale, so translations that existed were never reached.
+
+## Extension [0.92.0] - 2026-08-01
+
+### The list you take round the shop
+
+- The shopping list is a right-hand drawer, full height, with your plan still visible beside it — not a box that blacks out the screen you are checking it against.
+- Choose which meals you are shopping for. Everything starts selected; switch one off if you already have it. The tick used to mean both "bought" and "already have", which is what made the list untrustworthy.
+- Meals with no ingredients captured are shown greyed and struck through in place, with the reason — rather than a warning underneath explaining why the list was short.
+- Usage now covers a calendar month and survives a reload. It was held in memory and wiped every restart, which is why the tab looked as though it had never recorded anything.
+
+## IDE [0.38.0] - 2026-08-01
+
+### The health room arrives
+
+- The full planning kit lands in the desktop IDE: shopping list, prep plan, curated starters, duplicate with progression, and asking Ava about a single day.
+- A log that observes — mark a meal eaten, swapped or skipped and an exercise done or skipped, with a note Ava reads, plus the fuller sets-and-reps training log.
+- Your profile now covers training and the kitchen: how often and which days you train, how many you cook for, and how long you have. Plans were being built against blanks.
+- A scheduled rest day gets its own card instead of the empty box an uncovered date gets, and the calendar marks the days you actually recorded.
+
 ## Extension [0.91.0] - 2026-07-30
 
 ### Added
