@@ -115,6 +115,13 @@ export function cacheHitMultiplier(model: string | null | undefined): number {
  *  on chat_turn loses money on every call. The multiplier scales the
  *  bracket cost to track actual spend.
  *
+ *  SUPERSEDED IN PART, 2026-08-16. Everything below describes a table built
+ *  by scaling ratios that were themselves hand-calibrated. Four entries
+ *  (qwen3.7-plus, qwen3.8-max, qwen3.5-flash, mistral-medium-3.5) have since
+ *  been re-derived from MEASURED traffic and no longer follow it — including
+ *  the anchor the others were scaled against. Read the per-entry notes as
+ *  authoritative over this header wherever the two disagree.
+ *
  *  Recalibrated 2026-07-19 to a 30% net margin target (was 40%, was 55%
  *  before that). Every multiplier scaled by 6/7 — the exact factor to
  *  move 40% → 30% (price = cost / (1 − margin)). Trade is deliberate:
@@ -170,42 +177,85 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   //   V4 Flash    52 calls,  30:1   0.62 → 0.44   (was overcharged)
   //
   // V4 Flash's 52 calls are a thin sample — revisit as its volume grows.
+  //
+  // HELD, AND THE DERIVATION ABOVE IS NOW SUSPECT. Both values were solved by
+  // holding charge-to-cost constant against Medium 3.5, and Medium 3.5 has
+  // since been found 24% low — so whatever error sat in the anchor was copied
+  // straight into these. DeepSeek also caches, and its own measured range is
+  // 0.89-1.79 for V4 Pro: 1.35 is mid-range, which is the honest place to
+  // wait rather than a value anybody verified. Left until
+  // usage_logs.cached_tokens can pin the hit rate.
   'deepseek-v4-pro':            1.35,
   'deepseek-v4-pro-platform':   1.35,
   'deepseek-v4-flash':            0.44,
   'deepseek-v4-flash-platform':   0.44,
-  // Qwen 3.7 Plus — Maestro conductor. $0.40/$1.60. Was 0.6 → 0.51 by the
-  // 6/7 margin rescale, and that inherited a bad hand-calibration: measured
-  // over 866 real calls at a 40:1 mix, holding charge-to-cost against the
-  // anchor gives 0.82. The largest single miss in this table.
-  'qwen3.7-plus':               0.82,
-  'qwen-plus':                  0.82,  // legacy DashScope alias
-  // Qwen 3.7 Max — heavy flagship, opened to account credits 2026-07-23.
-  // $2.50/$7.50 → 0.4952 × (2.50 + 4×7.50)/5 = 3.22. Priciest Qwen we serve.
-  // Qwen 3.8 Max — the flagship from 2026-08-03. $2.00/$6.00, so the same
-  // formula gives a CHEAPER multiplier than 3.7 Max: 0.4952 x (2.00 + 4x6.00)/5
-  // = 2.58. A newer, better model that costs the user less is worth saying out
-  // loud, because it is not how this usually goes.
-  'qwen3.8-max':                2.58,
+  // ── Re-derived 2026-08-16 against MEASURED traffic ──────────────────
+  // The four entries below were solved from real usage rather than list
+  // price: every logged call replayed through computeRequestCredits PER CALL
+  // (brackets are a per-call ceiling with a floor of one, so summing tokens
+  // first erases hundreds of minimums), then solved for a 30% margin.
+  //
+  // These four are decidable and the rest are not, because Qwen and Mistral
+  // do NOT cache — verified against their live APIs, Qwen reports no cache
+  // field at all — so their answer is identical at every hit rate. DeepSeek
+  // and Kimi swing with a cache rate we cannot measure yet, and are left
+  // alone deliberately.
+  //
+  // Cross-checked: at 0% cache these agree to two decimals with a separate
+  // calculation run from a different starting point.
+  //
+  // Qwen 3.7 Plus — Maestro conductor. $0.40/$1.60, 866 calls. 0.82 → 0.94.
+  // It has now moved three times in a day: 0.51 by margin rescale, 0.82 by
+  // anchoring to Medium 3.5, and 0.94 by measurement. Only the last one was
+  // derived from what the traffic actually costs; the first two inherited
+  // whatever error sat in their reference.
+  'qwen3.7-plus':               0.94,
+  'qwen-plus':                  0.94,  // legacy DashScope alias
+  // Qwen 3.8 Max — $2.00/$6.00, 354 calls. 2.58 → 1.36, a 47% CUT and the
+  // largest overcharge the measurement found. The old 2.58 came from the
+  // 0.4952 x (in + 4*out)/5 formula, which weights output at four times
+  // input; 3.8 Max traffic runs the other way round, so the formula priced a
+  // shape this model does not have.
+  //
+  // qwen3.7-max keeps its formula-derived value: it has too little traffic to
+  // measure, and a guess from a formula beats a guess from nothing.
+  'qwen3.8-max':                1.36,
   'qwen3.7-max':                3.22,
   'qwen3.5-plus':               0.44,
-  // Qwen 3.5 Flash + Omni Flash — Maestro chat / image_gen / intent gate.
-  // $0.05/$0.40 (Flash). 0.26 → 0.22 / 0.34 → 0.29.
-  'qwen3.5-flash':              0.22,
-  'qwen-flash':                 0.22,
+  // Qwen 3.5 Flash — Maestro chat / image_gen / intent gate. $0.05/$0.40,
+  // 3001 calls, the highest-volume model we run. 0.22 → 0.16, a 27% cut.
+  // (The Omni Flash entry this note used to cover is gone — no catalogue ever
+  // defined that model.)
+  'qwen3.5-flash':              0.16,
+  'qwen-flash':                 0.16,
   // Mistral Small 4 — Aurora's high-volume workhorse. $0.15/$0.60. 0.99 → 0.85.
   'mistral-small-4':            0.85,
   'mistral-small-4-platform':   0.85,
   // Mistral Large 3 — Aurora's heavy reserve/fallback. $0.50/$1.50. 1.07 → 0.92.
   'mistral-large-3':            0.92,
   'mistral-large-3-platform':   0.92,
-  // Mistral Medium 3.5 — Aurora's lead seat. $1.50/$7.50 — the calibration
-  // anchor. 3.64 → 3.12.
-  'mistral-medium-3.5':           3.12,
-  'mistral-medium-3.5-platform':  3.12,
+  // Mistral Medium 3.5 — Aurora's lead seat. $1.50/$7.50, 223 calls.
+  // 3.12 → 3.87, undercharging by 24%.
+  //
+  // It was the ANCHOR every other multiplier was calibrated against, and
+  // nobody had checked the anchor itself. It sat near 13% against a 30%
+  // target, so everything derived from it inherited that — the table was
+  // internally consistent and collectively wrong, which is exactly why it
+  // never looked broken.
+  'mistral-medium-3.5':           3.87,
+  'mistral-medium-3.5-platform':  3.87,
   // Kimi K3 — Longxiang's coordinator AND Builder. $3.00/$15.00, EXACTLY 2×
-  // Medium 3.5 on both input and output, so it stays 2× the anchor: 3.12 × 2
-  // = 6.24. Priciest in the table — real cost, not markup. 7.28 → 6.24.
+  // Medium 3.5 on both input and output, so this was set at 2× the anchor:
+  // 3.12 × 2 = 6.24. Priciest in the table — real cost, not markup.
+  //
+  // HELD DELIBERATELY, AND IT IS NOW INCONSISTENT. The anchor moved to 3.87,
+  // so the rule that produced 6.24 would now say 7.74. It is not being
+  // followed, because K3 caches: measurement puts the honest answer between
+  // 6.80 and 8.19 depending on a hit rate we cannot yet read, and the whole
+  // current range sits ABOVE 6.24 — so today's value undercharges at every
+  // rate. Moving it on a rule whose own anchor was just found wrong would
+  // repeat the mistake that made this re-derivation necessary. Left until
+  // usage_logs.cached_tokens has enough Kimi rows to answer it.
   'kimi-k3':                      6.24,
   'kimi-k3-platform':             6.24,
   // Kimi K2.7 Code — Longxiang fleet member, now openable as a single credit
