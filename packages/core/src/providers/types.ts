@@ -48,6 +48,27 @@ export interface ChatCompletionRequest {
    * matters more than depth.
    */
   enable_thinking?: boolean;
+
+  /**
+   * Provider-specific chat-template arguments. Currently only NVIDIA NIM,
+   * where `{ thinking: false }` is the ONLY thing that stops a Nemotron model
+   * reasoning — `enable_thinking` does nothing there, and the documented
+   * "detailed thinking off" system directive was measured to have no effect
+   * either (2026-08-16).
+   *
+   * This is not a tuning knob. Nemotron 3.5 Lightning left to its default
+   * writes its scratchpad INTO THE CONTENT — not into reasoning_content where
+   * it could be stripped — so an ordinary question came back as 300 tokens of
+   * "Here's a thinking process: 1. **Analyze User Input:**" after 14 seconds,
+   * having never answered. The same question with this set: 54 tokens, 0.67s,
+   * a clean answer. supportsThinking on the model definition does not help;
+   * that flag only governs whether we replay reasoning_content next turn.
+   *
+   * Kept generic rather than named for Nemotron because the underlying thing
+   * is a vLLM/NIM convention, and the next provider on that stack will want
+   * the same door.
+   */
+  chat_template_kwargs?: Record<string, unknown>;
 }
 
 // ─── Provider Configuration ──────────────────────────────────────────────────

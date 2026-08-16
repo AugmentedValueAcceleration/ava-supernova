@@ -65,6 +65,7 @@ export abstract class BaseProvider implements Provider {
       // rejected. A caller setting enable_thinking would otherwise see the
       // flag ignored with no error anywhere.
       enable_thinking: request.enable_thinking,
+      chat_template_kwargs: request.chat_template_kwargs,
     });
   }
 

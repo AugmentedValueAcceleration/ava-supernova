@@ -71,9 +71,26 @@ export function resolveIntentGateModel(
   // BYOK — any small/fast model will do the classification.
   // V4 Flash replaces `deepseek-chat` (retired upstream 2026-07-24) and is the
   // cheaper of the two V4 tiers, which is what this gate wants.
+  // Nemotron 3.5 Lightning is last, and measured rather than assumed. Over the
+  // 20-prompt gate set on 2026-08-16 it scored 20/20, same as Qwen 3.5 Flash,
+  // at 36.3 output tokens against 29.9 and a 909ms median against 752ms —
+  // slightly chattier and slower, marginally cheaper because its output rate
+  // is half. Ordered last on that basis, not excluded.
+  //
+  // It is only viable because the request shaper now sends
+  // chat_template_kwargs {thinking:false} for it. WITHOUT that it scores
+  // 0/20 — every reply is 120 tokens of "Here's a thinking process:", the
+  // JSON never arrives, and the gate silently returns null and falls back to
+  // the regex Conductor. That failure is invisible: it looks like the gate
+  // simply is not helping. Do not move this entry without checking that the
+  // parameter still reaches the provider.
+  //
+  // What it buys: a BYOK user holding only an NVIDIA key had NO gate at all
+  // before this — no entry here resolved, so every prompt went to the regex.
   const fallbacks = [
     'qwen3.5-flash',
     'deepseek-v4-flash',
+    'nvidia/nemotron-3.5-lightning-30b-a3b',
   ];
   for (const id of fallbacks) {
     const direct = providerRegistry.resolveModel(id);
