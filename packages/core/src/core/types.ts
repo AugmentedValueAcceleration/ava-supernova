@@ -127,8 +127,13 @@ export interface TokenUsage {
   //     reports ONLY here, so a top-level read loses every Mistral call.
   //   cached_tokens — Kimi, alongside the nested copy.
   //   prompt_cache_hit_tokens — DeepSeek's own spelling, also alongside.
-  // Qwen reports no cache field at any of the three, which is a fact about
-  // Qwen and not a bug here: absent must stay distinguishable from zero.
+  // Reporting varies BY MODEL, not just by provider — do not generalise from
+  // one. Verified 2026-08-16: qwen3.7-plus and qwen3.8-max both send the
+  // nested field, while qwen3.5-flash sends nothing at all. Reading one Qwen
+  // model and concluding "Qwen does not cache" is a mistake that has already
+  // been made once here, and it reached live pricing comments before anyone
+  // caught it. Absent must stay distinguishable from zero for exactly that
+  // reason: a zero is a measurement, an absence is a question.
   //
   // All optional, so absent means "this provider said nothing" rather than
   // "no cache hit". Never default these to 0 on the way through — a zero

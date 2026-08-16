@@ -195,14 +195,34 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // (brackets are a per-call ceiling with a floor of one, so summing tokens
   // first erases hundreds of minimums), then solved for a 30% margin.
   //
-  // These four are decidable and the rest are not, because Qwen and Mistral
-  // do NOT cache — verified against their live APIs, Qwen reports no cache
-  // field at all — so their answer is identical at every hit rate. DeepSeek
-  // and Kimi swing with a cache rate we cannot measure yet, and are left
-  // alone deliberately.
+  // PROVISIONAL — corrected 2026-08-16, hours after they shipped.
+  //
+  // These were introduced as "decidable at any cache rate, because Qwen and
+  // Mistral do not cache". That was wrong. It came from testing ONE model,
+  // qwen3.5-flash, and generalising it to two whole providers. Re-tested
+  // against the live APIs:
+  //
+  //   qwen3.7-plus        reports prompt_tokens_details.cached_tokens
+  //   qwen3.8-max         reports it
+  //   mistral-medium-3.5  reports it
+  //   qwen3.5-flash       does NOT — the only one the original claim fit
+  //
+  // So three of the four CAN cache, and the replay behind their numbers
+  // treated cache as zero on both sides — cost and charge. Real cost was
+  // probably lower than assumed, which pushes the multiplier down; but the
+  // companion cache discount added the same day pushes the charge down too,
+  // so the two partly cancel and the net is not knowable without data.
+  //
+  // They are kept rather than reverted because the values they replaced were
+  // measurably worse — the Mistral anchor sat near 13% against a 30% target
+  // and the whole table was calibrated off it. Reverting would restore a
+  // known error to fix an unknown one. But treat all four as unsettled,
+  // alongside DeepSeek and Kimi, until usage_logs.cached_tokens can answer
+  // it. Only qwen3.5-flash below is genuinely cache-independent.
   //
   // Cross-checked: at 0% cache these agree to two decimals with a separate
-  // calculation run from a different starting point.
+  // calculation run from a different starting point. That check confirmed the
+  // arithmetic, not the premise — which is exactly how the premise survived.
   //
   // Qwen 3.7 Plus — Maestro conductor. $0.40/$1.60, 866 calls. 0.82 → 0.94.
   // It has now moved three times in a day: 0.51 by margin rescale, 0.82 by
