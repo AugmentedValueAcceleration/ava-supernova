@@ -112,6 +112,31 @@ export interface TokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
+
+  // ── Prompt-cache counts ──────────────────────────────────────────────
+  // These are NOT new data. normalizeStreamChunk and normalizeResponse are
+  // pass-through casts, so the provider's whole usage object has always
+  // arrived intact at runtime — the type simply did not admit these fields,
+  // so every consumer that went through it silently dropped them. That is
+  // why agent.ts had to launder `usage` through `as unknown as` to reach
+  // extractUsage. Declaring them is the fix; nothing new is being collected.
+  //
+  // Three spellings because three providers disagree, all verified against
+  // their live APIs on 2026-08-15:
+  //   prompt_tokens_details.cached_tokens — the portable one. Mistral
+  //     reports ONLY here, so a top-level read loses every Mistral call.
+  //   cached_tokens — Kimi, alongside the nested copy.
+  //   prompt_cache_hit_tokens — DeepSeek's own spelling, also alongside.
+  // Qwen reports no cache field at any of the three, which is a fact about
+  // Qwen and not a bug here: absent must stay distinguishable from zero.
+  //
+  // All optional, so absent means "this provider said nothing" rather than
+  // "no cache hit". Never default these to 0 on the way through — a zero
+  // asserts a measurement that was never taken, and one such zero was
+  // briefly cited as evidence this pipeline worked when it did not.
+  cached_tokens?: number;
+  prompt_cache_hit_tokens?: number;
+  prompt_tokens_details?: { cached_tokens?: number };
 }
 
 export interface CompletionResponse {

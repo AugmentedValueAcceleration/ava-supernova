@@ -2737,7 +2737,10 @@ export class Agent {
     // iteration agent (tool loop) emits one per loop, which is the intended
     // granularity. Cache-hit detection uses cached_tokens ratio: if >50% of
     // prompt was cached, treat as a cache hit for discount purposes.
-    const rawUsage = extractUsage(usage as unknown as Parameters<typeof extractUsage>[0]);
+    // No cast needed since TokenUsage declares the cache fields it always
+    // carried at runtime. The `as unknown as` this replaced was the tell:
+    // the shape was known to be wider than the type all along.
+    const rawUsage = extractUsage(usage);
     const cacheHit = rawUsage?.cached != null && rawUsage.input > 0 && rawUsage.cached / rawUsage.input > 0.5;
     chargeCredits('chat_turn', {
       model: this.model.id,
