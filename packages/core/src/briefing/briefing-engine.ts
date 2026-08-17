@@ -15,6 +15,7 @@ import type { JournalManager } from '../journal/journal-manager.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import type { MemoryEntry } from '../memory/types.js';
 import type { BriefingData, Briefing, BriefingState, TimeOfDay } from './types.js';
+import { localYmd, todayLocal } from '../core/dates.js';
 
 const BRIEFING_STATE_FILE = 'briefing-state.json';
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -296,13 +297,13 @@ export class BriefingEngine {
   }
 
   private todayDate(): string {
-    return new Date().toISOString().slice(0, 10);
+    return todayLocal();
   }
 
   private offsetDate(dateStr: string, days: number): string {
     const d = new Date(dateStr + 'T00:00:00');
     d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
+    return localYmd(d);
   }
 
   // ── State Persistence ───────────────────────────────────────────────────────
@@ -337,7 +338,7 @@ export class BriefingEngine {
   private async markShown(): Promise<void> {
     const now = new Date();
     this.state = {
-      lastBriefingDate: now.toISOString().slice(0, 10),
+      lastBriefingDate: localYmd(now),
       lastBriefingAt: now.toISOString(),
     };
     await this.saveState(this.state);

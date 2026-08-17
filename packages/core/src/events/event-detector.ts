@@ -10,6 +10,7 @@ import type { TaskManager } from '../tasks/task-manager.js';
 import type { JournalManager } from '../journal/journal-manager.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import type { AvaEvent, AvaEventHandler, EventDetectorState } from './types.js';
+import { localYmd, todayLocal } from '../core/dates.js';
 
 export class EventDetector {
   private handlers: AvaEventHandler[] = [];
@@ -260,12 +261,12 @@ export class EventDetector {
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   private todayDate(): string {
-    return new Date().toISOString().slice(0, 10);
+    return todayLocal();
   }
 
   private offsetDate(dateStr: string, days: number): string {
     const d = new Date(dateStr + 'T00:00:00');
     d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
+    return localYmd(d);
   }
 }

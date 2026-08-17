@@ -13,6 +13,7 @@ import { findSection, sectionText, headingLineText, formatOutline } from './auth
 import { getTemplate, listTemplates, fillTemplate, saveUserTemplate, saveHouseStyle, loadHouseStyle } from './authoring/templates/index.js';
 import type { DocTemplate, TemplateDomain } from './authoring/templates/index.js';
 import type { BrandTokens } from './authoring/doc-model.js';
+import { todayLocal } from '../core/dates.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -386,7 +387,7 @@ export class DocumentAuthorTool implements Tool {
   }
 
   private today(): string {
-    return new Date().toISOString().slice(0, 10);
+    return todayLocal();
   }
 
   private slug(s: string): string {

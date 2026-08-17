@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { readFile, readdir, mkdir, writeFile, appendFile } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
+import { todayLocal } from '../core/dates.js';
 import {
   loadProjectConfig,
   type DecisionsOptInStatus,
@@ -220,7 +221,7 @@ export async function appendMachineRule(
     ? ''
     : '# Standing rules for this machine\n\n'
       + 'Append-only. Ava reads these before every desktop turn and obeys them.\n\n';
-  const date = new Date().toISOString().slice(0, 10);
+  const date = todayLocal();
   const tagStr = tags.length ? ` _(${tags.join(', ')})_` : '';
   await appendFile(file, `${header}- **[${date}]** ${clean}${tagStr}\n`);
   return true;

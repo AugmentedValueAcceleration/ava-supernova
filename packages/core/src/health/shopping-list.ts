@@ -557,6 +557,13 @@ export function daysInRange(
 export function weekBounds(iso: string): { from: string; to: string } {
   const t = Date.parse(`${iso}T00:00:00Z`);
   if (Number.isNaN(t)) return { from: iso, to: iso };
+  // DELIBERATELY UTC, end to end — getUTCDay here, an explicit Z in
+  // shiftWeek below, and toISOString on the way out. Left as-is in the
+  // 2026-08-17 local-day sweep precisely because it is consistent: swapping
+  // only the output to a local day would render a UTC-midnight instant in the
+  // user's zone and shift every week window back a day west of Greenwich.
+  // Whether a shopping week should follow the user's calendar is a real
+  // question, but it is a design change to make whole, not a find-and-replace.
   const dow = new Date(t).getUTCDay();          // 0 = Sunday
   const back = (dow + 6) % 7;                    // days since Monday
   const from = t - back * 86_400_000;

@@ -12,6 +12,7 @@
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { localYmd, todayLocal } from '../core/dates.js';
 import { existsSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { logger } from '../core/logger.js';
@@ -114,10 +115,16 @@ export function synthesiseProjectBrain(
 
   parts.push(`Nodes: ${stats.activeNodes} active, confidence avg ${stats.avgConfidence}`);
 
-  // Find last session date from most recent node
+  // Find last session date from most recent node.
+  //
+  // BOTH branches render locally. They used to agree only by both being UTC —
+  // one slicing a stored ISO string, the other calling toISOString — and
+  // converting a single branch would have made "last session" jump a day
+  // depending on which one produced it. This is shown to the user, so local is
+  // the right answer for both.
   const lastSessionDate = nodes.length > 0
-    ? nodes.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0].updatedAt.slice(0, 10)
-    : new Date().toISOString().slice(0, 10);
+    ? localYmd(new Date(nodes.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0].updatedAt))
+    : todayLocal();
 
   let brief = parts.join('\n');
   if (brief.length > MAX_BRIEF_CHARS) {

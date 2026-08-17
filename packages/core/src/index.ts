@@ -95,6 +95,10 @@ export type {
   CompletionResponse,
 } from './core/types.js';
 export { getTextContent } from './core/types.js';
+// Calendar days in the user's terms. Exported because the extension and IDE
+// have the same bug in their own code — a day someone lives in should never be
+// derived from toISOString, and there should be one implementation of that.
+export { localYmd, todayLocal, addDaysLocal } from './core/dates.js';
 
 // Provider types
 export type {

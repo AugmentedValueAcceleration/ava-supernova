@@ -3,6 +3,7 @@ import type { FunctionSchema } from '../providers/types.js';
 import type { JournalManager, SearchFilters } from '../journal/journal-manager.js';
 import type { JournalAuthor, JournalDay, JournalMood } from '../journal/types.js';
 import { DEFAULT_AVA_KIND, DEFAULT_USER_KIND } from '../journal/types.js';
+import { todayLocal } from '../core/dates.js';
 
 export class JournalWriteTool implements Tool {
   readonly name = 'journal_write';
@@ -56,7 +57,10 @@ export class JournalWriteTool implements Tool {
     if (!jm) return { success: false, output: 'Journal system not available.' };
 
     const action = args.action as string;
-    const today = new Date().toISOString().slice(0, 10);
+    // The user's day, not UTC's — an entry written at 23:00 in New York
+    // was filing under tomorrow, and one at 00:30 in British Summer Time
+    // under yesterday.
+    const today = todayLocal();
     const date = (args.date as string) || today;
 
     switch (action) {

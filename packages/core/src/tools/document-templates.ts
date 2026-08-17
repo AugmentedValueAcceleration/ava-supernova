@@ -1,3 +1,4 @@
+import { todayLocal } from '../core/dates.js';
 /** Format-agnostic document content structure. */
 export interface DocumentContent {
   title?: string;
@@ -47,7 +48,7 @@ export function getTemplate(name: TemplateName, data?: Record<string, unknown>):
 function proposalTemplate(data?: Record<string, unknown>): DocumentContent {
   const title = String(data?.title ?? 'Project Proposal');
   const author = String(data?.author ?? '');
-  const date = String(data?.date ?? new Date().toISOString().slice(0, 10));
+  const date = String(data?.date ?? todayLocal());
   return {
     title,
     sections: [
@@ -63,7 +64,7 @@ function proposalTemplate(data?: Record<string, unknown>): DocumentContent {
 
 function reportTemplate(data?: Record<string, unknown>): DocumentContent {
   const title = String(data?.title ?? 'Status Report');
-  const date = String(data?.date ?? new Date().toISOString().slice(0, 10));
+  const date = String(data?.date ?? todayLocal());
   return {
     title,
     sections: [
@@ -78,7 +79,7 @@ function reportTemplate(data?: Record<string, unknown>): DocumentContent {
 
 function invoiceTemplate(data?: Record<string, unknown>): DocumentContent {
   const invoiceNum = String(data?.invoiceNumber ?? 'INV-001');
-  const date = String(data?.date ?? new Date().toISOString().slice(0, 10));
+  const date = String(data?.date ?? todayLocal());
   return {
     title: `Invoice ${invoiceNum}`,
     sections: [
@@ -92,7 +93,7 @@ function invoiceTemplate(data?: Record<string, unknown>): DocumentContent {
 }
 
 function letterTemplate(data?: Record<string, unknown>): DocumentContent {
-  const date = String(data?.date ?? new Date().toISOString().slice(0, 10));
+  const date = String(data?.date ?? todayLocal());
   return {
     title: String(data?.subject ?? 'Letter'),
     sections: [
@@ -105,7 +106,7 @@ function letterTemplate(data?: Record<string, unknown>): DocumentContent {
 }
 
 function meetingNotesTemplate(data?: Record<string, unknown>): DocumentContent {
-  const date = String(data?.date ?? new Date().toISOString().slice(0, 10));
+  const date = String(data?.date ?? todayLocal());
   return {
     title: String(data?.title ?? 'Meeting Notes'),
     sections: [

@@ -19,6 +19,7 @@ import type { FunctionSchema } from '../providers/types.js';
 import type { TaskManager } from '../tasks/task-manager.js';
 import type { JournalManager } from '../journal/journal-manager.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
+import { localYmd, todayLocal } from '../core/dates.js';
 import {
   titleParagraph, subtitleParagraph, headingParagraph, bodyParagraph,
   bulletParagraph, themedTable, sectionProperties,
@@ -85,8 +86,8 @@ export class ReportGenerateTool implements Tool {
     const now = new Date();
     const periodStart = new Date(now);
     periodStart.setDate(periodStart.getDate() - periodDays);
-    const startDate = periodStart.toISOString().slice(0, 10);
-    const endDate = now.toISOString().slice(0, 10);
+    const startDate = localYmd(periodStart);
+    const endDate = localYmd(now);
 
     const title = (args.title as string) || this.defaultTitle(reportType, endDate);
 
@@ -129,7 +130,7 @@ export class ReportGenerateTool implements Tool {
       const completed = allTasks.filter(t => t.completedAt && t.completedAt >= since);
       const inProgress = allTasks.filter(t => t.status === 'in-progress');
       const overdue = allTasks.filter(t =>
-        t.dueDate && t.dueDate < new Date().toISOString().slice(0, 10) &&
+        t.dueDate && t.dueDate < todayLocal() &&
         t.status !== 'done' && t.status !== 'archived'
       );
       return { completed, inProgress, overdue };

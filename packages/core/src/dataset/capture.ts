@@ -233,7 +233,14 @@ export async function captureInteraction(messages: Message[]): Promise<void> {
     // Ensure directory exists
     await mkdir(RAW_DIR, { recursive: true });
 
-    // Append to daily JSONL file
+    // Append to daily JSONL file.
+    //
+    // UTC on purpose, and left that way in the 2026-08-17 local-day sweep.
+    // This is a PARTITION KEY, not a day anybody reads: files from machines in
+    // different timezones have to line up when the dataset is merged, and a
+    // local day would put two contributors' identical hour in different
+    // buckets. Nothing here is shown to a user, so there is no day to get
+    // wrong.
     const date = new Date().toISOString().slice(0, 10);
     const filePath = join(RAW_DIR, `${date}.jsonl`);
     await appendFile(filePath, JSON.stringify(example) + '\n', 'utf-8');

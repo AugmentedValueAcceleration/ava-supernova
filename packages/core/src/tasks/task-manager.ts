@@ -16,6 +16,7 @@ import type {
   TaskListOptions,
 } from './types.js';
 import { createEmptyTaskStore } from './types.js';
+import { localYmd, todayLocal } from '../core/dates.js';
 
 const TASKS_FILENAME = 'tasks.json';
 
@@ -265,7 +266,10 @@ export class TaskManager {
 
   /** Get today's tasks — due today OR status in-progress. */
   async getTodayTasks(): Promise<TaskEntry[]> {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    // Due dates are calendar days, so 'today' must be the user's. In UTC
+    // this hid today's tasks and showed tomorrow's for anyone west of
+    // Greenwich after early evening.
+    const today = todayLocal();
     const all = await this.listTasks();
     return all.filter(e =>
       e.status === 'in-progress' ||
@@ -475,7 +479,7 @@ export class TaskManager {
         if (diffDays > 7) continue;
 
         // Only create if not already existing for this due date
-        const nextDueStr = nextDue.toISOString().slice(0, 10);
+        const nextDueStr = localYmd(nextDue);
         const alreadyExists = store.entries.some(e =>
           e.title === entry.title && e.dueDate === nextDueStr && e.status !== 'archived'
         );
