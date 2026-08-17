@@ -53,13 +53,51 @@ export function reorderSystemForQwen<T extends LooseMessage>(messages: ReadonlyA
 }
 
 /**
+ * Mistral refuses a conversation whose last message is an assistant turn:
+ *
+ *   400 invalid_request_message_order — "Expected last role User or Tool
+ *   (or Assistant with prefix True) for serving but got assistant"
+ *
+ * That state is reachable. The agent appends a PARTIAL assistant reply and
+ * loops when a stream is interrupted mid-answer, relying on the interjection
+ * drain to add a user message behind it — and the queue can be emptied in
+ * between (a stop clears it). Interrupting a stream went from impossible to a
+ * button people press on 2026-08-17, so this stopped being theoretical.
+ *
+ * Mistral's own error names the fix: `prefix: true` marks a trailing assistant
+ * message as one to CONTINUE rather than one to reply to — which is exactly
+ * what a half-finished reply is. So the message is kept and completed rather
+ * than thrown away, which is the honest handling: the user already watched
+ * that text stream onto their screen.
+ *
+ * Only Mistral is strict about this today. The others accept it, so nothing
+ * else is touched — a rule applied where it isn't needed is how "why is this
+ * here?" comments start.
+ */
+export function markTrailingAssistantPrefix<T extends LooseMessage>(
+  provider: string,
+  messages: ReadonlyArray<T>,
+): T[] {
+  if (provider !== 'mistral' || messages.length === 0) return messages as T[];
+  const last = messages[messages.length - 1];
+  if (last?.role !== 'assistant' || 'prefix' in last) return messages as T[];
+  // A trailing assistant with tool_calls is a different fault — dangling calls
+  // with no results — and prefix would not rescue it. Left alone so it fails
+  // loudly rather than being half-hidden here.
+  if (Array.isArray(last.tool_calls) && last.tool_calls.length > 0) return messages as T[];
+  return [...messages.slice(0, -1), { ...last, prefix: true } as T];
+}
+
+/**
  * The shared OpenAI-compatible message pipeline: always strip reasoning_content,
- * then reorder system messages for Qwen. Provider-aware.
+ * reorder system messages for Qwen, and mark a trailing assistant as a Mistral
+ * prefix continuation. Provider-aware.
  */
 export function shapeMessages<T extends LooseMessage>(
   provider: string,
   messages: ReadonlyArray<T>,
 ): T[] {
   const stripped = stripReasoningContent(messages);
-  return provider === 'qwen' ? reorderSystemForQwen(stripped) : stripped;
+  const ordered = provider === 'qwen' ? reorderSystemForQwen(stripped) : stripped;
+  return markTrailingAssistantPrefix(provider, ordered);
 }

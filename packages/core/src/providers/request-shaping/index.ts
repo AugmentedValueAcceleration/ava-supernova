@@ -18,6 +18,7 @@ export {
 export {
   stripReasoningContent,
   reorderSystemForQwen,
+  markTrailingAssistantPrefix,
   shapeMessages,
 } from './messages.js';
 
