@@ -59,6 +59,8 @@ export const trStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava seninle yazar. Raporlar, teklifler, makaleler — Markdown’dan markalı Word/PDF’e, bölüm bölüm düzenlenir.',
   'input.send': 'Gönder (Enter)',
   'input.send_aria': 'Mesaj gönder',
+  'input.send_while_working': 'Gönder — bir sonraki adımda alacak',
+  'input.placeholder.working': 'Bir şey ekleyin — bir sonraki adımda alacak',
   'input.stop': 'Durdur',
   'input.stop_aria': "Ava'yı durdur",
   'input.attach': 'Görsel ekle',

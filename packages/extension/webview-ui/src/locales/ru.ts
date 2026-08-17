@@ -59,6 +59,8 @@ export const ruStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava пишет вместе с вами. Отчёты, предложения, статьи — из Markdown в Word/PDF с вашим брендом, по разделам.',
   'input.send': 'Отправить (Enter)',
   'input.send_aria': 'Отправить сообщение',
+  'input.send_while_working': 'Отправить — она подхватит это на следующем шаге',
+  'input.placeholder.working': 'Добавьте что-нибудь — она подхватит это на следующем шаге',
   'input.stop': 'Стоп',
   'input.stop_aria': 'Остановить Ava',
   'input.attach': 'Прикрепить изображение',

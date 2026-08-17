@@ -59,6 +59,8 @@ export const deStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava schreibt mit dir. Berichte, Angebote, Artikel — von Markdown zu Word/PDF im Markendesign, Abschnitt für Abschnitt.',
   'input.send': 'Senden (Enter)',
   'input.send_aria': 'Nachricht senden',
+  'input.send_while_working': 'Senden — sie greift es beim nächsten Schritt auf',
+  'input.placeholder.working': 'Etwas hinzufügen — sie greift es beim nächsten Schritt auf',
   'input.stop': 'Stopp',
   'input.stop_aria': 'Ava stoppen',
   'input.attach': 'Bild anh\u00e4ngen',

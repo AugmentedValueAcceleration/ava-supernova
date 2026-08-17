@@ -59,6 +59,8 @@ export const ukStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava пише разом із вами. Звіти, пропозиції, статті — з Markdown у Word/PDF з вашим брендом, розділ за розділом.',
   'input.send': 'Надіслати (Enter)',
   'input.send_aria': 'Надіслати повідомлення',
+  'input.send_while_working': 'Надіслати — вона підхопить це на наступному кроці',
+  'input.placeholder.working': 'Додайте щось — вона підхопить це на наступному кроці',
   'input.stop': 'Зупинити',
   'input.stop_aria': 'Зупинити Avu',
   'input.attach': 'Прикріпити зображення',

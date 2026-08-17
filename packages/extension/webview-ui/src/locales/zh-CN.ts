@@ -59,6 +59,8 @@ export const zhCNStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava 与你一起写作。报告、提案、文章——从 Markdown 到带品牌的 Word/PDF，逐节编辑。',
   'input.send': '发送 (Enter)',
   'input.send_aria': '发送消息',
+  'input.send_while_working': '发送 — 她会在下一步接收',
+  'input.placeholder.working': '补充点什么 — 她会在下一步接收',
   'input.stop': '停止',
   'input.stop_aria': '停止 Ava',
   'input.attach': '附加图片',

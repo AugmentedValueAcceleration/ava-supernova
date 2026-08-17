@@ -59,6 +59,8 @@ export const plStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava pisze z tobą. Raporty, oferty, artykuły — z Markdown do markowego Word/PDF, sekcja po sekcji.',
   'input.send': 'Wyślij (Enter)',
   'input.send_aria': 'Wyślij wiadomość',
+  'input.send_while_working': 'Wyślij — odbierze to przy następnym kroku',
+  'input.placeholder.working': 'Dodaj coś — odbierze to przy następnym kroku',
   'input.stop': 'Zatrzymaj',
   'input.stop_aria': 'Zatrzymaj Avę',
   'input.attach': 'Dołącz obraz',

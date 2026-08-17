@@ -59,6 +59,8 @@ export const itStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava scrive con te. Report, proposte, articoli — da Markdown a Word/PDF col tuo brand, modificato sezione per sezione.',
   'input.send': 'Invia (Invio)',
   'input.send_aria': 'Invia messaggio',
+  'input.send_while_working': 'Invia — lo raccoglierà al passaggio successivo',
+  'input.placeholder.working': 'Aggiungi qualcosa — lo raccoglierà al passaggio successivo',
   'input.stop': 'Ferma',
   'input.stop_aria': 'Ferma Ava',
   'input.attach': 'Allega immagine',

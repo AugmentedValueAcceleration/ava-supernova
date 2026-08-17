@@ -59,6 +59,8 @@ export const jaStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Avaが一緒に書きます。レポート、提案書、記事——Markdownからブランド付きのWord/PDFへ、セクションごとに編集。',
   'input.send': '送信 (Enter)',
   'input.send_aria': 'メッセージを送信',
+  'input.send_while_working': '送信 — 次のステップで受け取ります',
+  'input.placeholder.working': '何か追加してください — 次のステップで受け取ります',
   'input.stop': '停止',
   'input.stop_aria': 'Ava を停止',
   'input.attach': '画像を添付',

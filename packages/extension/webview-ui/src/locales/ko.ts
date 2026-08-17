@@ -59,6 +59,8 @@ export const koStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava가 함께 씁니다. 보고서, 제안서, 기사 — 마크다운에서 브랜드가 적용된 Word/PDF로, 섹션별로 편집.',
   'input.send': '전송 (Enter)',
   'input.send_aria': '메시지 전송',
+  'input.send_while_working': '보내기 — 다음 단계에서 반영됩니다',
+  'input.placeholder.working': '무언가 추가하세요 — 다음 단계에서 반영됩니다',
   'input.stop': '중지',
   'input.stop_aria': 'Ava 중지',
   'input.attach': '이미지 첨부',

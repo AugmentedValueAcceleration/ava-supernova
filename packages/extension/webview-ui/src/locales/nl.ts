@@ -59,6 +59,8 @@ export const nlStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava schrijft met je mee. Rapporten, voorstellen, artikelen — van Markdown naar Word/PDF met je huisstijl, sectie voor sectie.',
   'input.send': 'Versturen (Enter)',
   'input.send_aria': 'Bericht versturen',
+  'input.send_while_working': 'Verstuur — ze pakt het op bij de volgende stap',
+  'input.placeholder.working': 'Voeg iets toe — ze pakt het op bij de volgende stap',
   'input.stop': 'Stoppen',
   'input.stop_aria': 'Ava stoppen',
   'input.attach': 'Afbeelding bijvoegen',

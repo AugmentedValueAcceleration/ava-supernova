@@ -59,6 +59,8 @@ export const idStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava menulis bersamamu. Laporan, proposal, artikel — dari Markdown ke Word/PDF berlogo, diedit bagian per bagian.',
   'input.send': 'Kirim (Enter)',
   'input.send_aria': 'Kirim pesan',
+  'input.send_while_working': 'Kirim — dia akan mengambilnya di langkah berikutnya',
+  'input.placeholder.working': 'Tambahkan sesuatu — dia akan mengambilnya di langkah berikutnya',
   'input.stop': 'Hentikan',
   'input.stop_aria': 'Hentikan Ava',
   'input.attach': 'Lampirkan gambar',

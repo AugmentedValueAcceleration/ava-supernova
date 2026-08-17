@@ -59,6 +59,8 @@ export const viStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava viết cùng bạn. Báo cáo, đề xuất, bài viết — từ Markdown sang Word/PDF có thương hiệu, theo từng phần.',
   'input.send': 'Gửi (Enter)',
   'input.send_aria': 'Gửi tin nhắn',
+  'input.send_while_working': 'Gửi — cô ấy sẽ tiếp nhận ở bước tiếp theo',
+  'input.placeholder.working': 'Thêm điều gì đó — cô ấy sẽ tiếp nhận ở bước tiếp theo',
   'input.stop': 'Dừng',
   'input.stop_aria': 'Dừng Ava',
   'input.attach': 'Đính kèm hình ảnh',

@@ -59,6 +59,8 @@ export const arStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava تكتب معك. تقارير ومقترحات ومقالات — من Markdown إلى Word/PDF بعلامتك التجارية، قسمًا بقسم.',
   'input.send': 'إرسال (Enter)',
   'input.send_aria': 'إرسال الرسالة',
+  'input.send_while_working': 'إرسال — ستأخذه في الخطوة التالية',
+  'input.placeholder.working': 'أضف شيئًا — ستأخذه في الخطوة التالية',
   'input.stop': 'إيقاف',
   'input.stop_aria': 'إيقاف Ava',
   'input.attach': 'إرفاق صورة',

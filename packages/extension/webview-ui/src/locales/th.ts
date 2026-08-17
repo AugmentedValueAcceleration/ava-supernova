@@ -59,6 +59,8 @@ export const thStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava เขียนไปกับคุณ รายงาน ข้อเสนอ บทความ — จาก Markdown สู่ Word/PDF ที่มีแบรนด์ แก้ไขทีละส่วน',
   'input.send': 'ส่ง (Enter)',
   'input.send_aria': 'ส่งข้อความ',
+  'input.send_while_working': 'ส่ง — เธอจะรับไปในขั้นตอนถัดไป',
+  'input.placeholder.working': 'เพิ่มอะไรบางอย่าง — เธอจะรับไปในขั้นตอนถัดไป',
   'input.stop': 'หยุด',
   'input.stop_aria': 'หยุด Ava',
   'input.attach': 'แนบรูปภาพ',

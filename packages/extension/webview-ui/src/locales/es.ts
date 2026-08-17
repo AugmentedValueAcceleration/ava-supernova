@@ -59,6 +59,8 @@ export const esStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava escribe contigo. Informes, propuestas, artículos — de Markdown a Word/PDF con tu marca, editado sección por sección.',
   'input.send': 'Enviar (Enter)',
   'input.send_aria': 'Enviar mensaje',
+  'input.send_while_working': 'Enviar — lo recogerá en el siguiente paso',
+  'input.placeholder.working': 'Añade algo — lo recogerá en el siguiente paso',
   'input.stop': 'Detener',
   'input.stop_aria': 'Detener a Ava',
   'input.attach': 'Adjuntar imagen',

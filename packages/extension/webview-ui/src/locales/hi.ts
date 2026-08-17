@@ -59,6 +59,8 @@ export const hiStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'Ava आपके साथ लिखती है। रिपोर्ट, प्रस्ताव, लेख — Markdown से ब्रांडेड Word/PDF तक, सेक्शन-दर-सेक्शन।',
   'input.send': 'भेजें (Enter)',
   'input.send_aria': 'संदेश भेजें',
+  'input.send_while_working': 'भेजें — वह अगले चरण में इसे ले लेगी',
+  'input.placeholder.working': 'कुछ जोड़ें — वह अगले चरण में इसे ले लेगी',
   'input.stop': 'रोकें',
   'input.stop_aria': 'Ava को रोकें',
   'input.attach': 'छवि संलग्न करें',

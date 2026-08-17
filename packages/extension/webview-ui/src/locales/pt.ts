@@ -59,6 +59,8 @@ export const ptStrings: Record<StringKey, string> = {
   'input.mode.write.desc': 'A Ava escreve com você. Relatórios, propostas, artigos — de Markdown a Word/PDF com a sua marca, editado seção por seção.',
   'input.send': 'Enviar (Enter)',
   'input.send_aria': 'Enviar mensagem',
+  'input.send_while_working': 'Enviar — ela vai buscá-lo no próximo passo',
+  'input.placeholder.working': 'Acrescenta algo — ela vai buscá-lo no próximo passo',
   'input.stop': 'Parar',
   'input.stop_aria': 'Parar Ava',
   'input.attach': 'Anexar imagem',

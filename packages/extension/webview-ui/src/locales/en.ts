@@ -67,6 +67,8 @@ export const enStrings = {
   'input.mode.write.desc': 'Ava writes with you. Reports, proposals, articles — Markdown to branded Word/PDF, edited section by section.',
   'input.send': 'Send (Enter)',
   'input.send_aria': 'Send message',
+  'input.send_while_working': 'Send — she picks it up at the next step',
+  'input.placeholder.working': 'Add something — she picks it up at the next step',
   'input.stop': 'Stop',
   'input.stop_aria': 'Stop Ava',
   'input.attach': 'Attach image',

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import type { ProviderSource } from '../types/messages';
 import { SecretVault } from './SecretVault';
 import type { SecretEntry } from './SecretVault';
@@ -212,11 +212,19 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (isStreaming) return;
+        // Enter sends WHILE SHE IS WORKING TOO. It used to return here, so
+        // typing a correction mid-run and pressing Enter did nothing at all —
+        // no send, no error, no hint. You had to wait for her to finish before
+        // you were allowed to say "not that file".
+        //
+        // The host already handles this properly: a message that arrives
+        // mid-run goes to runner.inject(), which queues it and folds it in at
+        // the next step boundary rather than interrupting a half-written file.
+        // Only this line stopped it ever being sent.
         handleSend();
       }
     },
-    [handleSend, isStreaming],
+    [handleSend],
   );
 
   const handleInput = useCallback(() => {
@@ -571,7 +579,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
             onPaste={handlePaste}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
+            placeholder={disabled ? t('input.placeholder.disabled') : isStreaming ? tt('input.placeholder.working', 'Add something — she picks it up at the next step') : t(PLACEHOLDER_KEYS[mode])}
             disabled={disabled}
             rows={1}
             style={{
@@ -678,6 +686,31 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
             })()}
 
             {/* Voice input button DROPPED — IDE doesn't have it. */}
+
+            {/* While she works you get BOTH: send what you have typed, or stop
+                her. They are different intentions and collapsing them into one
+                button is what made mid-run messages feel impossible — there
+                was only ever a stop here, so the way to add a note looked like
+                the way to cancel everything. Sending queues; it does not
+                interrupt. */}
+            {isStreaming && hasContent && !disabled && (
+              <button
+                onClick={handleSend}
+                title={tt('input.send_while_working', 'Send — she picks it up at the next step')}
+                aria-label={tt('input.send_while_working', 'Send — she picks it up at the next step')}
+                className="flex items-center justify-center w-9 h-9 rounded-lg
+                           text-white border border-[rgba(168,85,247,0.5)]
+                           cursor-pointer transition-all duration-200 hover:opacity-90"
+                style={{
+                  background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
+                  boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M8 3.5l-4.5 4.5.707.707L7.5 5.414V13h1V5.414l3.293 3.293.707-.707L8 3.5z" />
+                </svg>
+              </button>
+            )}
 
             {isStreaming ? (
               <button
