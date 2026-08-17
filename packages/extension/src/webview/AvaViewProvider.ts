@@ -53,6 +53,7 @@ import {
   summariseTrainingLog,
   DESKTOP_TOOL_NAMES,
   LONGXIANG_ENABLED,
+  isRoutingMode,
   // Calendar days in the user's terms, not UTC's — core/src/core/dates.ts.
   todayLocal,
   localYmd,
@@ -60,18 +61,23 @@ import {
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage, ToolConfirmationDecision } from '@ava/core';
 import type { RoutingMode } from '@ava/core';
 
-/** The orchestrated fleet ids — anything else is a raw model id.
- *  Longxiang is only a fleet id once its launch flag is live, so a stale
- *  `activeModel: 'longxiang'` in settings can't route through the fleet path
- *  while the fleet is still dark. */
-const FLEET_IDS: readonly RoutingMode[] = ['auto', 'supernova', 'aurora', 'longxiang'];
-/** Type predicate, not just a boolean — the fleet ids ARE the RoutingMode
- *  values, so narrowing here lets callers pass the id straight through to
- *  setupAgent without a cast that could hide a genuine mismatch later. */
+/** Is this a fleet id rather than a raw model id?
+ *
+ *  The list itself now lives in core as ROUTING_MODES, with RoutingMode
+ *  derived from it, so there is exactly one place a fleet can be added. This
+ *  file used to keep its own copy — correct, as it happens — while the IDE
+ *  sidecar kept a different one that never included 'longxiang'. Two hand-
+ *  written lists, one of them wrong, and the right one is why it took a live
+ *  test to find.
+ *
+ *  The Longxiang launch gate stays here: it is an extension-side release
+ *  decision, not a fact about what a fleet is. A stale
+ *  `activeModel: 'longxiang'` in settings must not route through the fleet
+ *  path while the fleet is dark. */
 function isFleetId(id: string | null | undefined): id is RoutingMode {
   if (!id) return false;
   if (id === 'longxiang') return LONGXIANG_ENABLED;
-  return (FLEET_IDS as readonly string[]).includes(id);
+  return isRoutingMode(id);
 }
 import { creditsFor } from '@ava/core/billing/credits';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';

@@ -3,6 +3,7 @@ export { ModelRouter } from './model-router.js';
 // The routing-mode union was never exported, so every surface hand-copied it
 // and they drifted the moment a fourth fleet landed. One export now.
 export type { RoutingMode } from './model-router.js';
+export { ROUTING_MODES, isRoutingMode } from './model-router.js';
 export { classifyTask } from './task-classifier.js';
 export { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 export { ContextTracker } from './context-tracker.js';
