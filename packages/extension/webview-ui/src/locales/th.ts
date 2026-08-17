@@ -120,6 +120,7 @@ export const thStrings: Record<StringKey, string> = {
   'tool.always_allow': 'อนุญาตเสมอ',
   'tool.always_allow_category_tip': 'อนุมัติหมวดหมู่นี้โดยอัตโนมัติสำหรับเซสชันที่เหลือ',
   'tool.deny': 'ปฏิเสธ',
+  'tool.deny_reason_placeholder': 'ไม่ใช่อันนี้ใช่ไหม บอก Ava ว่าทำไม หรือควรทำอะไรแทน',
   'tool.allow_prompt': 'อนุญาต {tool}?',
   'tool.arguments': 'อาร์กิวเมนต์',
   'tool.output': 'ผลลัพธ์',

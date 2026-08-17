@@ -120,6 +120,7 @@ export const arStrings: Record<StringKey, string> = {
   'tool.always_allow': 'السماح دائماً',
   'tool.always_allow_category_tip': 'الموافقة التلقائية على فئة هذه الأداة لباقي الجلسة',
   'tool.deny': 'رفض',
+  'tool.deny_reason_placeholder': 'ليس هذا؟ أخبر أفا بالسبب، أو بما يجب فعله بدلاً من ذلك',
   'tool.allow_prompt': 'السماح بـ {tool}؟',
   'tool.arguments': 'المعاملات',
   'tool.output': 'المخرجات',

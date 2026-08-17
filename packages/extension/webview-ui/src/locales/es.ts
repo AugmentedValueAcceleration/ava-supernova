@@ -120,6 +120,7 @@ export const esStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Permitir siempre',
   'tool.always_allow_category_tip': 'Autoaprobar esta categoría de herramientas para el resto de la sesión',
   'tool.deny': 'Denegar',
+  'tool.deny_reason_placeholder': '¿Esto no? Dile a Ava por qué, o qué hacer en su lugar',
   'tool.allow_prompt': '\u00bfPermitir {tool}?',
   'tool.arguments': 'Argumentos',
   'tool.output': 'Salida',

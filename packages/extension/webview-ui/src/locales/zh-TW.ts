@@ -120,6 +120,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   'tool.always_allow': '一律允許',
   'tool.always_allow_category_tip': '自動批准此工具類別至本次會話結束',
   'tool.deny': '拒絕',
+  'tool.deny_reason_placeholder': '不是這個？告訴 Ava 原因，或者該做什麼',
   'tool.allow_prompt': '允許 {tool}？',
   'tool.arguments': '參數',
   'tool.output': '輸出',

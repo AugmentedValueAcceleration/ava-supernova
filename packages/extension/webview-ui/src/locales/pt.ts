@@ -120,6 +120,7 @@ export const ptStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Permitir sempre',
   'tool.always_allow_category_tip': 'Aprovar automaticamente esta categoria de ferramentas pelo restante da sessão',
   'tool.deny': 'Negar',
+  'tool.deny_reason_placeholder': 'Isto não? Diz à Ava porquê, ou o que fazer em vez disso',
   'tool.allow_prompt': 'Permitir {tool}?',
   'tool.arguments': 'Argumentos',
   'tool.output': 'Sa\u00edda',

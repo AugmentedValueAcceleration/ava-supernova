@@ -120,6 +120,7 @@ export const ruStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Всегда разрешать',
   'tool.always_allow_category_tip': 'Автоматически подтверждать эту категорию инструментов до конца сессии',
   'tool.deny': 'Запретить',
+  'tool.deny_reason_placeholder': 'Не это? Скажите Аве почему или что сделать вместо этого',
   'tool.allow_prompt': 'Разрешить {tool}?',
   'tool.arguments': 'Аргументы',
   'tool.output': 'Вывод',

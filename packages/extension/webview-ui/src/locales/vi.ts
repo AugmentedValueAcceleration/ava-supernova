@@ -120,6 +120,7 @@ export const viStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Luôn cho phép',
   'tool.always_allow_category_tip': 'Tự động phê duyệt danh mục công cụ này cho đến hết phiên',
   'tool.deny': 'Từ chối',
+  'tool.deny_reason_placeholder': 'Không phải cái này? Hãy cho Ava biết lý do, hoặc nên làm gì thay thế',
   'tool.allow_prompt': 'Cho phép {tool}?',
   'tool.arguments': 'Tham số',
   'tool.output': 'Đầu ra',

@@ -120,6 +120,7 @@ export const idStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Selalu Izinkan',
   'tool.always_allow_category_tip': 'Setujui otomatis kategori alat ini untuk sisa sesi',
   'tool.deny': 'Tolak',
+  'tool.deny_reason_placeholder': 'Bukan ini? Beri tahu Ava alasannya, atau apa yang harus dilakukan',
   'tool.allow_prompt': 'Izinkan {tool}?',
   'tool.arguments': 'Argumen',
   'tool.output': 'Keluaran',

@@ -120,6 +120,7 @@ export const itStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Consenti sempre',
   'tool.always_allow_category_tip': 'Auto-approva questa categoria di strumento per il resto della sessione',
   'tool.deny': 'Nega',
+  'tool.deny_reason_placeholder': 'Non questo? Di\' ad Ava perché, o cosa fare invece',
   'tool.allow_prompt': 'Consentire {tool}?',
   'tool.arguments': 'Argomenti',
   'tool.output': 'Uscita',

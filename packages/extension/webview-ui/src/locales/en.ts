@@ -129,6 +129,7 @@ export const enStrings = {
   'tool.always_allow': 'Always Allow',
   'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Deny',
+  'tool.deny_reason_placeholder': 'Not this? Tell Ava why, or what to do instead',
   'tool.allow_prompt': 'Allow {tool}?',
   'tool.arguments': 'Arguments',
   'tool.output': 'Output',

@@ -120,6 +120,7 @@ export const trStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Her Zaman İzin Ver',
   'tool.always_allow_category_tip': 'Oturumun geri kalanı için bu araç kategorisini otomatik onayla',
   'tool.deny': 'Reddet',
+  'tool.deny_reason_placeholder': 'Bu değil mi? Ava\'ya nedenini ya da bunun yerine ne yapacağını söyleyin',
   'tool.allow_prompt': '{tool} izni verilsin mi?',
   'tool.arguments': 'Argümanlar',
   'tool.output': 'Çıktı',

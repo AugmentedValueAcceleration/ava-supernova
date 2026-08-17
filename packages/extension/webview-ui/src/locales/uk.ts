@@ -120,6 +120,7 @@ export const ukStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Завжди дозволяти',
   'tool.always_allow_category_tip': 'Автоматично схвалювати цю категорію інструментів до кінця сесії',
   'tool.deny': 'Відхилити',
+  'tool.deny_reason_placeholder': 'Не це? Скажіть Аві чому або що зробити натомість',
   'tool.allow_prompt': 'Дозволити {tool}?',
   'tool.arguments': 'Аргументи',
   'tool.output': 'Результат',

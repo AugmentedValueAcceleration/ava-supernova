@@ -120,6 +120,7 @@ export const jaStrings: Record<StringKey, string> = {
   'tool.always_allow': '常に許可',
   'tool.always_allow_category_tip': 'セッション終了までこのツールカテゴリを自動承認する',
   'tool.deny': '拒否',
+  'tool.deny_reason_placeholder': 'これではない？理由か、代わりに何をすべきかを Ava に伝えてください',
   'tool.allow_prompt': '{tool} を許可しますか？',
   'tool.arguments': '引数',
   'tool.output': '出力',

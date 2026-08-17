@@ -674,6 +674,27 @@ export class ToolRegistry {
         // attach the confirmation card to the exact tool call instance
         // instead of guessing by name (which races for parallel calls).
         const result = await this.confirmationHandler(name, args, context.toolCallId);
+
+        // Denied WITH the user's own words. Checked BEFORE the string branch
+        // below, and deliberately shaped as an object, because that branch
+        // treats a bare string as APPROVED — a reason sent as a plain string
+        // would report success and audit an approval for a call the user
+        // refused. Audited as 'denied' exactly like a bare refusal; the only
+        // difference is that the model is told why.
+        if (result && typeof result === 'object' && result.approved === false) {
+          const reason = String(result.reason ?? '').trim();
+          this.emitAudit(name, category, tool.riskLevel, 'denied', 'denied', argsSummary, args, reason || undefined);
+          return {
+            success: false,
+            // The tool did NOT run. The reason is the user redirecting, not a
+            // result — say both, so the model adapts instead of retrying the
+            // identical call.
+            output: reason
+              ? `Tool "${name}" was denied by the user. They said: "${reason}"\nDo NOT retry this exact call. Use what they said to decide what to do instead, and ask if it is unclear.`
+              : `Tool "${name}" was denied by the user.`,
+          };
+        }
+
         if (result === false) {
           this.emitAudit(name, category, tool.riskLevel, 'denied', 'denied', argsSummary, args);
           return {

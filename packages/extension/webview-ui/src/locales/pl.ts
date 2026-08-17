@@ -120,6 +120,7 @@ export const plStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Zawsze zezwalaj',
   'tool.always_allow_category_tip': 'Automatycznie zatwierdzaj tę kategorię narzędzi do końca sesji',
   'tool.deny': 'Odmów',
+  'tool.deny_reason_placeholder': 'Nie to? Powiedz Avie dlaczego albo co zrobić zamiast tego',
   'tool.allow_prompt': 'Zezwolić na {tool}?',
   'tool.arguments': 'Argumenty',
   'tool.output': 'Wynik',

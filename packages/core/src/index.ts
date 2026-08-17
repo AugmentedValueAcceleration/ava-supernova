@@ -299,6 +299,7 @@ export type {
   ToolResult,
   ToolExecutionContext,
   ToolConfirmationHandler,
+  ToolConfirmationDecision,
   ToolRiskLevel,
   PermissionMode,
   ToolCategory,

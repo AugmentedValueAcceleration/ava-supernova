@@ -1,11 +1,17 @@
 import { useState, useCallback } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
 import { CopyButton } from './CopyButton';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 
 interface ToolCallCardProps {
   toolCall: ToolCallDisplay;
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean) => void;
+  onConfirmation: (
+    confirmationId: string,
+    approved: boolean,
+    alwaysAllowCategory?: boolean,
+    planSelection?: string,
+    userResponse?: string,
+  ) => void;
 }
 
 // ─── Human-readable tool descriptions ──────────────────────────────────────
@@ -100,6 +106,11 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
   const [expanded, setExpanded] = useState(
     toolCall.status === 'failed' || toolCall.status === 'pending_confirmation',
   );
+  // What the user wants to say about this call. Only ever sent with a REFUSAL:
+  // the arguments were fixed when the card appeared, so "no, use staging"
+  // declines this call and describes the next one. Approving is still a clean
+  // yes with nothing attached.
+  const [reason, setReason] = useState('');
   const { label } = getToolLabel(toolCall.name, toolCall.arguments);
   const getResult = useCallback(() => toolCall.result || '', [toolCall.result]);
   const isFailed = toolCall.status === 'failed';
@@ -162,11 +173,38 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
                          text-[var(--vscode-button-secondaryForeground)]
                          hover:bg-[var(--vscode-button-secondaryHoverBackground)]
                          border-none cursor-pointer ml-auto"
-              onClick={() => onConfirmation(toolCall.confirmationId!, false)}
+              onClick={() => onConfirmation(
+                toolCall.confirmationId!, false, undefined, undefined,
+                reason.trim() || undefined,
+              )}
             >
               {t('tool.deny')}
             </button>
           </div>
+          {/* Saying no used to be all a person could do. Ava was told "denied"
+              and nothing else, so she would often try the same thing again.
+              Enter submits the refusal WITH the reason — the quickest path,
+              because the moment you want to explain is the moment you are
+              stopping something. */}
+          <input
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && reason.trim()) {
+                e.preventDefault();
+                onConfirmation(toolCall.confirmationId!, false, undefined, undefined, reason.trim());
+              }
+            }}
+            placeholder={tt('tool.deny_reason_placeholder', 'Not this? Tell Ava why, or what to do instead')}
+            aria-label={tt('tool.deny_reason_placeholder', 'Not this? Tell Ava why, or what to do instead')}
+            className="w-full px-2 py-1 rounded text-[11px]
+                       bg-[var(--vscode-input-background)]
+                       text-[var(--vscode-input-foreground)]
+                       border border-[var(--vscode-input-border,transparent)]
+                       placeholder:opacity-50 outline-none
+                       focus:border-[var(--color-accent,var(--vscode-focusBorder))]"
+          />
         </div>
       )}
 

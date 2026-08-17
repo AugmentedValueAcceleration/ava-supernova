@@ -120,6 +120,7 @@ export const hiStrings: Record<StringKey, string> = {
   'tool.always_allow': 'हमेशा अनुमति दें',
   'tool.always_allow_category_tip': 'इस टूल श्रेणी को सत्र के शेष भाग के लिए स्वतः स्वीकृत करें',
   'tool.deny': 'अस्वीकार करें',
+  'tool.deny_reason_placeholder': 'यह नहीं? Ava को बताएं क्यों, या इसके बजाय क्या करना है',
   'tool.allow_prompt': '{tool} को अनुमति दें?',
   'tool.arguments': 'आर्गुमेंट',
   'tool.output': 'आउटपुट',

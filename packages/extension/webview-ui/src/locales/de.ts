@@ -120,6 +120,7 @@ export const deStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Immer erlauben',
   'tool.always_allow_category_tip': 'Diese Werkzeugkategorie für den Rest der Sitzung automatisch genehmigen',
   'tool.deny': 'Ablehnen',
+  'tool.deny_reason_placeholder': 'Nicht das? Sag Ava warum – oder was sie stattdessen tun soll',
   'tool.allow_prompt': '{tool} erlauben?',
   'tool.arguments': 'Argumente',
   'tool.output': 'Ausgabe',

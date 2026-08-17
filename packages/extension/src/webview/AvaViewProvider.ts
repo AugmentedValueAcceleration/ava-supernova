@@ -54,7 +54,7 @@ import {
   DESKTOP_TOOL_NAMES,
   LONGXIANG_ENABLED,
 } from '@ava/core';
-import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
+import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage, ToolConfirmationDecision } from '@ava/core';
 import type { RoutingMode } from '@ava/core';
 
 /** The orchestrated fleet ids — anything else is a raw model id.
@@ -228,7 +228,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private historyManager!: HistoryManager;
   private isRunning = false;
   private runAbortController?: AbortController;
-  private pendingConfirmations = new Map<string, { resolve: (result: boolean | string) => void; toolName: string; args?: Record<string, unknown> }>();
+  private pendingConfirmations = new Map<string, { resolve: (result: ToolConfirmationDecision) => void; toolName: string; args?: Record<string, unknown> }>();
   // Pending secret-grant prompts. Keyed by grantId; resolves when the webview
   // posts secret_grant_response. Resolves with null on denial.
   private pendingGrants = new Map<string, { resolve: (granted: { id: string; label: string } | null) => void; label: string }>();
@@ -4645,7 +4645,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     toolName: string,
     args: Record<string, unknown>,
     toolCallId?: string,
-  ): Promise<boolean | string> {
+  ): Promise<ToolConfirmationDecision> {
     // Core ToolRegistry.needsConfirmation() already handles category-based permission checks.
     // If we reach here, the tool genuinely needs user confirmation.
     const toolCategory = this.toolRegistry?.getCategoryForTool(toolName) || 'file_ops';
@@ -4968,7 +4968,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         pending.resolve('Mode transition declined. Staying in current mode.');
       }
     } else {
-      pending.resolve(approved);
+      // Generic permission card — bash, file writes, git, anything that asks.
+      // A typed reply here is a REFUSAL carrying the user's words, never an
+      // approval: the arguments were already fixed when the card was raised,
+      // so "no, use the staging db" is declining THIS call and describing the
+      // next one. Core keeps that distinction in the type, because a reason
+      // sent as a bare string would mean "approved, and this is the result".
+      const reason = (userResponse || '').trim();
+      if (!approved && reason) {
+        pending.resolve({ approved: false, reason });
+      } else {
+        pending.resolve(approved);
+      }
     }
   }
 

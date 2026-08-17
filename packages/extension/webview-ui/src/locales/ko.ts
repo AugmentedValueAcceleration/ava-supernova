@@ -120,6 +120,7 @@ export const koStrings: Record<StringKey, string> = {
   'tool.always_allow': '항상 허용',
   'tool.always_allow_category_tip': '세션 전체에 대해 이 도구 카테고리를 자동 승인합니다',
   'tool.deny': '거부',
+  'tool.deny_reason_placeholder': '이게 아닌가요? 이유나 대신 무엇을 할지 Ava에게 알려주세요',
   'tool.allow_prompt': '{tool}을(를) 허용하시겠습니까?',
   'tool.arguments': '인수',
   'tool.output': '출력',

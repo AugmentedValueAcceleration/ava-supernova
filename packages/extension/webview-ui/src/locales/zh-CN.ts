@@ -120,6 +120,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   'tool.always_allow': '始终允许',
   'tool.always_allow_category_tip': '自动批准此工具类别，直至本次会话结束',
   'tool.deny': '拒绝',
+  'tool.deny_reason_placeholder': '不是这个？告诉 Ava 原因，或者该做什么',
   'tool.allow_prompt': '允许 {tool}？',
   'tool.arguments': '参数',
   'tool.output': '输出',

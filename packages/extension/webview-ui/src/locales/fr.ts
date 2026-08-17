@@ -120,6 +120,7 @@ export const frStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Toujours autoriser',
   'tool.always_allow_category_tip': 'Approuver automatiquement cette catégorie d\'outils pour le reste de la session',
   'tool.deny': 'Refuser',
+  'tool.deny_reason_placeholder': 'Pas ça ? Dites à Ava pourquoi, ou quoi faire à la place',
   'tool.allow_prompt': 'Autoriser {tool} ?',
   'tool.arguments': 'Paramètres',
   'tool.output': 'Sortie',

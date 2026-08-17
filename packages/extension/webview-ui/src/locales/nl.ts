@@ -120,6 +120,7 @@ export const nlStrings: Record<StringKey, string> = {
   'tool.always_allow': 'Altijd toestaan',
   'tool.always_allow_category_tip': 'Deze toolcategorie automatisch goedkeuren voor de rest van de sessie',
   'tool.deny': 'Weigeren',
+  'tool.deny_reason_placeholder': 'Dit niet? Vertel Ava waarom, of wat ze in plaats daarvan moet doen',
   'tool.allow_prompt': '{tool} toestaan?',
   'tool.arguments': 'Argumenten',
   'tool.output': 'Uitvoer',

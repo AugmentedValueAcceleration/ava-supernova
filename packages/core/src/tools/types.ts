@@ -132,15 +132,41 @@ export interface ToolExecutionContext {
   surface?: 'ext' | 'ide' | 'cli' | 'companion' | 'web';
 }
 
-// Returns boolean (true=approved, false=denied) or a string (approved with custom tool result).
-// When a string is returned, the ToolRegistry uses it as the tool output directly,
-// bypassing the tool's execute() method. Used by present_plan for rich approval messages.
-//
-// toolCallId is the model's tool_call ID — passed through so UI hosts can
-// match confirmation prompts to the exact tool call instance instead of by
-// name (which races with multiple parallel tool calls).
+/**
+ * What the user decided about a tool that asked permission.
+ *
+ *   true              — approved. The tool runs.
+ *   false             — denied. The tool does not run, and the model is told
+ *                       only that it was refused.
+ *   string            — APPROVED, and this string IS the tool result; the
+ *                       tool's execute() is skipped entirely. present_plan
+ *                       uses this to hand back a rich approval.
+ *   { approved: false; reason } — denied WITH the user's own words.
+ *
+ * That last case exists because the first three could not express it, and the
+ * gap was dangerous rather than merely missing. A denial reason is a string,
+ * and a bare string here means APPROVED — so a UI that sent "no, that would
+ * wipe the branch" the obvious way would have told the model the tool
+ * SUCCEEDED and written an approval into the audit log. Refusing has to be
+ * unmistakable in the type, not a convention someone has to remember.
+ *
+ * Deny-with-reason never runs the tool. It is not "approve with changes":
+ * the arguments were already fixed when the card was raised, so a user asking
+ * for something different is refusing THIS call and describing the next one.
+ * The model reads the reason and decides what to do — which is the point, and
+ * is why the plain denial above says so little.
+ *
+ * toolCallId is the model's tool_call ID — passed through so UI hosts can
+ * match confirmation prompts to the exact tool call instance instead of by
+ * name (which races with multiple parallel tool calls).
+ */
+export type ToolConfirmationDecision =
+  | boolean
+  | string
+  | { approved: false; reason: string };
+
 export type ToolConfirmationHandler = (
   toolName: string,
   args: Record<string, unknown>,
   toolCallId?: string,
-) => Promise<boolean | string>;
+) => Promise<ToolConfirmationDecision>;
