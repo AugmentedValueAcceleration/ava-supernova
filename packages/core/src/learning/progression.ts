@@ -9,6 +9,7 @@
 // skills carry source:'self' and "graduate" to verified when their name matches
 // an earned subject here.
 
+import { localYmd } from '../core/dates.js';
 import type { LearningStore, Curriculum, Lesson } from '../tools/learning.js';
 
 export type SkillLevel = 'novice' | 'familiar' | 'proficient' | 'mastered';
@@ -80,7 +81,15 @@ const STALE_DAYS = 30;
 
 const allLessons = (c: Curriculum): Lesson[] => c.modules.flatMap((m) => m.lessons);
 const isMastered = (l: Lesson): boolean => l.status === 'completed';
-const dayOf = (iso: string | null | undefined): string | null => (iso ? iso.slice(0, 10) : null);
+/** The LOCAL day a stored timestamp fell on.
+ *
+ *  Was `iso.slice(0, 10)`, which takes the UTC day straight off the string. The
+ *  heatmap that consumes this built its lookup keys the same way, so the two
+ *  agreed — by both being wrong. Practise at 23:00 in New York and the square
+ *  lit up on tomorrow; practise at 00:30 in British Summer Time and it lit up
+ *  on yesterday. Both sides moved together, because changing either alone
+ *  stops the keys matching and empties the heatmap. */
+const dayOf = (iso: string | null | undefined): string | null => (iso ? localYmd(new Date(iso)) : null);
 
 /** Most recent of completed_at / last_reviewed_at / started_at for a lesson. */
 function lastTouch(l: Lesson): string | null {

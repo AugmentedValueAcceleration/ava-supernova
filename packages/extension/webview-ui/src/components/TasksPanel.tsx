@@ -1,3 +1,4 @@
+import { todayLocal } from '../utils/local-day';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI } from '../types/messages';
@@ -321,7 +322,7 @@ function QuickAdd({
     if (!trimmed) return;
     // "Today" view implies the task belongs to today unless a date is picked,
     // so it shows up where the user added it. The "All" view stays date-free.
-    const due = dueDate || (defaultDueToday ? new Date().toISOString().slice(0, 10) : undefined);
+    const due = dueDate || (defaultDueToday ? todayLocal() : undefined);
     onCreate({ title: trimmed, priority, category, due_date: due });
     reset();
     inputRef.current?.focus(); // keep open for rapid entry
@@ -605,7 +606,7 @@ function formatDueShort(iso: string): string {
 
 function TaskItem({ task, onToggle, done }: { task: TodayTaskUI; onToggle: () => void; done?: boolean }) {
   const style = PRIORITY_STYLES[task.priority];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const overdue = !!task.dueDate && !done && task.dueDate < today;
   const dueToday = !!task.dueDate && !done && task.dueDate === today;
   const hasMeta = !done && (task.category || task.dueDate);

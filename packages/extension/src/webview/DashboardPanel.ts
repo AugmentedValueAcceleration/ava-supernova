@@ -38,6 +38,8 @@ import {
   // Per-type export/import is shared with the IDE — one implementation, in core.
   exportDataType, importDataType, isCoreDataType, NotImportableError,
   type DatasetConfig,
+  // Calendar days in the user's terms, not UTC's — core/src/core/dates.ts.
+  todayLocal,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -2423,7 +2425,7 @@ export class DashboardPanel {
             break;
           }
           const content = await res.text();
-          const datePart = new Date().toISOString().slice(0, 10);
+          const datePart = todayLocal();
           const filename = `ava-supernova-data-export-${datePart}.json`;
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file(filename),
@@ -3012,6 +3014,12 @@ export class DashboardPanel {
       for (let i = 13; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
+        // UTC on purpose, and left that way in the 2026-08-17 local-day sweep.
+        // These strings are LOOKUP KEYS into dailyMap, which is built from the
+        // server's usage summary — and the server groups by UTC day. Render
+        // them locally and the keys stop matching for anyone away from UTC, so
+        // the chart quietly draws fourteen days of zero. Making this local
+        // means changing how the server buckets usage, not this line.
         const dateStr = d.toISOString().slice(0, 10);
         daily.push({ date: dateStr, tokens: dailyMap[dateStr] ?? 0 });
       }
@@ -5902,7 +5910,7 @@ export class DashboardPanel {
         source: 'extension',
         scopedDir: this.getUserDataDir(),
       });
-      const datePart = new Date().toISOString().slice(0, 10);
+      const datePart = todayLocal();
       const uri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(`ava-backup-${datePart}.ava-backup`),
         filters: { 'Ava backup': ['ava-backup'] },
@@ -5926,7 +5934,7 @@ export class DashboardPanel {
         source: 'extension',
         scopedDir: this.getUserDataDir(),
       });
-      const datePart = new Date().toISOString().slice(0, 10);
+      const datePart = todayLocal();
       const uri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(`ava-data-readable-${datePart}.json`),
         filters: { JSON: ['json'] },

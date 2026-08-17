@@ -38,6 +38,11 @@
       "require": "./dist/tools/desktop-tools.js",
       "types": "./dist/tools/desktop-tools.d.ts"
     },
+    "./dates": {
+      "import": "./dist/core/dates.js",
+      "require": "./dist/core/dates.js",
+      "types": "./dist/core/dates.d.ts"
+    },
     "./request-shaping": {
       "import": "./dist/providers/request-shaping/index.js",
       "require": "./dist/providers/request-shaping/index.js",

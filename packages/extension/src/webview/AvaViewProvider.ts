@@ -53,6 +53,9 @@ import {
   summariseTrainingLog,
   DESKTOP_TOOL_NAMES,
   LONGXIANG_ENABLED,
+  // Calendar days in the user's terms, not UTC's — core/src/core/dates.ts.
+  todayLocal,
+  localYmd,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage, ToolConfirmationDecision } from '@ava/core';
 import type { RoutingMode } from '@ava/core';
@@ -1819,11 +1822,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         const result = await this.tickEngine.tick({
           getOverdueTasks: this.taskManager ? async () => {
             const tasks = await this.taskManager!.listTasks({ status: ['todo', 'in-progress'] });
-            const now = new Date().toISOString().slice(0, 10);
+            const now = todayLocal();
             return tasks.filter(t => t.dueDate && t.dueDate < now).map(t => ({ title: t.title, dueDate: t.dueDate, priority: t.priority }));
           } : undefined,
           getJournalStreak: this.journalManager ? async () => {
-            const today = new Date().toISOString().slice(0, 10);
+            const today = todayLocal();
             const day = await this.journalManager!.getDay(today);
             const writtenToday = (day?.entries.length ?? 0) > 0;
             // Simple streak check — count consecutive days backwards
@@ -1831,7 +1834,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             const d = new Date();
             for (let i = 1; i <= 30; i++) {
               d.setDate(d.getDate() - 1);
-              const prev = await this.journalManager!.getDay(d.toISOString().slice(0, 10));
+              const prev = await this.journalManager!.getDay(localYmd(d));
               if ((prev?.entries.length ?? 0) > 0) streak++;
               else break;
             }
@@ -2091,7 +2094,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             // Which weekday each generated day lands on. A plan created from the
             // room starts today unless the person moves it, and today is what
             // the store stamps on an active plan without a date.
-            start_date: new Date().toISOString().slice(0, 10),
+            start_date: todayLocal(),
           }),
         });
         const data = await res.json().catch(() => ({} as Record<string, unknown>));
@@ -3689,7 +3692,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           // its cost. Removed.
           // Refresh dashboard journal when journal_write fires
           if (event.toolCall.function.name === 'journal_write' && DashboardPanel.currentPanel) {
-            const today = new Date().toISOString().slice(0, 10);
+            const today = todayLocal();
             DashboardPanel.currentPanel.notifyJournalUpdated(today);
           }
           // Auto-open document preview for office suite tools
@@ -4192,7 +4195,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // were invisible. If a write fails now, we see why in the logs.
       try {
         if (this.journalManager && this.conversation) {
-          const today = new Date().toISOString().slice(0, 10);
+          const today = todayLocal();
           const stats = sessionStats.getStats();
           const duration = Math.round((Date.now() - new Date(stats.session_start).getTime()) / 60000);
 
@@ -4598,7 +4601,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     try {
       const sessions = readAllSessions(join(this.accountScopedDir, 'health'));
       if (!sessions.length) return undefined;
-      return summariseTrainingLog(sessions, new Date().toISOString().slice(0, 10)) ?? undefined;
+      return summariseTrainingLog(sessions, todayLocal()) ?? undefined;
     } catch {
       return undefined;
     }
