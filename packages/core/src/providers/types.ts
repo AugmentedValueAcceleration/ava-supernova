@@ -69,6 +69,23 @@ export interface ChatCompletionRequest {
    * the same door.
    */
   chat_template_kwargs?: Record<string, unknown>;
+
+  /**
+   * The user turn this call belongs to. Sent as the X-Ava-Turn-Id HEADER, never
+   * in the body — an unknown body key is a rejection risk with strict
+   * providers, and this is metadata about the request rather than part of it.
+   *
+   * One turn is one Agent.run(): the user says something, and Ava may call a
+   * model several times to answer it. Without this, those calls are separate
+   * rows in usage_logs with nothing tying them together — so a turn where the
+   * third call failed and the fourth succeeded looks exactly like four
+   * independent turns. Retries become invisible, and a change in behaviour
+   * becomes indistinguishable from a change in price.
+   *
+   * Only reaches our own platform route; BYOK calls go straight to the
+   * provider, which neither needs it nor is billed by us.
+   */
+  turnId?: string;
 }
 
 // ─── Provider Configuration ──────────────────────────────────────────────────

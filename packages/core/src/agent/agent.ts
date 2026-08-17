@@ -716,6 +716,18 @@ export class Agent {
   // Verifying tools that ran this run() (name + success), for the soft
   // honesty gate (claims-auditor) at final-answer time. Reset per run.
   private runToolEvidence: Array<{ name: string; ok: boolean }> = [];
+  /**
+   * The id of the turn currently running — one per run(), shared by every
+   * model call the turn makes, sent to our platform as X-Ava-Turn-Id.
+   *
+   * A tool-using turn calls the model repeatedly, and each call was landing in
+   * usage_logs as its own row with nothing connecting them. So a turn where
+   * the third call failed and the fourth succeeded was indistinguishable from
+   * four separate turns: retries invisible, and no way to tell a price change
+   * from a behaviour change. This is what makes cost-per-outcome answerable
+   * rather than just cost-per-call.
+   */
+  private runTurnId: string | undefined;
   // Did the soft honesty gate flag an unbacked factual claim this run?
   // Set by the claims-auditor branch; read by the verification_evidence
   // dataset emit in run()'s finally. Reset per run.
@@ -1049,6 +1061,11 @@ export class Agent {
     const detectedMode = (this.detectModeForSurface(messages) ?? 'work') as AvaMode;
     const previousMode = this.lastDetectedMode;
     this.lastDetectedMode = detectedMode;
+    // One id for this whole turn, however many model calls it takes.
+    // Generated here rather than server-side because only the agent knows
+    // where a turn begins — to the platform route, each call is just another
+    // HTTP request.
+    this.runTurnId = randomUUID();
     // Reset per-run tool evidence for the honesty gate (claims-auditor).
     this.runToolEvidence = [];
     this.runClaimFlagged = false;
@@ -1862,6 +1879,10 @@ export class Agent {
         tools: toolSchemas.length > 0 ? toolSchemas : undefined,
         tool_choice: toolSchemas.length > 0 ? 'auto' : undefined,
         stream: true,
+        // Every iteration of this loop is another call serving the SAME user
+        // turn. Tagging them all with one id is what lets a turn be costed as
+        // an outcome rather than as N unrelated calls.
+        turnId: this.runTurnId,
       };
 
       let assistantMessage: AssistantMessage;
@@ -3259,6 +3280,10 @@ ${transcript}`;
             { role: 'system', content: 'You are a precise conversation summarizer.' },
             { role: 'user', content: compressionPrompt },
           ],
+          // Compression is a real cost the turn incurred, so it belongs to the
+          // turn. Leaving it untagged would quietly understate what a long
+          // conversation actually costs to answer.
+          turnId: this.runTurnId,
           max_tokens: summaryBudget,
           temperature: 0.2,
         },

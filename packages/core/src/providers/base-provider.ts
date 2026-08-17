@@ -200,7 +200,14 @@ export abstract class BaseProvider implements Provider {
   async createCompletion(request: ChatCompletionRequest, signal?: AbortSignal): Promise<CompletionResponse> {
     const body = this.transformRequest({ ...request, stream: false });
     const url = this.getCompletionUrl();
-    const headers = this.getAuthHeaders();
+    // Metadata about the call, so it rides in a header rather than the body:
+    // an unknown body key is a rejection risk on strict providers, and
+    // transformRequest is an allow-list that would drop it anyway. Only our
+    // own platform route reads it; every other provider ignores it.
+    const headers = {
+      ...this.getAuthHeaders(),
+      ...(request.turnId ? { 'X-Ava-Turn-Id': request.turnId } : {}),
+    };
 
     const response = await this.fetchWithRetry(url, {
       method: 'POST',
@@ -249,7 +256,14 @@ export abstract class BaseProvider implements Provider {
       stream_options: { include_usage: true },
     });
     const url = this.getCompletionUrl();
-    const headers = this.getAuthHeaders();
+    // Metadata about the call, so it rides in a header rather than the body:
+    // an unknown body key is a rejection risk on strict providers, and
+    // transformRequest is an allow-list that would drop it anyway. Only our
+    // own platform route reads it; every other provider ignores it.
+    const headers = {
+      ...this.getAuthHeaders(),
+      ...(request.turnId ? { 'X-Ava-Turn-Id': request.turnId } : {}),
+    };
 
     const toolCount = Array.isArray(body.tools) ? body.tools.length : 0;
     logger.debug(`[${this.name}] POST ${url} | model=${body.model} tools=${toolCount} tool_choice=${body.tool_choice ?? 'none'}`);
