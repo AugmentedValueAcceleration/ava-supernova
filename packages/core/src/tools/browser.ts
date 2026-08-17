@@ -141,7 +141,16 @@ export class BrowserTool implements Tool {
 
     let playwright: any;
     try {
-      playwright = await import('playwright');
+      // webpackIgnore, because playwright is an OPTIONAL peer resolved at
+      // runtime and only on the machine that actually drives a browser.
+      // Without it a bundler follows the bare specifier anyway — being lazy in
+      // JS does not make it lazy to webpack — and drags in playwright-core,
+      // electron, and the recorder's binary .ttf assets. That is what breaks
+      // `next build` in packages/web, which imports core for entirely
+      // unrelated reasons and will never open a browser. The cost of that was
+      // not the bundle: it was losing the ability to build the web app
+      // locally, so every deploy went out proven only on Render.
+      playwright = await import(/* webpackIgnore: true */ 'playwright');
     } catch {
       throw new Error(
         'Playwright is not installed. This is the standard browser automation backend ' +
