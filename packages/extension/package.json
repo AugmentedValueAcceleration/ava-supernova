@@ -481,7 +481,7 @@
     "dev:webview": "cd webview-ui && npx vite build --watch",
     "dev:dashboard": "cd dashboard-ui && npx vite build --watch",
     "dev:extension": "node esbuild.config.mjs --watch",
-    "package": "pnpm build && npx @vscode/vsce package --no-dependencies",
+    "package": "node ../../scripts/i18n-check.mjs && pnpm build && npx @vscode/vsce package --no-dependencies && node scripts/prune-vsix.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:webviews": "cd dashboard-ui && tsc --noEmit && cd ../webview-ui && tsc --noEmit",
     "typecheck:all": "pnpm typecheck && pnpm typecheck:webviews",
