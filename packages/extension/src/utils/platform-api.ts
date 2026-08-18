@@ -29,6 +29,24 @@ export function getDeviceId(): string {
  *  pass `timeoutMs` explicitly. */
 const DEFAULT_TIMEOUT_MS = 10_000;
 
+/**
+ * This machine's IANA timezone, for surfaces that bucket by the user's day.
+ *
+ * Sent on every request rather than added to the handful of URLs that need it
+ * today, because a header cannot be forgotten by the next caller. Servers that
+ * do not read it ignore it; servers that do fall back to UTC when it is absent
+ * or unrecognised, so an old client keeps working unchanged.
+ *
+ * An IANA name and not an offset — an offset is wrong twice a year.
+ */
+function localTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
 export async function apiFetch(
   path: string,
   options: {
@@ -61,6 +79,7 @@ export async function apiFetch(
       'Content-Type': 'application/json',
       'X-Ava-Platform': 'extension',
       'X-Ava-Device': getDeviceId(),
+      'X-Ava-Timezone': localTimezone(),
       ...(options.platformKey ? { 'Authorization': `Bearer ${options.platformKey}` } : {}),
       ...(options.extraHeaders ?? {}),
       ...(body ? { 'Content-Length': String(Buffer.byteLength(body)) } : {}),
