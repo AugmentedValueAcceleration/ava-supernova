@@ -4177,4 +4177,11 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'Активне відновлення',
   'health.rest.recovery_blurb': 'Рухайтеся м\'яко — прогулянка, мобільність, щось легке. Мета — кровообіг, а не зусилля.',
   'health.rest.uncovered': 'Жоден план не охоплює цей день.',
+  'health.shopping.surplus': 'Вже у вашій кухні',
+  'health.shopping.surplus.hint': 'Куплені, але не приготувані. Використайте їх перед покупкою нових.',
+  'health.shopping.settled': 'Вже записано, тому виключено зі списку:',
+  'health.shopping.settled.ate': 'з\'їдено',
+  'health.shopping.settled.skipped': 'пропущено',
+  'health.shopping.settled.other': 'З\'їв щось інше',
+  'health.shopping.all_settled': 'Кожен прийом їжі цього тижня вже записано — нічого купувати не залишилось.',
 };

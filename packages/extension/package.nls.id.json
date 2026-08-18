@@ -1,6 +1,6 @@
 {
   "displayName": "Ava Supernova",
-  "description": "Agen pengkodean AI sumber terbuka — DeepSeek, Kimi, dan Qwen di editor Anda",
+  "description": "Agen koding AI sumber terbuka yang tidak berhenti pada kode. Ava membaca basis kode Anda, merencanakan pekerjaan dan mengeksekusinya tugas demi tugas — lalu terus berlanjut: pelatihan dan makanan Anda, apa yang ingin Anda pelajari, aset yang Anda butuhkan. 7 mode, 120+ alat, 24 persona spesialis, dan model bobot terbuka terdepan dari setiap laboratorium utama. Berjalan di perangkat Anda sendiri — memori, riwayat, dan jurnal tetap tersimpan di sana. Tanpa akun dan tanpa kartu untuk memulai; bawa kunci API Anda sendiri, atau dapatkan 300 kredit per bulan pada Paket Free. Apache 2.0, sehingga Anda dapat membaca setiap barisnya.",
   "viewContainer.title": "Ava Supernova",
   "view.chat.name": "Obrolan",
   "command.openChat.title": "Buka obrolan",

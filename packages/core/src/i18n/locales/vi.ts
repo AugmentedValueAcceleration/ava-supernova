@@ -4197,4 +4197,11 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'Phục hồi chủ động',
   'health.rest.recovery_blurb': 'Vận động nhẹ nhàng — đi bộ, giãn cơ, hoặc điều gì đó dễ dàng. Mục tiêu là lưu thông máu, không phải gắng sức.',
   'health.rest.uncovered': 'Không có kế hoạch nào cho ngày này.',
+  'health.shopping.surplus': 'Đã có sẵn trong bếp của bạn',
+  'health.shopping.surplus.hint': 'Đã mua nhưng chưa nấu. Hãy dùng hết trước khi mua thêm.',
+  'health.shopping.settled': 'Đã được ghi nhận, nên không đưa vào danh sách:',
+  'health.shopping.settled.ate': 'đã ăn',
+  'health.shopping.settled.skipped': 'đã bỏ qua',
+  'health.shopping.settled.other': 'đã ăn món khác',
+  'health.shopping.all_settled': 'Mọi bữa ăn tuần này đều đã được ghi nhận — không còn gì phải mua nữa.',
 };

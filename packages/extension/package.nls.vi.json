@@ -1,6 +1,6 @@
 {
   "displayName": "Ava Supernova",
-  "description": "Trợ lý lập trình AI mã nguồn mở — DeepSeek, Kimi và Qwen trong trình soạn thảo",
+  "description": "Một tác nhân AI lập trình mã nguồn mở không chỉ dừng lại ở mã. Ava đọc cơ sở mã của bạn, lên kế hoạch công việc và thực hiện từng nhiệm vụ — sau đó tiếp tục: việc tập luyện và ăn uống, những gì bạn muốn học, các tài nguyên bạn cần. 7 chế độ, hơn 120 công cụ, 24 nhân vật chuyên gia, cùng các mô hình trọng lượng mở tiên tiến từ mọi phòng nghiên cứu lớn. Chạy trên máy tính của chính bạn — bộ nhớ, lịch sử và nhật ký đều được lưu giữ tại đó. Không cần tài khoản hay thẻ để bắt đầu; hãy mang theo khóa API của riêng bạn, hoặc nhận 300 tín chỉ mỗi tháng trên gói miễn phí. Apache 2.0, nên bạn có thể đọc từng dòng mã của nó.",
   "viewContainer.title": "Ava Supernova",
   "view.chat.name": "Trò chuyện",
   "command.openChat.title": "Mở trò chuyện",

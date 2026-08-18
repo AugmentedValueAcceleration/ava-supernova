@@ -1,6 +1,6 @@
 {
   "displayName": "Ava Supernova",
-  "description": "Açık kaynak AI kodlama ajanı — Editörünüzde DeepSeek, Kimi ve Qwen",
+  "description": "Kodla sınırlı kalmayan açık kaynaklı bir yapay zeka kodlama aracıdır. Ava kod tabanınızı okur, işi planlar ve görev görevine uygular — ardından devam eder: antrenmanlarınız ve yemekleriniz, öğrenmek istedikleriniz, ihtiyacınız olan varlıklar. 7 mod, 120'den fazla araç, 24 uzman rol ve her büyük laboratuvardan en gelişmiş açık ağırlıklı modeller. Kendi bilgisayarınızda çalışır — hafıza, geçmiş ve günlük orada kalır. Başlamak için hesap veya kart gerekmez; kendi API anahtarınızı getirin veya Free pakette ayda 300 kredi alın. Apache 2.0 ile gelir, böylece her satırını okuyabilirsiniz.",
   "viewContainer.title": "Ava Supernova",
   "view.chat.name": "Sohbet",
   "command.openChat.title": "Sohbeti aç",

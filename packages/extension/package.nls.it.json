@@ -1,6 +1,6 @@
 {
   "displayName": "Ava Supernova",
-  "description": "Agente di codifica AI open source — DeepSeek, Kimi e Qwen nel tuo editor",
+  "description": "Un agente di codifica open source IA che non si ferma al codice. Ava legge il tuo repository di codice, pianifica il lavoro ed esegue compito per compito — poi continua: la tua formazione e i pasti, ciò che vuoi imparare, le risorse di cui hai bisogno. 7 modalità, 120+ strumenti, 24 figure specializzate e modelli open-weight all'avanguardia da ogni principale laboratorio. Esegue sul tuo computer — memoria, cronologia e diario rimangono lì. Nessun account e nessuna carta per iniziare; porta la tua chiave API, oppure ricevi 300 crediti al mese con un piano Free. Apache 2.0, così puoi leggerne ogni riga.",
   "viewContainer.title": "Ava Supernova",
   "view.chat.name": "Conversazione",
   "command.openChat.title": "Apri chat",

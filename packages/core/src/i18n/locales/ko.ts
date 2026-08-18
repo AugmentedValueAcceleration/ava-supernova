@@ -4197,4 +4197,11 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': '능동적 회복',
   'health.rest.recovery_blurb': '부드럽게 움직이세요 — 산책, 모빌리티, 쉬운 것. 목표는 혈액 순환이지 노력이 아닙니다.',
   'health.rest.uncovered': '이날을 위한 계획이 없습니다.',
+  'health.shopping.surplus': '이미 주방에 있습니다',
+  'health.shopping.surplus.hint': '구매했지만 요리하지 않았습니다. 더 구매하기 전에 먼저 사용하세요.',
+  'health.shopping.settled': '이미 기록되어 목록에서 제외됩니다:',
+  'health.shopping.settled.ate': '먹음',
+  'health.shopping.settled.skipped': '생략',
+  'health.shopping.settled.other': '다른 메뉴 섭취',
+  'health.shopping.all_settled': '이번 주 모든 식사가 이미 기록되어 구매할 항목이 없습니다.',
 };

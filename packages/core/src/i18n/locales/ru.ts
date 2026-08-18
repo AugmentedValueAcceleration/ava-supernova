@@ -4197,4 +4197,11 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'Активное восстановление',
   'health.rest.recovery_blurb': 'Двигайтесь мягко — прогулка, мобильность, что-то лёгкое. Цель — кровообращение, а не нагрузка.',
   'health.rest.uncovered': 'На этот день нет плана.',
+  'health.shopping.surplus': 'Уже на вашей кухне',
+  'health.shopping.surplus.hint': 'Покупали, но не готовили. Израсходуйте их перед новой покупкой.',
+  'health.shopping.settled': 'Уже учтено, поэтому не добавлено в список:',
+  'health.shopping.settled.ate': 'съедено',
+  'health.shopping.settled.skipped': 'пропущено',
+  'health.shopping.settled.other': 'было что-то другое',
+  'health.shopping.all_settled': 'Все приемы пищи на этой неделе уже учтены — ничего покупать не осталось.',
 };

@@ -1,6 +1,6 @@
 {
   "displayName": "Ava Supernova",
-  "description": "Open-source AI-programmeeragent — DeepSeek, Kimi en Qwen in je editor",
+  "description": "Een open-source AI-programmeeragent die niet stopt bij code. Ava leest je codebasis, plant het werk en voert het taak voor taak uit — en gaat dan door: je training en maaltijden, wat je wilt leren, de assets die je nodig hebt. 7 modi, 120+ tools, 24 specialistische persona's, en state-of-the-art open-weight modellen van elk groot lab. Loopt op je eigen machine — geheugen, geschiedenis en dagboek blijven daar. Geen account en geen kaart om te starten; gebruik je eigen API-sleutel, of krijg 300 credits per maand op een Free plan. Apache 2.0, zodat je elke regel ervan kunt lezen.",
   "viewContainer.title": "Ava Supernova",
   "view.chat.name": "Gesprek",
   "command.openChat.title": "Chat openen",

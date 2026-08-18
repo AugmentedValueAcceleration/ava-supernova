@@ -4197,4 +4197,11 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'सक्रिय आराम',
   'health.rest.recovery_blurb': 'हल्के से हिलें — टहलना, लचीलापन, कुछ आसान। उद्देश्य रक्त संचार है, प्रयास नहीं।',
   'health.rest.uncovered': 'इस दिन के लिए कोई योजना नहीं है।',
+  'health.shopping.surplus': 'आपके रसोई में पहले से है',
+  'health.shopping.surplus.hint': 'खरीदा था लेकिन पकाया नहीं। इनका उपयोग पहले करें, नया खरीदने से पहले।',
+  'health.shopping.settled': 'पहले से दर्ज है, इसलिए सूची से हटा दिया गया:',
+  'health.shopping.settled.ate': 'खा लिया गया',
+  'health.shopping.settled.skipped': 'छोड़ दिया गया',
+  'health.shopping.settled.other': 'कुछ और खाया',
+  'health.shopping.all_settled': 'इस सप्ताह का हर खाना पहले से दर्ज है — खरीदने के लिए कुछ बचा नहीं।',
 };

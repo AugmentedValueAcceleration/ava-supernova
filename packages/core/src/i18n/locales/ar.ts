@@ -4197,4 +4197,11 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'تعافي نشط',
   'health.rest.recovery_blurb': 'تحرك بلطف — مشي، مرونة، أو شيء سهل. الهدف هو تدفق الدم، وليس الجهد.',
   'health.rest.uncovered': 'لا توجد خطة تغطي هذا اليوم.',
+  'health.shopping.surplus': 'موجود بالفعل في مطبخك',
+  'health.shopping.surplus.hint': 'تم شراؤها لكنها لم تُطبخ. استنفدها قبل شراء المزيد.',
+  'health.shopping.settled': 'مسجل بالفعل، لذا تم حذفه من القائمة:',
+  'health.shopping.settled.ate': 'أُكل',
+  'health.shopping.settled.skipped': 'تم تخطيه',
+  'health.shopping.settled.other': 'تناول شيئًا آخر',
+  'health.shopping.all_settled': 'جميع وجبات هذا الأسبوع مسجلة بالفعل — لا شيء متبقي للشراء.',
 };

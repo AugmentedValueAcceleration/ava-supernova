@@ -4195,4 +4195,11 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'Pemulihan Aktif',
   'health.rest.recovery_blurb': 'Gerakkan dengan lembut — jalan kaki, mobilitas, sesuatu yang mudah. Tujuannya adalah aliran darah, bukan usaha.',
   'health.rest.uncovered': 'Tidak ada rencana yang mencakup hari ini.',
+  'health.shopping.surplus': 'Sudah ada di dapur Anda',
+  'health.shopping.surplus.hint': 'Dibeli tetapi tidak pernah dimasak. Habiskan ini sebelum membeli lagi.',
+  'health.shopping.settled': 'Sudah tercatat, jadi tidak masuk daftar:',
+  'health.shopping.settled.ate': 'dimakan',
+  'health.shopping.settled.skipped': 'tidak dimakan',
+  'health.shopping.settled.other': 'makan yang lain',
+  'health.shopping.all_settled': 'Setiap hidangan minggu ini sudah tercatat — tidak ada yang perlu dibeli.',
 };

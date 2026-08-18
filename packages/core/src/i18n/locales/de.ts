@@ -4177,4 +4177,11 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'Aktive Erholung',
   'health.rest.recovery_blurb': 'Bewegen Sie sich sanft — ein Spaziergang, Mobilität, etwas Leichtes. Das Ziel ist Durchblutung, keine Anstrengung.',
   'health.rest.uncovered': 'Kein Plan für diesen Tag.',
+  'health.shopping.surplus': 'Bereits in deiner Küche',
+  'health.shopping.surplus.hint': 'Gekauft, aber nie gekocht. Diese aufbrauchen, bevor du mehr kaufst.',
+  'health.shopping.settled': 'Bereits eingetragen, daher nicht in der Liste:',
+  'health.shopping.settled.ate': 'gegessen',
+  'health.shopping.settled.skipped': 'ausgelassen',
+  'health.shopping.settled.other': 'etwas anderes gegessen',
+  'health.shopping.all_settled': 'Alle Mahlzeiten dieser Woche sind bereits eingetragen — nichts mehr zu kaufen.',
 };

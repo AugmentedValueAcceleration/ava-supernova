@@ -4195,4 +4195,11 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'Recuperação ativa',
   'health.rest.recovery_blurb': 'Movimente-se suavemente — uma caminhada, mobilidade, algo fácil. O objetivo é fluxo sanguíneo, não esforço.',
   'health.rest.uncovered': 'Nenhum plano cobre este dia.',
+  'health.shopping.surplus': 'Já na sua cozinha',
+  'health.shopping.surplus.hint': 'Comprados mas nunca cozinhados. Use-os antes de comprar mais.',
+  'health.shopping.settled': 'Já registrado, então não incluído na lista:',
+  'health.shopping.settled.ate': 'consumidos',
+  'health.shopping.settled.skipped': 'pulados',
+  'health.shopping.settled.other': 'teve outra coisa',
+  'health.shopping.all_settled': 'Todas as refeições desta semana já estão registradas — nada resta para comprar.',
 };

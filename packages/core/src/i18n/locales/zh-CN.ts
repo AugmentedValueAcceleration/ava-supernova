@@ -4177,4 +4177,11 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': '主动恢复',
   'health.rest.recovery_blurb': '轻柔活动——散步、活动度训练或轻松事项。目标是促进血液循环，而非消耗精力。',
   'health.rest.uncovered': '当日无计划。',
+  'health.shopping.surplus': '已在厨房中',
+  'health.shopping.surplus.hint': '已购买但未烹饪。请先用完，再购买。',
+  'health.shopping.settled': '已记录，故未列入清单：',
+  'health.shopping.settled.ate': '已食用',
+  'health.shopping.settled.skipped': '已跳过',
+  'health.shopping.settled.other': '吃了别的',
+  'health.shopping.all_settled': '本周所有餐食均已记录——无需再购买。',
 };

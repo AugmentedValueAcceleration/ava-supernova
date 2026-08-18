@@ -1,6 +1,6 @@
 {
   "displayName": "Ava Supernova",
-  "description": "開源 AI 程式設計助手 — 在編輯器中使用 DeepSeek、Kimi 和 Qwen",
+  "description": "這是一個不局限於編碼的開源 AI 編程代理。Ava 會閱讀你的代碼庫，規劃工作並按任務逐一執行——接著繼續處理：你的訓練與飲食、你想學習的內容、你所需的資源。包含 7 種模式、120+ 工具、24 位專家人設，以及來自各大實驗室的前沿開權重模型。運行在你自己的機器上——記憶、歷史和日誌均留存本地。無需賬戶和卡片即可開始；自帶 API 密鑰，或在 free 計劃中每月獲取 300 積分。採用 Apache 2.0 授權，讓你可查閱其每一行代碼。",
   "viewContainer.title": "Ava Supernova",
   "view.chat.name": "聊天",
   "command.openChat.title": "開啟聊天",

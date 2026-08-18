@@ -4199,4 +4199,11 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'アクティブリカバリー',
   'health.rest.recovery_blurb': 'ゆっくり動かしてください——散歩、モビリティ、簡単なもの。目的は血流であって、負荷ではありません。',
   'health.rest.uncovered': 'この日の計画はありません。',
+  'health.shopping.surplus': 'すでに台所にあります',
+  'health.shopping.surplus.hint': '購入しましたが調理していません。追加購入前に使い切りましょう。',
+  'health.shopping.settled': '既に記録済みなのでリストから外しました:',
+  'health.shopping.settled.ate': '食べた',
+  'health.shopping.settled.skipped': 'スキップ',
+  'health.shopping.settled.other': '他のものを食べた',
+  'health.shopping.all_settled': '今週の食事はすべて記録済みです — 買うものは残っていません。',
 };

@@ -4197,4 +4197,11 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': 'การฟื้นตัวแบบแอคทีฟ',
   'health.rest.recovery_blurb': 'ขยับเบาๆ — เดิน, ยืดเหยียด, อะไรก็ตามที่ง่าย เป้าหมายคือการไหลเวียนเลือด, ไม่ใช่ความพยายาม',
   'health.rest.uncovered': 'ไม่มีแผนครอบคลุมวันนี้',
+  'health.shopping.surplus': 'มีอยู่แล้วในครัว',
+  'health.shopping.surplus.hint': 'ซื้อมาแต่ไม่เคยทำ ใช้ให้หมดก่อนซื้อเพิ่ม',
+  'health.shopping.settled': 'บันทึกแล้ว จึงไม่รวมในรายการ:',
+  'health.shopping.settled.ate': 'กินแล้ว',
+  'health.shopping.settled.skipped': 'ข้าม',
+  'health.shopping.settled.other': 'กินอย่างอื่น',
+  'health.shopping.all_settled': 'ทุกมื้อในสัปดาห์นี้บันทึกแล้ว — ไม่มีอะไรต้องซื้อ',
 };

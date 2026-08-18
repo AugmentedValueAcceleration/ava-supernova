@@ -242,22 +242,28 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 ## Tools
 
-60+ user-facing tools, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
+**121 user-facing tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
+
+Counted from the registry, not estimated: 129 register, minus 8 that are internal plumbing for the agent loop.
 
 | Category | Tools |
 |---|---|
-| **File ops** | `file_read`, `file_write`, `file_edit`, `glob`, `grep`, `list_directory`, `find_symbol`, `project_index`, `analyze_architecture`, `self_inspect`, `docs_lookup`, `browse_library` |
+| **File ops** | `read`, `write`, `edit`, `glob`, `grep`, `list_directory`, `find_symbol`, `project_index`, `analyze_architecture`, `self_inspect`, `docs_lookup`, `browse_library` |
 | **Shell** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
 | **Web** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
-| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `remove_background` |
+| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `regenerate_hero`, `regenerate_demo`, `open_design_studio` |
 | **Office & Authoring** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate` |
-| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
-| **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan`, `switch_mode` |
-| **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress` |
+| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `conversation_recall` |
+| **Tasks & Planning** | `todo_write`, `task_manage`, `task_suggest` |
+| **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress`, `open_learning_room` |
 | **Health & Fitness** | `health_catalogue_search`, `health_plan_list`, `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_delete`, `health_profile_ask` |
-| **Security & Data** | `audit_dependencies`, `database_query`, `secret_request`, `env_write` |
-| **System** | `get_datetime`, `detect_language`, `ask_user`, `support_request`, `propose_tool` |
+| **Security & data** | `audit_dependencies`, `database_query` |
+| **System** | `get_datetime`, `detect_language`, `support_request`, `propose_tool` |
+| **Health & nutrition** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room`, `find_recipe`, `read_recipe`, `write_recipe`, `check_recipe`, `add_ingredient`, `find_exercise`, `read_exercise`, `write_exercise`, `check_exercise`, `propose_exercises`, `set_muscles`, `set_nutrition`, `add_equipment`, `add_contraindication`, `day_plan_read`, `day_plan_write`, `day_plan_item_status`, `record_machine_rule` |
+| **Newsroom & social** | `discover_news`, `research_story`, `suggest_stories`, `suggest_beats`, `scan_industry`, `fact_check`, `write_article`, `revise_section`, `research_post`, `write_post`, `write_post_image`, `write_video_post`, `write_voiceover`, `propose_seeds`, `propose_hooks`, `post_performance` |
+| **Desktop automation** | `desktop_launch_app`, `desktop_focus_window`, `desktop_list_elements`, `desktop_click_by_name`, `desktop_type`, `desktop_key_press`, `desktop_plan_approve` |
+| **Browser automation** | `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_close` |
 
 ---
 

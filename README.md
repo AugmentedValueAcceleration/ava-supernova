@@ -2,7 +2,7 @@
   <h1 align="center">Ava Supernova</h1>
   <p align="center">
     <strong>The open-source AI coding agent that works for everyone — not just the people who can afford it.</strong><br/>
-    60+ tools · 7 modes · 24 specialist personas · frontier open-weight models from every major lab · a Creative Studio that builds real assets into your project. <strong>Free to start, no account, no credit card.</strong>
+    120+ tools · 7 modes · 24 specialist personas · frontier open-weight models from every major lab · a Creative Studio that builds real assets into your project. <strong>Free to start, no account, no credit card.</strong>
   </p>
   <p align="center">
     <a href="#what-ava-is">What Ava Is</a> &middot;
@@ -150,20 +150,26 @@ pnpm build
 
 ## Tools
 
-60+ user-facing built-in tools. Ava decides which to use, runs them, reads the results, and keeps reasoning. (The IDE adds desktop- and browser-automation tools on top, gated to Desktop mode.)
+**121 user-facing built-in tools.** Ava decides which to use, runs them, reads the results, and keeps reasoning.
+
+That number is counted from the registry rather than estimated: 129 tools register, minus 8 that are internal plumbing for the agent loop — things like `switch_mode` and `ask_user`, which nobody would name if asked what Ava can do. Desktop automation is included and gated to Desktop mode; browser automation needs Playwright installed.
 
 | Category | Tools |
 |---|---|
-| **File ops** | `file_read`, `file_write`, `file_edit`, `glob`, `grep`, `list_directory`, `find_symbol`, `project_index`, `analyze_architecture`, `self_inspect`, `docs_lookup`, `browse_library` |
+| **File ops** | `read`, `write`, `edit`, `glob`, `grep`, `list_directory`, `find_symbol`, `project_index`, `analyze_architecture`, `self_inspect`, `docs_lookup`, `browse_library` |
 | **Shell** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
 | **Web** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
-| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `remove_background` |
-| **Documents** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate`, `present_plan`, `apply_plan`, `todo_write`, `task_manage`, `journal_write`, `switch_mode` |
-| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
-| **Learning** | `learning_create`, `learning_teach`, `learning_progress` |
-| **Security & Data** | `audit_dependencies`, `database_query`, `secret_request`, `env_write` |
-| **System** | `get_datetime`, `detect_language`, `ask_user`, `support_request`, `propose_tool` |
+| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `regenerate_hero`, `regenerate_demo`, `open_design_studio` |
+| **Documents & tasks** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate`, `todo_write`, `task_manage`, `task_suggest`, `journal_write` |
+| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `conversation_recall` |
+| **Learning** | `learning_create`, `learning_teach`, `learning_progress`, `open_learning_room` |
+| **Security & data** | `audit_dependencies`, `database_query` |
+| **System** | `get_datetime`, `detect_language`, `support_request`, `propose_tool` |
+| **Health & nutrition** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room`, `find_recipe`, `read_recipe`, `write_recipe`, `check_recipe`, `add_ingredient`, `find_exercise`, `read_exercise`, `write_exercise`, `check_exercise`, `propose_exercises`, `set_muscles`, `set_nutrition`, `add_equipment`, `add_contraindication`, `day_plan_read`, `day_plan_write`, `day_plan_item_status`, `record_machine_rule` |
+| **Newsroom & social** | `discover_news`, `research_story`, `suggest_stories`, `suggest_beats`, `scan_industry`, `fact_check`, `write_article`, `revise_section`, `research_post`, `write_post`, `write_post_image`, `write_video_post`, `write_voiceover`, `propose_seeds`, `propose_hooks`, `post_performance` |
+| **Desktop automation** | `desktop_launch_app`, `desktop_focus_window`, `desktop_list_elements`, `desktop_click_by_name`, `desktop_type`, `desktop_key_press`, `desktop_plan_approve` |
+| **Browser automation** | `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_close` |
 
 ## Creative Studio
 

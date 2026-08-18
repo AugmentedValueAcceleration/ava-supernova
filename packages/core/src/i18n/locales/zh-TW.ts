@@ -4197,4 +4197,11 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'health.rest.recovery_title': '主動恢復',
   'health.rest.recovery_blurb': '輕柔活動 — 散步、伸展、輕鬆事項。目的是促進血液循環，而非耗力。',
   'health.rest.uncovered': '沒有計劃涵蓋這一天。',
+  'health.shopping.surplus': '已在您的廚房中',
+  'health.shopping.surplus.hint': '已購買但未烹調。請先用完這些，再購買更多。',
+  'health.shopping.settled': '已記錄，因此未列入清單：',
+  'health.shopping.settled.ate': '已食用',
+  'health.shopping.settled.skipped': '跳過',
+  'health.shopping.settled.other': '吃了其他東西',
+  'health.shopping.all_settled': '本週所有餐點都已記錄 — 沒有需要購買的了。',
 };
