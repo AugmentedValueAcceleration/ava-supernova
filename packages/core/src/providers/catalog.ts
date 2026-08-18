@@ -30,6 +30,18 @@ export const ALL_MODELS: Record<string, ModelDefinition[]> = {
   nvidia: NVIDIA_MODELS,
 };
 
+/**
+ * The managed catalogue — the single models a signed-in plan can drive
+ * directly, which are also the models the fleets are built from.
+ *
+ * Re-exported here so surfaces can reach it through the narrow
+ * `@ava/core/models` subpath. It lives on the PlatformProvider instance
+ * otherwise, and a UI with no provider registry (the IDE's React app) could
+ * not see it at all — which is why signing in there showed the fleets but
+ * none of the models inside them.
+ */
+export { PLATFORM_MODELS } from './platform/models.js';
+
 /** Flat list of every non-disabled model (each carries its `provider` id). */
 export function listAllModelDefs(): ModelDefinition[] {
   const out: ModelDefinition[] = [];

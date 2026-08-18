@@ -184,6 +184,16 @@ export class ProviderRegistry {
       const isAvailable = this.providers.has(providerName);
       for (const m of models) {
         if (m.disabled) continue; // hidden from the picker while disabled
+        // Superseded models stay in the catalogue so routing and fallback can
+        // still resolve them, but they are not things to OFFER. The flag has
+        // existed on qwen3.5-plus and kimi-k2.6 the whole time and nothing
+        // read it, so both kept appearing in every picker — the operator saw
+        // them listed as choices on 2026-08-18.
+        //
+        // Filtered HERE and not in resolveModel: a fallback chain must still
+        // be able to reach them by id. "Do not offer this" and "do not use
+        // this" are different claims, and only the first one is being made.
+        if (m.hiddenFromPicker) continue;
         results.push({ ...m, available: isAvailable });
       }
     }

@@ -14,7 +14,7 @@
 // impossible.
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROUTING_MODES, isRoutingMode } from '../src/auto/model-router.js';
 
@@ -50,10 +50,33 @@ describe('ROUTING_MODES', () => {
 describe('no surface keeps its own copy of the list', () => {
   // The whole point is one list. A surface that re-derives it by hand is how
   // this broke, so the shapes that did it are searched for directly.
-  const files = [
-    join(__dirname, '..', '..', 'ide', 'sidecar', 'index.mjs'),
-    join(__dirname, '..', '..', 'extension', 'src', 'webview', 'AvaViewProvider.ts'),
+  // SCANNED, not listed. The first version of this test named two files by
+  // hand — and missed DashboardPages.tsx, which held TWO more copies of the
+  // chain and was the one actually breaking Longxiang in the UI. A guard with
+  // a hand-written list has the same flaw as the bug it guards against, which
+  // is a lesson worth only learning once.
+  const roots = [
+    join(__dirname, '..', '..', 'ide', 'src'),
+    join(__dirname, '..', '..', 'ide', 'sidecar'),
+    join(__dirname, '..', '..', 'extension', 'src'),
+    join(__dirname, '..', '..', 'extension', 'webview-ui', 'src'),
   ];
+
+  function walk(dir: string, out: string[] = []): string[] {
+    if (!existsSync(dir)) return out; // submodule not checked out
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+        walk(p, out);
+      } else if (/\.(ts|tsx|mjs|js)$/.test(entry.name)) {
+        out.push(p);
+      }
+    }
+    return out;
+  }
+
+  const files = roots.flatMap((r) => walk(r));
 
   /** Source with `//` comments removed.
    *
@@ -65,7 +88,7 @@ describe('no surface keeps its own copy of the list', () => {
   const codeOnly = (src: string) =>
     src.split('\n').map((l) => l.replace(/^\s*\/\/.*$/, '').replace(/\s+\/\/.*$/, '')).join('\n');
 
-  it('neither the IDE sidecar nor the extension hand-writes a fleet check', () => {
+  it('no surface anywhere hand-writes a fleet check', () => {
     const offenders: string[] = [];
     for (const f of files) {
       if (!existsSync(f)) continue; // submodule not checked out — not a failure

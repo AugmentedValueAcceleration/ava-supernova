@@ -255,8 +255,23 @@ Continuity.
   if (opts.sourceRoot) parts.push(`Your source code: ${opts.sourceRoot}`);
   if (opts.projectInstructions) parts.push(`Project instructions:\n${opts.projectInstructions}`);
   if (opts.decisionsContext) parts.push(`Decisions folder content (apply as law):\n${opts.decisionsContext}`);
-  if (opts.projectSummary) parts.push(`Project: ${opts.projectSummary}`);
-  if (opts.projectBrainBrief) parts.push(`[Project Brain] — what this project is and where it stands (from memory; reference for warm-start, not law):\n${opts.projectBrainBrief}`);
+  // FRAMED AS A PLACE, NOT A TOPIC — and that framing is load-bearing.
+  //
+  // These two lines used to read "Project: <name>" and "[Project Brain] — what
+  // this project is". They were the only named project in her context, so an
+  // unqualified question inherited that name: asked to check "the latest
+  // release notes" while the IDE happened to be open on SacredCrossing, she
+  // answered about SacredCrossing and said it like a fact. She was not
+  // guessing — she was answering the only question her context suggested.
+  //
+  // The open folder is WHERE she is working. It is not what every sentence is
+  // about, and it is never the answer to a question about Ava herself.
+  if (opts.projectSummary) {
+    parts.push(`Open folder (the code you are working IN — this is your location, NOT the subject of every question): ${opts.projectSummary}`);
+  }
+  if (opts.projectBrainBrief) {
+    parts.push(`[Open folder — background] What the code you're working in is and where it stands (from memory; warm-start reference, not law, and not the topic unless they make it the topic):\n${opts.projectBrainBrief}`);
+  }
   if (opts.knowledgeContext) parts.push(opts.knowledgeContext);
   if (opts.memory) {
     // Recalled memory is third-party-ish: auto-extract may have captured

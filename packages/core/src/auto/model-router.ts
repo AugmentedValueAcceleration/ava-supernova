@@ -4,29 +4,12 @@ import { SUPERNOVA_ROUTES } from './supernova-router.js';
 import { AURORA_ROUTES } from './aurora-router.js';
 import { LONGXIANG_ROUTES } from './longxiang-router.js';
 
-/**
- * Every orchestrated fleet, as a RUNTIME list — and the type is derived from
- * it, so the two cannot disagree.
- *
- * It was the other way round: a type here, and each surface hand-writing its
- * own `id === 'auto' || id === 'supernova' || id === 'aurora'`. The IDE's copy
- * never had 'longxiang', so choosing Longxiang skipped the fleet branch
- * entirely, fell through to "resolve a specific model", and failed with
- * "Model not found: platform:longxiang" — a name that was never a model id.
- * The extension's copy was correct, which is exactly why nobody noticed.
- *
- * A type alone cannot stop that: `readonly RoutingMode[]` still typechecks
- * with a member missing. Deriving the type FROM the list is what makes
- * forgetting one impossible.
- */
-export const ROUTING_MODES = ['auto', 'supernova', 'aurora', 'longxiang'] as const;
-
-export type RoutingMode = typeof ROUTING_MODES[number];
-
-/** True when an id names a fleet rather than a single model. */
-export function isRoutingMode(id: string | undefined | null): id is RoutingMode {
-  return !!id && (ROUTING_MODES as readonly string[]).includes(id);
-}
+// The fleet list lives in routing-modes.ts — its own dependency-free file so
+// browser surfaces can import it through a narrow subpath instead of writing
+// their own copy, which is how 'longxiang' went missing nine times.
+export { ROUTING_MODES, isRoutingMode } from './routing-modes.js';
+export type { RoutingMode } from './routing-modes.js';
+import type { RoutingMode } from './routing-modes.js';
 
 // ─── Default routing table (platform users with all 3 providers) ─────────────
 

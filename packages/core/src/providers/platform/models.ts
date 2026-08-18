@@ -104,9 +104,17 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     desktopCapable: true, // Default Maestro coordinator. Reliable tool calls, sees images natively.
     pricing: { inputPerMillion: 0.40, outputPerMillion: 1.60 },
   },
-  // Qwen 3.5 Plus — 1M context
+  // Qwen 3.5 Plus — 1M context.
+  //
+  // hiddenFromPicker, matching the BYOK copy in providers/qwen/models.ts:
+  // superseded by 3.7 Plus and kept for routing and fallback only. The two
+  // copies disagreed, so the same model was correctly hidden from the BYOK
+  // list and still offered under the plan — it would have reappeared the
+  // moment somebody signed in. It stays resolvable by id; DEFAULT_ROUTES
+  // still names it as a fallback and that is unaffected.
   {
     id: 'qwen3.5-plus',
+    hiddenFromPicker: true,
     name: 'Qwen 3.5 Plus',
     provider: 'platform',
     contextWindow: 1000000,

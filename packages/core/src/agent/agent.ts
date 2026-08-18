@@ -2613,8 +2613,25 @@ export class Agent {
         }
 
         if (delta.content) {
-          // Strip <think>...</think> tags — some models (MiniMax) embed thinking inline
-          let visibleContent = delta.content;
+          // COERCE TO TEXT FIRST. delta.content was assumed to be a string and
+          // concatenated straight onto the reply — so a provider that streams
+          // it as a content-part object (or an array of them) produced one
+          // "[object Object]" per chunk, and the user got a wall of them where
+          // the answer should be. Seen live 2026-08-18 on a self_inspect turn.
+          //
+          // Nothing downstream can recover from it either: by the time it is
+          // in `content` the real text is gone, so the transcript, the history
+          // file and the next request all carry the same rubbish.
+          //
+          // getTextContent handles both string and ContentPart[]; the object
+          // case is a single part, so it is wrapped before extraction.
+          const rawDelta: unknown = delta.content;
+          let visibleContent = typeof rawDelta === 'string'
+            ? rawDelta
+            : getTextContent(
+                (Array.isArray(rawDelta) ? rawDelta : [rawDelta]) as unknown as ContentPart[],
+              );
+          if (!visibleContent) continue;
           if (visibleContent.includes('<think>') || visibleContent.includes('</think>') || this._inThinkTag) {
             // Track if we're inside a think tag across chunks
             const parts = visibleContent.split(/(<\/?think>)/);

@@ -1,7 +1,7 @@
 {
   "name": "@ava/core",
   "version": "0.2.71",
-  "description": "Core engine for Ava Supernova — agent, providers, tools, config",
+  "description": "Core engine for Ava Supernova \u2014 agent, providers, tools, config",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -147,6 +147,11 @@
       "import": "./dist/health/starters.js",
       "require": "./dist/health/starters.js",
       "types": "./dist/health/starters.d.ts"
+    },
+    "./routing-modes": {
+      "import": "./dist/auto/routing-modes.js",
+      "require": "./dist/auto/routing-modes.js",
+      "types": "./dist/auto/routing-modes.d.ts"
     }
   },
   "scripts": {
@@ -158,7 +163,7 @@
     "lint": "eslint src",
     "test": "vitest run",
     "docs:sync": "node docs/sync-to-web.mjs",
-    "docs:check": "node docs/sync-to-web.mjs && git -C ../web diff --quiet src/lib/docs || (echo 'docs corpus desynced — run pnpm docs:sync and commit the web submodule' && exit 1)"
+    "docs:check": "node docs/sync-to-web.mjs && git -C ../web diff --quiet src/lib/docs || (echo 'docs corpus desynced \u2014 run pnpm docs:sync and commit the web submodule' && exit 1)"
   },
   "dependencies": {
     "glob": "^13.0.6",
