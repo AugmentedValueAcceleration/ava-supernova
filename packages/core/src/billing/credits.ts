@@ -17,9 +17,11 @@
 // rates on the next period boundary, no forced clawback.
 //
 // Everything here is pure data + pure helpers — no runtime deps, safe to
-// import from any surface that takes @ava/core.
+// import from any surface that takes @ava/core. MODEL_API_NAMES below is a
+// dependency-free leaf map, so that stays true.
 
 import type { PlanTier } from './plans.js';
+import { MODEL_API_NAMES } from '../providers/request-shaping/model-ids.js';
 
 // ── Action catalog ────────────────────────────────────────────────────────
 /** Every metered operation has an action type. Stage 2's meter interceptor
@@ -104,8 +106,16 @@ export const CACHE_HIT_MULTIPLIER_BY_MODEL: Record<string, number> = {
 /** Look up the cache-hit multiplier for a given model id. */
 export function cacheHitMultiplier(model: string | null | undefined): number {
   if (!model) return CACHE_HIT_MULTIPLIER;
+  // Same three spellings as modelCostMultiplier — an override keyed on the
+  // catalogue id must still apply when the wire id is what got logged.
   const id = model.includes(':') ? model.split(':')[1] : model;
-  return CACHE_HIT_MULTIPLIER_BY_MODEL[id] ?? CACHE_HIT_MULTIPLIER;
+  const direct = CACHE_HIT_MULTIPLIER_BY_MODEL[id];
+  if (direct !== undefined) return direct;
+  for (const catalogueId of CATALOGUE_IDS_BY_WIRE_ID[id] ?? []) {
+    const viaWire = CACHE_HIT_MULTIPLIER_BY_MODEL[catalogueId];
+    if (viaWire !== undefined) return viaWire;
+  }
+  return CACHE_HIT_MULTIPLIER;
 }
 
 // ── Per-model cost multiplier ─────────────────────────────────────────────
@@ -319,11 +329,52 @@ export function modeCostMultiplier(mode: string | null | undefined): number {
   return MODE_COST_MULTIPLIER[mode.toLowerCase()] ?? 1.0;
 }
 
-/** Apply per-model cost multiplier. Strips provider prefix if present. */
+/**
+ * Catalogue ids for a given WIRE id — the reverse of MODEL_API_NAMES.
+ *
+ * Built rather than written. Several catalogue ids translate to the same wire
+ * id (`mistral-medium-3.5` and `mistral-medium-3.5-platform` both become
+ * `mistral-medium-3-5`), so this is one-to-many.
+ */
+const CATALOGUE_IDS_BY_WIRE_ID: Record<string, string[]> = (() => {
+  const map: Record<string, string[]> = {};
+  for (const [catalogueId, wireId] of Object.entries(MODEL_API_NAMES)) {
+    (map[wireId] ??= []).push(catalogueId);
+  }
+  return map;
+})();
+
+/**
+ * The id to price a call under, given whatever id the caller has.
+ *
+ * A model can arrive here under three spellings: the catalogue id
+ * (`mistral-medium-3.5`), the same with a provider prefix
+ * (`platform:mistral-medium-3.5`), or the WIRE id that MODEL_API_NAMES
+ * translates it into before the request leaves (`mistral-medium-3-5`, which is
+ * what Mistral actually accepts).
+ *
+ * usage_logs records the wire id, because that is what was sent. So every
+ * lookup keyed on the raw logged id missed the table entirely and fell through
+ * to 1.0× — Aurora's lead model billing at roughly a quarter of its 3.87×,
+ * silently, since the fallback is a plausible number rather than an error.
+ * Found on 2026-08-18 by auditing logged model ids against the catalogue.
+ *
+ * Derived from MODEL_API_NAMES rather than listed here, so a new translation
+ * cannot add a new billing hole by omission.
+ */
+function priceableId(model: string): string {
+  const id = model.includes(':') ? model.split(':')[1] : model;
+  if (MODEL_COST_MULTIPLIER[id] !== undefined) return id;
+  for (const catalogueId of CATALOGUE_IDS_BY_WIRE_ID[id] ?? []) {
+    if (MODEL_COST_MULTIPLIER[catalogueId] !== undefined) return catalogueId;
+  }
+  return id;
+}
+
+/** Apply per-model cost multiplier. Accepts catalogue, prefixed or wire ids. */
 export function modelCostMultiplier(model: string | null | undefined): number {
   if (!model) return 1.0;
-  const id = model.includes(':') ? model.split(':')[1] : model;
-  return MODEL_COST_MULTIPLIER[id] ?? 1.0;
+  return MODEL_COST_MULTIPLIER[priceableId(model)] ?? 1.0;
 }
 
 /** Compute the credits to deduct for a single metered action.
