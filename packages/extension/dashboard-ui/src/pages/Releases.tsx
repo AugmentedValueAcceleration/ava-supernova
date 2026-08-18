@@ -26,10 +26,23 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
 
   useEffect(() => { post({ type: 'load_releases' }); }, []);
 
+  // Auto-expand the newest release — and leave the month filter alone.
+  //
+  // Seeding selectedMonth here meant opening the page already filtered to one
+  // month, with the rest of the history behind a control people may not notice.
+  // The IDE did the same and it was outright fatal there: it has a hardcoded
+  // fallback list, so on first render the effect latched onto an April 2026
+  // date, the API returned June-to-August, and the page read "No releases" over
+  // a full database. This surface was spared only because it has no fallback —
+  // the month it picked always existed. Same line, same intent, one accident of
+  // data apart.
+  //
+  // Fixed the same way on both, because the extension and the IDE are meant to
+  // behave identically. Choosing a month is the user's to do; the default is
+  // all of them.
   useEffect(() => {
     if (releases.length > 0 && !expanded) {
       setExpanded(releases[0].id);
-      setSelectedMonth(getMonthKey(releases[0].published_at));
     }
   }, [releases, expanded]);
 
@@ -41,6 +54,15 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
     }
     return Array.from(seen.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [releases]);
+
+  // A month that is no longer on offer must not go on filtering. If a refetch
+  // or a locale change drops the selected month, the list would silently empty
+  // while Select shows its placeholder — the same lie the IDE was telling.
+  useEffect(() => {
+    if (!selectedMonth) return;
+    if (months.some(([key]) => key === selectedMonth)) return;
+    setSelectedMonth('');
+  }, [months, selectedMonth]);
 
   const filtered = useMemo(() => {
     let list = releases as any[];
