@@ -113,3 +113,62 @@ describe('modes that edit files can reach the file tools', () => {
     }
   });
 });
+
+// ── Personas ────────────────────────────────────────────────────────────────
+//
+// The conductor scopes each persona's schemas by its allowedTools
+// (conductor.ts:701), so a dead name there withholds the tool exactly the way a
+// dead name in a mode allowlist does — and this copy is worse. On 2026-08-19,
+// 20 of 24 personas named `file_read` and could not open a file. `builder`
+// named file_read, file_write AND file_edit: the persona whose whole job is
+// writing code was handed a schema list with no file tools in it.
+//
+// One rename, three hand-maintained copies: the mode allowlists, the system
+// prompt's prose, and this. Fixing the first two and stopping is how the third
+// survives, so the test covers all of them.
+
+import * as personas from '../src/personas/definitions.js';
+
+describe('persona tool lists name real tools', () => {
+  const registered = registeredToolNames();
+
+  /** Every distinct persona, however it is exported (singly or in a team array). */
+  function allPersonas(): Array<{ id: string; allowedTools: string[] }> {
+    const seen = new Map<string, { id: string; allowedTools: string[] }>();
+    for (const value of Object.values(personas as Record<string, unknown>)) {
+      const items = Array.isArray(value) ? value : [value];
+      for (const p of items as Array<{ id?: string; allowedTools?: string[] }>) {
+        if (p?.id && Array.isArray(p.allowedTools) && !seen.has(p.id)) {
+          seen.set(p.id, { id: p.id, allowedTools: p.allowedTools });
+        }
+      }
+    }
+    return [...seen.values()];
+  }
+
+  it('finds the personas, so a silent pass means something', () => {
+    expect(allPersonas().length).toBeGreaterThanOrEqual(20);
+  });
+
+  it('no persona names a tool that does not exist', () => {
+    const broken = allPersonas()
+      .map((p) => ({ id: p.id, dead: p.allowedTools.filter((t) => !registered.has(t)) }))
+      .filter((p) => p.dead.length > 0)
+      .map((p) => `${p.id}: ${p.dead.join(', ')}`);
+
+    expect(
+      broken,
+      'These personas name tools that do not exist. The conductor filters their ' +
+      `schemas by this list, so the tool is silently withheld:\n  ${broken.join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  it('the builder can read, write and edit', () => {
+    // The one that matters most: it writes the code.
+    const builder = allPersonas().find((p) => p.id === 'builder');
+    expect(builder, 'no builder persona').toBeDefined();
+    for (const tool of ['read', 'write', 'edit']) {
+      expect(builder!.allowedTools, `builder cannot ${tool}`).toContain(tool);
+    }
+  });
+});

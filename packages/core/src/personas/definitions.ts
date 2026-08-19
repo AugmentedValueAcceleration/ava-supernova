@@ -6,14 +6,14 @@ import type { PersonaDefinition } from './types.js';
 
 // ── Read-only tools (safe for all personas) ──
 const READ_TOOLS = [
-  'file_read', 'glob', 'grep', 'list_directory', 'find_symbol',
+  'read', 'glob', 'grep', 'list_directory', 'find_symbol',
   'project_index', 'git_status', 'git_diff', 'docs_lookup',
   'self_inspect', 'release_notes', 'browse_library', 'detect_language', 'get_datetime',
 ];
 
 const MEMORY_TOOLS = ['memory_save', 'memory_recall', 'memory_update', 'memory_delete'];
 const SEARCH_TOOLS = ['web_search', 'http_request', 'browser', 'paper_fetch_full_text'];
-const WRITE_TOOLS = ['file_write', 'file_edit', 'bash', 'git_commit', 'git_create_pr'];
+const WRITE_TOOLS = ['write', 'edit', 'bash', 'git_commit', 'git_create_pr'];
 const PLANNING_TOOLS = ['todo_write'];
 // present_plan removed — personas can't trigger user-facing confirmations during orchestration
 // ask_user removed — personas can't pause the pipeline for user input
@@ -240,10 +240,10 @@ export const CURATOR: PersonaDefinition = {
 
 You block the Builder — be quick. One or two tool calls max.`,
   allowedTools: [
-    'file_read', 'glob', 'grep', 'list_directory',
+    'read', 'glob', 'grep', 'list_directory',
     'memory_recall', 'memory_save',
     'web_search',
-    'file_write', 'file_edit', // Only for writing to Decisions/design/* — prompt enforces scope
+    'write', 'edit', // Only for writing to Decisions/design/* — prompt enforces scope
   ],
   priority: 999, // Not part of the sequence — runs on-demand only
   dependsOn: [], // No dependencies — can run whenever called
@@ -336,7 +336,7 @@ Your focus:
 - Does it look professional?
 
 Only review if UI/frontend work was done. If this was backend-only, report "No UI changes to review" and finish quickly.`,
-  allowedTools: [...READ_TOOLS, 'screenshot'],
+  allowedTools: [...READ_TOOLS],
   priority: 7,
   dependsOn: ['builder'],
 };
