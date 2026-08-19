@@ -260,18 +260,23 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // - memory_delete — destructive, never a normal-flow tool.
   work: new Set([
     // File operations
-    'file_read', 'file_write', 'file_edit',
+    'read', 'write', 'edit',
     // Search
     'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     // Shell
     'bash',
+    // The build's own check. The pre-closure guard constructs this tool
+    // directly rather than asking for it, so verify has always run — but a
+    // mode that edits files should be able to ASK for it too, and a name
+    // absent from the list it belongs on is how the next audit gets it wrong.
+    'verify_change',
     // Git
     'git_status', 'git_diff', 'rollback', 'git_commit', 'git_create_pr',
     // Web
     'web_search', 'http_request', 'browser',
     // Creative Studio — making an asset happens in the Studio, not inline
     // here. This gate used to list 'generate_image' / 'generate_video' /
-    // 'generate_voice', but the registry only ever builds the design_* tools,
+    // but the registry only ever builds the design_* tools,
     // so those three names resolved to nothing — dead entries. The handoff
     // (open_design_studio, further down) and browse_library are what work mode
     // actually needs: point at the Studio to make, read the library to reuse.
@@ -319,7 +324,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   ]),
   plan: new Set([
     // Read + nav
-    'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
+    'read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     // Research surface — http_request/browser/news added so the
     // coordinator-direct path (the most common Plan flow) has the same
     // research tools the Researcher persona gets in orchestrated mode.
@@ -362,12 +367,12 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   ]),
   teach: new Set([
     // Reading + project navigation
-    'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
+    'read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     // Writing — needed because the Tutor system prompt says "create sample
     // files" and runs live code examples. file_write/file_edit + bash only.
     // Git commit/PR tools intentionally OUT — wrong blast radius for a
     // teaching session.
-    'file_write', 'file_edit', 'bash',
+    'write', 'edit', 'bash',
     // Web (verify facts, fetch docs, browse references)
     'web_search', 'http_request', 'browser',
     // Memory — update is in so the learner profile evolves across sessions
@@ -386,7 +391,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'switch_mode',
   ]),
   security: new Set([
-    'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
+    'read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     'bash', 'git_status', 'git_diff', 'web_search', 'analyze_architecture',
     'audit_dependencies', 'debug_logs', 'memory_save', 'memory_recall',
     'test_run', 'ask_user',
@@ -524,7 +529,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Authoring
     'document_author', 'document_manage', 'report_generate', 'email_draft',
     // The .md source lives on disk
-    'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'list_directory',
+    'read', 'write', 'edit', 'glob', 'grep', 'list_directory',
     // Research to ground the writing
     'web_search', 'http_request', 'browser',
     // Illustrations / covers are made in the Creative Studio — hand off there
