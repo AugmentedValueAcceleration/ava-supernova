@@ -45,14 +45,27 @@ describe('trailing assistant message', () => {
     expect(out[1]).not.toHaveProperty('prefix');
   });
 
-  it('leaves dangling tool_calls alone, so they fail loudly', () => {
-    // An assistant with tool_calls and no results is a different fault, and
-    // prefix would not rescue it — it would hide it one layer deeper.
+  it('marks a trailing assistant WITH tool_calls too', () => {
+    // REVERSED on 2026-08-19. This used to assert the opposite — that dangling
+    // tool_calls were left alone "so they fail loudly", on the reasoning that
+    // prefix would not rescue them and would hide the fault a layer deeper.
+    //
+    // It failed loudly and rescued nothing. The operator hit it after a
+    // present_plan turn and got the raw provider error at the end of work that
+    // had otherwise succeeded:
+    //
+    //   Expected last role User or Tool (or Assistant with prefix True)
+    //   for serving but got assistant
+    //
+    // Mistral's own message names prefix:true as accepted and does not exclude
+    // assistant turns carrying tool_calls. A continuation is a better outcome
+    // than a 400 the user has to read, and the shaper logs the state so it is
+    // visible rather than silent.
     const out = markTrailingAssistantPrefix('mistral', [
       user('go'),
       { role: 'assistant', content: null, tool_calls: [{ id: 'c1', function: { name: 'x', arguments: '{}' } }] },
     ]);
-    expect(out.at(-1)).not.toHaveProperty('prefix');
+    expect(out.at(-1)).toHaveProperty('prefix', true);
   });
 
   it('only applies to Mistral — the others accept a trailing assistant', () => {

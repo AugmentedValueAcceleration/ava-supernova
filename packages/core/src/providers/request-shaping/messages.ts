@@ -16,6 +16,8 @@
  * it in is a later convergence step, kept out now to preserve exact web parity.
  */
 
+import { logger } from '../../core/logger.js';
+
 type LooseMessage = Record<string, unknown>;
 
 /**
@@ -81,10 +83,31 @@ export function markTrailingAssistantPrefix<T extends LooseMessage>(
   if (provider !== 'mistral' || messages.length === 0) return messages as T[];
   const last = messages[messages.length - 1];
   if (last?.role !== 'assistant' || 'prefix' in last) return messages as T[];
-  // A trailing assistant with tool_calls is a different fault — dangling calls
-  // with no results — and prefix would not rescue it. Left alone so it fails
-  // loudly rather than being half-hidden here.
-  if (Array.isArray(last.tool_calls) && last.tool_calls.length > 0) return messages as T[];
+  // A trailing assistant WITH tool_calls used to be skipped here, on the
+  // reasoning that it is a different fault — dangling calls with no results —
+  // which prefix would not rescue, so better to fail loudly.
+  //
+  // It failed loudly and rescued nothing. The operator hit it on 2026-08-19
+  // after a present_plan turn:
+  //
+  //   Provider mistral returned 400: Expected last role User or Tool
+  //   (or Assistant with prefix True) for serving but got assistant
+  //
+  // Mistral's own message names prefix:true as an accepted shape — it does not
+  // exclude assistant turns carrying tool_calls. So the skip turned a
+  // recoverable request into a hard error, and the user saw a raw provider 400
+  // at the end of a turn that had otherwise worked.
+  //
+  // Marked rather than skipped now. If the underlying state really is a
+  // dangling call, a continuation is still a better outcome than a 400 the user
+  // has to read — and it is logged so the state is visible rather than silent.
+  const trailingCall = Array.isArray(last.tool_calls) && last.tool_calls.length > 0;
+  if (trailingCall) {
+    logger.warn(
+      '[mistral] Trailing assistant carries tool_calls with no results — marking as a ' +
+      'prefix continuation. Provider rejects it outright otherwise.',
+    );
+  }
   return [...messages.slice(0, -1), { ...last, prefix: true } as T];
 }
 
