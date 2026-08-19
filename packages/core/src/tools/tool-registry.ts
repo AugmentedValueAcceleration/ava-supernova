@@ -555,9 +555,19 @@ export class ToolRegistry {
    * rather than our internal prefixed names (`file_write`, `file_read`,
    * `file_edit`). When the coordinator hallucinates `write` it's actually
    * right — our schema was wrong. We now expose the short names to the
-   * model and keep the prefixed names internally so mode allowlists,
-   * persona definitions, memory patterns, and procedural learning don't
-   * need to be rewritten.
+   * model and keep the prefixed names internally so memory patterns and
+   * procedural learning don't need to be rewritten.
+   *
+   * NOT mode allowlists or persona definitions, despite what this comment
+   * said until 2026-08-19. Both are compared against `s.function.name` from
+   * getSchemas() — the MODEL-facing name — at agent.ts:1422 (schema filter),
+   * agent.ts:2248 (call blocking) and conductor.ts:704 (persona scoping). So a
+   * list holding `file_read` matched nothing, and every mode that filters lost
+   * the file tools: the schema was withheld AND the call would have been
+   * blocked. 20 of 24 personas could not read, `builder` could not write.
+   *
+   * Those lists use the MODEL-facing names. If that ever changes, the guard in
+   * tests/mode-allowlists.test.ts is what will tell you.
    *
    * Direction: model-side → internal.
    */
