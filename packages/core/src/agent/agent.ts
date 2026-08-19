@@ -1,4 +1,5 @@
 import type { Provider, ChatCompletionRequest, ToolSchema } from '../providers/types.js';
+import { recoverWrittenToolCalls } from './recover-written-calls.js';
 import type {
   Message,
   AssistantMessage,
@@ -1958,6 +1959,29 @@ export class Agent {
       if (signal?.aborted) {
         onEvent({ type: 'done', finalMessage: assistantMessage });
         return finalHistory();
+      }
+
+      // ─── A written tool call is still a tool call ──────────────────────
+      // Some models emit <present_plan>{…}</present_plan> as TEXT instead of
+      // calling the tool, even with native schemas offered. Left alone the user
+      // gets raw JSON where a plan card belongs, and the turn closes cleanly
+      // because the agent sees no tool_calls. Recovery is reliable where
+      // instructing the model is not — the models that do this are the ones
+      // least likely to follow an instruction about it.
+      if (
+        (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) &&
+        typeof assistantMessage.content === 'string'
+      ) {
+        const offered = new Set(toolSchemas.map((t) => t.function.name));
+        const recovered = recoverWrittenToolCalls(assistantMessage.content, offered);
+        if (recovered.calls.length > 0) {
+          logger.warn(
+            `[agent] Recovered ${recovered.calls.length} written tool call(s) from text: ` +
+            recovered.calls.map((c) => c.function.name).join(', '),
+          );
+          assistantMessage.tool_calls = recovered.calls;
+          assistantMessage.content = recovered.text;
+        }
       }
 
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
