@@ -152,3 +152,20 @@ describe('recovering a call written without a closing tag', () => {
     expect(recoverWrittenToolCalls(content, OFFERED, ids()).calls).toEqual([]);
   });
 });
+
+describe('a reply cut off mid-tag', () => {
+  it('swallows a closing tag with no trailing bracket', () => {
+    // The operator's 2026-08-19 output ended `</present_plan` — no `>`. The
+    // call recovered correctly and the orphan fragment stayed on screen, which
+    // is the same cosmetic failure in miniature.
+    const content = [
+      '<present_plan>{"title":"x"}',
+      '</present_plan',
+      '',
+      'rest of the reply',
+    ].join('\n');
+    const { calls, text } = recoverWrittenToolCalls(content, OFFERED, ids());
+    expect(calls).toHaveLength(1);
+    expect(text).toBe('rest of the reply');
+  });
+});

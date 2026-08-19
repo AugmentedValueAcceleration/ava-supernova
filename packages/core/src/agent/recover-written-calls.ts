@@ -146,7 +146,10 @@ export function recoverWrittenToolCalls(
     // different kind of statement — and leaving the orphan tag in the reply is
     // the same cosmetic failure this whole function exists to prevent.
     let end = braceAt + body.length;
-    const after = text.slice(end).match(/^\s*<\/[a-z][a-z0-9_]*>/i);
+    // The trailing `>` is optional: a reply can be cut off mid-tag. Seen
+    // 2026-08-19 as `</present_plan` with no closing bracket — the call
+    // recovered fine and the orphan fragment stayed on screen.
+    const after = text.slice(end).match(/^\s*<\/[a-z][a-z0-9_]*>?/i);
     if (after) end += after[0].length;
 
     text = text.replace(text.slice(match.index!, end), '');
