@@ -104,6 +104,16 @@ const CHAT_MESSAGE_TYPES = new Set([
   // grant_secret must reach AvaViewProvider — it owns the SecretAccess working
   // set that resolves {{secret:<id>}} handles at tool-execution time.
   'rate_message', 'save_secrets', 'grant_secret',
+  // The Plans tab. AvaViewProvider owns projectRoot, so it is the only place
+  // that can read Decisions/records/ — a message missing from this Set is
+  // silently dropped here rather than erroring, which is exactly how the tab
+  // came up empty on a project whose record was visible in the Explorer.
+  'list_plan_records', 'open_plan_record',
+  // Found by the guard written for the above, all three long-standing: the
+  // dashboard sends them, AvaViewProvider has handlers for them, and this Set
+  // was throwing them away. Ticking a subtask, editing a task, and loading
+  // secrets have therefore done nothing at all on this surface.
+  'toggle_subtask', 'panel_update_task', 'load_secrets',
 ]);
 
 // ─── Platform API ─────────────────────────────────────────────────────────────
