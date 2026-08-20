@@ -2691,13 +2691,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   /** Send all active tasks (todo + in-progress) for the "All" toggle. */
-  /** Push the project's decision records to the webview. */
+  /**
+   * Push the project's decision records to the webview.
+   *
+   * Logs the root it read and the count it found, always. An empty Plans tab
+   * has four possible causes — wrong project root, no Decisions folder, a
+   * message that never arrived, or a genuinely empty records/ — and they look
+   * identical from the outside. One line in the output channel tells them
+   * apart, which beats another round of guessing at it.
+   */
   private async sendPlanRecords(): Promise<void> {
     try {
       const records = await listPlanRecords(this.projectRoot);
+      this.log(`[decisions] projectRoot=${this.projectRoot ?? '(none)'} records=${records.length}`);
       this.postMessage({ type: 'plan_records', records });
     } catch (err) {
-      this.log(`[decisions] list failed: ${err}`);
+      this.log(`[decisions] list failed for ${this.projectRoot ?? '(none)'}: ${err}`);
       this.postMessage({ type: 'plan_records', records: [] });
     }
   }

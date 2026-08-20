@@ -793,6 +793,17 @@ const CHAT_MESSAGE_TYPES = new Set([
   'today_tasks', 'all_tasks', 'session_tasks', 'ava_completed_tasks',
   'conductor_status', 'persona_status', 'persona_tool_call', 'persona_tool_result',
   'briefing', 'error',
+  // The Plans tab's reply. This Set shares its NAME with the one in
+  // DashboardPanel.ts but runs in the opposite direction — that one decides
+  // what the panel forwards TO the host, this one decides what the chat page
+  // accepts BACK from it. A type missing here is dropped with a bare `return`,
+  // so the host can find the record, log it, and post it, and the tab still
+  // shows nothing. Which is exactly what happened.
+  'plan_records',
+  // Found by the guard written for the above, and long-standing: the provider
+  // posts it and the reducer below has a case for it, so live tool-card updates
+  // were being built and thrown away on this surface.
+  'tool_call_partial',
 ]);
 
 /* ── Delta flush config ───────────────────────────────────────────────────── */

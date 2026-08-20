@@ -70,8 +70,14 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
   // assistant/system rows into state but don't count as the user starting
   // a conversation — gate on `hasUserSpoken` so those don't drop the
   // helper card on first touch. Mirrors the webview-ui chat panel.
-  const hasUserSpoken = messages.some((m) => m.role === 'user');
-  if (!hasUserSpoken && !isThinking) {
+  // A NEW chat, not merely "the user has not spoken yet". The old test asked
+  // whether any message had role 'user', so a live conversation whose user
+  // turns were compressed away or restored differently read as untouched and
+  // the starter card reappeared under it mid-work. The seeded welcome is
+  // rendered separately and is not in `messages`, so an empty list is the
+  // new-chat state and nothing else is. Mirrors webview-ui.
+  const isNewChat = messages.length === 0;
+  if (isNewChat && !isThinking) {
     const seededWelcome = {
       id: 'welcome-seed',
       role: 'assistant' as const,

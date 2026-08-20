@@ -105,6 +105,60 @@ describe.skipIf(!available)('the dashboard can reach the provider', () => {
     ).toEqual([]);
   });
 
+  // ── The return journey ──────────────────────────────────────────────────
+  //
+  // There are TWO Sets called CHAT_MESSAGE_TYPES, in different files, running
+  // in opposite directions: DashboardPanel's decides what the panel forwards TO
+  // the host, and the chat page's decides what it accepts BACK. Fixing the
+  // first is what made the Plans request arrive, get answered, and get logged —
+  // `records=1` — while the tab still showed nothing, because the reply hit the
+  // second one and was dropped with a bare `return`.
+
+  const CHAT_PAGE = join(EXT, 'dashboard-ui', 'src', 'pages', 'Chat.tsx');
+
+  /** What the chat page will accept from the host. */
+  function acceptedTypes(): Set<string> {
+    const src = readFileSync(CHAT_PAGE, 'utf8');
+    const start = src.indexOf('const CHAT_MESSAGE_TYPES');
+    const body = src.slice(start, src.indexOf(']);', start));
+    return new Set([...body.matchAll(/'([a-z_0-9]+)'/g)].map((m) => m[1]));
+  }
+
+  /** What the chat page's reducer knows how to apply. */
+  function reducedTypes(): Set<string> {
+    const src = readFileSync(CHAT_PAGE, 'utf8');
+    return new Set([...src.matchAll(/^\s*case '([a-z_0-9]+)':/gm)].map((m) => m[1]));
+  }
+
+  /** What AvaViewProvider actually posts. */
+  function postedByProvider(): Set<string> {
+    const src = readFileSync(VIEW_PROVIDER, 'utf8');
+    return new Set(
+      [...src.matchAll(/postMessage\(\s*\{\s*type:\s*'([a-z_0-9]+)'/g)].map((m) => m[1]),
+    );
+  }
+
+  it('accepts every reply the provider sends that the page can apply', () => {
+    const accepted = acceptedTypes();
+    const reduced = reducedTypes();
+    const posted = postedByProvider();
+
+    const dropped = [...posted]
+      .filter((t) => reduced.has(t) && !accepted.has(t))
+      .sort();
+
+    expect(
+      dropped,
+      'The provider posts these and the chat page has a reducer case for ' +
+      'them, but CHAT_MESSAGE_TYPES in Chat.tsx drops them on arrival — the ' +
+      `host does its job and the UI never hears:\n  ${dropped.join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  it('accepts the Plans reply specifically', () => {
+    expect(acceptedTypes().has('plan_records'), 'plan_records is dropped on arrival').toBe(true);
+  });
+
   it('forwards the Plans tab specifically', () => {
     // The one that failed. Named so a future refactor that drops it fails
     // here rather than in a screenshot at one in the morning.

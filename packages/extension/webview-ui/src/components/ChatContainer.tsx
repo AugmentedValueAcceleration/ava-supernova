@@ -183,7 +183,15 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
   // started chatting yet. Previously we gated on messages.length === 0
   // which meant closing a fresh chat and reopening it dropped the hero
   // the moment any ambient message arrived.
-  const hasUserSpoken = messages.some((m) => m.role === 'user');
+  // A NEW chat, not merely "the user has not spoken yet".
+  //
+  // The old test was `messages.some(m => m.role === 'user')`, which asks the
+  // wrong question: any conversation whose user turns are not present as
+  // role 'user' — compressed away, restored from history, or seeded — reads as
+  // untouched, and the starter card reappears underneath a live conversation.
+  // The seeded welcome is rendered separately and is not in `messages`, so an
+  // empty list IS the new-chat state and nothing else is.
+  const isNewChat = messages.length === 0;
 
   // Empty-state alignment with IDE: the IDE chat opens with a seeded
   // assistant message containing t('dash.chat.welcome'). The extension's
@@ -196,7 +204,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
   // (key-required sign-in lives on the Account page) but the panel
   // needs a sign-in affordance inline. This is the one intentional
   // delta from the IDE on the empty state.
-  if (!hasUserSpoken && !isThinking) {
+  if (isNewChat && !isThinking) {
     if (needsSetup && onStartSignIn && onCancelSignIn && onClearSignInError) {
       return (
         <div className="flex-1 overflow-y-auto px-4 py-6">
