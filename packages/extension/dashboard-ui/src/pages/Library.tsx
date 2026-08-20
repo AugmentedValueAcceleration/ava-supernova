@@ -71,7 +71,6 @@ interface Props {
 }
 
 type TopTab = 'papers' | 'assets' | 'documents';
-type AssetSource = 'all' | 'cloud' | 'local';
 type DocTypeFilter = 'all' | 'document' | 'spreadsheet';
 type BlankFormat = 'docx' | 'xlsx' | 'csv' | 'md' | 'pdf';
 type TemplateId = 'proposal' | 'report' | 'invoice' | 'letter' | 'meeting_notes' | 'resume';
@@ -180,7 +179,6 @@ export function Library({
   paperDetailLoading,
   onLoadPaperDetail,
   onClearPaperDetail,
-  cloudAssets,
   localCreative,
   storageScan,
   cloudAssetsLoading,
@@ -201,7 +199,6 @@ export function Library({
   const selectAssetGroup = (g: string) => { setAssetGroup(g); setAssetType('all'); };
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [docType, setDocType] = useState<DocTypeFilter>('all');
-  const [docSource, setDocSource] = useState<AssetSource>('all');
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [selected, setSelected] = useState<UnifiedItem | null>(null);
 
@@ -297,20 +294,13 @@ export function Library({
   // filter shape so users learn one pattern.
   const documentItems = useMemo(() => {
     const list: UnifiedItem[] = [];
-    if (docSource === 'all' || docSource === 'cloud') {
-      for (const a of cloudAssets) {
-        const k = cloudAssetKind(a);
-        if (['document', 'spreadsheet'].includes(k)) list.push(unifyCloudAsset(a));
-      }
-    }
-    if (docSource === 'all' || docSource === 'local') {
-      for (const img of images) {
-        const k = localFileKind(img);
-        if (k === 'document' || k === 'spreadsheet') list.push(unifyLocalImage(img, projectRoot));
-      }
+    // Local only — see the note where the source filter used to be.
+    for (const img of images) {
+      const k = localFileKind(img);
+      if (k === 'document' || k === 'spreadsheet') list.push(unifyLocalImage(img, projectRoot));
     }
     return docType === 'all' ? list : list.filter(i => i.kind === docType);
-  }, [cloudAssets, images, projectRoot, docSource, docType]);
+  }, [images, projectRoot, docType]);
 
   return (
     <div className="w-full">
@@ -528,22 +518,14 @@ export function Library({
               the card layout. */}
           <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-[var(--border-card)]">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              <div className="flex items-center gap-1">
-                <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">{t('library.filter.source')}</span>
-                {(['all', 'cloud', 'local'] as AssetSource[]).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setDocSource(s)}
-                    className={`px-2.5 py-2 text-[11px] font-medium border-b-2 transition ${
-                      docSource === s
-                        ? 'border-[var(--accent)] text-[var(--accent)]'
-                        : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                    }`}
-                  >
-                    {s === 'all' ? t('dash.library.all') : s === 'cloud' ? t('library.source.cloud') : t('library.source.local')}
-                  </button>
-                ))}
-              </div>
+              {/* Source filter removed 2026-08-20 — documents are local.
+                  The cloud side filtered creative_assets down to asset_type
+                  'document' or 'spreadsheet', and there has never been a row of
+                  either: the store holds content, video, image and two UI kinds
+                  and nothing else. So it was a control over an empty set, and
+                  offering "cloud" implied a place documents could live that
+                  they never lived in. The Assets tab keeps its cloud source,
+                  where the data is real. */}
               <div className="flex items-center gap-1">
                 <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">{t('library.filter.type')}</span>
                 {(['all', 'document', 'spreadsheet'] as DocTypeFilter[]).map(dt => (
@@ -572,17 +554,10 @@ export function Library({
             </div>
           </div>
 
-          {/* Same non-blocking pill as the Assets tab — cloud documents
-              ride the same /creative-assets fetch so the loading state
-              applies here too. */}
-          {cloudAssetsLoading && (
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-1.5 text-[11px] text-[var(--text-secondary)]">
-              <span className="ava-library-spinner" aria-hidden />
-              {t('library.pulling_cloud_documents')}
-            </div>
-          )}
-
-          {documentItems.length === 0 && !cloudAssetsLoading ? (
+          {/* No "pulling cloud documents" pill any more — this tab reads local
+              files only, so there is nothing to wait for and the spinner was
+              promising an arrival that never comes. */}
+          {documentItems.length === 0 ? (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{'\u{1F4C4}'}</div>
               <p className="text-sm font-medium text-[var(--text-primary)]">{t('library.no_documents')}</p>
@@ -604,12 +579,6 @@ export function Library({
                 ))}
               </div>
             )
-          ) : cloudAssetsLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} height={132} radius={12} />
-              ))}
-            </div>
           ) : null}
         </div>
       )}
