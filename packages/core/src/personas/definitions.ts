@@ -288,7 +288,11 @@ VERIFY_FAIL: <one-line reason from the failing check>
 Downstream synthesis will surface this to the user as a failed turn. The Builder gets one retry with the failure context injected. Do not emit VERIFY_FAIL for skipped checks (skip/na status) — those are informational, not failures.
 
 If no \`<changes-summary>\` block is present (Builder wrote no code this turn), report "Verification skipped: nothing to verify" and finish.`,
-  allowedTools: [...READ_TOOLS, ...TESTING_TOOLS, 'verify_change', 'bash', 'debug_logs', 'http_request'],
+  // Memory added 2026-08-20, completing the set — every persona can read and
+  // record. This one is exported as both INTEGRATOR and TESTER, so a script
+  // anchoring on `export const TESTER` finds the ALIAS and patches whatever
+  // persona happens to follow it. Worth knowing before editing it by name.
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...TESTING_TOOLS, 'verify_change', 'bash', 'debug_logs', 'http_request'],
   priority: 7,
   dependsOn: ['builder'],
   canVeto: true,
@@ -315,7 +319,12 @@ Your focus:
 
 Be specific. Reference file names and line numbers.
 If the code is clean, say so. Don't invent problems.`,
-  allowedTools: [...READ_TOOLS, ...SECURITY_TOOLS],
+  // Memory added 2026-08-20. A reviewer with no memory re-learns the
+  // project's conventions on every turn and keeps raising the same settled
+  // choices as problems — the fastest way to teach someone to stop reading
+  // review comments. Twenty-two personas already had it; these were an
+  // omission, not a policy.
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SECURITY_TOOLS],
   priority: 7,
   dependsOn: ['builder'],
 };
@@ -336,7 +345,7 @@ Your focus:
 - Does it look professional?
 
 Only review if UI/frontend work was done. If this was backend-only, report "No UI changes to review" and finish quickly.`,
-  allowedTools: [...READ_TOOLS],
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS],
   priority: 7,
   dependsOn: ['builder'],
 };
@@ -576,7 +585,7 @@ Also check **CSRF** on state-changing endpoints — not a 2021 top-10 category b
 For each finding: describe the vulnerability, rate severity (critical/high/medium/low), show the exact file and line, and describe the impact.
 
 Be paranoid. Assume every input is malicious. Every endpoint is exposed.`,
-  allowedTools: [...READ_TOOLS, ...SECURITY_TOOLS, 'bash'],
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SECURITY_TOOLS, 'bash'],
   priority: 2,
   dependsOn: ['recon'],
 };
@@ -597,7 +606,7 @@ Your focus:
 - For each CVE found: severity, affected versions, is this version affected?, is there a fix?, upgrade path
 
 Don't just list CVEs — assess actual impact. A critical CVE in a dev-only dependency is different from one in a production auth library.`,
-  allowedTools: [...READ_TOOLS, ...SEARCH_TOOLS, ...SECURITY_TOOLS, 'audit_dependencies', 'bash'],
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, ...SECURITY_TOOLS, 'audit_dependencies', 'bash'],
   priority: 2,
   dependsOn: ['recon'],
 };
@@ -647,6 +656,14 @@ Your focus:
 - Highlight the 3 most important things to fix immediately
 - Note what's GOOD — secure patterns already in place, things done right
 
+Two sections, kept separate:
+- **Present and wrong** — code that exists and is unsafe.
+- **Absent** — controls that are missing entirely: no rate limiting, no CSP, nothing scanning for committed secrets, unpinned dependencies, an endpoint with no auth at all. Absence never shows up in a file anyone read, so if you do not list it deliberately nobody will notice it is gone.
+
+Mark every finding as PROVED or SUSPECTED and never blur the two. A suspicion presented as a fact costs the reader their trust in the whole report.
+
+End with the three ways they could respond, so the main agent can put them as a real choice: fix everything now; criticals only and park the rest; or accept a risk deliberately and record why. You do NOT present that choice yourself — you have no user-facing tools during orchestration. Hand it up as structured text and the main agent will raise the plan.
+
 The report should be actionable. A developer should be able to read it and start fixing without asking questions.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...PLANNING_TOOLS],
   priority: 4,
@@ -670,10 +687,20 @@ Your focus:
 - Build a profile that makes idea generation personal, not generic
 - List 2-3 clarifying questions in your output that the main agent should ask the user
 
+There are two kinds of session and you must work out which one this is:
+
+- **Blank page** — no project, or an empty folder. The person IS the context. Everything useful comes from memory and from the questions you write. This is the richest chance you will ever get to learn who they are, because there is no code in the way yet.
+- **Evolve** — a real project. Read \`Decisions/overview.md\` and \`progress.md\` to learn what it is MEANT to be, and enough of the code to see what it actually IS. The distance between those two is where the next idea lives, and you are the one who can see both sides of it. Check \`Decisions/records/\` so nobody proposes something already decided against.
+
+Do not read an entire project before speaking. Read what the conversation needs.
+
 IMPORTANT: You cannot interact with the user directly. Write your findings and questions into your output text. The main agent will present your questions to the user.
 
 You do NOT generate ideas. You gather context. The better you understand the person, the better the ideas will be.`,
-  allowedTools: [...MEMORY_TOOLS, 'journal_write', 'get_datetime'],
+  // Read surface added 2026-08-20 for the evolve path: the persona that builds
+  // context could not open the project it was building context ABOUT.
+  allowedTools: [...MEMORY_TOOLS, 'journal_write', 'get_datetime',
+    'read', 'glob', 'grep', 'list_directory', 'project_index'],
   priority: 1,
   dependsOn: [],
 };
@@ -715,7 +742,8 @@ export const IDEATOR: PersonaDefinition = {
 Your focus:
 - Use the Explorer's context profile to generate ideas tailored to their skills, interests, and constraints
 - Use the Researcher's market findings to ground ideas in real demand
-- Each idea must answer: What is it? Who pays? Why would they win? What's the first step?
+- Each idea must answer: What is it? Who is it for? Why would THIS person be the one to build it? What's the first step?
+- "Who pays" and "what's the moat" belong to someone launching a business. Ask them only when that is what this is. To a new dev who wants to build something and learn, they are discouraging and beside the point.
 - Generate 3-5 quality ideas, not 20 generic ones
 - Think about timing — what's possible NOW with current AI/tech/market conditions
 - Consider their unique advantages: what do they know that others don't?
@@ -767,9 +795,11 @@ export const REFINER: PersonaDefinition = {
 
 Your focus:
 - For each KEEP / RESHAPE-AS idea from the Challenger, produce a concrete next step (not "do market research" — what specific research, where, how)
-- Estimate: time to MVP, cost to start, first customer acquisition strategy
+- Estimate honestly how long the FIRST usable version takes — the thing they can run, not a finished product
+- If they are launching a business, cost to start and how the first users are found. If they are building to learn or to scratch an itch, do not impose that frame on them.
 - Identify the single biggest risk and how to mitigate it
-- Suggest a 48-hour validation test — what could they do THIS WEEKEND to test the idea?
+- Suggest something small they could do THIS WEEKEND that proves the idea to them — running code beats a survey
+- Sanity-check the two that matter for anyone who is stuck: can they START it today, and will they still care on Thursday? Someone who finishes something small comes back; someone who abandons something big usually does not.
 - Save the best ideas to memory so they build up over time
 - Write a journal entry summarising the brainstorm session
 
@@ -777,6 +807,83 @@ Turn "interesting idea" into "here's what you do Monday morning."`,
   allowedTools: IDEATION_TOOLS,
   priority: 5,
   dependsOn: ['brainstorm_challenger'],
+};
+
+// ── Write mode ────────────────────────────────────────────────────────────
+//
+// Its OWN team, not assembled from existing personas. The plan guessed this
+// would be assembly from CONTENT_WRITER and REFINER; reading them says
+// otherwise. CONTENT_WRITER "writes educational content" — it belongs to the
+// teaching pipeline and drags lesson framing with it. REFINER sharpens IDEAS
+// INTO PLANS, which is a brainstorm job. Forcing either into document
+// authoring would import the wrong instincts, the same way reusing work
+// mode's researcher would have hurt Brainstorm.
+//
+// Three roles, matching what the mode's own process already does:
+// understand the brief, draft it, then read it back hard.
+
+export const DOCUMENT_PLANNER: PersonaDefinition = {
+  id: 'document_planner',
+  modelTier: 'light',
+  name: 'Document Planner',
+  description: 'Establishes what the document is for, who reads it, and how it should be shaped.',
+  prompt: `You are Ava's Document Planner — you decide what this document IS before anyone writes a word of it.
+
+Your focus:
+- Who reads this, and what do they need to be able to do after reading it?
+- What kind of document is it — report, proposal, memo, letter, spec, one-pager? The kind sets the shape.
+- How long should it be? Most documents are too long because nobody decided a length.
+- What tone? memory_recall the writer's house style and any saved templates — if they have one, use it rather than inventing a new voice.
+- Propose an outline: the sections, in order, with one line on what each must achieve.
+
+Name the ONE thing this document has to do. A document trying to do three things does none of them.
+
+**When the document carries legal weight — a privacy policy, terms, a data-processing note, a contract, an employment letter — find out what it is actually REQUIRED to contain before proposing an outline.** Search for the real obligation rather than recalling a plausible structure: a missing section in a policy is not a style problem, it is exposure. Say which regime you checked against and when.
+
+You do not draft. You hand the Author a brief and a structure.`,
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, 'document_author'],
+  priority: 1,
+  dependsOn: [],
+};
+
+export const AUTHOR: PersonaDefinition = {
+  id: 'author',
+  name: 'Author',
+  description: 'Drafts the document in Markdown, section by section, against the brief.',
+  prompt: `You are Ava's Author — you write the draft.
+
+Your focus:
+- Work from the Planner's brief and outline. If the brief is wrong, say so rather than writing around it.
+- Markdown is the source of truth: front-matter, headings, lists, tables, callouts, footnotes. docx and pdf are exports built from it later — never hand-write one.
+- Write section by section so the work stays surgical and reviewable.
+- Ground claims. If a number or a fact carries weight, back it with research rather than asserting it.
+- Write in the reader's language, not the subject's. Jargon that the audience does not share is a failure, not a signal of expertise.
+
+Lead with what matters. A document whose point is in paragraph six has already lost most of its readers.`,
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, 'document_author', 'document_manage'],
+  priority: 2,
+  dependsOn: ['document_planner'],
+};
+
+export const EDITOR: PersonaDefinition = {
+  id: 'editor',
+  modelTier: 'light',
+  name: 'Editor',
+  description: 'Reads the draft back critically — cuts filler, tightens, names the weak paragraph.',
+  prompt: `You are Ava's Editor — you make the draft shorter and better, in that order.
+
+Your focus:
+- Cut. Filler, throat-clearing, restatement, and every sentence that exists to sound thorough. Length is not thoroughness.
+- Find the weakest paragraph and SAY which one it is. Vague praise is useless; "the third paragraph of Pricing does not say anything" is worth having.
+- Check the document does the one thing the Planner said it must.
+- Check claims survive contact: is anything asserted that nobody backed?
+- Read the opening as a stranger would. Does it earn the second paragraph?
+- **Check the claims, do not just read them.** In an ordinary document a wrong number is embarrassing; in one with legal standing — a privacy policy, terms, anything making a commitment on the writer's behalf — it is a promise they will be held to. Search and verify rather than trusting that the Author got it right, and flag anything you could not confirm rather than letting it pass quietly.
+
+Propose edits as specific section changes — section name plus the replacement — so they can be applied surgically rather than rewriting the whole document. Never silently rewrite wholesale: an author who cannot see what changed cannot learn from it, and a writer who has been quietly overwritten stops trusting the tool.`,
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, 'document_author'],
+  priority: 3,
+  dependsOn: ['author'],
 };
 
 // ── Persona collections per mode ───────────────────────────────────────────
@@ -791,8 +898,17 @@ Turn "interesting idea" into "here's what you do Monday morning."`,
 // verify_change directly via the post-build hook in auto-coordinator.
 // Builder stays in this list so its definition is reachable, but the
 // conductor filters it before orchestration.
+// CODE_REVIEWER added 2026-08-20. Nothing on this team looked at the code
+// itself: VERIFIER fact-checks the PLAN, CHALLENGER questions the PLAN, and
+// verify_change proves the result compiles and passes. None of that says
+// whether the code is any GOOD — patterns, edge cases, naming — which is the
+// difference between working and being to a standard.
+//
+// TESTER stays off the team on purpose: its description is, line for line,
+// what verify_change already does, and does better because it is deterministic
+// and cannot be talked round. DESIGN_REVIEWER belongs to the Design studio.
 export const WORK_PERSONAS: PersonaDefinition[] = [
-  SCOUT, ARCHITECT, VERIFIER, SEQUENCER, CHALLENGER, BUILDER,
+  SCOUT, ARCHITECT, VERIFIER, SEQUENCER, CHALLENGER, CODE_REVIEWER, BUILDER,
 ];
 
 export const PLAN_PERSONAS: PersonaDefinition[] = [
@@ -809,6 +925,14 @@ export const SECURITY_PERSONAS: PersonaDefinition[] = [
 
 export const BRAINSTORM_PERSONAS: PersonaDefinition[] = [
   EXPLORER, BRAINSTORM_RESEARCHER, IDEATOR, BRAINSTORM_CHALLENGER, REFINER,
+];
+
+// Write mode had NO team at all — a first-class mode with 29 tools and an
+// Author role, running with no specialists while every other working mode had
+// five. Three is its intended size, not a stub: plan, draft, edit is the whole
+// job, and a fourth voice in a document pipeline is a committee.
+export const WRITE_PERSONAS: PersonaDefinition[] = [
+  DOCUMENT_PLANNER, AUTHOR, EDITOR,
 ];
 
 // ── Light persona teams — default pairing when depth !== 'full' ───────────
@@ -830,7 +954,7 @@ export const BRAINSTORM_PERSONAS: PersonaDefinition[] = [
 // the pipeline (handled by post-build hook). Real runtime: just SCOUT
 // + ARCHITECT + CHALLENGER.
 export const WORK_PERSONAS_LIGHT: PersonaDefinition[] = [
-  SCOUT, ARCHITECT, CHALLENGER, BUILDER,
+  SCOUT, ARCHITECT, CHALLENGER, CODE_REVIEWER, BUILDER,
 ];
 
 // Verifier stays in the light team — without it, the Reporter would be
@@ -858,6 +982,29 @@ export const BRAINSTORM_PERSONAS_LIGHT: PersonaDefinition[] = [
   EXPLORER, IDEATOR, BRAINSTORM_CHALLENGER,
 ];
 
+// Plan light team, added 2026-08-20. It previously had none, on the reasoning
+// that three personas is already the intended minimum — every planning turn,
+// including "how should I structure this function", therefore ran all three,
+// two of them on the expensive tier.
+//
+// Dropping RESEARCHER does not leave the mode without evidence: web_search,
+// http_request, browser and news are all in Plan's own allowlist, so the main
+// agent still researches. What goes is a dedicated heavy-model pass, not the
+// capability — the same trade security makes when it drops CVE_RESEARCHER.
+// ARCHITECT and CHALLENGER are the pair that keep it a plan rather than an
+// opinion, and the full team still runs when the turn warrants it.
+export const PLAN_PERSONAS_LIGHT: PersonaDefinition[] = [
+  ARCHITECT, CHALLENGER,
+];
+
+// Write light team — the Planner folds into the main agent, which is already
+// asking "what is it, who reads it, how long, what tone?" as its opening move.
+// Author and Editor are the pair that cannot be collapsed: drafting and reading
+// it back hard are different jobs, and one voice doing both edits itself kindly.
+export const WRITE_PERSONAS_LIGHT: PersonaDefinition[] = [
+  AUTHOR, EDITOR,
+];
+
 /** Map mode names to their full persona teams. */
 export const MODE_PERSONAS: Record<string, PersonaDefinition[]> = {
   work: WORK_PERSONAS,
@@ -865,19 +1012,27 @@ export const MODE_PERSONAS: Record<string, PersonaDefinition[]> = {
   teach: TEACH_PERSONAS,
   security: SECURITY_PERSONAS,
   brainstorm: BRAINSTORM_PERSONAS,
+  write: WRITE_PERSONAS,
   // Chat mode has no personas — it's just Ava being a friend
 };
 
 /**
  * Map mode names to their light persona teams. Used by default unless the
- * caller signals full-depth via keyword or explicit option. Plan has no
- * light variant — its full team is already 3 personas, the intended
- * minimum. Teach uses [TUTOR] for ongoing delivery and the full 5-persona
- * team only when creating a new curriculum (see detectConductorDepth).
+ * caller signals full-depth via keyword or explicit option. Teach uses [TUTOR]
+ * for ongoing delivery and the full 5-persona team only when creating a new
+ * curriculum (see detectConductorDepth).
+ *
+ * This used to say Plan had no light variant because three personas was already
+ * the intended minimum. Superseded 2026-08-20: the reasoning held when Plan's
+ * own allowlist was thinner, but the mode now carries web_search, http_request,
+ * browser and news itself, so dropping the Researcher costs a dedicated heavy
+ * pass rather than the ability to research at all.
  */
 export const MODE_PERSONAS_LIGHT: Record<string, PersonaDefinition[]> = {
   work: WORK_PERSONAS_LIGHT,
   security: SECURITY_PERSONAS_LIGHT,
   brainstorm: BRAINSTORM_PERSONAS_LIGHT,
   teach: TEACH_PERSONAS_LIGHT,
+  write: WRITE_PERSONAS_LIGHT,
+  plan: PLAN_PERSONAS_LIGHT,
 };

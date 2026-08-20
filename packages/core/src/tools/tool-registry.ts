@@ -40,6 +40,7 @@ import { DetectLanguageTool } from './detect-language.js';
 import { TaskManageTool } from './task-manage.js';
 import { TaskSuggestTool } from './task-suggest.js';
 import { JournalWriteTool } from './journal.js';
+import { BrainstormSessionTool } from './brainstorm-session.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateTool } from './health-plan-update.js';
 import { HealthPlanListTool } from './health-plan-list.js';
@@ -207,6 +208,8 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   report_generate: 'documents', email_draft: 'documents',
   doc_generate: 'documents', todo_write: 'documents',
   task_manage: 'documents', task_suggest: 'documents', journal_write: 'documents',
+  // Local-only session store — same category as the journal it sits beside.
+  brainstorm_session: 'documents',
   present_plan: 'documents', apply_plan: 'documents', switch_mode: 'documents', browse_library: 'file_ops',
   // Memory — persistent knowledge
   memory_save: 'memory', memory_recall: 'memory',
@@ -448,6 +451,7 @@ export class ToolRegistry {
       new TaskManageTool(),
       new TaskSuggestTool(),
       new JournalWriteTool(),
+      new BrainstormSessionTool(),
       new HealthCatalogueSearchTool(),
       new HealthProfileAskTool(),
       new OpenHealthRoomTool(),

@@ -146,6 +146,9 @@ export { SecretRequestTool } from './tools/secret-request.js';
 export { EnvWriteTool, pickEnvFile, isGitignored, upsertEnvLine } from './tools/env-write.js';
 // Both surfaces format the plan-approval result with this, so they cannot drift.
 export { formatPlanDecision } from './tools/present-plan.js';
+// Brainstorm sessions — local only, never in the repo.
+export { BrainstormStore, projectHash } from './brainstorm/brainstorm-store.js';
+export type { BrainstormSession, BrainstormIdea, BrainstormKind, BrainstormSessionSummary } from './brainstorm/types.js';
 export type { PlanDecision } from './tools/present-plan.js';
 
 // Billing — canonical plan data + website redirect URL builders

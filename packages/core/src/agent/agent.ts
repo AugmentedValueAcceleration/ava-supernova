@@ -342,6 +342,17 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   ]),
   chat: new Set([
     'web_search', 'memory_save', 'memory_recall', 'memory_update', 'journal_write',
+    // Both were in the chat PROMPT and missing from this list, so following her
+    // own instructions got the call refused. Found 2026-08-20 by the guard that
+    // compares the two.
+    //
+    // The prompt devotes a paragraph to papers — use paper_fetch_full_text on
+    // an arXiv ID or DOI, and explicitly do NOT reach for read/grep because the
+    // Library is not on disk. And browse_library carries the rule about reusing
+    // an asset the user already owns rather than regenerating it, "because that
+    // costs them credits for a thing they have" — a rule she could not follow
+    // without the tool.
+    'paper_fetch_full_text', 'browse_library',
     // todo_write for Ava's own session steps. task_suggest is her DEFAULT for a
     // task-worthy thing she notices (a tap-to-add card); task_manage is for when
     // the user explicitly says "add X to my list" — create directly then.
@@ -354,11 +365,23 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'switch_mode',
   ]),
   brainstorm: new Set([
+    // Reading the project. Added 2026-08-20: the mode is for two people —
+    // someone with nothing to build, and someone whose project needs to move.
+    // The second was impossible, because ideation could not open a single file
+    // and could not read the Decisions folder either. She was being asked to
+    // suggest where a codebase should go next while forbidden from looking at
+    // it. Read-only, and readOnlyModeToolCeiling now enforces that structurally,
+    // so widening what she can READ cannot leak into being able to write.
+    'read', 'glob', 'grep', 'list_directory', 'project_index',
     // Research signals (web + news) so coordinator-direct ideation has the
     // same research surface the orchestrated team gets via IDEATION_TOOLS.
     'web_search', 'http_request', 'browser', 'news',
     // Memory — update is in for refining accumulated ideas across sessions.
     'memory_save', 'memory_recall', 'memory_update',
+    // The session itself: ideas, the ones turned down, and why. Local only,
+    // and distinct from memory — memory holds durable facts about the PERSON,
+    // this holds the thinking.
+    'brainstorm_session',
     // Output shape
     'present_plan', 'journal_write', 'todo_write',
     // Taste specialist for naming/voice/microcopy decisions
@@ -403,6 +426,17 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // training cutoff, which is not a vague answer but a confident wrong one,
     // and it gets more wrong every month the model ages.
     'get_datetime',
+    // An audit that ends in prose ends nowhere. present_plan turns findings
+    // into a decision with real alternatives — fix everything now, criticals
+    // only, or accept this risk and write down why — and an accepted plan
+    // becomes a record in Decisions/records/. That record is what stops the
+    // NEXT audit re-reporting a risk you consciously took, which is the thing
+    // that makes people stop running audits at all.
+    //
+    // todo_write is safe here despite feeding the Builder hand-off: the mode
+    // gate refuses to dispatch for any mode that cannot edit files, and this
+    // one cannot. Security proposes the fix; work mode makes it.
+    'present_plan', 'todo_write',
     'switch_mode',
   ]),
   // Health Room — Ava focused entirely on the user's health & fitness. Same

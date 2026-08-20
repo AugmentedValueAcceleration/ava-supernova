@@ -79,8 +79,15 @@ describe('modes that edit files can reach the file tools', () => {
   const offers = (mode: string, tool: string) =>
     lists[mode]?.includes(tool) || ALWAYS_ALLOWED.has(tool);
 
-  // Read-only by design: Plan proposes, Security audits. Both must still READ.
-  for (const mode of ['plan', 'security']) {
+  // Read-only by design: Plan proposes, Security audits, Brainstorm ideates.
+  // All three must still READ.
+  //
+  // Brainstorm joined this group on 2026-08-20. It used to be research-only —
+  // web and memory, no file access — which made half its job impossible: the
+  // mode is for someone with nothing to build AND for someone whose project
+  // needs to move, and the second meant suggesting where a codebase should go
+  // next while forbidden from opening it.
+  for (const mode of ['plan', 'security', 'brainstorm']) {
     it(`${mode} can read but not write`, () => {
       expect(offers(mode, 'read'), `${mode} cannot open a file`).toBe(true);
       expect(offers(mode, 'write'), `${mode} should be read-only`).toBe(false);
@@ -105,11 +112,20 @@ describe('modes that edit files can reach the file tools', () => {
     expect(offers('work', 'verify_change')).toBe(true);
   });
 
-  it('chat and brainstorm get no file tools at all', () => {
-    for (const mode of ['chat', 'brainstorm']) {
-      for (const tool of ['read', 'write', 'edit']) {
-        expect(offers(mode, tool), `${mode} should not touch files`).toBe(false);
-      }
+  it('chat gets no file tools at all', () => {
+    // Chat is the friend, not the colleague — no tools, no committee, and
+    // nothing that opens the project.
+    for (const tool of ['read', 'write', 'edit']) {
+      expect(offers('chat', tool), `chat should not touch files`).toBe(false);
+    }
+  });
+
+  it('brainstorm can read the project it is ideating about', () => {
+    // The evolve half of the mode. `read` alone is not enough — finding the
+    // gap between what a project says it is and what it actually is needs to
+    // locate files, not just open ones it was handed.
+    for (const tool of ['read', 'glob', 'grep', 'list_directory', 'project_index']) {
+      expect(offers('brainstorm', tool), `brainstorm cannot ${tool}`).toBe(true);
     }
   });
 });

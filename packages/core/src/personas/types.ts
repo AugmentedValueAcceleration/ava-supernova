@@ -2,7 +2,11 @@
 // Personas are specialized expressions of Ava's intelligence.
 // Not separate agents — focused mindsets with scoped tool access.
 
-export type PersonaId = 'researcher' | 'architect' | 'builder' | 'recon' | 'scout' | 'verifier' | 'sequencer' | 'challenger' | 'brainstorm_challenger' | 'brainstorm_researcher' | 'tutor' | 'quiz_master' | 'content_writer' | 'explorer' | 'ideator' | 'refiner' | 'curriculum_architect' | 'fact_checker' | 'scanner' | 'security_reporter' | 'tester' | 'code-reviewer' | 'design-reviewer' | 'curator';
+export type PersonaId = 'researcher' | 'architect' | 'builder' | 'recon' | 'scout' | 'verifier' | 'sequencer' | 'challenger' | 'brainstorm_challenger' | 'brainstorm_researcher' | 'tutor' | 'quiz_master' | 'content_writer' | 'explorer' | 'ideator' | 'refiner' | 'curriculum_architect' | 'fact_checker' | 'scanner' | 'security_reporter' | 'tester' | 'code-reviewer' | 'design-reviewer' | 'curator'
+  // Write mode's own team, added 2026-08-20. Deliberately NOT assembled from
+  // content_writer (educational framing) or refiner (sharpens ideas into
+  // plans) — both would have imported the wrong instincts into document work.
+  | 'document_planner' | 'author' | 'editor';
 
 export type PersonaPhase = 'idle' | 'active' | 'complete' | 'error';
 

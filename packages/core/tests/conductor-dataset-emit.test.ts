@@ -80,6 +80,14 @@ describe('Conductor → dataset event wiring', () => {
       'plan',
       [],
       () => {},
+      undefined,
+      // Pin the depth. These tests are about EVENT WIRING, not about which
+      // personas plan happens to field — they need a team big enough to
+      // produce handoffs. Plan gained a light team on 2026-08-20 and the
+      // default flipped to two personas, which broke four tests that were
+      // never about rosters. Asking for what the test needs makes it immune
+      // to the next roster change.
+      { depth: 'full' },
     ));
     await flushMicrotasks();
 
@@ -106,6 +114,14 @@ describe('Conductor → dataset event wiring', () => {
       'plan',
       [],
       () => {},
+      undefined,
+      // Pin the depth. These tests are about EVENT WIRING, not about which
+      // personas plan happens to field — they need a team big enough to
+      // produce handoffs. Plan gained a light team on 2026-08-20 and the
+      // default flipped to two personas, which broke four tests that were
+      // never about rosters. Asking for what the test needs makes it immune
+      // to the next roster change.
+      { depth: 'full' },
     ));
     await flushMicrotasks();
 
@@ -137,6 +153,14 @@ describe('Conductor → dataset event wiring', () => {
       'plan',
       [],
       () => {},
+      undefined,
+      // Pin the depth. These tests are about EVENT WIRING, not about which
+      // personas plan happens to field — they need a team big enough to
+      // produce handoffs. Plan gained a light team on 2026-08-20 and the
+      // default flipped to two personas, which broke four tests that were
+      // never about rosters. Asking for what the test needs makes it immune
+      // to the next roster change.
+      { depth: 'full' },
     ));
     await flushMicrotasks();
 
@@ -162,6 +186,14 @@ describe('Conductor → dataset event wiring', () => {
       'plan',
       [],
       () => {},
+      undefined,
+      // Pin the depth. These tests are about EVENT WIRING, not about which
+      // personas plan happens to field — they need a team big enough to
+      // produce handoffs. Plan gained a light team on 2026-08-20 and the
+      // default flipped to two personas, which broke four tests that were
+      // never about rosters. Asking for what the test needs makes it immune
+      // to the next roster change.
+      { depth: 'full' },
     ));
     await flushMicrotasks();
 
@@ -188,6 +220,14 @@ describe('Conductor → dataset event wiring', () => {
       'plan',
       [],
       () => {},
+      undefined,
+      // Pin the depth. These tests are about EVENT WIRING, not about which
+      // personas plan happens to field — they need a team big enough to
+      // produce handoffs. Plan gained a light team on 2026-08-20 and the
+      // default flipped to two personas, which broke four tests that were
+      // never about rosters. Asking for what the test needs makes it immune
+      // to the next roster change.
+      { depth: 'full' },
     ));
     await flushMicrotasks();
 

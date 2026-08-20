@@ -61,8 +61,15 @@ const MODES: { id: AvaMode; labelKey: string; descKey: string; icon: string }[] 
   { id: 'plan',       labelKey: 'input.mode.plan',       descKey: 'input.mode.plan.desc',       icon: '::' },
   { id: 'brainstorm', labelKey: 'input.mode.brainstorm', descKey: 'input.mode.brainstorm.desc', icon: '**' },
   { id: 'chat',       labelKey: 'input.mode.chat',       descKey: 'input.mode.chat.desc',       icon: '..' },
-  { id: 'teach',      labelKey: 'input.mode.teach',      descKey: 'input.mode.teach.desc',      icon: '??' },
   { id: 'security',   labelKey: 'input.mode.security',   descKey: 'input.mode.security.desc',   icon: '!!' },
+  // Teach is NOT here. It moved into the Learning room, the same way Health
+  // did, and the dashboard chat and the IDE both dropped it from their pickers
+  // at the time. This picker kept it, so one surface offered a mode the other
+  // two had retired — and the extension HAS a Learning room to hand off to
+  // (NavSidebar page `learning-room`), so nothing is lost by removing it.
+  //
+  // The type keeps 'teach' and so does PLACEHOLDER_KEYS: core still detects the
+  // prefix, and a conversation already in Teach must keep working.
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB

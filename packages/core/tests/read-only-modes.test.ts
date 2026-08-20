@@ -138,6 +138,44 @@ describe('no persona can exceed its mode', () => {
   });
 });
 
+describe('a read-only mode can still produce the thing it exists to produce', () => {
+  // Read-only must not mean toothless. Each of these modes ends in an artefact,
+  // and withholding the tool that makes it turns the mode into prose.
+  //
+  // Security was exactly that until 2026-08-20: it could find vulnerabilities
+  // and describe them, and had no present_plan, so an audit ended in a list and
+  // nothing carried forward — no plan, no task list, and no record of a risk
+  // consciously accepted. The next audit then re-raised what you had already
+  // decided to live with, which is how people learn to stop running audits.
+  it('security can turn findings into a plan and a task list', () => {
+    const ceiling = readOnlyModeToolCeiling('security')!;
+    expect(ceiling.has('present_plan'), 'security cannot propose a response').toBe(true);
+    expect(ceiling.has('todo_write'), 'security cannot produce a task list').toBe(true);
+  });
+
+  it('plan can present a plan', () => {
+    expect(readOnlyModeToolCeiling('plan')!.has('present_plan')).toBe(true);
+  });
+
+  it('brainstorm can present a plan and keep its session', () => {
+    const ceiling = readOnlyModeToolCeiling('brainstorm')!;
+    expect(ceiling.has('present_plan'), 'brainstorm cannot propose the project').toBe(true);
+    expect(ceiling.has('brainstorm_session'), 'brainstorm cannot keep the session').toBe(true);
+  });
+
+  it('and none of them gained a writer on the way', () => {
+    // The whole point of widening these modes is that it must not widen THIS.
+    for (const mode of ['plan', 'security', 'brainstorm']) {
+      const ceiling = readOnlyModeToolCeiling(mode)!;
+      const forbidden = CAN_WRITE.filter((t) => !ceiling.has(t));
+      // `bash` is declared by security on purpose; everything else must be out.
+      const writers = CAN_WRITE.filter((t) => ceiling.has(t) && forbidden.indexOf(t) === -1);
+      const unexpected = writers.filter((t) => !(mode === 'security' && t === 'bash'));
+      expect(unexpected, `${mode} reached a writer: ${unexpected.join(', ')}`).toEqual([]);
+    }
+  });
+});
+
 describe('Security mode keeps the tools it declares', () => {
   it('still has bash, because its allowlist says so', () => {
     // Security audits run scanners. Its allowlist declares bash deliberately,
