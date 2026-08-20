@@ -4,7 +4,7 @@ import { t, useLocale } from '../i18n';
 
 interface PlanCardProps {
   toolCall: ToolCallDisplay;
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
 }
 
 interface PlanStep {
@@ -91,6 +91,7 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
 
   const [expanded, setExpanded] = useState(isPending || isFailed);
   const [selectedAlt, setSelectedAlt] = useState<string | null>(null);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (toolCall.status === 'pending_confirmation') setExpanded(true);
@@ -106,6 +107,14 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
   }
 
   const conf = plan.confidence ? CONFIDENCE[plan.confidence] : null;
+
+  // A plan that offers approaches is asking a question, and approving it
+  // without answering leaves Ava to pick or to splice them together. Seen live
+  // 2026-08-19: eleven tasks dispatched from a plan whose own recommendation
+  // was a four-task subset, because the choice was never made. If she offered
+  // approaches, one must be chosen.
+  const needsChoice = !!plan.alternatives && plan.alternatives.length > 0;
+  const canApprove = !needsChoice || selectedAlt !== null;
 
   return (
     <div className="rounded-lg overflow-hidden text-xs"
@@ -218,7 +227,10 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
           {/* Alternatives */}
           {isPending && plan.alternatives && plan.alternatives.length > 0 && (
             <div>
-              <span className="text-[10px] uppercase tracking-wider opacity-30 block mb-2">{t('plan.approaches')}</span>
+              <span className="text-[10px] uppercase tracking-wider opacity-30 block mb-2">
+                {t('plan.approaches')}
+                <span style={{ color: '#a855f7', opacity: 0.9 }}> — {t('plan.choose_first')}</span>
+              </span>
               <div className="space-y-1.5">
                 {plan.alternatives.map((alt) => {
                   const selected = selectedAlt === alt.label;
@@ -253,22 +265,47 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
             </div>
           )}
 
+          {/* A note alongside the decision — the choice is rarely the whole
+              of what the reader wants to say about it. */}
+          {isPending && (
+            <div>
+              <span className="text-[10px] uppercase tracking-wider opacity-30 block mb-2">{t('plan.note')}</span>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                placeholder={t('plan.note_placeholder')}
+                className="w-full px-3 py-2 rounded-lg text-[11px] resize-y
+                           text-[var(--vscode-foreground)] outline-none"
+                style={{
+                  background: 'rgba(0,0,0,0.18)',
+                  border: '1px solid rgba(168,85,247,0.15)',
+                }}
+              />
+            </div>
+          )}
+
           {/* Approval buttons */}
           {isPending && toolCall.confirmationId && (
             <div className="flex items-center gap-2.5 pt-1">
               <button
+                disabled={!canApprove}
+                title={canApprove ? undefined : t('plan.choose_first')}
                 className="px-5 py-2 rounded-lg text-xs font-semibold
-                           border-none cursor-pointer transition-all
-                           hover:opacity-90"
+                           border-none transition-all"
                 style={{
-                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                  color: '#fff',
+                  background: canApprove
+                    ? 'linear-gradient(135deg, #a855f7, #7c3aed)'
+                    : 'rgba(168,85,247,0.15)',
+                  color: canApprove ? '#fff' : 'var(--vscode-descriptionForeground, #999)',
+                  cursor: canApprove ? 'pointer' : 'not-allowed',
                 }}
-                onClick={() => onConfirmation(
+                onClick={() => canApprove && onConfirmation(
                   toolCall.confirmationId!,
                   true,
                   undefined,
                   selectedAlt ?? undefined,
+                  note.trim() || undefined,
                 )}
               >
                 {t('plan.approve')}
@@ -281,7 +318,13 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                   background: 'transparent',
                   borderColor: 'rgba(168,85,247,0.15)',
                 }}
-                onClick={() => onConfirmation(toolCall.confirmationId!, false)}
+                onClick={() => onConfirmation(
+                  toolCall.confirmationId!,
+                  false,
+                  undefined,
+                  undefined,
+                  note.trim() || undefined,
+                )}
               >
                 {t('plan.reject')}
               </button>

@@ -85,8 +85,15 @@ describe('no surface keeps its own copy of the list', () => {
    *  guard a comment can trip is a guard a comment can also silence, so it
    *  reads code only. String literals are left alone — a fleet id in one is
    *  exactly what we are hunting. */
+  //  The `\r` strip is not cosmetic. JavaScript's `.` excludes carriage
+  //  return as well as newline, so on a CRLF checkout `.*$` cannot reach the
+  //  end of the line and NOTHING was stripped — the comment quoting the old
+  //  pattern then read as code and failed the guard. Whether this passes must
+  //  not depend on a git autocrlf setting.
   const codeOnly = (src: string) =>
-    src.split('\n').map((l) => l.replace(/^\s*\/\/.*$/, '').replace(/\s+\/\/.*$/, '')).join('\n');
+    src.split('\n')
+      .map((l) => l.replace(/\r$/, '').replace(/^\s*\/\/.*$/, '').replace(/\s+\/\/.*$/, ''))
+      .join('\n');
 
   it('no surface anywhere hand-writes a fleet check', () => {
     const offenders: string[] = [];

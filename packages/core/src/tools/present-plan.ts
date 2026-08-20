@@ -1,6 +1,46 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
+/** What the user decided when the plan card was approved. */
+export interface PlanDecision {
+  /** The `label` of the alternative they picked, if the plan offered any. */
+  selection?: string;
+  /** Anything they typed alongside the choice. */
+  note?: string;
+}
+
+/**
+ * The sentence Ava receives when a plan is approved.
+ *
+ * Lives in core because both surfaces have to say the same thing, and until
+ * now they did not: the extension built its own string, the IDE passed the
+ * user's free text through verbatim, and the IDE had no way to send a choice
+ * at all. One fact, two hand-written copies — the shape that has caused most
+ * of the faults in this area.
+ *
+ * The wording matters more than it looks. When an approach was chosen, Ava is
+ * told to build THAT ONE. Seen live 2026-08-19: a plan offering "all eleven
+ * tasks" against "minimal four-task core loop first" was approved without a
+ * choice ever being asked for, and eleven tasks were dispatched — the operator
+ * read it as her picking for him, or splicing the two together.
+ */
+export function formatPlanDecision(decision: PlanDecision = {}): string {
+  const selection = decision.selection?.trim();
+  const note = decision.note?.trim();
+
+  const parts = ['Plan approved.'];
+  if (selection) {
+    parts.push(
+      `The user chose the "${selection}" approach. Build THAT approach only — ` +
+      'do not carry over steps from the alternatives they did not pick, and do ' +
+      'not combine them.',
+    );
+  }
+  if (note) parts.push(`They added: "${note}"`);
+  parts.push(selection ? 'Execute its steps.' : 'Execute the steps.');
+  return parts.join(' ');
+}
+
 export class PresentPlanTool implements Tool {
   readonly name = 'present_plan';
   readonly description = 'Present a structured plan for the user to review and approve before execution. Use in Plan mode for proposals, in Work mode before complex multi-step tasks, and in Brainstorm mode for refined action plans. Shows steps, effort estimates, and trade-offs.';

@@ -163,3 +163,133 @@ export function recoverWrittenToolCalls(
 
   return { calls, text };
 }
+
+/**
+ * The same rule, applied WHILE the reply streams.
+ *
+ * `recoverWrittenToolCalls` runs on the finished message, which is too late to
+ * matter to the person watching. Seen live 2026-08-19, one turn after the
+ * recovery shipped: the whole `<present_plan>{…}</present_plan>` block streamed
+ * onto the screen delta by delta, and only once the stream ended did the call
+ * get lifted and the card appear. The operator saw the JSON, then the plan.
+ *
+ * Two more faults are the same fault. The approval prompt arrived AFTER the
+ * plan had finished writing — it could not have come sooner, because the call
+ * did not exist until the stream closed. And denying it did not take the plan
+ * away, because what was on screen was never the card; it was text, already
+ * painted, and no longer ours to withdraw.
+ *
+ * So the block has to be held back as it arrives. This gate sits between the
+ * accumulating content and the delta events: it emits everything that cannot be
+ * part of a written call, and holds anything that might be until it knows.
+ *
+ * It agrees with `recoverWrittenToolCalls` by construction — same allowlist,
+ * same "body must be a JSON object" rule — so it never hides text the recovery
+ * would have left in place. Raw content still accumulates in full behind it;
+ * only the view is filtered.
+ */
+export class WrittenCallStreamFilter {
+  /** Text withheld because it might be, or might be inside, a written call. */
+  private held = '';
+  /** The opening tag, kept so it can be released if the body turns out to be prose. */
+  private tag: string | null = null;
+
+  constructor(private readonly offered: ReadonlySet<string>) {}
+
+  /** Is `partial` (the text after `<`, no `>` yet) still on its way to a tool name? */
+  private viable(partial: string): boolean {
+    if (!/^[a-z][a-z0-9_]*$/i.test(partial) && partial !== '') return false;
+    const lower = partial.toLowerCase();
+    for (const name of this.offered) if (name.startsWith(lower)) return true;
+    return false;
+  }
+
+  /** Feed a chunk of visible text; returns the part that is safe to show. */
+  push(chunk: string): string {
+    if (this.offered.size === 0) return chunk;
+    this.held += chunk;
+    let out = '';
+
+    // Each pass either emits, changes state, or returns to wait for more text.
+    for (;;) {
+      if (this.tag !== null) {
+        // Inside a call: waiting for the JSON body, then an optional close tag.
+        if (/^\s*$/.test(this.held)) return out;
+        if (!/^\s*\{/.test(this.held)) {
+          // A tag wrapped around prose is prose. Hand back what we withheld.
+          out += this.tag + this.held;
+          this.tag = null;
+          this.held = '';
+          return out;
+        }
+        const body = balancedObject(this.held, this.held.indexOf('{'));
+        if (body === null) return out; // still arriving
+        let end = this.held.indexOf('{') + body.length;
+        const close = this.held.slice(end).match(/^\s*<\/[a-z][a-z0-9_]*>/i);
+        if (close) end += close[0].length;
+        // The close tag may still be arriving a character at a time. `[a-z]` was
+        // required after the slash here, so a chunk boundary that landed on a
+        // bare `<` failed this guard, reset the state, and let `</present_plan>`
+        // leak onto the screen on its own — the block hidden, its tag not.
+        else if (/^\s*(<\/?[a-z0-9_]*)?$/i.test(this.held.slice(end))) return out;
+        this.tag = null;
+        this.held = this.held.slice(end);
+        continue;
+      }
+
+      const open = this.held.indexOf('<');
+      if (open === -1) {
+        out += this.held;
+        this.held = '';
+        return out;
+      }
+      out += this.held.slice(0, open);
+      this.held = this.held.slice(open);
+
+      const complete = this.held.match(/^<([a-z][a-z0-9_]*)>/i);
+      if (complete) {
+        if (this.offered.has(complete[1].toLowerCase())) {
+          this.tag = complete[0];
+          this.held = this.held.slice(complete[0].length);
+          continue;
+        }
+        // A real tag, but not a tool we offered — ordinary text.
+        out += complete[0];
+        this.held = this.held.slice(complete[0].length);
+        continue;
+      }
+
+      if (this.held.includes('>') || !this.viable(this.held.slice(1))) {
+        // Cannot become a call. Release the `<` and rescan from the next char,
+        // so `Array<string>` and `a < b` cost at most a few characters of delay.
+        out += this.held[0];
+        this.held = this.held.slice(1);
+        continue;
+      }
+      return out; // still viable — wait for more
+    }
+  }
+
+  /**
+   * The stream ended. Release anything held that never became a call.
+   *
+   * A confirmed call in flight is dropped: `recoverWrittenToolCalls` lifts it
+   * out of the accumulated content, so showing it here would put back exactly
+   * what this class exists to withhold.
+   */
+  flush(): string {
+    if (this.tag !== null) {
+      const brace = this.held.indexOf('{');
+      const confirmed = brace !== -1
+        && /^\s*\{/.test(this.held)
+        && balancedObject(this.held, brace) !== null;
+      const out = confirmed ? '' : this.tag + this.held;
+      this.tag = null;
+      this.held = '';
+      return out;
+    }
+    const out = this.held;
+    this.held = '';
+    return out;
+  }
+}

@@ -1440,6 +1440,19 @@ export interface TaskContextUI {
   label?: string;
 }
 
+/** A decision record, as the Plans tab shows it. Mirrors core's PlanRecordSummary. */
+export interface PlanRecordUI {
+  number: number;
+  title: string;
+  path: string;
+  relPath: string;
+  date?: string;
+  status?: string;
+  chosen?: string;
+  stepCount: number;
+  steps: string[];
+}
+
 export interface TodayTaskUI {
   id: string;
   title: string;
@@ -1535,6 +1548,8 @@ export interface ChatState {
   sessionTasks: SessionTaskUI[];
   avaCompletedTasks: AvaCompletedTaskUI[];
   tasksPanelWidth: number;
+  /** Decision records for the Plans tab, newest first. */
+  planRecords: PlanRecordUI[];
   sessionCredits: number;
   conductorActive: boolean;
   conductorMode?: string | null;
@@ -1870,6 +1885,7 @@ export type ExtToDashboardMessage =
   | { type: 'interjection_ack'; content: string }
   | { type: 'today_tasks'; tasks: TodayTaskUI[] }
   | { type: 'all_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'plan_records'; records: PlanRecordUI[] }
   | { type: 'session_tasks'; tasks: SessionTaskUI[] }
   | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
   | { type: 'conductor_status'; active: boolean; mode?: string }
@@ -2207,6 +2223,8 @@ export type DashboardToExtMessage =
   | { type: 'request_today_tasks' }
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
+  | { type: 'list_plan_records' }
+  | { type: 'open_plan_record'; path: string }
   | { type: 'panel_create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number; subtasks?: string[] }
   | { type: 'panel_update_task'; taskId: string; updates: { title?: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number } }
   | { type: 'toggle_subtask'; taskId: string; subtaskId: string }

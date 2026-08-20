@@ -57,6 +57,10 @@ import {
   // Calendar days in the user's terms, not UTC's — core/src/core/dates.ts.
   todayLocal,
   localYmd,
+  // One wording for an approved plan, shared with the IDE.
+  formatPlanDecision,
+  writePlanRecord,
+  listPlanRecords,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage, ToolConfirmationDecision } from '@ava/core';
 import type { RoutingMode } from '@ava/core';
@@ -937,6 +941,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       case 'refresh_tasks':
         mapped = { type: 'refresh_tasks' };
+        break;
+      case 'list_plan_records':
+        mapped = { type: 'list_plan_records' };
+        break;
+      case 'open_plan_record':
+        mapped = { type: 'open_plan_record', path: msg.path as string };
         break;
       case 'refresh_journal':
         mapped = { type: 'refresh_journal' };
@@ -2681,6 +2691,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   /** Send all active tasks (todo + in-progress) for the "All" toggle. */
+  /** Push the project's decision records to the webview. */
+  private async sendPlanRecords(): Promise<void> {
+    try {
+      const records = await listPlanRecords(this.projectRoot);
+      this.postMessage({ type: 'plan_records', records });
+    } catch (err) {
+      this.log(`[decisions] list failed: ${err}`);
+      this.postMessage({ type: 'plan_records', records: [] });
+    }
+  }
+
   private async sendAllTasks(): Promise<void> {
     if (!this.taskManager) return;
     try {
@@ -3176,6 +3197,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             this.log(`[memory] refresh failed: ${err}`);
             this.postMessage({ type: 'memories_refreshed', global: 0, project: 0, error: String(err) });
           }
+        }
+        break;
+
+      // The Plans tab. Read on demand rather than pushed: the Decisions
+      // folder is the user's to edit by hand, so a cached list would go stale
+      // the moment they did — and a record they wrote themselves should appear
+      // exactly like one Ava wrote.
+      case 'list_plan_records':
+        await this.sendPlanRecords();
+        break;
+
+      case 'open_plan_record':
+        try {
+          const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(message.path));
+          await vscode.window.showTextDocument(doc, { preview: true });
+        } catch (err) {
+          this.log(`[decisions] could not open ${message.path}: ${err}`);
         }
         break;
 
@@ -4918,12 +4956,31 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // For present_plan, return a descriptive string and create session tasks from plan steps
     if (pending.toolName === 'present_plan') {
       if (approved) {
-        const selection = planSelection ? ` User selected approach: "${planSelection}".` : '';
-        pending.resolve(`Plan approved.${selection} Execute the steps.`);
+        // formatPlanDecision lives in core so this surface and the IDE say the
+        // same thing. The old string here was one of two hand-written copies,
+        // and it did not tell Ava to stick to the chosen approach.
+        pending.resolve(formatPlanDecision({ selection: planSelection, note: userResponse }));
         // Create session tasks from plan steps so they appear in the Ava sidebar tab
         this.createTasksFromPlan(pending.args);
+        // …and record the decision itself in Decisions/records/. Only on
+        // approval, and only if the project has the folder — writePlanRecord
+        // never creates one. Best-effort: a project without it, or a read-only
+        // checkout, must not turn an approved plan into an error.
+        void writePlanRecord(this.projectRoot, pending.args as never, {
+          selection: planSelection,
+          note: userResponse,
+        }).then((written) => {
+          if (written) {
+            this.log(`Decision recorded: ${written}`);
+            // The Plans tab is showing a list that is now one short.
+            void this.sendPlanRecords();
+          }
+        }).catch((err) => this.log(`Decision record failed: ${err}`));
       } else {
-        pending.resolve(false);
+        // A rejected plan with a reason teaches more than a bare "no" — the
+        // same reasoned-denial shape the other cards already use.
+        const reason = userResponse?.trim();
+        pending.resolve(reason ? { approved: false, reason } : false);
       }
     } else if (pending.toolName === 'ask_user') {
       if (approved && userResponse) {

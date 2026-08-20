@@ -475,9 +475,6 @@ importers:
       '@atproto/api':
         specifier: ^0.20.16
         version: 0.20.16
-      '@ava-supernova/core':
-        specifier: 0.2.69
-        version: 0.2.69(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@ffmpeg-installer/ffmpeg':
         specifier: ^1.1.0
         version: 1.1.0
@@ -490,6 +487,9 @@ importers:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@project-ava-supernova/core':
+        specifier: 0.2.71
+        version: 0.2.71(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@supabase/ssr':
         specifier: ^0.6.0
         version: 0.6.1(@supabase/supabase-js@2.97.0)
@@ -636,41 +636,6 @@ packages:
 
   '@ava-supernova/core@0.2.1':
     resolution: {integrity: sha512-vcEwPiMIIN0vhAfia4gaWhJg6gxfd8sM+BoZgBcCeIDmSwnw+kQCfybX0cTtf0/LKyHCvICDa7CY6PMQot2AKw==}
-    peerDependencies:
-      better-sqlite3: '>=9.0.0'
-      docx: '>=9.0.0'
-      exceljs: '>=4.0.0'
-      mammoth: '>=1.6.0'
-      mysql2: '>=3.0.0'
-      pdf-parse: '>=1.1.0'
-      pdfkit: '>=0.15.0'
-      pg: '>=8.0.0'
-      playwright: '>=1.40.0'
-      screenshot-desktop: '>=1.15.0'
-    peerDependenciesMeta:
-      better-sqlite3:
-        optional: true
-      docx:
-        optional: true
-      exceljs:
-        optional: true
-      mammoth:
-        optional: true
-      mysql2:
-        optional: true
-      pdf-parse:
-        optional: true
-      pdfkit:
-        optional: true
-      pg:
-        optional: true
-      playwright:
-        optional: true
-      screenshot-desktop:
-        optional: true
-
-  '@ava-supernova/core@0.2.69':
-    resolution: {integrity: sha512-T4fy6vh4qr+qhzupf9rYtUbKrOPJ2mIQ7plOsHNsyLDPy6Ff6BUWjQg4iepNQKVxPV1aglTulPSznsdc0LfgGw==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -2049,6 +2014,41 @@ packages:
     peerDependencies:
       react: '>= 16.8'
       react-dom: '>= 16.8'
+
+  '@project-ava-supernova/core@0.2.71':
+    resolution: {integrity: sha512-AUmEQZPRX5HUqRptmibtnijYJNpac+8iCpwduBzc2jYYlMdk9CElV9RI7QJMCS+t3iL8pjADeiT3zYLwEf7rXQ==}
+    peerDependencies:
+      better-sqlite3: '>=9.0.0'
+      docx: '>=9.0.0'
+      exceljs: '>=4.0.0'
+      mammoth: '>=1.6.0'
+      mysql2: '>=3.0.0'
+      pdf-parse: '>=1.1.0'
+      pdfkit: '>=0.15.0'
+      pg: '>=8.0.0'
+      playwright: '>=1.40.0'
+      screenshot-desktop: '>=1.15.0'
+    peerDependenciesMeta:
+      better-sqlite3:
+        optional: true
+      docx:
+        optional: true
+      exceljs:
+        optional: true
+      mammoth:
+        optional: true
+      mysql2:
+        optional: true
+      pdf-parse:
+        optional: true
+      pdfkit:
+        optional: true
+      pg:
+        optional: true
+      playwright:
+        optional: true
+      screenshot-desktop:
+        optional: true
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -6492,24 +6492,6 @@ snapshots:
       playwright: 1.58.2
       screenshot-desktop: 1.15.3
 
-  '@ava-supernova/core@0.2.69(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
-    dependencies:
-      glob: 13.0.6
-      marked: 17.0.3
-      pngjs: 7.0.0
-      zod: 4.3.6
-    optionalDependencies:
-      better-sqlite3: 12.6.2
-      docx: 9.6.1
-      exceljs: 4.4.0
-      mammoth: 1.12.0
-      mysql2: 3.19.0(@types/node@22.19.11)
-      pdf-parse: 2.4.5
-      pdfkit: 0.18.0
-      pg: 8.20.0
-      playwright: 1.58.2
-      screenshot-desktop: 1.15.3
-
   '@babel/code-frame@7.29.0':
     dependencies:
       '@babel/helper-validator-identifier': 7.28.5
@@ -7434,6 +7416,24 @@ snapshots:
     dependencies:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
+
+  '@project-ava-supernova/core@0.2.71(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+    dependencies:
+      glob: 13.0.6
+      marked: 17.0.3
+      pngjs: 7.0.0
+      zod: 4.3.6
+    optionalDependencies:
+      better-sqlite3: 12.6.2
+      docx: 9.6.1
+      exceljs: 4.4.0
+      mammoth: 1.12.0
+      mysql2: 3.19.0(@types/node@22.19.11)
+      pdf-parse: 2.4.5
+      pdfkit: 0.18.0
+      pg: 8.20.0
+      playwright: 1.58.2
+      screenshot-desktop: 1.15.3
 
   '@protobufjs/aspromise@1.1.2': {}
 

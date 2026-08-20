@@ -556,3 +556,279 @@ export async function scaffoldDecisionsFolder(projectRoot: string): Promise<stri
 
   return created;
 }
+
+// ─── Decision records ───────────────────────────────────────────────────────
+
+/** The plan as `present_plan` received it. Every field bar the title optional. */
+export interface PlanRecordInput {
+  title: string;
+  goal?: string;
+  steps?: Array<{ description?: string; files?: string[]; notes?: string }>;
+  verification?: string;
+  confidence?: string;
+  alternatives?: Array<{ label?: string; description?: string }>;
+}
+
+/** What the user decided on the plan card. Mirrors `PlanDecision` in present-plan. */
+export interface PlanRecordDecision {
+  selection?: string;
+  note?: string;
+}
+
+/** `Complete Inventory System` → `complete-inventory-system`. */
+function slugify(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/, '');
+  return slug || 'decision';
+}
+
+/**
+ * The next free ADR number in `records/`, as a 4-digit string.
+ *
+ * Reads the directory rather than counting, so a hand-numbered or hand-deleted
+ * record cannot cause a collision. The caller still checks for an existing file
+ * before writing.
+ */
+async function nextRecordNumber(recordsDir: string): Promise<number> {
+  let highest = 0;
+  try {
+    for (const name of await readdir(recordsDir)) {
+      const m = /^(\d{1,6})[-.]/.exec(name);
+      if (m) highest = Math.max(highest, parseInt(m[1], 10));
+    }
+  } catch { /* no records dir yet — start at 1 */ }
+  return highest + 1;
+}
+
+/**
+ * Record an ACCEPTED plan as an ADR in `Decisions/records/`.
+ *
+ * The Decisions folder was read-only to Ava. She loads `overview`, `context`,
+ * `progress` and an index of `records/` at session start and never added a
+ * line to any of it — while the folder's own README promises "when Ava records
+ * a decision, it shows up in the timeline as a normal file edit". This is that
+ * promise, kept.
+ *
+ * Deliberately narrow, in three ways:
+ *
+ *   - **Only on approval.** A proposal is not a decision. She produced two
+ *     versions of the same plan within an hour on 2026-08-19, plus three
+ *     options inside one of them; writing every proposal would fill the index
+ *     with speculation and cost the folder the property that makes it worth
+ *     reading — that everything in it is true.
+ *   - **Never creates the folder.** `Decisions/` is opt-in per project and has
+ *     always been created only when asked. A project without one gets nothing
+ *     and no error; this returns null.
+ *   - **Records the choice, not the progress.** Which approach was picked and
+ *     why belongs in git. Ticking task 4 of 11 does not, and stays in the task
+ *     store.
+ *
+ * @returns the path written, or null if the project has no Decisions folder.
+ */
+export async function writePlanRecord(
+  projectRoot: string | undefined,
+  plan: PlanRecordInput,
+  decision: PlanRecordDecision = {},
+): Promise<string | null> {
+  if (!projectRoot || !plan?.title) return null;
+  const root = getDecisionsRoot(projectRoot);
+  if (!existsSync(root)) return null;
+
+  const recordsDir = join(root, 'records');
+  await mkdir(recordsDir, { recursive: true });
+
+  // Take the next free number, stepping over anything already on disk so two
+  // plans accepted in quick succession cannot overwrite each other.
+  let n = await nextRecordNumber(recordsDir);
+  const slug = slugify(plan.title);
+  let filePath = join(recordsDir, `${String(n).padStart(4, '0')}-${slug}.md`);
+  while (existsSync(filePath)) {
+    n += 1;
+    filePath = join(recordsDir, `${String(n).padStart(4, '0')}-${slug}.md`);
+  }
+
+  const selection = decision.selection?.trim();
+  const note = decision.note?.trim();
+  const alternatives = (plan.alternatives ?? []).filter((a) => a?.label);
+
+  const lines: string[] = [
+    `# ${String(n).padStart(4, '0')}. ${plan.title}`,
+    '',
+    `- **Date:** ${todayLocal()}`,
+    '- **Status:** Accepted',
+  ];
+  if (plan.confidence) lines.push(`- **Confidence:** ${plan.confidence}`);
+  lines.push('');
+
+  // The decision first — a record is read for what was settled, not for how
+  // long the plan was.
+  lines.push('## Decision', '');
+  if (selection) {
+    const chosen = alternatives.find((a) => a.label === selection);
+    lines.push(`Chose the **${selection}** approach.`);
+    if (chosen?.description) lines.push('', `> ${chosen.description}`);
+  } else {
+    lines.push('Approved as proposed — a single approach was offered.');
+  }
+  if (note) lines.push('', `The user added: "${note}"`);
+  lines.push('');
+
+  if (plan.goal) lines.push('## Goal', '', plan.goal, '');
+
+  // The approaches NOT taken are the most valuable part of an ADR and the
+  // first thing lost when a decision is only remembered.
+  if (alternatives.length > 0) {
+    lines.push('## Approaches considered', '');
+    for (const alt of alternatives) {
+      const mark = alt.label === selection ? ' — **chosen**' : '';
+      lines.push(`- **${alt.label}**${mark}${alt.description ? ` — ${alt.description}` : ''}`);
+    }
+    lines.push('');
+  }
+
+  const steps = plan.steps ?? [];
+  if (steps.length > 0) {
+    lines.push('## Plan', '');
+    steps.forEach((step, i) => {
+      lines.push(`${i + 1}. ${step.description ?? ''}`.trimEnd());
+      if (step.files?.length) lines.push(`   - Files: ${step.files.map((f) => `\`${f}\``).join(', ')}`);
+      if (step.notes) lines.push(`   - ${step.notes}`);
+    });
+    lines.push('');
+  }
+
+  if (plan.verification) lines.push('## Verification', '', plan.verification, '');
+
+  lines.push('---', '', '_Recorded by Ava when this plan was approved._', '');
+
+  await writeFile(filePath, lines.join('\n'), 'utf-8');
+  return filePath;
+}
+
+/** A decision record as the sidebar needs it — the head of the file, not its body. */
+export interface PlanRecordSummary {
+  /** ADR number from the filename, e.g. 12 for `0012-inventory.md`. */
+  number: number;
+  /** Heading title, falling back to the slug when a record has no `#` line. */
+  title: string;
+  /** Absolute path, so a surface can open the file. */
+  path: string;
+  /** `records/0012-inventory.md` — what to show and what to hand Ava. */
+  relPath: string;
+  /** From the `- **Date:**` line, if present. */
+  date?: string;
+  /** From the `- **Status:**` line. Records written by Ava say `Accepted`. */
+  status?: string;
+  /** The approach that was chosen, if the plan offered any. */
+  chosen?: string;
+  /** How many numbered steps the record lists. */
+  stepCount: number;
+  /** The step text itself, so the sidebar can show a plan without opening it. */
+  steps: string[];
+}
+
+/** The numbered lines under `## Plan`, up to the next heading or EOF. */
+function extractPlanSteps(body: string): string[] {
+  const steps: string[] = [];
+  let inPlan = false;
+  for (const raw of body.split('\n')) {
+    const line = raw.replace(/\r$/, '');
+    if (/^##\s/.test(line)) {
+      inPlan = /^##\s+Plan\s*$/.test(line);
+      continue;
+    }
+    // The step text without its number. Sub-lines (files, notes) are indented
+    // and so never match — the sidebar wants the steps, not the whole record.
+    const m = inPlan ? /^\d+\.\s+(.*)$/.exec(line) : null;
+    if (m) steps.push(m[1].trim());
+  }
+  return steps;
+}
+
+/**
+ * List the decision records for a project, newest first.
+ *
+ * Reads the heading, the metadata lines and the step text — enough to show a
+ * plan in the sidebar without opening the file, which is what was asked for on
+ * 19 Aug 2026 ("in the sidebar we want to show the steps"). The step SUB-lines
+ * (files, notes) stay on disk; those are what opening the record is for.
+ *
+ * Still far short of the whole record, and deliberately: it mirrors the bargain
+ * the prompt already makes, where `loadDecisionsContext` injects the record
+ * FILENAMES and leaves the bodies until one is actually wanted.
+ *
+ * Hand-written records count. Anything in `records/` is a decision someone
+ * made, whether Ava wrote the file or the user did, and a list that silently
+ * hid the user's own records would be worse than no list.
+ *
+ * Returns an empty array for a project with no Decisions folder — the absence
+ * of the folder is a normal state, not an error.
+ */
+export async function listPlanRecords(projectRoot: string | undefined): Promise<PlanRecordSummary[]> {
+  if (!projectRoot) return [];
+  const recordsDir = join(getDecisionsRoot(projectRoot), 'records');
+  if (!existsSync(recordsDir)) return [];
+
+  let names: string[];
+  try {
+    names = (await readdir(recordsDir)).filter((n) => n.toLowerCase().endsWith('.md'));
+  } catch {
+    return [];
+  }
+
+  const out: PlanRecordSummary[] = [];
+  for (const name of names) {
+    const path = join(recordsDir, name);
+    let body = '';
+    try {
+      body = await readFile(path, 'utf-8');
+    } catch {
+      continue; // unreadable file — skip it rather than fail the whole list
+    }
+
+    const numMatch = /^(\d{1,6})[-.]/.exec(name);
+    const headingMatch = /^#\s+(?:\d+\.\s*)?(.+)$/m.exec(body);
+    const dateMatch = /^-\s+\*\*Date:\*\*\s*(.+)$/m.exec(body);
+    const statusMatch = /^-\s+\*\*Status:\*\*\s*(.+)$/m.exec(body);
+    const chosenMatch = /Chose the \*\*(.+?)\*\* approach/.exec(body);
+
+    // Steps are the numbered list under `## Plan`, and only that one — a
+    // numbered list in the goal or the verification is not a step.
+    //
+    // Scanned line by line rather than matched. The first version used
+    // `(?=^##\s|\Z)` to end the section, and `\Z` is not a JavaScript anchor —
+    // it is an identity escape for a literal "Z". So the section only closed
+    // when ANOTHER heading followed, and every record whose Plan was the last
+    // section counted zero steps. The round-trip test caught it; neither half
+    // would have failed on its own.
+    const steps = extractPlanSteps(body);
+
+    out.push({
+      number: numMatch ? parseInt(numMatch[1], 10) : 0,
+      title: headingMatch?.[1].trim() || name.replace(/\.md$/i, ''),
+      path,
+      relPath: `${DECISIONS_DIR_NAME}/records/${name}`,
+      date: dateMatch?.[1].trim(),
+      status: statusMatch?.[1].trim(),
+      chosen: chosenMatch?.[1].trim(),
+      stepCount: steps.length,
+      steps,
+    });
+  }
+
+  // Newest first — an unnumbered record sorts by name so it still has a place.
+  return out.sort((a, b) => (b.number - a.number) || a.title.localeCompare(b.title));
+}
+
+/** The full text of one record, for the surface that wants to show it. */
+export async function readPlanRecord(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, 'utf-8');
+  } catch {
+    return null;
+  }
+}

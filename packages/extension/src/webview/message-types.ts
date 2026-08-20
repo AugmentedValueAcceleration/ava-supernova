@@ -170,6 +170,7 @@ export type ExtToWebviewMessage =
   // from a zero-count success.
   | { type: 'memories_refreshed'; global: number; project: number; error?: string }
   | { type: 'tasks_refreshed'; count: number; error?: string }
+  | { type: 'plan_records'; records: PlanRecordUI[] }
   | { type: 'journal_refreshed'; count: number; error?: string }
   | { type: 'history_refreshed'; count: number; error?: string }
   // Partial tool output chunks streamed during tool execution (bash stdout,
@@ -189,6 +190,24 @@ export type ExtToWebviewMessage =
   | { type: 'auto_agent_end'; model: string; summary?: string };
 
 /** Task entry for today panel display. */
+/**
+ * A decision record, as the Plans tab shows it.
+ *
+ * Mirrors core's `PlanRecordSummary` rather than importing it, because this
+ * file is the webview's contract and the webview does not load core.
+ */
+export interface PlanRecordUI {
+  number: number;
+  title: string;
+  path: string;
+  relPath: string;
+  date?: string;
+  status?: string;
+  chosen?: string;
+  stepCount: number;
+  steps: string[];
+}
+
 export interface TodayTaskUI {
   id: string;
   title: string;
@@ -314,6 +333,11 @@ export type WebviewToExtMessage =
   // carrying the merge count.
   | { type: 'refresh_memories' }
   | { type: 'refresh_tasks' }
+  // The project's decision records for the Plans tab. Pulled on demand —
+  // the Decisions folder is the user's to edit by hand, so a cached list
+  // goes stale the moment they touch a file.
+  | { type: 'list_plan_records' }
+  | { type: 'open_plan_record'; path: string }
   | { type: 'refresh_journal' }
   | { type: 'refresh_history' }
   | { type: 'pong' }
@@ -482,6 +506,8 @@ export interface ChatState {
   sessionTasks: SessionTaskUI[];
   avaCompletedTasks: AvaCompletedTaskUI[];
   tasksPanelWidth: number;
+  /** Decision records for the Plans tab, newest first. */
+  planRecords: PlanRecordUI[];
   /** One-shot first-run banner shown after init until the user dismisses it. */
   showWelcome: boolean;
   /** True while the Conductor is orchestrating a multi-persona turn. */

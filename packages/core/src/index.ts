@@ -144,6 +144,9 @@ export { killBackgroundProcesses } from './tools/bash.js';
 export { BrowserTool } from './tools/browser.js';
 export { SecretRequestTool } from './tools/secret-request.js';
 export { EnvWriteTool, pickEnvFile, isGitignored, upsertEnvLine } from './tools/env-write.js';
+// Both surfaces format the plan-approval result with this, so they cannot drift.
+export { formatPlanDecision } from './tools/present-plan.js';
+export type { PlanDecision } from './tools/present-plan.js';
 
 // Billing — canonical plan data + website redirect URL builders
 export {
@@ -333,7 +336,16 @@ export {
   loadDecisionsContext,
   loadDecisionsState,
   scaffoldDecisionsFolder,
+  // An accepted plan becomes an ADR in Decisions/records/ — the first thing
+  // Ava writes into a folder she has only ever read.
+  writePlanRecord,
+  // …and read back, so a project's plans load with the project.
+  listPlanRecords,
+  readPlanRecord,
   type DecisionsState,
+  type PlanRecordInput,
+  type PlanRecordDecision,
+  type PlanRecordSummary,
   // Machine-global decisions (standing rules for desktop automation)
   getGlobalDecisionsRoot,
   appendMachineRule,

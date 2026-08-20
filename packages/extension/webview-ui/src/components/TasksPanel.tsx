@@ -1,7 +1,7 @@
 import { todayLocal } from '../utils/local-day';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { t, tt, useLocale } from '../i18n';
-import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI } from '../types/messages';
+import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI, PlanRecordUI } from '../types/messages';
 
 
 /** Payload for a manually created task from the panel's quick-add. */
@@ -22,6 +22,13 @@ const MAX_WIDTH = 500;
 const DEFAULT_WIDTH = 260;
 
 interface TasksPanelProps {
+  /** The project's decision records, newest first. Empty when the project has
+   *  no Decisions folder — a normal state, not an error. */
+  planRecords: PlanRecordUI[];
+  /** Re-read the folder. It is the user's to edit by hand. */
+  onRefreshPlans: () => void;
+  /** Open one record in the editor. */
+  onOpenPlan: (path: string) => void;
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];
   sessionTasks: SessionTaskUI[];
@@ -34,6 +41,9 @@ interface TasksPanelProps {
 }
 
 export function TasksPanel({
+  planRecords,
+  onRefreshPlans,
+  onOpenPlan,
   todayTasks,
   allTasks,
   sessionTasks,
@@ -48,6 +58,13 @@ export function TasksPanel({
   // Your tasks are the home view; Ava's live work appears as a sticky band on
   // top only while she's working (no tabs — the relevant thing is just there).
   const [filter, setFilter] = useState<PersonalFilter>('today');
+
+  // The Decisions folder is the user's to edit by hand, so the list is re-read
+  // each time the tab is opened rather than cached from the last write.
+  useEffect(() => {
+    if (filter === 'plans') onRefreshPlans();
+  }, [filter, onRefreshPlans]);
+
   const panelRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
@@ -167,9 +184,12 @@ export function TasksPanel({
       </div>
 
       {/* Quick add — pinned under the header. The front door. */}
-      <div className="flex-shrink-0">
-        <QuickAdd onCreate={onCreateTask} defaultDueToday={filter === 'today'} />
-      </div>
+      {/* Quick-add belongs to your task list, not to the plan history. */}
+      {filter !== 'plans' && (
+        <div className="flex-shrink-0">
+          <QuickAdd onCreate={onCreateTask} defaultDueToday={filter === 'today'} />
+        </div>
+      )}
 
       {/* Body — your tasks fill it; Ava's live work pins to the top as a sticky
           band only while she's working; her recent work tucks away at the bottom. */}
@@ -184,6 +204,8 @@ export function TasksPanel({
           filter={filter}
           onFilterChange={setFilter}
           onToggleTask={onToggleTask}
+          planRecords={planRecords}
+          onOpenPlan={onOpenPlan}
         />
 
         {avaCompletedTasks.length > 0 && (
@@ -281,7 +303,7 @@ function AvaRecentWork({ avaCompletedTasks }: { avaCompletedTasks: AvaCompletedT
 
 // ── Personal Tab ──────────────────────────────────────────────────────────────
 
-type PersonalFilter = 'today' | 'all';
+type PersonalFilter = 'today' | 'all' | 'plans';
 
 // ── Quick add ─────────────────────────────────────────────────────────────────
 
@@ -428,12 +450,16 @@ function YourTasks({
   todayTasks,
   allTasks,
   filter,
+  planRecords,
+  onOpenPlan,
   onFilterChange,
   onToggleTask,
 }: {
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];
   filter: PersonalFilter;
+  planRecords: PlanRecordUI[];
+  onOpenPlan: (path: string) => void;
   onFilterChange: (f: PersonalFilter) => void;
   onToggleTask: (id: string) => void;
 }) {
@@ -445,7 +471,7 @@ function YourTasks({
     <div className="flex flex-col">
       {/* Today / All toggle */}
       <div className="flex items-center gap-1 px-3 pt-2 pb-1">
-        {(['today', 'all'] as const).map(f => (
+        {(['today', 'all', 'plans'] as const).map(f => (
           <button
             key={f}
             onClick={() => onFilterChange(f)}
@@ -456,16 +482,26 @@ function YourTasks({
               }`}
             style={filter === f ? { background: '#A855F7' } : undefined}
           >
-            {f === 'today' ? t('tasks.filter_today') : t('tasks.filter_all')}
+            {f === 'today' ? t('tasks.filter_today')
+              : f === 'all' ? t('tasks.filter_all')
+              : t('tasks.filter_plans')}
             <span className="ml-1 opacity-60">
-              {f === 'today' ? todayTasks.filter(t => t.status !== 'done').length : allTasks.filter(t => t.status !== 'done').length}
+              {f === 'today' ? todayTasks.filter(t => t.status !== 'done').length
+                : f === 'all' ? allTasks.filter(t => t.status !== 'done').length
+                : planRecords.length}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Tasks */}
-      {activeTasks.length === 0 && doneTasks.length === 0 ? (
+      {/* Plans — the project's decision records. They live in git, so unlike
+          the task list they come back with the project rather than the session. */}
+      {filter === 'plans' ? (
+        <PlansList records={planRecords} onOpen={onOpenPlan} />
+      ) : (
+
+      /* Tasks */
+      activeTasks.length === 0 && doneTasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 opacity-30 text-xs gap-2 px-4 text-center">
           <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
             <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
@@ -498,6 +534,111 @@ function YourTasks({
               </div>
             </>
           )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Plans ──────────────────────────────────────────────────────────── */
+
+/**
+ * The project's decision records — the extension's half of the Plans tab.
+ *
+ * Mirrors the IDE's `PlansList`. Written separately because the two surfaces do
+ * not share components (this one is Tailwind in a VS Code webview; the IDE is
+ * inline-style React over a sidecar), but both read the same fields from the
+ * same core reader, so a plan reads identically on either.
+ *
+ * These are files in `Decisions/records/`, committed to git — so unlike the
+ * task list they belong to the PROJECT and come back when it is reopened.
+ */
+function PlansList({ records, onOpen }: { records: PlanRecordUI[]; onOpen: (path: string) => void }) {
+  useLocale();
+
+  if (records.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 opacity-40 text-xs gap-2 px-4 text-center">
+        <span className="text-2xl opacity-70">📐</span>
+        <span className="leading-relaxed">{t('tasks.empty_plans')}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 px-2 pt-1 pb-3">
+      {records.map(rec => <PlanRow key={rec.path} rec={rec} onOpen={onOpen} />)}
+    </div>
+  );
+}
+
+/**
+ * One record. Collapsed it is a title and a shape; open it is the actual work.
+ *
+ * The newest opens by default — it is almost always the one being worked on,
+ * and a column of collapsed titles asks you to click before it tells you
+ * anything.
+ */
+function PlanRow({ rec, onOpen }: { rec: PlanRecordUI; onOpen: (path: string) => void }) {
+  useLocale();
+  const [open, setOpen] = useState(rec.number > 0 && rec.steps.length > 0);
+
+  return (
+    <div className="rounded-lg" style={{
+      background: 'rgba(168, 85, 247, 0.05)',
+      border: '1px solid rgba(168, 85, 247, 0.12)',
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        title={rec.relPath}
+        aria-expanded={open}
+        className="w-full text-left px-2.5 py-2 bg-transparent border-none cursor-pointer text-[var(--vscode-foreground)]"
+      >
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[9.5px] font-mono flex-shrink-0" style={{ color: '#A855F7' }}>
+            {String(rec.number).padStart(4, '0')}
+          </span>
+          <span className="text-[11.5px] font-semibold leading-snug flex-1">{rec.title}</span>
+          {rec.steps.length > 0 && (
+            <span className="text-[9px] opacity-30 flex-shrink-0">{open ? '▲' : '▼'}</span>
+          )}
+        </div>
+        {/* The approach that was taken is the whole point of the record, so it
+            reads on the row rather than only inside the file. */}
+        {rec.chosen && (
+          <div className="text-[10px] mt-0.5 opacity-70">
+            {t('tasks.plan_chose')} <span style={{ color: '#f5c2e7' }}>{rec.chosen}</span>
+          </div>
+        )}
+        <div className="flex gap-2 mt-1 text-[9.5px] opacity-40">
+          {rec.date && <span>{rec.date}</span>}
+          {rec.stepCount > 0 && <span>{rec.stepCount} {t('plan.steps')}</span>}
+          {rec.status && <span>{rec.status}</span>}
+        </div>
+      </button>
+
+      {open && rec.steps.length > 0 && (
+        <div className="px-2.5 pb-2">
+          <ol className="list-none m-0 p-0">
+            {rec.steps.map((step: string, i: number) => (
+              <li key={i} className="flex gap-1.5 mb-1">
+                <span className="flex-shrink-0 w-[15px] h-[15px] rounded-full flex items-center justify-center text-[8.5px] font-bold mt-0.5"
+                      style={{ background: 'rgba(168, 85, 247, 0.14)', color: '#A855F7' }}>
+                  {i + 1}
+                </span>
+                <span className="text-[10.5px] leading-relaxed opacity-70">{step}</span>
+              </li>
+            ))}
+          </ol>
+          {/* The record holds more than the steps — each step's files and
+              notes — so the way into the file stays one click away. */}
+          <button
+            onClick={() => onOpen(rec.path)}
+            className="mt-1 px-2 py-0.5 rounded text-[9.5px] cursor-pointer bg-transparent opacity-50 hover:opacity-80 text-[var(--vscode-foreground)]"
+            style={{ border: '1px solid rgba(168, 85, 247, 0.12)' }}
+          >
+            {t('tasks.plan_open')}
+          </button>
         </div>
       )}
     </div>

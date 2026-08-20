@@ -1,5 +1,5 @@
 import type { Provider, ChatCompletionRequest, ToolSchema } from '../providers/types.js';
-import { recoverWrittenToolCalls } from './recover-written-calls.js';
+import { recoverWrittenToolCalls, WrittenCallStreamFilter } from './recover-written-calls.js';
 import type {
   Message,
   AssistantMessage,
@@ -583,7 +583,17 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   ]),
 };
 
-function detectModeFromMessages(messages: Message[]): string | null {
+/**
+ * The mode this turn is in, read from the tag the surfaces prepend.
+ *
+ * Exported because the AutoCoordinator had grown a second copy of this that
+ * sniffed the SYSTEM prompt for the string `'Plan mode'`. The marker is
+ * `[Plan Mode]`, on the user message, with a capital M — so the copy matched
+ * nothing and answered `'work'` for all seven modes, every turn, since it was
+ * written. One fact, two detectors, and the quiet one was wrong: the same
+ * shape as the dead tool names in the mode allowlists.
+ */
+export function detectModeFromMessages(messages: Message[]): string | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
     if (msg.role !== 'user') continue;
@@ -603,6 +613,53 @@ function detectModeFromMessages(messages: Message[]): string | null {
     break;
   }
   return null;
+}
+
+/**
+ * Can this mode change files?
+ *
+ * Read from `MODE_ALLOWED_TOOLS` rather than a list of its own. A mode that is
+ * not handed `write` or `edit` is read-only by design, and nothing downstream
+ * should be able to grant it more than the mode itself has.
+ *
+ * Exists because the AutoCoordinator's Builder hand-off had no idea what mode
+ * it was in. Seen live 2026-08-19: a Plan-mode turn produced a plan card, wrote
+ * eleven todos, announced "Builder dispatched — executing 11 tasks", and started
+ * editing an Unreal project. Plan mode is read-only — it cannot open a file to
+ * write it — and the orchestrator went around that by spawning agents that
+ * could. The operator's words were "why are you coding when did i say to do
+ * anything but plan".
+ *
+ * An unknown mode returns true: work mode carries no prefix, so callers that
+ * default to it must not be silently blocked.
+ */
+/**
+ * The hard ceiling on what a persona may be handed in a READ-ONLY mode.
+ *
+ * The conductor scopes each persona by its own `allowedTools`, taken from the
+ * full registry — the mode allowlist is not consulted at all. So a mode's
+ * read-only guarantee held only for as long as nobody put a write-capable
+ * persona on its team, which is a promise about a roster rather than about the
+ * mode. Audited 2026-08-19: Plan's team happened to be clean, and the
+ * guarantee was one persona away from being false.
+ *
+ * Returns null for a mode that can edit files, deliberately. Work's allowlist
+ * is known to be stale and has never applied (it has no prefix, so the filter
+ * never runs) — clamping the Builder to it here would enforce a list nobody
+ * has checked, and would land as a breakage dressed as a tightening.
+ */
+export function readOnlyModeToolCeiling(mode: string | null | undefined): ReadonlySet<string> | null {
+  if (!mode || modeCanEditFiles(mode)) return null;
+  const allowed = MODE_ALLOWED_TOOLS[mode];
+  if (!allowed) return null;
+  return new Set([...allowed, ...ALWAYS_ALLOWED_TOOLS]);
+}
+
+export function modeCanEditFiles(mode: string | null | undefined): boolean {
+  if (!mode) return true;
+  const allowed = MODE_ALLOWED_TOOLS[mode];
+  if (!allowed) return true;
+  return allowed.has('write') || allowed.has('edit');
 }
 
 // ─── Event system ────────────────────────────────────────────────────────────
@@ -2594,6 +2651,12 @@ export class Agent {
     let content = '';
     let reasoningContent = '';
     let usage: TokenUsage | undefined;
+    // Holds back a written tool call while it streams. Built from the tools
+    // actually offered this turn, so it can only ever hide something that
+    // recoverWrittenToolCalls would go on to lift out of the finished reply.
+    const writtenCallFilter = new WrittenCallStreamFilter(
+      new Set((request.tools ?? []).map((t) => t.function.name)),
+    );
     const toolCallsAccumulator = new Map<
       number,
       {
@@ -2678,8 +2741,12 @@ export class Agent {
             visibleContent = visible;
           }
           if (visibleContent) {
+            // Raw content accumulates in full — recoverWrittenToolCalls reads
+            // it after the stream. Only the VIEW is filtered, so a written call
+            // never reaches the screen on its way to becoming a real one.
             content += visibleContent;
-            onEvent({ type: 'stream_delta', content: visibleContent });
+            const showable = writtenCallFilter.push(visibleContent);
+            if (showable) onEvent({ type: 'stream_delta', content: showable });
           }
         }
 
@@ -2735,6 +2802,11 @@ export class Agent {
           ...(reasoningContent ? { reasoning_content: reasoningContent } : {}),
           ...(partialToolCalls.length > 0 ? { tool_calls: partialToolCalls } : {}),
         };
+        // The turn is failing, so nothing downstream will lift a written call
+        // out of it. Release whatever the filter was holding rather than lose
+        // it — a half-typed tag on screen beats a silently truncated reply.
+        const pending = writtenCallFilter.flush();
+        if (pending) onEvent({ type: 'stream_delta', content: pending });
         onEvent({ type: 'stream_end', message: partialMessage });
         throw error;
       } else {
@@ -2743,6 +2815,13 @@ export class Agent {
     } finally {
       signal?.removeEventListener('abort', forwardAbort);
     }
+
+    // Anything still held that never became a call is ordinary text and is
+    // owed to the reader. A confirmed call is dropped here on purpose: the
+    // recovery lifts it from `content`, so re-emitting it would put back the
+    // exact block this filter exists to withhold.
+    const heldText = writtenCallFilter.flush();
+    if (heldText) onEvent({ type: 'stream_delta', content: heldText });
 
     const toolCalls: ToolCall[] =
       toolCallsAccumulator.size > 0 ? Array.from(toolCallsAccumulator.values()) : [];

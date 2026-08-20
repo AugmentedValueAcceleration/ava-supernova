@@ -738,6 +738,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'all_tasks':
       return { ...state, allTasks: action.tasks };
 
+    // Replaced wholesale, never merged: a record the user deleted or renamed by
+    // hand must disappear from the tab the same way one Ava wrote appears in it.
+    case 'plan_records':
+      return { ...state, planRecords: action.records };
+
     case 'session_tasks':
       return { ...state, sessionTasks: action.tasks };
 
@@ -885,6 +890,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 }
 
 const initialState: ChatState = {
+  planRecords: [],
   messages: [],
   currentAssistantId: null,
   models: [],
@@ -1286,6 +1292,15 @@ export function App() {
     [postMessage],
   );
 
+  // Plans tab. The host reads Decisions/records/ and answers with 'plan_records'.
+  const handleRefreshPlans = useCallback(() => {
+    postMessage({ type: 'list_plan_records' });
+  }, [postMessage]);
+
+  const handleOpenPlan = useCallback((path: string) => {
+    postMessage({ type: 'open_plan_record', path });
+  }, [postMessage]);
+
   const handleTasksWidthChange = useCallback(
     (width: number) => {
       dispatch({ type: 'set_tasks_width', width });
@@ -1535,6 +1550,9 @@ export function App() {
             onClose={handleCloseTasks}
             onToggleTask={handleToggleTask}
             onCreateTask={handleCreateTask}
+            planRecords={state.planRecords}
+            onRefreshPlans={handleRefreshPlans}
+            onOpenPlan={handleOpenPlan}
             width={state.tasksPanelWidth}
             onWidthChange={handleTasksWidthChange}
           />

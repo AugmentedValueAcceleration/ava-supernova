@@ -7,7 +7,7 @@ import type { AgentEvent, AgentEventHandler } from '../agent/agent.js';
 import type { TaskCategory, RouteResult, UserRoutePreferences, AutoEvent } from './types.js';
 import type { TaskManager } from '../tasks/task-manager.js';
 
-import { Agent } from '../agent/agent.js';
+import { Agent, modeCanEditFiles, detectModeFromMessages } from '../agent/agent.js';
 import { Conductor } from '../personas/conductor.js';
 import { VerifyChangeTool } from '../tools/verify-change.js';
 import { Conversation } from '../agent/conversation.js';
@@ -444,6 +444,41 @@ export class AutoCoordinator {
       // they can kick them off manually if they wanted them) and the
       // executor does not run.
       let shouldDispatch = newlyPending.length > 0;
+
+      // ── Mode gate ──────────────────────────────────────────────────────
+      // Runs FIRST, and is not a judgement call. The intent gate below asks a
+      // model whether the user wanted orchestration; this asks whether the
+      // mode permits it at all, and no answer to the first question can
+      // override the second.
+      //
+      // Without it the hand-off had no idea what mode it was in. Seen live
+      // 2026-08-19: a Plan-mode turn presented a plan, wrote eleven todos and
+      // announced "Builder dispatched — executing 11 tasks", then started
+      // editing the project. Plan mode is read-only — the planner itself
+      // cannot open a file to write it — so the restriction held exactly until
+      // the orchestrator spawned Builders that were not bound by it.
+      //
+      // The tasks are kept, not discarded. A plan the user asked for is still
+      // a good plan; it just does not get to build itself. They stay in the
+      // list to be dispatched from Code mode.
+      const avaMode = this.detectMode(messages);
+      if (shouldDispatch && !modeCanEditFiles(avaMode)) {
+        logger.info(
+          `[auto-coordinator] Mode gate: ${avaMode} mode cannot edit files — ` +
+          `${newlyPending.length} task(s) held for manual dispatch, Builder NOT run.`,
+        );
+        onEvent({
+          type: 'auto_routing',
+          category: 'coding',
+          model: this.coordinatorModel.id,
+          reason:
+            `${avaMode.charAt(0).toUpperCase()}${avaMode.slice(1)} mode is read-only — ` +
+            `the plan is ready and its ${newlyPending.length} task(s) are on the list, ` +
+            'but nothing was built. Switch to Code mode to run them.',
+        } as AutoEvent);
+        shouldDispatch = false;
+      }
+
       if (shouldDispatch && !(await this.shouldOrchestrate(messages, newlyPending.map(t => t.title)))) {
         logger.info(`[auto-coordinator] Orchestration gate: ${newlyPending.length} tasks created speculatively — user intent does not match. Deferring them.`);
         for (const task of newlyPending) {
@@ -1379,17 +1414,24 @@ Should these tasks be executed as a plan? Output yes or no.`;
     return null;
   }
 
+  /**
+   * The mode this turn is in — the same answer core's tool filter gets.
+   *
+   * This used to search the SYSTEM prompt for `'Chat mode'`, `'Plan mode'` and
+   * three more, plus five `'… mindset'` strings that appear nowhere in the
+   * codebase. The real marker is `[Plan Mode]`, capital M, on the USER message.
+   * Nothing ever matched, so it returned `'work'` for every mode on every turn,
+   * and Write mode had no branch at all.
+   *
+   * Three callers were reading that: the dataset trajectory (every turn logged
+   * as work), the task classifier (never once told the real mode), and the
+   * Builder mode gate — which is what made a Plan-mode turn start writing code.
+   *
+   * Now it delegates. One detector, shared with the agent, covering all eleven
+   * modes and the rooms.
+   */
   private detectMode(messages: Message[]): string {
-    // Check the system prompt for mode hints
-    const systemMsg = messages.find(m => m.role === 'system');
-    if (!systemMsg) return 'work';
-    const content = typeof systemMsg.content === 'string' ? systemMsg.content : '';
-    if (content.includes('Chat mode') || content.includes('friend mindset')) return 'chat';
-    if (content.includes('Plan mode') || content.includes('architect mindset')) return 'plan';
-    if (content.includes('Teach mode') || content.includes('tutor mindset')) return 'teach';
-    if (content.includes('Security mode') || content.includes('auditor mindset')) return 'security';
-    if (content.includes('Brainstorm mode') || content.includes('ideation mindset')) return 'brainstorm';
-    return 'work';
+    return detectModeFromMessages(messages) ?? 'work';
   }
 
   private estimateTokenCount(messages: Message[]): number {

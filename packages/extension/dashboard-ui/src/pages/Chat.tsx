@@ -636,6 +636,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'all_tasks':
       return { ...state, allTasks: action.tasks };
 
+    // Replaced wholesale, never merged: a record deleted or renamed by hand
+    // must leave the tab the same way one Ava wrote appears in it.
+    case 'plan_records':
+      return { ...state, planRecords: action.records };
+
     case 'session_tasks':
       return { ...state, sessionTasks: action.tasks };
 
@@ -768,6 +773,7 @@ const initialState: ChatState = {
   sessionTasks: [],
   avaCompletedTasks: [],
   tasksPanelWidth: DEFAULT_WIDTH,
+  planRecords: [],
   sessionCredits: 0,
   conductorActive: false,
   conductorMode: null,
@@ -1174,6 +1180,15 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     post({ type: 'open_tasks_folder' });
   }, []);
 
+  // Plans tab. The host reads Decisions/records/ and answers 'plan_records'.
+  const handleRefreshPlans = useCallback(() => {
+    post({ type: 'list_plan_records' });
+  }, []);
+
+  const handleOpenPlan = useCallback((path: string) => {
+    post({ type: 'open_plan_record', path });
+  }, []);
+
   const handleTasksWidthChange = useCallback((width: number) => {
     dispatch({ type: 'set_tasks_width', width });
   }, []);
@@ -1403,6 +1418,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             onToggleSubtask={handleToggleSubtask}
             onUpdateTask={handleUpdateTask}
             onOpenFolder={handleOpenTasksFolder}
+            planRecords={state.planRecords}
+            onRefreshPlans={handleRefreshPlans}
+            onOpenPlan={handleOpenPlan}
             width={state.tasksPanelWidth}
             onWidthChange={handleTasksWidthChange}
           />

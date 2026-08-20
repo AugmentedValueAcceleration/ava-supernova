@@ -15,6 +15,8 @@ import type {
   PersonaId,
 } from './types.js';
 import { MODE_PERSONAS, MODE_PERSONAS_LIGHT } from './definitions.js';
+// A read-only mode's ceiling — no persona may be handed more than its mode has.
+import { readOnlyModeToolCeiling } from '../agent/agent.js';
 import { bridgeImagesForTextModel } from '../agent/vision-bridge.js';
 
 /**
@@ -336,6 +338,13 @@ export class Conductor {
     // the decision and shouldn't be overridden by keyword heuristics.
     const depth: ConductorDepth = options?.depth ?? detectConductorDepth(userMessage, mode);
     const team = this.getTeam(mode, depth);
+
+    // In a read-only mode, no persona may be handed a tool the mode itself
+    // does not have. Computed once for the whole run and passed to every
+    // persona, including the rewrite and the re-check — a veto rewrite is
+    // still the same mode, and an exemption there would be the whole hole
+    // reopened in the least-watched path.
+    const modeCeiling = readOnlyModeToolCeiling(mode);
     if (team.length === 0) {
       return {
         contextPool: this.createEmptyPool(userMessage),
@@ -486,7 +495,7 @@ export class Conductor {
 
           const results = await Promise.allSettled(
             batch.map(persona =>
-              this.runPersona(persona, contextPool, conversationHistory, onEvent, signal)
+              this.runPersona(persona, contextPool, conversationHistory, onEvent, signal, undefined, modeCeiling)
             )
           );
 
@@ -553,7 +562,7 @@ export class Conductor {
         // Dataset event: persona N starts after persona N-1 finished.
         emitHandoff(persona, prevState);
 
-        const state = await this.runPersona(persona, contextPool, conversationHistory, onEvent, signal);
+        const state = await this.runPersona(persona, contextPool, conversationHistory, onEvent, signal, undefined, modeCeiling);
         personaStates.push(state);
         lastCompletedPersonaId = persona.id;
         prevState = state;
@@ -609,6 +618,7 @@ export class Conductor {
           onEvent,
           signal,
           { vetoerId: persona.id, reason: veto.reason },
+          modeCeiling,
         );
         personaStates.push(rewriteState);
         avaEvents.emit('persona_complete', {
@@ -625,7 +635,7 @@ export class Conductor {
 
         // Re-run the vetoer to check whether the rewrite addressed the issue.
         const recheckState = await this.runPersona(
-          persona, contextPool, conversationHistory, onEvent, signal,
+          persona, contextPool, conversationHistory, onEvent, signal, undefined, modeCeiling,
         );
         personaStates.push(recheckState);
         lastCompletedPersonaId = persona.id;
@@ -680,6 +690,8 @@ export class Conductor {
     onEvent: ConductorEventHandler,
     signal?: AbortSignal,
     rewriteContext?: { vetoerId: PersonaId; reason: string },
+    /** Read-only mode ceiling, or null when the mode may change files. */
+    modeCeiling?: ReadonlySet<string> | null,
   ): Promise<PersonaState> {
     const state: PersonaState = {
       id: persona.id,
@@ -700,8 +712,14 @@ export class Conductor {
       const allSchemas = this.toolRegistry.getSchemas();
       const allowedSet = new Set(persona.allowedTools);
       const deniedSet = new Set(persona.deniedTools || []);
+      // Persona list AND, in a read-only mode, the mode's own allowlist. The
+      // mode was never consulted here, so `plan` was read-only only for as
+      // long as nobody put a write-capable persona on its team — a promise
+      // about a roster, not about the mode.
       const scopedSchemas = allSchemas.filter(s =>
-        allowedSet.has(s.function.name) && !deniedSet.has(s.function.name)
+        allowedSet.has(s.function.name)
+        && !deniedSet.has(s.function.name)
+        && (!modeCeiling || modeCeiling.has(s.function.name))
       );
 
       const messages: Message[] = [

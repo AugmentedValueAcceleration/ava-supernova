@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { t, tt, useLocale } from '../../i18n';
 import { Icon } from '../../components/Icon';
-import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI } from '../../types/messages';
+import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI, PlanRecordUI } from '../../types/messages';
 
 
 /** Payload for a manually created task from the panel's quick-add. */
@@ -49,6 +49,12 @@ const MAX_WIDTH = 500;
 const DEFAULT_WIDTH = 260;
 
 interface TasksPanelProps {
+  /** The project's decision records, newest first. */
+  planRecords: PlanRecordUI[];
+  /** Re-read the folder — it is the user's to edit by hand. */
+  onRefreshPlans: () => void;
+  /** Open one record in the editor. */
+  onOpenPlan: (path: string) => void;
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];
   sessionTasks: SessionTaskUI[];
@@ -64,6 +70,9 @@ interface TasksPanelProps {
 }
 
 export function TasksPanel({
+  planRecords,
+  onRefreshPlans,
+  onOpenPlan,
   todayTasks,
   allTasks,
   sessionTasks,
@@ -81,6 +90,13 @@ export function TasksPanel({
   // Your tasks are the home view; Ava's live work appears as a sticky band on
   // top only while she's working (no tabs — the relevant thing is just there).
   const [filter, setFilter] = useState<PersonalFilter>('today');
+
+  // The Decisions folder is the user's to edit by hand, so the list is
+  // re-read each time the tab is opened rather than cached from the write.
+  useEffect(() => {
+    if (filter === 'plans') onRefreshPlans();
+  }, [filter, onRefreshPlans]);
+
   const panelRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
@@ -211,9 +227,12 @@ export function TasksPanel({
       </div>
 
       {/* Quick add — pinned under the header. The front door. */}
-      <div className="flex-shrink-0">
-        <QuickAdd onCreate={onCreateTask} defaultDueToday={filter === 'today'} />
-      </div>
+      {/* Quick-add belongs to your task list, not to the plan history. */}
+      {filter !== 'plans' && (
+        <div className="flex-shrink-0">
+          <QuickAdd onCreate={onCreateTask} defaultDueToday={filter === 'today'} />
+        </div>
+      )}
 
       {/* Body — your tasks fill it; Ava's live work pins to the top as a sticky
           band only while she's working; her recent work tucks away at the bottom. */}
@@ -230,6 +249,8 @@ export function TasksPanel({
           onToggleTask={onToggleTask}
           onToggleSubtask={onToggleSubtask}
           onUpdateTask={onUpdateTask}
+          planRecords={planRecords}
+          onOpenPlan={onOpenPlan}
         />
 
         {avaCompletedTasks.length > 0 && (
@@ -327,7 +348,7 @@ function AvaRecentWork({ avaCompletedTasks }: { avaCompletedTasks: AvaCompletedT
 
 // ── Personal Tab ──────────────────────────────────────────────────────────────
 
-type PersonalFilter = 'today' | 'all';
+type PersonalFilter = 'today' | 'all' | 'plans';
 
 // ── Quick add ─────────────────────────────────────────────────────────────────
 
@@ -559,6 +580,8 @@ function YourTasks({
   onToggleTask,
   onToggleSubtask,
   onUpdateTask,
+  planRecords,
+  onOpenPlan,
 }: {
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];
@@ -567,6 +590,8 @@ function YourTasks({
   onToggleTask: (id: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
   onUpdateTask: (taskId: string, updates: UpdateTaskInput) => void;
+  planRecords: PlanRecordUI[];
+  onOpenPlan: (path: string) => void;
 }) {
   const tasks = filter === 'today' ? todayTasks : allTasks;
   const activeTasks = tasks.filter(t => t.status !== 'done');
@@ -576,7 +601,7 @@ function YourTasks({
     <div className="flex flex-col">
       {/* Today / All toggle */}
       <div className="flex items-center gap-1 px-3 pt-2 pb-1">
-        {(['today', 'all'] as const).map(f => (
+        {(['today', 'all', 'plans'] as const).map(f => (
           <button
             key={f}
             onClick={() => onFilterChange(f)}
@@ -587,16 +612,26 @@ function YourTasks({
               }`}
             style={filter === f ? { background: 'var(--accent)' } : undefined}
           >
-            {f === 'today' ? t('tasks.filter_today') : t('tasks.filter_all')}
+            {f === 'today' ? t('tasks.filter_today')
+              : f === 'all' ? t('tasks.filter_all')
+              : t('tasks.filter_plans')}
             <span className="ml-1 opacity-60">
-              {f === 'today' ? todayTasks.filter(t => t.status !== 'done').length : allTasks.filter(t => t.status !== 'done').length}
+              {f === 'today' ? todayTasks.filter(t => t.status !== 'done').length
+                : f === 'all' ? allTasks.filter(t => t.status !== 'done').length
+                : planRecords.length}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Tasks */}
-      {activeTasks.length === 0 && doneTasks.length === 0 ? (
+      {/* Plans — the project's decision records. They live in git, so unlike
+          the task list they come back with the project, not the session. */}
+      {filter === 'plans' ? (
+        <PlansList records={planRecords} onOpen={onOpenPlan} />
+      ) : (
+
+      /* Tasks */
+      activeTasks.length === 0 && doneTasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 opacity-30 text-xs gap-2 px-4 text-center">
           <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
             <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
@@ -642,6 +677,102 @@ function YourTasks({
               </div>
             </>
           )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Plans ──────────────────────────────────────────────────────────── */
+
+/**
+ * The project's decision records — the dashboard chat's Plans tab.
+ *
+ * THE SECOND COPY IN THIS PACKAGE. `TasksPanel` exists in both `webview-ui`
+ * and `dashboard-ui/chat`, plus once more in the IDE. Adding the tab to one of
+ * them is exactly what went wrong on 19 Aug 2026: the operator was looking at
+ * THIS panel while I checked the other one's bundle and told him the tab was
+ * there. It was — in a component he was not looking at.
+ *
+ * These are files in `Decisions/records/`, committed to git, so unlike the task
+ * list they belong to the PROJECT and come back when it is reopened.
+ */
+function PlansList({ records, onOpen }: { records: PlanRecordUI[]; onOpen: (path: string) => void }) {
+  useLocale();
+
+  if (records.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 opacity-40 text-xs gap-2 px-4 text-center">
+        <span className="text-2xl opacity-70">📐</span>
+        <span className="leading-relaxed">{t('tasks.empty_plans')}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 px-2 pt-1 pb-3">
+      {records.map(rec => <PlanRow key={rec.path} rec={rec} onOpen={onOpen} />)}
+    </div>
+  );
+}
+
+/** One record. Collapsed it is a title and a shape; open it is the actual work. */
+function PlanRow({ rec, onOpen }: { rec: PlanRecordUI; onOpen: (path: string) => void }) {
+  useLocale();
+  const [open, setOpen] = useState(rec.number > 0 && rec.steps.length > 0);
+
+  return (
+    <div className="rounded-lg" style={{
+      background: 'color-mix(in srgb, var(--accent) 5%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--accent) 12%, transparent)',
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        title={rec.relPath}
+        aria-expanded={open}
+        className="w-full text-left px-2.5 py-2 bg-transparent border-none cursor-pointer text-[var(--text-primary)]"
+      >
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[9.5px] font-mono flex-shrink-0" style={{ color: 'var(--accent)' }}>
+            {String(rec.number).padStart(4, '0')}
+          </span>
+          <span className="text-[11.5px] font-semibold leading-snug flex-1">{rec.title}</span>
+          {rec.steps.length > 0 && (
+            <span className="text-[9px] opacity-30 flex-shrink-0">{open ? '▲' : '▼'}</span>
+          )}
+        </div>
+        {rec.chosen && (
+          <div className="text-[10px] mt-0.5 opacity-70">
+            {t('tasks.plan_chose')} <span style={{ color: 'var(--accent)' }}>{rec.chosen}</span>
+          </div>
+        )}
+        <div className="flex gap-2 mt-1 text-[9.5px] opacity-40">
+          {rec.date && <span>{rec.date}</span>}
+          {rec.stepCount > 0 && <span>{rec.stepCount} {t('plan.steps')}</span>}
+          {rec.status && <span>{rec.status}</span>}
+        </div>
+      </button>
+
+      {open && rec.steps.length > 0 && (
+        <div className="px-2.5 pb-2">
+          <ol className="list-none m-0 p-0">
+            {rec.steps.map((step: string, i: number) => (
+              <li key={i} className="flex gap-1.5 mb-1">
+                <span className="flex-shrink-0 w-[15px] h-[15px] rounded-full flex items-center justify-center text-[8.5px] font-bold mt-0.5"
+                      style={{ background: 'color-mix(in srgb, var(--accent) 14%, transparent)', color: 'var(--accent)' }}>
+                  {i + 1}
+                </span>
+                <span className="text-[10.5px] leading-relaxed opacity-70">{step}</span>
+              </li>
+            ))}
+          </ol>
+          <button
+            onClick={() => onOpen(rec.path)}
+            className="mt-1 px-2 py-0.5 rounded text-[9.5px] cursor-pointer bg-transparent opacity-50 hover:opacity-80 text-[var(--text-primary)]"
+            style={{ border: '1px solid color-mix(in srgb, var(--accent) 12%, transparent)' }}
+          >
+            {t('tasks.plan_open')}
+          </button>
         </div>
       )}
     </div>
