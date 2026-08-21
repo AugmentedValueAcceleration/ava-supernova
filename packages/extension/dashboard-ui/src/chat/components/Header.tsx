@@ -11,6 +11,10 @@ interface HeaderProps {
   onOpenDashboard: () => void;
   onOpenHistory: () => void;
   onNewChat: () => void;
+  /** Open the document picker. Absent in rooms that have no workspace. */
+  onOpenDocument?: () => void;
+  /** Name of the open document, so the bar says what is being worked on. */
+  openDocName?: string | null;
   onToggleTasks: () => void;
   tasksOpen: boolean;
   /** @deprecated extension-specific UX, kept for backward-compat but ignored — IDE doesn't show a sidebar toggle in the chat header. */
@@ -49,6 +53,8 @@ export function Header({
   onSwitch,
   onOpenDashboard,
   onNewChat,
+  onOpenDocument,
+  openDocName,
   conversationTitle,
   platformStatus,
   showNewChat = true,
@@ -153,6 +159,33 @@ export function Header({
             New Chat icon button (which is being dropped from the
             dashboard NavSidebar in this same commit). Hidden in the Ava
             Health room — its own thread has no main-chat reset. */}
+        {/* Open a document — beside New Chat because it is the other
+            "start something" action, and because the picker cannot live in the
+            workspace pane's header: the pane does not exist until a document is
+            open, so there would be nowhere to click. Every mode, this page. */}
+        {onOpenDocument && (
+        <button
+          onClick={onOpenDocument}
+          title={t('doc.open_title')}
+          aria-label={t('doc.open_title')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', maxWidth: 190,
+            background: openDocName ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent',
+            border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+            borderRadius: 8,
+            color: openDocName ? 'var(--accent)' : 'var(--text-secondary)',
+            fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+          </svg>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {openDocName || t('doc.open_title')}
+          </span>
+        </button>
+        )}
+
         {showNewChat && (
         <button
           onClick={onNewChat}

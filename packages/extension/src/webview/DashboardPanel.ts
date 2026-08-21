@@ -109,6 +109,9 @@ const CHAT_MESSAGE_TYPES = new Set([
   // silently dropped here rather than erroring, which is exactly how the tab
   // came up empty on a project whose record was visible in the Explorer.
   'list_plan_records', 'open_plan_record',
+  // The document workspace. AvaViewProvider owns the filesystem access —
+  // the webview cannot read or write a file itself — so these must reach it.
+  'read_document', 'write_document', 'set_open_document', 'list_documents', 'browse_document',
   // Found by the guard written for the above, all three long-standing: the
   // dashboard sends them, AvaViewProvider has handlers for them, and this Set
   // was throwing them away. Ticking a subtask, editing a task, and loading

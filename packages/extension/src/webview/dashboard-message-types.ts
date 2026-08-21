@@ -1441,6 +1441,14 @@ export interface TaskContextUI {
 }
 
 /** A decision record, as the Plans tab shows it. Mirrors core's PlanRecordSummary. */
+/** A document the workspace picker can open. Mirrors the IDE's shape. */
+export interface DocumentCandidateUI {
+  path: string;
+  name: string;
+  relPath: string;
+  modifiedAt?: number;
+}
+
 export interface PlanRecordUI {
   number: number;
   title: string;
@@ -1550,6 +1558,17 @@ export interface ChatState {
   tasksPanelWidth: number;
   /** Decision records for the Plans tab, newest first. */
   planRecords: PlanRecordUI[];
+  /** ── The document workspace ──────────────────────────────────────────
+   *  Per CHAT, not global: the document belongs to the conversation, so a
+   *  single "last document" would drop yesterday's report into a new chat. */
+  openDoc: { path: string; name: string } | null;
+  /** Body from the host. null means "still fetching", not "empty file". */
+  docContent: string | null;
+  /** The host answered and could not read it — moved, renamed, deleted. */
+  docFailed: boolean;
+  docPickerOpen: boolean;
+  docCandidates: DocumentCandidateUI[];
+  docPaneWidth: number;
   sessionCredits: number;
   conductorActive: boolean;
   conductorMode?: string | null;
@@ -1886,6 +1905,11 @@ export type ExtToDashboardMessage =
   | { type: 'today_tasks'; tasks: TodayTaskUI[] }
   | { type: 'all_tasks'; tasks: TodayTaskUI[] }
   | { type: 'plan_records'; records: PlanRecordUI[] }
+  | { type: 'document_list'; documents: DocumentCandidateUI[] }
+  // Answer to browse_document. `doc` is null when the dialog was cancelled.
+  | { type: 'document_picked'; doc: DocumentCandidateUI | null }
+  | { type: 'document_body'; path: string; content: string; ok: boolean }
+  | { type: 'document_saved'; path: string; ok: boolean }
   | { type: 'session_tasks'; tasks: SessionTaskUI[] }
   | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
   | { type: 'conductor_status'; active: boolean; mode?: string }
@@ -2225,6 +2249,13 @@ export type DashboardToExtMessage =
   | { type: 'toggle_task'; taskId: string }
   | { type: 'list_plan_records' }
   | { type: 'open_plan_record'; path: string }
+  // null closes the pane. Ava should stop being told about a document
+  // the user has shut, or she will keep referring to it.
+  | { type: 'list_documents' }
+  | { type: 'browse_document' }
+  | { type: 'set_open_document'; path: string | null }
+  | { type: 'read_document'; path: string }
+  | { type: 'write_document'; path: string; content: string }
   | { type: 'panel_create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number; subtasks?: string[] }
   | { type: 'panel_update_task'; taskId: string; updates: { title?: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number } }
   | { type: 'toggle_subtask'; taskId: string; subtaskId: string }

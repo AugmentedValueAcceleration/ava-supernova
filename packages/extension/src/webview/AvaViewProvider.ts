@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as crypto from 'node:crypto';
-import { join } from 'node:path';
+import { join, extname, relative } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import {
   Agent,
@@ -253,6 +253,47 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private readonly statusBar: StatusBar;
   private history!: HistoryCoordinator;
   private projectRoot?: string;
+  /**
+   * The document the user last edited by hand in the workspace pane.
+   *
+   * Ava carries whatever she last read. Without this she keeps discussing a
+   * version that no longer matches the screen and eventually overwrites a
+   * paragraph the user just fixed — with the file correct the whole time,
+   * which is why it reads as unreliability rather than as a bug.
+   *
+   * Cleared once she has been told, so the warning lands on the turn AFTER the
+   * edit rather than on every turn for the rest of the session.
+   */
+  private openDocumentEdited?: string;
+  /** The document currently open in the workspace pane, if any. */
+  private openDocumentPath?: string;
+
+  /**
+   * What Ava is told about the open document, folded in ahead of the mode
+   * prefix so every mode gets it.
+   *
+   * Two jobs, both about not making the user do work the app has already done.
+   * "Tighten the second paragraph" must work without them pasting a path — the
+   * pane knows what is open, so she should too. And when they have typed in it
+   * she must be told, because she carries whatever she last read: otherwise she
+   * keeps describing a version that no longer matches the screen, then
+   * overwrites a paragraph they just fixed. The file is correct throughout,
+   * which is exactly why it reads as unreliability rather than as a bug.
+   *
+   * The edited flag is one-shot — it belongs on the turn AFTER the edit, not on
+   * every turn for the rest of the session.
+   */
+  private openDocumentContext(): string {
+    if (!this.openDocumentPath) return '';
+    const edited = this.openDocumentEdited === this.openDocumentPath;
+    this.openDocumentEdited = undefined;
+    const lines = [`[Open document] ${this.openDocumentPath}`];
+    lines.push('This is what the user is looking at. When they say "this document", "the intro", or name a section, they mean this file — read it rather than asking which one.');
+    if (edited) {
+      lines.push('They have EDITED it since you last read it. Re-read before proposing changes, and say what moved rather than silently replacing their version.');
+    }
+    return lines.join('\n');
+  }
   private projectInstructions?: string;
   private decisionsState?: import('@ava/core').DecisionsState;
   private signInManager?: import('./sign-in-manager.js').SignInManager;
@@ -947,6 +988,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       case 'open_plan_record':
         mapped = { type: 'open_plan_record', path: msg.path as string };
+        break;
+      case 'list_documents':
+        mapped = { type: 'list_documents' };
+        break;
+      case 'browse_document':
+        mapped = { type: 'browse_document' };
+        break;
+      case 'set_open_document':
+        mapped = { type: 'set_open_document', path: (msg.path as string | null) ?? null };
+        break;
+      case 'read_document':
+        mapped = { type: 'read_document', path: msg.path as string };
+        break;
+      case 'write_document':
+        mapped = { type: 'write_document', path: msg.path as string, content: msg.content as string };
         break;
       case 'refresh_journal':
         mapped = { type: 'refresh_journal' };
@@ -2700,6 +2756,51 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * identical from the outside. One line in the output channel tells them
    * apart, which beats another round of guessing at it.
    */
+  /**
+   * Documents and spreadsheets in the project, for the workspace picker.
+   *
+   * Deliberately narrow: the same roots the Library already treats as document
+   * homes, one level of nesting, and a hard cap. This is a picker, not an
+   * indexer — someone with a node_modules folder should not wait on a full
+   * tree walk to open a README.
+   */
+  private async sendDocumentList(): Promise<void> {
+    const root = this.projectRoot;
+    if (!root) { this.postMessage({ type: 'document_list', documents: [] }); return; }
+    const EXTS = new Set(['.md', '.txt', '.rtf', '.csv']);
+    const ROOTS = ['documents', 'images', join('.ava', 'creative'), '.'];
+    const out: Array<{ path: string; name: string; relPath: string; modifiedAt?: number }> = [];
+    try {
+      const fsp = await import('node:fs/promises');
+      for (const rel of ROOTS) {
+        const dir = join(root, rel);
+        let entries: import('node:fs').Dirent[];
+        try { entries = await fsp.readdir(dir, { withFileTypes: true }); } catch { continue; }
+        for (const ent of entries) {
+          if (out.length >= 400) break;
+          if (!ent.isFile() || ent.name.startsWith('.')) continue;
+          if (!EXTS.has(extname(ent.name).toLowerCase())) continue;
+          const abs = join(dir, ent.name);
+          let modifiedAt: number | undefined;
+          try { modifiedAt = (await fsp.stat(abs)).mtimeMs; } catch { /* keep it without metadata */ }
+          out.push({
+            path: abs,
+            name: ent.name,
+            relPath: relative(root, abs).replace(/\\/g, '/'),
+            modifiedAt,
+          });
+        }
+      }
+    } catch (err) {
+      this.log(`[document] list failed: ${err}`);
+    }
+    // De-duplicate: '.' overlaps nothing today, but a future root might.
+    const seen = new Set<string>();
+    const unique = out.filter((d) => (seen.has(d.path) ? false : (seen.add(d.path), true)));
+    this.log(`[document] listed ${unique.length} document(s) under ${root}`);
+    this.postMessage({ type: 'document_list', documents: unique });
+  }
+
   private async sendPlanRecords(): Promise<void> {
     try {
       const records = await listPlanRecords(this.projectRoot);
@@ -3226,6 +3327,68 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         }
         break;
 
+      case 'list_documents':
+        await this.sendDocumentList();
+        break;
+
+      // The escape hatch for a document outside the scanned roots. The
+      // webview has no file dialog of its own, so the host opens one.
+      case 'browse_document': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          openLabel: 'Open in workspace',
+          filters: { Documents: ['md', 'txt', 'rtf', 'csv'] },
+        });
+        const file = picked?.[0];
+        if (!file) { this.postMessage({ type: 'document_picked', doc: null }); break; }
+        const abs = file.fsPath;
+        this.postMessage({
+          type: 'document_picked',
+          doc: {
+            path: abs,
+            name: abs.split(/[\\/]/).pop() || abs,
+            relPath: this.projectRoot ? relative(this.projectRoot, abs) : abs,
+          },
+        });
+        break;
+      }
+
+      case 'set_open_document':
+        this.openDocumentPath = message.path ?? undefined;
+        // Closing clears the edited flag too — a warning about a document
+        // that is no longer on screen is just noise.
+        if (!message.path) this.openDocumentEdited = undefined;
+        break;
+
+      // ── The document workspace ────────────────────────────────────────
+      // The webview cannot touch the filesystem, so every read and write comes
+      // through here. A document that has moved or been deleted answers with
+      // `ok: false` rather than throwing — the pane says so quietly instead of
+      // putting a dialog in front of someone who had forgotten it was open.
+      case 'read_document':
+        try {
+          const body = await readFile(message.path, 'utf-8');
+          this.postMessage({ type: 'document_body', path: message.path, content: body, ok: true });
+        } catch (err) {
+          this.log(`[document] read failed for ${message.path}: ${err}`);
+          this.postMessage({ type: 'document_body', path: message.path, content: '', ok: false });
+        }
+        break;
+
+      case 'write_document':
+        try {
+          const fsp = await import('node:fs/promises');
+          await fsp.writeFile(message.path, message.content, 'utf-8');
+          // Only now is it true. Telling Ava before the bytes land would send
+          // her to re-read a file that still holds the old text.
+          this.openDocumentEdited = message.path;
+          this.postMessage({ type: 'document_saved', path: message.path, ok: true });
+        } catch (err) {
+          this.log(`[document] write failed for ${message.path}: ${err}`);
+          this.postMessage({ type: 'document_saved', path: message.path, ok: false });
+        }
+        break;
+
       case 'refresh_tasks':
         // Manual pull for tasks. Splits remote by project field —
         // 'global' tasks into the global store, workspace-tagged tasks
@@ -3585,7 +3748,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.pendingTurnError = null;
     this.updateStatusBar('busy');
 
-    const userText = this.applyModePrefix(text, mode);
+    const docContext = this.openDocumentContext();
+    const userText = this.applyModePrefix(
+      docContext ? `${docContext}` + '\n\n' + `${text}` : text,
+      mode,
+    );
     this.log(`User message (mode=${mode}): "${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"`);
 
     if (attachments && attachments.length > 0) {

@@ -16,6 +16,9 @@ import { Header } from '../chat/components/Header';
 import { MemoryPanel } from '../chat/components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH, type UpdateTaskInput } from '../chat/components/TasksPanel';
 import { TasksSpine } from '../chat/components/TasksSpine';
+import { DocumentWorkspace, type OpenDocument } from '../chat/components/DocumentWorkspace';
+import { DocumentPicker } from '../chat/components/DocumentPicker';
+import type { DocumentCandidateUI } from '../types/messages';
 import { SecretsProvider } from '../chat/hooks/useSecrets';
 import { t, setLocale, loadStrings } from '../i18n';
 import { post } from '../vscode';
@@ -44,6 +47,10 @@ type ChatAction =
   | { type: 'toggle_tasks' }
   | { type: 'close_tasks' }
   | { type: 'set_tasks_width'; width: number }
+  | { type: 'open_document'; doc: OpenDocument }
+  | { type: 'close_document' }
+  | { type: 'set_doc_picker'; open: boolean }
+  | { type: 'set_doc_width'; width: number }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; note?: string }
   | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
   | { type: 'local_thinking' }
@@ -638,6 +645,47 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     // Replaced wholesale, never merged: a record deleted or renamed by hand
     // must leave the tab the same way one Ava wrote appears in it.
+    // ── The document workspace ────────────────────────────────────────
+    case 'document_list':
+      return { ...state, docCandidates: action.documents };
+
+    case 'document_body':
+      // Guard on the path: a late reply for a document the user has already
+      // switched away from must not overwrite what is on screen now.
+      if (state.openDoc?.path !== action.path) return state;
+      return { ...state, docContent: action.ok ? action.content : '', docFailed: !action.ok };
+
+    case 'document_saved':
+      return state;
+
+    case 'document_picked':
+      if (!action.doc) return state;
+      return {
+        ...state,
+        openDoc: { path: action.doc.path, name: action.doc.name },
+        docContent: null,
+        docFailed: false,
+        docPickerOpen: false,
+      };
+
+    case 'open_document':
+      return {
+        ...state,
+        openDoc: action.doc,
+        docContent: null,
+        docFailed: false,
+        docPickerOpen: false,
+      };
+
+    case 'close_document':
+      return { ...state, openDoc: null, docContent: null, docFailed: false };
+
+    case 'set_doc_picker':
+      return { ...state, docPickerOpen: action.open };
+
+    case 'set_doc_width':
+      return { ...state, docPaneWidth: action.width };
+
     case 'plan_records':
       return { ...state, planRecords: action.records };
 
@@ -774,6 +822,12 @@ const initialState: ChatState = {
   avaCompletedTasks: [],
   tasksPanelWidth: DEFAULT_WIDTH,
   planRecords: [],
+  openDoc: null,
+  docContent: null,
+  docFailed: false,
+  docPickerOpen: false,
+  docCandidates: [],
+  docPaneWidth: 460,
   sessionCredits: 0,
   conductorActive: false,
   conductorMode: null,
@@ -800,6 +854,10 @@ const CHAT_MESSAGE_TYPES = new Set([
   // so the host can find the record, log it, and post it, and the tab still
   // shows nothing. Which is exactly what happened.
   'plan_records',
+  // The document workspace's replies. A type missing here is dropped with
+  // a bare `return`, which is how the Plans tab read "no decisions" while
+  // the host was finding and posting them.
+  'document_body', 'document_saved', 'document_list', 'document_picked',
   // Found by the guard written for the above, and long-standing: the provider
   // posts it and the reducer below has a case for it, so live tool-card updates
   // were being built and thrown away on this surface.
@@ -1192,6 +1250,51 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
   }, []);
 
   // Plans tab. The host reads Decisions/records/ and answers 'plan_records'.
+  // ── The document workspace ────────────────────────────────────────────
+  // Recently opened documents, newest first. Remembered so the picker leads
+  // with what they had last rather than an alphabetical wall.
+  const [recentDocPaths, setRecentDocPaths] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('ava-recent-docs') || '[]'); } catch { return []; }
+  });
+  useEffect(() => {
+    const p = state.openDoc?.path;
+    if (!p) return;
+    setRecentDocPaths((prev) => {
+      const next = [p, ...prev.filter((x) => x !== p)].slice(0, 12);
+      try { localStorage.setItem('ava-recent-docs', JSON.stringify(next)); } catch { /* quota */ }
+      return next;
+    });
+  }, [state.openDoc?.path]);
+
+  const openDocPath = state.openDoc?.path ?? null;
+  useEffect(() => {
+    if (openDocPath) post({ type: 'read_document', path: openDocPath });
+  }, [openDocPath]);
+
+  const handleOpenDocPicker = useCallback(() => {
+    post({ type: 'list_documents' });
+    dispatch({ type: 'set_doc_picker', open: true });
+  }, []);
+
+  const handlePickDocument = useCallback((doc: DocumentCandidateUI) => {
+    dispatch({ type: 'open_document', doc: { path: doc.path, name: doc.name } });
+    // The host tracks what is open so Ava is told — "tighten the second
+    // paragraph" has to work without the user pasting a path.
+    post({ type: 'set_open_document', path: doc.path });
+    post({ type: 'read_document', path: doc.path });
+  }, []);
+
+  const handleCloseDocument = useCallback(() => {
+    dispatch({ type: 'close_document' });
+    // Stop telling her about a document the user has shut, or she keeps
+    // referring to it.
+    post({ type: 'set_open_document', path: null });
+  }, []);
+
+  const handleSaveDocument = useCallback((path: string, content: string) => {
+    post({ type: 'write_document', path, content });
+  }, []);
+
   const handleRefreshPlans = useCallback(() => {
     post({ type: 'list_plan_records' });
   }, []);
@@ -1257,6 +1360,8 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             onOpenDashboard={() => onNavigate?.('settings')}
             onOpenHistory={handleOpenHistory}
             onNewChat={handleNewChat}
+            onOpenDocument={lane === 'main' ? handleOpenDocPicker : undefined}
+            openDocName={state.openDoc?.name ?? null}
             onToggleTasks={handleToggleTasks}
             tasksOpen={state.tasksOpen}
             sessionTaskCount={state.sessionTasks?.length ?? 0}
@@ -1417,7 +1522,21 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
         {/* Tasks — always present: full panel when open, thin self-advertising
             spine when collapsed. The Ava Health room is focused on plans, not
             tasks, so the rail is omitted there entirely. */}
-        {lane === 'main' && (state.tasksOpen ? (
+        {/* The document workspace takes the Tasks rail's place rather than
+            sitting beside it: document + chat + tasks is three columns and too
+            tight on a laptop. Closing brings the rail back exactly as it was. */}
+        {lane === 'main' && state.openDoc ? (
+          <DocumentWorkspace
+            doc={state.openDoc}
+            content={state.docContent}
+            failed={state.docFailed}
+            onSave={handleSaveDocument}
+            onClose={handleCloseDocument}
+            onSwitch={handleOpenDocPicker}
+            width={state.docPaneWidth}
+            onWidthChange={(w) => dispatch({ type: 'set_doc_width', width: w })}
+          />
+        ) : lane === 'main' && (state.tasksOpen ? (
           <TasksPanel
             todayTasks={state.todayTasks}
             allTasks={state.allTasks}
@@ -1442,6 +1561,16 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             onExpand={handleToggleTasks}
           />
         ))}
+
+        {state.docPickerOpen && (
+          <DocumentPicker
+            candidates={state.docCandidates}
+            recentPaths={recentDocPaths}
+            onPick={handlePickDocument}
+            onBrowse={() => { dispatch({ type: 'set_doc_picker', open: false }); post({ type: 'browse_document' }); }}
+            onClose={() => dispatch({ type: 'set_doc_picker', open: false })}
+          />
+        )}
       </div>
     </SecretsProvider>
   );

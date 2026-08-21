@@ -171,6 +171,11 @@ export type ExtToWebviewMessage =
   | { type: 'memories_refreshed'; global: number; project: number; error?: string }
   | { type: 'tasks_refreshed'; count: number; error?: string }
   | { type: 'plan_records'; records: PlanRecordUI[] }
+  | { type: 'document_list'; documents: DocumentCandidateUI[] }
+  // Answer to browse_document. `doc` is null when the dialog was cancelled.
+  | { type: 'document_picked'; doc: DocumentCandidateUI | null }
+  | { type: 'document_body'; path: string; content: string; ok: boolean }
+  | { type: 'document_saved'; path: string; ok: boolean }
   | { type: 'journal_refreshed'; count: number; error?: string }
   | { type: 'history_refreshed'; count: number; error?: string }
   // Partial tool output chunks streamed during tool execution (bash stdout,
@@ -196,6 +201,14 @@ export type ExtToWebviewMessage =
  * Mirrors core's `PlanRecordSummary` rather than importing it, because this
  * file is the webview's contract and the webview does not load core.
  */
+/** A document the workspace picker can open. Mirrors the IDE's shape. */
+export interface DocumentCandidateUI {
+  path: string;
+  name: string;
+  relPath: string;
+  modifiedAt?: number;
+}
+
 export interface PlanRecordUI {
   number: number;
   title: string;
@@ -338,6 +351,13 @@ export type WebviewToExtMessage =
   // goes stale the moment they touch a file.
   | { type: 'list_plan_records' }
   | { type: 'open_plan_record'; path: string }
+  // null closes the pane. Ava should stop being told about a document
+  // the user has shut, or she will keep referring to it.
+  | { type: 'list_documents' }
+  | { type: 'browse_document' }
+  | { type: 'set_open_document'; path: string | null }
+  | { type: 'read_document'; path: string }
+  | { type: 'write_document'; path: string; content: string }
   | { type: 'refresh_journal' }
   | { type: 'refresh_history' }
   | { type: 'pong' }
