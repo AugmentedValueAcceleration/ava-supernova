@@ -89,6 +89,7 @@ import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
+import { exportDocument } from '@ava/core/authoring';
 import { readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
 import { scanStorage, reclaimStorage } from './storage-scan.js';
 
@@ -2317,37 +2318,50 @@ export class DashboardPanel {
         break;
       }
       case 'open_external': {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders) {
-          const projectRoot = workspaceFolders[0].uri.fsPath;
-          const fullPath = path.resolve(projectRoot, msg.path);
-          // Prevent path traversal — must stay within workspace or home
-          const home = process.env.HOME || process.env.USERPROFILE || '';
-          if (!fullPath.toLowerCase().startsWith(projectRoot.toLowerCase()) &&
-              !(home && fullPath.toLowerCase().startsWith(home.toLowerCase()))) {
-            this.post({ type: 'error', message: 'Invalid path: access restricted to workspace and home directory.' });
-            break;
-          }
-          // Prefer LibreOffice / OpenOffice for office documents — keeps the
-          // open-source story intact. Falls back to OS default (which may be
-          // Word/Excel) when neither is installed.
-          const ext = path.extname(fullPath).toLowerCase();
-          const officeExts = new Set(['.docx', '.doc', '.odt', '.xlsx', '.xls', '.ods', '.csv', '.pptx', '.ppt', '.odp', '.pdf']);
-          let opened = false;
-          if (officeExts.has(ext)) {
-            const soffice = await this.findLibreOfficeBinary();
-            if (soffice) {
-              try {
-                const cp = await import('node:child_process');
-                cp.spawn(soffice, [fullPath], { detached: true, stdio: 'ignore' }).unref();
-                opened = true;
-              } catch { /* fall through to system default */ }
-            }
-          }
-          if (!opened) {
-            await vscode.env.openExternal(vscode.Uri.file(fullPath));
-          }
+        const fullPath = this.resolveInsideWorkspace(msg.path);
+        if (!fullPath) {
+          this.post({ type: 'error', message: 'Invalid path: access restricted to workspace and home directory.' });
+          break;
         }
+        await this.openFileExternally(fullPath);
+        break;
+      }
+
+      // Library → Documents: re-render a source document into another format.
+      // The rendering itself lives in core so the IDE runs the same code — the
+      // host's only job is the path guard, the peers, and telling the user.
+      case 'export_document': {
+        const fullPath = this.resolveInsideWorkspace(msg.path);
+        if (!fullPath) {
+          this.post({ type: 'document_exported', sourcePath: msg.path, ok: false, error: 'Invalid path: access restricted to workspace and home directory.' });
+          break;
+        }
+        const projectRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? '';
+
+        const result = await exportDocument({
+          sourcePath: fullPath,
+          format: msg.format,
+          loadDocx: () => import('docx'),
+          loadPdf: () => import('pdfkit'),
+        });
+
+        if (!result.ok) {
+          this.post({ type: 'document_exported', sourcePath: msg.path, ok: false, error: result.error });
+          vscode.window.showErrorMessage(`Export failed: ${result.error}`);
+          break;
+        }
+
+        this.post({ type: 'document_exported', sourcePath: msg.path, ok: true, path: path.relative(projectRoot, result.path) });
+        const action = await vscode.window.showInformationMessage(
+          `Exported ${path.basename(result.path)}`, 'Open', 'Reveal',
+        );
+        if (action === 'Open') {
+          await this.openFileExternally(result.path);
+        } else if (action === 'Reveal') {
+          await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(result.path));
+        }
+        // The Library scan is what puts the new file on a card.
+        await this.loadLibraryFiles();
         break;
       }
 
@@ -4419,6 +4433,80 @@ export class DashboardPanel {
     }
     this.cachedOfficeBinary = null;
     return null;
+  }
+
+  /**
+   * Resolve a webview-supplied path and refuse anything outside the workspace
+   * or the home directory. Returns null rather than throwing so each caller
+   * can phrase its own refusal.
+   */
+  private resolveInsideWorkspace(rel: string): string | null {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders || folders.length === 0) return null;
+    const projectRoot = folders[0].uri.fsPath;
+    const fullPath = path.resolve(projectRoot, rel);
+    const home = process.env.HOME || process.env.USERPROFILE || '';
+    const inWorkspace = fullPath.toLowerCase().startsWith(projectRoot.toLowerCase());
+    const inHome = !!home && fullPath.toLowerCase().startsWith(home.toLowerCase());
+    return inWorkspace || inHome ? fullPath : null;
+  }
+
+  /**
+   * Open a file in whatever is installed. One implementation, because the
+   * Open button and the just-exported toast must behave identically — two
+   * copies of this is exactly how the two diverge.
+   *
+   * LibreOffice/OpenOffice first for office formats, then the OS default
+   * (which may well be Word, and that is fine — the user's machine, the
+   * user's choice). Only when both fail do we suggest anything.
+   */
+  private async openFileExternally(fullPath: string): Promise<void> {
+    const ext = path.extname(fullPath).toLowerCase();
+    const officeExts = new Set(['.docx', '.doc', '.odt', '.xlsx', '.xls', '.ods', '.csv', '.pptx', '.ppt', '.odp', '.pdf']);
+
+    if (officeExts.has(ext)) {
+      const soffice = await this.findLibreOfficeBinary();
+      if (soffice) {
+        try {
+          const cp = await import('node:child_process');
+          cp.spawn(soffice, [fullPath], { detached: true, stdio: 'ignore' }).unref();
+          return;
+        } catch { /* fall through to the system default */ }
+      }
+    }
+
+    // Ask the OS rather than enumerating what is installed: detection is three
+    // platform-specific guesses that can each be wrong, and try-then-handle-
+    // the-failure cannot be.
+    let launched = false;
+    try {
+      launched = await vscode.env.openExternal(vscode.Uri.file(fullPath));
+    } catch { launched = false; }
+    if (!launched) await this.suggestOfficeSuite(ext);
+  }
+
+  /**
+   * Nothing on this machine opened the file. Suggest, never install —
+   * fetching and running an installer means elevation prompts, checksums and
+   * mirrors, on behalf of a decision that belongs to the user.
+   *
+   * LibreOffice is the desktop answer. Euro-Office is deliberately NOT offered
+   * as an installer: despite the name it is an integration component embedded
+   * in platforms like Nextcloud rather than a desktop suite you download, so
+   * pointing someone at it to open a local .odt would send them in circles.
+   * Office EU is the European option that actually exists as a product, and it
+   * is hosted — labelled as such rather than implied to be a local install.
+   */
+  private async suggestOfficeSuite(ext: string): Promise<void> {
+    const choice = await vscode.window.showWarningMessage(
+      `Nothing on this machine is set up to open ${ext} files.`,
+      'Get LibreOffice', 'Office EU (hosted)',
+    );
+    if (choice === 'Get LibreOffice') {
+      await vscode.env.openExternal(vscode.Uri.parse('https://www.libreoffice.org/download/download-libreoffice/'));
+    } else if (choice === 'Office EU (hosted)') {
+      await vscode.env.openExternal(vscode.Uri.parse('https://office.eu/'));
+    }
   }
 
   // ─── Library (project files — images, documents, spreadsheets) ─

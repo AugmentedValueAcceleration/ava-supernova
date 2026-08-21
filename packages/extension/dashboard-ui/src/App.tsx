@@ -651,7 +651,9 @@ export function App() {
   const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
   const [libraryHasFolder, setLibraryHasFolder] = useState(true);
-  const [libraryCloudAssets, setLibraryCloudAssets] = useState<CreativeAsset[]>([]);
+  // `libraryCloudAssets` used to live here. Removed 2026-08-21 with the
+  // Library prop it fed: the Assets tab reads the local creative gallery and
+  // the Documents tab reads disk, so no surface displayed it.
   // Local-first creative gallery (~/.ava/users/<id>/creative) — what the Assets
   // tab shows now. Cloud assets are kept only for the Documents tab.
   const [libraryLocalCreative, setLibraryLocalCreative] = useState<CreativeAsset[]>([]);
@@ -1355,7 +1357,8 @@ export function App() {
         setLibraryHasFolder(msg.hasFolder ?? true);
         break;
       case 'cloud_assets_loaded':
-        setLibraryCloudAssets(msg.assets);
+        // Nothing renders these any more; the message still ends the load so
+        // the pill does not hang.
         finishLibraryLoad();
         break;
       case 'local_creative_loaded':
@@ -1374,7 +1377,7 @@ export function App() {
         finishLibraryLoad();
         break;
       case 'cloud_asset_deleted':
-        setLibraryCloudAssets(prev => prev.filter(a => a.id !== msg.id));
+        // No cloud list on screen to remove it from.
         break;
       case 'library_image_deleted':
         setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
@@ -1887,7 +1890,6 @@ export function App() {
             paperDetailLoading={paperDetailLoading}
             onLoadPaperDetail={handleLoadPaperDetail}
             onClearPaperDetail={handleClearPaperDetail}
-            cloudAssets={libraryCloudAssets}
             localCreative={libraryLocalCreative}
             storageScan={storageScan}
             cloudAssetsLoading={libraryCloudAssetsLoading}

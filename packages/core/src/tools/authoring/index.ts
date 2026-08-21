@@ -13,8 +13,15 @@ import { parseMarkdown } from './md-parse.js';
 import { renderMarkdown } from './render-md.js';
 import { renderDocx } from './render-docx.js';
 import { renderPdf } from './render-pdf.js';
+import { renderOdt, renderOds } from './render-odf.js';
+import type { RenderTarget } from './export-formats.js';
 
-export type RenderTarget = 'docx' | 'pdf' | 'md';
+// One definition, in the leaf every surface can reach.
+export type { RenderTarget, ExportFormat } from './export-formats.js';
+export {
+  ALWAYS_AVAILABLE_TARGETS, EXPORTABLE_SOURCE_EXTENSIONS, DOCUMENT_TARGETS,
+  SPREADSHEET_TARGETS, TARGET_LABELS, canExport, targetsFor,
+} from './export-formats.js';
 
 export interface RenderOptions {
   /** Loads the `docx` peer (required for target 'docx'). */
@@ -42,6 +49,11 @@ export async function renderDocument(model: DocModel, target: RenderTarget, opts
       if (!opts.loadPdf) throw new Error('pdf rendering requires the pdfkit package. Install it with: npm install pdfkit');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return renderPdf(model, { loadPdf: opts.loadPdf as () => Promise<any>, baseDir: opts.baseDir });
+    // OpenDocument needs no peer — XML in a zip, both from Node's stdlib.
+    case 'odt':
+      return renderOdt(model, { baseDir: opts.baseDir });
+    case 'ods':
+      return renderOds(model, { baseDir: opts.baseDir });
   }
 }
 
@@ -54,6 +66,9 @@ export { parseMarkdown } from './md-parse.js';
 export { renderMarkdown } from './render-md.js';
 export { renderDocx } from './render-docx.js';
 export { renderPdf } from './render-pdf.js';
+export { renderOdt, renderOds, ODT_MIMETYPE, ODS_MIMETYPE } from './render-odf.js';
+export { exportDocument, deriveExportPath, parseCsv } from './export-document.js';
+export type { ExportRequest, ExportResult } from './export-document.js';
 export { legacyToDocModel } from './doc-model.js';
 export type {
   DocModel, DocMeta, Block, Inline, ListItem, Align, CalloutVariant, BrandTokens,

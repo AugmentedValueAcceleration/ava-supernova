@@ -8,6 +8,9 @@ import { Icon } from '../components/Icon';
 import { tabBar, tab as tabClass } from '../components/ui';
 import { DESIGN_GROUPS, designTypeMeta, coarseKindToType } from '../lib/design-types';
 import { StorageBar } from '../components/StorageBar';
+// The dependency-free leaf, so the host and this bundle agree on what is
+// exportable and what it is called without either keeping its own list.
+import { canExport, targetsFor, TARGET_LABELS, type ExportFormat } from '@ava/core/authoring/formats';
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -44,9 +47,9 @@ interface Props {
   paperDetailLoading: boolean;
   onLoadPaperDetail: (id: string) => void;
   onClearPaperDetail: () => void;
-  /** Cloud-synced creative assets from /api/creative-assets. Documents tab only
-   *  now — the Assets tab is local-first (see `localCreative`). */
-  cloudAssets: CreativeAsset[];
+  // `cloudAssets` used to sit here. Removed 2026-08-21: the Assets tab reads
+  // the local creative gallery and the Documents tab reads disk, so nothing on
+  // this page ever read it.
   /** Local-first creative gallery (~/.ava/users/<id>/creative) — the source the
    *  Assets tab reads. No cloud; everything Creative Studio makes is saved here. */
   localCreative: CreativeAsset[];
@@ -202,12 +205,11 @@ export function Library({
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [selected, setSelected] = useState<UnifiedItem | null>(null);
 
-  // Refresh cloud assets when the user switches into assets/documents.
-  // Routes through the parent so the loading pill stays in sync with
-  // App.tsx's libraryCloudAssetsLoading state. The parent fires the
-  // initial load on page-nav; this handles subsequent tab toggles.
+  // Refresh cloud assets when the user switches into the Assets tab.
+  // Documents is deliberately NOT in this list: documents are local, so
+  // fetching cloud assets for that tab was work whose result nothing showed.
   useEffect(() => {
-    if (tab === 'assets' || tab === 'documents') {
+    if (tab === 'assets') {
       onReloadCloudAssets?.();
     }
   }, [tab, onReloadCloudAssets]);
@@ -289,9 +291,10 @@ export function Library({
     return true;
   }), [allAssetItems, assetGroup, assetType]);
 
-  // Documents tab — office docs from both sources, filterable by source
-  // (cloud/local) and kind (document/spreadsheet). Matches the Assets tab
-  // filter shape so users learn one pattern.
+  // Documents tab — local office docs, filtered by kind
+  // (document/spreadsheet). There is no source filter: documents live on
+  // disk, and offering "cloud" implied a place they could be that does not
+  // exist.
   const documentItems = useMemo(() => {
     const list: UnifiedItem[] = [];
     // Local only — see the note where the source filter used to be.
@@ -621,6 +624,10 @@ function PreviewModal({
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Which format is being written right now, and how the last attempt went.
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
+  const [exportNote, setExportNote] = useState<{ ok: boolean; text: string } | null>(null);
+
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(item.title);
 
@@ -664,6 +671,29 @@ function PreviewModal({
     else post({ type: 'open_external', path: localPath });
     onClose();
   };
+
+  const handleExport = (format: ExportFormat) => {
+    if (!localPath) return;
+    setExporting(format);
+    setExportNote(null);
+    post({ type: 'export_document', path: localPath, format });
+  };
+
+  // The host answers on the same channel App.tsx listens on; a local listener
+  // keeps this transient result out of the page's state machine, which is the
+  // pattern Settings and Memory already use.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data;
+      if (!msg || msg.type !== 'document_exported' || msg.sourcePath !== localPath) return;
+      setExporting(null);
+      setExportNote(msg.ok
+        ? { ok: true, text: `Saved ${String(msg.path).split(/[\\/]/).pop()}` }
+        : { ok: false, text: String(msg.error ?? 'Export failed.') });
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [localPath]);
 
   const handleReveal = () => {
     if (isLocal && localPath) {
@@ -883,6 +913,22 @@ function PreviewModal({
                 {isOfficeDoc ? t('library.open_libreoffice') : t('dash.library.open')}
               </button>
             )}
+            {/* Export — offered only for sources we can genuinely re-render.
+                An already-built .docx or .pdf gets Open and Reveal instead,
+                because "converting" one to the other is fidelity loss wearing
+                an export's clothes. */}
+            {isLocal && localPath && canExport(localPath) && targetsFor(localPath).map((format) => (
+              <button
+                key={format}
+                onClick={() => handleExport(format)}
+                disabled={exporting !== null}
+                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition disabled:opacity-50"
+              >
+                {exporting === format
+                  ? tt('library.exporting', 'Exporting…')
+                  : `${tt('library.export_as', 'Export')} ${TARGET_LABELS[format]}`}
+              </button>
+            ))}
             {isLocal && localPath && (
               <button
                 onClick={handleReveal}
@@ -922,6 +968,14 @@ function PreviewModal({
               {confirmDelete ? t('library.confirm_delete') : t('library.delete')}
             </button>
           </div>
+
+          {/* Say what happened. An export that silently succeeds looks broken,
+              and one that silently fails looks worse. */}
+          {exportNote && (
+            <p className={`mt-2 text-xs ${exportNote.ok ? 'text-[var(--accent)]' : 'text-red-400'}`}>
+              {exportNote.text}
+            </p>
+          )}
         </div>
       </div>
     </div>

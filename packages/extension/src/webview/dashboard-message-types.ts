@@ -6,6 +6,7 @@
 // Derived learner-progression types (skills/certs/achievements/stats). Type-only
 // import — erased at runtime, so the webview bundle stays free of node deps.
 import type { LearnerProgression } from '@ava/core/learning';
+import type { ExportFormat } from '@ava/core/authoring/formats';
 
 export interface AccountInfo {
   id: string;
@@ -1831,6 +1832,9 @@ export type ExtToDashboardMessage =
   | { type: 'latest_release_loaded'; release: { version: string; title: string; published_at: string } | null }
   | { type: 'error'; message: string }
   | { type: 'info'; message: string }
+  /** Result of an export, so the card can stop spinning and say what
+   *  happened rather than leaving the user guessing. */
+  | { type: 'document_exported'; sourcePath: string; ok: boolean; path?: string; error?: string }
   // v3 Memory graph dashboard data
   | { type: 'graph_stats'; scope: string; stats: { activeNodes: number; archivedNodes: number; edges: number; avgConfidence: number; categories: Record<string, number>; contradictions: number; proceduralPatterns: number; crystallisedPatterns: number } }
   | { type: 'contradictions_loaded'; contradictions: Array<{ nodeA: any; nodeB: any; similarity: number; edgeId: string }> }
@@ -2184,6 +2188,9 @@ export type DashboardToExtMessage =
   | { type: 'delete_library_image'; path: string }
   | { type: 'open_library_image'; path: string }
   | { type: 'open_external'; path: string }
+  /** Library → Documents: re-render a source document into another format.
+   *  The webview cannot touch the filesystem, so the host does the work. */
+  | { type: 'export_document'; path: string; format: ExportFormat }
   | { type: 'reveal_in_explorer'; path: string }
   // Creative Studio — Documents tab (host prompts for filename via showInputBox
   // because webviews can't use window.prompt)

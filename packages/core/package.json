@@ -148,6 +148,16 @@
       "require": "./dist/health/starters.js",
       "types": "./dist/health/starters.d.ts"
     },
+    "./authoring/formats": {
+      "import": "./dist/tools/authoring/export-formats.js",
+      "require": "./dist/tools/authoring/export-formats.js",
+      "types": "./dist/tools/authoring/export-formats.d.ts"
+    },
+    "./authoring": {
+      "import": "./dist/tools/authoring/index.js",
+      "require": "./dist/tools/authoring/index.js",
+      "types": "./dist/tools/authoring/index.d.ts"
+    },
     "./routing-modes": {
       "import": "./dist/auto/routing-modes.js",
       "require": "./dist/auto/routing-modes.js",

@@ -35,7 +35,7 @@ async function loadPdf(): Promise<any> {
  */
 export class DocumentAuthorTool implements Tool {
   readonly name = 'document_author';
-  readonly description = 'Author and edit prose documents (Markdown source → branded Word/PDF). Non-destructive, section-surgical.';
+  readonly description = 'Author and edit prose documents (Markdown source → branded Word/OpenDocument/PDF). Non-destructive, section-surgical.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = true;
 
@@ -43,7 +43,7 @@ export class DocumentAuthorTool implements Tool {
     name: 'document_author',
     description:
       'Author rich prose documents (reports, proposals, letters, articles…). Markdown is the editable source of truth; ' +
-      'Word/PDF are exports built on demand. Workflow: create a .md, build it to .docx/.pdf, then refine it section by ' +
+      'Word (.docx), OpenDocument (.odt/.ods) and PDF are exports built on demand. Workflow: create a .md, build it to .docx/.pdf, then refine it section by ' +
       'section with edit_section — edits are surgical and never destroy the rest of the document. ' +
       'Markdown supports YAML front-matter (title, author, date, style, toc, brand), :::callout / :::pagebreak directives, ' +
       'footnotes ([^1]), tables, images, and nested lists. Start from a worked-exemplar template with from_template ' +
@@ -61,7 +61,7 @@ export class DocumentAuthorTool implements Tool {
         content: { type: 'string', description: 'Markdown content. create: the whole document. edit_section: the new body of the section. insert_section: the new section. save_template: the template body.' },
         section: { type: 'string', description: 'edit_section: the heading text of the section to replace (e.g. "Pricing").' },
         after: { type: 'string', description: 'insert_section: heading text to insert after. Omit to append at the end.' },
-        format: { type: 'string', enum: ['docx', 'pdf', 'both', 'md'], description: 'build: output format(s). Default both.' },
+        format: { type: 'string', enum: ['docx', 'pdf', 'odt', 'ods', 'both', 'open', 'md'], description: 'build: output format(s). docx/pdf need their optional peer; odt/ods never do. \'both\' = docx + pdf, \'open\' = odt + pdf. Default both.' },
         out_path: { type: 'string', description: 'build: explicit output path (otherwise derived from the .md path).' },
         title: { type: 'string', description: 'create/save_template: document or template title.' },
         style: { type: 'string', description: 'Style profile — proposal | report | invoice | letter | meeting_notes | brief | article | press_release | essay | resume | cover_letter …' },
@@ -229,7 +229,11 @@ export class DocumentAuthorTool implements Tool {
     const model = parseMarkdown(source);
     const baseDir = dirname(abs);
     const format = (args.format as string | undefined) ?? 'both';
-    const targets: RenderTarget[] = format === 'both' ? ['docx', 'pdf'] : [format as RenderTarget];
+    // 'open' is the all-open-formats pair, for anyone who would rather not
+    // hand someone a file only Word opens cleanly.
+    const targets: RenderTarget[] = format === 'both' ? ['docx', 'pdf']
+      : format === 'open' ? ['odt', 'pdf']
+      : [format as RenderTarget];
 
     const written: string[] = [];
     const failed: string[] = [];
