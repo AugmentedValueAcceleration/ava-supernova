@@ -84,9 +84,12 @@ export const ukStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava думає...',
-  'thinking.1': 'Аналізую ваш код...',
-  'thinking.2': 'Розглядаю підходи...',
-  'thinking.3': 'Формую відповідь...',
+  'thinking.reading': 'Читаю ваш запит...',
+  'thinking.preparing': 'Готую ваш запит...',
+  'thinking.working': '{model} працює...',
+  'thinking.reasoning': '{model} думає...',
+  'thinking.compressing': 'Стискаю контекст...',
+  'thinking.generic': 'Працюю...',
 
   // Suggestions
   'suggestion.explain': 'Поясни цей проєкт',

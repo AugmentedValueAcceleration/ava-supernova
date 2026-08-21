@@ -40,11 +40,12 @@ export const deStrings: Partial<Record<StringKey, string>> = {
 
   // \u2500\u2500 Thinking Indicator \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'thinking.0': 'Ava denkt nach...',
-  'thinking.reading': 'Lese deine Anfrage…',
-  'thinking.working': '{model} arbeitet…',
-  'thinking.1': 'Analysiere deinen Code...',
-  'thinking.2': '\u00dcberpr\u00fcfe Ans\u00e4tze...',
-  'thinking.3': 'Formuliere eine Antwort...',
+  'thinking.reading': 'Deine Anfrage wird gelesen...',
+  'thinking.preparing': 'Deine Anfrage wird vorbereitet...',
+  'thinking.working': '{model} arbeitet...',
+  'thinking.reasoning': '{model} denkt nach...',
+  'thinking.compressing': 'Kontext wird komprimiert...',
+  'thinking.generic': 'Arbeitet...',
 
   // \u2500\u2500 Suggestions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'suggestion.explain': 'Dieses Projekt erkl\u00e4ren',

@@ -18,6 +18,9 @@ interface PersonaInfo {
 interface ChatContainerProps {
   messages: UIMessage[];
   isThinking: boolean;
+  /** What Ava is actually doing right now. Undefined means the surface
+   *  knows nothing more specific, and the indicator says so. */
+  thinkingLabel?: string;
   conductorActive?: boolean;
   conductorMode?: string | null;
   activePersonas?: PersonaInfo[];
@@ -58,7 +61,7 @@ interface ChatContainerProps {
 // / activeModel / models stay in ChatContainerProps for caller
 // compatibility but are no longer destructured here.
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, initialized, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl, lane = 'main', designRoom = 'icon' }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, initialized, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl, lane = 'main', designRoom = 'icon' }: ChatContainerProps) {
   useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
@@ -134,7 +137,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
             personas={activePersonas || []}
           />
         )}
-        {isThinking && <ThinkingIndicator />}
+        {isThinking && <ThinkingIndicator label={thinkingLabel} />}
         <div ref={chatEndRef} />
       </div>
     </div>

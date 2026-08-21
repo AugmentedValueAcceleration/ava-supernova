@@ -84,9 +84,12 @@ export const koStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava가 생각하고 있습니다...',
-  'thinking.1': '코드를 분석하고 있습니다...',
-  'thinking.2': '접근 방식을 검토하고 있습니다...',
-  'thinking.3': '응답을 작성하고 있습니다...',
+  'thinking.reading': '요청을 읽는 중...',
+  'thinking.preparing': '요청을 준비하는 중...',
+  'thinking.working': '{model} 작업 중...',
+  'thinking.reasoning': '{model} 생각하는 중...',
+  'thinking.compressing': '컨텍스트를 압축하는 중...',
+  'thinking.generic': '처리 중...',
 
   // Suggestions
   'suggestion.explain': '코드베이스 설명',

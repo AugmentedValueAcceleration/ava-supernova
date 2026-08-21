@@ -262,6 +262,51 @@ const summaryOnly = args.has('--summary');
 
 let totalErrors = 0;
 let totalWarnings = 0;
+// ── Cross-surface: keys core EMITS must exist where they are RENDERED ───────
+//
+// `agent.ts` emits `{ type: 'progress', labelKey }`. The IDE localizes those
+// through core's own locales, so they resolve there. The extension's chat
+// webview has a SEPARATE locale set, and for months it did not carry
+// `thinking.reading` or `thinking.working` at all — so the coordinator's real
+// status lines rendered in chat as the literal strings "thinking.reading" and
+// "thinking.working". Parity checking each surface against its own English
+// baseline cannot see this: both files were internally consistent, and the
+// key simply did not exist on one side.
+//
+// Nothing connected the emitter to the renderer, so nothing failed. This does.
+function auditEmittedLabelKeys() {
+  const errors = [];
+  const emitters = [
+    path.join(repoRoot, 'packages/core/src/auto/auto-coordinator.ts'),
+    path.join(repoRoot, 'packages/core/src/agent/agent.ts'),
+  ];
+
+  const emitted = new Set();
+  for (const file of emitters) {
+    if (!fs.existsSync(file)) continue;
+    const src = fs.readFileSync(file, 'utf8');
+    for (const m of src.matchAll(/labelKey:\s*'([^']+)'/g)) emitted.add(m[1]);
+  }
+  if (emitted.size === 0) {
+    errors.push('no labelKey emissions found — did the progress event move? This check is now blind.');
+    return { errors, warnings: [] };
+  }
+
+  const renderers = [
+    ['core', path.join(repoRoot, 'packages/core/src/i18n/locales/en.ts')],
+    ['webview', path.join(repoRoot, 'packages/extension/webview-ui/src/locales/en.ts')],
+  ];
+  for (const [name, file] of renderers) {
+    if (!fs.existsSync(file)) { errors.push(`${name}: en locale not found at ${file}`); continue; }
+    const src = fs.readFileSync(file, 'utf8');
+    for (const key of emitted) {
+      const present = src.includes("'" + key + "':") || src.includes('"' + key + '":');
+      if (!present) errors.push(`${name}: core emits labelKey '${key}' but this surface has no such key — it renders the raw key`);
+    }
+  }
+  return { errors, warnings: [] };
+}
+
 const perSurface = [];
 
 for (const surface of SURFACES) {
@@ -269,6 +314,13 @@ for (const surface of SURFACES) {
   totalErrors += errors.length;
   totalWarnings += warnings.length;
   perSurface.push({ surface, errors, warnings });
+}
+
+{
+  const { errors, warnings } = auditEmittedLabelKeys();
+  totalErrors += errors.length;
+  totalWarnings += warnings.length;
+  perSurface.push({ surface: { name: 'progress-keys' }, errors, warnings });
 }
 
 if (!summaryOnly) {

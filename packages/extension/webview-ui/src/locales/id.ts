@@ -84,9 +84,12 @@ export const idStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava sedang berpikir...',
-  'thinking.1': 'Menganalisis kode Anda...',
-  'thinking.2': 'Mempertimbangkan pendekatan...',
-  'thinking.3': 'Menyusun respons...',
+  'thinking.reading': 'Membaca permintaan Anda...',
+  'thinking.preparing': 'Menyiapkan permintaan Anda...',
+  'thinking.working': '{model} sedang bekerja...',
+  'thinking.reasoning': '{model} sedang berpikir...',
+  'thinking.compressing': 'Memampatkan konteks...',
+  'thinking.generic': 'Sedang bekerja...',
 
   // Suggestions
   'suggestion.explain': 'Jelaskan codebase ini',

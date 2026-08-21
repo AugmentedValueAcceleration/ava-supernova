@@ -84,9 +84,12 @@ export const deStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava denkt nach...',
-  'thinking.1': 'Analysiere deinen Code...',
-  'thinking.2': '\u00dcberpr\u00fcfe Ans\u00e4tze...',
-  'thinking.3': 'Formuliere eine Antwort...',
+  'thinking.reading': 'Deine Anfrage wird gelesen...',
+  'thinking.preparing': 'Deine Anfrage wird vorbereitet...',
+  'thinking.working': '{model} arbeitet...',
+  'thinking.reasoning': '{model} denkt nach...',
+  'thinking.compressing': 'Kontext wird komprimiert...',
+  'thinking.generic': 'Arbeitet...',
 
   // Suggestions
   'suggestion.explain': 'Dieses Projekt erkl\u00e4ren',

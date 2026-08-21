@@ -1,31 +1,39 @@
 import { useState, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
 
-const MESSAGE_KEYS = ['thinking.0', 'thinking.1', 'thinking.2', 'thinking.3'];
-
 /**
  * Ava-bubble-shaped thinking indicator. Sits in the same visual lane as
  * an assistant message — avatar + name on the left, a pill containing a
- * three-dot pulse and the rotating "thinking…" line. Replaces the prior
- * tiny opacity-50 spinner that disappeared into the dark theme during
- * the 1-3s prep window before stream_start lands. The user sees Ava
- * picking up the moment they hit send.
+ * three-dot pulse and a line saying what is actually happening.
  *
- * `label` overrides the rotating generic line with a specific status
- * ("Reading your request…", "DeepSeek V4 Pro is working…") emitted by the
- * coordinator during its silent classify/route window — so the longer
- * orchestration-mode prep shows real progress, not a blank pulse.
+ * It used to rotate four canned strings every three seconds: "Analyzing your
+ * code…", "Considering approaches…". Nobody checked whether any of them were
+ * true, and "analyzing your code" is simply false when Ava is drafting a
+ * document. The line now only ever says something the code knows: `label`
+ * comes from a real state (request in flight, model reasoning, context being
+ * compressed), and where nothing more specific is known it says "Working…"
+ * rather than inventing a specific.
+ *
+ * The elapsed counter is the other half. During a long silent window the
+ * question a user actually has is "is this stuck?", and a number answers it
+ * where an adjective never could. It also means a stale label degrades
+ * honestly — "Compressing context… · 40s" is still true and visibly wrong.
  */
 export function ThinkingIndicator({ label }: { label?: string } = {}) {
   useLocale();
-  const [index, setIndex] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
+  // Restarts whenever the label changes, so the number is the age of THIS
+  // step rather than of the whole turn — which is what makes a stuck step
+  // legible instead of hidden inside a total.
   useEffect(() => {
+    setElapsed(0);
+    const started = Date.now();
     const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % MESSAGE_KEYS.length);
-    }, 3000);
+      setElapsed(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [label]);
 
   return (
     <div className="flex items-start gap-3 px-1 py-1" role="status" aria-label={t('thinking.0')}>
@@ -53,7 +61,14 @@ export function ThinkingIndicator({ label }: { label?: string } = {}) {
             <span />
             <span />
           </span>
-          <span>{label ?? t(MESSAGE_KEYS[index])}</span>
+          <span>{label ?? t('thinking.generic')}</span>
+          {/* Only past a couple of seconds: on a fast turn the counter would
+              flash 1s and vanish, which reads as a glitch. */}
+          {elapsed >= 2 && (
+            <span style={{ opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
+              · {elapsed}s
+            </span>
+          )}
         </div>
       </div>
       <style>{`

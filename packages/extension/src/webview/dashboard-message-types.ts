@@ -1557,6 +1557,11 @@ export interface ChatState {
   sessionTasks: SessionTaskUI[];
   avaCompletedTasks: AvaCompletedTaskUI[];
   tasksPanelWidth: number;
+  /** What Ava is doing right now — a real state, never decoration. */
+  thinkingLabel?: string;
+  /** The model the coordinator actually routed to, which in the
+   *  orchestration modes is NOT `activeModel` (that reads "Auto"). */
+  routedModel?: string | null;
   /** Decision records for the Plans tab, newest first. */
   planRecords: PlanRecordUI[];
   /** ── The document workspace ──────────────────────────────────────────
@@ -1855,6 +1860,11 @@ export type ExtToDashboardMessage =
   | { type: 'user_message_ack'; text: string; images?: string[] }
   | { type: 'stream_start' }
   | { type: 'thinking_delta'; content: string }
+  // Real prep/routing status for the thinking indicator. AvaViewProvider
+  // has been forwarding this to the dashboard all along; it was missing
+  // from this union, so the chat page could not act on it and fell back
+  // to rotating decorative strings instead.
+  | { type: 'progress'; labelKey: string; model?: string }
   | { type: 'stream_delta'; content: string }
   | { type: 'stream_end' }
   | { type: 'tool_call_start'; toolCall: { id: string; name: string; arguments: string } }

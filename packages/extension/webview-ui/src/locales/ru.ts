@@ -84,9 +84,12 @@ export const ruStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava думает...',
-  'thinking.1': 'Анализирую ваш код...',
-  'thinking.2': 'Рассматриваю подходы...',
-  'thinking.3': 'Формирую ответ...',
+  'thinking.reading': 'Читаю ваш запрос...',
+  'thinking.preparing': 'Готовлю ваш запрос...',
+  'thinking.working': '{model} работает...',
+  'thinking.reasoning': '{model} думает...',
+  'thinking.compressing': 'Сжимаю контекст...',
+  'thinking.generic': 'Работаю...',
 
   // Suggestions
   'suggestion.explain': 'Объясни эту кодовую базу',

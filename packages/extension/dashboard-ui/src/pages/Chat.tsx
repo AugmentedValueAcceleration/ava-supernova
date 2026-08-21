@@ -125,6 +125,25 @@ function updateMessageEvents(
 
 /* ── Reducer ──────────────────────────────────────────────────────────────── */
 
+/**
+ * The model to name in the thinking line.
+ *
+ * Prefers what the coordinator actually routed to; falls back to the picker's
+ * selection. Returns null when neither resolves to a real name — the caller
+ * then says "Working…" rather than naming something it cannot vouch for.
+ */
+function thinkingModel(state: ChatState): string | null {
+  if (state.routedModel) return state.routedModel;
+  return state.models.find((m) => m.id === state.activeModel)?.name ?? null;
+}
+
+/** A label for a step that knows the model, degrading to the generic line
+ *  rather than printing "undefined is working…". */
+function modelLabel(state: ChatState, key: string): string {
+  const model = thinkingModel(state);
+  return model ? t(key, { model }) : t('thinking.generic');
+}
+
 function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
     case 'chat_init': {
@@ -194,7 +213,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // don't wait for the host's stream_start (which lands only after provider
       // setup + the model's time-to-first-token). Reconciled by stream_start /
       // done / error. No bubble is created; the standalone indicator suffices.
-      return { ...state, isThinking: true };
+      return { ...state, isThinking: true, thinkingLabel: t('thinking.preparing'), routedModel: null };
 
     case 'stream_start': {
       // One assistant bubble per user turn. If a bubble already exists for
@@ -202,8 +221,14 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // is null but the last message is already an assistant bubble, re-attach
       // to it (defensive — recovers from premature done events). Only create a
       // new bubble as a last resort.
+      // The request is with the provider. Until the first token we know
+      // nothing beyond "waiting on <model>", so that is what it says — the
+      // elapsed counter carries the rest. `??` not `=`: a coordinator label
+      // is more specific and must survive.
+      const waiting = state.thinkingLabel ?? modelLabel(state, 'thinking.working');
+
       if (state.currentAssistantId) {
-        return { ...state, isStreaming: true, isThinking: true };
+        return { ...state, isStreaming: true, isThinking: true, thinkingLabel: waiting };
       }
       const lastMsg = state.messages[state.messages.length - 1];
       if (lastMsg && lastMsg.role === 'assistant') {
@@ -212,6 +237,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           currentAssistantId: lastMsg.id,
           isStreaming: true,
           isThinking: true,
+          thinkingLabel: waiting,
         };
       }
       const newId = nextId();
@@ -230,15 +256,30 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         currentAssistantId: newId,
         isStreaming: true,
         isThinking: true,
+        thinkingLabel: waiting,
       };
     }
+
+    // The host has been forwarding these all along; this surface dropped them
+    // and showed decoration instead.
+    case 'progress':
+      return {
+        ...state,
+        isThinking: true,
+        thinkingLabel: t(action.labelKey, action.model ? { model: action.model } : undefined),
+        routedModel: action.model ?? state.routedModel ?? null,
+      };
 
     case 'thinking_delta': {
       // Defensive: restore streaming state if premature done cleared it.
       const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
         appendToLastEventOfKind(events, 'thinking', action.content),
       );
-      return { ...state, messages, isThinking: true, isStreaming: true };
+      // Reasoning tokens are arriving — the one moment "thinking" is literal.
+      return {
+        ...state, messages, isThinking: true, isStreaming: true,
+        thinkingLabel: modelLabel(state, 'thinking.reasoning'),
+      };
     }
 
     case 'stream_delta': {
@@ -794,6 +835,8 @@ const initialState: ChatState = {
   currentAssistantId: null,
   models: [],
   activeModel: null,
+  routedModel: null,
+  thinkingLabel: undefined,
   isStreaming: false,
   isThinking: false,
   needsSetup: true,
@@ -839,6 +882,10 @@ const initialState: ChatState = {
 const CHAT_MESSAGE_TYPES = new Set([
   'chat_init', 'chat_platform_status',
   'user_message_ack', 'stream_start', 'thinking_delta', 'stream_delta', 'stream_end',
+  // The thinking indicator's real status. The provider has posted this
+  // since the coordinator landed; this Set dropped it, so the full-page
+  // chat could only ever show the decorative rotation.
+  'progress',
   'tool_call_start', 'tool_call_end', 'tool_confirmation_request',
   'usage', 'done', 'model_switched',
   'history_list', 'history_search_results', 'conversation_loaded', 'chat_cleared',
@@ -1418,6 +1465,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
           <ChatContainer
             messages={state.messages}
             isThinking={state.isThinking}
+            thinkingLabel={state.thinkingLabel}
             onConfirmation={handleConfirmation}
             onContinue={handleContinue}
             onSuggestion={handleSuggestion}

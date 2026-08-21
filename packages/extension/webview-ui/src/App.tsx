@@ -194,7 +194,10 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         currentAssistantId: null,
         isStreaming: true,
         isThinking: true,
-        thinkingLabel: undefined,
+        // Something true from the first frame. The old code left this blank
+        // and let four canned strings rotate over the gap.
+        thinkingLabel: t('thinking.preparing'),
+        routedModel: null,
       };
     }
 
@@ -213,8 +216,14 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // should trigger a fresh bubble — it's what actually signals "new
       // user turn" — and that handler creates the user message cleanly
       // without touching currentAssistantId on the assistant side.
+      // The request is now with the provider. From here until the first
+      // token we genuinely know nothing more than "waiting on <model>", so
+      // that is exactly what it says — the elapsed counter carries the rest.
+      // `??` not `=`: a coordinator label is more specific and must survive.
+      const waiting = state.thinkingLabel ?? modelLabel(state, 'thinking.working');
+
       if (state.currentAssistantId) {
-        return { ...state, isStreaming: true, isThinking: true };
+        return { ...state, isStreaming: true, isThinking: true, thinkingLabel: waiting };
       }
       // Look for a recent assistant bubble to re-attach to. We only
       // re-attach if the LAST message is an assistant (meaning no user
@@ -226,6 +235,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           currentAssistantId: lastMsg.id,
           isStreaming: true,
           isThinking: true,
+          thinkingLabel: waiting,
         };
       }
       const newId = nextId();
@@ -244,6 +254,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         currentAssistantId: newId,
         isStreaming: true,
         isThinking: true,
+        thinkingLabel: waiting,
       };
     }
 
@@ -257,6 +268,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         isThinking: true,
         isStreaming: true,
         thinkingLabel: t(action.labelKey, action.model ? { model: action.model } : undefined),
+        // Remember who was routed to, so later steps can keep naming them.
+        routedModel: action.model ?? state.routedModel ?? null,
       };
     }
 
@@ -271,8 +284,13 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
         appendToLastEventOfKind(events, 'thinking', action.content),
       );
-      // Real model output is flowing now — drop the prep label.
-      return { ...state, messages, isThinking: true, isStreaming: true, thinkingLabel: undefined };
+      // Reasoning tokens are arriving, which is the one moment the word
+      // "thinking" is literally accurate. Not cleared to undefined: a blank
+      // label is what the rotating decoration used to fill.
+      return {
+        ...state, messages, isThinking: true, isStreaming: true,
+        thinkingLabel: modelLabel(state, 'thinking.reasoning'),
+      };
     }
 
     case 'stream_delta': {
@@ -819,7 +837,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
 
     case 'compression_start':
-      return { ...state, isCompressing: true };
+      // A long unexplained pause is exactly where the user assumes a hang.
+      return { ...state, isCompressing: true, thinkingLabel: t('thinking.compressing') };
 
     case 'compression_end': {
       if (action.originalTokens > 0) {
@@ -830,9 +849,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           toolCalls: [],
           isStreaming: false,
         };
-        return { ...state, isCompressing: false, messages: [...state.messages, sysMsg] };
+        // Hand the line back to whatever the turn is actually doing, or
+        // "Compressing context…" sits there after compression finished.
+        return { ...state, isCompressing: false, messages: [...state.messages, sysMsg], thinkingLabel: modelLabel(state, 'thinking.working') };
       }
-      return { ...state, isCompressing: false };
+      return { ...state, isCompressing: false, thinkingLabel: modelLabel(state, 'thinking.working') };
     }
 
     // ── OAuth sign-in flow (v0.37.0) ─────────────────────────────────────
@@ -889,12 +910,33 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
   }
 }
 
+/**
+ * The model to name in the thinking line.
+ *
+ * Prefers what the coordinator actually routed to; falls back to the picker's
+ * selection. Returns null when neither resolves to a real name — the caller
+ * then says "Working…" instead of naming something it cannot vouch for.
+ */
+function thinkingModel(state: ChatState): string | null {
+  if (state.routedModel) return state.routedModel;
+  const picked = state.models.find((m) => m.id === state.activeModel)?.name;
+  return picked ?? null;
+}
+
+/** A label for a step that knows the model, degrading to the generic line
+ *  rather than printing "undefined is working…". */
+function modelLabel(state: ChatState, key: string): string {
+  const model = thinkingModel(state);
+  return model ? t(key, { model }) : t('thinking.generic');
+}
+
 const initialState: ChatState = {
   planRecords: [],
   messages: [],
   currentAssistantId: null,
   models: [],
   activeModel: null,
+  routedModel: null,
   isStreaming: false,
   isThinking: false,
   needsSetup: true,

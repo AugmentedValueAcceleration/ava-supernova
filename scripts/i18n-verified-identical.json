@@ -90,7 +90,9 @@
         "dash.history.tab.design": "Design",
         "memory.category.architecture": "Architecture",
         "memory.category.convention": "Convention",
-        "health.browse.cardio.style": "Style"
+        "health.browse.cardio.style": "Style",
+        "plan.note": "Note",
+        "tasks.filter_plans": "Plans"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
@@ -195,7 +197,8 @@
         "ide.papers.primer_url": "URL: {url}",
         "dash.studio.asset.hero": "Hero",
         "dash.studio.group.open_canvas": "Open Canvas",
-        "health.starters.when": "Start"
+        "health.starters.when": "Start",
+        "doc.recent": "Recent"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -317,6 +320,12 @@
       },
       "zh-TW": {
         "panel.params.topP": "Top-p"
+      }
+    },
+    "webview": {
+      "fr": {
+        "plan.note": "Note",
+        "tasks.filter_plans": "Plans"
       }
     }
   },

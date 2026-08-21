@@ -40,11 +40,12 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava が考えています...',
-  'thinking.reading': 'リクエストを読んでいます…',
-  'thinking.working': '{model} が作業中です…',
-  'thinking.1': 'コードを分析しています...',
-  'thinking.2': 'アプローチを検討しています...',
-  'thinking.3': '回答を作成しています...',
+  'thinking.reading': 'リクエストを読んでいます...',
+  'thinking.preparing': 'リクエストを準備しています...',
+  'thinking.working': '{model} が処理しています...',
+  'thinking.reasoning': '{model} が考えています...',
+  'thinking.compressing': 'コンテキストを圧縮しています...',
+  'thinking.generic': '処理中...',
 
   // ── Suggestions ───────────────────────────────────────────────────────────
   'suggestion.explain': 'コードベースを解説',

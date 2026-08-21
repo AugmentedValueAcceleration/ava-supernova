@@ -84,9 +84,12 @@ export const zhCNStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava 正在思考...',
-  'thinking.1': '正在分析你的代码...',
-  'thinking.2': '正在考虑方案...',
-  'thinking.3': '正在组织回复...',
+  'thinking.reading': '正在读取你的请求...',
+  'thinking.preparing': '正在准备你的请求...',
+  'thinking.working': '{model} 正在处理...',
+  'thinking.reasoning': '{model} 正在思考...',
+  'thinking.compressing': '正在压缩上下文...',
+  'thinking.generic': '处理中...',
 
   // Suggestions
   'suggestion.explain': '解释这个代码库',

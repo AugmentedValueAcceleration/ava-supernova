@@ -84,9 +84,12 @@ export const frStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava r\u00e9fl\u00e9chit...',
-  'thinking.1': 'Analyse de votre code...',
-  'thinking.2': '\u00c9valuation des approches...',
-  'thinking.3': 'R\u00e9daction d\u2019une r\u00e9ponse...',
+  'thinking.reading': 'Lecture de votre demande...',
+  'thinking.preparing': 'Préparation de votre demande...',
+  'thinking.working': '{model} travaille...',
+  'thinking.reasoning': '{model} réfléchit...',
+  'thinking.compressing': 'Compression du contexte...',
+  'thinking.generic': 'En cours...',
 
   // Suggestions
   'suggestion.explain': 'Expliquer ce projet',

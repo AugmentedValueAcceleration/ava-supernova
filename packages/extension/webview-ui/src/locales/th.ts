@@ -84,9 +84,12 @@ export const thStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava กำลังคิด...',
-  'thinking.1': 'กำลังวิเคราะห์โค้ดของคุณ...',
-  'thinking.2': 'กำลังพิจารณาแนวทาง...',
-  'thinking.3': 'กำลังเรียบเรียงคำตอบ...',
+  'thinking.reading': 'กำลังอ่านคำขอของคุณ...',
+  'thinking.preparing': 'กำลังเตรียมคำขอของคุณ...',
+  'thinking.working': '{model} กำลังทำงาน...',
+  'thinking.reasoning': '{model} กำลังคิด...',
+  'thinking.compressing': 'กำลังบีบอัดบริบท...',
+  'thinking.generic': 'กำลังทำงาน...',
 
   // Suggestions
   'suggestion.explain': 'อธิบายโค้ดเบสนี้',

@@ -476,6 +476,11 @@ export interface ChatState {
    *  coordinator classifies + routes (the silent pre-stream window). Cleared
    *  when real content arrives. Undefined => generic rotating "thinking…". */
   thinkingLabel?: string;
+  /** The model the coordinator actually routed to this turn, which in the
+   *  orchestration modes is NOT `activeModel` (that reads "Auto"). Kept so
+   *  the thinking line can name the model doing the work rather than the
+   *  picker's setting. */
+  routedModel?: string | null;
   needsSetup: boolean;
   consentRequired: boolean;
   initialized: boolean;

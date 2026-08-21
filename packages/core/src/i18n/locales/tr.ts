@@ -40,11 +40,12 @@ export const trStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava düşünüyor...',
-  'thinking.reading': 'İsteğin okunuyor…',
-  'thinking.working': '{model} çalışıyor…',
-  'thinking.1': 'Kodunuz analiz ediliyor...',
-  'thinking.2': 'Yaklaşımlar değerlendiriliyor...',
-  'thinking.3': 'Yanıt hazırlanıyor...',
+  'thinking.reading': 'İsteğiniz okunuyor...',
+  'thinking.preparing': 'İsteğiniz hazırlanıyor...',
+  'thinking.working': '{model} çalışıyor...',
+  'thinking.reasoning': '{model} düşünüyor...',
+  'thinking.compressing': 'Bağlam sıkıştırılıyor...',
+  'thinking.generic': 'Çalışıyor...',
 
   // ── Suggestions ───────────────────────────────────────────────────────────
   'suggestion.explain': 'Bu kod tabanını açıkla',

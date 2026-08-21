@@ -84,9 +84,12 @@ export const arStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava تفكّر...',
-  'thinking.1': 'جارٍ تحليل الكود...',
-  'thinking.2': 'جارٍ دراسة الأساليب...',
-  'thinking.3': 'جارٍ صياغة الرد...',
+  'thinking.reading': 'جارٍ قراءة طلبك...',
+  'thinking.preparing': 'جارٍ تجهيز طلبك...',
+  'thinking.working': '{model} يعمل...',
+  'thinking.reasoning': '{model} يفكر...',
+  'thinking.compressing': 'جارٍ ضغط السياق...',
+  'thinking.generic': 'جارٍ العمل...',
 
   // Suggestions
   'suggestion.explain': 'اشرح هذا المشروع',

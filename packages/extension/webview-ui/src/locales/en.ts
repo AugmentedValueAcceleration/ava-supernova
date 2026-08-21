@@ -93,9 +93,12 @@ export const enStrings = {
 
   // Thinking Indicator
   'thinking.0': 'Ava is thinking...',
-  'thinking.1': 'Analyzing your code...',
-  'thinking.2': 'Considering approaches...',
-  'thinking.3': 'Crafting a response...',
+  'thinking.reading': 'Reading your request...',
+  'thinking.preparing': 'Preparing your request...',
+  'thinking.working': '{model} is working...',
+  'thinking.reasoning': '{model} is thinking...',
+  'thinking.compressing': 'Compressing context...',
+  'thinking.generic': 'Working...',
 
   // Suggestions
   'suggestion.explain': 'Explain this codebase',

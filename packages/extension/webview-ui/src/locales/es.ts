@@ -84,9 +84,12 @@ export const esStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava est\u00e1 pensando...',
-  'thinking.1': 'Analizando tu c\u00f3digo...',
-  'thinking.2': 'Evaluando enfoques...',
-  'thinking.3': 'Elaborando una respuesta...',
+  'thinking.reading': 'Leyendo tu solicitud...',
+  'thinking.preparing': 'Preparando tu solicitud...',
+  'thinking.working': '{model} está trabajando...',
+  'thinking.reasoning': '{model} está pensando...',
+  'thinking.compressing': 'Comprimiendo el contexto...',
+  'thinking.generic': 'Trabajando...',
 
   // Suggestions
   'suggestion.explain': 'Explicar este proyecto',

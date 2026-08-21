@@ -84,9 +84,12 @@ export const ptStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava est\u00e1 pensando...',
-  'thinking.1': 'Analisando seu c\u00f3digo...',
-  'thinking.2': 'Considerando abordagens...',
-  'thinking.3': 'Elaborando uma resposta...',
+  'thinking.reading': 'Lendo sua solicitação...',
+  'thinking.preparing': 'Preparando sua solicitação...',
+  'thinking.working': '{model} está trabalhando...',
+  'thinking.reasoning': '{model} está pensando...',
+  'thinking.compressing': 'Comprimindo o contexto...',
+  'thinking.generic': 'Trabalhando...',
 
   // Suggestions
   'suggestion.explain': 'Explicar este projeto',

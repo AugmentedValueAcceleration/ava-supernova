@@ -84,9 +84,12 @@ export const itStrings: Record<StringKey, string> = {
 
   // Thinking Indicator
   'thinking.0': 'Ava sta pensando...',
-  'thinking.1': 'Analisi del tuo codice...',
-  'thinking.2': 'Valutazione degli approcci...',
-  'thinking.3': 'Preparazione della risposta...',
+  'thinking.reading': 'Lettura della richiesta...',
+  'thinking.preparing': 'Preparazione della richiesta...',
+  'thinking.working': '{model} sta lavorando...',
+  'thinking.reasoning': '{model} sta pensando...',
+  'thinking.compressing': 'Compressione del contesto...',
+  'thinking.generic': 'In corso...',
 
   // Suggestions
   'suggestion.explain': 'Spiega questo progetto',
