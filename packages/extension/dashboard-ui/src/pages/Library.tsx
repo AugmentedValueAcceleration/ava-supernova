@@ -8,6 +8,7 @@ import { Icon } from '../components/Icon';
 import { tabBar, tab as tabClass } from '../components/ui';
 import { DESIGN_GROUPS, designTypeMeta, coarseKindToType } from '../lib/design-types';
 import { StorageBar } from '../components/StorageBar';
+import { Drawer } from '../components/Drawer';
 // The dependency-free leaf, so the host and this bundle agree on what is
 // exportable and what it is called without either keeping its own list.
 import { canExport, targetsFor, TARGET_LABELS, type ExportFormat } from '@ava/core/authoring/formats';
@@ -487,7 +488,7 @@ export function Library({
               flight and nothing has arrived yet — keeps the page's
               shape instead of an empty void under the pill. */}
           {assetItems.length === 0 && cloudAssetsLoading && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
               {Array.from({ length: 10 }).map((_, i) => (
                 <Skeleton key={i} height={120} radius={12} />
               ))}
@@ -496,7 +497,7 @@ export function Library({
 
           {assetItems.length > 0 && (
             viewMode === 'grid' ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
                 {assetItems.map(item => (
                   <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
                 ))}
@@ -570,7 +571,7 @@ export function Library({
             </div>
           ) : documentItems.length > 0 ? (
             viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
                 {documentItems.map(item => (
                   <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
                 ))}
@@ -773,22 +774,17 @@ function PreviewModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6"
-      onClick={onClose}
+    // A DRAWER, matching Health & Nutrition. A centred box hid the grid you
+    // had just picked from and read as a different product one page across;
+    // this arrives from the right and leaves the list behind it.
+    <Drawer
+      onClose={onClose}
+      title={item.title}
+      subtitle={item.subtitle || undefined}
+      maxWidth={620}
+      closeLabel={t('library.close_preview')}
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] shadow-2xl"
-      >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-lg border-none cursor-pointer transition"
-          aria-label={t('library.close_preview')}
-        >
-          ×
-        </button>
+      <div className="min-h-0 flex-1 overflow-y-auto">
 
         {/* Preview area — images render inline, audio/video get playback
             controls, office docs + unknowns show the type icon. */}
@@ -830,8 +826,8 @@ function PreviewModal({
 
         {/* Meta */}
         <div className="p-5">
-          <h3 className="text-base font-semibold text-[var(--text-primary)] truncate">{item.title}</h3>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+          {/* No title here — the drawer header carries it. */}
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
             <span className={`rounded px-1.5 py-0.5 font-medium ${
               isLocal
                 ? 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
@@ -978,7 +974,7 @@ function PreviewModal({
           )}
         </div>
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -1390,6 +1386,37 @@ function NewDocumentModal({ onClose }: { onClose: () => void }) {
 
 // ── Asset card ──────────────────────────────────────────────────────────
 
+/**
+ * Per-format tint for a document tile.
+ *
+ * A document has no thumbnail, so the tile used to be a large grey glyph
+ * repeated down the page — three files that looked identical until you read
+ * the filename. The extension is the one thing that distinguishes them and it
+ * was buried in the name, so it becomes the art: legible at a glance, and
+ * coloured by family so PDFs and spreadsheets separate without being read.
+ */
+const DOC_FORMAT_TINTS: Record<string, { fg: string; bg: string }> = {
+  pdf:  { fg: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+  doc:  { fg: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+  docx: { fg: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+  odt:  { fg: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
+  ods:  { fg: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
+  xls:  { fg: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
+  xlsx: { fg: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
+  csv:  { fg: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
+  md:   { fg: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
+  txt:  { fg: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+  rtf:  { fg: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+};
+
+/** Extension of a filename, lowercase and without the dot. '' when there is
+ *  none, or when the dot belongs to a directory rather than the file. */
+function fileExtension(name: string): string {
+  const dot = name.lastIndexOf('.');
+  const slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+  return dot > slash && dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
+}
+
 function AssetCard({
   item,
   selected,
@@ -1403,6 +1430,9 @@ function AssetCard({
   const mediaUrl = rawAny.url || rawAny.webviewUri || rawAny.dataUri || undefined;
   const isVideo = item.kind === 'video';
   const isAudio = item.kind === 'voice' || item.kind === 'music' || item.kind === 'sfx';
+  // Documents and spreadsheets have no thumbnail; the format becomes the art.
+  const docExt = item.thumbnail ? '' : fileExtension(item.title);
+  const docFormat = docExt ? DOC_FORMAT_TINTS[docExt] : undefined;
   return (
     <button
       onClick={onSelect}
@@ -1414,13 +1444,13 @@ function AssetCard({
         <img
           src={item.thumbnail}
           alt={item.title}
-          className="h-28 w-full object-cover"
+          className="h-24 w-full object-cover"
           loading="lazy"
         />
       ) : isVideo && mediaUrl ? (
         // First frame as a poster + a play glyph — reads as a video, not a 🎬 icon.
-        <div className="relative h-28 w-full bg-black">
-          <video src={mediaUrl} preload="metadata" muted className="h-28 w-full object-cover pointer-events-none" />
+        <div className="relative h-24 w-full bg-black">
+          <video src={mediaUrl} preload="metadata" muted className="h-24 w-full object-cover pointer-events-none" />
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff" aria-hidden><path d="M8 5v14l11-7z" /></svg>
@@ -1429,8 +1459,23 @@ function AssetCard({
         </div>
       ) : isAudio ? (
         <MiniWaveform />
+      ) : docFormat ? (
+        <div
+          className="flex h-24 w-full flex-col items-center justify-center gap-1"
+          style={{ background: docFormat.bg }}
+        >
+          <span
+            className="font-mono text-[17px] font-semibold tracking-[0.14em]"
+            style={{ color: docFormat.fg }}
+          >
+            {docExt.toUpperCase()}
+          </span>
+          <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
+            {item.kind}
+          </span>
+        </div>
       ) : (
-        <div className="flex h-28 w-full items-center justify-center text-4xl opacity-40">
+        <div className="flex h-24 w-full items-center justify-center text-3xl opacity-40">
           {ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}
         </div>
       )}
@@ -1445,7 +1490,11 @@ function AssetCard({
             {item.source === 'cloud' ? <span className="inline-flex items-center gap-1"><Icon.cloud size={10} />cloud</span> : <span className="inline-flex items-center gap-1"><Icon.local size={10} />local</span>}
           </span>
           <span className="text-[9px] text-[var(--text-muted)]">
-            {item.kind}
+            {/* The kind is on the tile for documents, so show when it was made
+                instead of saying "document" twice. */}
+            {docFormat && item.createdAt
+              ? new Date(item.createdAt).toLocaleDateString()
+              : item.kind}
           </span>
         </div>
       </div>
