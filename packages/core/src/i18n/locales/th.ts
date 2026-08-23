@@ -506,6 +506,8 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'เชื่อมต่อเพื่อดูคลังของคุณ',
   'dash.library.empty': 'รูปภาพ เอกสาร และผลงานของคุณจะปรากฏที่นี่',
   'dash.library.no_files': 'ยังไม่มีไฟล์',
+  'dash.library.no_project': 'ยังไม่ได้เปิดโปรเจกต์',
+  'dash.library.no_project_hint': 'เปิดโฟลเดอร์โปรเจกต์แล้วเอกสารและรูปภาพจะแสดงที่นี่',
   'dash.library.ask_ava': 'ลองบอก Ava ให้สร้างรูปภาพ เอกสาร หรือสเปรดชีต',
   'dash.library.open': 'เปิด',
   'dash.library.close': 'ปิด',

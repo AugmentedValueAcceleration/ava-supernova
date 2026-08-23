@@ -506,6 +506,8 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Hubungkan untuk melihat Perpustakaan Anda',
   'dash.library.empty': 'Gambar, dokumen, dan kreasi Anda akan muncul di sini',
   'dash.library.no_files': 'Belum ada file',
+  'dash.library.no_project': 'Tidak ada proyek terbuka',
+  'dash.library.no_project_hint': 'Buka folder proyek dan dokumen serta gambarnya akan muncul di sini',
   'dash.library.ask_ava': 'Minta Ava untuk membuat gambar, dokumen, atau spreadsheet',
   'dash.library.open': 'Buka',
   'dash.library.close': 'Tutup',

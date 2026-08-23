@@ -506,6 +506,8 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'अपनी लाइब्रेरी देखने के लिए कनेक्ट करें',
   'dash.library.empty': 'आपकी छवियाँ, दस्तावेज़ और रचनाएँ यहाँ दिखाई देंगी',
   'dash.library.no_files': 'अभी कोई फ़ाइल नहीं',
+  'dash.library.no_project': 'कोई प्रोजेक्ट खुला नहीं है',
+  'dash.library.no_project_hint': 'एक प्रोजेक्ट फ़ोल्डर खोलें और उसके दस्तावेज़ और चित्र यहाँ दिखाई देंगे',
   'dash.library.ask_ava': 'Ava से छवियाँ, दस्तावेज़ या स्प्रेडशीट बनाने को कहें',
   'dash.library.open': 'खोलें',
   'dash.library.close': 'बंद करें',

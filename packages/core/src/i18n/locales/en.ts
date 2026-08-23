@@ -964,6 +964,8 @@ export const enStrings = {
   'dash.library.connect': 'Connect to view your Library',
   'dash.library.empty': 'Your images, documents, and creations will appear here',
   'dash.library.no_files': 'No files yet',
+  'dash.library.no_project': 'No project open',
+  'dash.library.no_project_hint': 'Open a project folder and its documents and images appear here',
   'dash.library.ask_ava': 'Ask Ava to create images, documents, or spreadsheets',
   'dash.library.open': 'Open',
   'dash.library.close': 'Close',

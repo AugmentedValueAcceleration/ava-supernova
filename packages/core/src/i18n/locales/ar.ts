@@ -506,6 +506,8 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'اتصل لعرض مكتبتك',
   'dash.library.empty': 'ستظهر صورك ومستنداتك وإبداعاتك هنا',
   'dash.library.no_files': 'لا ملفات بعد',
+  'dash.library.no_project': 'لا يوجد مشروع مفتوح',
+  'dash.library.no_project_hint': 'افتح مجلد مشروع لتظهر مستنداته وصوره هنا',
   'dash.library.ask_ava': 'اطلب من Ava إنشاء صور أو مستندات أو جداول بيانات',
   'dash.library.open': 'فتح',
   'dash.library.close': 'إغلاق',

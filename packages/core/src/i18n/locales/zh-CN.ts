@@ -646,6 +646,8 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': '连接以查看你的资料库',
   'dash.library.empty': '你的图片、文档和创作将显示在这里',
   'dash.library.no_files': '暂无文件',
+  'dash.library.no_project': '未打开项目',
+  'dash.library.no_project_hint': '打开一个项目文件夹，其文档和图片会显示在这里',
   'dash.library.ask_ava': '让 Ava 为你创建图片、文档或电子表格',
   'dash.library.open': '打开',
   'dash.library.close': '关闭',

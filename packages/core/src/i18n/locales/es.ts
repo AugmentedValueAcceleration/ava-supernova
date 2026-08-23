@@ -575,6 +575,8 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Con\u00e9ctate para ver tu biblioteca',
   'dash.library.empty': 'Tus im\u00e1genes, documentos y creaciones aparecer\u00e1n aqu\u00ed',
   'dash.library.no_files': 'A\u00fan no hay archivos',
+  'dash.library.no_project': 'Ningún proyecto abierto',
+  'dash.library.no_project_hint': 'Abre una carpeta de proyecto y sus documentos e imágenes aparecerán aquí',
   'dash.library.ask_ava': 'P\u00eddele a Ava que cree im\u00e1genes, documentos u hojas de c\u00e1lculo',
   'dash.library.open': 'Abrir',
   'dash.library.close': 'Cerrar',

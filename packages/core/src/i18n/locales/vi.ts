@@ -506,6 +506,8 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Kết nối để xem Thư viện của bạn',
   'dash.library.empty': 'Hình ảnh, tài liệu và sáng tạo của bạn sẽ xuất hiện tại đây',
   'dash.library.no_files': 'Chưa có tệp nào',
+  'dash.library.no_project': 'Chưa mở dự án nào',
+  'dash.library.no_project_hint': 'Mở một thư mục dự án và tài liệu cùng hình ảnh của nó sẽ hiện ở đây',
   'dash.library.ask_ava': 'Nhờ Ava tạo hình ảnh, tài liệu hoặc bảng tính',
   'dash.library.open': 'Mở',
   'dash.library.close': 'Đóng',

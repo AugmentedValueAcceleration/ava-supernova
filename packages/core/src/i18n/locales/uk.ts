@@ -647,6 +647,8 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Під\'єднайтесь, щоб переглянути бібліотеку',
   'dash.library.empty': 'Ваші зображення, документи та творіння з\'являться тут',
   'dash.library.no_files': 'Файлів ще немає',
+  'dash.library.no_project': 'Проєкт не відкрито',
+  'dash.library.no_project_hint': 'Відкрийте теку проєкту, і її документи та зображення з’являться тут',
   'dash.library.ask_ava': 'Попросіть Ava створити зображення, документи або таблиці',
   'dash.library.open': 'Відкрити',
   'dash.library.close': 'Закрити',

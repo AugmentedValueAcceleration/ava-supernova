@@ -501,6 +501,8 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Conecte-se para ver sua Biblioteca',
   'dash.library.empty': 'Suas imagens, documentos e cria\u00e7\u00f5es aparecer\u00e3o aqui',
   'dash.library.no_files': 'Nenhum arquivo ainda',
+  'dash.library.no_project': 'Nenhum projeto aberto',
+  'dash.library.no_project_hint': 'Abra uma pasta de projeto e seus documentos e imagens aparecerão aqui',
   'dash.library.ask_ava': 'Pe\u00e7a para a Ava criar imagens, documentos ou planilhas',
   'dash.library.open': 'Abrir',
   'dash.library.close': 'Fechar',

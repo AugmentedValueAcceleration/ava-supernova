@@ -506,6 +506,8 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Kütüphanenizi görüntülemek için bağlanın',
   'dash.library.empty': 'Görselleriniz, belgeleriniz ve oluşturmalarınız burada görünecek',
   'dash.library.no_files': 'Henüz dosya yok',
+  'dash.library.no_project': 'Açık proje yok',
+  'dash.library.no_project_hint': 'Bir proje klasörü aç, belgeleri ve görselleri burada görünsün',
   'dash.library.ask_ava': "Ava'dan görsel, belge veya elektronik tablo oluşturmasını isteyin",
   'dash.library.open': 'Aç',
   'dash.library.close': 'Kapat',

@@ -506,6 +506,8 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': '라이브러리를 보려면 연결하세요',
   'dash.library.empty': '이미지, 문서, 창작물이 여기에 나타납니다',
   'dash.library.no_files': '아직 파일이 없습니다',
+  'dash.library.no_project': '열린 프로젝트가 없습니다',
+  'dash.library.no_project_hint': '프로젝트 폴더를 열면 문서와 이미지가 여기에 표시됩니다',
   'dash.library.ask_ava': 'Ava에게 이미지, 문서 또는 스프레드시트를 만들어 달라고 하세요',
   'dash.library.open': '열기',
   'dash.library.close': '닫기',

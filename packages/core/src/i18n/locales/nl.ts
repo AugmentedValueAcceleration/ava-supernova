@@ -506,6 +506,8 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Verbind om je bibliotheek te bekijken',
   'dash.library.empty': 'Je afbeeldingen, documenten en creaties verschijnen hier',
   'dash.library.no_files': 'Nog geen bestanden',
+  'dash.library.no_project': 'Geen project geopend',
+  'dash.library.no_project_hint': 'Open een projectmap en de documenten en afbeeldingen verschijnen hier',
   'dash.library.ask_ava': 'Vraag Ava om afbeeldingen, documenten of spreadsheets te maken',
   'dash.library.open': 'Openen',
   'dash.library.close': 'Sluiten',

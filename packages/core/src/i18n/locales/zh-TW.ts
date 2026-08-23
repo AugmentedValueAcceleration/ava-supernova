@@ -506,6 +506,8 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': '連線以檢視你的資料庫',
   'dash.library.empty': '你的圖片、文件與創作將會顯示在這裡',
   'dash.library.no_files': '尚無檔案',
+  'dash.library.no_project': '未開啟專案',
+  'dash.library.no_project_hint': '開啟一個專案資料夾，其文件與圖片會顯示在這裡',
   'dash.library.ask_ava': '請 Ava 建立圖片、文件或試算表',
   'dash.library.open': '開啟',
   'dash.library.close': '關閉',

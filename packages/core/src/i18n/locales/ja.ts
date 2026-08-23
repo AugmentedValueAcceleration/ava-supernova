@@ -506,6 +506,8 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'ライブラリを表示するにはアカウントを接続してください',
   'dash.library.empty': '画像、ドキュメント、作成物がここに表示されます',
   'dash.library.no_files': 'ファイルはまだありません',
+  'dash.library.no_project': 'プロジェクトが開かれていません',
+  'dash.library.no_project_hint': 'プロジェクトフォルダーを開くと、その文書と画像がここに表示されます',
   'dash.library.ask_ava': 'Ava に画像、ドキュメント、スプレッドシートの作成を依頼してください',
   'dash.library.open': '開く',
   'dash.library.close': '閉じる',

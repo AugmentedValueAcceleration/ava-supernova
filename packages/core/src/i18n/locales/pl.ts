@@ -646,6 +646,8 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Połącz się, aby zobaczyć swoją Bibliotekę',
   'dash.library.empty': 'Twoje obrazy, dokumenty i kreacje pojawią się tutaj',
   'dash.library.no_files': 'Brak plików',
+  'dash.library.no_project': 'Nie otwarto projektu',
+  'dash.library.no_project_hint': 'Otwórz folder projektu, a jego dokumenty i obrazy pojawią się tutaj',
   'dash.library.ask_ava': 'Poproś Avę o tworzenie obrazów, dokumentów lub arkuszy',
   'dash.library.open': 'Otwórz',
   'dash.library.close': 'Zamknij',

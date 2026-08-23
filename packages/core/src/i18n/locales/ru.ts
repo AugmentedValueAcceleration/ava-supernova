@@ -506,6 +506,8 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.library.connect': 'Подключитесь, чтобы увидеть свою библиотеку',
   'dash.library.empty': 'Ваши изображения, документы и творения появятся здесь',
   'dash.library.no_files': 'Файлов пока нет',
+  'dash.library.no_project': 'Проект не открыт',
+  'dash.library.no_project_hint': 'Откройте папку проекта, и её документы и изображения появятся здесь',
   'dash.library.ask_ava': 'Попросите Ava создать изображения, документы или таблицы',
   'dash.library.open': 'Открыть',
   'dash.library.close': 'Закрыть',
