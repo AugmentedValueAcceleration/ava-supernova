@@ -43,7 +43,7 @@ export class DocumentAuthorTool implements Tool {
     name: 'document_author',
     description:
       'Author rich prose documents (reports, proposals, letters, articles…). Markdown is the editable source of truth; ' +
-      'Word (.docx), OpenDocument (.odt/.ods) and PDF are exports built on demand. Workflow: create a .md, build it to .docx/.pdf, then refine it section by ' +
+      'Word (.docx), OpenDocument (.odt/.ods) and PDF are exports built on demand. The .md IS the document: write it and stop there unless the writer named a format or said who the file is for — building unasked leaves them three files where they wanted one. Refine it section by ' +
       'section with edit_section — edits are surgical and never destroy the rest of the document. ' +
       'Markdown supports YAML front-matter (title, author, date, style, toc, brand), :::callout / :::pagebreak directives, ' +
       'footnotes ([^1]), tables, images, and nested lists. Start from a worked-exemplar template with from_template ' +
@@ -61,7 +61,7 @@ export class DocumentAuthorTool implements Tool {
         content: { type: 'string', description: 'Markdown content. create: the whole document. edit_section: the new body of the section. insert_section: the new section. save_template: the template body.' },
         section: { type: 'string', description: 'edit_section: the heading text of the section to replace (e.g. "Pricing").' },
         after: { type: 'string', description: 'insert_section: heading text to insert after. Omit to append at the end.' },
-        format: { type: 'string', enum: ['docx', 'pdf', 'odt', 'ods', 'both', 'open', 'md'], description: 'build: output format(s). docx/pdf need their optional peer; odt/ods never do. \'both\' = docx + pdf, \'open\' = odt + pdf. Default both.' },
+        format: { type: 'string', enum: ['docx', 'pdf', 'odt', 'ods', 'both', 'open', 'md'], description: 'build: output format(s). REQUIRED for build — there is no default, because an export is a copy for a specific reader and guessing produces files nobody wanted. docx/pdf need their optional peer; odt/ods never do. \'both\' = docx + pdf, \'open\' = odt + pdf.' },
         out_path: { type: 'string', description: 'build: explicit output path (otherwise derived from the .md path).' },
         title: { type: 'string', description: 'create/save_template: document or template title.' },
         style: { type: 'string', description: 'Style profile — proposal | report | invoice | letter | meeting_notes | brief | article | press_release | essay | resume | cover_letter …' },
@@ -228,7 +228,21 @@ export class DocumentAuthorTool implements Tool {
     const source = await readFile(abs, 'utf-8');
     const model = parseMarkdown(source);
     const baseDir = dirname(abs);
-    const format = (args.format as string | undefined) ?? 'both';
+    // No default. `build` used to fall back to 'both' — docx AND pdf — so one
+    // request for a document produced three files (source + two exports) that
+    // nobody asked for. A format is a question about who is receiving the
+    // document, and the tool is in no position to guess the answer, so it says
+    // so instead of picking two.
+    const format = args.format as string | undefined;
+    if (!format) {
+      return {
+        success: false,
+        output:
+          'build needs a format. The .md is already the document — an export is a copy for someone else, '
+          + 'so pick what they need: docx (opens everywhere), pdf (they should not edit it), '
+          + 'odt/ods (OpenDocument), both (docx + pdf), open (odt + pdf).',
+      };
+    }
     // 'open' is the all-open-formats pair, for anyone who would rather not
     // hand someone a file only Word opens cleanly.
     const targets: RenderTarget[] = format === 'both' ? ['docx', 'pdf']

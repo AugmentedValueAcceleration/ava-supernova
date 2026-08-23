@@ -90,6 +90,7 @@ export const thStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} กำลังคิด...',
   'thinking.compressing': 'กำลังบีบอัดบริบท...',
   'thinking.generic': 'กำลังทำงาน...',
+  'chat.jump_to_latest': 'ไปที่ล่าสุด',
 
   // Suggestions
   'suggestion.explain': 'อธิบายโค้ดเบสนี้',

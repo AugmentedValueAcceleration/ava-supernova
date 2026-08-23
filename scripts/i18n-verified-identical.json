@@ -92,7 +92,8 @@
         "memory.category.convention": "Convention",
         "health.browse.cardio.style": "Style",
         "plan.note": "Note",
-        "tasks.filter_plans": "Plans"
+        "tasks.filter_plans": "Plans",
+        "library.formats": "Formats"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",

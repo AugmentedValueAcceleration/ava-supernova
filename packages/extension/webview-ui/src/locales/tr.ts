@@ -90,6 +90,7 @@ export const trStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} düşünüyor...',
   'thinking.compressing': 'Bağlam sıkıştırılıyor...',
   'thinking.generic': 'Çalışıyor...',
+  'chat.jump_to_latest': 'En yeniye git',
 
   // Suggestions
   'suggestion.explain': 'Bu kod tabanını açıkla',

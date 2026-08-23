@@ -90,6 +90,7 @@ export const viStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} đang suy nghĩ...',
   'thinking.compressing': 'Đang nén ngữ cảnh...',
   'thinking.generic': 'Đang xử lý...',
+  'chat.jump_to_latest': 'Đến mới nhất',
 
   // Suggestions
   'suggestion.explain': 'Giải thích codebase',

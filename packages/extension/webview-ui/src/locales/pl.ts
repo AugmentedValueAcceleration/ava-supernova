@@ -90,6 +90,7 @@ export const plStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} myśli...',
   'thinking.compressing': 'Kompresowanie kontekstu...',
   'thinking.generic': 'Pracuję...',
+  'chat.jump_to_latest': 'Przejdź do najnowszych',
 
   // Suggestions
   'suggestion.explain': 'Wyjaśnij ten projekt',

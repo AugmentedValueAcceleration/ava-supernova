@@ -1035,6 +1035,28 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     if (!state.isStreaming) writeRoomMessages(roomKey, state.messages);
   }, [state, lane, roomKey]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // ── Following the conversation ─────────────────────────────────────────
+  // The landing scroll below already handles arriving at a loaded chat. What
+  // it did NOT handle was the user scrolling UP to re-read: every token that
+  // arrived yanked them back down. Follow only while they are already at the
+  // bottom, and offer a button when they are not.
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
+
+  const handleMessagesScroll = useCallback(() => {
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    // A threshold, not equality: sub-pixel rounding and a message still
+    // growing both mean scrollTop never exactly equals the maximum.
+    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80);
+  }, []);
+
+  const jumpToLatest = useCallback(() => {
+    const el = messagesScrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    setAtBottom(true);
+  }, []);
   const justLoadedRef = useRef(false);
 
   // Delta buffer for smooth typing animation
@@ -1156,11 +1178,11 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
           setTimeout(() => { scrollToBottom(); setTimeout(scrollToBottom, 200); }, 100);
         });
       });
-    } else {
+    } else if (atBottom) {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
     }
-  }, [state.messages, state.isThinking, isActive]);
+  }, [state.messages, state.isThinking, isActive, atBottom]);
 
   // ── Callbacks ──────────────────────────────────────────────────────────────
 
@@ -1471,6 +1493,8 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             onSuggestion={handleSuggestion}
             onRate={handleRate}
             chatEndRef={chatEndRef}
+            scrollRef={messagesScrollRef}
+            onScroll={handleMessagesScroll}
             needsSetup={state.needsSetup}
             initialized={state.initialized}
             onOpenDashboard={() => onNavigate?.('settings')}
@@ -1489,6 +1513,26 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             designRoom={designRoom}
           />
           ))}
+
+          {/* Jump to the latest. Only while scrolled away — a button offering
+              to take you where you already are is furniture. Outside the
+              scrolling list, so it does not travel with the transcript it is
+              offering to escape. */}
+          {!atBottom && state.messages.length > 0 && (
+            <div className="relative h-0">
+              <button
+                onClick={jumpToLatest}
+                title={t('chat.jump_to_latest')}
+                aria-label={t('chat.jump_to_latest')}
+                className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-[var(--accent)]/40 bg-[var(--bg-card)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-primary)] shadow-lg transition hover:bg-[var(--bg-hover)]"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />
+                </svg>
+                {t('chat.jump_to_latest')}
+              </button>
+            </div>
+          )}
 
           {/* Compression indicator */}
           {state.isCompressing && (

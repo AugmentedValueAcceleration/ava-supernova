@@ -90,6 +90,7 @@ export const koStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} 생각하는 중...',
   'thinking.compressing': '컨텍스트를 압축하는 중...',
   'thinking.generic': '처리 중...',
+  'chat.jump_to_latest': '최신으로 이동',
 
   // Suggestions
   'suggestion.explain': '코드베이스 설명',

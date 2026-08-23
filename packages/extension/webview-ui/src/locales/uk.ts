@@ -90,6 +90,7 @@ export const ukStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} думає...',
   'thinking.compressing': 'Стискаю контекст...',
   'thinking.generic': 'Працюю...',
+  'chat.jump_to_latest': 'До найновіших',
 
   // Suggestions
   'suggestion.explain': 'Поясни цей проєкт',

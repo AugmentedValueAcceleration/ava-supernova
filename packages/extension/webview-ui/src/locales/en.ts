@@ -99,6 +99,7 @@ export const enStrings = {
   'thinking.reasoning': '{model} is thinking...',
   'thinking.compressing': 'Compressing context...',
   'thinking.generic': 'Working...',
+  'chat.jump_to_latest': 'Jump to latest',
 
   // Suggestions
   'suggestion.explain': 'Explain this codebase',

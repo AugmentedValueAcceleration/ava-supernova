@@ -29,6 +29,9 @@ interface ChatContainerProps {
   onSuggestion: (prompt: string) => void;
   onRate?: (messageId: string, rating: 'up' | 'down', reason?: string, note?: string) => void;
   chatEndRef: RefObject<HTMLDivElement | null>;
+  /** The scrolling message list, so the page can ask where it is. */
+  scrollRef?: RefObject<HTMLDivElement | null>;
+  onScroll?: () => void;
   needsSetup?: boolean;
   initialized?: boolean;
   onOpenDashboard?: () => void;
@@ -61,7 +64,7 @@ interface ChatContainerProps {
 // / activeModel / models stay in ChatContainerProps for caller
 // compatibility but are no longer destructured here.
 
-export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, initialized, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl, lane = 'main', designRoom = 'icon' }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, scrollRef, onScroll, initialized, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl, lane = 'main', designRoom = 'icon' }: ChatContainerProps) {
   useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
@@ -120,7 +123,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
     <div className="flex-1 flex flex-col min-h-0">
       {/* ContextBar moved out — Chat.tsx renders it between the message
           list and the composer so the gauge is right where typing happens. */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('dash.chat.messages_log')} aria-live="polite">
+      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('dash.chat.messages_log')} aria-live="polite">
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}

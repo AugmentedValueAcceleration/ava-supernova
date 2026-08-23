@@ -90,6 +90,7 @@ export const nlStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} denkt na...',
   'thinking.compressing': 'Context wordt gecomprimeerd...',
   'thinking.generic': 'Bezig...',
+  'chat.jump_to_latest': 'Naar nieuwste',
 
   // Suggestions
   'suggestion.explain': 'Leg deze codebase uit',

@@ -90,6 +90,7 @@ export const ruStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} думает...',
   'thinking.compressing': 'Сжимаю контекст...',
   'thinking.generic': 'Работаю...',
+  'chat.jump_to_latest': 'К последним',
 
   // Suggestions
   'suggestion.explain': 'Объясни эту кодовую базу',

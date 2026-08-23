@@ -90,6 +90,7 @@ export const deStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} denkt nach...',
   'thinking.compressing': 'Kontext wird komprimiert...',
   'thinking.generic': 'Arbeitet...',
+  'chat.jump_to_latest': 'Zum Neuesten springen',
 
   // Suggestions
   'suggestion.explain': 'Dieses Projekt erkl\u00e4ren',

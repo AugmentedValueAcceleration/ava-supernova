@@ -90,6 +90,7 @@ export const idStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} sedang berpikir...',
   'thinking.compressing': 'Memampatkan konteks...',
   'thinking.generic': 'Sedang bekerja...',
+  'chat.jump_to_latest': 'Ke pesan terbaru',
 
   // Suggestions
   'suggestion.explain': 'Jelaskan codebase ini',

@@ -105,6 +105,31 @@ describe('document_author tool', () => {
     expect(md.trimEnd().endsWith('End.')).toBe(true);
   });
 
+  it('refuses to build without a format, rather than guessing two', async () => {
+    // The bug this holds down: `build` defaulted to 'both' — docx AND pdf — so
+    // one request for a document left three files on disk (source + two
+    // exports) that nobody asked for. A format is a question about who the
+    // copy is for, and the tool cannot know that.
+    await tool.execute({ action: 'create', file_path: 'doc.md', content: DOC }, ctx);
+    const r = await tool.execute({ action: 'build', file_path: 'doc.md' }, ctx);
+
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/format/i);
+    expect(existsSync(join(dir, 'doc.docx')), 'no docx written').toBe(false);
+    expect(existsSync(join(dir, 'doc.pdf')), 'no pdf written').toBe(false);
+    // The document itself is untouched — it is the source, not an export.
+    expect(existsSync(join(dir, 'doc.md'))).toBe(true);
+  });
+
+  it('builds exactly the one format asked for', async () => {
+    await tool.execute({ action: 'create', file_path: 'one.md', content: DOC }, ctx);
+    const r = await tool.execute({ action: 'build', file_path: 'one.md', format: 'odt' }, ctx);
+    expect(r.success).toBe(true);
+    expect(existsSync(join(dir, 'one.odt'))).toBe(true);
+    expect(existsSync(join(dir, 'one.docx')), 'nothing extra').toBe(false);
+    expect(existsSync(join(dir, 'one.pdf')), 'nothing extra').toBe(false);
+  });
+
   it('builds docx and pdf from the markdown source', async () => {
     await tool.execute({ action: 'create', file_path: 'doc.md', content: DOC }, ctx);
     const r = await tool.execute({ action: 'build', file_path: 'doc.md', format: 'both' }, ctx);

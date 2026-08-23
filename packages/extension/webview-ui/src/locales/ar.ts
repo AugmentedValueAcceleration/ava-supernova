@@ -90,6 +90,7 @@ export const arStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} يفكر...',
   'thinking.compressing': 'جارٍ ضغط السياق...',
   'thinking.generic': 'جارٍ العمل...',
+  'chat.jump_to_latest': 'الانتقال إلى الأحدث',
 
   // Suggestions
   'suggestion.explain': 'اشرح هذا المشروع',

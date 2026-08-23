@@ -90,6 +90,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} 正在思考...',
   'thinking.compressing': '正在壓縮上下文...',
   'thinking.generic': '處理中...',
+  'chat.jump_to_latest': '跳到最新',
 
   // Suggestions
   'suggestion.explain': '解釋這個程式碼庫',

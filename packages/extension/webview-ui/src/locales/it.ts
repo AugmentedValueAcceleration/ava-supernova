@@ -90,6 +90,7 @@ export const itStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} sta pensando...',
   'thinking.compressing': 'Compressione del contesto...',
   'thinking.generic': 'In corso...',
+  'chat.jump_to_latest': 'Vai agli ultimi',
 
   // Suggestions
   'suggestion.explain': 'Spiega questo progetto',

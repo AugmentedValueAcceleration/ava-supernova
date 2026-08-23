@@ -90,6 +90,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} 正在思考...',
   'thinking.compressing': '正在压缩上下文...',
   'thinking.generic': '处理中...',
+  'chat.jump_to_latest': '跳到最新',
 
   // Suggestions
   'suggestion.explain': '解释这个代码库',

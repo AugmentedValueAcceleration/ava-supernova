@@ -27,6 +27,9 @@ interface ChatContainerProps {
   onSuggestion: (prompt: string) => void;
   onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
   chatEndRef: RefObject<HTMLDivElement | null>;
+  /** The scrolling message list, so the page can ask where it is. */
+  scrollRef?: RefObject<HTMLDivElement | null>;
+  onScroll?: () => void;
   needsSetup?: boolean;
   consentRequired?: boolean;
   onAcceptConsent?: () => void;
@@ -59,7 +62,7 @@ interface ChatContainerProps {
 // IDE's single-seeded-message empty state. Props onSuggestion / activeModel
 // / models stay in ChatContainerProps for caller compatibility but are no
 // longer destructured here.
-export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, scrollRef, onScroll, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -262,7 +265,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
           composer so the bar sits next to where the user is typing, not at
           the far top of the message list where it was easy to forget. */}
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('chat.messages_aria')} aria-live="polite">
+      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('chat.messages_aria')} aria-live="polite">
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}

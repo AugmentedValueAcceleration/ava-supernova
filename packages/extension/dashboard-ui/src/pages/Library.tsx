@@ -202,6 +202,21 @@ export function Library({
   const [assetType, setAssetType] = useState<string>('all');
   const selectAssetGroup = (g: string) => { setAssetGroup(g); setAssetType('all'); };
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // Show the Markdown source alongside a document's exports. Off by default:
+  // the source is on every document and says nothing by being listed, so it
+  // is clutter for most people most of the time. It never hides a DOCUMENT —
+  // only whether the .md is named among its formats — so a source-only
+  // document still has a card.
+  const [showSource, setShowSource] = useState<boolean>(() => {
+    try { return localStorage.getItem('ava-library-show-source') === '1'; } catch { return false; }
+  });
+  const toggleShowSource = () => {
+    setShowSource((on) => {
+      const next = !on;
+      try { localStorage.setItem('ava-library-show-source', next ? '1' : '0'); } catch { /* quota */ }
+      return next;
+    });
+  };
   const [docType, setDocType] = useState<DocTypeFilter>('all');
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [selected, setSelected] = useState<UnifiedItem | null>(null);
@@ -305,6 +320,9 @@ export function Library({
     }
     return docType === 'all' ? list : list.filter(i => i.kind === docType);
   }, [images, projectRoot, docType]);
+
+  // One card per document rather than one per file — see groupDocuments.
+  const documentGroups = useMemo(() => groupDocuments(documentItems), [documentItems]);
 
   return (
     <div className="w-full">
@@ -549,6 +567,18 @@ export function Library({
             </div>
             <div className="mb-1 flex items-center gap-2">
               <ViewToggle mode={viewMode} onChange={setViewMode} />
+              <label
+                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                title={tt('library.show_source_title', 'Show the Markdown source alongside each document')}
+              >
+                <input
+                  type="checkbox"
+                  checked={showSource}
+                  onChange={toggleShowSource}
+                  className="h-3 w-3 accent-[var(--accent)]"
+                />
+                {tt('library.show_source', 'Show .md')}
+              </label>
               <button
                 onClick={() => setNewDocOpen(true)}
                 className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
@@ -572,15 +602,35 @@ export function Library({
           ) : documentItems.length > 0 ? (
             viewMode === 'grid' ? (
               <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
-                {documentItems.map(item => (
-                  <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+                {documentGroups.map(group => (
+                  <DocumentCard
+                    key={group.key}
+                    group={group}
+                    showSource={showSource}
+                    selected={selected?.id === group.primary.id}
+                    onSelect={() => setSelected(selected?.id === group.primary.id ? null : group.primary)}
+                  />
                 ))}
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                {documentItems.map(item => (
-                  <AssetRow key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
-                ))}
+                {/* The list shows every file, because that view is the one
+                    people reach for when they want the files themselves. The
+                    source is filtered out unless asked for, same as the grid. */}
+                {documentGroups.flatMap(group =>
+                  group.members
+                    .filter(m => showSource || !SOURCE_EXTENSIONS.has(splitPath((m.raw as Partial<LibraryImage>).path ?? m.title).ext))
+                    .map(item => (
+                      <AssetRow key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+                    )),
+                )}
+                {/* A source-only document would vanish from the list entirely
+                    with .md hidden, so it keeps its own row. */}
+                {!showSource && documentGroups
+                  .filter(g => g.members.every(m => SOURCE_EXTENSIONS.has(splitPath((m.raw as Partial<LibraryImage>).path ?? m.title).ext)))
+                  .map(group => (
+                    <AssetRow key={group.key} item={group.primary} selected={selected?.id === group.primary.id} onSelect={() => setSelected(selected?.id === group.primary.id ? null : group.primary)} />
+                  ))}
               </div>
             )
           ) : null}
@@ -597,7 +647,12 @@ export function Library({
       {/* Preview + actions modal. Renders for Assets and Documents tabs;
           Courses delegates to LearningLibrary which has its own detail view. */}
       {selected && (tab === 'assets' || tab === 'documents') && (
-        <PreviewModal item={selected} onClose={() => setSelected(null)} />
+        <PreviewModal
+          item={selected}
+          siblings={documentGroups.find(g => g.members.some(m => m.id === selected.id))?.members}
+          showSource={showSource}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );
@@ -618,9 +673,18 @@ export function Library({
 // plumbing. Cloud items use open_url for the public storage URL.
 function PreviewModal({
   item,
+  siblings,
+  showSource,
   onClose,
 }: {
   item: UnifiedItem;
+  /** Every file this document exists as, when it came from a grouped card.
+   *  Without it the drawer could only act on the source, so a grouped card
+   *  gave you no way to open the PDF it was telling you about. */
+  siblings?: UnifiedItem[];
+  /** The Library's "Show .md" setting. The drawer honours it too — a source
+   *  hidden in the grid and then listed here is the checkbox lying. */
+  showSource?: boolean;
   onClose: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -648,6 +712,28 @@ function PreviewModal({
   const isLocalCreative = isLocal && !rawImg.path && typeof rawCreative.url === 'string';
 
   const localPath = isLocal ? rawImg.path : undefined;
+
+  // Set when a single format is being removed rather than the whole
+   // document, so one confirmation panel serves both scopes.
+  const [pendingDelete, setPendingDelete] = useState<UnifiedItem | null>(null);
+
+  // What the delete prompt names, and how many files it is really about.
+  // A grouped card stands for the document, so the count is its files.
+  const deleteCount = pendingDelete ? 1 : (siblings && siblings.length > 1 ? siblings.length : 1);
+  const deleteName = pendingDelete
+    ? pendingDelete.title
+    : (siblings && siblings.length > 1
+      ? splitPath((item.raw as Partial<LibraryImage>).path ?? item.title).stem
+      : item.title);
+
+  // The files to list under Formats. Honours "Show .md" for the same reason
+  // the grid does: the source is on every document and says nothing by being
+  // named. Falls back to the single item when this was not a grouped card.
+  const visibleSiblings = (siblings ?? []).filter((sib) => {
+    if (showSource) return true;
+    const ext = splitPath((sib.raw as Partial<LibraryImage>).path ?? sib.title).ext;
+    return !SOURCE_EXTENSIONS.has(ext);
+  });
   const cloudUrl = !isLocal ? (item.raw as CreativeAsset).url ?? undefined : undefined;
 
   // Playback source — cloud assets use their public URL; local files
@@ -696,12 +782,8 @@ function PreviewModal({
     return () => window.removeEventListener('message', onMessage);
   }, [localPath]);
 
-  const handleReveal = () => {
-    if (isLocal && localPath) {
-      post({ type: 'reveal_in_explorer', path: localPath });
-      onClose();
-    }
-  };
+  // handleReveal removed with the top-level button: each row under Formats
+  // reveals its own file, which is the one the user actually pointed at.
 
   const handleDownload = () => {
     if (isLocal && localPath) {
@@ -750,7 +832,27 @@ function PreviewModal({
       onClose();
       return;
     }
+    // A single format the user picked out of the Formats list.
+    if (pendingDelete) {
+      const path = (pendingDelete.raw as Partial<LibraryImage>).path;
+      if (path) post({ type: 'delete_library_image', path });
+      setPendingDelete(null);
+      setConfirmDelete(false);
+      return;
+    }
     if (isLocal && localPath) {
+      // Every file of a grouped document, not only the source. The card says
+      // "Sacred-Crossing-Overview"; deleting only the .md would leave the
+      // .pdf and .docx behind and the document would reappear as an orphan.
+      // Same principle as logoGroup above.
+      const groupPaths = (siblings ?? [])
+        .map((sib) => (sib.raw as Partial<LibraryImage>).path)
+        .filter((p): p is string => !!p);
+      if (groupPaths.length > 1) {
+        for (const path of groupPaths) post({ type: 'delete_library_image', path });
+        onClose();
+        return;
+      }
       post({ type: 'delete_library_image', path: localPath });
       onClose();
       return;
@@ -779,7 +881,9 @@ function PreviewModal({
     // this arrives from the right and leaves the list behind it.
     <Drawer
       onClose={onClose}
-      title={item.title}
+      // The document's name, not the source file's. With .md hidden in the
+      // grid, a drawer headed "Sacred-Crossing-Overview.md" contradicts it.
+      title={siblings && siblings.length > 1 ? splitPath((item.raw as Partial<LibraryImage>).path ?? item.title).stem : item.title}
       subtitle={item.subtitle || undefined}
       maxWidth={620}
       closeLabel={t('library.close_preview')}
@@ -925,14 +1029,127 @@ function PreviewModal({
                   : `${tt('library.export_as', 'Export')} ${TARGET_LABELS[format]}`}
               </button>
             ))}
-            {isLocal && localPath && (
+            {/* Reveal is not here any more: every row in Formats below has
+                its own, and a top-level one acted on whichever file happened
+                to be selected — which is not a thing the user picked. */}
+            {!isLocal && cloudUrl && (
               <button
-                onClick={handleReveal}
+                onClick={handleCopyUrl}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
               >
-                {t('library.reveal')}
+                {copied ? t('library.copied') : t('library.copy_url')}
               </button>
             )}
+          </div>
+
+          {/* Every file this document exists as. A grouped card says "also a
+              PDF"; this is where you actually open it. */}
+          {visibleSiblings.length > 0 && (
+            <div className="mt-4 border-t border-[var(--border)] pt-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                {tt('library.formats', 'Formats')}
+              </p>
+              <div className="flex flex-col gap-1">
+                {visibleSiblings.map((sib) => {
+                  const sibPath = (sib.raw as Partial<LibraryImage>).path;
+                  const ext = splitPath(sibPath ?? sib.title).ext;
+                  const tint = DOC_FORMAT_TINTS[ext];
+                  const isCurrent = sib.id === item.id;
+                  return (
+                    <div
+                      key={sib.id}
+                      className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${isCurrent ? 'bg-[var(--bg-hover)]' : ''}`}
+                    >
+                      <span
+                        className="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase"
+                        style={{ background: tint?.bg ?? 'rgba(148,163,184,0.12)', color: tint?.fg ?? 'var(--text-muted)' }}
+                      >
+                        {ext}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--text-secondary)]">
+                        {sib.title}
+                      </span>
+                      {sibPath && (
+                        <>
+                          <button
+                            onClick={() => post({ type: 'open_external', path: sibPath })}
+                            className="rounded border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                          >
+                            {t('dash.library.open')}
+                          </button>
+                          {/* Exports only. The source IS the document, so
+                              removing it here would orphan the copies — the
+                              whole-document delete lives in the footer. */}
+                          {!SOURCE_EXTENSIONS.has(ext) && (
+                            <button
+                              onClick={() => { setPendingDelete(sib); setConfirmDelete(true); }}
+                              className="rounded border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--text-muted)] transition hover:text-red-400 hover:border-red-500/40"
+                            >
+                              {t('library.delete')}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => post({ type: 'reveal_in_explorer', path: sibPath })}
+                            className="rounded border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                          >
+                            {t('library.reveal')}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Say what happened. An export that silently succeeds looks broken,
+              and one that silently fails looks worse. */}
+          {exportNote && (
+            <p className={`mt-2 text-xs ${exportNote.ok ? 'text-[var(--accent)]' : 'text-red-400'}`}>
+              {exportNote.text}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Download and Delete sit at the foot, apart from the rest. Neither is
+          about reading or producing the document — one takes a copy out of the
+          app, the other destroys it — and a Delete sharing a row with Export
+          is one mis-click from a very different outcome. Pinned below the
+          scroll so a long document cannot push them out of reach. */}
+      <div className="shrink-0 border-t border-[var(--border)] px-5 py-3">
+        {confirmDelete ? (
+          /* An actual question. The old confirmation relabelled the same
+             button to "Confirm delete", which is easy to miss on a button you
+             have already decided to press — and it never said how many files
+             were going, which matters now a card can stand for three. */
+          <div>
+            <p className="text-xs font-medium text-[var(--text-primary)]">
+              {t('library.delete_confirm_title', { name: deleteName })}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
+              {deleteCount > 1
+                ? t('library.delete_confirm_many', { count: String(deleteCount) })
+                : t('library.delete_confirm_one')}
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                onClick={() => { setConfirmDelete(false); setPendingDelete(null); }}
+                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+              >
+                {t('library.cancel')}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="rounded-lg border border-red-500/60 bg-red-500/15 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/25"
+              >
+                {t('library.delete')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
             {((isLocal && localPath) || cloudUrl) && (
               <button
                 onClick={handleDownload}
@@ -945,34 +1162,14 @@ function PreviewModal({
                 {t('library.download')}
               </button>
             )}
-            {!isLocal && cloudUrl && (
-              <button
-                onClick={handleCopyUrl}
-                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
-              >
-                {copied ? t('library.copied') : t('library.copy_url')}
-              </button>
-            )}
             <button
-              onClick={handleDelete}
-              className={`ml-auto rounded-lg px-3 py-1.5 text-xs font-medium transition border ${
-                confirmDelete
-                  ? 'border-red-500/60 bg-red-500/15 text-red-400 hover:bg-red-500/25'
-                  : 'border-[var(--border)] text-[var(--text-muted)] hover:text-red-400 hover:border-red-500/40'
-              }`}
+              onClick={() => setConfirmDelete(true)}
+              className="ml-auto rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-red-400 hover:border-red-500/40"
             >
-              {confirmDelete ? t('library.confirm_delete') : t('library.delete')}
+              {t('library.delete')}
             </button>
           </div>
-
-          {/* Say what happened. An export that silently succeeds looks broken,
-              and one that silently fails looks worse. */}
-          {exportNote && (
-            <p className={`mt-2 text-xs ${exportNote.ok ? 'text-[var(--accent)]' : 'text-red-400'}`}>
-              {exportNote.text}
-            </p>
-          )}
-        </div>
+        )}
       </div>
     </Drawer>
   );
@@ -1387,6 +1584,74 @@ function NewDocumentModal({ onClose }: { onClose: () => void }) {
 // ── Asset card ──────────────────────────────────────────────────────────
 
 /**
+ * One document, however many files it was rendered into.
+ *
+ * `Sacred-Crossing-Overview.md`, `.docx` and `.pdf` are not three documents —
+ * they are one document and two copies of it, and showing three tiles for one
+ * thing is what made a single request look like clutter. Grouping happens in
+ * the VIEW: nothing moves on disk, no folders are created, and turning this
+ * off would restore the old listing exactly.
+ *
+ * Keyed on directory + stem, so two documents of the same name in different
+ * folders stay apart.
+ */
+export interface DocumentGroup {
+  key: string;
+  /** Filename stem — what the document is called. */
+  title: string;
+  /** The source (.md) when there is one, otherwise the first file found. */
+  primary: UnifiedItem;
+  /** Every file, source first then exports, newest-modified order preserved. */
+  members: UnifiedItem[];
+  /** Lowercase extensions present, source first. */
+  formats: string[];
+}
+
+/** '.../a/b/Report.docx' → { dir: '.../a/b', stem: 'Report', ext: 'docx' } */
+function splitPath(path: string): { dir: string; stem: string; ext: string } {
+  const slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  const dir = slash >= 0 ? path.slice(0, slash) : '';
+  const base = slash >= 0 ? path.slice(slash + 1) : path;
+  const dot = base.lastIndexOf('.');
+  return dot > 0
+    ? { dir, stem: base.slice(0, dot), ext: base.slice(dot + 1).toLowerCase() }
+    : { dir, stem: base, ext: '' };
+}
+
+const SOURCE_EXTENSIONS = new Set(['md', 'markdown', 'txt', 'csv']);
+
+function groupDocuments(items: UnifiedItem[]): DocumentGroup[] {
+  const groups = new Map<string, DocumentGroup>();
+  for (const item of items) {
+    const raw = (item.raw as Partial<LibraryImage>).path ?? item.title;
+    const { dir, stem, ext } = splitPath(raw);
+    const key = `${dir}/${stem}`.toLowerCase();
+
+    let group = groups.get(key);
+    if (!group) {
+      group = { key, title: stem, primary: item, members: [], formats: [] };
+      groups.set(key, group);
+    }
+    group.members.push(item);
+    // The source leads: it is the document, and the exports are copies of it.
+    if (SOURCE_EXTENSIONS.has(ext)) {
+      group.primary = item;
+      group.members.sort((a, b) => {
+        const ea = splitPath((a.raw as Partial<LibraryImage>).path ?? a.title).ext;
+        const eb = splitPath((b.raw as Partial<LibraryImage>).path ?? b.title).ext;
+        return Number(SOURCE_EXTENSIONS.has(eb)) - Number(SOURCE_EXTENSIONS.has(ea));
+      });
+    }
+  }
+  for (const group of groups.values()) {
+    group.formats = group.members.map(
+      (m) => splitPath((m.raw as Partial<LibraryImage>).path ?? m.title).ext,
+    ).filter(Boolean);
+  }
+  return [...groups.values()];
+}
+
+/**
  * Per-format tint for a document tile.
  *
  * A document has no thumbnail, so the tile used to be a large grey glyph
@@ -1504,6 +1769,89 @@ function AssetCard({
 
 /** List-view row — same item, horizontal layout. Mirrors the IDE Library's
  *  list mode: small thumbnail, title + kind, source badge on the right. */
+/**
+ * A document tile: one card, however many files the document exists as.
+ *
+ * The art is the source's format, and the exports sit under it as chips — so
+ * "this is a Markdown document that also exists as a PDF" reads at a glance,
+ * where three separate tiles read as three unrelated things.
+ */
+function DocumentCard({
+  group,
+  selected,
+  onSelect,
+  showSource,
+}: {
+  group: DocumentGroup;
+  selected: boolean;
+  onSelect: () => void;
+  showSource: boolean;
+}) {
+  // What the tile is allowed to say. The art headlines the FIRST visible
+  // format and the chips carry the rest — so nothing is both hidden by the
+  // checkbox and shouted from the artwork (the tile read "MD" in large type
+  // while the chips said PDF and DOCX), and no format is stated twice.
+  const visible = showSource
+    ? group.formats
+    : group.formats.filter((f) => !SOURCE_EXTENSIONS.has(f));
+  // A source-only document has nothing else to show, so it shows its source
+  // rather than an empty square — and the chip row says as much.
+  const sourceOnly = visible.length === 0;
+  const headline = sourceOnly
+    ? splitPath((group.primary.raw as Partial<LibraryImage>).path ?? group.primary.title).ext
+    : visible[0];
+  const tint = DOC_FORMAT_TINTS[headline];
+  const chips = sourceOnly ? [] : visible.slice(1);
+
+  return (
+    <button
+      onClick={onSelect}
+      className={`group relative rounded-xl overflow-hidden border bg-[var(--bg-card)] text-left transition hover:border-[var(--accent)]/50 ${
+        selected ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30' : 'border-[var(--border)]'
+      }`}
+    >
+      <div
+        className="flex h-24 w-full flex-col items-center justify-center gap-1"
+        style={{ background: tint?.bg ?? 'rgba(148,163,184,0.10)' }}
+      >
+        <span
+          className="font-mono text-[17px] font-semibold tracking-[0.14em]"
+          style={{ color: tint?.fg ?? 'var(--text-muted)' }}
+        >
+          {headline.toUpperCase()}
+        </span>
+        <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
+          {group.primary.kind}
+        </span>
+      </div>
+      <div className="p-2.5">
+        <p className="truncate text-[11px] font-medium text-[var(--text-primary)]">{group.title}</p>
+        <div className="mt-1 flex items-center justify-between gap-1">
+          <span className="flex flex-wrap items-center gap-1">
+            {chips.length === 0 ? (
+              <span className="text-[9px] text-[var(--text-muted)]">{tt('library.source_only', 'source only')}</span>
+            ) : chips.map((ext) => {
+              const t = DOC_FORMAT_TINTS[ext];
+              return (
+                <span
+                  key={ext}
+                  className="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase"
+                  style={{ background: t?.bg ?? 'rgba(148,163,184,0.12)', color: t?.fg ?? 'var(--text-muted)' }}
+                >
+                  {ext}
+                </span>
+              );
+            })}
+          </span>
+          <span className="shrink-0 text-[9px] text-[var(--text-muted)]">
+            {group.primary.createdAt ? new Date(group.primary.createdAt).toLocaleDateString() : ''}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 function AssetRow({
   item,
   selected,

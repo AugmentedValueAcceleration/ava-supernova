@@ -90,6 +90,7 @@ export const ptStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} está pensando...',
   'thinking.compressing': 'Comprimindo o contexto...',
   'thinking.generic': 'Trabalhando...',
+  'chat.jump_to_latest': 'Ir para o mais recente',
 
   // Suggestions
   'suggestion.explain': 'Explicar este projeto',

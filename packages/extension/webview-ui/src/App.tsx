@@ -1020,6 +1020,28 @@ export function App() {
   }, [state.messages, state.currentConversationId, state.isStreaming, getState, setState]);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // ── Following the conversation ─────────────────────────────────────────
+  // The landing scroll below already handles arriving at a loaded chat. What
+  // it did NOT handle was the user scrolling UP to re-read: every token that
+  // arrived yanked them back down. Follow only while they are already at the
+  // bottom, and offer a button when they are not.
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
+
+  const handleMessagesScroll = useCallback(() => {
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    // A threshold, not equality: sub-pixel rounding and a message still
+    // growing both mean scrollTop never exactly equals the maximum.
+    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80);
+  }, []);
+
+  const jumpToLatest = useCallback(() => {
+    const el = messagesScrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    setAtBottom(true);
+  }, []);
   const justLoadedRef = useRef(false);
 
   // Delta buffer for smooth typing animation
@@ -1134,12 +1156,12 @@ export function App() {
           }, 100);
         });
       });
-    } else {
+    } else if (atBottom) {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       // Extra scroll after tool results render (present_plan, large outputs)
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
     }
-  }, [state.messages, state.isThinking]);
+  }, [state.messages, state.isThinking, atBottom]);
 
   const handleSend = useCallback(
     (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => {
@@ -1473,6 +1495,8 @@ export function App() {
           onSuggestion={handleSuggestion}
           onRate={handleRate}
           chatEndRef={chatEndRef}
+          scrollRef={messagesScrollRef}
+          onScroll={handleMessagesScroll}
           needsSetup={state.needsSetup}
           consentRequired={state.consentRequired}
           onAcceptConsent={handleAcceptConsent}
@@ -1495,6 +1519,26 @@ export function App() {
           userName={state.signInAccount?.name?.split(' ')[0] ?? null}
           userAvatarUrl={state.signInAccount?.avatar_url ?? null}
         />
+        )}
+
+        {/* Jump to the latest. Only while scrolled away — a button offering
+            to take you where you already are is furniture. Outside the
+            scrolling list, so it does not travel with the transcript it is
+            offering to escape. */}
+        {!atBottom && state.messages.length > 0 && (
+          <div className="relative h-0">
+            <button
+              onClick={jumpToLatest}
+              title={t('chat.jump_to_latest')}
+              aria-label={t('chat.jump_to_latest')}
+              className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-[var(--accent)]/40 bg-[var(--bg-card)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-primary)] shadow-lg transition hover:bg-[var(--bg-hover)]"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />
+              </svg>
+              {t('chat.jump_to_latest')}
+            </button>
+          </div>
         )}
 
         {/* Context usage — sits flush above the composer so the bar is

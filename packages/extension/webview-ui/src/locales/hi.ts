@@ -90,6 +90,7 @@ export const hiStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} सोच रहा है...',
   'thinking.compressing': 'संदर्भ संपीड़ित किया जा रहा है...',
   'thinking.generic': 'काम चल रहा है...',
+  'chat.jump_to_latest': 'नवीनतम पर जाएँ',
 
   // Suggestions
   'suggestion.explain': 'इस कोडबेस को समझाएँ',

@@ -90,6 +90,7 @@ export const jaStrings: Record<StringKey, string> = {
   'thinking.reasoning': '{model} が考えています...',
   'thinking.compressing': 'コンテキストを圧縮しています...',
   'thinking.generic': '処理中...',
+  'chat.jump_to_latest': '最新へ移動',
 
   // Suggestions
   'suggestion.explain': 'コードベースを解説',
