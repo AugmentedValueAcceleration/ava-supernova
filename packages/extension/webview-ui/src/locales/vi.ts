@@ -188,6 +188,7 @@ export const viStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Danh sách tác vụ không khả dụng',
   'todo.tasks': 'Tác vụ',
+  'todo.unfinished': 'chưa xong',
   'todo.done': '{done}/{total} hoàn thành',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const viStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Hôm nay',
-  'tasks.close': 'Đóng',
   'tasks.personal': 'Cá nhân',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Hôm nay',
@@ -238,11 +238,7 @@ export const viStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'Không có nhiệm vụ đang hoạt động',
   'tasks.add_hint': 'Thêm nhiệm vụ trong bảng điều khiển hoặc hỏi Ava',
   'tasks.completed': 'Hoàn thành',
-  'tasks.current': 'Hiện tại',
   'tasks.all_complete': 'Tất cả nhiệm vụ đã hoàn thành',
-  'tasks.step_of': 'Bước {current}/{total}',
-  'tasks.no_active_session': 'Không có phiên đang hoạt động',
-  'tasks.no_completed_yet': 'Chưa có nhiệm vụ nào hoàn thành',
 
   // Memory Panel
   'memory.title': 'Bộ nhớ v2',

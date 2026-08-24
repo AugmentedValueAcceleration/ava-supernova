@@ -188,6 +188,7 @@ export const thStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'รายการงานไม่พร้อมใช้',
   'todo.tasks': 'งาน',
+  'todo.unfinished': 'ยังไม่เสร็จ',
   'todo.done': '{done}/{total} เสร็จ',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const thStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'วันนี้',
-  'tasks.close': 'ปิด',
   'tasks.personal': 'ส่วนตัว',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'วันนี้',
@@ -238,11 +238,7 @@ export const thStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'ไม่มีงานที่ใช้งานอยู่',
   'tasks.add_hint': 'เพิ่มงานในแดชบอร์ดหรือถาม Ava',
   'tasks.completed': 'เสร็จสิ้น',
-  'tasks.current': 'ปัจจุบัน',
   'tasks.all_complete': 'งานทั้งหมดเสร็จสมบูรณ์',
-  'tasks.step_of': 'ขั้นตอน {current} จาก {total}',
-  'tasks.no_active_session': 'ไม่มีเซสชันที่ใช้งานอยู่',
-  'tasks.no_completed_yet': 'ยังไม่มีงานที่เสร็จสิ้น',
 
   // Memory Panel
   'memory.title': 'หน่วยความจำ v2',

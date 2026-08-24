@@ -188,6 +188,7 @@ export const esStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Lista de tareas no disponible',
   'todo.tasks': 'Tareas',
+  'todo.unfinished': 'sin terminar',
   'todo.done': '{done}/{total} completadas',
 
   // Status Bar
@@ -224,7 +225,6 @@ export const esStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Hoy',
-  'tasks.close': 'Cerrar',
   'tasks.personal': 'Personal',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Hoy',
@@ -237,11 +237,7 @@ export const esStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'No hay tareas activas',
   'tasks.add_hint': 'A\u00f1ade tareas en el panel o p\u00eddele a Ava',
   'tasks.completed': 'Completadas',
-  'tasks.current': 'Actual',
   'tasks.all_complete': 'Todas las tareas completas',
-  'tasks.step_of': 'Paso {current} de {total}',
-  'tasks.no_active_session': 'No hay sesi\u00f3n activa',
-  'tasks.no_completed_yet': 'A\u00fan no hay tareas completadas',
 
   // Memory Panel
   'memory.title': 'Memoria v2',

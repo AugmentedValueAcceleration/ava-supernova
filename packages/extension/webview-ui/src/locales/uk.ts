@@ -188,6 +188,7 @@ export const ukStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Список завдань недоступний',
   'todo.tasks': 'Завдання',
+  'todo.unfinished': 'незавершено',
   'todo.done': '{done}/{total} виконано',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const ukStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Сьогодні',
-  'tasks.close': 'Закрити',
   'tasks.personal': 'Особисте',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Сьогодні',
@@ -238,11 +238,7 @@ export const ukStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'Немає активних завдань',
   'tasks.add_hint': 'Додайте завдання у панелі або попросіть Ava',
   'tasks.completed': 'Виконано',
-  'tasks.current': 'Поточне',
   'tasks.all_complete': 'Усі завдання виконано',
-  'tasks.step_of': 'Крок {current} з {total}',
-  'tasks.no_active_session': 'Немає активної сесії',
-  'tasks.no_completed_yet': 'Поки немає виконаних завдань',
 
   // Memory Panel
   'memory.title': 'Пам\'ять v2',

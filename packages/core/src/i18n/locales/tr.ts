@@ -155,6 +155,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'Görev listesi mevcut değil',
   'todo.tasks': 'Görevler',
+  'todo.unfinished': 'tamamlanmadı',
   'todo.done': '{done}/{total} tamamlandı',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Sıfırla',
   'plan.pending': 'beklemede',
   'tasks.today': 'Bugün',
-  'tasks.close': 'Kapat',
   'tasks.personal': 'Kişisel',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Bugün',
@@ -2175,11 +2175,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Aktif görev yok',
   'tasks.add_hint': 'Kontrol panelinde görev ekleyin veya Ava\'ya sorun',
   'tasks.completed': 'Tamamlandı',
-  'tasks.current': 'Mevcut',
   'tasks.all_complete': 'Tüm görevler tamamlandı',
-  'tasks.step_of': 'Adım {current} / {total}',
-  'tasks.no_active_session': 'Aktif oturum yok',
-  'tasks.no_completed_yet': 'Henüz tamamlanmış görev yok',
   'memory.title': 'Hafıza v2',
   'memory.close': 'Kapat',
   'memory.global': 'Genel',
@@ -3009,7 +3005,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Görev ekle',
   'tasks.add_placeholder': 'Ne yapılması gerekiyor?',
   'tasks.cancel': 'İptal',
-  'tasks.ava_recent_work': 'Ava\'nın son işleri',
   'tasks.priority': 'Öncelik',
   'tasks.category': 'Kategori',
   'tasks.due_date': 'Son tarih',
@@ -3018,7 +3013,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Tamamlanan',
   'tasks.empty_today': 'Bugün hiç görev yok. Temiz tahtanın keyfini çıkarın!',
   'tasks.empty_all': 'Henüz görev yok.',
-  'tasks.just_now': 'az önce',
   'tasks.reminder_none': 'Hatırlatıcı yok',
   'tasks.reminder_at_time': 'Belirli saatte',
   'tasks.reminder_10m': '10 dk önce',

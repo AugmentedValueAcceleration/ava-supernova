@@ -188,6 +188,7 @@ export const arStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'قائمة المهام غير متوفرة',
   'todo.tasks': 'المهام',
+  'todo.unfinished': 'غير مكتمل',
   'todo.done': '{done}/{total} مكتمل',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const arStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'اليوم',
-  'tasks.close': 'إغلاق',
   'tasks.personal': 'شخصي',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'اليوم',
@@ -238,11 +238,7 @@ export const arStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'لا توجد مهام نشطة',
   'tasks.add_hint': 'أضف مهام في لوحة التحكم أو اطلب من Ava',
   'tasks.completed': 'مكتملة',
-  'tasks.current': 'الحالية',
   'tasks.all_complete': 'جميع المهام مكتملة',
-  'tasks.step_of': 'الخطوة {current} من {total}',
-  'tasks.no_active_session': 'لا توجد جلسة نشطة',
-  'tasks.no_completed_yet': 'لا توجد مهام مكتملة بعد',
 
   // Memory Panel
   'memory.title': 'الذاكرة v2',

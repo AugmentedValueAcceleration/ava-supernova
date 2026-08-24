@@ -155,6 +155,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'Daftar tugas tidak tersedia',
   'todo.tasks': 'Tugas',
+  'todo.unfinished': 'belum selesai',
   'todo.done': '{done}/{total} selesai',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2149,7 +2150,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Atur Ulang',
   'plan.pending': 'tertunda',
   'tasks.today': 'Hari ini',
-  'tasks.close': 'Tutup',
   'tasks.personal': 'Pribadi',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Hari ini',
@@ -2173,11 +2173,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Tidak ada tugas aktif',
   'tasks.add_hint': 'Tambah tugas di dasbor atau tanya Ava',
   'tasks.completed': 'Selesai',
-  'tasks.current': 'Aktif',
   'tasks.all_complete': 'Semua tugas selesai',
-  'tasks.step_of': 'Langkah {current} dari {total}',
-  'tasks.no_active_session': 'Tidak ada sesi aktif',
-  'tasks.no_completed_yet': 'Belum ada tugas yang selesai',
   'memory.title': 'Memori v2',
   'memory.close': 'Tutup',
   'memory.global': 'Global',
@@ -3007,7 +3003,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Tambah tugas',
   'tasks.add_placeholder': 'Apa yang perlu dilakukan?',
   'tasks.cancel': 'Batal',
-  'tasks.ava_recent_work': 'Pekerjaan terbaru Ava',
   'tasks.priority': 'Prioritas',
   'tasks.category': 'Kategori',
   'tasks.due_date': 'Tanggal jatuh tempo',
@@ -3016,7 +3011,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Selesai',
   'tasks.empty_today': 'Tidak ada tugas hari ini. Nikmati papan yang bersih!',
   'tasks.empty_all': 'Belum ada tugas.',
-  'tasks.just_now': 'baru saja',
   'tasks.reminder_none': 'Tidak ada pengingat',
   'tasks.reminder_at_time': 'Pada waktu',
   'tasks.reminder_10m': '10 menit sebelumnya',

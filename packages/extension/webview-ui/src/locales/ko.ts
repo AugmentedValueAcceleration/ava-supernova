@@ -188,6 +188,7 @@ export const koStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': '작업 목록을 사용할 수 없습니다',
   'todo.tasks': '작업',
+  'todo.unfinished': '미완료',
   'todo.done': '{done}/{total} 완료',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const koStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': '오늘',
-  'tasks.close': '닫기',
   'tasks.personal': '개인',
   'tasks.ava': 'Ava',
   'tasks.filter_today': '오늘',
@@ -238,11 +238,7 @@ export const koStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': '활성 작업 없음',
   'tasks.add_hint': '대시보드에서 작업을 추가하거나 Ava에게 요청하세요',
   'tasks.completed': '완료됨',
-  'tasks.current': '현재',
   'tasks.all_complete': '모든 작업 완료',
-  'tasks.step_of': '{current}/{total} 단계',
-  'tasks.no_active_session': '활성 세션 없음',
-  'tasks.no_completed_yet': '아직 완료된 작업 없음',
 
   // Memory Panel
   'memory.title': '메모리 v2',

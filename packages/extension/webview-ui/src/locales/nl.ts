@@ -188,6 +188,7 @@ export const nlStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Takenlijst niet beschikbaar',
   'todo.tasks': 'Taken',
+  'todo.unfinished': 'onvoltooid',
   'todo.done': '{done}/{total} voltooid',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const nlStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Vandaag',
-  'tasks.close': 'Sluiten',
   'tasks.personal': 'Persoonlijk',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Vandaag',
@@ -238,11 +238,7 @@ export const nlStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'Geen actieve taken',
   'tasks.add_hint': 'Voeg taken toe in het dashboard of vraag Ava',
   'tasks.completed': 'Voltooid',
-  'tasks.current': 'Huidig',
   'tasks.all_complete': 'Alle taken voltooid',
-  'tasks.step_of': 'Stap {current} van {total}',
-  'tasks.no_active_session': 'Geen actieve sessie',
-  'tasks.no_completed_yet': 'Nog geen voltooide taken',
 
   // Memory Panel
   'memory.title': 'Geheugen v2',

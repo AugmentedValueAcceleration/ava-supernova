@@ -1433,7 +1433,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             openDocName={state.openDoc?.name ?? null}
             onToggleTasks={handleToggleTasks}
             tasksOpen={state.tasksOpen}
-            sessionTaskCount={state.sessionTasks?.length ?? 0}
             conversationTitle={state.conversationTitle}
             sessionCredits={state.sessionCredits}
             platformStatus={state.platformStatus}
@@ -1632,8 +1631,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
           <TasksPanel
             todayTasks={state.todayTasks}
             allTasks={state.allTasks}
-            sessionTasks={state.sessionTasks}
-            avaCompletedTasks={state.avaCompletedTasks}
             onClose={handleCloseTasks}
             onToggleTask={handleToggleTask}
             onCreateTask={handleCreateTask}
@@ -1649,7 +1646,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
         ) : (
           <TasksSpine
             activeCount={state.allTasks.filter(t => t.status !== 'done').length}
-            sessionTasks={state.sessionTasks}
             onExpand={handleToggleTasks}
           />
         ))}

@@ -197,6 +197,7 @@ export const enStrings = {
   // Todo Card
   'todo.unavailable': 'Task list unavailable',
   'todo.tasks': 'Tasks',
+  'todo.unfinished': 'unfinished',
   'todo.done': '{done}/{total} done',
 
   // Status Bar
@@ -233,7 +234,6 @@ export const enStrings = {
 
   // Tasks Panel
   'tasks.today': 'Today',
-  'tasks.close': 'Close',
   'tasks.personal': 'Personal',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Today',
@@ -246,11 +246,7 @@ export const enStrings = {
   'tasks.no_active_tasks': 'No active tasks. Add one in the dashboard, or just tell Ava what you need to get done.',
   'tasks.add_hint': 'Add tasks in the dashboard or ask Ava',
   'tasks.completed': 'Completed',
-  'tasks.current': 'Current',
   'tasks.all_complete': 'All tasks complete',
-  'tasks.step_of': 'Step {current} of {total}',
-  'tasks.no_active_session': 'No active session',
-  'tasks.no_completed_yet': 'No completed tasks yet',
 
   // Memory Panel
   'memory.title': 'Memory v2',

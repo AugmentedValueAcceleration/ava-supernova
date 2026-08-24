@@ -155,6 +155,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'Danh sách tác vụ không khả dụng',
   'todo.tasks': 'Tác vụ',
+  'todo.unfinished': 'chưa xong',
   'todo.done': '{done}/{total} hoàn thành',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Đặt lại',
   'plan.pending': 'đang chờ',
   'tasks.today': 'Hôm nay',
-  'tasks.close': 'Đóng',
   'tasks.personal': 'Cá nhân',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Hôm nay',
@@ -2175,11 +2175,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Không có tác vụ đang hoạt động',
   'tasks.add_hint': 'Thêm tác vụ trong bảng điều khiển hoặc hỏi Ava',
   'tasks.completed': 'Đã hoàn thành',
-  'tasks.current': 'Hiện tại',
   'tasks.all_complete': 'Tất cả tác vụ đã hoàn thành',
-  'tasks.step_of': 'Bước {current} của {total}',
-  'tasks.no_active_session': 'Không có phiên đang hoạt động',
-  'tasks.no_completed_yet': 'Chưa có tác vụ nào được hoàn thành',
   'memory.title': 'Bộ nhớ v2',
   'memory.close': 'Đóng',
   'memory.global': 'Toàn cục',
@@ -3009,7 +3005,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Thêm nhiệm vụ',
   'tasks.add_placeholder': 'Cần làm gì?',
   'tasks.cancel': 'Hủy',
-  'tasks.ava_recent_work': 'Công việc gần đây của Ava',
   'tasks.priority': 'Ưu tiên',
   'tasks.category': 'Danh mục',
   'tasks.due_date': 'Ngày hết hạn',
@@ -3018,7 +3013,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Hoàn thành',
   'tasks.empty_today': 'Không có nhiệm vụ nào hôm nay. Hãy tận hưởng bảng trống!',
   'tasks.empty_all': 'Chưa có nhiệm vụ nào.',
-  'tasks.just_now': 'vừa xong',
   'tasks.reminder_none': 'Không nhắc nhở',
   'tasks.reminder_at_time': 'Vào lúc',
   'tasks.reminder_10m': 'Trước 10 phút',

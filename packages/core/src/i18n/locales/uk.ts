@@ -155,6 +155,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'Список завдань недоступний',
   'todo.tasks': 'Завдання',
+  'todo.unfinished': 'незавершено',
   'todo.done': '{done}/{total} виконано',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2131,7 +2132,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Скинути',
   'plan.pending': 'Очікує',
   'tasks.today': 'Сьогодні',
-  'tasks.close': 'Закрити',
   'tasks.personal': 'Особисте',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Сьогодні',
@@ -2155,11 +2155,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Немає активних завдань',
   'tasks.add_hint': 'Додавайте завдання в панелі керування або запитайте Ava',
   'tasks.completed': 'Виконано',
-  'tasks.current': 'Поточні',
   'tasks.all_complete': 'Усі завдання виконано',
-  'tasks.step_of': 'Крок {current} з {total}',
-  'tasks.no_active_session': 'Немає активної сесії',
-  'tasks.no_completed_yet': 'Поки що немає виконаних завдань',
   'memory.title': 'Пам\'ять v2',
   'memory.close': 'Закрити',
   'memory.global': 'Глобальна',
@@ -2989,7 +2985,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Додати завдання',
   'tasks.add_placeholder': 'Що потрібно зробити?',
   'tasks.cancel': 'Скасувати',
-  'tasks.ava_recent_work': 'Остання робота Ava',
   'tasks.priority': 'Пріоритет',
   'tasks.category': 'Категорія',
   'tasks.due_date': 'Строк виконання',
@@ -2998,7 +2993,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Готово',
   'tasks.empty_today': 'Сьогодні немає завдань. Насолоджуйтесь чистим списком!',
   'tasks.empty_all': 'Завдань ще немає.',
-  'tasks.just_now': 'щойно',
   'tasks.reminder_none': 'Немає нагадування',
   'tasks.reminder_at_time': 'У вказаний час',
   'tasks.reminder_10m': 'За 10 хв до',

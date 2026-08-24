@@ -155,6 +155,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'タスクリストがありません',
   'todo.tasks': 'タスク',
+  'todo.unfinished': '未完了',
   'todo.done': '{done}/{total} 完了',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2153,7 +2154,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'リセット',
   'plan.pending': '保留中',
   'tasks.today': '今日',
-  'tasks.close': '閉じる',
   'tasks.personal': '個人',
   'tasks.ava': 'Ava',
   'tasks.filter_today': '今日',
@@ -2177,11 +2177,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'アクティブなタスクはありません',
   'tasks.add_hint': 'ダッシュボードでタスクを追加するか、Ava に尋ねてください',
   'tasks.completed': '完了',
-  'tasks.current': '現在',
   'tasks.all_complete': 'すべてのタスク完了',
-  'tasks.step_of': 'ステップ {current} / {total}',
-  'tasks.no_active_session': 'アクティブなセッションはありません',
-  'tasks.no_completed_yet': 'まだ完了したタスクはありません',
   'memory.title': 'メモリ v2',
   'memory.close': '閉じる',
   'memory.global': 'グローバル',
@@ -3011,7 +3007,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'タスクを追加',
   'tasks.add_placeholder': 'やることは？',
   'tasks.cancel': 'キャンセル',
-  'tasks.ava_recent_work': 'Ava の最近の作業',
   'tasks.priority': '優先度',
   'tasks.category': 'カテゴリ',
   'tasks.due_date': '期限',
@@ -3020,7 +3015,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': '完了',
   'tasks.empty_today': '今日はタスクがありません。すっきりしたボードをお楽しみください！',
   'tasks.empty_all': 'まだタスクはありません。',
-  'tasks.just_now': 'たった今',
   'tasks.reminder_none': 'リマインダーなし',
   'tasks.reminder_at_time': '時刻に',
   'tasks.reminder_10m': '10 分前',

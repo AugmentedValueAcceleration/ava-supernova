@@ -155,6 +155,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': '任务列表不可用',
   'todo.tasks': '任务',
+  'todo.unfinished': '未完成',
   'todo.done': '{done}/{total} 已完成',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2131,7 +2132,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': '重置',
   'plan.pending': '待处理',
   'tasks.today': '今天',
-  'tasks.close': '关闭',
   'tasks.personal': '个人',
   'tasks.ava': 'Ava',
   'tasks.filter_today': '今天',
@@ -2155,11 +2155,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': '无活跃任务',
   'tasks.add_hint': '在仪表板添加任务或询问 Ava',
   'tasks.completed': '已完成',
-  'tasks.current': '当前',
   'tasks.all_complete': '所有任务完成',
-  'tasks.step_of': '步骤 {current} / {total}',
-  'tasks.no_active_session': '无活跃会话',
-  'tasks.no_completed_yet': '暂无已完成任务',
   'memory.title': '记忆 v2',
   'memory.close': '关闭',
   'memory.global': '全局',
@@ -2989,7 +2985,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': '添加任务',
   'tasks.add_placeholder': '需要做什么？',
   'tasks.cancel': '取消',
-  'tasks.ava_recent_work': 'Ava 的近期工作',
   'tasks.priority': '优先级',
   'tasks.category': '类别',
   'tasks.due_date': '截止日期',
@@ -2998,7 +2993,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': '已完成',
   'tasks.empty_today': '今天没有任务。享受清爽的看板！',
   'tasks.empty_all': '暂无任务。',
-  'tasks.just_now': '刚刚',
   'tasks.reminder_none': '无提醒',
   'tasks.reminder_at_time': '指定时间',
   'tasks.reminder_10m': '前 10 分钟',

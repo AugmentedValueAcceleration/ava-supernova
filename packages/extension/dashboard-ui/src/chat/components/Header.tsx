@@ -27,7 +27,6 @@ interface HeaderProps {
   sidebarSide?: 'left' | 'right';
   sessionCredits?: number;
   /** Length of session task list — drives the badge on the Tasks pill. */
-  sessionTaskCount?: number;
   /** Loaded conversation title — rendered as a chip next to the model
    *  picker (mirrors IDE chat). null/undefined hides the chip. */
   conversationTitle?: string | null;

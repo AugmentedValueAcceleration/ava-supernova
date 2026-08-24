@@ -155,6 +155,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': '작업 목록을 사용할 수 없습니다',
   'todo.tasks': '작업',
+  'todo.unfinished': '미완료',
   'todo.done': '{done}/{total} 완료',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': '재설정',
   'plan.pending': '대기 중',
   'tasks.today': '오늘',
-  'tasks.close': '닫기',
   'tasks.personal': '개인',
   'tasks.ava': 'Ava',
   'tasks.filter_today': '오늘',
@@ -2175,11 +2175,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': '활성 작업이 없습니다',
   'tasks.add_hint': '대시보드에서 작업을 추가하거나 Ava 에게 물어보세요',
   'tasks.completed': '완료됨',
-  'tasks.current': '현재',
   'tasks.all_complete': '모든 작업 완료',
-  'tasks.step_of': '{current} 단계 중 {total}',
-  'tasks.no_active_session': '활성 세션이 없습니다',
-  'tasks.no_completed_yet': '아직 완료된 작업이 없습니다',
   'memory.title': '메모리 v2',
   'memory.close': '닫기',
   'memory.global': '전체',
@@ -3009,7 +3005,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': '작업 추가',
   'tasks.add_placeholder': '무엇을 해야 할까요?',
   'tasks.cancel': '취소',
-  'tasks.ava_recent_work': 'Ava 의 최근 작업',
   'tasks.priority': '우선순위',
   'tasks.category': '카테고리',
   'tasks.due_date': '마감일',
@@ -3018,7 +3013,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': '완료',
   'tasks.empty_today': '오늘 할 일이 없습니다. 깔끔한 보드를 즐기세요!',
   'tasks.empty_all': '아직 작업이 없습니다.',
-  'tasks.just_now': '방금 전',
   'tasks.reminder_none': '알림 없음',
   'tasks.reminder_at_time': '지정 시간',
   'tasks.reminder_10m': '10 분 전',

@@ -155,6 +155,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'कार्य सूची अनुपलब्ध',
   'todo.tasks': 'कार्य',
+  'todo.unfinished': 'अधूरा',
   'todo.done': '{done}/{total} पूर्ण',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'रीसेट',
   'plan.pending': 'लंबित',
   'tasks.today': 'आज',
-  'tasks.close': 'बंद करें',
   'tasks.personal': 'व्यक्तिगत',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'आज',
@@ -2175,11 +2175,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'कोई सक्रिय कार्य नहीं',
   'tasks.add_hint': 'डैशबोर्ड में कार्य जोड़ें या Ava से पूछें',
   'tasks.completed': 'पूर्ण',
-  'tasks.current': 'वर्तमान',
   'tasks.all_complete': 'सभी कार्य पूर्ण',
-  'tasks.step_of': 'चरण {current} / {total}',
-  'tasks.no_active_session': 'कोई सक्रिय सत्र नहीं',
-  'tasks.no_completed_yet': 'अभी तक कोई पूर्ण कार्य नहीं',
   'memory.title': 'स्मृति v2',
   'memory.close': 'बंद करें',
   'memory.global': 'वैश्विक',
@@ -3009,7 +3005,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'कार्य जोड़ें',
   'tasks.add_placeholder': 'क्या करना बाकी है?',
   'tasks.cancel': 'रद्द करें',
-  'tasks.ava_recent_work': 'Ava का हालिया कार्य',
   'tasks.priority': 'प्राथमिकता',
   'tasks.category': 'श्रेणी',
   'tasks.due_date': 'निर्धारित तिथि',
@@ -3018,7 +3013,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'पूर्ण',
   'tasks.empty_today': 'आज कोई कार्य नहीं। साफ़ बोर्ड का आनंद लें!',
   'tasks.empty_all': 'अभी तक कोई कार्य नहीं।',
-  'tasks.just_now': 'बस अभी',
   'tasks.reminder_none': 'कोई याद दिलावा नहीं',
   'tasks.reminder_at_time': 'समय पर',
   'tasks.reminder_10m': '10 मिनट पहले',

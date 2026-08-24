@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { t, tt, useLocale } from '../../i18n';
 import { Icon } from '../../components/Icon';
-import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI, PlanRecordUI } from '../../types/messages';
+import type { TodayTaskUI, PlanRecordUI } from '../../types/messages';
 
 
 /** Payload for a manually created task from the panel's quick-add. */
@@ -57,8 +57,6 @@ interface TasksPanelProps {
   onOpenPlan: (path: string) => void;
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];
-  sessionTasks: SessionTaskUI[];
-  avaCompletedTasks: AvaCompletedTaskUI[];
   onClose: () => void;
   onToggleTask: (taskId: string) => void;
   onCreateTask: (task: CreateTaskInput) => void;
@@ -75,8 +73,6 @@ export function TasksPanel({
   onOpenPlan,
   todayTasks,
   allTasks,
-  sessionTasks,
-  avaCompletedTasks,
   onClose,
   onToggleTask,
   onCreateTask,
@@ -91,8 +87,17 @@ export function TasksPanel({
   // top only while she's working (no tabs — the relevant thing is just there).
   const [filter, setFilter] = useState<PersonalFilter>('today');
 
-  // The Decisions folder is the user's to edit by hand, so the list is
-  // re-read each time the tab is opened rather than cached from the write.
+  // Load as soon as the panel opens. This used to fire ONLY when the filter
+  // was already 'plans' — and the panel opens on 'today', so the tab sat empty
+  // until you clicked it, which reads as "there are no plans" rather than
+  // "nothing has been fetched yet".
+  useEffect(() => {
+    onRefreshPlans();
+  }, [onRefreshPlans]);
+
+  // And again on entering the tab: the Decisions folder is the user's to edit
+  // by hand, so a list cached at open goes stale the moment they touch it
+  // outside the app.
   useEffect(() => {
     if (filter === 'plans') onRefreshPlans();
   }, [filter, onRefreshPlans]);
@@ -168,7 +173,6 @@ export function TasksPanel({
     };
   }, [onWidthChange]);
 
-  const completedSession = sessionTasks.filter(t => t.status === 'completed').length;
 
   return (
     <div
@@ -234,13 +238,13 @@ export function TasksPanel({
         </div>
       )}
 
-      {/* Body — your tasks fill it; Ava's live work pins to the top as a sticky
-          band only while she's working; her recent work tucks away at the bottom. */}
+      {/* Body — your tasks, and only your tasks.
+          Her live band pinned to the top and her recent-work history sat at the
+          bottom, bracketing this list. Both are gone: her internal to-dos are
+          working notes for one turn, not commitments you made, and mixing them
+          in meant the panel could never be read as "what I have to do". Her
+          progress lives on the chat card, where the work is happening. */}
       <div className="flex-1 overflow-y-auto">
-        {sessionTasks.length > 0 && (
-          <AvaBand sessionTasks={sessionTasks} completedSession={completedSession} />
-        )}
-
         <YourTasks
           todayTasks={todayTasks}
           allTasks={allTasks}
@@ -252,96 +256,7 @@ export function TasksPanel({
           planRecords={planRecords}
           onOpenPlan={onOpenPlan}
         />
-
-        {avaCompletedTasks.length > 0 && (
-          <AvaRecentWork avaCompletedTasks={avaCompletedTasks} />
-        )}
       </div>
-    </div>
-  );
-}
-
-// ── Ava band — sticky live-work indicator ──────────────────────────────────────
-
-function AvaBand({ sessionTasks, completedSession }: { sessionTasks: SessionTaskUI[]; completedSession: number }) {
-  const [expanded, setExpanded] = useState(false);
-  const total = sessionTasks.length;
-  const allDone = completedSession === total;
-  const current = sessionTasks.find(t => t.status === 'in_progress')
-    ?? sessionTasks.find(t => t.status !== 'completed');
-
-  return (
-    <div
-      className="sticky top-0 z-10"
-      style={{
-        background: 'linear-gradient(180deg, rgba(40,22,58,0.97) 0%, rgba(30,18,46,0.97) 100%)',
-        backdropFilter: 'blur(6px)',
-        borderBottom: '1px solid color-mix(in srgb, var(--accent) 18%, transparent)',
-      }}
-    >
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className="w-full flex flex-col gap-1.5 px-3 py-2 bg-transparent border-none cursor-pointer text-left"
-      >
-        <div className="flex items-center gap-2">
-          <span
-            className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
-            style={{ color: allDone ? '#34d399' : 'var(--accent)' }}
-          >
-            {!allDone && <span className="inline-block animate-spin" style={{ animationDuration: '1.5s' }}>⟳</span>}
-            {tt('tasks.ava', 'Ava')}
-          </span>
-          <span className="text-[10px] opacity-50 flex-1 truncate">
-            {allDone ? tt('tasks.all_complete', 'All steps complete') : current?.title}
-          </span>
-          <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: allDone ? '#34d399' : 'var(--accent)' }}>
-            {completedSession}/{total}
-          </span>
-          <svg
-            width="10" height="10" viewBox="0 0 16 16" fill="currentColor"
-            className="opacity-40 flex-shrink-0 transition-transform"
-            style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
-          >
-            <path d="M6 4l4 4-4 4V4z" />
-          </svg>
-        </div>
-        <div className="w-full h-1 rounded-full" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${total > 0 ? (completedSession / total) * 100 : 0}%`, background: allDone ? '#34d399' : 'var(--accent)' }}
-          />
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="px-2 pb-2 flex flex-col gap-0.5">
-          {sessionTasks.map(task => (
-            <SessionItem key={task.id} task={task} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Ava recent work — collapsible history at the bottom ─────────────────────────
-
-function AvaRecentWork({ avaCompletedTasks }: { avaCompletedTasks: AvaCompletedTaskUI[] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mt-1" style={{ borderTop: '1px solid color-mix(in srgb, var(--accent) 6%, transparent)' }}>
-      <CollapsibleSection
-        title={tt('tasks.ava_recent_work', "Ava's recent work")}
-        count={String(avaCompletedTasks.length)}
-        open={open}
-        onToggle={() => setOpen(o => !o)}
-      >
-        <div className="flex flex-col gap-0.5">
-          {avaCompletedTasks.map(task => (
-            <CompletedItem key={task.id} task={task} />
-          ))}
-        </div>
-      </CollapsibleSection>
     </div>
   );
 }
@@ -779,81 +694,6 @@ function PlanRow({ rec, onOpen }: { rec: PlanRecordUI; onOpen: (path: string) =>
   );
 }
 
-// ── Collapsible Section ───────────────────────────────────────────────────────
-
-function CollapsibleSection({
-  title,
-  count,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  count?: string;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div style={{ borderBottom: '1px solid color-mix(in srgb, var(--accent) 6%, transparent)' }}>
-      <button
-        onClick={onToggle}
-        className="flex items-center gap-1.5 w-full px-3 py-2 text-left bg-transparent border-none cursor-pointer
-                   hover:bg-white/[0.03] transition"
-      >
-        <svg
-          width="10" height="10" viewBox="0 0 16 16" fill="currentColor"
-          className="opacity-40 transition-transform flex-shrink-0"
-          style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
-        >
-          <path d="M6 4l4 4-4 4V4z"/>
-        </svg>
-        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-50">
-          {title}
-        </span>
-        {count && (
-          <span className="text-[9px] opacity-30 ml-auto">{count}</span>
-        )}
-      </button>
-      {open && (
-        <div className="px-2 pb-2">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Completed Item ────────────────────────────────────────────────────────────
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return tt('tasks.just_now', 'just now');
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(diff / 3600000);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(diff / 86400000);
-  if (days < 30) return `${days}d ago`;
-  return `${Math.floor(days / 30)}mo ago`;
-}
-
-function CompletedItem({ task }: { task: AvaCompletedTaskUI }) {
-  return (
-    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition">
-      <span className="flex items-center justify-center w-4 h-4 flex-shrink-0 text-[11px] text-emerald-400">
-        ✓
-      </span>
-      <span className="text-xs flex-1 truncate line-through opacity-30">
-        {task.title}
-      </span>
-      <span className="text-[9px] opacity-20 flex-shrink-0">
-        {timeAgo(task.completedAt)}
-      </span>
-    </div>
-  );
-}
-
 // ── Task Item ─────────────────────────────────────────────────────────────────
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
@@ -1137,28 +977,5 @@ function TaskEditForm({
 
 // ── Session Item ──────────────────────────────────────────────────────────────
 
-function SessionItem({ task }: { task: SessionTaskUI }) {
-  const isDone = task.status === 'completed';
-  const isActive = task.status === 'in_progress';
-
-  return (
-    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition">
-      <span
-        className={`flex items-center justify-center w-4 h-4 flex-shrink-0 text-[11px]
-          ${isDone ? 'text-emerald-400' : isActive ? '' : 'opacity-25'}`}
-        style={isActive ? { color: 'var(--accent)' } : undefined}
-      >
-        {isDone ? '✓' : isActive ? '⟳' : '○'}
-      </span>
-
-      <span
-        className={`text-xs flex-1 truncate
-          ${isDone ? 'line-through opacity-30' : isActive ? 'opacity-90 font-medium' : 'opacity-50'}`}
-      >
-        {task.title}
-      </span>
-    </div>
-  );
-}
 
 export { DEFAULT_WIDTH };

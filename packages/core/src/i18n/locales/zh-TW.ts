@@ -155,6 +155,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': '任務清單不可用',
   'todo.tasks': '任務',
+  'todo.unfinished': '未完成',
   'todo.done': '{done}/{total} 已完成',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': '重設',
   'plan.pending': '待處理',
   'tasks.today': '今天',
-  'tasks.close': '關閉',
   'tasks.personal': '個人',
   'tasks.ava': 'Ava',
   'tasks.filter_today': '今天',
@@ -2175,11 +2175,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': '無進行中的任務',
   'tasks.add_hint': '在儀表板新增任務或詢問 Ava',
   'tasks.completed': '已完成',
-  'tasks.current': '目前',
   'tasks.all_complete': '所有任務已完成',
-  'tasks.step_of': '步驟 {current} / {total}',
-  'tasks.no_active_session': '無進行中的會話',
-  'tasks.no_completed_yet': '暫無已完成的任務',
   'memory.title': '記憶 v2',
   'memory.close': '關閉',
   'memory.global': '全域',
@@ -3009,7 +3005,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': '新增任務',
   'tasks.add_placeholder': '需要做什麼？',
   'tasks.cancel': '取消',
-  'tasks.ava_recent_work': 'Ava 最近的工作',
   'tasks.priority': '優先級',
   'tasks.category': '類別',
   'tasks.due_date': '截止日期',
@@ -3018,7 +3013,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': '完成',
   'tasks.empty_today': '今天沒有任務。享受清爽的看板！',
   'tasks.empty_all': '目前尚無任務。',
-  'tasks.just_now': '剛剛',
   'tasks.reminder_none': '無提醒',
   'tasks.reminder_at_time': '指定時間',
   'tasks.reminder_10m': '10 分鐘前',

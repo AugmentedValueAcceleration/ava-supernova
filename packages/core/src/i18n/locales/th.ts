@@ -155,6 +155,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'รายการงานไม่พร้อมใช้',
   'todo.tasks': 'งาน',
+  'todo.unfinished': 'ยังไม่เสร็จ',
   'todo.done': '{done}/{total} เสร็จ',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'รีเซ็ต',
   'plan.pending': 'รอดำเนินการ',
   'tasks.today': 'วันนี้',
-  'tasks.close': 'ปิด',
   'tasks.personal': 'ส่วนตัว',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'วันนี้',
@@ -2175,11 +2175,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'ไม่มีงานที่กำลังดำเนินการอยู่',
   'tasks.add_hint': 'เพิ่มงานในแดชบอร์ดหรือถาม Ava',
   'tasks.completed': 'เสร็จสิ้น',
-  'tasks.current': 'ปัจจุบัน',
   'tasks.all_complete': 'งานทั้งหมดเสร็จสิ้นแล้ว',
-  'tasks.step_of': 'ขั้นตอน {current} ของ {total}',
-  'tasks.no_active_session': 'ไม่มีเซสชันที่กำลังดำเนินการอยู่',
-  'tasks.no_completed_yet': 'ยังไม่มีงานที่เสร็จสิ้น',
   'memory.title': 'ความทรงจำ v2',
   'memory.close': 'ปิด',
   'memory.global': 'ส่วนกลาง',
@@ -3009,7 +3005,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'เพิ่มงาน',
   'tasks.add_placeholder': 'มีอะไรต้องทำบ้าง?',
   'tasks.cancel': 'ยกเลิก',
-  'tasks.ava_recent_work': 'งานล่าสุดของ Ava',
   'tasks.priority': 'ความสำคัญ',
   'tasks.category': 'หมวดหมู่',
   'tasks.due_date': 'กำหนดส่ง',
@@ -3018,7 +3013,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'เสร็จแล้ว',
   'tasks.empty_today': 'ไม่มีงานวันนี้ สบายใจกับกระดานโล่งได้เลย!',
   'tasks.empty_all': 'ยังไม่มีงาน',
-  'tasks.just_now': 'เมื่อสักครู่',
   'tasks.reminder_none': 'ไม่มีการแจ้งเตือน',
   'tasks.reminder_at_time': 'ตามเวลา',
   'tasks.reminder_10m': 'ก่อน 10 นาที',

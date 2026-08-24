@@ -155,6 +155,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'Takenlijst niet beschikbaar',
   'todo.tasks': 'Taken',
+  'todo.unfinished': 'onvoltooid',
   'todo.done': '{done}/{total} voltooid',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Herstellen',
   'plan.pending': 'Wachtend',
   'tasks.today': 'Vandaag',
-  'tasks.close': 'Sluiten',
   'tasks.personal': 'Persoonlijk',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Vandaag',
@@ -2175,11 +2175,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Geen actieve taken',
   'tasks.add_hint': 'Voeg taken toe in het overzicht of vraag Ava',
   'tasks.completed': 'Voltooid',
-  'tasks.current': 'Huidige',
   'tasks.all_complete': 'Alle taken voltooid',
-  'tasks.step_of': 'Stap {current} van {total}',
-  'tasks.no_active_session': 'Geen actieve sessie',
-  'tasks.no_completed_yet': 'Nog geen voltooide taken',
   'memory.title': 'Geheugen v2',
   'memory.close': 'Sluiten',
   'memory.global': 'Globaal',
@@ -3009,7 +3005,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Taak toevoegen',
   'tasks.add_placeholder': 'Wat moet er gebeuren?',
   'tasks.cancel': 'Annuleren',
-  'tasks.ava_recent_work': 'Ava\'s recente werk',
   'tasks.priority': 'Prioriteit',
   'tasks.category': 'Categorie',
   'tasks.due_date': 'Vervaldatum',
@@ -3018,7 +3013,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Voltooid',
   'tasks.empty_today': 'Geen taken vandaag. Geniet van het lege bord!',
   'tasks.empty_all': 'Nog geen taken.',
-  'tasks.just_now': 'zojuist',
   'tasks.reminder_none': 'Geen herinnering',
   'tasks.reminder_at_time': 'Op tijdstip',
   'tasks.reminder_10m': '10 min vooraf',

@@ -188,6 +188,7 @@ export const trStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Görev listesi mevcut değil',
   'todo.tasks': 'Görevler',
+  'todo.unfinished': 'tamamlanmadı',
   'todo.done': '{done}/{total} tamamlandı',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const trStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Bugün',
-  'tasks.close': 'Kapat',
   'tasks.personal': 'Kişisel',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Bugün',
@@ -238,11 +238,7 @@ export const trStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'Aktif görev yok',
   'tasks.add_hint': 'Paneldeki görevleri ekleyin veya Ava\'ya sorun',
   'tasks.completed': 'Tamamlandı',
-  'tasks.current': 'Mevcut',
   'tasks.all_complete': 'Tüm görevler tamamlandı',
-  'tasks.step_of': 'Adım {current}/{total}',
-  'tasks.no_active_session': 'Aktif oturum yok',
-  'tasks.no_completed_yet': 'Henüz tamamlanmış görev yok',
 
   // Memory Panel
   'memory.title': 'Bellek v2',

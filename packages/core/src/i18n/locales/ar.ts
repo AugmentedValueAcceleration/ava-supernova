@@ -155,6 +155,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'قائمة المهام غير متوفرة',
   'todo.tasks': 'المهام',
+  'todo.unfinished': 'غير مكتمل',
   'todo.done': '{done}/{total} مكتمل',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'إعادة تعيين',
   'plan.pending': 'قيد الانتظار',
   'tasks.today': 'اليوم',
-  'tasks.close': 'إغلاق',
   'tasks.personal': 'شخصي',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'اليوم',
@@ -2175,11 +2175,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'لا توجد مهام نشطة',
   'tasks.add_hint': 'أضف مهامًا في لوحة التحكم أو اسأل Ava',
   'tasks.completed': 'مكتمل',
-  'tasks.current': 'الحالي',
   'tasks.all_complete': 'اكتملت جميع المهام',
-  'tasks.step_of': 'خطوة {current} من {total}',
-  'tasks.no_active_session': 'لا توجد جلسة نشطة',
-  'tasks.no_completed_yet': 'لا توجد مهام مكتملة بعد',
   'memory.title': 'الذاكرة v2',
   'memory.close': 'إغلاق',
   'memory.global': 'عام',
@@ -3009,7 +3005,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'إضافة مهمة',
   'tasks.add_placeholder': 'ما الذي يحتاج إلى إنجاز؟',
   'tasks.cancel': 'إلغاء',
-  'tasks.ava_recent_work': 'آخر أعمال Ava',
   'tasks.priority': 'الأولوية',
   'tasks.category': 'الفئة',
   'tasks.due_date': 'تاريخ الاستحقاق',
@@ -3018,7 +3013,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'تم',
   'tasks.empty_today': 'لا توجد مهام اليوم. استمتع باللوحة الصافية!',
   'tasks.empty_all': 'لا توجد مهام بعد.',
-  'tasks.just_now': 'الآن',
   'tasks.reminder_none': 'لا تنبيه',
   'tasks.reminder_at_time': 'في الوقت المحدد',
   'tasks.reminder_10m': 'قبل 10 دقائق',

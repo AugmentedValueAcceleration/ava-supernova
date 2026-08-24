@@ -1,5 +1,4 @@
 import { useLocale, tt } from '../../i18n';
-import type { SessionTaskUI } from '../../types/messages';
 
 /**
  * Collapsed Tasks rail — the always-visible spine.
@@ -17,44 +16,13 @@ const RAIL_WIDTH = 34;
 
 interface TasksSpineProps {
   activeCount: number;
-  sessionTasks: SessionTaskUI[];
   onExpand: () => void;
 }
 
-function ProgressRing({ done, total }: { done: number; total: number }) {
-  const r = 9;
-  const circ = 2 * Math.PI * r;
-  const pct = total > 0 ? done / total : 0;
-  const allDone = total > 0 && done === total;
-  const color = allDone ? '#34d399' : 'var(--accent)';
-  return (
-    <span className="relative flex items-center justify-center" style={{ width: 24, height: 24 }}>
-      {!allDone && (
-        <span
-          className="absolute inline-flex rounded-full animate-ping opacity-60"
-          style={{ width: 22, height: 22, background: 'color-mix(in srgb, var(--accent) 25%, transparent)' }}
-        />
-      )}
-      <svg width="24" height="24" viewBox="0 0 24 24" className="relative -rotate-90">
-        <circle cx="12" cy="12" r={r} fill="none" stroke="color-mix(in srgb, var(--accent) 18%, transparent)" strokeWidth="2.5" />
-        <circle
-          cx="12" cy="12" r={r} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round"
-          strokeDasharray={`${pct * circ} ${circ}`}
-          style={{ transition: 'stroke-dasharray 0.4s ease' }}
-        />
-      </svg>
-      <span className="absolute text-[8px] font-semibold" style={{ color }}>
-        {allDone ? '✓' : `${done}/${total}`}
-      </span>
-    </span>
-  );
-}
-
-export function TasksSpine({ activeCount, sessionTasks, onExpand }: TasksSpineProps) {
+export function TasksSpine({ activeCount, onExpand }: TasksSpineProps) {
   useLocale();
-  const total = sessionTasks.length;
-  const done = sessionTasks.filter(t => t.status === 'completed').length;
-  const avaWorking = total > 0 && done < total;
+  // Her session progress ring used to live here. Gone with the band it
+  // mirrored: the rail counts what YOU still have to do, and nothing else.
 
   return (
     <div
@@ -92,10 +60,8 @@ export function TasksSpine({ activeCount, sessionTasks, onExpand }: TasksSpinePr
         title={tt('tasks.open', 'Open tasks')}
         className="group flex flex-col items-center gap-3 w-full h-full pt-3 bg-transparent border-none cursor-pointer"
       >
-        {/* Live status */}
-        {avaWorking ? (
-          <ProgressRing done={done} total={total} />
-        ) : activeCount > 0 ? (
+        {/* Outstanding count — yours. */}
+        {activeCount > 0 ? (
           <span
             className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold"
             style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)' }}

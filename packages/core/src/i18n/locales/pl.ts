@@ -155,6 +155,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'Lista zadań niedostępna',
   'todo.tasks': 'Zadania',
+  'todo.unfinished': 'niedokończone',
   'todo.done': '{done}/{total} ukończono',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2131,7 +2132,6 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Resetuj',
   'plan.pending': 'oczekujący',
   'tasks.today': 'Dziś',
-  'tasks.close': 'Zamknij',
   'tasks.personal': 'Osobiste',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Dziś',
@@ -2155,11 +2155,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Brak aktywnych zadań',
   'tasks.add_hint': 'Dodaj zadania w panelu lub zapytaj Ava',
   'tasks.completed': 'Ukończone',
-  'tasks.current': 'Aktualne',
   'tasks.all_complete': 'Wszystkie zadania ukończone',
-  'tasks.step_of': 'Krok {current} z {total}',
-  'tasks.no_active_session': 'Brak aktywnej sesji',
-  'tasks.no_completed_yet': 'Brak ukończonych zadań',
   'memory.title': 'Pamięć v2',
   'memory.close': 'Zamknij',
   'memory.global': 'Globalny',
@@ -2989,7 +2985,6 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Dodaj zadanie',
   'tasks.add_placeholder': 'Co trzeba zrobić?',
   'tasks.cancel': 'Anuluj',
-  'tasks.ava_recent_work': 'Ostatnia praca Avy',
   'tasks.priority': 'Priorytet',
   'tasks.category': 'Kategoria',
   'tasks.due_date': 'Termin',
@@ -2998,7 +2993,6 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Zakończone',
   'tasks.empty_today': 'Brak zadań na dziś. Ciesz się czystą tablicą!',
   'tasks.empty_all': 'Brak zadań.',
-  'tasks.just_now': 'przed chwilą',
   'tasks.reminder_none': 'Brak przypomnienia',
   'tasks.reminder_at_time': 'O godzinie',
   'tasks.reminder_10m': '10 min przed',

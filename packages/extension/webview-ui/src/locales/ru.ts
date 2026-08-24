@@ -188,6 +188,7 @@ export const ruStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Список задач недоступен',
   'todo.tasks': 'Задачи',
+  'todo.unfinished': 'не завершено',
   'todo.done': '{done}/{total} выполнено',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const ruStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Сегодня',
-  'tasks.close': 'Закрыть',
   'tasks.personal': 'Личное',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Сегодня',
@@ -238,11 +238,7 @@ export const ruStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'Нет активных задач',
   'tasks.add_hint': 'Добавьте задачи в панели или попросите Ava',
   'tasks.completed': 'Выполнено',
-  'tasks.current': 'Текущая',
   'tasks.all_complete': 'Все задачи выполнены',
-  'tasks.step_of': 'Шаг {current} из {total}',
-  'tasks.no_active_session': 'Нет активной сессии',
-  'tasks.no_completed_yet': 'Пока нет выполненных задач',
 
   // Memory Panel
   'memory.title': 'Память v2',

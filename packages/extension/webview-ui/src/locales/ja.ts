@@ -188,6 +188,7 @@ export const jaStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'タスクリストがありません',
   'todo.tasks': 'タスク',
+  'todo.unfinished': '未完了',
   'todo.done': '{done}/{total} 完了',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const jaStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': '今日',
-  'tasks.close': '閉じる',
   'tasks.personal': '個人',
   'tasks.ava': 'Ava',
   'tasks.filter_today': '今日',
@@ -238,11 +238,7 @@ export const jaStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'アクティブなタスクはありません',
   'tasks.add_hint': 'ダッシュボードでタスクを追加するか、Avaに頼んでください',
   'tasks.completed': '完了',
-  'tasks.current': '現在',
   'tasks.all_complete': 'すべてのタスクが完了しました',
-  'tasks.step_of': 'ステップ {current}/{total}',
-  'tasks.no_active_session': 'アクティブなセッションなし',
-  'tasks.no_completed_yet': '完了したタスクはまだありません',
 
   // Memory Panel
   'memory.title': 'メモリ v2',

@@ -1,11 +1,21 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 
 interface TodoCardProps {
   toolCall: ToolCallDisplay;
   /** When false, the card renders collapsed (older updates in the same message). */
   isLatest?: boolean;
+  /**
+   * Is the turn that produced this card still running?
+   *
+   * The card is a SNAPSHOT of one `todo_write` call's arguments — it does not
+   * track anything. The spinner used to animate purely because an item's
+   * status string read `in_progress`, and nothing ever told the card the turn
+   * had ended, so a card would spin forever over work that finished minutes
+   * ago. That is not a progress indicator, it is a lie with an animation.
+   */
+  isStreaming?: boolean;
 }
 
 interface TodoItem {
@@ -24,129 +34,142 @@ function parseTodos(argsJson: string): TodoItem[] | null {
   return null;
 }
 
-// ─── Status colors (matches ToolCallCard / PlanCard) ────────────────────────
-
-const CARD_COLORS = {
-  running: 'var(--vscode-textLink-foreground, #3794ff)',
-  success: 'var(--vscode-testing-iconPassed, #4caf50)',
-  failed: 'var(--vscode-testing-iconFailed, #f44336)',
-  pending_confirmation: 'var(--vscode-editorWarning-foreground, #ff9800)',
-};
-
-// ─── Component ──────────────────────────────────────────────────────────────
-
-export function TodoCard({ toolCall, isLatest = true }: TodoCardProps) {
+/**
+ * Mirrors dashboard-ui's TodoCard in structure and behaviour, but keeps the
+ * `--vscode-*` palette: this panel sits inside the editor chrome and is meant
+ * to take the user's theme, where the dashboard is our own surface with our
+ * own tokens. Same card, dressed for where it lives.
+ */
+export function TodoCard({ toolCall, isLatest = true, isStreaming = false }: TodoCardProps) {
   useLocale();
   const todos = parseTodos(toolCall.arguments);
   const [expanded, setExpanded] = useState(isLatest);
 
-  // Fallback for malformed data
   if (!todos) {
     return (
-      <div className="rounded border text-xs overflow-hidden"
+      <div className="rounded-lg border px-3 py-2 text-xs opacity-60"
            style={{ borderColor: 'var(--vscode-panel-border)' }}>
-        <div className="px-3 py-2 opacity-60">{t('todo.unavailable')}</div>
+        {t('todo.unavailable')}
       </div>
     );
   }
 
   const total = todos.length;
-  const done = todos.filter((t) => t.status === 'completed').length;
-  const inProgress = todos.filter((t) => t.status === 'in_progress').length;
+  const done = todos.filter((x) => x.status === 'completed').length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const allDone = done === total && total > 0;
 
-  const accentColor = done === total
-    ? CARD_COLORS.success
-    : inProgress > 0
-      ? CARD_COLORS.running
-      : 'var(--vscode-foreground)';
+  // An item left `in_progress` on a turn that has ended is not running — it is
+  // unfinished. Saying so is the whole point of this distinction.
+  const live = isStreaming && isLatest;
+  const stalled = !live && todos.some((x) => x.status === 'in_progress');
 
-  const borderColor = (CARD_COLORS[toolCall.status] ?? accentColor) + '40';
+  const accent = allDone
+    ? 'var(--vscode-testing-iconPassed, #4caf50)'
+    : stalled
+      ? 'var(--vscode-editorWarning-foreground, #ff9800)'
+      : 'var(--vscode-textLink-foreground, #3794ff)';
 
   return (
-    <div className="rounded border text-xs overflow-hidden" style={{ borderColor }}>
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+    <div
+      className="overflow-hidden rounded-lg border"
+      style={{ borderColor: `color-mix(in srgb, ${accent} 35%, transparent)` }}
+    >
       <button
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-left
-                   hover:bg-[var(--vscode-list-hoverBackground)]
-                   transition-colors border-none bg-transparent cursor-pointer
-                   text-[var(--vscode-foreground)]"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        aria-label={t('todo.done', { done: String(done), total: String(total) })}
+        className="flex w-full cursor-pointer items-center gap-2.5 border-none bg-transparent px-2.5 py-2 text-left
+                   text-[var(--vscode-foreground)] transition-colors
+                   hover:bg-[var(--vscode-list-hoverBackground)]"
       >
-        {/* Checkbox icon */}
-        <span style={{ color: accentColor, fontSize: '13px' }}>
-          {done === total ? '\u2713' : '\u2610'}
+        {/* A ring rather than a bar — it survives the narrow rail, where an
+            80px progress bar had almost nothing to say. */}
+        <span className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" className="-rotate-90">
+            <circle cx="12" cy="12" r="10" fill="none" strokeWidth="2.5"
+              stroke="var(--vscode-panel-border)" />
+            <circle cx="12" cy="12" r="10" fill="none" strokeWidth="2.5" strokeLinecap="round"
+              stroke={accent}
+              strokeDasharray={`${(pct / 100) * 62.8} 62.8`}
+              style={{ transition: 'stroke-dasharray 0.4s ease' }} />
+          </svg>
+          {allDone && (
+            <span className="absolute text-[9px] font-semibold" style={{ color: accent }}>✓</span>
+          )}
         </span>
 
-        {/* Label */}
-        <span className="font-medium">{t('todo.tasks')}</span>
-
-        {/* Count */}
-        <span className="opacity-50 text-[11px]">
-          {t('todo.done', { done: String(done), total: String(total) })}
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-2">
+            <span className="text-[12px] font-semibold">{t('todo.tasks')}</span>
+            <span className="text-[11px] opacity-50">
+              {t('todo.done', { done: String(done), total: String(total) })}
+            </span>
+          </span>
+          {/* The current step on the header, so a collapsed card still says
+              what is happening rather than only how much of it is left. */}
+          {!expanded && !allDone && (
+            <span className="mt-0.5 block truncate text-[11px]" style={{ color: accent }}>
+              {todos.find((x) => x.status === 'in_progress')?.activeForm
+                ?? todos.find((x) => x.status === 'pending')?.content
+                ?? ''}
+            </span>
+          )}
         </span>
 
-        {/* Mini progress bar */}
-        <span className="flex-1 max-w-[80px] h-1.5 rounded-full overflow-hidden ml-1"
-              style={{ backgroundColor: 'var(--vscode-panel-border)' }}
-              role="progressbar"
-              aria-valuenow={pct}
-              aria-valuemin={0}
-              aria-valuemax={100}>
-          <span className="block h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${pct}%`,
-                  backgroundColor: accentColor,
-                }} />
-        </span>
+        {stalled && (
+          <span
+            className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+            style={{ background: `color-mix(in srgb, ${accent} 18%, transparent)`, color: accent }}
+          >
+            {tt('todo.unfinished', 'unfinished')}
+          </span>
+        )}
 
-        {/* Chevron */}
-        <span className="ml-auto opacity-30 text-[10px]">
-          {expanded ? '\u25B2' : '\u25BC'}
-        </span>
+        <span className="flex-shrink-0 text-[10px] opacity-30">{expanded ? '▲' : '▼'}</span>
       </button>
 
-      {/* ── Expanded body ──────────────────────────────────────────────── */}
       {expanded && (
-        <div className="px-3 pb-2.5 pt-1 border-t space-y-0.5"
-             style={{ borderColor: accentColor + '20' }}>
-          {todos.map((todo, i) => (
-            <div key={i} className="flex items-start gap-2 py-0.5">
-              {/* Status icon */}
-              {todo.status === 'in_progress' ? (
+        <ul
+          className="list-none space-y-0.5 border-t px-2.5 pb-2 pt-1.5"
+          style={{ borderColor: `color-mix(in srgb, ${accent} 20%, transparent)` }}
+        >
+          {todos.map((todo, i) => {
+            const running = todo.status === 'in_progress' && live;
+            return (
+              <li key={i} className="flex items-start gap-2 py-[3px]">
+                {running ? (
+                  <span
+                    className="mt-[3px] h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2"
+                    style={{ borderColor: accent, borderTopColor: 'transparent' }}
+                  />
+                ) : (
+                  <span
+                    className="mt-[1px] w-3 flex-shrink-0 text-center text-[11px] leading-none"
+                    style={{
+                      color: todo.status === 'completed'
+                        ? 'var(--vscode-testing-iconPassed, #4caf50)'
+                        : todo.status === 'in_progress'
+                          ? accent
+                          : 'var(--vscode-foreground)',
+                      opacity: todo.status === 'pending' ? 0.35 : 1,
+                    }}
+                  >
+                    {/* A half-filled mark for an item abandoned mid-flight:
+                        neither done nor untouched, and pretending otherwise is
+                        what made this card untrustworthy. */}
+                    {todo.status === 'completed' ? '✓' : todo.status === 'in_progress' ? '◐' : '○'}
+                  </span>
+                )}
                 <span
-                  className="inline-block w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin flex-shrink-0 mt-0.5"
-                  style={{
-                    borderColor: CARD_COLORS.running,
-                    borderTopColor: 'transparent',
-                  }}
-                />
-              ) : (
-                <span
-                  className="flex-shrink-0 mt-0.5 text-[12px] leading-none w-3.5 text-center"
-                  style={{
-                    color: todo.status === 'completed'
-                      ? CARD_COLORS.success
-                      : 'var(--vscode-foreground)',
-                    opacity: todo.status === 'completed' ? 1 : 0.3,
-                  }}
+                  className={`text-[11.5px] leading-[1.5] ${todo.status === 'completed' ? 'line-through opacity-50' : ''}`}
+                  style={todo.status === 'in_progress' ? { color: accent } : undefined}
                 >
-                  {todo.status === 'completed' ? '\u2713' : '\u25CB'}
+                  {todo.status === 'in_progress' ? todo.activeForm : todo.content}
                 </span>
-              )}
-
-              {/* Text */}
-              <span
-                className={todo.status === 'completed' ? 'opacity-50 line-through' : ''}
-                style={todo.status === 'in_progress' ? { color: CARD_COLORS.running } : undefined}
-              >
-                {todo.status === 'in_progress' ? todo.activeForm : todo.content}
-              </span>
-            </div>
-          ))}
-        </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

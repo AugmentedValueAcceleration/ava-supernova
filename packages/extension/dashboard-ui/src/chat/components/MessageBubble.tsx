@@ -453,7 +453,9 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
         // Tool-call segment — rendered as top-level block.
         const tc = seg.event.toolCall;
         if (tc.name === 'todo_write') {
-          return <TodoCard key={tc.id} toolCall={tc} isLatest={seg.idx === lastTodoIdx} />;
+          // isStreaming was sitting right here unused: without it the card
+          // cannot tell a running step from one abandoned when the turn ended.
+          return <TodoCard key={tc.id} toolCall={tc} isLatest={seg.idx === lastTodoIdx} isStreaming={message.isStreaming} />;
         }
         if (tc.name === 'present_plan') {
           return <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;

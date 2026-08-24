@@ -188,6 +188,7 @@ export const hiStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'कार्य सूची अनुपलब्ध',
   'todo.tasks': 'कार्य',
+  'todo.unfinished': 'अधूरा',
   'todo.done': '{done}/{total} पूर्ण',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const hiStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'आज',
-  'tasks.close': 'बंद करें',
   'tasks.personal': 'व्यक्तिगत',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'आज',
@@ -238,11 +238,7 @@ export const hiStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'कोई सक्रिय कार्य नहीं',
   'tasks.add_hint': 'डैशबोर्ड में कार्य जोड़ें या Ava से पूछें',
   'tasks.completed': 'पूर्ण',
-  'tasks.current': 'वर्तमान',
   'tasks.all_complete': 'सभी कार्य पूर्ण',
-  'tasks.step_of': 'चरण {current}/{total}',
-  'tasks.no_active_session': 'कोई सक्रिय सत्र नहीं',
-  'tasks.no_completed_yet': 'अभी तक कोई पूर्ण कार्य नहीं',
 
   // Memory Panel
   'memory.title': 'मेमोरी v2',

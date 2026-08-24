@@ -155,6 +155,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   // \u2500\u2500 Todo Card \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'todo.unavailable': 'Lista attivit\u00e0 non disponibile',
   'todo.tasks': 'Attivit\u00e0',
+  'todo.unfinished': 'incompiuto',
   'todo.done': '{done}/{total} completate',
 
   // \u2500\u2500 Status Bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -2151,7 +2152,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Reimposta',
   'plan.pending': 'in sospeso',
   'tasks.today': 'Oggi',
-  'tasks.close': 'Chiudi',
   'tasks.personal': 'Personale',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Oggi',
@@ -2175,11 +2175,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Nessun compito attivo',
   'tasks.add_hint': 'Aggiungi compiti nel pannello o chiedi ad Ava',
   'tasks.completed': 'Completati',
-  'tasks.current': 'Correnti',
   'tasks.all_complete': 'Tutti i compiti completati',
-  'tasks.step_of': 'Passaggio {current} di {total}',
-  'tasks.no_active_session': 'Nessuna sessione attiva',
-  'tasks.no_completed_yet': 'Nessun compito completato ancora',
   'memory.title': 'Memoria v2',
   'memory.close': 'Chiudi',
   'memory.global': 'Globale',
@@ -3009,7 +3005,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Aggiungi attività',
   'tasks.add_placeholder': 'Cosa c\'è da fare?',
   'tasks.cancel': 'Annulla',
-  'tasks.ava_recent_work': 'Lavoro recente di Ava',
   'tasks.priority': 'Priorità',
   'tasks.category': 'Categoria',
   'tasks.due_date': 'Scadenza',
@@ -3018,7 +3013,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Completate',
   'tasks.empty_today': 'Nessuna attività oggi. Goditi la lavagna libera!',
   'tasks.empty_all': 'Nessuna attività ancora.',
-  'tasks.just_now': 'Appena',
   'tasks.reminder_none': 'Nessun promemoria',
   'tasks.reminder_at_time': 'All\'ora',
   'tasks.reminder_10m': '10 min prima',

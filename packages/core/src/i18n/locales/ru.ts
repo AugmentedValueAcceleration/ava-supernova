@@ -155,6 +155,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   // ── Todo Card ─────────────────────────────────────────────────────────────
   'todo.unavailable': 'Список задач недоступен',
   'todo.tasks': 'Задачи',
+  'todo.unfinished': 'не завершено',
   'todo.done': '{done}/{total} выполнено',
 
   // ── Status Bar ────────────────────────────────────────────────────────────
@@ -2151,7 +2152,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Сброс',
   'plan.pending': 'в ожидании',
   'tasks.today': 'Сегодня',
-  'tasks.close': 'Закрыть',
   'tasks.personal': 'Личное',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Сегодня',
@@ -2175,11 +2175,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Нет активных задач',
   'tasks.add_hint': 'Добавляйте задачи в дашборде или спросите у Ava',
   'tasks.completed': 'Выполнено',
-  'tasks.current': 'Текущие',
   'tasks.all_complete': 'Все задачи выполнены',
-  'tasks.step_of': 'Шаг {current} из {total}',
-  'tasks.no_active_session': 'Нет активной сессии',
-  'tasks.no_completed_yet': 'Пока нет выполненных задач',
   'memory.title': 'Память v2',
   'memory.close': 'Закрыть',
   'memory.global': 'Глобальные',
@@ -3009,7 +3005,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Добавить задачу',
   'tasks.add_placeholder': 'Что нужно сделать?',
   'tasks.cancel': 'Отмена',
-  'tasks.ava_recent_work': 'Недавняя работа Ava',
   'tasks.priority': 'Приоритет',
   'tasks.category': 'Категория',
   'tasks.due_date': 'Срок выполнения',
@@ -3018,7 +3013,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Готово',
   'tasks.empty_today': 'Сегодня нет задач. Наслаждайтесь чистой доской!',
   'tasks.empty_all': 'Пока нет задач.',
-  'tasks.just_now': 'только что',
   'tasks.reminder_none': 'Нет напоминания',
   'tasks.reminder_at_time': 'Время',
   'tasks.reminder_10m': 'за 10 мин',

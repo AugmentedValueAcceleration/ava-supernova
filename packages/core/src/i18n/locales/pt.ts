@@ -155,6 +155,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   // \u2500\u2500 Todo Card \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'todo.unavailable': 'Lista de tarefas indispon\u00edvel',
   'todo.tasks': 'Tarefas',
+  'todo.unfinished': 'inacabado',
   'todo.done': '{done}/{total} conclu\u00eddas',
 
   // \u2500\u2500 Status Bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -2149,7 +2150,6 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'error_boundary.reset': 'Reiniciar',
   'plan.pending': 'pendente',
   'tasks.today': 'Hoje',
-  'tasks.close': 'Fechar',
   'tasks.personal': 'Pessoal',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Hoje',
@@ -2173,11 +2173,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'tasks.no_active_tasks': 'Nenhuma tarefa ativa',
   'tasks.add_hint': 'Adicione tarefas no painel ou pergunte à Ava',
   'tasks.completed': 'Concluídas',
-  'tasks.current': 'Atual',
   'tasks.all_complete': 'Todas as tarefas concluídas',
-  'tasks.step_of': 'Passo {current} de {total}',
-  'tasks.no_active_session': 'Nenhuma sessão ativa',
-  'tasks.no_completed_yet': 'Nenhuma tarefa concluída ainda',
   'memory.title': 'Memória v2',
   'memory.close': 'Fechar',
   'memory.global': 'Geral',
@@ -3007,7 +3003,6 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'tasks.add_task': 'Adicionar tarefa',
   'tasks.add_placeholder': 'O que precisa ser feito?',
   'tasks.cancel': 'Cancelar',
-  'tasks.ava_recent_work': 'Trabalho recente da Ava',
   'tasks.priority': 'Prioridade',
   'tasks.category': 'Categoria',
   'tasks.due_date': 'Data de vencimento',
@@ -3016,7 +3011,6 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'tasks.section_done': 'Concluído',
   'tasks.empty_today': 'Nenhuma tarefa hoje. Aproveite o quadro livre!',
   'tasks.empty_all': 'Nenhuma tarefa ainda.',
-  'tasks.just_now': 'agora mesmo',
   'tasks.reminder_none': 'Sem lembrete',
   'tasks.reminder_at_time': 'À hora',
   'tasks.reminder_10m': '10 min antes',

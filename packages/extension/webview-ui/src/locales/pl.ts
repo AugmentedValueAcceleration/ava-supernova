@@ -188,6 +188,7 @@ export const plStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Lista zadań niedostępna',
   'todo.tasks': 'Zadania',
+  'todo.unfinished': 'niedokończone',
   'todo.done': '{done}/{total} ukończono',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const plStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Dzisiaj',
-  'tasks.close': 'Zamknij',
   'tasks.personal': 'Osobiste',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Dzisiaj',
@@ -238,11 +238,7 @@ export const plStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'Brak aktywnych zadań',
   'tasks.add_hint': 'Dodaj zadania w panelu lub poproś Avę',
   'tasks.completed': 'Zakończone',
-  'tasks.current': 'Bieżące',
   'tasks.all_complete': 'Wszystkie zadania zakończone',
-  'tasks.step_of': 'Krok {current} z {total}',
-  'tasks.no_active_session': 'Brak aktywnej sesji',
-  'tasks.no_completed_yet': 'Brak zakończonych zadań',
 
   // Memory Panel
   'memory.title': 'Pamięć v2',

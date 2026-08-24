@@ -188,6 +188,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': '任务列表不可用',
   'todo.tasks': '任务',
+  'todo.unfinished': '未完成',
   'todo.done': '{done}/{total} 已完成',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const zhCNStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': '今天',
-  'tasks.close': '关闭',
   'tasks.personal': '个人',
   'tasks.ava': 'Ava',
   'tasks.filter_today': '今天',
@@ -238,11 +238,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': '没有活动任务',
   'tasks.add_hint': '在仪表板中添加任务或询问 Ava',
   'tasks.completed': '已完成',
-  'tasks.current': '当前',
   'tasks.all_complete': '所有任务已完成',
-  'tasks.step_of': '第 {current} / {total} 步',
-  'tasks.no_active_session': '没有活动会话',
-  'tasks.no_completed_yet': '还没有已完成的任务',
 
   // Memory Panel
   'memory.title': '记忆 v2',

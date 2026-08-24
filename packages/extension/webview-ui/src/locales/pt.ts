@@ -188,6 +188,7 @@ export const ptStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Lista de tarefas indispon\u00edvel',
   'todo.tasks': 'Tarefas',
+  'todo.unfinished': 'inacabado',
   'todo.done': '{done}/{total} conclu\u00eddas',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const ptStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Hoje',
-  'tasks.close': 'Fechar',
   'tasks.personal': 'Pessoal',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Hoje',
@@ -238,11 +238,7 @@ export const ptStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'Sem tarefas ativas',
   'tasks.add_hint': 'Adicione tarefas no painel ou peça à Ava',
   'tasks.completed': 'Concluídas',
-  'tasks.current': 'Atual',
   'tasks.all_complete': 'Todas as tarefas concluídas',
-  'tasks.step_of': 'Passo {current} de {total}',
-  'tasks.no_active_session': 'Nenhuma sessão ativa',
-  'tasks.no_completed_yet': 'Nenhuma tarefa concluída ainda',
 
   // Memory Panel
   'memory.title': 'Memória v2',

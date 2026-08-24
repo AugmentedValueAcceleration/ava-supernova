@@ -1631,8 +1631,6 @@ export function App() {
           <TasksPanel
             todayTasks={state.todayTasks}
             allTasks={state.allTasks}
-            sessionTasks={state.sessionTasks}
-            avaCompletedTasks={state.avaCompletedTasks}
             onClose={handleCloseTasks}
             onToggleTask={handleToggleTask}
             onCreateTask={handleCreateTask}
@@ -1645,7 +1643,6 @@ export function App() {
         ) : (
           <TasksSpine
             activeCount={state.allTasks.filter(t => t.status !== 'done').length}
-            sessionTasks={state.sessionTasks}
             onExpand={handleToggleTasks}
           />
         )}

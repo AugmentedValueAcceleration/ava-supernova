@@ -188,6 +188,7 @@ export const idStrings: Record<StringKey, string> = {
   // Todo Card
   'todo.unavailable': 'Daftar tugas tidak tersedia',
   'todo.tasks': 'Tugas',
+  'todo.unfinished': 'belum selesai',
   'todo.done': '{done}/{total} selesai',
 
   // Status Bar
@@ -225,7 +226,6 @@ export const idStrings: Record<StringKey, string> = {
 
   // Tasks Panel
   'tasks.today': 'Hari ini',
-  'tasks.close': 'Tutup',
   'tasks.personal': 'Pribadi',
   'tasks.ava': 'Ava',
   'tasks.filter_today': 'Hari ini',
@@ -238,11 +238,7 @@ export const idStrings: Record<StringKey, string> = {
   'tasks.no_active_tasks': 'Tidak ada tugas aktif',
   'tasks.add_hint': 'Tambahkan tugas di dashboard atau minta Ava',
   'tasks.completed': 'Selesai',
-  'tasks.current': 'Saat ini',
   'tasks.all_complete': 'Semua tugas selesai',
-  'tasks.step_of': 'Langkah {current} dari {total}',
-  'tasks.no_active_session': 'Tidak ada sesi aktif',
-  'tasks.no_completed_yet': 'Belum ada tugas yang selesai',
 
   // Memory Panel
   'memory.title': 'Memori v2',
