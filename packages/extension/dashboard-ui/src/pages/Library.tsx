@@ -56,6 +56,8 @@ interface Props {
   localCreative: CreativeAsset[];
   /** Whole-footprint storage scan (~/.ava by category) — powers the storage bar. */
   storageScan: StorageScan | null;
+  /** The user's projects folder, cached. */
+  projectsUsage?: import('@ava/core/projects/storage').ProjectsUsage | null;
   /** True while the host is fetching the cloud asset list. Drives a
    *  non-blocking "Pulling cloud assets…" pill above the grid so the
    *  user understands incomplete-looking thumbnails are still in
@@ -185,6 +187,7 @@ export function Library({
   onClearPaperDetail,
   localCreative,
   storageScan,
+  projectsUsage,
   cloudAssetsLoading,
   onReloadCloudAssets,
   images,
@@ -463,7 +466,7 @@ export function Library({
               click for the breakdown + backup reclaim. Shared with the Command
               Center header. */}
           <div className="mb-3 max-w-md">
-            <StorageBar scan={storageScan} label={tt('dash.cc.storage','Storage')} />
+            <StorageBar scan={storageScan} projects={projectsUsage} label={tt('dash.cc.storage','Storage')} />
           </div>
 
           {/* Inline loading pill — non-blocking. Stays visible while

@@ -62,6 +62,7 @@ import {
   writePlanRecord,
   listPlanRecords,
 } from '@ava/core';
+import { projectsHomeFrom } from '@ava/core/projects/home';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage, ToolConfirmationDecision } from '@ava/core';
 import type { RoutingMode } from '@ava/core';
 
@@ -4714,7 +4715,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'security':
         prefixed = getSecurityModePrefix(text || 'Perform a comprehensive security audit of this project.'); break;
       case 'brainstorm':
-        prefixed = getBrainstormModePrefix(text || 'Help me brainstorm ideas.'); break;
+        // Tell her where projects go, so "scaffold it" has an address.
+        prefixed = getBrainstormModePrefix(
+          text || 'Help me brainstorm ideas.',
+          projectsHomeFrom(require('node:os').homedir(),
+            vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.projectsHome')),
+        ); break;
       case 'write':
         prefixed = getWriteModePrefix(text || 'What would you like to write?'); break;
       case 'health':

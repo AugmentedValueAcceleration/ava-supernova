@@ -402,6 +402,12 @@
             "order": 9,
             "description": "Local embedding model (served by Ollama) used when semantic recall is enabled."
           },
+          "ava-supernova.preferences.projectsHome": {
+            "type": "string",
+            "default": "",
+            "order": 11,
+            "markdownDescription": "Folder where Ava creates new projects. Leave empty for `~/Ava Projects`. Deliberately not inside `~/.ava` — that is hidden application data, and source code kept in a dotfolder gets lost and gets skipped by backup tools."
+          },
           "ava-supernova.preferences.embeddingBaseUrl": {
             "type": "string",
             "default": "http://localhost:11434/v1",

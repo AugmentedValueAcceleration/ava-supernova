@@ -18,9 +18,9 @@
  */
 import { readFile, writeFile, rename, mkdir, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import type {
   BrainstormIdea,
   BrainstormKind,
@@ -30,11 +30,12 @@ import type {
 
 const BRAINSTORM_DIR = 'brainstorm';
 
-/** Canonicalised path hash — identical to verification-trust's cwdHash. */
-export function projectHash(projectPath: string): string {
-  const canonical = resolve(projectPath).replace(/[\\/]+$/, '').toLowerCase();
-  return createHash('sha256').update(canonical).digest('hex').slice(0, 16);
-}
+// The hash lives in one place now. It used to be implemented here AND in
+// verification-trust.ts, byte-identical and separately maintained — if either
+// had drifted, one project would have silently become two folders and lost its
+// history to the split.
+import { projectHash, ensureProjectData } from '../projects/project-data.js';
+export { projectHash };
 
 export interface BrainstormStoreOptions {
   /** Root for local data. Defaults to ~/.ava — injected so tests use a tmpdir. */
@@ -82,6 +83,9 @@ export class BrainstormStore {
   async save(session: BrainstormSession): Promise<void> {
     session.updatedAt = new Date().toISOString();
     const dir = this.dirFor(session);
+    // An attached session also records which project it belongs to — the hash
+    // is one-way, so without that the directory can never be traced back.
+    if (session.projectPath) await ensureProjectData(session.projectPath, this.globalDir);
     await mkdir(dir, { recursive: true });
     const file = join(dir, `${session.id}.json`);
     const tmp = `${file}.tmp`;

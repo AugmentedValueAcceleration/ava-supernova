@@ -91,7 +91,8 @@ import { deriveProgression, libraryPathToCurriculum, type LearningStore, type Li
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { exportDocument } from '@ava/core/authoring';
 import { readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
-import { scanStorage, reclaimStorage } from './storage-scan.js';
+import { scanStorage, reclaimStorage, measureProjects, readProjectsUsage } from './storage-scan.js';
+import { projectsHomeFrom } from '@ava/core/projects/home';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
@@ -2043,6 +2044,17 @@ export class DashboardPanel {
       case 'get_storage_scan': {
         const scan = await scanStorage(AVA_HOME);
         this.post({ type: 'storage_scan_loaded', scan });
+        // The cached projects figure rides along, so the bar can show both
+        // halves immediately. Measuring is a separate, explicit request.
+        this.post({ type: 'projects_usage_loaded', usage: await readProjectsUsage(AVA_HOME) });
+        break;
+      }
+
+      case 'measure_projects': {
+        const home = projectsHomeFrom(require('node:os').homedir(), this.readProjectsHomeSetting());
+        const usage = await measureProjects(home, AVA_HOME);
+        this.log(`[Storage] Projects measured: ${(usage.bytes / 1_048_576).toFixed(1)} MB in ${usage.projectCount ?? 0} folders`);
+        this.post({ type: 'projects_usage_loaded', usage });
         break;
       }
 
@@ -4819,6 +4831,15 @@ export class DashboardPanel {
       const message = err instanceof Error ? err.message : String(err);
       this.post({ type: 'error', message: `Delete failed: ${message}` });
     }
+  }
+
+  /** The user's chosen projects folder, if they have set one. Empty means
+   *  the default, which projectsHomeFrom resolves. */
+  private readProjectsHomeSetting(): string | undefined {
+    try {
+      const cfg = vscode.workspace.getConfiguration('ava-supernova');
+      return cfg.get<string>('preferences.projectsHome') || undefined;
+    } catch { return undefined; }
   }
 
   private async deleteLibraryImage(relativePath: string): Promise<void> {

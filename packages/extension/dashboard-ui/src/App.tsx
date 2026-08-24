@@ -1,3 +1,4 @@
+import type { ProjectsUsage } from '@ava/core/projects/storage';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { initLocale, useLocale, getLocale } from './i18n';
 import { post } from './vscode';
@@ -660,6 +661,9 @@ export function App() {
   // Whole-footprint storage scan (~/.ava by category) — powers the storage bar
   // in the Command Center header and the Library. Refreshed on those pages.
   const [storageScan, setStorageScan] = useState<StorageScan | null>(null);
+  // What the user's projects folder costs. Cached by the host — arrives
+  // alongside the scan, and only re-measured when explicitly asked for.
+  const [projectsUsage, setProjectsUsage] = useState<ProjectsUsage | null>(null);
   const [announcement, setAnnouncement] = useState<string[]>([]);
   // Non-blocking loading indicator. The Library grid renders whatever
   // it has immediately and shows an inline "Pulling cloud assets…" pill
@@ -1368,6 +1372,9 @@ export function App() {
       case 'storage_scan_loaded':
         setStorageScan(msg.scan);
         break;
+      case 'projects_usage_loaded':
+        setProjectsUsage(msg.usage);
+        break;
       case 'announcement_loaded':
         setAnnouncement(Array.isArray(msg.messages) ? msg.messages : []);
         break;
@@ -1776,6 +1783,8 @@ export function App() {
           <Planner
             tasks={tasks}
             sessionTasks={sessionTasks}
+            storageScan={storageScan}
+            projectsUsage={projectsUsage}
             journalDate={selectedJournalDate}
             journalNavTick={plannerJournalNavTick}
             journalYear={journalYear}
@@ -1869,7 +1878,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} storageScan={storageScan} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} storageScan={storageScan} projectsUsage={projectsUsage} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':
@@ -1892,6 +1901,7 @@ export function App() {
             onClearPaperDetail={handleClearPaperDetail}
             localCreative={libraryLocalCreative}
             storageScan={storageScan}
+            projectsUsage={projectsUsage}
             cloudAssetsLoading={libraryCloudAssetsLoading}
             onReloadCloudAssets={handleReloadCloudAssets}
             images={libraryImages}

@@ -128,6 +128,8 @@ interface OverviewProps {
   weatherLoaded: boolean;
   // Whole-footprint storage scan — powers the storage bar under the header.
   storageScan: StorageScan | null;
+  /** The user's projects folder, cached. */
+  projectsUsage?: import('@ava/core/projects/storage').ProjectsUsage | null;
 }
 
 // ── Inner-tab type — mirrors the IDE Command Centre's lenses, plus
@@ -164,6 +166,7 @@ export function Overview({
   journalLoaded,
   weatherLoaded,
   storageScan,
+  projectsUsage,
 }: OverviewProps) {
   useLocale();
   // Inner tab state — Command Centre always opens on Daily. The previous
@@ -360,7 +363,7 @@ export function Overview({
           nothing until something has been saved. */}
       <div className="mb-4 flex">
         <div className="ml-auto w-full max-w-xs">
-          <StorageBar scan={storageScan} label="Storage" />
+          <StorageBar scan={storageScan} projects={projectsUsage} label="Storage" />
         </div>
       </div>
 

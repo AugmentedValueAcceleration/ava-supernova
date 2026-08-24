@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { tt } from '../i18n';
 import type { StorageScan } from '../types/messages';
+import { measuredAgo, isUsageStale, type ProjectsUsage } from '@ava/core/projects/storage';
 import { post } from '../App';
 
 // ─── Storage bar + detail card ───────────────────────────────────────────────
@@ -15,8 +16,10 @@ import { post } from '../App';
 
 const CAT_COLOR: Record<string, string> = {
   models: '#a78bfa', runtime: '#64748b', creative: '#6aa9ff', memory: '#34d399',
-  journal: '#f0a24b', datasets: '#22d3ee', backups: '#f87171', other: '#9ca3af',
+  journal: '#f0a24b', datasets: '#22d3ee', projects: '#c084fc', backups: '#f87171', other: '#9ca3af',
 };
+/** Your code, kept visually apart from Ava's own footprint. */
+const PROJECTS_COLOR = '#facc15';
 const colorOf = (key: string) => CAT_COLOR[key] ?? CAT_COLOR.other;
 
 function formatBytes(n: number): string {
@@ -29,7 +32,18 @@ function formatBytes(n: number): string {
 
 /** The compact bar + its hover/pinned detail card. Renders nothing until the
  *  scan has landed. */
-export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | null; label?: string }) {
+export function StorageBar({
+  scan,
+  projects,
+  label = 'Storage',
+}: {
+  scan: StorageScan | null;
+  /** What the user's projects folder costs. Cached — never measured on render,
+   *  because a source tree can run to tens of gigabytes and walking it would
+   *  stall the page every time. */
+  projects?: ProjectsUsage | null;
+  label?: string;
+}) {
   const [pinned, setPinned] = useState(false);
   const [armed, setArmed] = useState(false);
 
@@ -48,6 +62,14 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
   const reclaimBytes = reclaim.reduce((a, r) => a + r.bytes, 0);
   const doReclaim = () => { if (reclaimPaths.length) post({ type: 'reclaim_storage', paths: reclaimPaths }); setArmed(false); };
   const close = () => { setPinned(false); setArmed(false); };
+
+  // Two families, one total. Ava's footprint is what she put on the disk; the
+  // projects figure is the user's own work, shown because "how much is this
+  // costing me" cannot be answered by half of it.
+  const projectBytes = projects?.bytes ?? 0;
+  const grandTotal = Math.max(1, totalBytes + projectBytes);
+  const projectsAge = measuredAgo(projects);
+  const projectsStale = isUsageStale(projects);
 
   // Display list: fold Runtime into Models and Old backups into Other (both are
   // engine/plumbing, not something to surface as its own line), keeping totals
@@ -82,16 +104,25 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
       >
         <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
           <span>{label}</span>
-          <span className="text-[var(--text-secondary)]">{formatBytes(totalBytes)}</span>
+          <span className="text-[var(--text-secondary)]">{formatBytes(grandTotal)}</span>
         </div>
         <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/5">
           {displayCats.map(c => (
             <div
               key={c.key}
-              style={{ width: `${Math.max(0.5, (c.bytes / totalBytes) * 100)}%`, background: colorOf(c.key) }}
+              style={{ width: `${Math.max(0.5, (c.bytes / grandTotal) * 100)}%`, background: colorOf(c.key) }}
               className="h-full transition-opacity group-hover:opacity-90"
             />
           ))}
+          {/* Your projects — one segment, its own colour, last. The total
+              answers "what is this costing me on my machine", which is only
+              honest if your own work is in it. */}
+          {projectBytes > 0 && (
+            <div
+              style={{ width: `${Math.max(0.5, (projectBytes / grandTotal) * 100)}%`, background: PROJECTS_COLOR }}
+              className="h-full transition-opacity group-hover:opacity-90"
+            />
+          )}
         </div>
       </button>
 
@@ -99,7 +130,7 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--text-muted)]">{formatBytes(totalBytes)}</span>
+            <span className="text-[11px] text-[var(--text-muted)]">{formatBytes(grandTotal)}</span>
             {pinned && (
               <button onClick={close} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition" aria-label={tt('history.close','Close')}>✕</button>
             )}
@@ -114,6 +145,39 @@ export function StorageBar({ scan, label = 'Storage' }: { scan: StorageScan | nu
               <span className="flex-shrink-0 text-[var(--text-muted)]">{formatBytes(c.bytes)}</span>
             </div>
           ))}
+
+          {/* Kept below Ava's own rows and visually separate — it is the one
+              line that is not her footprint. Never carries a Reclaim action:
+              this is the user's work. */}
+          <div className="mt-1.5 border-t border-[var(--border-card)] pt-1.5">
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="inline-block h-2 w-2 flex-shrink-0 rounded-full" style={{ background: PROJECTS_COLOR }} />
+              <span className="flex-1 truncate text-[var(--text-secondary)]">
+                {tt('storage.your_projects', 'Your projects')}
+              </span>
+              <span className="flex-shrink-0 text-[var(--text-muted)]">
+                {projects ? formatBytes(projectBytes) : '—'}
+              </span>
+            </div>
+            <div className="mt-0.5 flex items-center gap-2 pl-4 text-[10px] text-[var(--text-muted)]">
+              {/* A cached figure that does not say how old it is reads as live. */}
+              <span className="flex-1 truncate">
+                {projects
+                  ? `${projects.projectCount ?? 0} ${tt('storage.folders', 'folders')} · ${projectsAge}`
+                  : tt('storage.not_measured', 'not measured yet')}
+              </span>
+              {pinned && (
+                <button
+                  onClick={() => post({ type: 'measure_projects' })}
+                  className="flex-shrink-0 rounded border border-[var(--border-card)] px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                >
+                  {projects && !projectsStale
+                    ? tt('storage.remeasure', 'Re-measure')
+                    : tt('storage.measure', 'Measure')}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {pinned ? (

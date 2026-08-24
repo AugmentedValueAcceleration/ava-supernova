@@ -7,6 +7,7 @@
 // import — erased at runtime, so the webview bundle stays free of node deps.
 import type { LearnerProgression } from '@ava/core/learning';
 import type { ExportFormat } from '@ava/core/authoring/formats';
+import type { ProjectsUsage } from '@ava/core/projects/storage';
 
 export interface AccountInfo {
   id: string;
@@ -1824,6 +1825,8 @@ export type ExtToDashboardMessage =
   | { type: 'cloud_assets_loaded'; assets: CreativeAsset[] }
   | { type: 'local_creative_loaded'; assets: CreativeAsset[] }
   | { type: 'storage_scan_loaded'; scan: StorageScan }
+  /** What the projects folder costs, with the age of the figure. */
+  | { type: 'projects_usage_loaded'; usage: ProjectsUsage | null }
   | { type: 'cloud_assets_error'; message: string }
   | { type: 'cloud_asset_deleted'; id: string }
   // Personality
@@ -2316,6 +2319,10 @@ export type DashboardToExtMessage =
   | { type: 'reclaim_storage'; paths: string[] }
   // Reveal the whole ~/.ava data folder in the OS file explorer.
   | { type: 'open_storage_folder' }
+  /** Measure the projects home. Never automatic — walking a source tree
+   *  is expensive enough to stall a render, so the user asks for it or a
+   *  stale cache triggers it. */
+  | { type: 'measure_projects' }
   | { type: 'open_creative_folder' }
   // Import-from-disk picker. Dashboard asks host to pop the VS Code open
   // dialog; host replies with an 'import_files_picked' listing files read.

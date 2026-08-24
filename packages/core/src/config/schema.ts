@@ -54,6 +54,19 @@ export interface AvaConfig {
     embeddingModel?: string;
     /** OpenAI-compatible embeddings base URL. Default Ollama 'http://localhost:11434/v1'. */
     embeddingBaseUrl?: string;
+    /**
+     * Where new projects are created.
+     *
+     * Absolute path. Unset means the default, `~/Ava Projects` — a real,
+     * VISIBLE folder, deliberately not under `~/.ava`: that is application
+     * data and it is hidden, and source code in a dotfolder is a trap (people
+     * lose it, and backup tools routinely skip dotfolders).
+     *
+     * A default, not a prison. Developers have settled habits about `~/dev` or
+     * `D:\work`, and the point is to remove a decision from someone who does
+     * not yet have one — not to overrule someone who does.
+     */
+    projectsHome?: string;
   };
   knowledgePacks?: {
     enabled?: string[];

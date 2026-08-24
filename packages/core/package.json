@@ -148,6 +148,21 @@
       "require": "./dist/health/starters.js",
       "types": "./dist/health/starters.d.ts"
     },
+    "./projects": {
+      "import": "./dist/projects/project-data.js",
+      "require": "./dist/projects/project-data.js",
+      "types": "./dist/projects/project-data.d.ts"
+    },
+    "./projects/home": {
+      "import": "./dist/projects/projects-home.js",
+      "require": "./dist/projects/projects-home.js",
+      "types": "./dist/projects/projects-home.d.ts"
+    },
+    "./projects/storage": {
+      "import": "./dist/projects/storage-categories.js",
+      "require": "./dist/projects/storage-categories.js",
+      "types": "./dist/projects/storage-categories.d.ts"
+    },
     "./authoring/formats": {
       "import": "./dist/tools/authoring/export-formats.js",
       "require": "./dist/tools/authoring/export-formats.js",

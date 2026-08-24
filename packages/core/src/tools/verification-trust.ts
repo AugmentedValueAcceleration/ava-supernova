@@ -16,11 +16,10 @@
 // working tree. Switching machines resets it (cheap rebuild) and switching
 // projects doesn't cross-contaminate.
 
-import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { projectDataDir, ensureProjectData, projectHash } from '../projects/project-data.js';
 import type { CheckId } from '../personas/verification-matrix.js';
 
 const GRADUATION_THRESHOLD = 10;
@@ -49,15 +48,10 @@ export interface ProjectTrustState {
   checks: Partial<Record<CheckId, CheckTrust>>;
 }
 
-function cwdHash(cwd: string): string {
-  // Canonicalise so trailing slashes / drive-letter casing on Windows don't
-  // create separate trust buckets for the same project.
-  const canonical = resolve(cwd).replace(/[\\/]+$/, '').toLowerCase();
-  return createHash('sha256').update(canonical).digest('hex').slice(0, 16);
-}
-
+// The hash and the directory layout are owned by project-data.ts — this file
+// used to carry its own copy of both.
 function trustFilePath(cwd: string): string {
-  return join(homedir(), '.ava', 'projects', cwdHash(cwd), 'trust.json');
+  return join(projectDataDir(cwd), 'trust.json');
 }
 
 function emptyState(): ProjectTrustState {
@@ -83,7 +77,10 @@ export async function loadTrustState(cwd: string): Promise<ProjectTrustState> {
 async function saveTrustState(cwd: string, state: ProjectTrustState): Promise<void> {
   const file = trustFilePath(cwd);
   try {
-    await mkdir(dirname(file), { recursive: true });
+    // Creates the directory AND records which project it belongs to — the
+    // hash is one-way, so without that record nothing can ever list this
+    // project again.
+    await ensureProjectData(cwd);
     await writeFile(file, JSON.stringify(state, null, 2), 'utf8');
   } catch {
     // Trust state is advisory — failing to persist it means next run just
@@ -155,4 +152,4 @@ export async function recordCheckResults(
   await saveTrustState(cwd, state);
 }
 
-export const _internals = { GRADUATION_THRESHOLD, NEVER_GRADUATES, cwdHash, trustFilePath };
+export const _internals = { GRADUATION_THRESHOLD, NEVER_GRADUATES, projectHash, trustFilePath };

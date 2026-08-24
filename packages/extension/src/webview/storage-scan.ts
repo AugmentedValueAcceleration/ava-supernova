@@ -10,29 +10,79 @@
 // stays cheap even over an 800MB model. Everything is best-effort: unreadable
 // entries are skipped, never fatal.
 
-import { readdir, stat, rm } from 'node:fs/promises';
+import { readdir, stat, rm, readFile, writeFile } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
 import { join, relative, isAbsolute } from 'node:path';
 import type { StorageScan, StorageCategory, StorageReclaim } from './dashboard-message-types.js';
 
-const CATEGORY_LABEL: Record<string, string> = {
-  models: 'Models', runtime: 'Runtime', creative: 'Creative', memory: 'Memory',
-  journal: 'Journal', datasets: 'Datasets', backups: 'Old backups', other: 'Other',
-};
-// Stable display order (largest-first is applied after, but this breaks ties).
-const CATEGORY_ORDER = ['models', 'runtime', 'creative', 'memory', 'journal', 'datasets', 'backups', 'other'];
+// The category rules — labels, order, and which folder counts as what — live
+// in core so this surface and the other cannot disagree about the user's disk.
+import { CATEGORY_LABEL, CATEGORY_ORDER, categoryOf, type ProjectsUsage } from '@ava/core/projects/storage';
 
-/** Map a top-level entry name to a storage category. */
-function categoryOf(name: string): string {
-  const n = name.toLowerCase();
-  if (/backup/.test(n)) return 'backups';
-  if (n === 'models') return 'models';
-  if (n === 'bin') return 'runtime';
-  if (n === 'creative') return 'creative';
-  if (n === 'memory' || n === 'memory.json' || n === 'memory.md' || n === 'embeddings' || n === 'graph.json') return 'memory';
-  if (n === 'journal') return 'journal';
-  if (n === 'datasets') return 'datasets';
-  return 'other';
+
+// ─── The user's projects ─────────────────────────────────────────────────────
+//
+// Measured separately from ~/.ava, and never on render.
+//
+// A source tree is not a config folder. An Unreal project's Intermediate,
+// Binaries and DerivedDataCache run to tens of gigabytes, and walking that on
+// every page load would stall the UI every single time. So the figure is
+// cached, shown with its age, and re-measured only on request or once stale.
+//
+// The cache lives in ~/.ava so a measurement taken in the IDE is visible in the
+// extension and vice versa — one disk, one answer.
+
+/** Where the cached figure lives, shared between surfaces. */
+function usageCachePath(avaHome: string): string {
+  return join(avaHome, 'projects-usage.json');
+}
+
+export async function readProjectsUsage(avaHome: string): Promise<ProjectsUsage | null> {
+  try {
+    const raw = await readFile(usageCachePath(avaHome), 'utf8');
+    const parsed = JSON.parse(raw) as ProjectsUsage;
+    return parsed?.measuredAt ? parsed : null;
+  } catch { return null; }
+}
+
+/**
+ * Walk the projects home and total it.
+ *
+ * Counts EVERY immediate subfolder, not only projects Ava created — the number
+ * should match what the file manager says about that folder. Counting only
+ * hers would silently under-report the moment someone clones a repo into it,
+ * with no way for them to tell why.
+ */
+export async function measureProjects(projectsHome: string, avaHome: string): Promise<ProjectsUsage> {
+  let projectCount = 0;
+  let bytes = 0;
+
+  let entries: Dirent[] = [];
+  try { entries = await readdir(projectsHome, { withFileTypes: true }); } catch { entries = []; }
+
+  for (const e of entries) {
+    const full = join(projectsHome, e.name);
+    if (e.isDirectory()) {
+      projectCount++;
+      bytes += await dirSize(full);
+    } else if (e.isFile()) {
+      // Loose files in the folder still occupy the disk the user is being
+      // shown, even though they are not projects.
+      try { bytes += (await stat(full)).size; } catch { /* skip */ }
+    }
+  }
+
+  const usage: ProjectsUsage = {
+    path: projectsHome,
+    bytes,
+    projectCount,
+    measuredAt: new Date().toISOString(),
+  };
+  // Best-effort: a measurement that cannot be cached is still worth showing.
+  try {
+    await writeFile(usageCachePath(avaHome), JSON.stringify(usage, null, 2), 'utf8');
+  } catch { /* ignore */ }
+  return usage;
 }
 
 /** Recursive on-disk size of a directory (bytes). Best-effort. */
