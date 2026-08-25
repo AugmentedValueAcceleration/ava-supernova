@@ -17,6 +17,34 @@ function isWithinDirectory(candidate: string, boundary: string): boolean {
 }
 
 /**
+ * Is this an absolute path belonging to a platform we are NOT running on?
+ *
+ * node:path only understands absolutes for the platform it is running on. On
+ * POSIX, isAbsolute('C:\\Windows\\System32\\config\\SAM') is FALSE — backslash
+ * is an ordinary filename character there, so resolve() quietly places it
+ * INSIDE the project as a single file literally named
+ * "C:\Windows\System32\config\SAM".
+ *
+ * That is contained, and it is not a traversal: nothing escapes the working
+ * directory, on either platform. But it is still the wrong answer. A Windows
+ * path arriving on a Linux host means something upstream is confused — a model
+ * guessing, or a path copied off another machine — and inventing an
+ * absurdly-named file is a way of hiding that instead of reporting it. It also
+ * makes the same input behave two different ways depending on the host, which
+ * for a tool that runs identically on Windows, macOS and Linux is a bug in its
+ * own right.
+ *
+ * So a foreign absolute is refused everywhere, exactly as the native one is.
+ * Covers drive letters (C:\... and C:/...) and UNC shares (\\server\share).
+ *
+ * Found by CI on ubuntu, where tests/tool-adversarial.test.ts had been asserting
+ * this all along and had never once run — the workflow was failing at checkout.
+ */
+export function isForeignAbsolute(rawPath: string): boolean {
+  return /^[A-Za-z]:[\\/]/.test(rawPath) || rawPath.startsWith('\\\\');
+}
+
+/**
  * Validate that a resolved path stays within the allowed working directory.
  * Prevents path traversal attacks (e.g. ../../etc/passwd) and sibling directory access.
  *
@@ -28,6 +56,17 @@ function isWithinDirectory(candidate: string, boundary: string): boolean {
 export function validatePath(rawPath: string, cwd: string): string {
   const absolutePath = isAbsolute(rawPath) ? normalize(rawPath) : normalize(resolve(cwd, rawPath));
   const normalizedCwd = normalize(cwd);
+
+  // Checked BEFORE the containment test, because on POSIX this kind of path
+  // resolves to somewhere that genuinely IS inside the project and would
+  // otherwise be waved through. isAbsolute() is false for it here, which is
+  // precisely the trap.
+  if (!isAbsolute(rawPath) && isForeignAbsolute(rawPath)) {
+    throw new Error(
+      `Path "${rawPath}" resolves outside the project directory. ` +
+      `Access is restricted to "${normalizedCwd}" and ~/.ava/.`
+    );
+  }
 
   // Allow paths strictly within the project directory
   if (isWithinDirectory(absolutePath, normalizedCwd)) {
