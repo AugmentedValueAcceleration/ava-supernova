@@ -32,8 +32,12 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
+        # No `version:` here on purpose. package.json's packageManager
+        # field (pnpm@10.30.1) is the single source of truth, and
+        # action-setup v4 errors outright when both are set rather than
+        # picking one — which is the correct behaviour, since the two
+        # disagreeing silently is how a CI run stops resembling a
+        # developer's machine.
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -111,8 +115,12 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
+        # No `version:` here on purpose. package.json's packageManager
+        # field (pnpm@10.30.1) is the single source of truth, and
+        # action-setup v4 errors outright when both are set rather than
+        # picking one — which is the correct behaviour, since the two
+        # disagreeing silently is how a CI run stops resembling a
+        # developer's machine.
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -153,8 +161,12 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
+        # No `version:` here on purpose. package.json's packageManager
+        # field (pnpm@10.30.1) is the single source of truth, and
+        # action-setup v4 errors outright when both are set rather than
+        # picking one — which is the correct behaviour, since the two
+        # disagreeing silently is how a CI run stops resembling a
+        # developer's machine.
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
