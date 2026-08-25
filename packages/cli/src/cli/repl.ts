@@ -1,7 +1,10 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import { t, getSecurityModePrefix, getBrainstormModePrefix, Conductor, haltIntent } from '@ava/core';
+import {
+  t, getSecurityModePrefix, getBrainstormModePrefix, getWorkModePrefix,
+  modeForTaggedText, Conductor, haltIntent,
+} from '@ava/core';
 import type { Agent, AgentEvent, ConductorEvent, Conversation, ToolRegistry, HistoryManager, AutoCoordinator } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
@@ -434,7 +437,25 @@ export class Repl {
 
   private async processUserMessage(input: string): Promise<void> {
     this.lastUserInput = input;
-    this.conversation.addUserMessage(input);
+
+    // The CLI has no mode switcher: it is code mode, always. So it should
+    // carry code mode's briefing the way the extension and the IDE do —
+    // otherwise the surface with the least hand-holding also gets the
+    // least-instructed Ava.
+    //
+    // Guarded on the tag rather than on the call site. /security and
+    // /brainstorm arrive here ALREADY prefixed, and wrapping those again
+    // would put two mode tags on one message — detectModeFromMessages reads
+    // the first one, so the outer wrapper would win and silently cancel the
+    // mode the user actually asked for.
+    //
+    // Nothing here replays stored user messages back to the terminal, so
+    // the briefing cannot end up displayed where their own words belong —
+    // which is exactly what the extension sidebar was doing.
+    const prefixed = modeForTaggedText(input) === null && input.trim()
+      ? getWorkModePrefix(input)
+      : input;
+    this.conversation.addUserMessage(prefixed);
 
     const onEvent = (event: AgentEvent): void => {
       switch (event.type) {
