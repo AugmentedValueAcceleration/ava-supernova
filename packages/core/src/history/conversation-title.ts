@@ -21,6 +21,7 @@
 // conversation was about. This module is the single place that knows how to
 // undo both, so the surfaces stop each keeping their own half-right copy.
 
+import { ALL_SCAFFOLD_TAGS } from '../agent/mode-tags.js';
 import type { Message } from '../core/types.js';
 import { getTextContent } from '../core/types.js';
 
@@ -55,26 +56,12 @@ export const INTERNAL_MARKERS = [
  * these introduce, so the preamble must be peeled off — the tag itself is not
  * the title, and neither is the first line of Ava's own briefing.
  *
- * Kept in step with detectModeFromMessages() in agent.ts. The last two are
- * legacy spellings that only appear in already-saved transcripts; we still strip
- * them so old conversations get readable names too.
+ * Derived from agent/mode-tags.ts rather than kept in step with it by hand —
+ * including the legacy spellings, which appear only in already-saved
+ * transcripts but still have to strip so old conversations get readable
+ * names.
  */
-export const SCAFFOLD_TAGS = [
-  '[Plan Mode]',
-  '[Chat Mode]',
-  '[Brainstorm Mode]',
-  '[Write Mode]',
-  '[Teach Mode]',
-  '[Security Audit Mode]',
-  '[Desktop Automation Mode]',
-  '[Health Room]',
-  '[Design Studio]',
-  '[Social Studio]',
-  '[Learning Room]',
-  // Legacy — historical transcripts only.
-  '[Security Mode]',
-  '[Work Mode]',
-] as const;
+export const SCAFFOLD_TAGS: readonly string[] = ALL_SCAFFOLD_TAGS;
 
 /**
  * Which surface a conversation belongs to.

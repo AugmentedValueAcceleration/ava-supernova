@@ -6,6 +6,7 @@
  * All local. Nothing leaves the machine.
  */
 
+import { modeForTaggedText, ALL_SCAFFOLD_TAGS, type AvaModeId } from '../agent/mode-tags.js';
 import { join } from 'node:path';
 import { mkdir, readFile, appendFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
@@ -16,7 +17,11 @@ import { logger } from '../core/logger.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type AvaMode = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+// The full set the agent can detect, not a local guess at it. Which of them
+// actually emit is still `capture_modes` below — a mode that is detected
+// correctly and not configured for capture is simply not captured, which is
+// the honest outcome. Previously they were captured under the wrong label.
+type AvaMode = AvaModeId;
 
 interface CollectionConfig {
   enabled: boolean;
@@ -76,14 +81,6 @@ async function loadConfig(): Promise<CollectionConfig> {
 
 // ─── Mode Detection ─────────────────────────────────────────────────────────
 
-const MODE_PREFIXES: [string, AvaMode][] = [
-  ['[Chat Mode]', 'chat'],
-  ['[Teach Mode]', 'teach'],
-  ['[Security Mode]', 'security'],
-  ['[Brainstorm Mode]', 'brainstorm'],
-  ['[Plan Mode]', 'plan'],
-];
-
 function detectMode(messages: Message[]): AvaMode {
   // Check the last user message (before internal planning messages) for mode prefix
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -93,11 +90,10 @@ function detectMode(messages: Message[]): AvaMode {
     const text = getTextContent(msg.content);
     if (text.startsWith('[Internal Planning')) continue;
 
-    for (const [prefix, mode] of MODE_PREFIXES) {
-      if (text.startsWith(prefix)) return mode;
-    }
-    // No prefix = work mode (default)
-    return 'work';
+    // Read the shared list. The local copy this replaced knew 5 tags where
+    // the agent knew 11, so Write, Desktop, Health, Design, Social and
+    // Newsroom turns were every one of them captured as mode 'work'.
+    return modeForTaggedText(text) ?? 'work';
   }
   return 'work';
 }
@@ -204,7 +200,7 @@ export async function captureInteraction(messages: Message[]): Promise<void> {
 
     // Strip mode prefixes from prompt for cleaner training data
     let cleanPrompt = exchange.prompt;
-    for (const [prefix] of MODE_PREFIXES) {
+    for (const prefix of ALL_SCAFFOLD_TAGS) {
       if (cleanPrompt.startsWith(prefix)) {
         cleanPrompt = cleanPrompt.slice(prefix.length).trim();
         break;

@@ -26,8 +26,11 @@ import {
   getSecurityModePrefix,
   getWriteModePrefix,
   getTeachModePrefix,
+  getWorkModePrefix,
 } from '../src/agent/system-prompt.js';
 import { readOnlyModeToolCeiling, modeCanEditFiles } from '../src/agent/agent.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ToolRegistry } from '../src/tools/tool-registry.js';
 
 /** Every tool the registry can produce. */
@@ -57,7 +60,28 @@ const MODES: Array<[string, (t: string) => string]> = [
   ['security', getSecurityModePrefix],
   ['write', getWriteModePrefix],
   ['teach', getTeachModePrefix],
+  ['work', getWorkModePrefix],
 ];
+
+/**
+ * Work's allowlist, read out of agent.ts.
+ *
+ * readOnlyModeToolCeiling only answers for read-only modes, and work is the
+ * one editing mode whose prompt now advertises a specific list — so it needs
+ * checking against the same source the schema filter uses. Comments are
+ * stripped first: the allowlists carry explanatory comments that quote tool
+ * names, and reading those as entries makes removed names look live.
+ */
+function workCeiling(): Set<string> {
+  const raw = readFileSync(join(__dirname, '../src/agent/agent.ts'), 'utf8');
+  const src = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const block = src.slice(src.indexOf('const MODE_ALLOWED_TOOLS'));
+  const work = /^  work: new Set\(\[([\s\S]*?)\]\),/m.exec(block)!;
+  const names = [...work[1].matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
+  const aStart = src.indexOf('const ALWAYS_ALLOWED_TOOLS');
+  const always = [...src.slice(aStart, src.indexOf(']', aStart)).matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
+  return new Set([...names, ...always]);
+}
 
 describe('what a mode promises, it can actually do', () => {
   const real = registered();
@@ -79,10 +103,23 @@ describe('what a mode promises, it can actually do', () => {
     });
   }
 
+  it('work advertises only tools work is offered', () => {
+    // Work's allowlist reached the schema filter on 2026-08-25 (it had never
+    // once applied before, because code mode carried no tag). The moment it
+    // enforces, anything this prompt names that is not on the list becomes a
+    // refusal in the middle of a coding turn — she follows her own
+    // instructions and the call is blocked.
+    const ceiling = workCeiling();
+    const unreachable = advertised(getWorkModePrefix('x')).filter((t) => real.has(t) && !ceiling.has(t));
+    expect(
+      unreachable,
+      `work's prompt names tools outside MODE_ALLOWED_TOOLS.work: ${unreachable.join(', ')}`,
+    ).toEqual([]);
+  });
+
   for (const [mode, fn] of MODES) {
-    // Only the read-only modes have a ceiling to check against — the editing
-    // modes deliberately have none, because work's allowlist has never applied
-    // and clamping to it would enforce a list nobody has verified.
+    // The read-only modes have a ceiling to check against. The editing modes
+    // are handled above (work) or have no advertised list to clamp.
     if (modeCanEditFiles(mode)) continue;
     it(`${mode} advertises only tools it is actually offered`, () => {
       const ceiling = readOnlyModeToolCeiling(mode)!;

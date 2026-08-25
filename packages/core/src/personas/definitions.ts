@@ -949,12 +949,29 @@ export const WRITE_PERSONAS: PersonaDefinition[] = [
 // 5-persona curriculum-prep team only fires on creation signals.
 
 // Work light team — for typical "make this small change" turns. Drops
-// VERIFIER + SEQUENCER (the coordinator can do those itself for small
-// scopes). Builder is filtered by the conductor; INTEGRATOR is dead in
-// the pipeline (handled by post-build hook). Real runtime: just SCOUT
-// + ARCHITECT + CHALLENGER.
+// SEQUENCER (the coordinator can order two steps itself). Builder is
+// filtered by the conductor; INTEGRATOR is dead in the pipeline (handled
+// by post-build hook). Real runtime: SCOUT + ARCHITECT + VERIFIER +
+// CHALLENGER.
+//
+// VERIFIER was dropped here until 2026-08-25, which left the light team as
+// plan -> build -> review with nothing checking that the PLAN stood on true
+// things. It is not redundant with CODE_REVIEWER: Verifier checks the plan
+// before building (do these files and symbols exist, are the assumptions
+// true), Code Reviewer checks what was written afterwards. A compiler
+// catches what is malformed, never what is mistaken.
+//
+// Restored because the expensive defects are false premises, and they do
+// not scale with job size — "this anchor string is unique" was wrong in a
+// one-line edit and cost more than any multi-file change that week. Same
+// reasoning already keeps SECURITY_VERIFIER in the security light team a
+// few lines below; work had simply drifted the other way.
+//
+// It is a 'light' modelTier persona, so the cost of always running it is
+// one cheap call, against a class of error that typechecks cleanly and
+// reaches the user.
 export const WORK_PERSONAS_LIGHT: PersonaDefinition[] = [
-  SCOUT, ARCHITECT, CHALLENGER, CODE_REVIEWER, BUILDER,
+  SCOUT, ARCHITECT, VERIFIER, CHALLENGER, CODE_REVIEWER, BUILDER,
 ];
 
 // Verifier stays in the light team — without it, the Reporter would be

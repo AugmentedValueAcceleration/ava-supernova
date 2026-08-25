@@ -25,7 +25,7 @@ export type { UserIntent, IntentClassifierOptions } from './agent/intent-classif
 
 export type { SystemPromptOptions } from './agent/system-prompt.js';
 export * from './exercises/index.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, SOCIAL_STUDIO_PERSONA, getNewsroomPrefix, getPantryPrefix, getGymPrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getWorkModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, SOCIAL_STUDIO_PERSONA, getNewsroomPrefix, getPantryPrefix, getGymPrefix } from './agent/system-prompt.js';
 
 // Newsroom contracts — the surface-injected news index + article store the
 // Correspondent's tools write through, plus the syndication clusterer that
@@ -370,6 +370,14 @@ export type { ConversationRecord } from './history/storage.js';
 // Which room a conversation belongs to, derived from the scaffold tag its
 // messages already carry. Exported so the surfaces can restore a thread into
 // the room it came from rather than always into the main chat.
+// The mode tags, in one place. A leaf: it imports nothing, so browser
+// bundles and the IDE sidecar can read the same list the agent does
+// instead of each keeping a copy that drifts.
+export {
+  MODE_TAGS, ALL_SCAFFOLD_TAGS, SCAFFOLD_ONLY_TAGS,
+  tagForMode, modeForTaggedText,
+} from './agent/mode-tags.js';
+export type { ModeTag, AvaModeId } from './agent/mode-tags.js';
 export { deriveConversationSurface } from './history/conversation-title.js';
 export type { ConversationSurface } from './history/conversation-title.js';
 

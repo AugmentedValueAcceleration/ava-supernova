@@ -24,6 +24,7 @@ import {
   getPlanModePrefix,
   getBrainstormModePrefix,
   getWriteModePrefix,
+  getWorkModePrefix,
   getHealthRoomPrefix,
   getDesignStudioPrefix,
   killBackgroundProcesses,
@@ -4723,6 +4724,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         ); break;
       case 'write':
         prefixed = getWriteModePrefix(text || 'What would you like to write?'); break;
+      // The extension calls it 'code', core calls it 'work'. Same mode; the
+      // spelling split is why this fell through to `default` and shipped
+      // without a prompt while every other mode had one.
+      case 'code':
+        prefixed = getWorkModePrefix(text); break;
       case 'health':
         prefixed = getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary(), this.getTrainingLogSummary()); break;
       case 'design':

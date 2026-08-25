@@ -84,7 +84,23 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 /** Strip mode prefix from user messages so internal prompts don't show in the UI */
 function stripModePrefix(content: string): string {
   if (typeof content !== 'string') return content;
-  const prefixes = ['[Chat Mode]', '[Teach Mode]', '[Plan Mode]', '[Security Mode]', '[Brainstorm Mode]', '[Work Mode]'];
+  // Mirrors ALL_SCAFFOLD_TAGS in @ava/core (src/agent/mode-tags.ts). This
+  // package has no dependency on core, so the list is duplicated here and
+  // held to the original by a test in core that reads this file.
+  //
+  // It was missing every spelling below the first six — including the LIVE
+  // '[Security Audit Mode]', while carrying the legacy '[Security Mode]'
+  // that nothing emits any more. A restored Write, Security, Health or
+  // Design conversation showed the user the entire internal briefing in
+  // place of their own message.
+  const prefixes = [
+    '[Work Mode]', '[Plan Mode]', '[Chat Mode]', '[Brainstorm Mode]',
+    '[Write Mode]', '[Teach Mode]', '[Security Audit Mode]',
+    '[Desktop Automation Mode]', '[Health Room]', '[Design Studio]',
+    '[Social Studio]', '[Newsroom]',
+    // Legacy spellings — historical transcripts only.
+    '[Security Mode]', '[Learning Room]',
+  ];
   for (const p of prefixes) {
     if (content.startsWith(p)) {
       // The user's actual message is after the last line of the prefix

@@ -65,12 +65,60 @@ export function detectConductorDepth(userMessage: string, mode?: string): Conduc
     ];
     return teachCreationSignals.some((re) => re.test(msg)) ? 'full' : 'light';
   }
+  // ── Work: infer depth from the shape of the job ─────────────────────
+  // Keyword detection alone asks the USER to know when a task is risky, and
+  // they cannot — riskiness is a property of the work, not of the phrasing.
+  // Nobody says "deep dive" before asking to wire a setting through four
+  // surfaces, which is exactly when the full team earns its keep.
+  //
+  // Scoped to work mode. The other modes pick depth on their own terms
+  // (Teach above, Flash classification in the intent gate), and "refactor"
+  // in a Chat turn is a topic, not a job.
+  if (mode === 'work' && (namesEnoughFiles(msg) || WORK_BREADTH_SIGNALS.some((re) => re.test(msg)))) {
+    logger.info('[conductor] work depth: full (inferred from the shape of the request)');
+    return 'full';
+  }
+
   const fullDepthSignals = [
     /\b(full (team|audit|review|analysis)|comprehensive (review|audit|analysis))\b/,
     /\b(run the full (team|pipeline|personas?)|deep (audit|review|dive|analysis))\b/,
     /\b(exhaustive|thorough review|complete analysis)\b/,
   ];
   return fullDepthSignals.some((re) => re.test(msg)) ? 'full' : 'light';
+}
+
+/**
+ * How many distinct files a request must name before it stops being an edit
+ * and starts being a change with a shape.
+ *
+ * Three, because at two you are still holding both ends in your head; at
+ * three the relationship between them becomes an assumption, and assumptions
+ * are what the full team exists to check. A named constant on purpose: it is
+ * a judgement call, and whoever wants to argue with it should be able to find
+ * it.
+ */
+export const WORK_FULL_TEAM_FILE_THRESHOLD = 3;
+
+// Work that cannot be done in one place by definition. 'rename' is
+// deliberately absent — a rename is mechanical, and the light team plus a
+// typecheck handles it better than four personas discussing it.
+const WORK_BREADTH_SIGNALS: RegExp[] = [
+  /\b(refactor|migrat(?:e|ion)|restructure|consolidat(?:e|ion)|deduplicat(?:e|ion)|unify)\b/,
+  /\b(?:everywhere|across (?:the )?(?:codebase|packages|surfaces|modes|locales))\b/,
+  /\ball (?:three|four|the) (?:surfaces|modes|packages|locales|panels)\b/,
+  /\b(?:extension and (?:the )?ide|ide and (?:the )?extension|both surfaces|mirror (?:it|this|that|the change))\b/,
+  /\bwire\b[^.]*\bthrough\b/,
+];
+
+// A file counts as named if it looks like one. DISTINCT names matter:
+// "change foo.ts, then test foo.ts, then build foo.ts" is one file's worth of
+// work however many times it is said.
+const FILE_MENTION_RE = /\b[\w.-]+\.(?:ts|tsx|js|jsx|mjs|cjs|json|css|scss|html|rs|py|md|toml|yml|yaml)\b/g;
+
+function namesEnoughFiles(msg: string): boolean {
+  const found = msg.match(FILE_MENTION_RE);
+  if (!found) return false;
+  return new Set(found).size >= WORK_FULL_TEAM_FILE_THRESHOLD;
 }
 import { logger } from '../core/logger.js';
 import { avaEvents } from '../dataset/emitter.js';

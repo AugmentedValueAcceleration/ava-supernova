@@ -14,6 +14,7 @@ import type { ToolExecutionContext } from '../tools/types.js';
 import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/constants.js';
 import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
+import { modeForTaggedText } from './mode-tags.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
 import { bridgeImagesForTextModel } from './vision-bridge.js';
 import { auditClaims, type ClaimAuditResult } from './claims-auditor.js';
@@ -244,6 +245,25 @@ const DESKTOP_ONLY_TOOLS: Set<string> = new Set(DESKTOP_TOOL_NAMES);
  * run's transcript off sharedState, writes nothing.
  */
 const ALWAYS_ALLOWED_TOOLS: Set<string> = new Set(['self_inspect', 'conversation_recall']);
+
+/**
+ * Stage gate for code mode's tool allowlist.
+ *
+ * `MODE_ALLOWED_TOOLS.work` has existed for months and has never once run:
+ * code mode is the untagged default, so the filter's `detectedMode ? ... :
+ * null` took its fallback branch every time. Switching it on removes 66 of
+ * 118 schemas from the busiest surface in the product, and a list that has
+ * never executed is a list nobody has checked.
+ *
+ * 'log'     — compute the filtered set, report what it WOULD withhold and
+ *             what Ava actually reached for, withhold nothing.
+ * 'enforce' — apply it.
+ *
+ * A module constant rather than an env var so flipping it is one visible
+ * line in a diff, and so the two surfaces cannot end up disagreeing about
+ * which stage they are in.
+ */
+const WORK_TOOL_GATE: 'log' | 'enforce' = 'log';
 
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // Work mode — the bread-and-butter coding surface. Ships every turn
@@ -633,18 +653,10 @@ export function detectModeFromMessages(messages: Message[]): string | null {
     if (msg.role !== 'user') continue;
     const text = getTextContent(msg.content);
     if (text.startsWith('[Internal Planning')) continue;
-    if (text.startsWith('[Plan Mode]')) return 'plan';
-    if (text.startsWith('[Chat Mode]')) return 'chat';
-    if (text.startsWith('[Brainstorm Mode]')) return 'brainstorm';
-    if (text.startsWith('[Write Mode]')) return 'write';
-    if (text.startsWith('[Teach Mode]')) return 'teach';
-    if (text.startsWith('[Security Audit Mode]')) return 'security';
-    if (text.startsWith('[Desktop Automation Mode]')) return 'desktop';
-    if (text.startsWith('[Health Room]')) return 'health';
-    if (text.startsWith('[Design Studio]')) return 'design';
-    if (text.startsWith('[Social Studio]')) return 'social';
-    if (text.startsWith('[Newsroom]')) return 'news';
-    break;
+    // One list, in agent/mode-tags.ts. This used to be eleven hand-written
+    // startsWith calls, and the other eight copies of the same list around
+    // the codebase each disagreed with it in a different way.
+    return modeForTaggedText(text);
   }
   return null;
 }
@@ -1502,22 +1514,42 @@ export class Agent {
     const useNativeTools = this.model.supportsToolCalls !== false;
     const allSchemas = this.toolRegistry.getSchemas();
 
-    // Mode-aware filtering: restrict tool schemas to only those allowed in
-    // the active mode. When the user message lacks an explicit mode prefix
-    // (default work / code path on both surfaces), the per-mode allowlist
-    // can't apply — but we still need to keep desktop-only tools out of
-    // non-desktop turns, otherwise the model can hallucinate desktop_*
-    // calls in code mode and the gate noise leaks into a coding turn.
-    const modeAllowed = detectedMode ? MODE_ALLOWED_TOOLS[detectedMode] : null;
+    // ── Mode-aware filtering ───────────────────────────────────────────
+    // Every mode except code wraps the user's message in a literal tag, so
+    // the ABSENCE of a tag is not missing information — it is code mode's
+    // signal. run() has read it that way since it started opening
+    // trajectories (`?? 'work'`); this filter read the same absence as "no
+    // restrictions at all". One fact, two readings, and the cost was that
+    // work's allowlist never applied: coding turns shipped all 118 schemas,
+    // ~25K tokens of context spent describing recipe and health tools to
+    // someone writing TypeScript. That is context not holding her actual
+    // work — a capability cost, not a billing one.
+    //
+    // Desktop tools stay out on both branches. That was the one restriction
+    // the old fallback did apply, and it is load-bearing.
+    const effectiveMode = detectedMode ?? 'work';
+    const modeAllowed: Set<string> | null = MODE_ALLOWED_TOOLS[effectiveMode] ?? null;
+    // Keyed on the MODE, not on whether a tag was present. Keying it on tag
+    // presence works today only because code mode is the untagged one — the
+    // moment a `[Work Mode]` tag exists, that spelling would silently flip
+    // the gate to enforce and the whole staged rollout would vanish.
+    // Every other mode has been enforcing for months and continues to.
+    const applyModeGate = modeAllowed !== null
+      && (effectiveMode !== 'work' || WORK_TOOL_GATE === 'enforce');
+
     let filteredSchemas: ToolSchema[];
-    if (modeAllowed) {
+    if (modeAllowed && applyModeGate) {
       filteredSchemas = allSchemas.filter(s => modeAllowed.has(s.function.name) || ALWAYS_ALLOWED_TOOLS.has(s.function.name));
     } else {
-      // No prefix detected. Filter only the desktop-only tools so the
-      // surgical leak closes without tightening any other tool the user
-      // may have been calling in unprefixed turns (journal_write, weather,
-      // etc. — those stay available exactly as before).
       filteredSchemas = allSchemas.filter(s => !DESKTOP_ONLY_TOOLS.has(s.function.name));
+    }
+
+    if (modeAllowed && !applyModeGate) {
+      const withheld = allSchemas.filter(s =>
+        !modeAllowed.has(s.function.name)
+        && !ALWAYS_ALLOWED_TOOLS.has(s.function.name)
+        && !DESKTOP_ONLY_TOOLS.has(s.function.name)).length;
+      logger.info(`[agent] work-gate(log-only): would withhold ${withheld} of ${allSchemas.length} schemas; shipping all`);
     }
 
     // Tools always available when the model supports them. Intent shapes
@@ -2359,12 +2391,24 @@ export class Agent {
       // above. The two must agree: offering a schema and then blocking the call
       // gives the model a tool it can see and cannot use, which reads to the
       // user as Ava being broken rather than restricted.
+      //
+      // Gated on applyModeGate, NOT on modeAllowed. During code mode's
+      // log-only stage the set is computed but the schemas all ship, and
+      // blocking here would do precisely what the paragraph above forbids:
+      // offer a tool and then refuse the call.
       if (modeAllowed) {
         const isAllowed = (name: string) => modeAllowed.has(name) || ALWAYS_ALLOWED_TOOLS.has(name);
         const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !isAllowed(tc.function.name));
-        if (blocked.length > 0) {
+        if (blocked.length > 0 && !applyModeGate) {
+          // The evidence worth having. The static count above says what is
+          // in play; this says what she actually reached for while coding —
+          // and anything that shows up here is a hole in the list, not a
+          // mistake by her.
+          logger.warn(`[agent] work-gate(log-only): REACHED ${blocked.map((tc: ToolCall) => tc.function.name).join(', ')} — allowed through`);
+        }
+        if (blocked.length > 0 && applyModeGate) {
           const blockedNames = blocked.map((tc: ToolCall) => tc.function.name).join(', ');
-          logger.warn(`[agent] Mode ${detectedMode} blocked tools: ${blockedNames}`);
+          logger.warn(`[agent] Mode ${effectiveMode} blocked tools: ${blockedNames}`);
           // assistantMessage is already in `messages` (pushed unconditionally
           // earlier in the loop). The original code pushed it again inside
           // the for-loop, producing duplicate assistant turns in history
@@ -2372,7 +2416,9 @@ export class Agent {
           for (const tc of blocked) {
             messages.push({
               role: 'tool' as const,
-              content: `Tool "${tc.function.name}" is not available in ${detectedMode} mode. This mode is read-only — use work mode (>>) to make changes.`,
+              content: modeCanEditFiles(effectiveMode)
+                ? `Tool "${tc.function.name}" belongs to a different mode. Call switch_mode to reach it, then carry on.`
+                : `Tool "${tc.function.name}" is not available in ${effectiveMode} mode. This mode is read-only — use work mode (>>) to make changes.`,
               tool_call_id: tc.id,
             } as any);
           }
