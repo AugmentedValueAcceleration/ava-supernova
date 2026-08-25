@@ -48,6 +48,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # @ava/core must be BUILT before anything can be typechecked against
+      # it. Its package.json points `types` at dist/index.d.ts, and dist is
+      # gitignored — so on a fresh checkout `import ... from '@ava/core'`
+      # resolves to nothing and every dependent package fails with TS2307.
+      #
+      # It passed locally only because a dist/ from an earlier build was
+      # lying around. Verified by moving dist aside and reproducing the
+      # exact CI error, then confirming that building core alone is enough.
+      - name: Build workspace dependencies
+        run: pnpm --filter @ava/core build
+
       - name: Typecheck
         run: pnpm typecheck
 
