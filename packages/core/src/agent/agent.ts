@@ -60,6 +60,9 @@ import {
 } from './error-loop-detector.js';
 import { runFreshEyesReview, buildFreshEyesContext } from './fresh-eyes.js';
 import { randomUUID } from 'node:crypto';
+import { appendFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { AVA_HOME } from '../core/constants.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
 import { PNG } from 'pngjs';
 
@@ -264,6 +267,16 @@ const ALWAYS_ALLOWED_TOOLS: Set<string> = new Set(['self_inspect', 'conversation
  * which stage they are in.
  */
 const WORK_TOOL_GATE: 'log' | 'enforce' = 'log';
+
+/**
+ * Where the log-only stage records a reach, under AVA_HOME.
+ *
+ * One line per turn in which Ava called a tool the gate would have
+ * withheld. If this file does not exist after a real session of coding,
+ * the allowlist is complete and WORK_TOOL_GATE can move to 'enforce'. If
+ * it does exist, every name in it belongs back on the list first.
+ */
+const WORK_GATE_LOG = 'work-gate.log';
 
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // Work mode — the bread-and-butter coding surface. Ships every turn
@@ -2400,11 +2413,30 @@ export class Agent {
         const isAllowed = (name: string) => modeAllowed.has(name) || ALWAYS_ALLOWED_TOOLS.has(name);
         const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !isAllowed(tc.function.name));
         if (blocked.length > 0 && !applyModeGate) {
-          // The evidence worth having. The static count above says what is
-          // in play; this says what she actually reached for while coding —
-          // and anything that shows up here is a hole in the list, not a
-          // mistake by her.
-          logger.warn(`[agent] work-gate(log-only): REACHED ${blocked.map((tc: ToolCall) => tc.function.name).join(', ')} — allowed through`);
+          // The evidence worth having. The static count says what is in play;
+          // this says what she actually reached for while coding — and
+          // anything appearing here is a hole in the list, not a mistake by
+          // her.
+          //
+          // Written to a FILE, not just the console. logger goes to
+          // console.info, which in the VS Code extension host lands in the
+          // Extension Host output and is kept nowhere — so the one signal this
+          // whole staged rollout exists to collect would have been unreadable
+          // by the time anyone went looking.
+          //
+          // The absence of this file after a real session is the result we
+          // want: nothing reached for, safe to enforce.
+          const names = blocked.map((tc: ToolCall) => tc.function.name).join(', ');
+          logger.warn(`[agent] work-gate(log-only): REACHED ${names} — allowed through`);
+          try {
+            appendFileSync(
+              join(AVA_HOME, WORK_GATE_LOG),
+              `${new Date().toISOString()}\t${this.model.id}\t${names}\n`,
+              'utf8',
+            );
+          } catch {
+            // Best effort. A diagnostic must never be the reason a turn fails.
+          }
         }
         if (blocked.length > 0 && applyModeGate) {
           const blockedNames = blocked.map((tc: ToolCall) => tc.function.name).join(', ');
