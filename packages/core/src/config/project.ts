@@ -783,7 +783,9 @@ export async function listPlanRecords(projectRoot: string | undefined): Promise<
   const out: PlanRecordSummary[] = [];
   for (const name of names) {
     const path = join(recordsDir, name);
-    let body = '';
+    // No initialiser: the catch continues, so every path that reaches the
+    // code below has assigned it. Seeding it with '' only looked safe.
+    let body: string;
     try {
       body = await readFile(path, 'utf-8');
     } catch {

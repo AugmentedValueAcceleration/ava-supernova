@@ -116,7 +116,10 @@ export class Renderer {
       }
       process.stdout.write('\x1b[2K\r');
 
-      // Sanitise raw ANSI escape sequences from AI output before rendering
+      // Sanitise raw ANSI escape sequences from AI output before rendering.
+      // The control character is the point — model output that contains a
+      // stray escape sequence would otherwise repaint the user's terminal.
+      // eslint-disable-next-line no-control-regex
       const sanitised = cleaned.replace(/\x1b\[[0-9;]*[a-zA-Z~]/g, '');
       const rendered = hasMarkdown ? (marked.parse(sanitised) as string) : sanitised + '\n';
       process.stdout.write(rendered);
@@ -153,7 +156,7 @@ export class Renderer {
         console.log(chalk.dim(`  ${SEPARATOR}`));
         console.log(
           chalk.hex(THEME.toolAccent)(`  \u25A3 `) +
-            chalk.hex(THEME.toolAccent).bold(t('cli.tasks_label').replace(/[\[\]\s]/g, '')) +
+            chalk.hex(THEME.toolAccent).bold(t('cli.tasks_label').replace(/[[\]\s]/g, '')) +
             chalk.dim(` ${t('todo.done', { done: String(done), total: String(todos.length) })}`),
         );
         for (const td of todos) {

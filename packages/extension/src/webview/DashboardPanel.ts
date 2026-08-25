@@ -496,7 +496,7 @@ export class DashboardPanel {
         // recent buffer if the persistent read fails for any reason
         // (first run, fs error, etc.) so the tab is never empty when
         // there's data to show.
-        let entries: unknown[] = [];
+        let entries: unknown[];
         try {
           const { readEntries } = require('@ava/core/audit') as typeof import('@ava/core/audit');
           entries = readEntries({ limit: 1000 });
@@ -510,7 +510,7 @@ export class DashboardPanel {
         // detect proactive-nudge findings — both via the one shared
         // @ava/core/audit engine so the extension + IDE never drift. The
         // webview localises findings from `kind` and renders integrity badges.
-        let findings: unknown[] = [];
+        let findings: unknown[];
         try {
           const { annotateIntegrity, annotateSecurity, detectPatterns } = require('@ava/core/audit') as typeof import('@ava/core/audit');
           const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -523,7 +523,7 @@ export class DashboardPanel {
       case 'request_audit_findings': {
         // Lightweight path for the Command Centre trust-nudge card — computes
         // just the findings (no 1000-entry payload, no integrity hashing).
-        let findings: unknown[] = [];
+        let findings: unknown[];
         try {
           const { readEntries, detectPatterns } = require('@ava/core/audit') as typeof import('@ava/core/audit');
           findings = detectPatterns(readEntries({ limit: 1000 }) as any);
@@ -4490,7 +4490,7 @@ export class DashboardPanel {
     // Ask the OS rather than enumerating what is installed: detection is three
     // platform-specific guesses that can each be wrong, and try-then-handle-
     // the-failure cannot be.
-    let launched = false;
+    let launched: boolean;
     try {
       launched = await vscode.env.openExternal(vscode.Uri.file(fullPath));
     } catch { launched = false; }
@@ -5601,7 +5601,7 @@ export class DashboardPanel {
 
       this.weatherCache = { data: msg, timestamp: Date.now() };
       this.post(msg);
-    } catch (err) {
+    } catch {
       this.post({ type: 'weather_loaded', data: null });
     }
   }

@@ -21,6 +21,25 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  // The VS Code extension HOST is CommonJS (package.json "type": "commonjs",
+  // esbuild bundles it to CJS), and it uses require() on purpose.
+  //
+  // The heavy document parsers — mammoth, exceljs, pdf-parse — are pulled in
+  // lazily at the point of use, so opening a .docx costs what it costs and
+  // activating the extension does not. Rewriting those 27 call sites as static
+  // imports would load all three on every activation, which is a real startup
+  // regression traded for a lint rule that is describing a different module
+  // system than the one this package is written in.
+  //
+  // Deliberately scoped to the host: packages/extension/src. The two webview
+  // bundles (webview-ui, dashboard-ui) are ESM and browser-targeted, and they
+  // keep the rule — a require() in there is a genuine mistake.
+  {
+    files: ['packages/extension/src/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
   // i18n guardrail — webview UI components must not contain raw English text.
   // Every user-visible string must go through t() from ./i18n so it can be
   // translated into the 19 non-en locales. See scripts/i18n-check.mjs.

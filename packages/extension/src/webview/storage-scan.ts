@@ -57,7 +57,7 @@ export async function measureProjects(projectsHome: string, avaHome: string): Pr
   let projectCount = 0;
   let bytes = 0;
 
-  let entries: Dirent[] = [];
+  let entries: Dirent[];
   try { entries = await readdir(projectsHome, { withFileTypes: true }); } catch { entries = []; }
 
   for (const e of entries) {

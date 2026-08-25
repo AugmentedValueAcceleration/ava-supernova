@@ -582,7 +582,7 @@ export const ODS_MIMETYPE = 'application/vnd.oasis.opendocument.spreadsheet';
 
 /** Sheet names cannot carry these, and readers cap the length around 31. */
 function sheetName(raw: string, used: Set<string>): string {
-  let name = raw.replace(/[[\]*?:/\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 28) || 'Sheet';
+  const name = raw.replace(/[[\]*?:/\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 28) || 'Sheet';
   let candidate = name;
   let n = 2;
   while (used.has(candidate.toLowerCase())) candidate = `${name} ${n++}`;
