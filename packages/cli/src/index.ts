@@ -226,7 +226,6 @@ async function main(): Promise<void> {
   if (appConfig.providers?.minimax?.apiKey || process.env.MINIMAX_API_KEY) availableProviders.add('minimax');
   if (appConfig.providers?.kimi?.apiKey || process.env.KIMI_API_KEY) availableProviders.add('kimi');
   if (appConfig.providers?.deepseek?.apiKey || process.env.DEEPSEEK_API_KEY) availableProviders.add('deepseek');
-  if (appConfig.providers?.anthropic?.apiKey || process.env.ANTHROPIC_API_KEY) availableProviders.add('anthropic');
   if (appConfig.providers?.mistral?.apiKey || process.env.MISTRAL_API_KEY) availableProviders.add('mistral');
 
   // Routing mode — persisted in config, defaults to 'auto' (Maestro / Qwen-only).

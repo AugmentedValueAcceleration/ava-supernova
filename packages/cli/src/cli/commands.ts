@@ -202,7 +202,7 @@ export class CommandHandler {
         const parts = args.trim().split(/\s+/);
         const action = parts[0];
 
-        const liveProviders = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic', 'generic'];
+        const liveProviders = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'generic'];
         const comingSoonProviders: string[] = [];
         const allSupported = [...liveProviders, ...comingSoonProviders];
         // Config key → registry key mapping (glm config maps to zhipu provider)
