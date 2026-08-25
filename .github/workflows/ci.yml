@@ -93,8 +93,35 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # Placeholder Supabase config, so the website can be BUILT without being
+      # handed the keys to the database.
+      #
+      # packages/web prerenders three pages that read Supabase through the ADMIN
+      # client, so `next build` needs NEXT_PUBLIC_SUPABASE_URL and
+      # SUPABASE_SERVICE_ROLE_KEY simply to EXIST. Supplying the real ones would
+      # put the service-role key — the most privileged credential we have — into
+      # CI permanently, to make a build step go green. Not a trade worth making.
+      #
+      # .invalid is a reserved TLD that can never resolve, so nothing reaches a
+      # real host. The client constructs, the query fails, and those pages already
+      # handle an empty result (`(releases ?? []).map(...)`) — they render empty
+      # and the build completes.
+      #
+      # What it buys: `next build` is the ONLY thing that typechecks packages/web.
+      # It has no typecheck script and `next lint` does not check types, so
+      # without this the TypeScript in 141 files touching the data layer goes
+      # unchecked until it reaches Render.
+      #
+      # The catch, plainly: a future page that does NOT tolerate a null result
+      # will fail here with a confusing prerender error rather than an obvious
+      # misconfiguration. The honest fix then is to drop packages/web from this
+      # step — never to start feeding CI real credentials.
       - name: Build
         run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.invalid
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-real-key
 
   # Cross-platform check — only on PRs to main
   check-cross-platform:
@@ -142,8 +169,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Same placeholders as the ubuntu job above — see the reasoning there.
       - name: Build
         run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.invalid
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-real-key
 
   security:
     name: Security Scanning
