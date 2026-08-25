@@ -1,0 +1,22 @@
+# Findings vetted and deliberately ignored, one fingerprint per line.
+#
+# A fingerprint is commit:path:rule:line — it silences exactly ONE finding in
+# ONE commit. That precision is the point: a path or regex allowlist would go
+# on ignoring anything that ever matched in that file, including a real key
+# added later.
+#
+# ── 2026-08-25 ────────────────────────────────────────────────────────────
+# Supabase publishable ("anon") key, committed 22 March 2026 in the admin hub's
+# supabase.ts, back when that package still lived inside this repo.
+#
+# Not a leak. The anon key is designed to ship inside the browser bundle —
+# every visitor to the hub already holds it, and access is governed by Row
+# Level Security policies rather than by the key being secret. Decoded, the
+# token carries role=anon for project ref znhqolmxbfmolatxcbph, a defunct
+# prototype. Nothing to rotate.
+#
+# It is in history, so it cannot be removed without rewriting 2,547 commits.
+# It had been failing the secret-scan workflow on EVERY push. .gitleaks.toml
+# already tried to allowlist it by the project ref, but that string only exists
+# inside the token's base64 payload, so the regex never saw it.
+44f4d43c7bce1bc9c658c7cc5a1071438399d60d:packages/augmented-value-acceleration/src/lib/supabase.ts:jwt:4

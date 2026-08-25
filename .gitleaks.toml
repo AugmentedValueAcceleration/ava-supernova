@@ -17,5 +17,9 @@ paths = [
 regexes = [
   '''ctrlcmd\+shift''',         # editor keybinding strings, not secrets
   '''Sec-WebSocket-Key''',      # WebSocket handshake sample nonce in the bundled ws library
+  # Matches the project ref where it appears in PLAIN TEXT (the project URL).
+  # It does NOT catch the anon JWT itself — the ref only exists inside that
+  # token's base64 payload, so this regex never sees it. That finding is
+  # pinned by fingerprint in .gitleaksignore instead.
   '''znhqolmxbfmolatxcbph''',   # anon key (public-by-design) for a defunct prototype project
 ]
