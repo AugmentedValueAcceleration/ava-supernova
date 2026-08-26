@@ -419,13 +419,60 @@ export class JournalManager {
     }
   }
 
-  /** Read a day fresh from disk (bypassing cache), migrated to v2. */
+  /**
+   * Read a day fresh from disk (bypassing cache), migrated to v2.
+   *
+   * The only caller is mutateDay, INSIDE the lock, and whatever this returns is
+   * what gets written back. That makes the failure handling here unusually
+   * consequential: returning an empty day on a read error does not "start
+   * fresh", it OVERWRITES the day with nothing. A transient glitch becomes
+   * permanent data loss, silently, on the one part of the product that holds
+   * writing people cannot reproduce.
+   *
+   * It used to do exactly that — `catch { return createEmptyJournalDay(date) }`
+   * for any failure at all. Three cases, and they are not the same:
+   *
+   * - **File absent.** Genuinely a new day. Empty is correct.
+   * - **Read failed** (EPERM/EBUSY from a scanner holding the file on Windows,
+   *   or any I/O error). The data is still there and still good. Retry, and if
+   *   it still fails, THROW — a failed write the caller can see and retry beats
+   *   a successful write that quietly deleted the day.
+   * - **Parse failed.** The file is corrupt. Empty is arguably right so the
+   *   journal keeps working, but not before the corrupt bytes are preserved:
+   *   they may be the only copy of what was written.
+   */
   private async readFresh(dir: string, date: string): Promise<JournalDay> {
     const filePath = join(dir, `${date}.json`);
     if (!existsSync(filePath)) return createEmptyJournalDay(date);
+
+    // Read, with a short retry for the transient case. Deliberately NOT a long
+    // backoff: this runs while holding the lock.
+    let raw: string | undefined;
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        raw = await readFile(filePath, 'utf-8');
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 25));
+      }
+    }
+    if (raw === undefined) {
+      const code = (lastErr as { code?: string } | undefined)?.code ?? 'unknown';
+      throw new Error(
+        `Could not read journal day ${date} (${code}). Refusing to continue: ` +
+        `writing now would replace the existing entries with an empty day.`,
+      );
+    }
+
     try {
-      return migrateDay(JSON.parse(await readFile(filePath, 'utf-8')), date);
+      return migrateDay(JSON.parse(raw), date);
     } catch {
+      // Corrupt on disk. Keep the bytes before returning an empty day, so the
+      // write that follows cannot be the thing that destroyed them.
+      const backup = `${filePath}.corrupt-${Date.now()}`;
+      await rename(filePath, backup).catch(() => { /* best effort */ });
       return createEmptyJournalDay(date);
     }
   }
