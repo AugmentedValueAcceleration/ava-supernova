@@ -491,8 +491,8 @@ importers:
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@project-ava-supernova/core':
-        specifier: 0.2.76
-        version: 0.2.76(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
+        specifier: 0.2.77
+        version: 0.2.77(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@supabase/ssr':
         specifier: ^0.6.0
         version: 0.6.1(@supabase/supabase-js@2.97.0)
@@ -2021,8 +2021,8 @@ packages:
       react: '>= 16.8'
       react-dom: '>= 16.8'
 
-  '@project-ava-supernova/core@0.2.76':
-    resolution: {integrity: sha512-3yuukpqfIWOsLtmkrN3S4cf8HFDx8pm49AZmf+BP+zXBrdv+SEEw2Zn74wR9zPXlv2e1O3Psz9uvCDDONufmbg==}
+  '@project-ava-supernova/core@0.2.77':
+    resolution: {integrity: sha512-sNQA4d9eTFFxko5ybQwOc2+vUVajkQpaPUMCucamN+tSBzm12MBp7GjNxNaCAo9pJMsfF709HdCTCvWS1bWylg==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -7424,7 +7424,7 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  '@project-ava-supernova/core@0.2.76(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+  '@project-ava-supernova/core@0.2.77(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
     dependencies:
       glob: 13.0.6
       marked: 17.0.3
