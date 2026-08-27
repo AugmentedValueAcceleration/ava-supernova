@@ -2428,7 +2428,13 @@ export class Agent {
           // want: nothing reached for, safe to enforce.
           const names = blocked.map((tc: ToolCall) => tc.function.name).join(', ');
           logger.warn(`[agent] work-gate(log-only): REACHED ${names} — allowed through`);
-          try {
+          // Not from a test run. The suite drives this agent with fixture tools
+          // (echo, noop, always_fails_port) that are naturally outside work's
+          // allowlist, so every run appended to the REAL ~/.ava/work-gate.log
+          // — 784 lines of it before anyone looked. That is both rude (library
+          // code writing to a developer's home directory) and self-defeating:
+          // the one signal this file exists to carry was buried in fixtures.
+          if (!process.env.VITEST) try {
             appendFileSync(
               join(AVA_HOME, WORK_GATE_LOG),
               `${new Date().toISOString()}\t${this.model.id}\t${names}\n`,
