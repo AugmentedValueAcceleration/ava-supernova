@@ -76,10 +76,13 @@ describe('length is a format decision, and the format follows the subject', () =
     expect(lastWritten!.duration).toBe(30);
   });
 
-  it('a food video defaults to 15 seconds', async () => {
-    // It animates a photograph we verified, on a model that stops at 15.
-    await attempt({ recipe: 'miso aubergine', script: words(28) });
-    expect(lastWritten!.duration).toBe(15);
+  it('a food video gets the same 30 seconds as everything else', async () => {
+    // It used to stop at 15, because a recipe animates a photograph we verified
+    // and the model that did that stopped there. One model does everything now
+    // and it reaches 30. Tested on a real hero shot before this changed: at 30
+    // seconds the dish was still the dish in the last frame.
+    await attempt({ recipe: 'miso aubergine', script: words(60) });
+    expect(lastWritten!.duration).toBe(30);
   });
 
   it('a hook-length line no longer quietly becomes a short clip', async () => {
@@ -100,12 +103,11 @@ describe('length is a format decision, and the format follows the subject', () =
 });
 
 describe('the ceilings are the models’ own', () => {
-  it('a food video caps at 15s, because it animates our photograph', async () => {
-    // Naming a recipe means image-to-video on wan2.7-i2v, which stops at 15s.
-    // A script sized for 30 would overrun the clip that actually renders.
+  it('naming a recipe no longer caps the clip at 15', async () => {
+    // The cap was wan2.7-i2v's ceiling wearing a recipe's clothes. Both went.
     const r = await attempt({ duration: 30, recipe: 'miso aubergine', script: words(60) });
-    expect(r.success).toBe(false);
-    expect(r.output).toContain('15s clip');
+    expect(r.success).toBe(true);
+    expect(lastWritten!.duration).toBe(30);
   });
 
   it('everything else reaches 30', async () => {
