@@ -66,31 +66,36 @@ describe('air at both ends', () => {
   });
 });
 
-describe('duration is derived from the script when not given', () => {
-  it('a short line gets a short clip', async () => {
-    expect((await attempt({ script: words(19) })).success).toBe(true);
+describe('length is a format decision, and the format follows the subject', () => {
+  it('a general video defaults to 30 seconds', async () => {
+    // The operator asked for this twice: 30s for anything that is not a recipe
+    // or an exercise. It was briefly derived from the script instead, which
+    // meant she wrote at hook length by habit and every general clip came out
+    // at ten seconds — working as built, and not as asked.
+    await attempt({ script: words(60) });
+    expect(lastWritten!.duration).toBe(30);
+  });
+
+  it('a food video defaults to 15 seconds', async () => {
+    // It animates a photograph we verified, on a model that stops at 15.
+    await attempt({ recipe: 'miso aubergine', script: words(28) });
+    expect(lastWritten!.duration).toBe(15);
+  });
+
+  it('a hook-length line no longer quietly becomes a short clip', async () => {
+    // This is the whole point. Nineteen words used to produce a 10s clip and
+    // look like success; now it is refused, because the format was 30s and the
+    // line does not fill it.
+    const r = await attempt({ script: words(19) });
+    expect(r.success).toBe(false);
+    expect(r.output).toContain('30s clip');
+  });
+
+  it('she can still override when she means to', async () => {
+    // Length is not only about the script — a demonstration may have few words
+    // and a great deal to show.
+    await attempt({ duration: 10, script: words(18) });
     expect(lastWritten!.duration).toBe(10);
-  });
-
-  it('a longer line gets a longer clip, at the exact length it needs', async () => {
-    // Not snapped to 10/15/30 — snapping leaves dead zones where a script is
-    // too long for one tier and too short to fill the next.
-    await attempt({ script: words(40) });
-    expect(lastWritten!.duration).toBeGreaterThan(15);
-    expect(lastWritten!.duration).toBeLessThan(30);
-  });
-
-  it('there is no length a valid script cannot reach', async () => {
-    // The dead-zone regression: every script between the floor of the shortest
-    // clip and the ceiling of the longest must find a clip that holds it.
-    for (const n of [15, 20, 25, 30, 40, 50, 60, 68]) {
-      const r = await attempt({ script: words(n) });
-      expect(r.success, `${n} words found no clip`).toBe(true);
-    }
-  });
-
-  it('still refuses a script no clip can hold', async () => {
-    expect((await attempt({ script: words(120) })).success).toBe(false);
   });
 });
 
