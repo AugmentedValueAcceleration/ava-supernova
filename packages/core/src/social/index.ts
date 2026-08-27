@@ -366,12 +366,28 @@ export interface Beat {
   /**
    * Does this story want SHOWING as well as saying?
    *
-   * The one genuinely per-story judgement about medium: a demo, a before/after
-   * or anything visual earns a video for Reels and Shorts; an argument or a
-   * position usually does not. This decides whether the video platforms are on
-   * by default, so the operator is not making that call five times a morning.
+   * The one genuinely per-story judgement about medium: would this land HARDER
+   * as a film than as text? Not only demos and before/afters — a mood piece, a
+   * piece to camera, a scene that sets a feeling. It decides whether the video
+   * platforms are on by default, so the operator is not making that call five
+   * times a morning.
+   *
+   * It used to be rationed, on the reasoning that "a video nobody needed costs
+   * them an hour". That was true when a usable clip took three to five attempts.
+   * A clip now comes back first-time in a couple of minutes, so the question is
+   * which form the idea WANTS, not whether it has earned the effort.
    */
   needs_video?: boolean;
+
+  /**
+   * The shape the idea wants, when the FORM is the idea rather than a wrapper
+   * on it — "30s piece to camera", "15s held shot of the dish", "silent 30s
+   * scene, caption carries it".
+   *
+   * Present only when a beat really exists in one form. Most angles work as
+   * either and should leave this alone.
+   */
+  format?: string;
 }
 
 /**
