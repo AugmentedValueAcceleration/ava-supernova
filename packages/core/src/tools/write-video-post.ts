@@ -64,7 +64,7 @@ export class WriteVideoPostTool implements Tool {
         tag_note: { type: 'string', description: 'One short line on why these tags.' },
         recipe: {
           type: 'string',
-          description: 'For a FOOD video: the name of a dish we already have a photograph of. Naming it animates OUR hero image rather than generating a stranger version of the dish — the picture is already the food, so it cannot misrepresent it. Use this for anything about a recipe. When you do, describe only gentle motion in the visual (steam, a slow push in, light shifting) and say what stays STILL; a locked plate is the whole point.',
+          description: 'For a FOOD video: the name of a dish we already have a photograph of. CHECK FIRST with find_recipe — naming a dish we do not have is REFUSED, not generated, because a plausible stranger plate filed among our own photographs is one careless caption away from being posted as ours. Naming a real one animates OUR hero image, so the picture is already the food and cannot misrepresent it. Use this for anything about a recipe. When you do, describe only gentle motion in the visual (steam, a slow push in, light shifting) and say what stays STILL; a locked plate is the whole point.',
         },
         seed: {
           type: 'number',

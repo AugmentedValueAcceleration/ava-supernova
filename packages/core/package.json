@@ -1,6 +1,6 @@
 {
   "name": "@ava/core",
-  "version": "0.2.74",
+  "version": "0.2.75",
   "description": "Core engine for Ava Supernova \u2014 agent, providers, tools, config",
   "type": "module",
   "main": "./dist/index.js",
