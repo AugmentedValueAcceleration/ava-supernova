@@ -45,7 +45,7 @@ export class WriteVideoPostTool implements Tool {
         },
         script: {
           type: 'string',
-          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED BY THE SUBJECT, and you write to fill it. A video is 30 SECONDS — write 52-68 words. That bound is enforced, so a hook-length line is REFUSED rather than quietly becoming a short clip. This applies to a recipe and an exercise exactly as it does to anything else. Thirty seconds is a walkthrough, a piece to camera, an argument made properly — not a hook stretched out. If the idea genuinely only wants one line, set duration yourself and mean it. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 2.4 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding a hook to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
+          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 25-32 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 52-68 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 2.4 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
         },
         caption: {
           type: 'string',
@@ -53,7 +53,7 @@ export class WriteVideoPostTool implements Tool {
         },
         duration: {
           type: 'number',
-          description: 'Clip length in seconds, 2-30. LEAVE IT OUT and you get 30s, whatever the subject. Set it ONLY to deliberately go against that — a demonstration with few words and a lot to show, or a hook that genuinely wants to be short. Keep it to what the material actually needs — a padded clip loses the viewer, and that gets easier to do with more room. 10 is the default shape for a hook. 15 suits a full coaching line. 30 is for something that genuinely needs showing: a walkthrough, a before-and-after, a process.',
+          description: 'Clip length in seconds, 2-30. LEAVE IT OUT and you get 15s, whatever the subject — that is the format, and it holds one clear thought. Set it ONLY when the material genuinely needs otherwise, and the script band moves with whatever you set. 10 is a hook. 15 is the default: a full coaching line, a dish, a single point made properly. 30 is for something that truly needs showing — a walkthrough, a before-and-after, a process — and costs about twice the wait, so it should earn it. A padded clip loses the viewer, and padding gets easier the more room you have.',
         },
         title: { type: 'string', description: 'Optional short title for the library.' },
         hashtags: {
@@ -233,25 +233,29 @@ export class WriteVideoPostTool implements Tool {
     const scriptWords = script ? script.split(/\s+/).filter(Boolean).length : 0;
 
     /**
-     * Length is a FORMAT decision, and the format is 30 seconds.
+     * Length is a FORMAT decision, and the format is 15 seconds.
      *
-     * Long enough to be a demonstration rather than a hook, which is the whole
-     * reason for having video at all. Recipes and exercises were held at 15
-     * only because the model that animated our photographs stopped there; the
-     * one that replaced it does not, and a plate of food holds for the full
-     * thirty — tested, not assumed.
+     * Thirty was the default for exactly one evening, set the moment wan3.0
+     * made it possible for every subject. Possible turned out not to be the
+     * same as right, and none of the reasons for fifteen are about the model:
      *
-     * This was briefly derived from the script instead — write the line, get a
-     * clip sized to hold it. It reads well and it is wrong: she writes at
-     * hook length by habit, so every clip came out at ten seconds and the
-     * thirty-second format simply never happened. Deciding the form first and
-     * writing INTO it is the way round that actually produces the thing.
+     *   - half the frames, so it comes back sooner. A 30s render measured
+     *     anywhere from 8 to 25 minutes; an evening of posts should not be a
+     *     queue.
+     *   - half the compute, all of which we pay for.
+     *   - completion rate is what ranks a Reel or a Short, and a tight fifteen
+     *     watched through beats a thirty abandoned halfway.
+     *   - fifteen seconds cannot be padded. Thirty invites it.
      *
-     * She can still override. A demonstration may have few words and a lot to
-     * show, and a genuine one-line hook is sometimes right. But she has to mean
-     * it, rather than arriving at ten seconds by writing briefly.
+     * Thirty is still reachable, and the word band moves with it, so nothing is
+     * ever squeezed — a shorter clip gets a shorter script, not a compressed
+     * one. It just has to be ASKED for now.
+     *
+     * What has not changed: the length is decided BEFORE the writing. Deriving
+     * it from the script was tried and it collapsed to hook-length everything,
+     * because that is how she writes when nothing sets the shape.
      */
-    const DEFAULT_SECONDS = 30;
+    const DEFAULT_SECONDS = 15;
     const requested = typeof args.duration === 'number' ? args.duration : undefined;
     const plannedDuration = requested === undefined
       ? DEFAULT_SECONDS

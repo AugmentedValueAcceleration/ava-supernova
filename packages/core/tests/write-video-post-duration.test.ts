@@ -66,32 +66,40 @@ describe('air at both ends', () => {
   });
 });
 
-describe('length is a format decision, and the format follows the subject', () => {
-  it('a general video defaults to 30 seconds', async () => {
-    // The operator asked for this twice: 30s for anything that is not a recipe
-    // or an exercise. It was briefly derived from the script instead, which
-    // meant she wrote at hook length by habit and every general clip came out
-    // at ten seconds — working as built, and not as asked.
-    await attempt({ script: words(60) });
-    expect(lastWritten!.duration).toBe(30);
+describe('length is a format decision, and the format is fifteen seconds', () => {
+  it('a video defaults to 15 seconds', async () => {
+    // Thirty was the default for one evening, set the moment wan3.0 made it
+    // possible for every subject. Fifteen is the editorial answer rather than
+    // the model's: half the render, half the compute, and completion rate is
+    // what ranks a Reel.
+    await attempt({ script: words(28) });
+    expect(lastWritten!.duration).toBe(15);
   });
 
-  it('a food video gets the same 30 seconds as everything else', async () => {
-    // It used to stop at 15, because a recipe animates a photograph we verified
-    // and the model that did that stopped there. One model does everything now
-    // and it reaches 30. Tested on a real hero shot before this changed: at 30
-    // seconds the dish was still the dish in the last frame.
-    await attempt({ recipe: 'miso aubergine', script: words(60) });
-    expect(lastWritten!.duration).toBe(30);
+  it('a food video gets the same 15 seconds as everything else', async () => {
+    // Food was capped at 15 before, but for an unrelated reason — the model
+    // that animated our photograph stopped there. That cap is gone; this is the
+    // format applying evenly, not the old ceiling returning.
+    await attempt({ recipe: 'miso aubergine', script: words(28) });
+    expect(lastWritten!.duration).toBe(15);
   });
 
   it('a hook-length line no longer quietly becomes a short clip', async () => {
-    // This is the whole point. Nineteen words used to produce a 10s clip and
-    // look like success; now it is refused, because the format was 30s and the
-    // line does not fill it.
-    const r = await attempt({ script: words(19) });
+    // The rule this file exists for, unchanged by the number moving. Eight words
+    // used to produce a short clip and look like success; now it is refused,
+    // because the format was decided first and the line does not fill it.
+    const r = await attempt({ script: words(8) });
     expect(r.success).toBe(false);
-    expect(r.output).toContain('30s clip');
+    expect(r.output).toContain('15s clip');
+  });
+
+  it('and a script too LONG for the format is refused too', async () => {
+    // The other end of the same rule, and the one that gets easier to hit at
+    // fifteen seconds than it ever was at thirty. A voice still talking after
+    // the picture stops is the most obviously broken thing a short can do.
+    const r = await attempt({ script: words(60) });
+    expect(r.success).toBe(false);
+    expect(r.output).toContain('will not fit');
   });
 
   it('she can still override when she means to', async () => {
