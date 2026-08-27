@@ -45,7 +45,7 @@ export class WriteVideoPostTool implements Tool {
         },
         script: {
           type: 'string',
-          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". A voiced clip is ALWAYS 10 seconds and the line must land between 17 and 22 words — AIM AT 20-22, because that is what fills the clip. Timed against the real voice: 22 words runs ~9.1s, 17 words ~7.0s, and 12 words is under 5s, which leaves half the video playing in silence. The ceiling keeps the voice inside the picture — a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone (and under 3 seconds Wan refuses the audio outright, so the clip fails to render at all). Both bounds are enforced. Omit entirely for a silent clip carried by on-screen text.',
+          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". The length of the line follows the DURATION, and both bounds are enforced: roughly 17-22 words at 10s, 26-34 at 15s, 55-71 at 30s. AIM AT THE TOP of whichever range applies — that is what fills the clip. Timed against the real voice at about 2.4 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding a hook to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
         },
         caption: {
           type: 'string',
@@ -53,7 +53,7 @@ export class WriteVideoPostTool implements Tool {
         },
         duration: {
           type: 'number',
-          description: 'Clip length in seconds. Keep it to what the script actually needs — a padded clip loses the viewer.',
+          description: 'Clip length in seconds, 2-30. Keep it to what the material actually needs — a padded clip loses the viewer, and that gets easier to do with more room. 10 is the default shape for a hook. 15 suits a full coaching line. 30 is for something that genuinely needs showing: a walkthrough, a before-and-after, a process. Naming a `recipe` caps this at 15, because a food video animates our own photograph and that model stops there.',
         },
         title: { type: 'string', description: 'Optional short title for the library.' },
         hashtags: {
@@ -176,15 +176,53 @@ export class WriteVideoPostTool implements Tool {
     const SLOWEST_WORDS_PER_SECOND = 2.41;
     /** Speech has to end before the picture does; 0.5s of air is enough. */
     const TRAILING_AIR_SECONDS = 0.5;
-    const MIN_WORDS = 17;
+    /**
+     * How much of the clip the script should FILL, as a fraction of the
+     * ceiling.
+     *
+     * 0.77 is not arbitrary: at 10 seconds it reproduces the floor of 17 that
+     * was arrived at the hard way, so the rule that was measured is preserved
+     * rather than replaced. It now scales instead of being a single number
+     * that only made sense for one length.
+     */
+    const FILL_RATIO = 0.77;
     const wantsVoice = !!script;
-    const plannedDuration =
-      wantsVoice || (typeof args.duration === 'number' && args.duration > 7.5) ? 10 : 5;
+
+    /**
+     * How long the clip may run.
+     *
+     * A food video names a dish we photographed, so it animates OUR image —
+     * image-to-video, which tops out at 15s on wan2.7-i2v. Everything else is
+     * text-to-video on wan3.0-video, which reaches 30s. Those ceilings are the
+     * models' own, quoted from their validators, and the platform route clamps
+     * to them independently; matching them here means the SCRIPT is written for
+     * the length that will actually render. Get this wrong and a script sized
+     * for 30 seconds gets a 15-second clip, and the voice runs past the end —
+     * the exact failure everything below exists to prevent.
+     */
+    const maxDuration = args.recipe ? 15 : 30;
+
+    /**
+     * A voiced clip is never 5 seconds.
+     *
+     * The window is empty at that length: every script short enough to fit is
+     * too short for Wan to accept (see the 3.0s minimum above). Ten is the
+     * floor for anything with a script, and that is unchanged — what is new is
+     * that it is a FLOOR rather than the only option.
+     */
+    const requested = typeof args.duration === 'number' ? args.duration : undefined;
+    const plannedDuration = wantsVoice
+      ? Math.max(10, Math.min(maxDuration, Math.round(requested ?? 10)))
+      : Math.max(2, Math.min(maxDuration, Math.round(requested ?? 5)));
+
     if (script) {
       const words = script.split(/\s+/).filter(Boolean).length;
       const speakable = Math.max(1, plannedDuration - TRAILING_AIR_SECONDS);
       const budget = Math.floor(speakable * SLOWEST_WORDS_PER_SECOND);
-      const floor = MIN_WORDS;
+      // Never below what Wan will accept as audio at all, however short the
+      // clip: MIN_SPEECH_SECONDS at the FASTEST observed rate.
+      const audioFloor = Math.ceil(MIN_SPEECH_SECONDS * 2.78);
+      const floor = Math.max(audioFloor, Math.round(budget * FILL_RATIO));
       if (words > budget) {
         return {
           success: false,
@@ -200,9 +238,10 @@ export class WriteVideoPostTool implements Tool {
           output:
             `That script is only ${words} words — roughly ${(words / SLOWEST_WORDS_PER_SECOND).toFixed(1)}s of speech ` +
             `in a ${plannedDuration}s clip, so the rest of the video would play in silence. Write ${floor}-${budget} words ` +
-            `and aim at the top of that range: ${budget} words fills the clip, ${floor} barely covers two thirds ` +
+            `and aim at the top of that range: ${budget} words fills the clip, ${floor} barely covers three quarters ` +
             `of it. (Under ${MIN_SPEECH_SECONDS}s Wan refuses the audio outright and nothing renders at all.) ` +
-            `Or drop the script entirely for a silent clip carried by on-screen text.`,
+            `Or drop the script entirely — the model scores its own audio now, and a silent clip carried by the ` +
+            `picture and that soundtrack is a real choice rather than a fallback.`,
         };
       }
     }
@@ -212,7 +251,9 @@ export class WriteVideoPostTool implements Tool {
       visual,
       script: script || undefined,
       caption: withLink,
-      duration: typeof args.duration === 'number' ? args.duration : undefined,
+      // The length the SCRIPT was written for, not the raw request. If these
+      // diverge the voice overruns the picture.
+      duration: plannedDuration,
       title: ((args.title as string | undefined)?.trim()) || undefined,
       hashtags: Array.isArray(args.hashtags)
         ? (args.hashtags as unknown[]).map(h => String(h).trim().replace(/^#/, '')).filter(Boolean)
