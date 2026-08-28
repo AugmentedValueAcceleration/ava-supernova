@@ -5854,6 +5854,19 @@ export class DashboardPanel {
       'Authorization': `Bearer ${platformKey}`,
       'X-Ava-Data-Mode': dataModeHeader(this.context),
     };
+    // Register with the GenerationManager so the job survives navigation as
+    // something the UI can SEE. The host already kept polling when the webview
+    // unmounted — the work was never lost, only the delivery was, because the
+    // listener went with the page. A job here is what the nav rail renders.
+    const gm = this.viewProvider?.getGenerationManager();
+    const jobId = `ds-video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    gm?.create({
+      id: jobId,
+      type: 'video',
+      prompt: body.prompt,
+      filename: 'video.mp4',
+      targetPath: '',
+    });
     try {
       // 1) Submit — the route accepts the job (X-DashScope-Async) and hands back a task_id.
       const submitRes = await fetch('https://avasupernova.com/api/generate-video', {
@@ -5862,29 +5875,41 @@ export class DashboardPanel {
       });
       if (!submitRes.ok) {
         const e = (await submitRes.json().catch(() => ({}))) as { error?: string };
-        this.post({ type: 'asset_forge_video_result', success: false, error: e.error || `Video generation failed (${submitRes.status})` } as any);
+        const msg = e.error || `Video generation failed (${submitRes.status})`;
+        gm?.fail(jobId, msg);
+        this.post({ type: 'asset_forge_video_result', success: false, error: msg } as any);
         return;
       }
       const data = await submitRes.json() as { task_id?: string; url?: string };
       // A synchronous URL (some paths) short-circuits the poll.
       if (data.url) {
+        gm?.complete(jobId, { url: data.url });
         this.post({ type: 'asset_forge_video_result', success: true, url: data.url } as any);
         return;
       }
       if (!data.task_id) {
+        gm?.fail(jobId, 'No task_id returned');
         this.post({ type: 'asset_forge_video_result', success: false, error: 'No task_id returned' } as any);
         return;
       }
+      // Accepted and queued at Wan. The bar advances on STAGE, never on a
+      // guessed percentage — the status endpoint reports a state and no number.
+      gm?.update(jobId, { status: 'generating', progress: 35 });
       // 2) Poll until terminal (reuses the existing 5s-cadence / ~8-min-ceiling loop).
       const final = await this.pollVideoStatus(String(data.task_id), platformKey);
       if (final.success) {
         const url = (final.data as { url?: string } | undefined)?.url;
+        gm?.complete(jobId, { url });
         this.post({ type: 'asset_forge_video_result', success: true, url } as any);
       } else {
-        this.post({ type: 'asset_forge_video_result', success: false, error: final.error || 'Video generation failed' } as any);
+        const msg = final.error || 'Video generation failed';
+        gm?.fail(jobId, msg);
+        this.post({ type: 'asset_forge_video_result', success: false, error: msg } as any);
       }
     } catch (err) {
-      this.post({ type: 'asset_forge_video_result', success: false, error: err instanceof Error ? err.message : 'Video generation failed' } as any);
+      const msg = err instanceof Error ? err.message : 'Video generation failed';
+      gm?.fail(jobId, msg);
+      this.post({ type: 'asset_forge_video_result', success: false, error: msg } as any);
     }
   }
 
@@ -5955,10 +5980,21 @@ export class DashboardPanel {
     platformKey: string,
   ): Promise<{ success: boolean; data?: unknown; error?: string }> {
     const statusUrl = `https://avasupernova.com/api/generate-video/status/${encodeURIComponent(taskId)}`;
-    const intervalMs = 5000;
-    const maxAttempts = 96; // ~8 min ceiling — well past a typical Wan clip
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise(r => setTimeout(r, intervalMs));
+    // Measured 28 August on wan3.0: two 30-second renders of the same shape took
+    // 8 minutes and 25 minutes — queue contention, not clip length, so a short
+    // clip is not reliably quick either. The old ceiling was 8 minutes, set when
+    // wan2.5 only made 5 and 10 second clips.
+    //
+    // A timeout is the most expensive failure available: the render succeeds, we
+    // are billed, and the user is told it failed. So the ceiling is generous and
+    // the cadence backs off — 5s while it might be about to land, 15s once we
+    // are plainly waiting, which is FEWER requests across a 25-minute render than
+    // the old loop made across an 8-minute one.
+    const CEILING_MS = 45 * 60 * 1000;
+    const FAST_WINDOW_MS = 2 * 60 * 1000;
+    const started = Date.now();
+    while (Date.now() - started < CEILING_MS) {
+      await new Promise(r => setTimeout(r, Date.now() - started < FAST_WINDOW_MS ? 5000 : 15000));
       try {
         const res = await fetch(statusUrl, { headers: { 'Authorization': `Bearer ${platformKey}` } });
         if (!res.ok) continue; // transient — keep polling

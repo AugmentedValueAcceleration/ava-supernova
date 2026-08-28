@@ -4,6 +4,7 @@ import { initLocale, useLocale, getLocale } from './i18n';
 import { post } from './vscode';
 
 import { NavSidebar } from './components/NavSidebar';
+import type { GenerationJobLite } from './components/NavSidebar';
 import { DashboardTopBar } from './components/DashboardTopBar';
 import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { ConnectAccount } from './pages/ConnectAccount';
@@ -706,6 +707,8 @@ export function App() {
   const [avatarDataUrl, setAvatarDataUrl] = useState('');
   // Task calendar dates
   const [taskDates, setTaskDates] = useState<string[]>([]);
+  // What is rendering right now — fed by the host, rendered in the nav rail.
+  const [generationJobs, setGenerationJobs] = useState<GenerationJobLite[]>([]);
   // Overview widget state
   const [weatherData, setWeatherData] = useState<{ location: string; temp_c: number; condition: string; emoji: string; humidity: number; wind_kmph: number; forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }> } | null>(null);
   const [newsArticles, setNewsArticles] = useState<Array<{ title: string; category: string; reading_time: number; slug: string; date: string }>>([]);
@@ -1468,6 +1471,12 @@ export function App() {
       case 'latest_release_loaded':
         setLatestRelease(msg.release);
         break;
+      // The host has broadcast this on every generation update for a long time
+      // and nothing listened, so a clip that finished while you were on another
+      // page was simply dropped. The rail in the nav sidebar renders it.
+      case 'generation_progress':
+        setGenerationJobs(((msg as any).jobs || []) as GenerationJobLite[]);
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -2087,6 +2096,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
           supportUnread={supportUnread}
           avatarUrl={avatarDataUrl}
           collapsed={sidebarCollapsed}
+          generationJobs={generationJobs}
         />
       </div>
 

@@ -58,6 +58,8 @@ interface NavSidebarProps {
    *  impossible to navigate without first clicking "expand" from inside
    *  the chat header — the rail fixes that. */
   collapsed?: boolean;
+  /** Jobs rendering right now, plus anything finished in the last 30s. */
+  generationJobs?: GenerationJobLite[];
 }
 
 const RAIL_WIDTH = 56;
@@ -143,6 +145,7 @@ export function NavSidebar({
   supportUnread,
   avatarUrl,
   collapsed,
+  generationJobs,
 }: NavSidebarProps) {
   useLocale();
 
@@ -201,6 +204,12 @@ export function NavSidebar({
   const navItems = getNavItems(isAdmin);
 
   // ── Collapsed rail: icons-only, fixed 56px width ──────────────────────
+  // Jobs actually in flight. Finished ones linger in the list for a few
+  // seconds so the rail can show a result, but they must not keep a count
+  // badge lit after the work is done.
+  const runningJobs = (generationJobs || [])
+    .filter(j => j.status !== 'complete' && j.status !== 'failed').length;
+
   if (collapsed) {
     return (
       <nav
@@ -249,6 +258,13 @@ export function NavSidebar({
               {item.icon}
               {item.page === 'help' && supportUnread && supportUnread > 0 ? (
                 <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{supportUnread}</span>
+              ) : null}
+              {/* Collapsed: the rail lives beside the calendar and NEITHER is
+                  rendered here, so this dot is the only way a background render
+                  stays visible once the sidebar is tucked away — which is
+                  exactly when someone has gone off to work on something else. */}
+              {item.page === 'creative-studio' && runningJobs > 0 ? (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{runningJobs}</span>
               ) : null}
             </button>
           ))}
@@ -351,6 +367,9 @@ export function NavSidebar({
           />
         ))}
       </div>
+
+      {/* What is rendering right now — above the calendar, on every page. */}
+      <GenerationRail jobs={generationJobs || []} onOpen={() => handleNavigate('creative-studio')} />
 
       {/* Mini Calendar — always visible, task-focused */}
       <TaskCalendar
@@ -666,6 +685,100 @@ function NavItem({
         <p className="text-[9px] text-[var(--text-muted)] truncate">{description}</p>
       </div>
     </button>
+  );
+}
+
+
+/* ── Generation rail ──────────────────────────────────────────────── */
+/* What is rendering right now, on every page.
+ *
+ * A clip takes minutes, so people navigate away — and the host has always kept
+ * polling, because the job lives in the extension process rather than the
+ * webview. What was missing was anywhere to SEE it: the page that started the
+ * render was unmounted, and its result arrived with nobody listening.
+ *
+ * The bar fills by STAGE. Wan gives a state and never a percentage, so stops
+ * that mean something (queued → generating → downloading → done) are the only
+ * honest way to fill it; within a stage it pulses instead of creeping. The
+ * elapsed clock on the right is the one real number, and it is the one that
+ * answers "is this stuck?".
+ */
+
+export interface GenerationJobLite {
+  id: string;
+  type: string;
+  status: 'queued' | 'generating' | 'downloading' | 'complete' | 'failed';
+  prompt: string;
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
+/** Real stops, not a guessed percentage. */
+const STAGE_FILL: Record<GenerationJobLite['status'], number> = {
+  queued: 8,
+  generating: 55,
+  downloading: 88,
+  complete: 100,
+  failed: 100,
+};
+
+function elapsedLabel(fromIso: string, toIso: string | undefined, now: number): string {
+  const start = Date.parse(fromIso);
+  if (!Number.isFinite(start)) return '';
+  const end = toIso ? Date.parse(toIso) : now;
+  const secs = Math.max(0, Math.floor((end - start) / 1000));
+  return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+}
+
+function GenerationRail({ jobs, onOpen }: { jobs: GenerationJobLite[]; onOpen: () => void }) {
+  // Ticks only while something is actually running — a finished job's clock is
+  // frozen at its final time, so there is nothing to re-render for.
+  const running = jobs.some(j => j.status !== 'complete' && j.status !== 'failed');
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!running) return;
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [running]);
+
+  if (jobs.length === 0) return null;
+
+  return (
+    <div className="px-3 pb-2 flex flex-col gap-1.5">
+      <div className="text-[9.5px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+        {running ? 'Generating' : 'Ready'}
+      </div>
+      {jobs.map(job => {
+        const done = job.status === 'complete';
+        const failed = job.status === 'failed';
+        const fill = STAGE_FILL[job.status] ?? 8;
+        const colour = failed ? 'var(--error, #f87171)' : done ? 'var(--success, #4ade80)' : 'var(--accent)';
+        return (
+          <button
+            key={job.id}
+            onClick={onOpen}
+            title={job.error || job.prompt}
+            className="w-full text-left bg-transparent border-0 p-0 cursor-pointer flex flex-col gap-1"
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[11px] text-[var(--text-secondary)] truncate capitalize">
+                {failed ? `${job.type} failed` : job.type}
+              </span>
+              <span className="text-[10px] font-mono text-[var(--text-muted)] shrink-0">
+                {elapsedLabel(job.startedAt, job.completedAt, now)}
+              </span>
+            </div>
+            <div className="h-[3px] w-full rounded-full overflow-hidden bg-[var(--border)]">
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ${done || failed ? '' : 'animate-pulse'}`}
+                style={{ width: `${fill}%`, background: colour }}
+              />
+            </div>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

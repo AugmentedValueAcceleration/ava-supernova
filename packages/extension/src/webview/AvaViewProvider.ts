@@ -682,8 +682,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (active.length > 0) {
         this.updateStatusBar('generating', `Generating ${active.length} asset${active.length !== 1 ? 's' : ''}...`);
       }
-      // Send to webview so it can show progress anywhere
-      this.postMessage({ type: 'generation_progress', jobs: active } as any);
+      // Running jobs PLUS anything that finished in the last 30 seconds.
+      //
+      // Sending only the active ones means a finished job simply vanishes from
+      // the list, so a surface watching this can show "working" but never
+      // "done" — and "done" is the whole reason someone who navigated away is
+      // watching. The short tail lets the rail hold a result briefly, then
+      // clear itself.
+      const cutoff = Date.now() - 30_000;
+      const visible = jobs.filter(j =>
+        (j.status !== 'complete' && j.status !== 'failed')
+        || (j.completedAt ? Date.parse(j.completedAt) > cutoff : false));
+      this.postMessage({ type: 'generation_progress', jobs: visible } as any);
     });
 
     this.projectInstructions = this.projectRoot
@@ -748,6 +758,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   /** Public log into the "Ava Supernova" output channel. Lets sibling
    *  components (e.g. DashboardPanel) write to the same visible channel
    *  instead of console.log, which only reaches the Extension Host log. */
+  /**
+   * The generation manager, for surfaces that run their own generations.
+   *
+   * The Design Studio lanes call the platform directly from DashboardPanel
+   * rather than through core's generate_* tools, so they have no sharedState to
+   * pick it up from. Without this they never register a job, and a clip
+   * rendering in the background is invisible to every surface.
+   */
+  public getGenerationManager(): import('@ava/core').GenerationManager | undefined {
+    return this.generationManager;
+  }
+
   public logToChannel(message: string): void {
     logTo(this.outputChannel, message);
   }

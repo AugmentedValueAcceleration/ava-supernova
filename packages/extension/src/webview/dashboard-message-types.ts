@@ -1970,6 +1970,11 @@ export type ExtToDashboardMessage =
   // Design Studio video lane (Wan 2.5 async → poll → finished clip URL). Mirror
   // of asset_forge_result but for the video pipeline: `url` is the finished clip.
   | { type: 'asset_forge_video_result'; success: boolean; url?: string; error?: string }
+  // Creative generations in flight, plus anything finished in the last 30s.
+  // Broadcast by AvaViewProvider on every GenerationManager update and
+  // forwarded here unchanged; the nav sidebar's rail renders it so a render
+  // started on one page stays visible after navigating to another.
+  | { type: 'generation_progress'; jobs: Array<{ id: string; type: string; status: 'queued' | 'generating' | 'downloading' | 'complete' | 'failed'; prompt: string; startedAt: string; completedAt?: string; error?: string }> }
   // Design Studio voice lane (Qwen3-TTS synchronous → finished audio URL). Mirror
   // of asset_forge_video_result but for the voice pipeline: `url` is the audio.
   | { type: 'asset_forge_voice_result'; success: boolean; url?: string; error?: string };
