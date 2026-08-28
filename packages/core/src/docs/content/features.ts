@@ -44,7 +44,7 @@ export const FEATURE_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'Icons — the flagship. Start from a real line-icon shape (1,990 built in), choose a material and your brand colour, and Ava restyles it and cuts it to a clean transparent PNG.',
         'Images — free-form, from a description. Square, landscape, or portrait (1:1, 16:9, 9:16).',
-        'Video — short AI clips from a prompt. 5 or 10 seconds, up to 1080p, in landscape, portrait, or square.',
+        'Video — short AI clips from a prompt. 2 to 30 seconds, up to 1080p, in landscape, portrait, or square.',
         'Voiceovers — text to natural speech, with a waveform preview. Ten voices across ten languages.',
         'Brand Kit — your palette, kept to hand so every asset stays on-brand.',
       ]},

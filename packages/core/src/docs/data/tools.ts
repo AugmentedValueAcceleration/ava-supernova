@@ -36,7 +36,7 @@ export const TOOLS: ToolFact[] = [
   { name: 'design_generate_icon', category: 'media', description: 'Generate one on-brand icon from a shape armature (Lucide → image model → transparent matte), with material and colour.', risk: 'write' },
   { name: 'design_generate_image', category: 'media', description: 'Generate a free-form full-frame image on the Design Studio canvas from a prompt — no armature, no matte.', risk: 'write' },
   { name: 'design_generate_set', category: 'media', description: 'Generate a matched set of 2–12 icons with material, colour, and lighting held constant so they read as a family.', risk: 'write' },
-  { name: 'design_generate_video', category: 'media', description: 'Generate a short 5s or 10s video on the Design Studio canvas from a prompt, via Wan.', risk: 'write' },
+  { name: 'design_generate_video', category: 'media', description: 'Generate a short video (2-30s) on the Design Studio canvas from a prompt, via Wan.', risk: 'write' },
   { name: 'design_generate_voice', category: 'media', description: 'Generate a spoken voiceover on the Design Studio canvas via Qwen3-TTS, from a script and a chosen voice.', risk: 'write' },
   { name: 'design_save', category: 'media', description: 'Save the icon currently on the canvas to the local creative library as a transparent PNG.', risk: 'write' },
   { name: 'detect_language', category: 'system', description: 'Detect the human language of a text snippet from 20+ supported languages.', risk: 'safe' },

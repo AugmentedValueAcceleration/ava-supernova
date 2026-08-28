@@ -49,7 +49,8 @@ export class GenerateVideoTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'generate_video',
     description:
-      'Generate a short AI video with synchronized audio (5s or 10s) from a prompt and save to project.',
+      'Generate a short AI video with synchronized audio (2-30s) from a prompt and save to project. '
+      + 'Charged by the second, and a longer clip takes proportionally longer to render — ask for what the shot needs.',
     parameters: {
       type: 'object',
       properties: {
