@@ -2,7 +2,7 @@
   "displayName": "Ava Supernova",
   "description": "Ein Open-Source-KI-Code-Agent, der nicht beim Code aufhört. Ava liest deine Codebasis, plant die Arbeit und führt sie Aufgabe für Aufgabe aus — und geht dann weiter: dein Training und deine Mahlzeiten, was du lernen möchtest, die Assets, die du brauchst. 7 Modi, 120+ Tools, 24 Spezialisten-Personas und State-of-the-Art Open-Weight-Modelle von jedem großen Labor. Läuft auf deinem eigenen Rechner — Speicher, Verlauf und Journal bleiben dort. Kein Konto und keine Karte zum Starten; bringe deinen eigenen API-Schlüssel mit oder erhalte 300 Credits pro Monat auf einem Free Tarif. Apache 2.0, damit du jede Zeile davon lesen kannst.",
   "viewContainer.title": "Ava Supernova",
-  "view.chat.name": "Chat",
+  "view.chat.name": "Gespräch",
   "command.openChat.title": "Chat öffnen",
   "command.newChat.title": "Neuer Chat",
   "command.clearChat.title": "Chat leeren",

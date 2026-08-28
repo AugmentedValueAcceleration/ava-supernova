@@ -37,7 +37,12 @@
         "ide.papers.primer_url": "URL: {url}",
         "dash.history.tab.design": "Design",
         "memory.category.person": "Person",
-        "health.starters.when": "Start"
+        "health.starters.when": "Start",
+        "dash.nav.studio_jobs": "Studio",
+        "dash.studio.voice.emotion": "Emotion",
+        "dash.studio.voice.emotion_neutral": "Neutral",
+        "dash.studio.voice.emotion_warm": "Warm",
+        "dash.studio.voice.pace_normal": "Normal"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -57,7 +62,9 @@
         "ide.papers.primer_url": "URL: {url}",
         "dash.history.tab.social": "Social",
         "memory.category.general": "General",
-        "health.browse.cardio": "Cardio"
+        "health.browse.cardio": "Cardio",
+        "dash.studio.voice.emotion_neutral": "Neutral",
+        "dash.studio.voice.pace_normal": "Normal"
       },
       "fr": {
         "health.plans.n_cook": "{n} min",
@@ -93,7 +100,10 @@
         "health.browse.cardio.style": "Style",
         "plan.note": "Note",
         "tasks.filter_plans": "Plans",
-        "library.formats": "Formats"
+        "library.formats": "Formats",
+        "dash.nav.studio_jobs": "Studio",
+        "dash.studio.voice.script": "Script",
+        "dash.studio.voice.pace_normal": "Normal"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
@@ -116,7 +126,9 @@
         "dash.studio.asset.video": "Video",
         "dash.studio.asset.logo": "Logo",
         "dash.studio.asset.avatar": "Avatar",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.nav.studio_jobs": "Studio",
+        "dash.studio.voice.pace_normal": "Normal"
       },
       "it": {
         "health.plans.n_cook": "{n} min",
@@ -146,7 +158,8 @@
         "dash.model.sub.byok_ds_qwen": "BYOK · DeepSeek + Qwen",
         "dash.model.sub.byok_mistral": "BYOK · Mistral",
         "ide.papers.primer_url": "URL: {url}",
-        "health.browse.cardio": "Cardio"
+        "health.browse.cardio": "Cardio",
+        "dash.nav.studio_jobs": "Studio"
       },
       "ja": {
         "learning.room.tab.ava": "Ava",
@@ -199,7 +212,9 @@
         "dash.studio.asset.hero": "Hero",
         "dash.studio.group.open_canvas": "Open Canvas",
         "health.starters.when": "Start",
-        "doc.recent": "Recent"
+        "doc.recent": "Recent",
+        "dash.nav.studio_jobs": "Studio",
+        "dash.studio.voice.emotion_warm": "Warm"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -210,7 +225,8 @@
         "dash.perm.cat.git": "Git",
         "dash.perm.cat.system": "System",
         "ide.papers.primer_url": "URL: {url}",
-        "health.starters.when": "Start"
+        "health.starters.when": "Start",
+        "dash.nav.studio_jobs": "Studio"
       },
       "pt": {
         "health.plans.n_cook": "{n} min",
@@ -233,7 +249,8 @@
         "ide.papers.primer_url": "URL: {url}",
         "dash.history.tab.design": "Design",
         "dash.history.tab.social": "Social",
-        "health.browse.cardio": "Cardio"
+        "health.browse.cardio": "Cardio",
+        "dash.studio.voice.pace_normal": "Normal"
       },
       "ru": {
         "learning.room.tab.ava": "Ava",
@@ -261,7 +278,8 @@
         "dash.studio.asset.video": "Video",
         "dash.studio.asset.logo": "Logo",
         "dash.studio.asset.avatar": "Avatar",
-        "dash.docs.type.md": "Markdown"
+        "dash.docs.type.md": "Markdown",
+        "dash.studio.voice.pace_normal": "Normal"
       },
       "uk": {
         "learning.room.tab.ava": "Ava",

@@ -1945,12 +1945,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
                 <span>{tt('dash.studio.voice.emotion', 'Emotion')}</span>
                 <Select size="sm" className="w-[150px]" value={voiceEmotion} onChange={v => setVoiceEmotion(v)}
-                  options={TTS_VOICE_EMOTIONS.map(e => ({ value: e, label: e[0].toUpperCase() + e.slice(1) }))} />
+                  options={TTS_VOICE_EMOTIONS.map(e => ({ value: e, label: tt(`dash.studio.voice.emotion_${e}`, e) }))} />
               </div>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
                 <span>{tt('dash.studio.voice.pace', 'Pace')}</span>
                 <Select size="sm" className="w-[150px]" value={voiceSpeed} onChange={v => setVoiceSpeed(v)}
-                  options={TTS_VOICE_SPEEDS.map(v => ({ value: v, label: v[0].toUpperCase() + v.slice(1) }))} />
+                  options={TTS_VOICE_SPEEDS.map(v => ({ value: v, label: tt(`dash.studio.voice.pace_${v}`, v) }))} />
               </div>
             </Section>
 

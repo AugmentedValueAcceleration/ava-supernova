@@ -864,6 +864,11 @@ export const enStrings = {
   // ── Creative Studio ────────────────────────────────────────────────────
   'dash.nav.creative_studio': 'Creative Studio',
   'dash.nav.creative_studio_desc': 'Images, music, video, voice',
+  // The generation rail — above the calendar in both sidebars. Deliberately
+  // rendered even when idle, so people learn where to look before there is
+  // anything to look at.
+  'dash.nav.studio_jobs': 'Studio',
+  'dash.nav.studio_idle': 'Nothing rendering',
 
   // ── Learning Library Page ──────────────────────────────────────────────
   'dash.nav.learning_library': 'Learning Library',
@@ -4455,7 +4460,25 @@ export const enStrings = {
   'dash.studio.voice.subtitle': 'Talk to Ava — she writes the read, directs the delivery, and voices it as a waveform you can scrub.',
   'dash.studio.voice.voice': 'Voice',
   'dash.studio.voice.language': 'Language',
-  'dash.studio.voice.hint': 'Qwen3-TTS voices. Pace and emotion are directed in words — Ava has no speed knob.',
+  'dash.studio.voice.spoken_in': 'Spoken in',
+  'dash.studio.voice.script': 'Script',
+  // Delivery is directed in WORDS — the API takes `instructions` in plain
+  // language and has no numeric speed or pitch parameter. These dials are a
+  // shortcut to those words; Ava's own direction wins when she writes one.
+  'dash.studio.voice.delivery': 'Delivery',
+  'dash.studio.voice.emotion': 'Emotion',
+  'dash.studio.voice.pace': 'Pace',
+  'dash.studio.voice.emotion_neutral': 'Neutral',
+  'dash.studio.voice.emotion_warm': 'Warm',
+  'dash.studio.voice.emotion_bright': 'Bright',
+  'dash.studio.voice.emotion_calm': 'Calm',
+  'dash.studio.voice.emotion_excited': 'Excited',
+  'dash.studio.voice.pace_slower': 'Slower',
+  'dash.studio.voice.pace_normal': 'Normal',
+  'dash.studio.voice.pace_brisk': 'Brisk',
+  // Was 'Pace and emotion are directed in words — Ava has no speed knob',
+  // which stopped being true of the panel the moment the dials were wired.
+  'dash.studio.voice.hint': 'Qwen3-TTS voices. Ava can translate a read and voice it in any of these.',
   'dash.studio.voice.foot': 'Talk to Ava — she writes the read, directs the delivery, and voices it.',
   'dash.studio.image.title': 'Image',
   'dash.studio.image.subtitle': 'Free-form — a hero shot, illustration, background or scene. Describe it; Ava composes it and it appears here.',
