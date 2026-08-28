@@ -863,20 +863,28 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const lastVideoTitleRef = useRef('Video'); // names the "Download a copy" file for the current clip
   // Submit a Wan 2.5 job to the host (POST + poll) and await the finished clip.
   // `resolution` is the exact route value ('720P' | '1080P'); duration is 5 | 10.
-  const runVideoGeneration = (prompt: string, duration: string, aspect: string, resolution: string): Promise<VideoOutcome> => {
+  const runVideoGeneration = (
+    prompt: string, duration: string, aspect: string, resolution: string,
+    // The design tool call this render is answering, when there is one. Sent so
+    // the HOST can resolve the tool and save to the Library itself the moment
+    // the clip lands - neither may depend on this component still holding the
+    // resolver ref minutes later. See the note on the host handler.
+    designRequestId?: string,
+  ): Promise<VideoOutcome> => {
     return new Promise<VideoOutcome>((resolve) => {
       // Persist the finished clip to the local gallery before resolving, so every
       // caller (Ava's tool + the UI Generate button) saves it — video is costly
       // and used to evaporate on navigation. Lands in the Library's Video section.
       const title = deriveMediaTitle(prompt, 'Video');
       lastVideoTitleRef.current = title;
-      videoResolverRef.current = (r) => {
-        if (r.ok && r.url) saveMediaToLibrary(r.url, title, 'video', 'video');
-        resolve(r);
-      };
+      // NO library save here any more. The host does it the moment the poll
+      // finishes, because this ref is asked to survive minutes of waiting and
+      // does not survive a remount - when it went, the clip played on the stage
+      // and was never saved. Saving in both places would just duplicate the card.
+      videoResolverRef.current = resolve;
       setVideoSrc(null);
       setVideoGenerating(true);
-      post({ type: 'asset_forge_video', body: { prompt, duration: Number(duration), aspect, resolution } } as any);
+        post({ type: 'asset_forge_video', body: { prompt, duration: Number(duration), aspect, resolution }, designRequestId, title } as any);
     });
   };
   // The host runs submit+poll and posts the finished clip URL back. We drop it on
@@ -1340,7 +1348,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           : videoResolution;
         setVideoResolution(resArg);
         const wanRes = resArg === '1080p' ? '1080P' : '720P'; // route: '480P' | '720P' | '1080P'
-        const out = await runVideoGeneration(prompt, dur, asp, wanRes);
+        const out = await runVideoGeneration(prompt, dur, asp, wanRes, m.requestId);
         if (out.ok) reply(true, { duration: Number(dur), credits: videoCreditCost(wanSr(resArg), Number(dur)) });
         else reply(false, undefined, out.error || 'Video generation failed.');
         return;

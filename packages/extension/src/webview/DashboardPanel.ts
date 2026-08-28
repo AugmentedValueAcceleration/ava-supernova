@@ -579,7 +579,10 @@ export class DashboardPanel {
       // ─── Design Studio video lane (Wan 2.5 submit + poll, host-proxied) ─────
       case 'asset_forge_video': {
         const m = msg as any;
-        this.handleAssetForgeVideo(m.body).catch(() => {});
+        // designRequestId + title travel with the job so the HOST can answer the
+        // design tool and save the clip itself when the poll finishes - neither
+        // may wait on the canvas still holding a resolver ref minutes later.
+        this.handleAssetForgeVideo(m.body, m.designRequestId, m.title).catch(() => {});
         break;
       }
 
@@ -5859,7 +5862,44 @@ export class DashboardPanel {
    * the canvas as `asset_forge_video_result`. Auth/headers match the generate
    * lane (platform key + data-mode header).
    */
-  private async handleAssetForgeVideo(body: { prompt: string; duration?: number | string; resolution?: string; aspect?: string }): Promise<void> {
+  /**
+   * Save a finished generation to the local creative gallery, host-side.
+   *
+   * The canvas normally posts `save_creative_to_disk` for this, but a video
+   * finishes minutes after it was asked for, and that post hung off a webview
+   * ref that does not survive a remount. When the ref went, the clip was
+   * watched and then lost. Video saves here instead; nothing else changes.
+   */
+  private async saveCreativeLocally(url: string, title: string, prompt: string, designType: string): Promise<void> {
+    try {
+      const saved = await saveLocalCreative(this.getUserDataDir(), {
+        url, kind: 'video', designType, prompt, title,
+      });
+      if (saved) {
+        this.log(`[Creative] Saved video locally (${saved.path})`);
+        await this.loadLocalCreative();
+      } else {
+        this.log(`[Creative] Local save failed for ${url}`);
+      }
+    } catch (err) {
+      this.log(`[Creative] Local save threw: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  private async handleAssetForgeVideo(
+    body: { prompt: string; duration?: number | string; resolution?: string; aspect?: string },
+    // Set when a design tool is waiting on this clip. The host answers it
+    // DIRECTLY rather than waiting for the canvas to relay a result back:
+    // a clip takes minutes, and the webview's resolver is a ref that does not
+    // survive a remount. When it went, the tool sat until its timeout and told
+    // the operator the canvas had not responded - about a video playing in
+    // front of them - and the clip never reached the Library either, because
+    // that save hung off the same ref.
+    designRequestId?: string,
+    // The title the canvas derived from the prompt, so a host-side Library save
+    // matches what the canvas would have called it.
+    title?: string,
+  ): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) {
       this.post({ type: 'asset_forge_video_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
@@ -5917,15 +5957,32 @@ export class DashboardPanel {
         const url = (final.data as { url?: string } | undefined)?.url;
         gm?.complete(jobId, { url });
         this.post({ type: 'asset_forge_video_result', success: true, url } as any);
+        if (url) {
+          // Save it HERE. This used to hang off the canvas's resolver ref, so a
+          // clip that rendered while the page re-rendered was watched and then
+          // quietly lost.
+          void this.saveCreativeLocally(url, title || body.prompt, body.prompt, 'video');
+          // And answer the tool HERE, for the same reason. A duplicate reply
+          // from the canvas afterwards is harmless - handleDesignToolResult
+          // no-ops once the request is gone.
+          if (designRequestId) {
+            this.handleDesignToolResult(designRequestId, {
+              ok: true,
+              data: { duration: Number(body.duration) || undefined },
+            });
+          }
+        }
       } else {
         const msg = final.error || 'Video generation failed';
         gm?.fail(jobId, msg);
         this.post({ type: 'asset_forge_video_result', success: false, error: msg } as any);
+        if (designRequestId) this.handleDesignToolResult(designRequestId, { ok: false, error: msg });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Video generation failed';
       gm?.fail(jobId, msg);
       this.post({ type: 'asset_forge_video_result', success: false, error: msg } as any);
+      if (designRequestId) this.handleDesignToolResult(designRequestId, { ok: false, error: msg });
     }
   }
 
