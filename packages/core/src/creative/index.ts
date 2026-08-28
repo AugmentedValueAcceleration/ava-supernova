@@ -126,9 +126,9 @@ export function estimateVoiceCredits(textLen: number): number {
   const chunks = Math.max(1, Math.ceil(textLen / VOICE_CHARS_PER_UNIT));
   return CREDIT_COST.voice_gen * chunks;
 }
-export function estimateVideoCredits(resolution: string): number {
+export function estimateVideoCredits(resolution: string, seconds?: number): number {
   const sr = resolution === '1080P' ? 1080 : resolution === '480P' ? 480 : 720;
-  return videoCreditCost(sr);
+  return videoCreditCost(sr, seconds);
 }
 
 // ── Empty-state suggestion prompts ───────────────────────────────────────────

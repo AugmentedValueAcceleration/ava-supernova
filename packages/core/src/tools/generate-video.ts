@@ -64,7 +64,7 @@ export class GenerateVideoTool implements Tool {
         duration: {
           type: 'number',
           enum: [5, 10],
-          description: 'Duration in seconds. 5 or 10, with synchronized audio. Default: 5.',
+          description: 'Duration in seconds, 2-30, with synchronized audio. Default 5. Charged by the second, and a longer clip takes proportionally longer to render — ask for what the shot needs.',
         },
         resolution: {
           type: 'string',
@@ -83,7 +83,12 @@ export class GenerateVideoTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const prompt = args.prompt as string;
     const filename = (args.filename as string).replace(/\.\w+$/, '');
-    const duration = (args.duration as number) === 10 ? 10 : 5;
+    // 2-30s, the model's own range. This read `=== 10 ? 10 : 5` long after the
+    // model stopped having only those two lengths.
+    const askedDuration = Number(args.duration);
+    const duration = Number.isFinite(askedDuration)
+      ? Math.max(2, Math.min(30, Math.round(askedDuration)))
+      : 5;
     const resolution = args.resolution === '1080P' ? '1080P' : '720P';
     const targetPath = args.target_path as string | undefined;
 

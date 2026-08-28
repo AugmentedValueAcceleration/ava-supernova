@@ -400,8 +400,9 @@ export class DesignGenerateVideoTool implements Tool {
     description:
       'Generate a short video clip on the canvas. YOU author the prompt: describe the shot, subject, camera motion, ' +
       'mood and lighting the way a director briefs a shot — drawn from what you gauged the user wants. Wan runs it ' +
-      '(a few minutes; it auto-dubs a soundtrack). Clips are 5 or 10 seconds only. Uses credits (more than an icon) — ' +
-      'state that and get a yes before calling.',
+      '(a few minutes; it auto-dubs a soundtrack). Clips are 2 to 30 seconds. Credits scale with LENGTH and ' +
+      'resolution — 30s costs six times 5s because it is six times the work — so say what it will cost and get ' +
+      'a yes before calling.',
     parameters: {
       type: 'object',
       properties: {
@@ -414,8 +415,11 @@ export class DesignGenerateVideoTool implements Tool {
         },
         duration: {
           type: 'string',
-          enum: ['5', '10'],
-          description: 'Clip length in seconds — Wan supports 5 or 10 only. Default 5.',
+          description:
+            'Clip length in seconds, 2 to 30. Default 5. Ask for what the SHOT needs — a held mood or a single '
+            + 'movement is 5, a demonstration or a walkthrough earns 15 or 30. It is charged by the second, so '
+            + 'thirty seconds is not a free upgrade: it costs six times five seconds and takes several times as '
+            + 'long to render.',
         },
         aspect: {
           type: 'string',

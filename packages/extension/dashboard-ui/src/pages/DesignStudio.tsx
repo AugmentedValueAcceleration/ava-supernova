@@ -2,6 +2,12 @@ import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode, type
 import type { AccountInfo, ExtToDashboardMessage, ChatModel, ChatPlatformStatus } from '../types/messages';
 import { PenNib } from '@phosphor-icons/react';
 import { post } from '../App';
+// The credit table itself, not a copy of it. A price quoted in the inspector
+// that disagrees with the price charged is worse than quoting nothing.
+import { videoCreditCost } from '@ava/core/billing/credits';
+
+/** '1080p' | '720p' | '480p' -> the SR number the credit table is keyed on. */
+const wanSr = (r: string): number => (r === '1080p' ? 1080 : r === '480p' ? 480 : 720);
 import { Chat } from './Chat';
 import { ModelSelector } from '../chat/components/ModelSelector';
 
@@ -637,7 +643,9 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   useEffect(() => { setColor(kit.palette.primary); }, [kit.id, kit.palette.primary]);
 
   // ── Video lane (Wan 2.5 via host: submit → poll → clip) ──
-  const [videoDuration, setVideoDuration] = useState('5'); // Wan: '5' | '10' seconds only
+  // 2-30s. The old '5 | 10' was wan2.5's ceiling, which outlived the model by
+  // two generations because it had been written down in six places.
+  const [videoDuration, setVideoDuration] = useState('5');
   const [videoAspect, setVideoAspect] = useState('16:9');
   const [videoResolution, setVideoResolution] = useState('1080p');
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -1302,8 +1310,9 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const prompt = typeof args.prompt === 'string' ? args.prompt.trim() : '';
         if (!prompt) { reply(false, undefined, 'A prompt is required to generate a video.'); return; }
         setView('video');
-        // Wan duration is 5 or 10 seconds only.
-        const dur = (args.duration === 10 || args.duration === '10') ? '10' : '5';
+        // 2-30s, clamped to the model's own range rather than a tier list.
+        const asked = Number(args.duration);
+        const dur = String(Number.isFinite(asked) ? Math.max(2, Math.min(30, Math.round(asked))) : 5);
         setVideoDuration(dur);
         // Aspect + resolution both go to Wan (mapped to its `size` param
         // server-side), so 9:16 genuinely renders vertical.
@@ -1315,7 +1324,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         setVideoResolution(resArg);
         const wanRes = resArg === '1080p' ? '1080P' : '720P'; // route: '480P' | '720P' | '1080P'
         const out = await runVideoGeneration(prompt, dur, asp, wanRes);
-        if (out.ok) reply(true, { duration: Number(dur), credits: wanRes === '1080P' ? 300 : 150 });
+        if (out.ok) reply(true, { duration: Number(dur), credits: videoCreditCost(wanSr(resArg), Number(dur)) });
         else reply(false, undefined, out.error || 'Video generation failed.');
         return;
       }
@@ -1838,7 +1847,13 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
                 <span>{tt('dash.studio.video.duration', 'Duration')}</span>
                 <Select size="sm" className="w-[118px]" value={videoDuration} onChange={v => setVideoDuration(v)}
-                  options={[{ value: '5', label: '5s' }, { value: '10', label: '10s' }]} />
+                  options={[5, 10, 15, 30].map(secs => ({
+                    value: String(secs),
+                    // The price belongs ON the choice. It is charged by the
+                    // second now, so picking 30 over 5 is a six-fold decision
+                    // and the menu should not make you find that out later.
+                    label: `${secs}s · ${videoCreditCost(wanSr(videoResolution), secs)} cr`,
+                  }))} />
               </div>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
                 <span>{tt('dash.studio.video.aspect', 'Aspect ratio')}</span>

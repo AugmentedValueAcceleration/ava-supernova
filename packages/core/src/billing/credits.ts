@@ -38,7 +38,7 @@ export type CreditAction =
   | 'light_persona'   // Scout / Verifier / Challenger on Flash
   | 'orchestration'   // Conductor full run — charged once per orchestrate()
   | 'image_gen'       // Creative Studio — image generation
-  | 'video_gen'       // Creative Studio — video generation (5s/10s clip)
+  | 'video_gen'       // Creative Studio — video generation (priced per second)
   | 'voice_gen'       // Creative Studio — TTS
   | 'music_gen'       // Creative Studio — music generation
   | 'logo_gen'        // Creative Studio — logo (construction, no model cost; value-priced)
@@ -59,7 +59,7 @@ export const CREDIT_COST: Record<CreditAction, number> = {
   light_persona:  1,   // ~$0.0001 raw
   orchestration: 10,   // ~$0.003 raw (4-6 personas combined)
   image_gen:     12,   // ~$0.04 raw (Wan) — bumped 10→12 (2026-04-25 calibration)
-  video_gen:    150,   // 720p base tier (Wan) — see VIDEO_GEN_CREDITS for resolution tiers
+  video_gen:    150,   // 720p × 10s — see VIDEO_CREDITS_PER_SECOND for the real rate
   voice_gen:     10,   // ~$0.03 raw (Qwen3-TTS ~500 chars) — bumped 3→10 (2026-04-25)
   music_gen:     50,   // retired — no non-MiniMax music model; kept for billing plumbing
   logo_gen:      20,   // $0 raw (pure construction) — value-priced at parity with an icon
@@ -67,21 +67,57 @@ export const CREDIT_COST: Record<CreditAction, number> = {
 };
 
 /**
- * Video credits scale with Wan output resolution. 720p is the base; 1080p
- * costs ~2× because Wan's per-clip cost roughly doubles, holding the same
- * margin. Charge is flat across clip duration. Kept in sync with the web
- * platform's credits-pricing VIDEO_GEN_CREDITS. `video_gen` above is the
- * 720p base for callers that don't tier.
+ * Video credits scale with RESOLUTION and LENGTH.
+ *
+ * Billed on what DashScope reports in `usage` (`SR` and `duration`) rather than
+ * what the client asked for, so neither can be spoofed.
+ *
+ * The rates are the old flat per-clip prices divided by ten seconds - the
+ * length those prices were quoting when 5 and 10 were the only options. That
+ * anchoring is deliberate: a 10s clip costs exactly what it did, a 5s clip
+ * costs half, and nothing anyone generates today gets more expensive.
+ *
+ *      5s     50 /  75 / 150
+ *     10s    100 / 150 / 300   <- unchanged
+ *     15s    150 / 225 / 450
+ *     30s    300 / 450 / 900
+ *
+ * Flat-across-duration was what kept the user-facing ceiling at 10 seconds:
+ * wan3.0 reaches 30, and 30 seconds on a 10-second price is not a discount, it
+ * is a loss on every clip.
  */
-export const VIDEO_GEN_CREDITS: Record<'480' | '720' | '1080', number> = {
-  '480': 100,   // ~$0.25/clip
-  '720': 150,   // ~$0.50/clip — base tier
-  '1080': 300,  // ~$1.00/clip — 2× the 720p tier
+export const VIDEO_CREDITS_PER_SECOND: Record<'480' | '720' | '1080', number> = {
+  '480': 10,   // 100 / 10s
+  '720': 15,   // 150 / 10s - base tier
+  '1080': 30,  // 300 / 10s - 2x the 720p rate, as Wan's cost roughly doubles
 };
 
-export function videoCreditCost(sr: number | string | null | undefined): number {
+/** The length the old flat prices were implicitly quoting. */
+export const VIDEO_ANCHOR_SECONDS = 10;
+
+/**
+ * Kept as the ten-second column so anything still reading the old table gets
+ * the old numbers rather than a silent change.
+ */
+export const VIDEO_GEN_CREDITS: Record<'480' | '720' | '1080', number> = {
+  '480': VIDEO_CREDITS_PER_SECOND['480'] * VIDEO_ANCHOR_SECONDS,
+  '720': VIDEO_CREDITS_PER_SECOND['720'] * VIDEO_ANCHOR_SECONDS,
+  '1080': VIDEO_CREDITS_PER_SECOND['1080'] * VIDEO_ANCHOR_SECONDS,
+};
+
+export function videoCreditCost(
+  sr: number | string | null | undefined,
+  seconds?: number | string | null,
+): number {
   const key = String(sr ?? 720) as '480' | '720' | '1080';
-  return VIDEO_GEN_CREDITS[key] ?? VIDEO_GEN_CREDITS['720'];
+  const rate = VIDEO_CREDITS_PER_SECOND[key] ?? VIDEO_CREDITS_PER_SECOND['720'];
+  // No length reported (an older caller, or a status payload without usage)
+  // falls back to the anchor, which reproduces the previous flat charge exactly.
+  const asked = Number(seconds);
+  const secs = Number.isFinite(asked) && asked > 0
+    ? Math.max(1, Math.min(30, Math.round(asked)))
+    : VIDEO_ANCHOR_SECONDS;
+  return rate * secs;
 }
 
 // ── Cache-hit discount ────────────────────────────────────────────────────

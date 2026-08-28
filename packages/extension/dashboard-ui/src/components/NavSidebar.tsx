@@ -742,13 +742,20 @@ function GenerationRail({ jobs, onOpen }: { jobs: GenerationJobLite[]; onOpen: (
     return () => window.clearInterval(t);
   }, [running]);
 
-  if (jobs.length === 0) return null;
-
+  // Deliberately rendered even when empty. A status area that only exists while
+  // it is busy is one nobody can learn the location of — the first time you need
+  // it is the first time you have ever seen it. Empty, it is one quiet line, and
+  // it teaches where to look before there is anything to look at.
   return (
     <div className="px-3 pb-2 flex flex-col gap-1.5">
       <div className="text-[9.5px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
-        {running ? 'Generating' : 'Ready'}
+        {tt('dash.nav.studio_jobs', 'Studio')}
       </div>
+      {jobs.length === 0 ? (
+        <div className="text-[11px] text-[var(--text-muted)] opacity-60">
+          {tt('dash.nav.studio_idle', 'Nothing rendering')}
+        </div>
+      ) : null}
       {jobs.map(job => {
         const done = job.status === 'complete';
         const failed = job.status === 'failed';
