@@ -681,6 +681,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const active = jobs.filter(j => j.status !== 'complete' && j.status !== 'failed');
       if (active.length > 0) {
         this.updateStatusBar('generating', `Generating ${active.length} asset${active.length !== 1 ? 's' : ''}...`);
+      } else if (!this.runAbortController) {
+        // And back DOWN again. There was no else here, so the first generation
+        // of the session pinned "Generating 1 asset..." to the toolbar for good
+        // — the bar reported the last time work STARTED, not whether any was
+        // happening. Guarded on the turn: a run in flight owns the status bar,
+        // and clearing it from here would blank its state mid-answer.
+        this.updateStatusBar('ready');
       }
       // Running jobs PLUS anything that finished in the last 30 seconds.
       //

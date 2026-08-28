@@ -147,6 +147,19 @@ const CONNECTION_SECRETS: Record<string, string[]> = {
 
 // ─── DashboardPanel ───────────────────────────────────────────────────────────
 
+/**
+ * How long we keep asking Wan for a clip.
+ *
+ * Named once because two things wait on it — the poll loop, and the design
+ * tool's own timeout — and when they were separate numbers the tool started
+ * giving up half an hour before the poll did.
+ *
+ * Measured 28 August on wan3.0: two 30-second renders of the same shape took 8
+ * minutes and 25. A timeout is the expensive failure here (the render succeeds,
+ * we are billed, the user is told it failed), so the ceiling is generous.
+ */
+const VIDEO_POLL_CEILING_MS = 45 * 60 * 1000;
+
 export class DashboardPanel {
   public static currentPanel: DashboardPanel | undefined;
   private static readonly viewType = 'ava-supernova.dashboard';
@@ -5704,10 +5717,13 @@ export class DashboardPanel {
     const slow = command === 'generate_icon' || command === 'generate_set' || command === 'generate_image';
     // A set can be many icons back-to-back — scale the ceiling with count.
     const setCount = command === 'generate_set' && Array.isArray(args.shapes) ? (args.shapes as unknown[]).length : 1;
-    // Video is async on Wan (1–6 min per clip, ~8-min poll ceiling host-side) —
-    // give it the full ceiling so the tool doesn't time out before the clip lands.
+    // Video is async on Wan, and the tool must outlast the POLL — otherwise it
+    // reports "the canvas didn't respond" while the clip is still coming, and
+    // then the clip lands on the stage anyway, contradicting what it just said.
+    // Derived from the poll ceiling rather than guessed next to it: the two
+    // numbers drifted apart the moment the poll went from 8 minutes to 45.
     const timeoutMs =
-      command === 'generate_video' ? 600_000
+      command === 'generate_video' ? VIDEO_POLL_CEILING_MS + 60_000
       // Logo chains symbol-gen (Qwen) → server vectorize → compose — well past
       // the 12s default, so give it a generous ceiling like the other slow lanes.
       : command === 'generate_logo' ? 240_000
@@ -5990,7 +6006,7 @@ export class DashboardPanel {
     // the cadence backs off — 5s while it might be about to land, 15s once we
     // are plainly waiting, which is FEWER requests across a 25-minute render than
     // the old loop made across an 8-minute one.
-    const CEILING_MS = 45 * 60 * 1000;
+    const CEILING_MS = VIDEO_POLL_CEILING_MS;
     const FAST_WINDOW_MS = 2 * 60 * 1000;
     const started = Date.now();
     while (Date.now() - started < CEILING_MS) {

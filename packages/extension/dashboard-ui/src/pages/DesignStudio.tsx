@@ -627,7 +627,24 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const KIT_LBL = 'text-[11px] text-[var(--text-muted)] block mb-1.5';
   const KIT_BTN_PRIMARY = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-white transition hover:brightness-110';
   const KIT_BTN_GHOST = 'px-2.5 py-1 rounded-md text-[11px] border border-[var(--border-card)] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]';
-  const [view, setView] = useState<ViewId>('icon');
+  // Reopens where you left it. This was hardcoded to 'icon', so a reload always
+  // dropped you into Icon — worst for Video, which is the lane you deliberately
+  // walk away from because it takes minutes to render.
+  const [view, setView] = useState<ViewId>(() => {
+    try {
+      const saved = localStorage.getItem('ava-design-studio-view');
+      // 'brandkit' is a real view but lives outside the groups, so it needs
+      // naming here or leaving on it would silently reopen on Icon.
+      const known = saved === 'brandkit'
+        || DESIGN_GROUPS.some(g => g.items.some(i => i.id === saved));
+      return saved && known ? (saved as ViewId) : 'icon';
+    } catch {
+      return 'icon';  // storage disabled — not worth failing the page over
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('ava-design-studio-view', view); } catch { /* not important enough to throw */ }
+  }, [view]);
   // Which room the Design Architect chat should reflect. The Open-Canvas Video
   // and Voiceover views map to their own rooms; everything else is the icon
   // studio (greeting / chips / heading / persona all follow this).
