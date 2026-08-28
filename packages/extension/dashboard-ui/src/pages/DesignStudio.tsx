@@ -1040,17 +1040,26 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // it. Qwen3-TTS is synchronous host-side, so this returns in a few seconds.
   type VoiceOutcome = { ok: boolean; url?: string; error?: string };
   const voiceResolverRef = useRef<((r: VoiceOutcome) => void) | null>(null);
-  const runVoiceGeneration = (script: string, voice: string, language: string, instructions?: string): Promise<VoiceOutcome> => {
+  const runVoiceGeneration = (
+    script: string, voice: string, language: string, instructions?: string,
+    // The design tool call this read answers, when there is one. The host
+    // resolves it directly — see the note below.
+    designRequestId?: string,
+  ): Promise<VoiceOutcome> => {
     return new Promise<VoiceOutcome>((resolve) => {
-      // Same as video: persist the read before resolving so every caller saves it.
-      // Lands in the Library's Voiceover section (Open Canvas).
-      voiceResolverRef.current = (r) => {
-        if (r.ok && r.url) saveMediaToLibrary(r.url, deriveVoiceTitle(script), 'voice', 'voice');
-        resolve(r);
-      };
+      // NO Library save here — same reason as video. This ref is read AFTER the
+      // stage has already updated, so when it is gone (a remount) the read plays
+      // and is silently never saved. The host saves it and answers the design
+      // tool; TTS is synchronous so the window is small, but it is the identical
+      // bug that lost a clip today.
+      voiceResolverRef.current = resolve;
       setVoiceSrc(null);
       setVoiceGenerating(true);
-      post({ type: 'asset_forge_voice', body: { text: script, voice, language_type: language, instructions } } as any);
+      post({
+        type: 'asset_forge_voice',
+        body: { text: script, voice, language_type: language, instructions },
+        designRequestId, title: deriveVoiceTitle(script),
+      } as any);
     });
   };
   // The host synthesises and posts the finished audio URL back. We drop it on the
@@ -1108,13 +1117,11 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     }
   };
   // Media (video / voiceover) save straight to the local creative gallery — no
-  // webp re-encode (that's image-only). The host fetches the URL (remote or
-  // data:) and writes the real bytes. `assetType` maps to the on-disk kind and
-  // `designType` decides which Library section it lands in (video → Video,
-  // voice → Voiceover under Open Canvas). See creative-store.ts / design-types.ts.
-  const saveMediaToLibrary = (url: string, title: string, kind: 'video' | 'voice', designType: ViewId) => {
-    post({ type: 'save_creative_to_disk', url, filename: title, assetType: kind, designType, prompt: title } as any);
-  };
+  // saveMediaToLibrary lived here and is gone: both callers (video and voice)
+  // now save HOST-side, because a save posted from the canvas hung off a
+  // resolver ref that does not survive a remount — which is how a rendered clip
+  // came to play on the stage and never reach the Library. The host holds the
+  // url, the prompt and the title, so it saves them itself.
   // "Download a copy" — export a generated asset (data: or remote URL) to a
   // location the user picks. Library-save is automatic; this button is only for
   // getting a copy out to disk. The host decodes/fetches and pops a Save dialog.
@@ -1376,7 +1383,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const language = typeof args.language === 'string' && args.language.trim() ? args.language.trim() : voiceLanguage;
         setVoiceLanguage(language);
         const instructions = typeof args.instructions === 'string' && args.instructions.trim() ? args.instructions.trim() : undefined;
-        const out = await runVoiceGeneration(script, voice, language, instructions);
+        const out = await runVoiceGeneration(script, voice, language, instructions, m.requestId);
         if (out.ok) reply(true, { voice, credits: 10 });
         else reply(false, undefined, out.error || 'Voice generation failed.');
         return;

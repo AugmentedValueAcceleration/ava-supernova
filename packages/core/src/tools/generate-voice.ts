@@ -4,6 +4,7 @@ import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
+import type { GenerationTracker } from '../dataset/generation-emit.js';
 import { chargeCredits } from '../billing/meter.js';
 
 /**
@@ -85,12 +86,13 @@ export class GenerateVoiceTool implements Tool {
     genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.('Generating voice...\n');
 
-    const tracker = startGenerationTracking({
-      type: 'voice',
-      model: 'qwen3-tts',
-      prompt: text,
-      paramsSummary: `voice=${voice}, language=${language}`,
-    });
+    // Created AFTER the response, because core does not choose the voice model
+    // — the platform route does, and it now reports which one it used. This
+    // said 'qwen3-tts', which is not a model at all: probed against DashScope on
+    // 28 August it answers "Model not exist." So every voice row in the dataset
+    // named something that has never run.
+    let tracker: GenerationTracker | null = null;
+    const voiceParams = `voice=${voice}, language=${language}`;
 
     try {
       const res = await fetch(`${PLATFORM_URL}/generate-voice`, {
@@ -107,9 +109,18 @@ export class GenerateVoiceTool implements Tool {
         throw new Error(`Voice generation API error (${res.status}): ${errText}`);
       }
 
-      const data = await res.json() as { url?: string; error?: string };
+      const data = await res.json() as { url?: string; error?: string; model?: string };
       if (data.error) throw new Error(data.error);
       if (!data.url) throw new Error('No audio URL returned from API');
+
+      tracker = startGenerationTracking({
+        type: 'voice',
+        // What the route says it ran. 'unknown' rather than a guess if an older
+        // deployment does not report it — an honest gap beats a wrong label.
+        model: data.model || 'unknown',
+        prompt: text,
+        paramsSummary: voiceParams,
+      });
 
       // Download audio buffer
       genManager?.update(jobId, { status: 'downloading', progress: 70 });
@@ -126,7 +137,7 @@ export class GenerateVoiceTool implements Tool {
 
       const meta = { path: relativePath, absolutePath: savePath, size: audioBuffer.length, voice, language, textLength: text.length };
       genManager?.complete(jobId, meta);
-      tracker.complete({ fileSizeBytes: audioBuffer.length });
+      tracker?.complete({ fileSizeBytes: audioBuffer.length });
 
       persistCreativeAsset(context, {
         assetType: 'voice',
@@ -146,7 +157,11 @@ export class GenerateVoiceTool implements Tool {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       genManager?.fail(jobId, message);
-      tracker.fail(message);
+      // A call that never got a response has no tracker yet, and the
+      // started/failed pair is still worth having — so make one to fail.
+      (tracker ?? startGenerationTracking({
+        type: 'voice', model: 'unknown', prompt: text, paramsSummary: voiceParams,
+      })).fail(message);
       return { success: false, output: `Voice generation failed: ${message}` };
     }
   }

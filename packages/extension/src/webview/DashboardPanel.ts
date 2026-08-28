@@ -589,7 +589,9 @@ export class DashboardPanel {
       // ─── Design Studio voice lane (Qwen3-TTS synchronous, host-proxied) ─────
       case 'asset_forge_voice': {
         const m = msg as any;
-        this.handleAssetForgeVoice(m.body).catch(() => {});
+        // Same reason as video: the HOST saves the read and answers the design
+        // tool, so neither depends on the canvas still holding a resolver ref.
+        this.handleAssetForgeVoice(m.body, m.designRequestId, m.title).catch(() => {});
         break;
       }
 
@@ -5731,6 +5733,10 @@ export class DashboardPanel {
       // the 12s default, so give it a generous ceiling like the other slow lanes.
       : command === 'generate_logo' ? 240_000
       : command === 'explore_logos' ? 240_000   // renders up to 5 candidates
+      // A read plus proxying the audio to a data: URL can pass 12s on a long
+      // script, and a timeout costs us the synthesis AND tells the user it did
+      // not happen. Still short enough that a real hang is obvious.
+      : command === 'generate_voice' ? 90_000
       : slow ? Math.min(600_000, 90_000 * Math.max(1, setCount))
       : 12_000;
     return new Promise((resolve) => {
@@ -5870,13 +5876,15 @@ export class DashboardPanel {
    * ref that does not survive a remount. When the ref went, the clip was
    * watched and then lost. Video saves here instead; nothing else changes.
    */
-  private async saveCreativeLocally(url: string, title: string, prompt: string, designType: string): Promise<void> {
+  private async saveCreativeLocally(
+    url: string, title: string, prompt: string, designType: string, kind: CreativeKind = 'video',
+  ): Promise<void> {
     try {
       const saved = await saveLocalCreative(this.getUserDataDir(), {
-        url, kind: 'video', designType, prompt, title,
+        url, kind, designType, prompt, title,
       });
       if (saved) {
-        this.log(`[Creative] Saved video locally (${saved.path})`);
+        this.log(`[Creative] Saved ${kind} locally (${saved.path})`);
         await this.loadLocalCreative();
       } else {
         this.log(`[Creative] Local save failed for ${url}`);
@@ -5993,7 +6001,15 @@ export class DashboardPanel {
    * the canvas as `asset_forge_voice_result`. Auth/headers match the other
    * lanes (platform key + data-mode header).
    */
-  private async handleAssetForgeVoice(body: { text: string; voice?: string; language_type?: string; instructions?: string }): Promise<void> {
+  private async handleAssetForgeVoice(
+    body: { text: string; voice?: string; language_type?: string; instructions?: string },
+    // As for video: the design tool waiting on this read is answered from HERE,
+    // and the Library save happens here too. TTS is synchronous so the window is
+    // seconds rather than minutes — but it is the same bug that lost a clip
+    // today, and a small window is not no window.
+    designRequestId?: string,
+    title?: string,
+  ): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) {
       this.post({ type: 'asset_forge_voice_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
@@ -6035,8 +6051,12 @@ export class DashboardPanel {
         } catch { /* fall back to the raw url */ }
       }
       this.post({ type: 'asset_forge_voice_result', success: true, url: audioUrl } as any);
+      void this.saveCreativeLocally(audioUrl, title || body.text.slice(0, 60), body.text, 'voice', 'voice');
+      if (designRequestId) this.handleDesignToolResult(designRequestId, { ok: true, data: { voice: body.voice } });
     } catch (err) {
-      this.post({ type: 'asset_forge_voice_result', success: false, error: err instanceof Error ? err.message : 'Voice generation failed' } as any);
+      const msg = err instanceof Error ? err.message : 'Voice generation failed';
+      this.post({ type: 'asset_forge_voice_result', success: false, error: msg } as any);
+      if (designRequestId) this.handleDesignToolResult(designRequestId, { ok: false, error: msg });
     }
   }
 
