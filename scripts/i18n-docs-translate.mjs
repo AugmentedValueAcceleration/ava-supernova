@@ -7,12 +7,17 @@
  * key scheme getPages(locale) reads, translates per locale (platform chat /
  * Qwen flash), and writes packages/core/src/docs/i18n/translations.ts.
  *
- * Idempotent + resumable: existing translations are parsed back in and skipped.
+ * Idempotent + resumable: existing translations are parsed back in and skipped
+ * — but only while the English they were made from is unchanged. A hash of each
+ * English string is stored alongside (under the reserved `__en` key), so an
+ * edited sentence is retranslated instead of silently keeping nineteen stale
+ * copies, and a deleted one is pruned from every locale.
  *   pnpm i18n:docs                 # all locales
  *   pnpm i18n:docs --locales=es,fr # subset
  *   pnpm i18n:docs --concurrency=10 --batch-size=25
  */
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import url from 'node:url';
+import { createHash } from 'node:crypto';
 import { getPages, docTranslatableEntries } from '../packages/core/dist/docs/index.js';
 
 const repoRoot = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
@@ -61,11 +66,37 @@ async function pool(tasks, limit) { const q = [...tasks]; let n = 0; await Promi
 const englishEntries = docTranslatableEntries(getPages('en'));
 console.log('translatable doc strings (English):', englishEntries.length);
 const store = loadExisting();
+
+// A hash of the English each translation was made FROM. Without this the script
+// could only ask "is there a translation for this key", never "is it still a
+// translation of what the key now says".
+const enHash = (v) => createHash('sha1').update(String(v)).digest('hex').slice(0, 12);
+const enNow = new Map(englishEntries.map(([k, v]) => [k, enHash(v)]));
+const enWas = store.__en || {};
+
+// Prune anything the English no longer has — otherwise a removed sentence keeps
+// its translation in all nineteen locales forever.
+let pruned = 0;
+for (const [loc, d] of Object.entries(store)) {
+  if (loc === '__en') continue;
+  for (const k of Object.keys(d)) if (!enNow.has(k)) { delete d[k]; pruned++; }
+}
+for (const k of Object.keys(enWas)) if (!enNow.has(k)) delete enWas[k];
+if (pruned) console.log('pruned', pruned, 'translations whose English is gone');
+
+// Anything whose English has CHANGED since it was translated.
+const changed = englishEntries.filter(([k]) => enWas[k] && enWas[k] !== enNow.get(k));
+if (changed.length) {
+  console.log('English changed for', changed.length, 'strings — retranslating:');
+  for (const [k] of changed.slice(0, 10)) console.log('   ', k);
+  if (changed.length > 10) console.log('    …and', changed.length - 10, 'more');
+}
+const staleKeys = new Set(changed.map(([k]) => k));
 const targets = Object.entries(LOCALES).filter(([loc]) => !FILTER || FILTER.has(loc));
 const tasks = [];
 for (const [loc, lang] of targets) {
   store[loc] = store[loc] || {};
-  const missing = englishEntries.filter(([k]) => !(k in store[loc]));
+  const missing = englishEntries.filter(([k]) => !(k in store[loc]) || staleKeys.has(k));
   for (let i = 0; i < missing.length; i += BATCH) {
     const batch = missing.slice(i, i + BATCH);
     tasks.push(async () => { const out = await translate(batch, lang); for (const [k, v] of out) store[loc][k] = v; });
@@ -78,6 +109,8 @@ const writer = setInterval(() => { if (since) { writeOut(store); since = 0; } },
 const wrapped = tasks.map(t => async () => { await t(); since++; });
 await pool(wrapped, CONCURRENCY);
 clearInterval(writer);
+// Record what the English said at the moment each locale was translated from it.
+store.__en = Object.fromEntries(enNow);
 writeOut(store);
 const totals = Object.fromEntries(Object.entries(store).map(([l, d]) => [l, Object.keys(d).length]));
 console.log('DONE. per-locale key counts:', JSON.stringify(totals));

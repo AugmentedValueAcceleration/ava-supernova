@@ -70,7 +70,11 @@ export function docTranslatableEntries(pages: DocPage[]): Array<[string, string]
 
 /** Locales we have (or can have) doc translations for. */
 export function availableDocLocales(): string[] {
-  return Object.keys(DOC_TRANSLATIONS);
+  // `__en` is not a language. It holds a hash of the English each translation
+  // was made FROM, so the generator can tell when a source string has changed
+  // and retranslate it — without it, editing an English sentence left nineteen
+  // stale translations in place and nothing said so.
+  return Object.keys(DOC_TRANSLATIONS).filter(k => k !== '__en');
 }
 
 /**
