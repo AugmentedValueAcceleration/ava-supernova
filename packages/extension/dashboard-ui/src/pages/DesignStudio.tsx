@@ -5,6 +5,7 @@ import { post } from '../App';
 // The credit table itself, not a copy of it. A price quoted in the inspector
 // that disagrees with the price charged is worse than quoting nothing.
 import { videoCreditCost } from '@ava/core/billing/credits';
+import { TTS_VOICES, TTS_VOICE_EMOTIONS, TTS_VOICE_SPEEDS, voiceDeliveryInstruction } from '@ava/core/creative';
 
 /** '1080p' | '720p' | '480p' -> the SR number the credit table is keyed on. */
 const wanSr = (r: string): number => (r === '1080p' ? 1080 : r === '480p' ? 480 : 720);
@@ -586,7 +587,10 @@ function WaveformPlayer({ voiceName, title, durationSec, src, generating, onDown
 
 // Qwen3-TTS curated voice roster — the exact Qwen voice ids the platform route
 // speaks. Ava picks one from here; the user can override in the inspector.
-const VOICES = ['Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona', 'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai'];
+// Imported, not listed here. This list was correct and the IDE's was not —
+// seven of its nine names did not exist — which is what having two lists
+// buys you. One now, verified name by name against the API on 2026-08-28.
+const VOICES: string[] = [...TTS_VOICES];
 // The 10 spoken languages Qwen3-TTS supports. Ava translates the script herself
 // and sets the language; the SAME voice speaks the translated words.
 const VOICE_LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Japanese', 'Korean', 'Italian', 'Portuguese', 'Chinese', 'Russian'];
@@ -679,6 +683,10 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const [voiceUsed, setVoiceUsed] = useState(VOICES[0]); // voice captured at generation (stable in the player)
   const [voiceTitle, setVoiceTitle] = useState(''); // the generated voiceover's name (from its script)
   const [voiceLanguage, setVoiceLanguage] = useState('English');
+  // Delivery, as WORDS. 'neutral'/'normal' produce no instruction at all —
+  // better than telling the model to do nothing in particular.
+  const [voiceEmotion, setVoiceEmotion] = useState('neutral');
+  const [voiceSpeed, setVoiceSpeed] = useState('normal');
   const [voiceSrc, setVoiceSrc] = useState<string | null>(null);
   const [voiceGenerating, setVoiceGenerating] = useState(false);
 
@@ -1382,7 +1390,11 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         setVoiceTitle(deriveVoiceTitle(script)); // name the voiceover from its script
         const language = typeof args.language === 'string' && args.language.trim() ? args.language.trim() : voiceLanguage;
         setVoiceLanguage(language);
-        const instructions = typeof args.instructions === 'string' && args.instructions.trim() ? args.instructions.trim() : undefined;
+        // Ava's own direction WINS; the dials are the fallback, so a read she
+        // has not directed follows the panel instead of ignoring it.
+        const instructions = (typeof args.instructions === 'string' && args.instructions.trim())
+          ? args.instructions.trim()
+          : voiceDeliveryInstruction(voiceEmotion, voiceSpeed);
         const out = await runVoiceGeneration(script, voice, language, instructions, m.requestId);
         if (out.ok) reply(true, { voice, credits: 10 });
         else reply(false, undefined, out.error || 'Voice generation failed.');
@@ -1919,7 +1931,27 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                 <Select size="sm" className="w-[150px]" value={voiceLanguage} onChange={v => setVoiceLanguage(v)}
                   options={VOICE_LANGUAGES.map(l => ({ value: l, label: l }))} />
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-2">{tt('dash.studio.voice.hint', 'Qwen3-TTS voices. Pace and emotion are directed in words — Ava has no speed knob.')}</p>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-2">{tt('dash.studio.voice.hint', 'Qwen3-TTS voices. Ava can translate a read and voice it in any of these.')}</p>
+            </Section>
+
+            {/* Delivery.
+                These are still "directed in words" — the hint this replaced was
+                right that there is no speed knob at the API, which takes
+                `instructions` as plain language. The dials are a shortcut TO
+                those words (voiceDeliveryInstruction, shared with the IDE), not
+                a numeric parameter. Ava's own direction always wins; this is
+                what a read she has not directed follows. */}
+            <Section title={tt('dash.studio.voice.delivery', 'Delivery')}>
+              <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
+                <span>{tt('dash.studio.voice.emotion', 'Emotion')}</span>
+                <Select size="sm" className="w-[150px]" value={voiceEmotion} onChange={v => setVoiceEmotion(v)}
+                  options={TTS_VOICE_EMOTIONS.map(e => ({ value: e, label: e[0].toUpperCase() + e.slice(1) }))} />
+              </div>
+              <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">
+                <span>{tt('dash.studio.voice.pace', 'Pace')}</span>
+                <Select size="sm" className="w-[150px]" value={voiceSpeed} onChange={v => setVoiceSpeed(v)}
+                  options={TTS_VOICE_SPEEDS.map(v => ({ value: v, label: v[0].toUpperCase() + v.slice(1) }))} />
+              </div>
             </Section>
 
             <p className="text-[10.5px] text-[var(--text-muted)] m-0">{tt('dash.studio.voice.foot', 'Talk to Ava — she writes the read, directs the delivery, and voices it.')}</p>

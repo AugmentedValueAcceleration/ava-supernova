@@ -192,6 +192,58 @@ export const SUGGESTIONS: Record<CreativeMode, string[]> = {
   ],
 };
 
+
+/* ── Voice: the list, and the dials ───────────────────────────────── */
+
+/**
+ * The voices Qwen3-TTS actually has.
+ *
+ * VERIFIED name by name against the API on 2026-08-28, not copied. This exists
+ * because the two surfaces had drifted onto different lists that shared exactly
+ * one name, and seven of the IDE's nine did not exist at all — including its
+ * default — so picking almost any voice there failed outright.
+ *
+ * Adding a name here without calling the API first is how that happened. Don't.
+ */
+export const TTS_VOICES = [
+  'Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona',
+  'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai', 'Nofish',
+] as const;
+export type TtsVoice = (typeof TTS_VOICES)[number];
+
+// Named TTS_* to sit beside TTS_VOICES and stay clear of the MiniMax-era
+// VOICES / VOICE_EMOTIONS above, which are dead but not mine to remove here.
+export const TTS_VOICE_EMOTIONS = ['neutral', 'warm', 'bright', 'calm', 'excited'] as const;
+export const TTS_VOICE_SPEEDS = ['slower', 'normal', 'brisk'] as const;
+
+/**
+ * Turn the delivery dials into an instruction the model can actually follow.
+ *
+ * Qwen3-TTS takes `instructions` as PLAIN LANGUAGE — there is no numeric speed
+ * or pitch parameter — so a "1.25×" dropdown could never have been sent as a
+ * number. It has to become words, and those words live here rather than in each
+ * surface, because a dial that means something different in the IDE than in the
+ * extension is not a shared control.
+ *
+ * Returns undefined for the neutral default: silence is a better instruction
+ * than "read this neutrally at normal speed", which spends the model's
+ * attention telling it to do nothing.
+ */
+export function voiceDeliveryInstruction(emotion?: string, speed?: string): string | undefined {
+  const tone: Record<string, string> = {
+    warm: 'Warm and close, as if speaking to one person.',
+    bright: 'Bright and lifted, with an easy smile in it.',
+    calm: 'Calm and unhurried, settled at the end of each line.',
+    excited: 'Genuinely excited, leaning forward, without shouting.',
+  };
+  const pace: Record<string, string> = {
+    slower: 'Noticeably slower and more deliberate, with room between the sentences.',
+    brisk: 'Brisker than normal, keeping the pace up without rushing the words.',
+  };
+  const parts = [tone[emotion ?? ''], pace[speed ?? '']].filter(Boolean);
+  return parts.length ? parts.join(' ') : undefined;
+}
+
 /** Sample N items without repeats — for rotating empty-state suggestions. */
 export function pickRandom<T>(items: T[], n: number): T[] {
   const pool = items.slice();
