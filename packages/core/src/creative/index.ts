@@ -30,25 +30,17 @@ export const MODE_META: { id: CreativeMode; labelKey: string }[] = [
   { id: 'video', labelKey: 'dash.creative.mode_video' },
 ];
 
-/** Ava's brand-locked narration voice. When the Ava-voice toggle is on, the
- *  voice id sent to the server is always this, regardless of the picker. */
-export const AVA_VOICE_ID = 'English_radiant_girl';
 
 export interface PresetOption { id: string; labelKey: string; suffix: string }
-export interface VoiceOption { id: string; labelKey: string }
+// The MiniMax-era VOICES table (Calm_Woman, Wise_Woman, English_radiant_girl…),
+// its VOICE_EMOTIONS, and the VoiceOption interface they shared all lived here
+// and are gone. MiniMax was removed from the Creative Studio and nothing had
+// imported any of them since — they were a THIRD voice list, quietly
+// disagreeing with the two the surfaces actually used.
+//
+// The real ones are TTS_VOICES / TTS_VOICE_EMOTIONS below, verified name by
+// name against the API.
 
-export const VOICES: VoiceOption[] = [
-  { id: 'Calm_Woman', labelKey: 'dash.creative.voice_calm_woman' },
-  { id: 'Wise_Woman', labelKey: 'dash.creative.voice_wise_woman' },
-  { id: 'Friendly_Person', labelKey: 'dash.creative.voice_friendly' },
-  { id: 'Inspirational_girl', labelKey: 'dash.creative.voice_inspirational' },
-  { id: 'Deep_Voice_Man', labelKey: 'dash.creative.voice_deep' },
-  { id: 'Calm_Man', labelKey: 'dash.creative.voice_calm_man' },
-  { id: 'Newsman', labelKey: 'dash.creative.voice_newscaster' },
-  { id: 'Lively_Girl', labelKey: 'dash.creative.voice_lively' },
-  { id: 'Patient_Man', labelKey: 'dash.creative.voice_patient' },
-  { id: 'Determined_Man', labelKey: 'dash.creative.voice_determined' },
-];
 
 export const IMAGE_STYLES: PresetOption[] = [
   { id: 'auto', labelKey: 'dash.creative.style_auto', suffix: '' },
@@ -70,14 +62,6 @@ export const MUSIC_MOODS: PresetOption[] = [
   { id: 'trailer', labelKey: 'dash.creative.mood_trailer', suffix: ', movie trailer score, hybrid orchestral, big drums, tension build' },
 ];
 
-export const VOICE_EMOTIONS: { id: string; labelKey: string }[] = [
-  { id: 'neutral', labelKey: 'dash.creative.emotion_neutral' },
-  { id: 'calm', labelKey: 'dash.creative.emotion_calm' },
-  { id: 'excited', labelKey: 'dash.creative.emotion_excited' },
-  { id: 'serious', labelKey: 'dash.creative.emotion_serious' },
-  { id: 'playful', labelKey: 'dash.creative.emotion_playful' },
-  { id: 'whisper', labelKey: 'dash.creative.emotion_whispered' },
-];
 
 export const VIDEO_CAMERAS: PresetOption[] = [
   { id: 'auto', labelKey: 'dash.creative.camera_auto', suffix: '' },
