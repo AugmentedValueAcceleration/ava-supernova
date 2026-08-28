@@ -3,7 +3,8 @@
  * Auto-translate untranslated i18n strings via Qwen (OpenAI-compatible endpoint).
  *
  * Finds every key across the three locale surfaces whose non-en value equals the en
- * value AND is NOT in KEEP_ENGLISH, and fills the missing translation in place.
+ * value AND is NOT in KEEP_ENGLISH AND has not been signed off as legitimately
+ * identical for that language, and fills the missing translation in place.
  *
  * Usage:
  *   pnpm i18n:translate                       # all surfaces, all locales
@@ -25,7 +26,10 @@
  * (DashScope compatible-mode endpoint). Both accept the same OpenAI-compatible
  * JSON schema, so the prompt payload is identical.
  *
- * Safe to re-run — only targets keys still identical to en. Skips KEEP_ENGLISH keys.
+ * Safe to re-run — only targets keys still identical to en. Skips KEEP_ENGLISH
+ * keys, and skips anything in scripts/i18n-verified-identical.json: those were
+ * judged per-language as correct-as-English, and translating them anyway undid
+ * a reviewed decision while i18n:check went on passing.
  */
 
 import fs from 'node:fs';
@@ -232,6 +236,24 @@ function parseTs(filePath) {
   return map;
 }
 
+/**
+ * The per-language sign-off ledger, shared with i18n:check.
+ *
+ * Stores the English each identical value was judged against, so a changed
+ * English lapses the sign-off by itself — which is why reading it here does not
+ * freeze a translation, it only stops this script overruling the reviewer.
+ */
+const LEDGER_PATH = path.join(repoRoot, 'scripts', 'i18n-verified-identical.json');
+let LEDGER = null;
+function isVerifiedIdentical(surface, locale, key, enValue) {
+  if (LEDGER === null) {
+    try { LEDGER = JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8')).entries || {}; }
+    catch { LEDGER = {}; }
+  }
+  const signedOff = LEDGER?.[surface]?.[locale]?.[key];
+  return typeof signedOff === 'string' && signedOff === enValue;
+}
+
 /** Parse KEEP_ENGLISH set from a TS file (reads the string literals inside `new Set([...])`). */
 function parseKeepEnglish(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return new Set();
@@ -371,6 +393,11 @@ function collectUntranslated(surface) {
     for (const [k, v] of Object.entries(other)) {
       if (!(k in en)) continue;
       if (keepEnglish.has(k)) continue;
+      // Signed off as correct-as-English for THIS language. Dutch really does
+      // say "Perfect". Translating it anyway silently reverses a reviewed
+      // decision, and the audit stays green because the value is no longer
+      // identical — so nothing ever reports it.
+      if (isVerifiedIdentical(surface.name, locale, k, en[k])) continue;
       if (v === en[k]) items.push({ key: k, enValue: en[k] });
     }
     if (items.length > 0) {
