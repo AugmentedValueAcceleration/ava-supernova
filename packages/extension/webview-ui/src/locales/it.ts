@@ -4,7 +4,6 @@ export const itStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Chiedi qualsiasi cosa sul tuo codice.',
-  'welcome.tagline': 'Ogni modello · Ogni strumento · 7 modalità · Solo locale',
 
   // Welcome — Setup
   'welcome.setup_title': 'Inizia \u2014 Aggiungi una chiave API',

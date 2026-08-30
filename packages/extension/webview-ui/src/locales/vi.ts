@@ -4,7 +4,6 @@ export const viStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Hỏi bất kỳ điều gì về mã nguồn của bạn.',
-  'welcome.tagline': 'Mọi mô hình · Mọi công cụ · 7 chế độ · Chạy trên máy',
 
   // Welcome — Setup
   'welcome.setup_title': 'Bắt đầu — Thêm khóa API',

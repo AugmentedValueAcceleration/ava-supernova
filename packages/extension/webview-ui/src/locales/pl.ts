@@ -4,7 +4,6 @@ export const plStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Zapytaj o cokolwiek dotyczącego Twojego kodu.',
-  'welcome.tagline': 'Każdy model · Każde narzędzie · 7 trybów · Działa lokalnie',
 
   // Welcome — Setup
   'welcome.setup_title': 'Rozpocznij — Dodaj klucz API',

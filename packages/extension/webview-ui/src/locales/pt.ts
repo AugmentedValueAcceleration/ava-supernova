@@ -4,7 +4,6 @@ export const ptStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Pergunte qualquer coisa sobre o seu c\u00f3digo.',
-  'welcome.tagline': 'Todos os modelos · Todas as ferramentas · 7 modos · Prioridade local',
 
   // Welcome \u2014 Setup
   'welcome.setup_title': 'Come\u00e7ar \u2014 Adicionar uma chave API',

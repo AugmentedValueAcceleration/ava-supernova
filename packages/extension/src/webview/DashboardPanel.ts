@@ -765,7 +765,7 @@ export class DashboardPanel {
         break;
 
       case 'load_session_stats':
-        this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
+        this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
         break;
 
       case 'load_session_tasks':
@@ -2634,7 +2634,7 @@ export class DashboardPanel {
       // BYOK user — no account fetch needed. Load local memories +
       // session stats so the Memory + Usage panels render with data.
       this.loadLocalMemories().catch(() => { /* non-fatal */ });
-      this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
+      this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
     }
 
     // Settings are LOCAL-FIRST — no cloud pull. They live in your VS Code

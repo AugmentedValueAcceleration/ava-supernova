@@ -4,7 +4,6 @@ export const hiStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'अपने कोड के बारे में कुछ भी पूछें।',
-  'welcome.tagline': 'हर मॉडल · हर टूल · 7 मोड · स्थानीय-पहला',
 
   // Welcome — Setup
   'welcome.setup_title': 'शुरू करें — API कुंजी जोड़ें',

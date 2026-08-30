@@ -2081,7 +2081,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Chatta con Ava',
   'dash.nav.sync': 'Sincronizza',
   'dash.nav.releases': 'Release',
-  'welcome.tagline': '120+ strumenti · 7 fornitori · 2 modelli gratuiti · 20 lingue',
   'welcome.setup_title': 'Inizia — Aggiungi una chiave API',
   'welcome.setup_desc': 'Registrati per 3M token Qwen gratuiti, oppure aggiungi la tua chiave API da qualsiasi fornitore.',
   'welcome.setup_cta': 'Apri Impostazioni',

@@ -291,6 +291,7 @@ export function App() {
   // the switch (boolean would deduplicate).
   const [plannerJournalNavTick, setPlannerJournalNavTick] = useState(0);
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
+const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(null);
   const [usageHistoryData, setUsageHistoryData] = useState<UsageHistoryData | null>(null);
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>(() => {
     try { const saved = localStorage.getItem('ava-dash-learning'); return saved ? JSON.parse(saved) : []; } catch { return []; }
@@ -1020,6 +1021,7 @@ export function App() {
         break;
       case 'session_stats_loaded':
         setSessionStatsData(msg.stats);
+        if ((msg as any).allTime) setLocalAllTimeData((msg as any).allTime);
         break;
       case 'usage_history_loaded':
         setUsageHistoryData(msg.data);
@@ -1891,7 +1893,7 @@ export function App() {
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':
-        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
+        return <History sessionStats={sessionStatsData} localAllTime={localAllTimeData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
       case 'library':
         return (
           <Library

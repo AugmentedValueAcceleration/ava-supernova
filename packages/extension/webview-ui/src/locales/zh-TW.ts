@@ -4,7 +4,6 @@ export const zhTWStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '關於你的程式碼，隨時提問。',
-  'welcome.tagline': '所有模型 · 所有工具 · 7 種模式 · 本地優先',
 
   // Welcome — Setup
   'welcome.setup_title': '開始使用 — 新增 API 金鑰',

@@ -2081,7 +2081,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Чат с Ava',
   'dash.nav.sync': 'Синхронизация',
   'dash.nav.releases': 'Релизы',
-  'welcome.tagline': '120+ инструментов · 7 провайдеров · 2 бесплатные модели · 20 языков',
   'welcome.setup_title': 'Начало работы — добавьте ключ API',
   'welcome.setup_desc': 'Зарегистрируйтесь и получите 3 млн бесплатных токенов Qwen или добавьте свой ключ API от любого провайдера.',
   'welcome.setup_cta': 'Открыть настройки',

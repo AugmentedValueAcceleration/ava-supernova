@@ -4,7 +4,6 @@ export const jaStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'コードについて何でも聞いてください。',
-  'welcome.tagline': 'すべてのモデル · すべてのツール · 7 モード · クラウド不要',
 
   // Welcome — Setup
   'welcome.setup_title': 'はじめに — API キーを追加',

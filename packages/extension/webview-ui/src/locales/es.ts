@@ -4,7 +4,6 @@ export const esStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Pregunta lo que quieras sobre tu c\u00f3digo.',
-  'welcome.tagline': 'Todos los modelos · Todas las herramientas · 7 modos · Totalmente local',
 
   // Welcome \u2014 Setup
   'welcome.setup_title': 'Comenzar \u2014 Agregar una clave API',

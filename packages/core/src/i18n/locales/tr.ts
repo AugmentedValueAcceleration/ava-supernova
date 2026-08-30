@@ -2081,7 +2081,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Ava ile Sohbet',
   'dash.nav.sync': 'Senkronize Et',
   'dash.nav.releases': 'Sürümler',
-  'welcome.tagline': '120+ araç · 7 sağlayıcı · 2 ücretsiz model · 20 dil',
   'welcome.setup_title': 'Başlayın — Bir API Anahtarı Ekleyin',
   'welcome.setup_desc': '3M ücretsiz Qwen jetonu için kaydolun veya herhangi bir sağlayıcıdan kendi API anahtarınızı ekleyin.',
   'welcome.setup_cta': 'Ayarları Aç',

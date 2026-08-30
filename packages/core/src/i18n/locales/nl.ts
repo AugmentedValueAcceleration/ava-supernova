@@ -2081,7 +2081,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Gesprek met Ava',
   'dash.nav.sync': 'Synchroniseren',
   'dash.nav.releases': 'Uitgaven',
-  'welcome.tagline': '120+ hulpmiddelen · 7 aanbieders · 2 Free modellen · 20 talen',
   'welcome.setup_title': 'Aan de slag — Voeg een API-sleutel toe',
   'welcome.setup_desc': 'Registreer voor 3M Free Qwen tokens, of voeg uw eigen API-sleutel toe van elke aanbieder.',
   'welcome.setup_cta': 'Instellingen openen',

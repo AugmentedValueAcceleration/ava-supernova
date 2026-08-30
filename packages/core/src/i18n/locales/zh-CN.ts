@@ -2061,7 +2061,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': '与 Ava 聊天',
   'dash.nav.sync': '同步',
   'dash.nav.releases': '版本更新',
-  'welcome.tagline': '120+ 个工具 · 7 个提供商 · 2 个免费模型 · 20 种语言',
   'welcome.setup_title': '开始使用 — 添加 API 密钥',
   'welcome.setup_desc': '注册获取 300 万免费 Qwen 令牌，或从任何提供商添加自己的 API 密钥。',
   'welcome.setup_cta': '打开设置',

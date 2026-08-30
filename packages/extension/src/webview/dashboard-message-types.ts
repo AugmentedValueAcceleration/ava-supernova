@@ -1689,7 +1689,10 @@ export type ExtToDashboardMessage =
   | { type: 'local_memories_loaded'; memories: MemoryEntry[] }
   | { type: 'local_memory_deleted'; id: string }
   | { type: 'local_memory_upserted'; memory: MemoryEntry }
-  | { type: 'session_stats_loaded'; stats: SessionStats }
+  // `allTime` is archived months + the live one, from local counters. It is
+  // what All-Time shows when there is no account: the platform's own
+  // all-time figures are credits, which a BYOK user does not have.
+  | { type: 'session_stats_loaded'; stats: SessionStats; allTime?: SessionStats }
   | { type: 'usage_history_loaded'; data: UsageHistoryData | null }
   | { type: 'byok_support_sent'; success: boolean; message: string }
   // Live chat support responses

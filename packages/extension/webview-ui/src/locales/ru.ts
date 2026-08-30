@@ -4,7 +4,6 @@ export const ruStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Задайте любой вопрос о вашем коде.',
-  'welcome.tagline': 'Каждая модель · Каждый инструмент · 7 режимов · Работает локально',
 
   // Welcome — Setup
   'welcome.setup_title': 'Начать — Добавить API-ключ',

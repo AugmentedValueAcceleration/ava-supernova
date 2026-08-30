@@ -24,6 +24,11 @@ export interface StatsStore {
 }
 
 const STORAGE_KEY = 'ava-supernova.usageStats';
+/** Completed months. Separate key so a corrupt archive can never take the live
+ *  counters with it. */
+const HISTORY_KEY = 'ava-supernova.usageHistory';
+/** Two years — long enough to show a trend, small enough to stay cheap. */
+const MAX_ARCHIVED_MONTHS = 24;
 
 export interface UsageStats {
   messages: number;
@@ -47,6 +52,16 @@ export interface UsageStats {
 
 /** Retained so existing imports keep compiling; the shape is unchanged. */
 export type SessionStats = UsageStats;
+
+/** A month that has closed. Tokens only — see the note on archiving. */
+export interface ArchivedMonth {
+  month: string;
+  messages: number;
+  tool_calls: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  model_breakdown: UsageStats['model_breakdown'];
+}
 
 function currentMonth(): string {
   const d = new Date();
@@ -83,7 +98,10 @@ class UsageStatsTracker {
       this.stats = this.merge(saved, this.stats);
     } else {
       // Different month, or written before this field existed. Either way the
-      // stored numbers describe a period that is over.
+      // stored numbers describe a period that is over — so keep it before
+      // resetting. Dropping it left a BYOK user with no record of anything but
+      // the month they are standing in.
+      if (saved) this.archive(saved);
       this.stats = this.empty();
     }
     this.persist();
@@ -93,7 +111,75 @@ class UsageStatsTracker {
    *  every mutation, so a long-running window crossing midnight on the 1st
    *  starts counting fresh rather than adding to last month. */
   private rollIfNeeded(): void {
-    if (this.stats.month !== currentMonth()) this.stats = this.empty();
+    if (this.stats.month === currentMonth()) return;
+    this.archive(this.stats);
+    this.stats = this.empty();
+  }
+
+  /**
+   * File a closed month.
+   *
+   * Idempotent on the month key: rollIfNeeded runs before every mutation and
+   * attach can hit the same stale set, so re-archiving would double the
+   * totals. An empty month is skipped.
+   */
+  private archive(stats: UsageStats): void {
+    if (!stats.month || (stats.total_input_tokens + stats.total_output_tokens) <= 0) return;
+    try {
+      const history = this.getHistory();
+      if (history.some(m => m.month === stats.month)) return;
+      history.push({
+        month: stats.month,
+        messages: stats.messages,
+        tool_calls: stats.tool_calls,
+        total_input_tokens: stats.total_input_tokens,
+        total_output_tokens: stats.total_output_tokens,
+        model_breakdown: stats.model_breakdown.map(m => ({ ...m })),
+      });
+      history.sort((a, b) => a.month.localeCompare(b.month));
+      void this.store?.update(HISTORY_KEY, history.slice(-MAX_ARCHIVED_MONTHS));
+    } catch { /* an archive is a nicety, never a gate on counting */ }
+  }
+
+  /** Completed months, oldest first. The live month is not in here. */
+  getHistory(): ArchivedMonth[] {
+    try {
+      const raw = this.store?.get<ArchivedMonth[]>(HISTORY_KEY);
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Every completed month plus the live one, summed.
+   *
+   * What "all time" means for someone paying a provider directly — the
+   * platform's own all-time figures are credits, which they do not have.
+   */
+  getAllTime(): ArchivedMonth {
+    const live = this.getStats();
+    const out: ArchivedMonth = {
+      month: 'all', messages: 0, tool_calls: 0,
+      total_input_tokens: 0, total_output_tokens: 0, model_breakdown: [],
+    };
+    for (const m of [...this.getHistory(), { ...live, month: live.month || 'current' }]) {
+      out.messages += m.messages || 0;
+      out.tool_calls += m.tool_calls || 0;
+      out.total_input_tokens += m.total_input_tokens || 0;
+      out.total_output_tokens += m.total_output_tokens || 0;
+      for (const b of m.model_breakdown || []) {
+        const hit = out.model_breakdown.find(x => x.model === b.model && x.provider === b.provider);
+        if (hit) {
+          hit.requests += b.requests;
+          hit.input_tokens += b.input_tokens;
+          hit.output_tokens += b.output_tokens;
+        } else {
+          out.model_breakdown.push({ ...b });
+        }
+      }
+    }
+    return out;
   }
 
   recordUsage(model: string, provider: string, inputTokens: number, outputTokens: number): void {

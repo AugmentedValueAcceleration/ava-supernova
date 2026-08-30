@@ -171,6 +171,9 @@ interface HistoryProps {
   usageHistory: UsageHistoryData | null;
   mode: 'platform' | 'byok';
   account: AccountInfo | null;
+  /** Archived months + the live one, from local counters. What All-Time shows
+   *  when there is no account — the platform's figures are credits. */
+  localAllTime?: SessionStats | null;
   auditLog?: AuditEntry[];
   auditFindings?: AuditFinding[];
   /** Saved chat conversations from the host. Powers the Conversations
@@ -191,7 +194,7 @@ interface HistoryProps {
 // below — rather than a nested sub-toggle.
 type TopTab = 'conversations' | 'usage' | 'audit';
 
-export function History({ sessionStats, usageHistory, mode, account, auditLog, auditFindings, conversations, loaded, onNavigate }: HistoryProps) {
+export function History({ sessionStats, localAllTime, usageHistory, mode, account, auditLog, auditFindings, conversations, loaded, onNavigate }: HistoryProps) {
   useLocale();
   // Opens on the first tab every time — a page that remembers where you left
   // it last week is a page that opens somewhere you did not ask for.
@@ -270,7 +273,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, a
           </UsageRegion>
           {/* All-time — credits, charts, history (or the connect hint for BYOK). */}
           <UsageRegion label={t('dash.usage.all_time')}>
-            <AllTimeView data={usageHistory} mode={mode} account={account} />
+            <AllTimeView data={usageHistory} localAllTime={localAllTime} mode={mode} account={account} />
           </UsageRegion>
         </div>
       )}
@@ -945,19 +948,22 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
 
 // ─── All-Time View ───────────────────────────────────────────────────────────
 
-function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; mode: 'platform' | 'byok'; account: AccountInfo | null }) {
+function AllTimeView({ data, localAllTime, mode, account }: { data: UsageHistoryData | null; localAllTime?: SessionStats | null; mode: 'platform' | 'byok'; account: AccountInfo | null }) {
   const [expandedSession, setExpandedSession] = useState<number | null>(null);
 
+  // No account: show what YOU have spent, from the local counters — every
+  // completed month plus the live one. The credits view below is about a plan
+  // that does not exist here, and pointing a BYOK user at it was sending them
+  // to the one screen that could never apply to them.
   if (mode === 'byok' || !account) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
-        <p className="text-sm font-medium text-[var(--text-secondary)] mb-2">
-          {t('dash.usage.connect_hint')}
-        </p>
-        <p className="text-xs text-[var(--text-muted)]">
-          {t('dash.usage.session_tab_hint')}
-        </p>
-      </div>
+      <>
+        <div className="mb-3">
+          <p className="text-sm font-medium text-[var(--text-secondary)]">{t('dash.usage.your_usage')}</p>
+          <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.est_note')}</p>
+        </div>
+        <SessionView stats={localAllTime ?? null} />
+      </>
     );
   }
 

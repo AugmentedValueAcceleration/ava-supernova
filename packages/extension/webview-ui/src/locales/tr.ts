@@ -4,7 +4,6 @@ export const trStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Kodunuz hakkında her şeyi sorun.',
-  'welcome.tagline': 'Her model · Her araç · 7 mod · Yerel öncelikli',
 
   // Welcome — Setup
   'welcome.setup_title': 'Başlayın — API Anahtarı Ekleyin',

@@ -4,7 +4,6 @@ export const thStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'ถามอะไรก็ได้เกี่ยวกับโค้ดของคุณ',
-  'welcome.tagline': 'ทุกโมเดล · ทุกเครื่องมือ · 7 โหมด · เก็บในเครื่อง',
 
   // Welcome — Setup
   'welcome.setup_title': 'เริ่มต้น — เพิ่มคีย์ API',

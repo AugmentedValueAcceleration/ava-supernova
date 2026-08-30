@@ -4,7 +4,6 @@ export const ukStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Запитайте будь-що про ваш код.',
-  'welcome.tagline': 'Кожна модель · Кожен інструмент · 7 режимів · Локальний пріоритет',
 
   // Welcome — Setup
   'welcome.setup_title': 'Почати — Додати API-ключ',

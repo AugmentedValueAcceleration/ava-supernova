@@ -2079,7 +2079,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Obrolan dengan Ava',
   'dash.nav.sync': 'Sinkronisasi',
   'dash.nav.releases': 'Rilis',
-  'welcome.tagline': '120+ alat · 7 penyedia · 2 model gratis · 20 bahasa',
   'welcome.setup_title': 'Mulai — Tambahkan Kunci API',
   'welcome.setup_desc': 'Daftar untuk 3M token Qwen gratis, atau tambahkan kunci API sendiri dari penyedia mana pun.',
   'welcome.setup_cta': 'Buka Pengaturan',

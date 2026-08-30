@@ -2083,7 +2083,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Ava とチャット',
   'dash.nav.sync': '同期',
   'dash.nav.releases': 'リリース',
-  'welcome.tagline': '120+ のツール · 7 プロバイダー · 2 つの無料モデル · 20 言語',
   'welcome.setup_title': '始める — API キーを追加',
   'welcome.setup_desc': '3M の無料 Qwen トークンを取得するか、任意のプロバイダーから独自 API キーを追加できます。',
   'welcome.setup_cta': '設定を開く',
