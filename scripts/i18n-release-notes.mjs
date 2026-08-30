@@ -73,8 +73,16 @@ const RELEASES = [
     platform: 'extension',
     toolCount: 122,
     publishedAt: '2026-08-29 12:00:00+00',
-    title: `Every mode can do its job, and a render finishes without you`,
+    title: `Ava works without an account, and every mode can do its job`,
     body: `The biggest release in a while, and most of it is things that looked like they were working.
+
+**Signing out was hiding your own files.** Your data is stored per account, under a folder named for it. Sign out and the name went, the folder went with it, and the Library, journal, tasks, health and learning all read an empty directory instead — while the storage bar in the same window went on counting the gigabyte that was still there. Nothing had been deleted; I was looking in the wrong place. Signed out I now go and find that folder on disk rather than needing to have been told where it is, which matters because the people this hurt were already signed out before the fix existed.
+
+**And signing out replaced the whole dashboard with a sign-in page.** It did that while you held working API keys, because a stored "use the platform" preference outranked the check for whether you had any keys — a preference outliving the thing it was a preference about. Signing in is a page you choose from the sidebar now, not a wall you are held behind. Ava is local-first; an account adds credits and support, and never decides whether the app opens.
+
+**Your own spend, without an account.** The usage view could only ever describe platform credits, which is the one number that means nothing if you are paying a provider directly — so for BYOK users it was blank. It shows your tokens, your per-model split and an estimated cost now, this month or all time, from counters on your machine. Completed months used to be thrown away at the turn of the month; they are kept, so there is something to compare against.
+
+**The model list follows the switch beside it.** Platform mode listed every model in the catalogue including ones no plan can reach — rows you could only fail at. It offers what your plan actually serves now, and on API Key the whole catalogue, selectable, with the composer saying which key a model needs before you have typed anything rather than after.
 
 **No mode could open a file.** The file tools were renamed — file_read became read — and the lists saying which tools each mode may use kept the old names. A name that does not exist does not error; it matches nothing, so the tool is silently withheld. Plan mode could search a codebase and then not read what it found. Teach, Security, Write and all four rooms the same: seventeen dead entries across seven modes.
 
@@ -94,6 +102,9 @@ const RELEASES = [
 
 **And the honest small things.** The thinking line says only what I actually know, with a timer, instead of rotating four invented phrases. Ticking a subtask, editing a task and loading your secrets had all been silently doing nothing here. My working notes are out of your task list — they were never your commitments. Over 120 tools, counted rather than claimed, in twenty languages.`,
     highlights: [
+      'Signing out hid your own files. Data is stored per account; without the account name I read an empty folder while the storage bar counted the gigabyte still sitting there.',
+      'Signing out also replaced the dashboard with a sign-in page — while you held working keys. Ava is local-first: an account adds credits and support, never access.',
+      'Usage works without an account: your tokens, your per-model spend and an estimated cost, from counters on your machine. Completed months are kept instead of discarded.',
       'No mode could open a file, and the builder could not write code — a rename left the tool lists pointing at names that no longer existed, so they were withheld in silence.',
       'Coding turns no longer carry every tool I have. Around 25,000 tokens a turn went on describing recipe and health tools to someone writing TypeScript; that space is your files now.',
       'Plan mode really only plans — it could dispatch builders that were not bound by its own read-only rule — and an accepted plan is written into your Decisions folder.',
@@ -107,8 +118,16 @@ const RELEASES = [
     platform: 'ide',
     toolCount: 122,
     publishedAt: '2026-08-29 12:00:00+00',
-    title: `Picking a mode now gives you the mode`,
+    title: `No account, no lost work — and picking a mode gives you the mode`,
     body: `This release closes most of the gap between the IDE and the extension, and the first item is the one that explains why this surface has felt less sharp.
+
+**Signing out was hiding your own files.** Your data lives under a folder named for your account. Sign out and I read a different, empty one — an empty Library, no journal, no tasks — while the storage bar at the top of the same window went on counting the gigabyte still there. Nothing was deleted. Signed out I now look for that folder on disk instead of needing to have been told where it is.
+
+**And the Command Centre asked you to connect to see data already on your machine.** Tasks, journal, memory and learning are all read from your own disk and always were — the code that fetched them said so — and then the screen threw the result away and printed "connect your account" instead. Your plans had the same shape of problem for a different reason: they are Markdown files in your project, but they were fetched through the agent, so no key meant no plans. They are read straight from the folder now.
+
+**Your own spend, without an account.** The usage view could only describe platform credits, which means nothing if you are paying a provider directly. It shows your tokens, your per-model split and an estimated cost, this month or all time. The cost was also being counted twice — once at each model's real price, once at a default rate — so if you were using that figure to judge what you were spending, it was too high.
+
+**The model list follows the switch beside it,** offering what your plan serves on Platform and the whole catalogue on API Key, with the composer naming the key a model needs before you type. And "Local model off" — which meant "there is no key for me to run on" — now says which, and takes you to where you add it.
 
 **Choosing a mode sent me its label and nothing else.** That label is what my tools are filtered by — so picking Plan or Brainstorm took my toolbox away and never gave me the brief that justifies it. Fewer tools, no instructions, and no way for either of us to see why. Every mode now arrives with its own briefing, the way it always has in the extension.
 
@@ -128,6 +147,9 @@ const RELEASES = [
 
 **A home for your projects,** at ~/Ava Projects by default — visible, not buried in hidden application data where backup tools skip it. The storage bar counts project data as its own line instead of folding it into "Other".`,
     highlights: [
+      'Signing out hid your own files. Data is stored per account; without the account name I read an empty folder while the storage bar counted the gigabyte still sitting there.',
+      'The Command Centre asked you to connect to see tasks, journal, memory and learning that were already read from your own disk. Plans went through the agent, so no key meant no plans.',
+      'Usage works without an account, and the estimated cost was being counted twice — once at each model\'s price and again at a default rate.',
       'Picking a mode used to send only its label — which is what filters my tools. A mode took the toolbox away without giving me the brief. Now it gives you both.',
       'Seven of the nine voices in the picker did not exist, including the default, so choosing almost any voice failed.',
       'Coding turns no longer carry every tool I have — around 25,000 tokens a turn that is now your files instead.',
@@ -156,12 +178,15 @@ const RELEASES = [
 
 **A journal day that could not be read was being replaced with an empty one.** On any read error at all — a scanner holding the file open is enough — the day was overwritten with nothing, and the write reported success. It retries now, and if it still cannot read it fails loudly instead. A corrupt file is preserved under a new name before anything else happens.
 
-**A Windows path arriving on a Linux machine** was creating a strangely-named file inside your project instead of being refused. Nothing escaped the project on either platform, but one input behaved two different ways depending on the machine.`,
+**A Windows path arriving on a Linux machine** was creating a strangely-named file inside your project instead of being refused. Nothing escaped the project on either platform, but one input behaved two different ways depending on the machine.
+
+**And some of what I told you about myself was out of date.** I said I had 110+ tools in fifty-eight places, including my own briefing, where I tell you what I can do — it is over 120. Six screens still offered cloud sync months after it was switched off, two of them pointing at a toggle that no longer exists. A tagline advertised "2 free models" when there are none and never were: the Free plan is 300 credits a month, and every action draws from it. None of that changes what the product does. It changes whether what I say about it can be trusted, which is the part I would rather get right.`,
     highlights: [
       'The lists deciding which tools each mode and persona may use named tools that no longer existed — withheld in silence, never reported.',
       'Code mode was carrying every tool I have: around 25,000 tokens a turn describing the recipe desk to someone writing TypeScript.',
       'Every mode carries its own brief now. Code mode had none, Brainstorm could not open a file, and Security could not propose a plan.',
       'A journal day that could not be read was being overwritten with an empty one, and the write reported success.',
+      'Some of what I said about myself was wrong: 110+ tools in fifty-eight places when it is over 120, and screens still offering a cloud sync switched off months ago.',
     ],
   },
 
@@ -337,6 +362,15 @@ async function translateOne(locale, release, attempt = 1) {
 
   const highlights = release.highlights.map((_, i) => parsed[`highlight_${i}`]).filter((s) => typeof s === 'string' && s.length);
   if (typeof parsed.title !== 'string' || highlights.length !== release.highlights.length) {
+    // RETRY, like a 500 or a timeout. A reply that comes back short is just as
+    // transient as a failed request — the same locale succeeds on the next
+    // attempt — but this path threw on the first try while a network error got
+    // three. One locale dropping a highlight then blocked the whole migration
+    // and needed a human to re-run the script, repeatedly.
+    if (attempt < 3) {
+      await new Promise((r) => setTimeout(r, 2 ** attempt * 1000));
+      return translateOne(locale, release, attempt + 1);
+    }
     throw new Error(`incomplete translation (title=${typeof parsed.title}, highlights=${highlights.length}/${release.highlights.length})`);
   }
 
@@ -430,8 +464,20 @@ ON CONFLICT (version, platform) DO UPDATE SET
         // The missing-locale guard below cannot see this, because the locale is
         // present. Treat it as the failure it is so the migration is not
         // written and a re-run fills it.
-        if (t && t.title === release.title && t.body === release.body) {
-          throw new Error('came back identical to English — treating as a failed translation');
+        // PER FIELD, not all-or-nothing. This used to require the title AND
+        // the body to both match English, so a reply with a translated body
+        // and an English title passed — which is exactly what Japanese did on
+        // these notes: body and every highlight in Japanese, heading in
+        // English, and nothing reported it. A whole sentence coming back
+        // byte-identical is not a translation in any of these languages.
+        const englishFields = [];
+        if (t?.title === release.title) englishFields.push('title');
+        if (t?.body === release.body) englishFields.push('body');
+        const enHighlights = release.highlights || [];
+        const sameHighlights = (t?.highlights || []).filter((h) => enHighlights.includes(h));
+        if (sameHighlights.length) englishFields.push(`${sameHighlights.length} highlight(s)`);
+        if (englishFields.length) {
+          throw new Error(`came back identical to English (${englishFields.join(', ')}) — treating as a failed translation`);
         }
         translations[locale] = t;
         console.log(`  ✓ ${locale} (${++done}/${LOCALES.length})`);
