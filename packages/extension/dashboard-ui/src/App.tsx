@@ -269,6 +269,11 @@ export function App() {
   const [, setTickets] = useState<SupportTicket[]>([]);
   const [, setTicketsLoading] = useState(false);
   const [byokMode, setByokMode] = useState(false);
+  // Sign-in is a page you CHOOSE — opened by the sidebar's Connect button —
+  // not a gate you are held behind. Declared here with the rest of the state:
+  // it briefly sat below the `if (!initialized) return` above, which made it a
+  // conditional hook and threw React #310 on reload.
+  const [showSignIn, setShowSignIn] = useState(false);
   const [localMemories, setLocalMemories] = useState<MemoryEntry[]>([]);
   const [tasks, setTasks] = useState<DashboardTaskEntry[]>(() => {
     try { const saved = localStorage.getItem('ava-dash-tasks'); return saved ? JSON.parse(saved) : []; } catch { return []; }
@@ -908,6 +913,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'account_updated':
         setAccount(msg.account);
         setAccountLoading(false);
+        // Sign-in landed — leave the sign-in page, or the user sits on it
+        // staring at buttons for an account they now have.
+        if (msg.account) setShowSignIn(false);
         if (!msg.account && Object.values(providerKeys).some(Boolean)) {
           setByokMode(true);
         }
@@ -1732,19 +1740,30 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     );
   }
 
-  const hasAccess = Boolean(account) || byokMode;
+  // The dashboard is usable without an account — same as the IDE, which opens
+  // the Command Centre and leaves Connect in the sidebar. hasAccess used to
+  // decide whether you saw the dashboard AT ALL; it now only decides whether
+  // the chat pane mounts, which genuinely needs somewhere to send a message.
+  //
+  // It also fired wrongly: byokMode is seeded from the host's persisted
+  // providerSource, which outranks the key-presence check, so signing out
+  // while it read 'platform' left byokMode false and walled a user who held
+  // provider keys the whole time.
+  const hasAccess = Boolean(account) || byokMode || Object.values(providerKeys).some(Boolean);
 
-  // If no access and page is 'chat', show overview instead of blank screen
+  // If chat cannot run, show the overview rather than a blank pane.
   const effectivePage = (!hasAccess && page === 'chat') ? 'overview' : page;
 
   function handleSkipAccount() {
     setByokMode(true);
+    setShowSignIn(false);
     setPagePersist('overview');
     post({ type: 'skip_account' });
   }
 
   function handleConnectAccount() {
     setByokMode(false);
+    setShowSignIn(true);
     setPagePersist('overview');
   }
 
@@ -1760,7 +1779,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   }
 
   const renderPage = () => {
-    if (!hasAccess) {
+    // Only when the user asked for it — Connect in the sidebar, or a fresh
+    // install with no account and no keys, where sign-in IS the first screen.
+    if (showSignIn || (!account && !byokMode && !Object.values(providerKeys).some(Boolean))) {
       return (
         <ConnectAccount
           onSkipAccount={handleSkipAccount}
@@ -1794,8 +1815,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           <Planner
             tasks={tasks}
             sessionTasks={sessionTasks}
-            storageScan={storageScan}
-            projectsUsage={projectsUsage}
             journalDate={selectedJournalDate}
             journalNavTick={plannerJournalNavTick}
             journalYear={journalYear}
@@ -1889,7 +1908,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} storageScan={storageScan} projectsUsage={projectsUsage} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':
@@ -1911,8 +1930,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             onLoadPaperDetail={handleLoadPaperDetail}
             onClearPaperDetail={handleClearPaperDetail}
             localCreative={libraryLocalCreative}
-            storageScan={storageScan}
-            projectsUsage={projectsUsage}
             cloudAssetsLoading={libraryCloudAssetsLoading}
             onReloadCloudAssets={handleReloadCloudAssets}
             images={libraryImages}
@@ -2124,7 +2141,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
       {/* Other pages */}
       {effectivePage !== 'chat' && (
         <div className="flex-1 flex flex-col overflow-hidden" style={{ order: 1 }}>
-          <DashboardTopBar account={account} announcement={announcement} />
+          <DashboardTopBar account={account} announcement={announcement} storageScan={storageScan} projectsUsage={projectsUsage} />
           {/* flex column, so a page can claim the remaining height with flex-1.
               Without this, `min-h-full` on a page root has nothing definite to
               size against and any flex-1 section inside it collapses back to its

@@ -9,8 +9,6 @@ import type {
   HealthPlan, HealthPlanSummary, HealthExerciseSummary, HealthRecipeSummary,
   HealthExerciseDetail, HealthRecipeDetail,
 } from '../types/messages';
-import { StorageBar } from '../components/StorageBar';
-import type { StorageScan } from '../types/messages';
 import type { ProjectsUsage } from '@ava/core/projects/storage';
 
 type PlannerTab = 'tasks' | 'journal' | 'plans';
@@ -24,7 +22,6 @@ interface SessionTask {
 interface PlannerProps {
   tasks: DashboardTaskEntry[];
   /** Ava's footprint, for the storage bar in the header. */
-  storageScan?: StorageScan | null;
   /** The user's projects folder, cached. */
   projectsUsage?: ProjectsUsage | null;
   sessionTasks?: SessionTask[];
@@ -85,7 +82,6 @@ const TAB_KEYS: Record<PlannerTab, string> = {
 
 export function Planner({
   tasks, sessionTasks,
-  storageScan, projectsUsage,
   journalDate, journalNavTick,
   journalYear, journalMonth, journalMonthEntries, journalKinds, journalSearchHits, journalYearSummaries, onChangeJournalMonth, onClearJournalSearch,
   tasksLoaded, journalLoaded,
@@ -114,12 +110,6 @@ export function Planner({
         <div>
           <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{tt('dash.nav.planner', 'Planner')}</h1>
           <p className="mt-1.5 text-[13px] text-[#6c7086]">{tt('ext.planner.subtitle', 'Tasks, reflections, and plans')}</p>
-        </div>
-        {/* Also on Command Centre and Library. Here because the Planner is
-            where people sit day to day, and a local-first product should not
-            make you go looking to find out what it is costing you. */}
-        <div className="w-56 flex-shrink-0">
-          <StorageBar scan={storageScan ?? null} projects={projectsUsage} label={tt('dash.cc.storage', 'Storage')} />
         </div>
       </div>
 

@@ -36,7 +36,10 @@ export function StorageBar({
   scan,
   projects,
   label = 'Storage',
+  compact = false,
 }: {
+  /** One-line density for the dashboard status strip: bar + total, no label. */
+  compact?: boolean;
   scan: StorageScan | null;
   /** What the user's projects folder costs. Cached — never measured on render,
    *  because a source tree can run to tens of gigabytes and walking it would
@@ -55,7 +58,30 @@ export function StorageBar({
     return () => window.removeEventListener('keydown', onKey);
   }, [pinned]);
 
-  if (!scan || scan.totalBytes <= 0) return null;
+  // Still scanning: hold the space with a skeleton rather than popping the
+  // whole row in when the numbers land. A null scan means "still looking";
+  // zero bytes means "looked, and there is nothing" — which stays invisible,
+  // because a permanently empty bar is noise, not information.
+  if (!scan) {
+    if (compact) {
+      return (
+        <span className="flex items-center gap-1.5" aria-busy="true">
+          <span className="h-1.5 w-[180px] animate-pulse rounded-full bg-[var(--text-muted)]/20" />
+          <span className="h-2.5 w-9 animate-pulse rounded bg-[var(--text-muted)]/25" />
+        </span>
+      );
+    }
+    return (
+      <div className="w-full" aria-busy="true">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[11px] text-[var(--text-muted)]">{label}</span>
+          <span className="h-2.5 w-11 animate-pulse rounded bg-[var(--text-muted)]/25" />
+        </div>
+        <div className="h-2 w-full animate-pulse rounded bg-[var(--text-muted)]/20" />
+      </div>
+    );
+  }
+  if (scan.totalBytes <= 0) return null;
   const { totalBytes, categories, reclaim } = scan;
 
   const reclaimPaths = reclaim.flatMap(r => r.paths);
@@ -102,11 +128,20 @@ export function StorageBar({
         onClick={() => { setArmed(false); setPinned(true); }}
         className="block w-full text-left"
       >
-        <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-          <span>{label}</span>
-          <span className="text-[var(--text-secondary)]">{formatBytes(grandTotal)}</span>
-        </div>
-        <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/5">
+        {/* Full density keeps the label above the bar. Compact drops it and
+            puts the total inline — a 40px strip has no room for a second row,
+            and "Storage" beside a byte count says nothing the count doesn't. */}
+        {!compact && (
+          <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+            <span>{label}</span>
+            <span className="text-[var(--text-secondary)]">{formatBytes(grandTotal)}</span>
+          </div>
+        )}
+        <div className={compact ? 'flex items-center gap-2' : ''}>
+        <div
+          className={`flex overflow-hidden rounded-full bg-white/5 ${compact ? 'h-1.5 flex-shrink-0' : 'h-2 w-full'}`}
+          style={compact ? { width: 180 } : undefined}
+        >
           {displayCats.map(c => (
             <div
               key={c.key}
@@ -123,6 +158,10 @@ export function StorageBar({
               className="h-full transition-opacity group-hover:opacity-90"
             />
           )}
+        </div>
+        {compact && (
+          <span className="whitespace-nowrap text-[11px] text-[var(--text-secondary)]">{formatBytes(grandTotal)}</span>
+        )}
         </div>
       </button>
 

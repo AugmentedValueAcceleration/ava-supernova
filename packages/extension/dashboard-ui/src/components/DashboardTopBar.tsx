@@ -13,14 +13,20 @@ import { t, useLocale } from '../i18n';
  */
 
 import { AnnouncementTicker } from './AnnouncementTicker';
+import { StorageBar } from './StorageBar';
+import type { StorageScan } from '../types/messages';
 
 interface Props {
   account: AccountInfo | null;
   /** Hub-set announcement messages for the left-hand ticker. */
   announcement?: string[];
+  /** Local footprint for the right-hand storage bar. The dashboard's only
+   *  instance — pages no longer mount their own. */
+  storageScan?: StorageScan | null;
+  projectsUsage?: import('@ava/core/projects/storage').ProjectsUsage | null;
 }
 
-export function DashboardTopBar({ account, announcement }: Props) {
+export function DashboardTopBar({ account, announcement, storageScan, projectsUsage }: Props) {
   useLocale();
   const tier = account?.tier ?? null;
   const usage = account?.usage ?? null;
@@ -80,8 +86,13 @@ export function DashboardTopBar({ account, announcement }: Props) {
       <div className="min-w-0 flex-1">
         {announcement && announcement.length > 0 && <AnnouncementTicker messages={announcement} />}
       </div>
-      {/* Right — plan badge + credits. */}
+      {/* Right — what this install costs on this disk, then plan + credits.
+          One instance for the whole dashboard: it used to be mounted per page
+          (Library, Overview, ByokOverview, Planner), which is how its
+          placement drifted from the IDE's without any single copy looking
+          wrong. Same strip, same density as the IDE's status bar. */}
       <div className="flex flex-shrink-0 items-center gap-3">
+        <StorageBar scan={storageScan ?? null} projects={projectsUsage} label={t('dash.cc.storage')} compact />
         {tierLabel && (
           <span
             className="rounded-full border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--accent)]"

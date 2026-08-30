@@ -1,13 +1,12 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { t, useLocale, tt} from '../i18n';
 import { post } from '../App';
-import type { LibraryImage, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset, StorageScan } from '../types/messages';
+import type { LibraryImage, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset } from '../types/messages';
 import { LibraryPapers } from './LibraryPapers';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
 import { tabBar, tab as tabClass } from '../components/ui';
 import { DESIGN_GROUPS, designTypeMeta, coarseKindToType } from '../lib/design-types';
-import { StorageBar } from '../components/StorageBar';
 import { Drawer } from '../components/Drawer';
 // The dependency-free leaf, so the host and this bundle agree on what is
 // exportable and what it is called without either keeping its own list.
@@ -55,9 +54,6 @@ interface Props {
    *  Assets tab reads. No cloud; everything Creative Studio makes is saved here. */
   localCreative: CreativeAsset[];
   /** Whole-footprint storage scan (~/.ava by category) — powers the storage bar. */
-  storageScan: StorageScan | null;
-  /** The user's projects folder, cached. */
-  projectsUsage?: import('@ava/core/projects/storage').ProjectsUsage | null;
   /** True while the host is fetching the cloud asset list. Drives a
    *  non-blocking "Pulling cloud assets…" pill above the grid so the
    *  user understands incomplete-looking thumbnails are still in
@@ -186,8 +182,6 @@ export function Library({
   onLoadPaperDetail,
   onClearPaperDetail,
   localCreative,
-  storageScan,
-  projectsUsage,
   cloudAssetsLoading,
   onReloadCloudAssets,
   images,
@@ -462,12 +456,6 @@ export function Library({
             </div>
           )}
 
-          {/* Storage usage — colour-coded bar of Ava's whole local footprint,
-              click for the breakdown + backup reclaim. Shared with the Command
-              Center header. */}
-          <div className="mb-3 max-w-md">
-            <StorageBar scan={storageScan} projects={projectsUsage} label={tt('dash.cc.storage','Storage')} />
-          </div>
 
           {/* Inline loading pill — non-blocking. Stays visible while
               the host is still pulling cloud assets so the user knows

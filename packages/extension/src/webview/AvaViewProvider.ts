@@ -624,13 +624,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // cloud storage of user data is being sunset. Matches the IDE.
     const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
 
+    // No account: point at the last account's folder if it is still on disk,
+    // BEFORE the managers below are built from this value. Without it a window
+    // that starts signed out keeps the AVA_HOME initialiser and every section
+    // — history, health, creative, tasks, journal — reads a flat directory
+    // that holds none of the user's work. Signing out mid-session already did
+    // this; starting up signed out did not, which is the same fix wired to an
+    // event instead of to the state.
+    if (!platformKey) {
+      this.accountScopedDir = this.resolveSignedOutScope();
+    }
+
     // History is local-only, always. No sync, no pull, no cloud knob.
     // Cloud residue from earlier-version syncs is wiped via the
     // dashboard's "Wipe legacy cloud history" button.
     // Account-scoped like memory/tasks/journal: transcripts live under the
     // scoped dir so they're isolated per account AND land where the scoped
-    // export reads them (this.accountScopedDir is AVA_HOME until sign-in,
-    // then re-created scoped in the account block below).
+    // export reads them. Signed out, accountScopedDir was resolved just above
+    // to the last account's folder; signed in, the account block below
+    // re-creates this scoped to users/<id>.
     this.historyManager = new HistoryManager(this.projectRoot, this.accountScopedDir);
     this.historyManager.init();
     this.history = new HistoryCoordinator({

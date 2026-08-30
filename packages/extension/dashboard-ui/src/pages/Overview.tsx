@@ -18,10 +18,8 @@ import type {
   Page,
   SessionStats,
   UsageLogEntry,
-  StorageScan,
 } from '../types/messages';
 import { HealthDashboard } from './HealthDashboard';
-import { StorageBar } from '../components/StorageBar';
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
 
 // ── Weather data (from extension host via Open-Meteo) ────────────────────────
@@ -126,10 +124,6 @@ interface OverviewProps {
   tasksLoaded: boolean;
   journalLoaded: boolean;
   weatherLoaded: boolean;
-  // Whole-footprint storage scan — powers the storage bar under the header.
-  storageScan: StorageScan | null;
-  /** The user's projects folder, cached. */
-  projectsUsage?: import('@ava/core/projects/storage').ProjectsUsage | null;
 }
 
 // ── Inner-tab type — mirrors the IDE Command Centre's lenses, plus
@@ -165,8 +159,6 @@ export function Overview({
   tasksLoaded,
   journalLoaded,
   weatherLoaded,
-  storageScan,
-  projectsUsage,
 }: OverviewProps) {
   useLocale();
   // Inner tab state — Command Centre always opens on Daily. The previous
@@ -213,6 +205,7 @@ export function Overview({
         tasksLoaded={tasksLoaded}
         journalLoaded={journalLoaded}
         weatherLoaded={weatherLoaded}
+
       />
     );
   }
@@ -358,14 +351,6 @@ export function Overview({
         </div>
       </div>
 
-      {/* Creative storage — colour-coded usage of the local gallery, click to
-          manage/prune. Sits under the weather; mirrors the Library bar. Renders
-          nothing until something has been saved. */}
-      <div className="mb-4 flex">
-        <div className="ml-auto w-full max-w-xs">
-          <StorageBar scan={storageScan} projects={projectsUsage} label="Storage" />
-        </div>
-      </div>
 
       {/* ── Tab nav ──────────────────────────────────────────────────── */}
       <div className="mb-5 flex gap-1 border-b border-[var(--border-card)]">
@@ -1358,6 +1343,7 @@ function ByokOverview({
         <WeatherWidget weather={weatherData} loaded={weatherLoaded} />
         <WorkingHoursClock />
       </div>
+
 
       {/* Session Stats */}
       <div className="mb-4">
