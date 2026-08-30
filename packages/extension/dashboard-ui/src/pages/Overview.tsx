@@ -1423,7 +1423,6 @@ function ByokOverview({
               <div>
                 <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--gradient-start)]">{t('dash.cc.with_account')}</h3>
                 <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.memory_sync')}</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.full_history')}</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.priority_support')}</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.free_credits')}</li>

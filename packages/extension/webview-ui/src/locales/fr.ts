@@ -311,7 +311,7 @@ export const frStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Idéation',
   'welcome.mode.brainstorm_desc': 'Idéation et réflexion créative',
-  'input.mode.code.desc': 'Ava le construit pour vous. Lit, écrit et exécute du code avec les 110+outils.',
+  'input.mode.code.desc': 'Ava le construit pour vous. Lit, écrit et exécute du code avec les 120+outils.',
   'input.mode.plan.desc': 'Ava planifie tout avant d\'y toucher. Lecture seule — aucun changement de fichier.',
   'input.mode.brainstorm.desc': 'Ava lance des idées avec vous. Cinq spécialistes explorent, affinent et contestent.',
   'input.mode.chat.desc': 'Ava comme un ami. Mémoire, recherche, journal, météo, actualités — pas d\'outils, juste discuter.',

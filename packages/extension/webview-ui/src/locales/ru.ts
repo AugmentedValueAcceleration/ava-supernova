@@ -311,7 +311,7 @@ export const ruStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Мозговой штурм',
   'welcome.mode.brainstorm_desc': 'Генерация идей и креативное мышление',
-  'input.mode.code.desc': 'Ava создаёт это за вас. Читает, пишет и запускает код со всеми 110+инструментом.',
+  'input.mode.code.desc': 'Ava создаёт это за вас. Читает, пишет и запускает код со всеми 120+инструментом.',
   'input.mode.plan.desc': 'Ava составляет план перед любыми изменениями. Только чтение — без изменений файлов.',
   'input.mode.brainstorm.desc': 'Ava предлагает идеи вместе с вами. Пять специалистов исследуют, уточняют и оспаривают.',
   'input.mode.chat.desc': 'Ava как друг. Память, поиск, дневник, погода, новости — без инструментов, просто общение.',

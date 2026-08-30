@@ -88,8 +88,11 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
 
       {isConnected && !cloudSync && (
         <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)] mb-6">
-          Cloud sync is off — your data stays on this machine. Turn on the{' '}
-          <span className="font-medium text-[#a6e3a1]">{tt('dash.storage.cloud_sync','Cloud sync')}</span> toggle in the chat header to back up to the cloud.
+          {/* Was: "turn on the Cloud sync toggle in the chat header". That
+              toggle was removed when cloud sync went hard-off, so the sentence
+              sent people looking for a control that isn't there. */}
+          Ava is local-first — your data stays on this machine and nothing is
+          copied to the cloud.
         </div>
       )}
 

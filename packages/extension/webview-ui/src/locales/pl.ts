@@ -311,7 +311,7 @@ export const plStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Burza mózgów',
   'welcome.mode.brainstorm_desc': 'Generowanie pomysłów i kreatywne myślenie',
-  'input.mode.code.desc': 'Ava tworzy to za Ciebie. Czyta, pisze i uruchamia kod przy użyciu wszystkich 110+narzędzi.',
+  'input.mode.code.desc': 'Ava tworzy to za Ciebie. Czyta, pisze i uruchamia kod przy użyciu wszystkich 120+narzędzi.',
   'input.mode.plan.desc': 'Ava tworzy plan przed wprowadzeniem jakichkolwiek zmian. Tylko do odczytu — brak zmian w plikach.',
   'input.mode.brainstorm.desc': 'Ava dzieli się z Tobą pomysłami. Pięciu specjalistów bada, dopracowuje i kwestionuje.',
   'input.mode.chat.desc': 'Ava jak przyjaciel. Pamięć, wyszukiwanie, dziennik, pogoda, wiadomości — bez narzędzi, tylko rozmowa.',

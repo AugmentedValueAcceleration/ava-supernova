@@ -311,7 +311,7 @@ export const arStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'عصف ذهني',
   'welcome.mode.brainstorm_desc': 'توليد الأفكار والتفكير الإبداعي',
-  'input.mode.code.desc': 'Ava تبنيه لك. تقرأ وتكتب وتشغّل الكود مع جميع الأدوات الـ 110+.',
+  'input.mode.code.desc': 'Ava تبنيه لك. تقرأ وتكتب وتشغّل الكود مع جميع الأدوات الـ 120+.',
   'input.mode.plan.desc': 'Ava ترسم الخطة قبل المساس بأي شيء. وضع القراءة فقط — لا تغييرات في الملفات.',
   'input.mode.brainstorm.desc': 'Ava تطرح أفكارًا معك. خمسة خبراء يستكشفون، ويُحسّنون، ويتحدون.',
   'input.mode.chat.desc': 'Ava كصديق. ذاكرة، بحث، يوميات، طقس، أخبار — بدون أدوات، مجرد محادثة.',

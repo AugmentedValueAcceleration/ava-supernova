@@ -311,7 +311,7 @@ export const trStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Beyin Fırtınası',
   'welcome.mode.brainstorm_desc': 'Fikir üretimi ve yaratıcı düşünme',
-  'input.mode.code.desc': 'Ava bunu sizin için oluşturur. Tüm 110+araçla kod okur, yazar ve çalıştırır.',
+  'input.mode.code.desc': 'Ava bunu sizin için oluşturur. Tüm 120+araçla kod okur, yazar ve çalıştırır.',
   'input.mode.plan.desc': 'Ava hiçbir şeye dokunmadan önce yolunu çizer. Salt okunur — dosya değişikliği yok.',
   'input.mode.brainstorm.desc': 'Ava sizinle fikirler üretir. Beş uzman keşfeder, geliştirir ve sorgular.',
   'input.mode.chat.desc': 'Arkadaş gibi Ava. Hafıza, arama, günlük, hava durumu, haberler — araç yok, sadece sohbet.',

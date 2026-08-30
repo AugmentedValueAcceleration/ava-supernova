@@ -349,6 +349,12 @@ export class DashboardPanel {
 
       case 'disconnect_account':
         await this.secrets.delete(PLATFORM_KEY_SECRET);
+        // Drop our own scoped-dir copy. It is first in getUserDataDir's ??
+        // chain, so leaving it set meant the panel kept reading the old
+        // account's folder after sign-out while the view provider had already
+        // reset — one fact with two answers. Falling through to the provider
+        // gives the last-account fallback a single home.
+        this.accountScopedDir = null;
         this.post({ type: 'account_updated', account: null });
         break;
 
@@ -2591,6 +2597,9 @@ export class DashboardPanel {
             // first. Without this, sync status read the un-scoped dir
             // and reported 0 local items for signed-in users.
             this.accountScopedDir = path.join(AVA_HOME, 'users', account.id);
+            // The panel can resolve the account before the chat view does, so
+            // it records the last-account pointer too.
+            void this.context.globalState.update('ava.lastAccountId', account.id);
             // The journal manager may have been cached against the un-scoped
             // fallback dir (~/.ava) on dashboard mount — drop it so it rebuilds
             // against the scoped dir, or a signed-in user's Ava-written entries

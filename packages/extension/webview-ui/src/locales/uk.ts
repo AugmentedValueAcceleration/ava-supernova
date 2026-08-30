@@ -311,7 +311,7 @@ export const ukStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Мозковий штурм',
   'welcome.mode.brainstorm_desc': 'Генерація ідей та креативне мислення',
-  'input.mode.code.desc': 'Ava створює це за вас. Читає, пише та запускає код із усіма 110+інструментом.',
+  'input.mode.code.desc': 'Ava створює це за вас. Читає, пише та запускає код із усіма 120+інструментом.',
   'input.mode.plan.desc': 'Ava складає план до початку дій. Тільки читання — без змін файлів.',
   'input.mode.brainstorm.desc': 'Ava генерує ідеї разом із вами. П\'ять спеціалістів досліджують, уточнюють та перевіряють.',
   'input.mode.chat.desc': 'Ava як друг. Пам\'ять, пошук, щоденник, погода, новини — без інструментів, лише розмова.',

@@ -13,6 +13,7 @@ import { InputArea } from '../chat/components/InputArea';
 import type { ImageAttachment } from '../chat/components/InputArea';
 import type { PaletteTool } from '../chat/components/CommandPalette';
 import { Header } from '../chat/components/Header';
+import { providerLabel } from '../chat/components/ModelSelector';
 import { MemoryPanel } from '../chat/components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH, type UpdateTaskInput } from '../chat/components/TasksPanel';
 import { TasksSpine } from '../chat/components/TasksSpine';
@@ -1585,6 +1586,14 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             modelSupportsVision={
               state.models.find((m) => m.id === state.activeModel)?.supportsVision
             }
+            // A keyless model can be CHOSEN now, so the composer is where the
+            // requirement gets stated — before anything is typed, rather than
+            // after a message is written and sent.
+            missingKeyProvider={(() => {
+              const m = state.models.find((x) => x.id === state.activeModel);
+              return m && m.available === false ? providerLabel(m.provider) : undefined;
+            })()}
+            onAddKey={() => onNavigate?.('settings')}
             prefill={pendingPrefill}
             lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : lane === 'learning' ? t('learning.room.mode_label') : lane === 'design' ? 'Design' : undefined}
             onFocusInput={onComposerFocus}

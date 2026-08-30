@@ -311,7 +311,7 @@ export const itStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Brainstorming',
   'welcome.mode.brainstorm_desc': 'Generazione di idee e pensiero creativo',
-  'input.mode.code.desc': 'Ava lo sviluppa per te. Legge, scrive ed esegue codice con tutti i 110+strumenti.',
+  'input.mode.code.desc': 'Ava lo sviluppa per te. Legge, scrive ed esegue codice con tutti i 120+strumenti.',
   'input.mode.plan.desc': 'Ava pianifica tutto prima di toccare nulla. Solo lettura — nessuna modifica ai file.',
   'input.mode.brainstorm.desc': 'Ava propone idee con te. Cinque specialisti esplorano, affinano e sfidano.',
   'input.mode.chat.desc': 'Ava come un amico. Memoria, ricerca, diario, meteo, notizie — senza strumenti, solo conversazione.',

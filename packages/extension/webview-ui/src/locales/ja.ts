@@ -311,7 +311,7 @@ export const jaStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'ブレインストーミング',
   'welcome.mode.brainstorm_desc': 'アイデア出しと創造的思考',
-  'input.mode.code.desc': 'Ava が代わりに構築します。110+のツールでコードの作成・編集・実行が可能です。',
+  'input.mode.code.desc': 'Ava が代わりに構築します。120+のツールでコードの作成・編集・実行が可能です。',
   'input.mode.plan.desc': 'Ava は着手前に全体を設計します。読み取り専用 — ファイル変更はありません。',
   'input.mode.brainstorm.desc': 'Ava と一緒にアイデアを創り出します。5 人の専門家が探索、洗練、そして議論します。',
   'input.mode.chat.desc': 'Ava は友人のように。記憶、検索、ジャーナル、天気、ニュース — ツールなし、ただ会話。',

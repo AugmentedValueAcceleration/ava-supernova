@@ -17,6 +17,10 @@ export interface ImageAttachment {
 }
 
 interface InputAreaProps {
+  /** Vendor label when the chosen model has no key — e.g. 'Zhipu'. The
+   *  composer says so BEFORE anything is typed, and blocks send. */
+  missingKeyProvider?: string;
+  onAddKey?: () => void;
   onSend: (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => void;
   onCancel: () => void;
   isStreaming: boolean;
@@ -92,7 +96,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   write: 'input.placeholder.write',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel, onFocusInput, suppressAutoFocus }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel, onFocusInput, suppressAutoFocus, missingKeyProvider, onAddKey }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across page reload — same shape as webview-ui.
@@ -246,6 +250,10 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
   }, [mode, onPaletteAction]);
 
   const handleSend = useCallback(() => {
+    // The chosen model has no key for its provider. The notice above the input
+    // has already said so, and the send button is disabled — this is the guard
+    // for the keyboard path, so Enter cannot get past what the button will not.
+    if (missingKeyProvider) return;
     let trimmed = text.trim();
     if (!trimmed && attachments.length === 0) return;
     // Expand @secret:Label to the OPAQUE {{secret:<id>}} handle — never the raw
@@ -424,6 +432,26 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
 
   return (
     <div className="px-3 pb-3 pt-1 relative">
+      {/* The chosen model has no key for its provider.
+          Above the input on purpose: the point of letting a keyless model be
+          picked is that you find out here, not after writing a message. The
+          input stays live — asking Ava how to add the key is exactly what
+          someone does next, and a dead box cannot be asked. */}
+      {missingKeyProvider && (
+        <div className="mb-2 rounded-lg px-3 py-2 text-[11px] flex items-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span>{'\u26A0'}</span>
+          <span className="flex-1">{t('chat.key_needed').replace('{provider}', missingKeyProvider)}</span>
+          {onAddKey && (
+            <button
+              onClick={onAddKey}
+              className="shrink-0 rounded-md border border-amber-500/30 px-2 py-0.5 text-[10px] text-amber-300 hover:bg-amber-500/15 cursor-pointer bg-transparent"
+            >
+              {t('chat.key_needed_action')}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Usage warning banner */}
       {warningLevel && warningLevel !== 'none' && warningMsg && (
         <div className={`mb-2 rounded-lg px-3 py-2 text-[11px] flex items-center gap-2 ${
@@ -766,7 +794,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
             ) : (
               <button
                 onClick={handleSend}
-                disabled={disabled || !hasContent}
+                disabled={disabled || !hasContent || !!missingKeyProvider}
                 title={t('input.send')}
                 aria-label={t('input.send')}
                 className={`flex items-center justify-center w-9 h-9 rounded-lg

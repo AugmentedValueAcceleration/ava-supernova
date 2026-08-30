@@ -466,9 +466,20 @@ export function NavSidebar({
           </>
         ) : (
           <div>
+            {/* House button — mirrors the IDE sidebar: translucent accent
+                fill, accent border + text, at the same 18% / 40% weights the
+                Platform / API Key toggle above uses when selected. Was solid
+                accent with white text on both surfaces. */}
             <button
               onClick={onConnectAccount}
-              className="w-full rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 mb-1.5"
+              className="w-full rounded-lg px-3 py-1.5 text-xs font-semibold transition mb-1.5"
+              style={{
+                border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)',
+                background: 'color-mix(in srgb, var(--accent) 18%, transparent)',
+                color: 'var(--accent)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 26%, transparent)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 18%, transparent)'; }}
             >
               {t('dash.auth.connect')}
             </button>

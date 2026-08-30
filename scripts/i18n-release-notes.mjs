@@ -68,6 +68,104 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 417,
+    version: '0.97.0',
+    platform: 'extension',
+    toolCount: 122,
+    publishedAt: '2026-08-29 12:00:00+00',
+    title: `Every mode can do its job, and a render finishes without you`,
+    body: `The biggest release in a while, and most of it is things that looked like they were working.
+
+**No mode could open a file.** The file tools were renamed — file_read became read — and the lists saying which tools each mode may use kept the old names. A name that does not exist does not error; it matches nothing, so the tool is silently withheld. Plan mode could search a codebase and then not read what it found. Teach, Security, Write and all four rooms the same: seventeen dead entries across seven modes.
+
+**And the builder could not write code.** The same rename in the persona lists — twenty of my twenty-four specialists could not open a file, including the one whose entire job is writing code. Every orchestrated build ran that way. There are guards over all of it now, each written to fail against the real bug rather than a guess at it.
+
+**Coding turns get their context back.** Every turn in code mode was handed every tool I have — the health room, the recipe desk, the newsroom, the gym — around 25,000 tokens of it, spent describing how to log a meal to someone writing TypeScript. Code mode gets the tools that belong to the work now, and that space is your files instead: more of the real thing in front of me before anything has to be summarised away. Code mode also has a briefing of its own for the first time; it was the default you got without choosing, running on the generic prompt.
+
+**Plan mode really only plans.** It never held write tools itself, but it could dispatch builders that were not bound by that — so a plan could quietly become eleven tasks and an edited project. It checks before dispatching now. An accepted plan is written into your Decisions folder with the approaches not taken, and Plan reads that folder before proposing anything: contradicting something settled has to be said out loud.
+
+**A plan arrives as a card, not as JSON.** Some models write the tool call out as text instead of calling it, and you got a wall of markup where a plan belongs. It is recovered and rendered properly now — narrowly, so ordinary prose can never be mistaken for a call — and held back while it streams rather than painted on screen and then replaced.
+
+**Video runs from 2 to 30 seconds,** priced by the second, so a five-second clip costs half what it did and every length shows its price before you choose. It offered 5 or 10 before: a limit belonging to a model replaced twice over. Length is decided before the writing now rather than derived from however much I happened to write, with a beat of air before the voice starts and after it stops.
+
+**A render you walk away from still finishes.** A Studio panel above the calendar shows what is generating, with a live clock — go anywhere, the work carries on. Clips and voiceovers always reach your Library now, with the words I actually spoke rather than a shortened title; they could play on screen and quietly never save.
+
+**Documents open beside the conversation.** A pane next to the chat, freely editable, saving as you type, with export to Word, PDF or ODF — the open format needs no extra software at all. The Library groups a document and its exports into one card instead of three unrelated files, and deleting one takes its exports with it instead of orphaning them.
+
+**And the honest small things.** The thinking line says only what I actually know, with a timer, instead of rotating four invented phrases. Ticking a subtask, editing a task and loading your secrets had all been silently doing nothing here. My working notes are out of your task list — they were never your commitments. Over 120 tools, counted rather than claimed, in twenty languages.`,
+    highlights: [
+      'No mode could open a file, and the builder could not write code — a rename left the tool lists pointing at names that no longer existed, so they were withheld in silence.',
+      'Coding turns no longer carry every tool I have. Around 25,000 tokens a turn went on describing recipe and health tools to someone writing TypeScript; that space is your files now.',
+      'Plan mode really only plans — it could dispatch builders that were not bound by its own read-only rule — and an accepted plan is written into your Decisions folder.',
+      'Video runs 2 to 30 seconds priced by the second, and a render you walk away from still finishes and always reaches your Library.',
+      'Documents open beside the chat with export to Word, PDF or ODF, and the Library shows one card per document instead of three files.',
+    ],
+  },
+  {
+    migration: 418,
+    version: '0.44.0',
+    platform: 'ide',
+    toolCount: 122,
+    publishedAt: '2026-08-29 12:00:00+00',
+    title: `Picking a mode now gives you the mode`,
+    body: `This release closes most of the gap between the IDE and the extension, and the first item is the one that explains why this surface has felt less sharp.
+
+**Choosing a mode sent me its label and nothing else.** That label is what my tools are filtered by — so picking Plan or Brainstorm took my toolbox away and never gave me the brief that justifies it. Fewer tools, no instructions, and no way for either of us to see why. Every mode now arrives with its own briefing, the way it always has in the extension.
+
+**Seven of the nine voices did not exist.** Only two names in the picker were real, and the one selected by default was not among them, so choosing almost any voice failed outright. Every voice offered now is one the model actually has, checked name by name against it.
+
+**No mode could open a file, and the builder could not write code.** A rename left the tool lists pointing at names that no longer existed, and a name that does not exist is withheld silently rather than reported. Twenty of my twenty-four specialists could not read a file, including the one whose job is writing code.
+
+**Coding turns get their context back.** Every turn in code mode carried every tool I have — around 25,000 tokens of it, describing the recipe desk to someone writing TypeScript. Code mode gets the tools that belong to the work now, and has a briefing of its own for the first time.
+
+**The Library could never show a document.** It read the project folder from a setting nothing writes, so the scan returned before it started and the tab stayed permanently empty. A signed-out window also drew "connect your account" over files sitting on your own disk.
+
+**Documents open beside the conversation,** freely editable and saving as you type, with export to Word, PDF or ODF. Deleting a document removes its exports rather than orphaning them, and asks properly first.
+
+**Video runs from 2 to 30 seconds,** priced by the second, and a render you walk away from still finishes — a Studio panel above the calendar shows what is generating. Clips and voiceovers always reach your Library with the words I actually spoke, and a voiceover shows a waveform there so a read looks like audio at a glance.
+
+**A plan is a card you can answer.** There was no plan card here at all, so when I offered a choice between approaches it rendered as a generic permission banner and the question was never really put to you. Your project's decision records now have their own tab, read from disk.
+
+**A home for your projects,** at ~/Ava Projects by default — visible, not buried in hidden application data where backup tools skip it. The storage bar counts project data as its own line instead of folding it into "Other".`,
+    highlights: [
+      'Picking a mode used to send only its label — which is what filters my tools. A mode took the toolbox away without giving me the brief. Now it gives you both.',
+      'Seven of the nine voices in the picker did not exist, including the default, so choosing almost any voice failed.',
+      'Coding turns no longer carry every tool I have — around 25,000 tokens a turn that is now your files instead.',
+      'The Library could never show a document: it read the project folder from a setting nothing writes.',
+      'Documents open beside the chat with export to Word, PDF or ODF, and video runs 2 to 30 seconds with renders that finish without you.',
+    ],
+  },
+  {
+    migration: 419,
+    version: '0.2.78',
+    platform: 'core',
+    toolCount: 122,
+    publishedAt: '2026-08-29 12:00:00+00',
+    title: `The lists that decide what I can do were pointing at nothing`,
+    body: `Core is the engine every surface runs on. Most of this release is one fault in different clothes: a fact kept by hand in several places, drifting quietly, because a list that is merely SHORT never fails — it just does less than it claims.
+
+**The tool lists named tools that no longer exist.** A rename left seventeen dead entries across seven modes, and twenty of twenty-four personas holding names that match nothing. A name that matches nothing is withheld silently and never reported. Plan mode could search a codebase and not read it; the builder could not write code. Guards now read every list and fail on a name that is not real.
+
+**Code mode was carrying every tool I have.** A list restricting it to what coding actually needs had existed for months and never once run — code mode is the untagged default, so the filter took its fallback path every time and shipped all of them. Measured, that is around 25,000 tokens a turn of context, not billing, spent describing the recipe desk to someone writing TypeScript.
+
+**Every mode carries its own brief.** Code mode had none at all: nothing wrapped the message, so there was nowhere for a prompt to go. Brainstorm could not open a file, which made half of what it exists for impossible — it was asked where a codebase should go while forbidden from looking at it. Security could find vulnerabilities and had no way to propose a plan for fixing them. Write had no team of its own, and five specialists could not use memory at all.
+
+**A question gets an answer.** Asked about something I had just made, I would make another one — two minutes of rendering and no reply. A question about something just made is asking for an explanation, never for a second attempt.
+
+**Length is decided before the writing.** Video was sized from however much I happened to write, which sounds right and inverts the instruction: I write at hook length by habit, so every clip came out short. The subject picks the format and the script is written to fill it, enforced at both ends, with a beat of air before the voice starts and after it stops. A recipe is verified before anything is spent, rather than after.
+
+**A journal day that could not be read was being replaced with an empty one.** On any read error at all — a scanner holding the file open is enough — the day was overwritten with nothing, and the write reported success. It retries now, and if it still cannot read it fails loudly instead. A corrupt file is preserved under a new name before anything else happens.
+
+**A Windows path arriving on a Linux machine** was creating a strangely-named file inside your project instead of being refused. Nothing escaped the project on either platform, but one input behaved two different ways depending on the machine.`,
+    highlights: [
+      'The lists deciding which tools each mode and persona may use named tools that no longer existed — withheld in silence, never reported.',
+      'Code mode was carrying every tool I have: around 25,000 tokens a turn describing the recipe desk to someone writing TypeScript.',
+      'Every mode carries its own brief now. Code mode had none, Brainstorm could not open a file, and Security could not propose a plan.',
+      'A journal day that could not be read was being overwritten with an empty one, and the write reported success.',
+    ],
+  },
+
+  {
     migration: 406,
     version: '0.95.0',
     platform: 'extension',
@@ -321,7 +419,21 @@ ON CONFLICT (version, platform) DO UPDATE SET
     let done = 0;
     await pool(LOCALES, CONCURRENCY, async (locale) => {
       try {
-        translations[locale] = await translateOne(locale, release);
+        const t = await translateOne(locale, release);
+        // A locale that comes back IDENTICAL to the English is not translated,
+        // it is a failed call wearing a success. translateOne falls back to the
+        // English value per field when the model omits a key, so a partial or
+        // malformed reply arrives looking complete — Korean shipped exactly
+        // that way on the first run of these notes: title, body and every
+        // highlight in English, and nothing reported it.
+        //
+        // The missing-locale guard below cannot see this, because the locale is
+        // present. Treat it as the failure it is so the migration is not
+        // written and a re-run fills it.
+        if (t && t.title === release.title && t.body === release.body) {
+          throw new Error('came back identical to English — treating as a failed translation');
+        }
+        translations[locale] = t;
         console.log(`  ✓ ${locale} (${++done}/${LOCALES.length})`);
       } catch (err) {
         console.log(`  ✗ ${locale}: ${err.message}`);

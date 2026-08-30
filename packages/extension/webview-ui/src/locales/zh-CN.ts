@@ -311,7 +311,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': '头脑风暴',
   'welcome.mode.brainstorm_desc': '构思与创意思考',
-  'input.mode.code.desc': 'Ava 为你构建。使用全部 110+个工具读取、编写和运行代码。',
+  'input.mode.code.desc': 'Ava 为你构建。使用全部 120+个工具读取、编写和运行代码。',
   'input.mode.plan.desc': 'Ava 在行动前规划一切。只读模式——无文件更改。',
   'input.mode.brainstorm.desc': 'Ava 与你共创想法。五位专家探索、优化并提出挑战。',
   'input.mode.chat.desc': 'Ava 如友相伴。记忆、搜索、日记、天气、新闻——无工具，仅聊天。',

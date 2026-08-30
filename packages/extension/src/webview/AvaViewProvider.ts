@@ -325,6 +325,67 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private cachedAccount: AccountInfo | null = null;
   private accountScopedDir: string = AVA_HOME; // scoped per account when connected
 
+  /** globalState key holding the LAST account this machine signed into.
+   *  Survives sign-out on purpose — see resolveSignedOutScope. */
+  private static readonly LAST_ACCOUNT_KEY = 'ava.lastAccountId';
+
+  /**
+   * Where a SIGNED-OUT user's data lives.
+   *
+   * Not AVA_HOME by default — signing out must not hide files you already
+   * have. We go and LOOK under ~/.ava/users rather than trusting a pointer we
+   * hoped to have written earlier: that pointer is only recorded while signed
+   * in, so for anyone already signed out it is absent and the fallback never
+   * fires. One folder means that is your data. Several, and the pointer breaks
+   * the tie, or the most recently touched one does. None, and the flat layout
+   * stands.
+   */
+  private resolveSignedOutScope(): string {
+    try {
+      const path = require('node:path');
+      const fs = require('node:fs');
+      const usersDir = path.join(AVA_HOME, 'users');
+      if (!fs.existsSync(usersDir)) return AVA_HOME;
+      const dirs: string[] = fs.readdirSync(usersDir, { withFileTypes: true })
+        .filter((e: any) => e.isDirectory())
+        .map((e: any) => e.name);
+      if (dirs.length === 0) return AVA_HOME;
+      if (dirs.length === 1) return path.join(usersDir, dirs[0]);
+
+      const last = this.context.globalState.get<string>(AvaViewProvider.LAST_ACCOUNT_KEY);
+      if (last && dirs.includes(last)) return path.join(usersDir, last);
+
+      // Several accounts, no pointer — pick by what is IN each folder. NOT by
+      // the folder's own mtime: that only moves when direct children are added
+      // or removed, so on a real machine the live 124 MB account read as OLDER
+      // than a near-empty one and mtime picked the empty one.
+      const MARKERS = [
+        'creative/metadata.json', 'journal', 'tasks', 'history',
+        'learning.json', 'health', 'memory.json', 'general.json',
+      ];
+      let best = dirs[0];
+      let bestHits = -1;
+      let bestAt = -1;
+      for (const d of dirs) {
+        let hits = 0;
+        let at = 0;
+        for (const marker of MARKERS) {
+          try {
+            const st = fs.statSync(path.join(usersDir, d, ...marker.split('/')));
+            hits++;
+            if (st.mtimeMs > at) at = st.mtimeMs;
+          } catch { /* marker absent — that is the signal */ }
+        }
+        if (hits > bestHits || (hits === bestHits && at > bestAt)) {
+          bestHits = hits; bestAt = at; best = d;
+        }
+      }
+      return path.join(usersDir, best);
+    } catch {
+      return AVA_HOME;
+    }
+  }
+
   /**
    * Public getter for the account-scoped data directory — used by DashboardPanel
    * and other companion panels to read/write user data from the correct location.
@@ -530,7 +591,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         try {
           if (e.key === 'ava-supernova.platformKey') {
             this.cachedAccount = null;
-            this.accountScopedDir = AVA_HOME; // Reset to default until new account verified
+            this.accountScopedDir = this.resolveSignedOutScope(); // keep reading the last account's files
             // Clear chat, conversation, and last ID so stale data doesn't reload
             this.conversation = new Conversation();
             this.setLastConversationId(undefined);
@@ -1566,6 +1627,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               if (newScopedDir !== this.accountScopedDir) {
                 await mkdir(newScopedDir, { recursive: true });
                 this.accountScopedDir = newScopedDir;
+                // Remember it for signed-out reads (resolveSignedOutScope).
+                void this.context.globalState.update(AvaViewProvider.LAST_ACCOUNT_KEY, this.cachedAccount.id);
                 this.log(`Account-scoped data directory: ${newScopedDir}`);
 
                 // Re-create managers with the account-scoped directory. Memory is
@@ -2604,8 +2667,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // therefore never fire and images were sent to blind models. Absent on a
     // ModelDefinition means no vision (the convention across the catalogue),
     // so `=== true` is the honest coercion.
+    // THE SOURCE TOGGLE DECIDES WHAT IS ON OFFER.
+    //
+    // On Platform, a plan reaches the fleets and the vendor singles the platform
+    // also serves — DeepSeek, Qwen, Kimi, Mistral. It cannot reach Zhipu,
+    // Xiaomi, Hunyuan, NVIDIA or a local endpoint, so listing those here was
+    // offering rows that could only be failed at. They are one toggle away and
+    // that is where they belong.
+    //
+    // In API Key mode platformServedIds is empty, so this filter is a no-op and
+    // the whole catalogue shows exactly as before.
+    const offered = this.providerSource === 'platform'
+      ? byokOnly.filter((m) => platformServedIds.has(m.id))
+      : byokOnly;
+
     const modelList: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }> =
-      byokOnly.map((m) => {
+      offered.map((m) => {
         // On Platform, a fleet single is selectable on credits even without the
         // provider key. It STAYS in its vendor group (provider unchanged — no
         // new section); only its id routes to the platform provider so the pick
@@ -2671,7 +2748,26 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   private getActiveModelId(): string | null {
     const config = vscode.workspace.getConfiguration('ava-supernova');
-    return config.get<string>('activeModel') || null;
+    const saved = config.get<string>('activeModel') || null;
+    if (!saved) return null;
+
+    // The saved choice has to be valid UNDER THE CURRENT SOURCE. It was
+    // returned verbatim, so flipping Platform -> API Key left whatever was
+    // selected still showing as the active model — Maestro sitting there as the
+    // running model with no Qwen key behind it, because on Platform it runs on
+    // credits and on API Key it needs a key the user may not hold.
+    //
+    // A selection that cannot run is worse than a changed selection: the first
+    // fails at send with no explanation of why THIS model, the second is
+    // visible immediately in the picker.
+    const list = this.getModelList();
+    if (list.some((m) => m.id === saved && m.available)) return saved;
+
+    const fallback = list.find((m) => m.available);
+    if (!fallback) return saved;   // nothing is available; leave the choice alone
+    this.log(`Active model '${saved}' is unavailable on ${this.providerSource} — falling back to '${fallback.id}'`);
+    void config.update('activeModel', fallback.id, vscode.ConfigurationTarget.Global);
+    return fallback.id;
   }
 
   /** Build the optional local-embedding service from VS Code settings (opt-in;

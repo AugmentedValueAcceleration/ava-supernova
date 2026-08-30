@@ -214,7 +214,13 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
               {orchestrated.map(o => {
                 // Maestro is excluded from the locked state as before — it is
                 // the baseline fleet and was never rendered as a preview row.
-                const isPreview = o.id !== 'auto' && !o.available;
+                // Maestro is NOT exempt. It used to be — `o.id !== 'auto' &&`
+                // — from when a platform connection was the only route here and
+                // Maestro always ran on credits. On API Key it is Qwen, and
+                // without a Qwen key the row still read "Best model per task"
+                // and stayed clickable. Its locked copy already existed and
+                // could never be reached. Mirrors dashboard-ui.
+                const isPreview = !o.available;
                 const active = activeModel === o.id;
                 const copy = FLEET_COPY[o.id];
                 const label = copy?.label ?? o.name;

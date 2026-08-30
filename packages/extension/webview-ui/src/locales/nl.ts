@@ -311,7 +311,7 @@ export const nlStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Brainstorm',
   'welcome.mode.brainstorm_desc': 'Ideeën & creatief denken',
-  'input.mode.code.desc': 'Ava bouwt het voor je. Leest, schrijft en runt code met 110+ tools.',
+  'input.mode.code.desc': 'Ava bouwt het voor je. Leest, schrijft en runt code met 120+ tools.',
   'input.mode.plan.desc': 'Ava maakt een plan voordat ze iets wijzigt. Alleen-lezen — geen bestandswijzigingen.',
   'input.mode.brainstorm.desc': 'Ava deelt ideeën met jou. Vijf specialisten verkennen, verfijnen en dagen uit.',
   'input.mode.chat.desc': 'Ava als vriend. Geheugen, zoeken, dagboek, weer, nieuws — geen tools, gewoon praten.',

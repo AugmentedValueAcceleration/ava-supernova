@@ -71,7 +71,9 @@ const PROVIDER_LABEL: Record<string, string> = {
   platform: 'Platform',
 };
 
-function providerLabel(provider: string): string {
+// Exported: the composer names the same provider this picker does, and two
+// spellings of one vendor is the drift this codebase keeps paying for.
+export function providerLabel(provider: string): string {
   return PROVIDER_LABEL[provider.toLowerCase()] ?? provider.charAt(0).toUpperCase() + provider.slice(1);
 }
 
@@ -185,9 +187,18 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
             <>
               <div style={sectionHeaderStyle}>Orchestrated</div>
               {orchestrated.map(o => {
-                // Maestro is excluded from the locked state as before — it is
-                // the baseline fleet and was never rendered as a preview row.
-                const isPreview = o.id !== 'auto' && !o.available;
+                // Maestro used to be exempt here — `o.id !== 'auto' && !o.available`
+                // — on the reasoning that it is the baseline fleet and was never
+                // a preview row. That held while a platform connection was the
+                // only way anyone got here: Maestro runs on credits, so it was
+                // always genuinely reachable.
+                //
+                // It is not exempt on API Key. Maestro is Qwen, and without a
+                // Qwen key there is nothing behind it — but the row still read
+                // "Best model per task" and stayed clickable, because this line
+                // discarded the availability the host had correctly computed.
+                // One row deciding for itself what the host already decided.
+                const isPreview = !o.available;
                 const active = activeModel === o.id;
                 const copy = FLEET_COPY[o.id];
                 const label = copy?.label ?? o.name;
@@ -240,11 +251,15 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                   <button
                     key={m.id}
                     onClick={() => {
-                      if (!m.available) { onOpenDashboard(); setOpen(false); return; }
+                      // Selectable even without a key. It used to open the
+                      // dashboard instead of choosing — which decides for the
+                      // user, and leaves the picker as the only place the
+                      // requirement is ever stated. Choose it; the composer
+                      // says what it needs before anything is typed.
                       onSwitch(m.id); setOpen(false);
                     }}
                     title={!m.available
-                      ? `Add ${providerLabel(provider)} API key to unlock`
+                      ? `${providerLabel(provider)} needs your own API key`
                       : m.supportsVision === false
                         ? `${m.name} — ${t('model.no_vision_title')}`
                         : m.name}
@@ -256,7 +271,9 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                       color: !m.available ? '#6c7086' : active ? '#e0b0ff' : '#cdd6f4',
                       fontSize: 12, cursor: 'pointer',
                       textAlign: 'left',
-                      opacity: m.available ? 1 : 0.45,
+                      // Dimmed enough to read as "needs something", not so
+                      // dim it reads as disabled — it is selectable now.
+                      opacity: m.available ? 1 : 0.7,
                     }}
                     onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 8%, transparent)'; }}
                     onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
