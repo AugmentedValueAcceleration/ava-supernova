@@ -102,17 +102,20 @@ const RELEASES = [
 
 **Starting a new project actually starts one.** Asked for a new app while another project was open, I could only build it INSIDE that one — every file tool I have is confined to the project you have open, which is right, and left me nowhere to put a new thing. So a fresh app landed inside somebody's existing repo, one a commit-all away from a commit they never wanted. I can now create a folder in your projects home (~/Ava Projects unless you have moved it), and it arrives with its Decisions folder already in it. That is the only place outside your open project I can write, it makes one empty directory, and it will not touch a folder that already exists.
 
+**Stop means stop — including when I am only talking.** Told to stop I would acknowledge it and then carry on out loud: still diagnosing, still laying out the fix. From where you are sitting there is no difference between that and ignoring you, and the pull to add one more useful thing is strongest in the seconds after something has gone wrong. A stop now gets one line — what I was mid-way through and what state it is in — and then I wait.
+
+**And I stop looping.** Nothing told me when to give up on an approach, so a failure would get tried again with the same idea in different words. The third attempt never feels like the third; it feels like finally understanding the error. So the test is no longer a count: it is whether I can say what is actually different about this attempt, and if I cannot then it is the same attempt. On the third failure I stop and show you the error itself, what I tried, and what needs deciding — that is the finding, not me giving up.
+
+**And "fixed" now means I watched it work.** Reading the code and finding every piece in place tells you it LOOKS right, which is not the same as seeing it run — the value can die at the one line I did not open while everything I checked stays correct. When I have only read it, I say so.
+
 **And the honest small things.** The thinking line says only what I actually know, with a timer, instead of rotating four invented phrases. Ticking a subtask, editing a task and loading your secrets had all been silently doing nothing here. My working notes are out of your task list — they were never your commitments. Over 120 tools, counted rather than claimed, in twenty languages.`,
     highlights: [
       'Signing out hid your own files. Data is stored per account; without the account name I read an empty folder while the storage bar counted the gigabyte still sitting there.',
       'Signing out also replaced the dashboard with a sign-in page — while you held working keys. Ava is local-first: an account adds credits and support, never access.',
       'Usage works without an account: your tokens, your per-model spend and an estimated cost, from counters on your machine. Completed months are kept instead of discarded.',
       'Starting a new project creates one in your projects home, with its Decisions folder ready — instead of building inside whatever project happened to be open.',
+      'Stop now means stop, including in prose — and a failed approach gets three attempts, then the error and a question, instead of the same idea tried again in different words.',
       'No mode could open a file, and the builder could not write code — a rename left the tool lists pointing at names that no longer existed, so they were withheld in silence.',
-      'Coding turns no longer carry every tool I have. Around 25,000 tokens a turn went on describing recipe and health tools to someone writing TypeScript; that space is your files now.',
-      'Plan mode really only plans — it could dispatch builders that were not bound by its own read-only rule — and an accepted plan is written into your Decisions folder.',
-      'Video runs 2 to 30 seconds priced by the second, and a render you walk away from still finishes and always reaches your Library.',
-      'Documents open beside the chat with export to Word, PDF or ODF, and the Library shows one card per document instead of three files.',
     ],
   },
   {
@@ -150,17 +153,20 @@ const RELEASES = [
 
 **Starting a new project actually starts one.** Asked for a new app while another project was open, I could only build it INSIDE that one — every file tool I have is confined to the project you have open, which is right, and left me nowhere to put a new thing. So a fresh app landed inside somebody's existing repo, one a commit-all away from a commit they never wanted. I can now create a folder in your projects home (~/Ava Projects unless you have moved it), and it arrives with its Decisions folder already in it. That is the only place outside your open project I can write, it makes one empty directory, and it will not touch a folder that already exists.
 
+**Stop means stop — including when I am only talking.** Told to stop I would acknowledge it and then carry on out loud: still diagnosing, still laying out the fix. From where you are sitting there is no difference between that and ignoring you, and the pull to add one more useful thing is strongest in the seconds after something has gone wrong. A stop now gets one line — what I was mid-way through and what state it is in — and then I wait.
+
+**And I stop looping.** Nothing told me when to give up on an approach, so a failure would get tried again with the same idea in different words. The third attempt never feels like the third; it feels like finally understanding the error. So the test is no longer a count: it is whether I can say what is actually different about this attempt, and if I cannot then it is the same attempt. On the third failure I stop and show you the error itself, what I tried, and what needs deciding — that is the finding, not me giving up.
+
+**And "fixed" now means I watched it work.** Reading the code and finding every piece in place tells you it LOOKS right, which is not the same as seeing it run — the value can die at the one line I did not open while everything I checked stays correct. When I have only read it, I say so.
+
 **A home for your projects,** at ~/Ava Projects by default — visible, not buried in hidden application data where backup tools skip it. The storage bar counts project data as its own line instead of folding it into "Other".`,
     highlights: [
       'Signing out hid your own files. Data is stored per account; without the account name I read an empty folder while the storage bar counted the gigabyte still sitting there.',
       'The Command Centre asked you to connect to see tasks, journal, memory and learning that were already read from your own disk. Plans went through the agent, so no key meant no plans.',
       'Usage works without an account, and the estimated cost was being counted twice — once at each model\'s price and again at a default rate.',
       'Starting a new project creates one in your projects home, with its Decisions folder ready — instead of building inside whatever project happened to be open.',
+      'Stop now means stop, including in prose — and a failed approach gets three attempts, then the error and a question, instead of the same idea tried again in different words.',
       'Picking a mode used to send only its label — which is what filters my tools. A mode took the toolbox away without giving me the brief. Now it gives you both.',
-      'Seven of the nine voices in the picker did not exist, including the default, so choosing almost any voice failed.',
-      'Coding turns no longer carry every tool I have — around 25,000 tokens a turn that is now your files instead.',
-      'The Library could never show a document: it read the project folder from a setting nothing writes.',
-      'Documents open beside the chat with export to Word, PDF or ODF, and video runs 2 to 30 seconds with renders that finish without you.',
     ],
   },
   {
@@ -185,6 +191,10 @@ const RELEASES = [
 **A journal day that could not be read was being replaced with an empty one.** On any read error at all — a scanner holding the file open is enough — the day was overwritten with nothing, and the write reported success. It retries now, and if it still cannot read it fails loudly instead. A corrupt file is preserved under a new name before anything else happens.
 
 **A Windows path arriving on a Linux machine** was creating a strangely-named file inside your project instead of being refused. Nothing escaped the project on either platform, but one input behaved two different ways depending on the machine.
+
+**Stop means stop — including when I am only talking.** Told to stop I would acknowledge it and then carry on out loud: still diagnosing, still laying out the fix. From where you are sitting there is no difference between that and ignoring you, and the pull to add one more useful thing is strongest in the seconds after something has gone wrong. A stop now gets one line — what I was mid-way through and what state it is in — and then I wait.
+
+**And I stop looping.** Nothing told me when to give up on an approach, so a failure would get tried again with the same idea in different words. The third attempt never feels like the third; it feels like finally understanding the error. So the test is no longer a count: it is whether I can say what is actually different about this attempt, and if I cannot then it is the same attempt. On the third failure I stop and show you the error itself, what I tried, and what needs deciding — that is the finding, not me giving up.
 
 **A new tool: create_project.** Every file tool is confined to the project you have open, so "start me a new project" had no honest answer — the only place I was allowed to write was inside the project you were already in. It creates one directory in your projects home and scaffolds a Decisions folder into it. Deliberately not a wider permission: it cannot write files, cannot adopt a folder that already exists, and cannot reach anywhere else.
 
@@ -392,6 +402,16 @@ async function translateOne(locale, release, attempt = 1) {
   // returned 9 of 10 paragraphs once and all 10 on the next attempt. Without
   // this, one locale dropping one paragraph blocks the whole migration and
   // needs a person to re-run the script.
+  // An English reply is a bad completion like any other — the same locale
+  // succeeds next attempt. Checked here rather than in the caller so it can
+  // retry on the same budget as a 5xx, a timeout and a short body.
+  const cameBackEnglish = parsed.title === release.title
+    || (typeof parsed.body === 'string' && parsed.body === release.body);
+  if (cameBackEnglish && attempt < 3) {
+    await new Promise((r) => setTimeout(r, 2 ** attempt * 1000));
+    return translateOne(locale, release, attempt + 1);
+  }
+
   const bodyBad = (typeof parsed.body !== 'string' || !parsed.body.trim())
     || paras(parsed.body) < paras(release.body);
   if (bodyBad && attempt < 3) {
@@ -496,6 +516,16 @@ ON CONFLICT (version, platform) DO UPDATE SET
         const sameHighlights = (t?.highlights || []).filter((h) => enHighlights.includes(h));
         if (sameHighlights.length) englishFields.push(`${sameHighlights.length} highlight(s)`);
         if (englishFields.length) {
+          // Retry, for the same reason a short body or a 5xx does: a reply
+          // that comes back in English is a bad completion, not a permanent
+          // one — the same locale succeeds on the next attempt. This threw on
+          // the first try while every other content failure had three, which
+          // meant one locale ignoring the instruction blocked the migration
+          // and needed a person to re-run the script.
+          // Retried inside translateOne, where the attempt counter lives —
+          // see the identical-to-English check beside the other content
+          // guards there. Reaching HERE means three attempts all came back in
+          // English, which is a real failure rather than a flaky one.
           throw new Error(`came back identical to English (${englishFields.join(', ')}) — treating as a failed translation`);
         }
         translations[locale] = t;

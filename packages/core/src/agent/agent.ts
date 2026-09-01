@@ -266,7 +266,12 @@ const ALWAYS_ALLOWED_TOOLS: Set<string> = new Set(['self_inspect', 'conversation
  * line in a diff, and so the two surfaces cannot end up disagreeing about
  * which stage they are in.
  */
-const WORK_TOOL_GATE: 'log' | 'enforce' = 'log';
+// ENFORCING since 2026-09-01. The log-only stage did its job: a full
+// real-world project built end to end in code mode produced no
+// work-gate.log at all, meaning she never once reached for a tool the
+// list withholds. The logger was verified to be live in that build
+// first — an absent file only means something if the writer works.
+const WORK_TOOL_GATE: 'log' | 'enforce' = 'enforce';
 
 /**
  * Where the log-only stage records a reach, under AVA_HOME.
