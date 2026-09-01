@@ -104,14 +104,15 @@ Bring your own key for any provider, or use Ava-managed models on a plan. Every 
 | Provider | Models |
 |---|---|
 | **Ava Managed** | Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
-| **Qwen (Alibaba)** | Qwen 3.7 Plus, Qwen 3.7 Max, Qwen 3.5 Plus, Qwen 3.5 Flash — 1M context, vision, reasoning |
+| **Qwen (Alibaba)** | Qwen 3.8 Max, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.7 Flash, Qwen 3.5 Flash, Qwen3 Coder Next / Flash — 1M context, vision, reasoning |
 | **DeepSeek** | V4 Pro, V4 Flash — MIT open-weight, 1M context |
-| **Moonshot** | Kimi K3 (2.8T MoE, 1M context, native vision), K2.7 Code, K2.6, K2.5 |
+| **Moonshot** | Kimi K3 (2.8T MoE, 1M context, native vision), K2.7 Code, K2.6 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash — MIT open-weight, 1M context; 5.3 is text only, Flash reads images and video |
-| **Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 — EU, open weights, up to 262K context |
+| **Mistral** | Medium 3.5, Small 4, Large 3 — EU, open weights, up to 262K context |
 | **MiniMax** | M3, M2.7, M2.7 HighSpeed — up to 1M context (BYOK) |
 | **Xiaomi** | MiMo V2.5, V2.5-Pro — 1M context, native multimodal |
-| **Anthropic** | Claude Fable 5, Opus 4.8, Sonnet 5, Haiku 4.5 |
+| **Tencent** | Hunyuan Hy3 — open-weight MoE, 262K context |
+| **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning — open-weight, 1M context |
 | **Custom / Local** | Ollama, LM Studio, vLLM, or any standard API-format endpoint — the $0 path |
 
 ## Getting Started
@@ -150,9 +151,9 @@ pnpm build
 
 ## Tools
 
-**121 user-facing built-in tools.** Ava decides which to use, runs them, reads the results, and keeps reasoning.
+**123 user-facing built-in tools.** Ava decides which to use, runs them, reads the results, and keeps reasoning.
 
-That number is counted from the registry rather than estimated: 129 tools register, minus 8 that are internal plumbing for the agent loop — things like `switch_mode` and `ask_user`, which nobody would name if asked what Ava can do. Desktop automation is included and gated to Desktop mode; browser automation needs Playwright installed.
+That number is counted from the registry rather than estimated: 131 tools register, minus 8 that are internal plumbing for the agent loop — things like `switch_mode` and `ask_user`, which nobody would name if asked what Ava can do. Desktop automation is included and gated to Desktop mode; browser automation needs Playwright installed.
 
 | Category | Tools |
 |---|---|

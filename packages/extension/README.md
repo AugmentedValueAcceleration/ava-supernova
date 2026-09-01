@@ -52,7 +52,7 @@ On a plan, **Maestro, Aurora and Longxiang** are live; **Supernova's managed ver
 - **Supernova** — **DeepSeek + Qwen** keys.
 - **Longxiang** — **Moonshot + Qwen + DeepSeek** keys.
 
-BYOK users also get the raw individual models (Claude, Kimi, GLM, and more) per the keys they've added.
+BYOK users also get the raw individual models (Kimi, GLM, DeepSeek, Qwen, and more) per the keys they've added.
 
 ---
 
@@ -274,14 +274,15 @@ Every plan gets every managed model. Tiers differ only on monthly credit allowan
 | Source | Models |
 |---|---|
 | **Ava Managed** | Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
-| **BYOK — Qwen** | Qwen 3.7 Plus, Qwen 3.7 Max, Qwen 3.5 Plus, Qwen 3.5 Flash |
+| **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.7 Flash, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
 | **BYOK — DeepSeek** | V4 Pro, V4 Flash *(MIT-licensed open-weight, 1M context)* |
-| **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6, K2.5 |
+| **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
-| **BYOK — Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 |
+| **BYOK — Mistral** | Medium 3.5, Small 4, Large 3 |
 | **BYOK — MiniMax** | M3, M2.7, M2.7 HighSpeed |
 | **BYOK — Xiaomi** | MiMo V2.5, V2.5-Pro |
-| **BYOK — Anthropic** | Claude Fable 5, Opus 4.8, Sonnet 5, Haiku 4.5 |
+| **BYOK — Tencent** | Hunyuan Hy3 *(open-weight MoE, 262K context)* |
+| **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning *(open-weight, 1M context)* |
 | **BYOK — Custom** | Ollama, LM Studio, vLLM, any standard API endpoint |
 
 ---

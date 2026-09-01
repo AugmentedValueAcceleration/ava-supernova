@@ -2,7 +2,7 @@
 
 **The open-source AI coding agent, in your terminal.**
 
-`@ava/cli` is the terminal surface of [Ava Supernova](https://avasupernova.com) — a full agentic coding agent with 110+ tools, 7 modes, and 24 specialist personas, running the same `@ava/core` engine as the VS Code extension and the desktop IDE. She reads your codebase, plans the work, executes it task by task, and remembers what she learns across sessions.
+`@ava/cli` is the terminal surface of [Ava Supernova](https://avasupernova.com) — a full agentic coding agent with over 120 tools, 7 modes, and 24 specialist personas, running the same `@ava/core` engine as the VS Code extension and the desktop IDE. She reads your codebase, plans the work, executes it task by task, and remembers what she learns across sessions.
 
 > **No account, no credit card, no trial.** Bring your own API key and run fully local — or sign up for **300 free credits a month**.
 
@@ -35,14 +35,15 @@ Bring your own key for any provider, or use Ava-managed models with a free or pa
 
 | Provider | Models |
 |---|---|
-| **Qwen (Alibaba)** | Qwen 3.7 Plus, 3.7 Max, 3.5 Plus, 3.5 Flash |
+| **Qwen (Alibaba)** | Qwen 3.8 Max, 3.7 Plus, 3.5 Plus, 3.7 Flash, 3.5 Flash, Coder Next / Flash |
 | **DeepSeek** | V4 Pro, V4 Flash |
-| **Moonshot** | Kimi K2.7 Code, K2.6, K2.5 |
+| **Moonshot** | Kimi K3, K2.7 Code, K2.6 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash |
-| **Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 |
+| **Mistral** | Medium 3.5, Small 4, Large 3 |
 | **MiniMax** | M3, M2.7, M2.7 HighSpeed |
 | **Xiaomi** | MiMo V2.5, V2.5-Pro |
-| **Anthropic** | Claude Opus 4.8, Sonnet 4.6, Haiku 4.5 |
+| **Tencent** | Hunyuan Hy3 |
+| **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning |
 | **Custom / Local** | Ollama, LM Studio, vLLM, any standard API-format endpoint |
 
 Switch the orchestration fleet with `/route`: **Maestro** (Qwen ensemble, everyday), **Aurora** (EU-sovereign Mistral stack), or **Supernova** (polyglot, best-model-per-role — with your DeepSeek + Qwen keys).
