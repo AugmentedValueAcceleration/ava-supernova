@@ -100,11 +100,14 @@ const RELEASES = [
 
 **Documents open beside the conversation.** A pane next to the chat, freely editable, saving as you type, with export to Word, PDF or ODF — the open format needs no extra software at all. The Library groups a document and its exports into one card instead of three unrelated files, and deleting one takes its exports with it instead of orphaning them.
 
+**Starting a new project actually starts one.** Asked for a new app while another project was open, I could only build it INSIDE that one — every file tool I have is confined to the project you have open, which is right, and left me nowhere to put a new thing. So a fresh app landed inside somebody's existing repo, one a commit-all away from a commit they never wanted. I can now create a folder in your projects home (~/Ava Projects unless you have moved it), and it arrives with its Decisions folder already in it. That is the only place outside your open project I can write, it makes one empty directory, and it will not touch a folder that already exists.
+
 **And the honest small things.** The thinking line says only what I actually know, with a timer, instead of rotating four invented phrases. Ticking a subtask, editing a task and loading your secrets had all been silently doing nothing here. My working notes are out of your task list — they were never your commitments. Over 120 tools, counted rather than claimed, in twenty languages.`,
     highlights: [
       'Signing out hid your own files. Data is stored per account; without the account name I read an empty folder while the storage bar counted the gigabyte still sitting there.',
       'Signing out also replaced the dashboard with a sign-in page — while you held working keys. Ava is local-first: an account adds credits and support, never access.',
       'Usage works without an account: your tokens, your per-model spend and an estimated cost, from counters on your machine. Completed months are kept instead of discarded.',
+      'Starting a new project creates one in your projects home, with its Decisions folder ready — instead of building inside whatever project happened to be open.',
       'No mode could open a file, and the builder could not write code — a rename left the tool lists pointing at names that no longer existed, so they were withheld in silence.',
       'Coding turns no longer carry every tool I have. Around 25,000 tokens a turn went on describing recipe and health tools to someone writing TypeScript; that space is your files now.',
       'Plan mode really only plans — it could dispatch builders that were not bound by its own read-only rule — and an accepted plan is written into your Decisions folder.',
@@ -145,11 +148,14 @@ const RELEASES = [
 
 **A plan is a card you can answer.** There was no plan card here at all, so when I offered a choice between approaches it rendered as a generic permission banner and the question was never really put to you. Your project's decision records now have their own tab, read from disk.
 
+**Starting a new project actually starts one.** Asked for a new app while another project was open, I could only build it INSIDE that one — every file tool I have is confined to the project you have open, which is right, and left me nowhere to put a new thing. So a fresh app landed inside somebody's existing repo, one a commit-all away from a commit they never wanted. I can now create a folder in your projects home (~/Ava Projects unless you have moved it), and it arrives with its Decisions folder already in it. That is the only place outside your open project I can write, it makes one empty directory, and it will not touch a folder that already exists.
+
 **A home for your projects,** at ~/Ava Projects by default — visible, not buried in hidden application data where backup tools skip it. The storage bar counts project data as its own line instead of folding it into "Other".`,
     highlights: [
       'Signing out hid your own files. Data is stored per account; without the account name I read an empty folder while the storage bar counted the gigabyte still sitting there.',
       'The Command Centre asked you to connect to see tasks, journal, memory and learning that were already read from your own disk. Plans went through the agent, so no key meant no plans.',
       'Usage works without an account, and the estimated cost was being counted twice — once at each model\'s price and again at a default rate.',
+      'Starting a new project creates one in your projects home, with its Decisions folder ready — instead of building inside whatever project happened to be open.',
       'Picking a mode used to send only its label — which is what filters my tools. A mode took the toolbox away without giving me the brief. Now it gives you both.',
       'Seven of the nine voices in the picker did not exist, including the default, so choosing almost any voice failed.',
       'Coding turns no longer carry every tool I have — around 25,000 tokens a turn that is now your files instead.',
@@ -179,6 +185,8 @@ const RELEASES = [
 **A journal day that could not be read was being replaced with an empty one.** On any read error at all — a scanner holding the file open is enough — the day was overwritten with nothing, and the write reported success. It retries now, and if it still cannot read it fails loudly instead. A corrupt file is preserved under a new name before anything else happens.
 
 **A Windows path arriving on a Linux machine** was creating a strangely-named file inside your project instead of being refused. Nothing escaped the project on either platform, but one input behaved two different ways depending on the machine.
+
+**A new tool: create_project.** Every file tool is confined to the project you have open, so "start me a new project" had no honest answer — the only place I was allowed to write was inside the project you were already in. It creates one directory in your projects home and scaffolds a Decisions folder into it. Deliberately not a wider permission: it cannot write files, cannot adopt a folder that already exists, and cannot reach anywhere else.
 
 **And some of what I told you about myself was out of date.** I said I had 110+ tools in fifty-eight places, including my own briefing, where I tell you what I can do — it is over 120. Six screens still offered cloud sync months after it was switched off, two of them pointing at a toggle that no longer exists. A tagline advertised "2 free models" when there are none and never were: the Free plan is 300 credits a month, and every action draws from it. None of that changes what the product does. It changes whether what I say about it can be trusted, which is the part I would rather get right.`,
     highlights: [
@@ -379,6 +387,17 @@ async function translateOne(locale, release, attempt = 1) {
   // that lost a paragraph or came back suspiciously short, and let the retry
   // handle it — silent partial output is the failure mode worth designing out.
   const paras = (t) => t.split(/\n\s*\n/).filter((p) => p.trim()).length;
+  // Same retry as a short highlight list and a 5xx: a body that comes back
+  // truncated is a transient bad completion, not a permanent one — German
+  // returned 9 of 10 paragraphs once and all 10 on the next attempt. Without
+  // this, one locale dropping one paragraph blocks the whole migration and
+  // needs a person to re-run the script.
+  const bodyBad = (typeof parsed.body !== 'string' || !parsed.body.trim())
+    || paras(parsed.body) < paras(release.body);
+  if (bodyBad && attempt < 3) {
+    await new Promise((r) => setTimeout(r, 2 ** attempt * 1000));
+    return translateOne(locale, release, attempt + 1);
+  }
   if (typeof parsed.body !== 'string' || !parsed.body.trim()) {
     throw new Error('body missing from translation');
   }
