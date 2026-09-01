@@ -714,6 +714,33 @@ export function detectModeFromMessages(messages: Message[]): string | null {
  * default to it must not be silently blocked.
  */
 /**
+ * Every tool name that any mode lists.
+ *
+ * Used to tell two different situations apart, which the allowlist alone
+ * cannot: a tool code mode deliberately withholds (present, listed by other
+ * modes, correctly filtered) versus a tool no mode has ever classified. The
+ * second is not a decision, it is an absence - and treating an absence as a
+ * refusal is how a registered tool disappears with no error anywhere.
+ */
+const MODE_CLASSIFIED_TOOLS: Set<string> = new Set(
+  Object.values(MODE_ALLOWED_TOOLS).flatMap((set) => [...set]),
+);
+
+/**
+ * Whether a tool survives a mode's allowlist.
+ *
+ * The single predicate for BOTH the schema filter and the call-side block, so
+ * the two cannot drift into offering a tool and then refusing it. Three ways
+ * through: the mode lists it, every mode gets it, or no mode classifies it at
+ * all (an unknown tool is somebody's extension, not a policy decision) -
+ * except desktop tools, which stay out however they are classified.
+ */
+export function toolPassesModeGate(name: string, modeAllowed: Set<string>): boolean {
+  if (modeAllowed.has(name) || ALWAYS_ALLOWED_TOOLS.has(name)) return true;
+  return !MODE_CLASSIFIED_TOOLS.has(name) && !DESKTOP_ONLY_TOOLS.has(name);
+}
+
+/**
  * The hard ceiling on what a persona may be handed in a READ-ONLY mode.
  *
  * The conductor scopes each persona by its own `allowedTools`, taken from the
@@ -1573,7 +1600,7 @@ export class Agent {
 
     let filteredSchemas: ToolSchema[];
     if (modeAllowed && applyModeGate) {
-      filteredSchemas = allSchemas.filter(s => modeAllowed.has(s.function.name) || ALWAYS_ALLOWED_TOOLS.has(s.function.name));
+      filteredSchemas = allSchemas.filter(s => toolPassesModeGate(s.function.name, modeAllowed));
     } else {
       filteredSchemas = allSchemas.filter(s => !DESKTOP_ONLY_TOOLS.has(s.function.name));
     }
@@ -2431,7 +2458,7 @@ export class Agent {
       // blocking here would do precisely what the paragraph above forbids:
       // offer a tool and then refuse the call.
       if (modeAllowed) {
-        const isAllowed = (name: string) => modeAllowed.has(name) || ALWAYS_ALLOWED_TOOLS.has(name);
+        const isAllowed = (name: string) => toolPassesModeGate(name, modeAllowed);
         const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !isAllowed(tc.function.name));
         if (blocked.length > 0 && !applyModeGate) {
           // The evidence worth having. The static count says what is in play;
