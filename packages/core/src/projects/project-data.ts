@@ -52,6 +52,27 @@ export function projectsHome(configured?: string | null): string {
 }
 
 /**
+ * Make sure the projects folder exists.
+ *
+ * Called at startup so the location the UI already names — the storage bar's
+ * "Your projects" line, the Settings path — is a real directory rather than a
+ * promise. Idempotent: recursive mkdir on an existing folder does nothing, so
+ * this covers existing installs on their next launch as much as new ones.
+ *
+ * Never throws. A home directory that cannot be written to is a real
+ * situation (locked-down machines, roaming profiles) and it must not stop the
+ * app from starting — create_project reports the failure properly if someone
+ * actually tries to make a project there.
+ */
+export async function ensureProjectsHome(configured?: string | null): Promise<string> {
+  const home = projectsHome(configured);
+  try {
+    await mkdir(home, { recursive: true });
+  } catch { /* unwritable home — not a reason to block startup */ }
+  return home;
+}
+
+/**
  * Stable id for a project path.
  *
  * Canonicalised first so a trailing slash or Windows drive-letter casing

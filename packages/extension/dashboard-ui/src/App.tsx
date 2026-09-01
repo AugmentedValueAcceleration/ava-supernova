@@ -907,8 +907,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         }
         localStorage.removeItem('ava-platform-key');
         setInitialized(true);
-        // Load avatar on startup so sidebar shows it immediately
-        post({ type: 'load_avatar' });
+        // The avatar now arrives WITH init — one message, no round trip to
+        // fail. The explicit request stays as a belt-and-braces retry for a
+        // host that predates this.
+        {
+          const withInit = (msg as unknown as { userAvatar?: string }).userAvatar;
+          if (withInit) setAvatarDataUrl(withInit);
+          else post({ type: 'load_avatar' });
+        }
         break;
       case 'account_updated':
         setAccount(msg.account);
@@ -1948,7 +1954,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           designModelState={designModel}
           onSwitchDesignModel={switchDesignModel}
           userName={account?.name?.split(' ')[0] ?? null}
-          userAvatarUrl={account?.avatar_url ?? null} />;
+          userAvatarUrl={avatarDataUrl || account?.avatar_url || null} />;
       case 'health':
         return (
           <Health
@@ -2046,7 +2052,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             }}
             onRegisterHealthChatDispatch={registerHealthChatDispatch}
             userName={account?.name?.split(' ')[0] ?? null}
-            userAvatarUrl={account?.avatar_url ?? null}
+            userAvatarUrl={avatarDataUrl || account?.avatar_url || null}
             initialTab={healthInitialTab}
             onConsumeInitialTab={() => setHealthInitialTab(null)}
           />
@@ -2062,7 +2068,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
             learnerProfile={learnerProfilePayload}
             onRegisterLearningChatDispatch={registerLearningChatDispatch}
             userName={account?.name?.split(' ')[0] ?? null}
-            userAvatarUrl={account?.avatar_url ?? null}
+            userAvatarUrl={avatarDataUrl || account?.avatar_url || null}
             initialTab={learningInitialTab}
             onConsumeInitialTab={() => setLearningInitialTab(null)}
           />
@@ -2133,7 +2139,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
             sidebarSide={sidebarSide}
             onNavigate={setPagePersist}
             userName={account?.name?.split(' ')[0] ?? null}
-            userAvatarUrl={account?.avatar_url ?? null}
+            userAvatarUrl={avatarDataUrl || account?.avatar_url || null}
           />
         </div>
       )}

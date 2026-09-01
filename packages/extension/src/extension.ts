@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { ensureProjectsHome } from '@ava/core/projects';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
 import { DashboardPanel } from './webview/DashboardPanel.js';
@@ -21,6 +22,13 @@ const PANEL_STATE_KEY = 'avaSupernova.panelOpen';
 const DASHBOARD_STATE_KEY = 'avaSupernova.dashboardOpen';
 
 export function activate(context: vscode.ExtensionContext): void {
+  // The projects folder exists from launch, not from the first time somebody
+  // starts a project. Two surfaces already show its path; this is what makes
+  // that path true. Fire-and-forget — nothing here should delay activation,
+  // and a failure to create it is not a reason to fail to start.
+  void ensureProjectsHome(
+    vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.projectsHome'),
+  );
   try {
   // Install the dataset capture consumer once at activation. No-op for
   // any user who hasn't opted in via ~/.ava/datasets/config.json — defaults

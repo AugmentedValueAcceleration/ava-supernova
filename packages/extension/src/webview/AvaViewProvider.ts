@@ -2199,6 +2199,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // offer to regenerate things they already owned. Matches the layout in
       // creative-store.ts (<accountScopedDir>/creative/<kind>/).
       creativeDir: join(this.accountScopedDir, 'creative'),
+      // Where create_project puts a new folder. Read here rather than in the
+      // tool because each surface discovers this differently; the same value
+      // goes into the Brainstorm prefix, so what she SAYS about where projects
+      // live and where they actually land cannot drift apart.
+      projectsHome: projectsHomeFrom(
+        require('node:os').homedir(),
+        vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.projectsHome'),
+      ),
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
@@ -3348,6 +3356,36 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'open_dashboard':
         vscode.commands.executeCommand('ava-supernova.openDashboard');
         break;
+
+      // Your locally-set avatar. Same file DashboardPanel saves to, so the
+      // chat and the dashboard sidebar cannot show different pictures.
+      case 'get_user_avatar': {
+        try {
+          const fs = await import('node:fs/promises');
+          const { join } = await import('node:path');
+          const { homedir } = await import('node:os');
+          const dataUrl = await fs.readFile(join(homedir(), '.ava', 'avatar.dat'), 'utf-8');
+          this.postMessage({
+            type: 'user_avatar_loaded',
+            dataUrl: dataUrl.startsWith('data:image/') ? dataUrl : null,
+          } as never);
+        } catch {
+          // No avatar set — the account picture, or the initials, still apply.
+          this.postMessage({ type: 'user_avatar_loaded', dataUrl: null } as never);
+        }
+        break;
+      }
+
+      // Footprint for the chat header chip. Same scanner the dashboard uses,
+      // so the two surfaces cannot report different totals.
+      case 'get_storage_scan': {
+        try {
+          const { scanStorage } = await import('./storage-scan.js');
+          const scan = await scanStorage(AVA_HOME);
+          this.postMessage({ type: 'storage_scan_loaded', scan } as never);
+        } catch { /* a footprint we cannot read is not worth an error */ }
+        break;
+      }
 
       case 'mark_onboarded':
         await this.context.globalState.update('ava.onboardedV1', true);
@@ -5501,6 +5539,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const avaAvatarUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'ava-avatar.jpeg'),
     );
+    // The USER's avatar, injected exactly the way Ava's is above. Read
+    // synchronously into the HTML rather than fetched over a message: a round
+    // trip is one more thing that can fail to complete, and when it did the
+    // bubble fell back to a generic icon with a valid picture sitting on disk.
+    // Ava's image has always worked because it never leaves the HTML.
+    let userAvatarData = '';
+    try {
+      const raw = require('node:fs').readFileSync(
+        require('node:path').join(require('node:os').homedir(), '.ava', 'avatar.dat'),
+        'utf-8',
+      );
+      if (typeof raw === 'string' && raw.startsWith('data:image/')) userAvatarData = raw;
+    } catch { /* no avatar set — initials, then the person glyph */ }
+
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -5518,7 +5570,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   <title>Ava Supernova</title>
 </head>
 <body>
-  <div id="root" data-ava-avatar-uri="${avaAvatarUri}"><div style="display:flex;align-items:center;justify-content:center;height:100vh;opacity:0.3;font-size:13px;font-family:var(--vscode-font-family)">Loading Ava…</div></div>
+  <div id="root" data-ava-avatar-uri="${avaAvatarUri}" data-user-avatar="${userAvatarData}"><div style="display:flex;align-items:center;justify-content:center;height:100vh;opacity:0.3;font-size:13px;font-family:var(--vscode-font-family)">Loading Ava…</div></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

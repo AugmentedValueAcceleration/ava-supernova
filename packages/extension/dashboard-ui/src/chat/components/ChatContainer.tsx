@@ -131,6 +131,13 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
             onConfirmation={onConfirmation}
             onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
             onRate={msg.role === 'assistant' ? onRate : undefined}
+            // The list that actually renders a conversation. It was the ONLY
+            // MessageBubble call site not passing these, so the avatar arrived
+            // correctly at ChatContainer and died at the last hop — every user
+            // row fell through to the generic glyph while the empty-state list
+            // a few lines above had it right.
+            userAvatarUrl={userAvatarUrl}
+            userName={userName}
           />
         ))}
         {(conductorActive || (activePersonas && activePersonas.length > 0)) && (

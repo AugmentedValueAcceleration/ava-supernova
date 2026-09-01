@@ -1,6 +1,17 @@
 import { ModelSelector } from './ModelSelector';
 import { t, tt, useLocale } from '../i18n';
 
+/** Byte formatting identical to the dashboard StorageBar's, so the chip and
+ *  the bar never render the same number two different ways. */
+function formatBytes(n: number): string {
+  if (!n || n < 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v >= 10 || i === 0 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
+}
+
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
   activeModel: string | null;
@@ -16,6 +27,9 @@ interface HeaderProps {
   /** Loaded conversation title — chip next to the model picker. null
    *  hides the chip (fresh chat). Mirrors IDE chat header. */
   conversationTitle?: string | null;
+  /** Total bytes under ~/.ava. Undefined until the scan lands — the chip is
+   *  hidden rather than showing a zero that would read as "nothing stored". */
+  storageBytes?: number;
 }
 
 // ── Step 1b of extension↔IDE chat alignment ─────────────────────────────────
@@ -37,6 +51,7 @@ export function Header({
   onOpenDashboard,
   onNewChat,
   conversationTitle,
+  storageBytes,
 }: HeaderProps) {
   useLocale();
 
@@ -94,6 +109,31 @@ export function Header({
 
       {/* Tasks toggle removed — the always-visible Tasks spine on the right
           edge is the single control now (its grip expands/collapses). */}
+
+      {/* Local footprint. The total only: this sidebar is resizable down to a
+          couple of hundred pixels, and the dashboard's eight-segment bar is
+          unreadable at any width that would fit beside the model picker. Click
+          opens the dashboard, where the real breakdown and the reclaim flow
+          live. Same relative position as the bar in the dashboard's top strip,
+          so it is found in the same place on both surfaces. */}
+      {typeof storageBytes === 'number' && storageBytes > 0 && (
+        <button
+          onClick={onOpenDashboard}
+          title={t('dash.cc.storage')}
+          className="flex-shrink-0 rounded-md px-2 py-1 text-[10px] tabular-nums transition"
+          style={{
+            background: 'rgba(168,85,247,0.06)',
+            border: '1px solid rgba(168,85,247,0.15)',
+            color: '#6c7086',
+            fontFamily: 'monospace',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#a855f7'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#6c7086'; }}
+        >
+          {formatBytes(storageBytes)}
+        </button>
+      )}
 
       {/* New Chat — labelled pill, mirrors IDE header at
           DashboardPages.tsx:4256-4273. */}

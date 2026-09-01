@@ -251,6 +251,11 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
               onConfirmation={onConfirmation}
               onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
               onRate={msg.role === 'assistant' ? onRate : undefined}
+              // The empty-state list. The main list below already passed
+              // these; this one did not — the same split the dashboard had,
+              // with the halves the other way round.
+              userAvatarUrl={userAvatarUrl}
+              userName={userName}
             />
           ))}
           <StarterHelper onSuggestion={onSuggestion} />

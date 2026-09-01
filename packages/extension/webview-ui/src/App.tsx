@@ -1044,6 +1044,13 @@ export function App() {
   // bottom, and offer a button when they are not.
   const messagesScrollRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
+  // Local footprint for the header chip. Local state, not the reducer: nothing
+  // else in the chat reacts to it, and a field in the shared state would make
+  // every reducer case carry a number only one label reads.
+  const [storageBytes, setStorageBytes] = useState<number | undefined>(undefined);
+  // The picture you set on this machine. Preferred over the account's:
+  // it is the deliberate choice, and it survives being signed out.
+  const [localAvatar, setLocalAvatar] = useState<string | null>(null);
 
   const handleMessagesScroll = useCallback(() => {
     const el = messagesScrollRef.current;
@@ -1104,6 +1111,17 @@ export function App() {
       // Accept vscode-webview:// and vscode-file:// (Electron/WebView2 on Windows)
       if (event.origin && !event.origin.startsWith('vscode-webview://') && !event.origin.startsWith('vscode-file://')) return;
       const msg = event.data;
+      // Footprint for the header chip. Handled here rather than in the
+      // reducer: it is component state, and the reducer is a pure function
+      // with no access to a setter.
+      if ((msg as { type?: string }).type === 'user_avatar_loaded') {
+        setLocalAvatar((msg as unknown as { dataUrl?: string | null }).dataUrl ?? null);
+        return;
+      }
+      if ((msg as { type?: string }).type === 'storage_scan_loaded') {
+        setStorageBytes((msg as unknown as { scan?: { totalBytes?: number } }).scan?.totalBytes);
+        return;
+      }
 
       // Respond to heartbeat pings immediately
       if (msg.type === 'ping') {
@@ -1145,6 +1163,11 @@ export function App() {
     // so the data has to be there even before the panel is first opened.
     postMessage({ type: 'request_today_tasks' });
     postMessage({ type: 'request_all_tasks' });
+
+    // Local footprint for the header chip. Cheap enough to ask for on mount:
+    // the host caches the scan, and it is the same call the dashboard makes.
+    postMessage({ type: 'get_storage_scan' });
+    postMessage({ type: 'get_user_avatar' });
 
     return () => {
       window.removeEventListener('message', handler);
@@ -1455,6 +1478,7 @@ export function App() {
         </div>
 
         <Header
+          storageBytes={storageBytes}
           models={state.models}
           activeModel={state.activeModel}
           needsSetup={state.needsSetup}
@@ -1533,7 +1557,7 @@ export function App() {
           isStreaming={state.isStreaming}
           onCompress={handleCompress}
           userName={state.signInAccount?.name?.split(' ')[0] ?? null}
-          userAvatarUrl={state.signInAccount?.avatar_url ?? null}
+          userAvatarUrl={localAvatar ?? state.signInAccount?.avatar_url ?? null}
         />
         )}
 

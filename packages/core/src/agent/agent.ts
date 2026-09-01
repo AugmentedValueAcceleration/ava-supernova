@@ -295,6 +295,11 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   work: new Set([
     // File operations
     'read', 'write', 'edit',
+    // Creating a NEW project — the only write that reaches outside the open
+    // project, and it makes exactly one empty folder in the projects home.
+    // Without it, "start me a new project" can only be answered by building
+    // inside whatever project is already open.
+    'create_project',
     // Search
     'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     // Shell
@@ -406,6 +411,17 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // it. Read-only, and readOnlyModeToolCeiling now enforces that structurally,
     // so widening what she can READ cannot leak into being able to write.
     'read', 'glob', 'grep', 'list_directory', 'project_index',
+    // Turning an idea into somewhere to put it. Brainstorm exists for someone
+    // who does not know what to build, so stopping at "here is what you should
+    // build" and leaving them to make the folder by hand is stopping one step
+    // short of the point.
+    //
+    // This does not make the mode writable. modeCanEditFiles asks for 'write'
+    // or 'edit' by name and neither is here, so the read-only ceiling still
+    // holds — create_project makes ONE empty directory in the projects home
+    // and cannot put a byte inside it. The work happens once that folder is
+    // opened, in whichever mode you open it in.
+    'create_project',
     // Research signals (web + news) so coordinator-direct ideation has the
     // same research surface the orchestrated team gets via IDEATION_TOOLS.
     'web_search', 'http_request', 'browser', 'news',

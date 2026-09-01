@@ -188,6 +188,44 @@ export function Overview({
     post({ type: 'request_audit_findings' });
   }, []);
 
+  // ── Hooks: ALL of them, before any early return ────────────────────────
+  //
+  // These five sat BELOW the `mode === 'byok' || !account` return, so Overview
+  // rendered two hooks signed out and seven once the account arrived — React
+  // #310, "rendered more hooks than during the previous render". It only
+  // became reachable when the sign-in wall came off and Overview started
+  // mounting without an account. They drive the click-to-edit display name,
+  // which the ByokOverview branch never shows; being up here costs nothing.
+  // Editable display name. Mirrors the IDE Command Centre's behaviour
+  // (DashboardPages.tsx) so users on either surface get the same
+  // click-to-edit affordance. localStorage override takes priority over
+  // account.name so the user can pick what Ava calls them without
+  // touching the platform-side account record. Falls back to first
+  // word of account.name, then email prefix.
+  const resolveDisplayName = (): string => {
+    try {
+      const stored = (localStorage.getItem('ava-extension-user-name') ?? '').trim();
+      if (stored) return stored;
+    } catch { /* webview localStorage disabled — fall through */ }
+    // account is null while it loads, and on the BYOK path entirely — this
+    // used to run only after the early return guaranteed one.
+    return (account?.name?.trim().split(/\s+/)[0]) || account?.email?.split('@')[0] || '';
+  };
+  const [firstName, setFirstName] = useState<string>(resolveDisplayName);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [nameHover, setNameHover] = useState(false);
+  useEffect(() => {
+    setFirstName(resolveDisplayName());
+    const refresh = () => setFirstName(resolveDisplayName());
+    window.addEventListener('ava-extension-name-changed', refresh);
+    return () => window.removeEventListener('ava-extension-name-changed', refresh);
+    // account dependency — when sign-in/out arrives via postMessage, the
+    // account prop changes and the displayed name needs to re-resolve in
+    // case the localStorage override was cleared by a sign-out elsewhere.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account?.name, account?.email]);
+
   if (mode === 'byok' || !account) {
     return (
       <ByokOverview
@@ -223,33 +261,6 @@ export function Overview({
       ? t('dash.cc.greeting_afternoon')
       : t('dash.cc.greeting_evening');
 
-  // Editable display name. Mirrors the IDE Command Centre's behaviour
-  // (DashboardPages.tsx) so users on either surface get the same
-  // click-to-edit affordance. localStorage override takes priority over
-  // account.name so the user can pick what Ava calls them without
-  // touching the platform-side account record. Falls back to first
-  // word of account.name, then email prefix.
-  const resolveDisplayName = (): string => {
-    try {
-      const stored = (localStorage.getItem('ava-extension-user-name') ?? '').trim();
-      if (stored) return stored;
-    } catch { /* webview localStorage disabled — fall through */ }
-    return (account.name?.trim().split(/\s+/)[0]) || account.email?.split('@')[0] || '';
-  };
-  const [firstName, setFirstName] = useState<string>(resolveDisplayName);
-  const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState('');
-  const [nameHover, setNameHover] = useState(false);
-  useEffect(() => {
-    setFirstName(resolveDisplayName());
-    const refresh = () => setFirstName(resolveDisplayName());
-    window.addEventListener('ava-extension-name-changed', refresh);
-    return () => window.removeEventListener('ava-extension-name-changed', refresh);
-    // account dependency — when sign-in/out arrives via postMessage, the
-    // account prop changes and the displayed name needs to re-resolve in
-    // case the localStorage override was cleared by a sign-out elsewhere.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account.name, account.email]);
   const saveDisplayName = () => {
     const next = nameInput.trim();
     try {

@@ -2581,7 +2581,18 @@ export class DashboardPanel {
     // "show welcome on startup" preference is on (default true), for everyone
     // regardless of sign-in. The overlay's checkbox + the VS Code setting toggle it.
     const welcomeOnStartup = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.showWelcomeOnStartup') ?? true;
-    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, platformKey: platformKey || undefined, providerSource, showWelcome: welcomeOnStartup, welcomeOnStartup });
+    // Avatar goes WITH init rather than via a separate load_avatar round trip.
+    // The round trip is one more thing that can fail to complete, and when it
+    // does the chat silently falls back to a generic icon while a perfectly
+    // good picture sits on disk. One message, no race.
+    let userAvatar: string | undefined;
+    try {
+      const fsp = await import('node:fs/promises');
+      const dataUrl = await fsp.readFile(path.join(os.homedir(), '.ava', 'avatar.dat'), 'utf-8');
+      if (dataUrl.startsWith('data:image/')) userAvatar = dataUrl;
+    } catch { /* no avatar set */ }
+
+    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, platformKey: platformKey || undefined, providerSource, showWelcome: welcomeOnStartup, welcomeOnStartup, userAvatar } as never);
 
     // Background account fetch — fire-and-forget. Posts account_updated
     // when the platform responds (or times out at 10s). The dashboard

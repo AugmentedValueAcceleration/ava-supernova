@@ -234,9 +234,14 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
           overflow: 'hidden',
           fontSize: 12, fontWeight: 600, color: '#1e1e2e',
         }}>
-          {userAvatarUrl ? (
+          {/* Same mechanism as Ava's avatar below: read straight off the
+              #root dataset, injected into the HTML by the host. The prop still
+              wins when it has a value (a signed-in account picture), but the
+              injected one means a locally-set avatar needs no message to
+              arrive — which is why Ava's has always worked and this did not. */}
+          {(userAvatarUrl || document.getElementById('root')?.dataset.userAvatar) ? (
             <img
-              src={userAvatarUrl}
+              src={userAvatarUrl || document.getElementById('root')?.dataset.userAvatar}
               alt={userName || t('dash.chat.you') || 'You'}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}

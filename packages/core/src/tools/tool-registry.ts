@@ -31,6 +31,7 @@ import { MemoryUpdateTool } from './memory-update.js';
 import { MemoryDeleteTool } from './memory-delete.js';
 import { RollbackTool } from './rollback.js';
 import { ProjectIndexTool } from './project-index.js';
+import { CreateProjectTool } from './create-project.js';
 import { FindSymbolTool } from './find-symbol.js';
 import { DocsLookupTool } from './docs-lookup.js';
 import { SupportRequestTool } from './support-request.js';
@@ -442,6 +443,7 @@ export class ToolRegistry {
       new MemoryDeleteTool(),
       new RollbackTool(),
       new ProjectIndexTool(),
+      new CreateProjectTool(),
       new FindSymbolTool(),
       new DocsLookupTool(),
       new SupportRequestTool(),

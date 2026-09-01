@@ -27,6 +27,12 @@ export interface PlatformStatus {
 // ─── Extension Host → Webview ────────────────────────────────────────────────
 
 export type ExtToWebviewMessage =
+  // Local footprint for the chat header chip. Total only is used, but the
+  // whole scan is sent because it is one object and the dashboard's
+  // contract already carries it — a second, trimmed shape would be a
+  // second thing to keep in step.
+  | { type: 'storage_scan_loaded'; scan: import('./dashboard-message-types.js').StorageScan }
+  | { type: 'user_avatar_loaded'; dataUrl: string | null }
   | {
       type: 'init';
       models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }>;
@@ -314,6 +320,13 @@ export type WebviewToExtMessage =
   | { type: 'cancel' }
   | { type: 'interrupt' }
   | { type: 'open_dashboard' }
+  // The chat header's footprint chip. Total only — the full breakdown
+  // lives on the dashboard, which this opens.
+  | { type: 'get_storage_scan' }
+  // Your locally-set picture (~/.ava/avatar.dat) — the same one the
+  // dashboard sidebar shows. The chat used to read only the platform
+  // account's, so a signed-out user saw a generic icon.
+  | { type: 'get_user_avatar' }
   | { type: 'open_docs' }
   /** Fired by the webview when the first-run welcome modal is
    *  dismissed / completed. Host persists the flag in globalState so
