@@ -133,11 +133,19 @@ describe('shapeMessages — provider-aware', () => {
 });
 
 describe('isZhipuFlashModel', () => {
-  it('matches zhipu flash models only (union of substring + explicit set)', () => {
+  it('matches zhipu flash models by substring', () => {
     expect(isZhipuFlashModel('zhipu', 'glm-5-flash')).toBe(true);
-    expect(isZhipuFlashModel('zhipu', 'glm-4.5-air')).toBe(true); // core's explicit fast model
     expect(isZhipuFlashModel('zhipu', 'glm-5')).toBe(false);
     expect(isZhipuFlashModel('qwen', 'qwen3.5-flash')).toBe(false);
+  });
+
+  it('leaves GLM-5.3 Flash its reasoning despite the name', () => {
+    // "Flash" is the price tier on a 320B-A18B reasoning MoE, not a small
+    // model. Forcing thinking off here would silently degrade a frontier
+    // model, which is the failure the Nemotron comment in params.ts warns
+    // about - invisible in logs, visible only as worse answers.
+    expect(isZhipuFlashModel('zhipu', 'glm-5.3-flash')).toBe(false);
+    expect(isZhipuFlashModel('zhipu', 'glm-5.3')).toBe(false);
   });
 });
 

@@ -19,13 +19,6 @@ interface SettingsProps {
 
 const PROVIDERS = [
   {
-    id: 'anthropic' as const,
-    name: 'Anthropic (Claude)',
-    placeholder: 'sk-ant-...',
-    signupUrl: 'https://console.anthropic.com',
-    description: 'Claude Opus 4.8, Sonnet 5, Haiku 4.5',
-  },
-  {
     id: 'deepseek' as const,
     name: 'DeepSeek',
     placeholder: 'sk-...',
@@ -44,7 +37,7 @@ const PROVIDERS = [
     name: 'GLM (Zhipu AI)',
     placeholder: '...',
     signupUrl: 'https://z.ai',
-    description: 'GLM-5.2 — open-weights, 1M context, top-tier coding',
+    description: 'GLM-5.3 — open-weights, 1M context, top-tier coding',
   },
   {
     id: 'qwen' as const,
@@ -58,7 +51,7 @@ const PROVIDERS = [
     name: 'Mistral AI',
     placeholder: '...',
     signupUrl: 'https://console.mistral.ai',
-    description: 'Mistral Large 3, Medium 3.5, Small 4, Codestral, Devstral 2',
+    description: 'Mistral Large 3, Medium 3.5, Small 4 — European, vision',
   },
   {
     id: 'xiaomi' as const,

@@ -18,5 +18,5 @@ You're all set. Here's what Ava can do:
 - Use **Chat** mode when you just want to talk — Ava remembers your conversations
 - Use **Security** mode to scan your project for vulnerabilities — just click `!!` and send
 - Create `.ava/instructions.md` in your project root to give Ava persistent context
-- Attach images for models that support vision (Claude, GLM-5, Kimi K2.5, Qwen 3.5 Plus, Mistral Large)
+- Attach images to any model that can read them — the model picker marks which ones can
 - Your conversations are auto-saved per project — resume anytime from Chat History

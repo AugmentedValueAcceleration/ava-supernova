@@ -14,10 +14,10 @@ export class ZhipuProvider extends BaseProvider {
     return ZHIPU_MODELS;
   }
 
-  // enable_thinking:false for fast models (glm-4.5-air + any *flash* id) is now
-  // handled by the shared shaper in BaseProvider.transformRequest
-  // (isZhipuFlashModel), reconciling the old explicit-set check here with the
-  // platform route's substring check.
+  // enable_thinking:false for fast models (any *flash* id, minus the
+  // reasoning models that are only named Flash) is handled by the shared
+  // shaper in BaseProvider.transformRequest (isZhipuFlashModel). The old
+  // explicit-set check here went with GLM-4.5 Air on 2026-09-01.
 
   // Zhipu sometimes returns tool_call arguments as objects instead of strings
   protected normalizeResponse(raw: unknown): CompletionResponse {

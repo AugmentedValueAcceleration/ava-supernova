@@ -79,6 +79,8 @@ const UNREACHABLE_KEPT_FOR_RECEIPTS = new Set([
   'kimi/kimi-k2.5',      // dropped ahead of Moonshot's 31 August switch-off
   'qwen/qwen3.7-max',    // retired 2026-08-09 in favour of 3.8 Max
   'tencent/hy3-preview', // April preview, replaced by the GA hy3
+  'zhipu/glm-5.2',       // retired 2026-09-01 for GLM-5.3, same price
+  'zhipu/glm-4.5-air',   // retired 2026-09-01; 5.3 Flash is the light tier now
 ]);
 
 // The platform catalogue is not a BYOK provider — platform turns bill in

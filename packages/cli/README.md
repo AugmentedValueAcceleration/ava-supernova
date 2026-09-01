@@ -38,7 +38,7 @@ Bring your own key for any provider, or use Ava-managed models with a free or pa
 | **Qwen (Alibaba)** | Qwen 3.7 Plus, 3.7 Max, 3.5 Plus, 3.5 Flash |
 | **DeepSeek** | V4 Pro, V4 Flash |
 | **Moonshot** | Kimi K2.7 Code, K2.6, K2.5 |
-| **Zhipu** | GLM-5.2, GLM-4.5 Air |
+| **Zhipu** | GLM-5.3, GLM-5.3 Flash |
 | **Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 |
 | **MiniMax** | M3, M2.7, M2.7 HighSpeed |
 | **Xiaomi** | MiMo V2.5, V2.5-Pro |

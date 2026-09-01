@@ -273,10 +273,21 @@ describe('Zhipu AI contract', () => {
   });
 
   it('disables thinking for Flash models', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-4.5-air')));
+    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-5-flash')));
     const p = new ZhipuProvider({ apiKey: 'sk-test' });
-    await p.createCompletion({ ...baseRequest, model: 'glm-4.5-air' });
+    await p.createCompletion({ ...baseRequest, model: 'glm-5-flash' });
     expect(lastFetchBody().enable_thinking).toBe(false);
+  });
+
+  it('leaves GLM-5.3 Flash its thinking, despite the name', async () => {
+    // "Flash" is the price tier on a 320B-A18B reasoning MoE. Disabling
+    // thinking here would degrade a frontier model silently - no error, no
+    // log line, just worse answers - so it is proved at the wire and not
+    // only in the predicate.
+    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-5.3-flash')));
+    const p = new ZhipuProvider({ apiKey: 'sk-test' });
+    await p.createCompletion({ ...baseRequest, model: 'glm-5.3-flash' });
+    expect(lastFetchBody().enable_thinking).toBeUndefined();
   });
 
   it('does NOT set enable_thinking for non-Flash models', async () => {

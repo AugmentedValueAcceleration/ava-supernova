@@ -12,10 +12,9 @@ Add an API key from any supported provider:
 |---|---|---|
 | **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com/api_keys) | ~$0.14/M tokens |
 | **Kimi (Moonshot)** | [platform.moonshot.ai](https://platform.moonshot.ai/console/api-keys) | ~$0.95/M tokens |
-| **GLM (Zhipu AI)** | [z.ai](https://z.ai/) | ~$0.20/M tokens |
+| **GLM (Zhipu AI)** | [z.ai](https://z.ai/) | ~$0.15/M tokens |
 | **Qwen (Alibaba)** | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) | ~$0.05/M tokens |
 | **Mistral** | [console.mistral.ai](https://console.mistral.ai/api-keys/) | ~$0.15/M tokens |
-| **Anthropic** | [console.anthropic.com](https://console.anthropic.com/) | ~$1.00/M tokens |
 
 *Pricing is approximate and subject to change. MiniMax, Xiaomi, and local endpoints (Ollama / LM Studio) are also supported.*
 

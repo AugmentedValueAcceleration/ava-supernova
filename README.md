@@ -107,7 +107,7 @@ Bring your own key for any provider, or use Ava-managed models on a plan. Every 
 | **Qwen (Alibaba)** | Qwen 3.7 Plus, Qwen 3.7 Max, Qwen 3.5 Plus, Qwen 3.5 Flash — 1M context, vision, reasoning |
 | **DeepSeek** | V4 Pro, V4 Flash — MIT open-weight, 1M context |
 | **Moonshot** | Kimi K3 (2.8T MoE, 1M context, native vision), K2.7 Code, K2.6, K2.5 |
-| **Zhipu** | GLM-5.2, GLM-4.5 Air — MIT open-weight, up to 1M context, text only |
+| **Zhipu** | GLM-5.3, GLM-5.3 Flash — MIT open-weight, 1M context; 5.3 is text only, Flash reads images and video |
 | **Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 — EU, open weights, up to 262K context |
 | **MiniMax** | M3, M2.7, M2.7 HighSpeed — up to 1M context (BYOK) |
 | **Xiaomi** | MiMo V2.5, V2.5-Pro — 1M context, native multimodal |

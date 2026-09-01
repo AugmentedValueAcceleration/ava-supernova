@@ -89,10 +89,31 @@ describe('Model definitions', () => {
       }
     });
 
-    it('contains the light-tier Air model (glm-4.5-air)', () => {
-      const air = ZHIPU_MODELS.find((m) => m.id === 'glm-4.5-air');
-      expect(air).toBeDefined();
-      expect(air?.pricing?.inputPerMillion).toBe(0.2);
+    it('contains the 5.3 flagship and the Flash tier', () => {
+      const flagship = ZHIPU_MODELS.find((m) => m.id === 'glm-5.3');
+      expect(flagship).toBeDefined();
+      expect(flagship?.pricing?.inputPerMillion).toBe(1.4);
+
+      const flash = ZHIPU_MODELS.find((m) => m.id === 'glm-5.3-flash');
+      expect(flash).toBeDefined();
+      // List price. The launch promotion ($0.075/M to 2026-09-09) does not
+      // belong in a catalogue that outlives it.
+      expect(flash?.pricing?.inputPerMillion).toBe(0.15);
+    });
+
+    it('keeps the main line text-only and vision on Flash alone', () => {
+      // This has been wrong in production once: 5.2 carried
+      // supportsVision: true until 2026-07-17 and every attached image hit
+      // a 1210 from Zhipu. Nothing failed at build time, and the same claim
+      // then sat uncorrected in three other files for six weeks. The GLM
+      // naming trap is that a higher number does not mean it can see, and
+      // 5.3 Flash is the single exception - verified at docs.z.ai, which is
+      // the only source that has ever been right about this.
+      const flagship = ZHIPU_MODELS.find((m) => m.id === 'glm-5.3');
+      expect(flagship?.supportsVision).toBe(false);
+
+      const flash = ZHIPU_MODELS.find((m) => m.id === 'glm-5.3-flash');
+      expect(flash?.supportsVision).toBe(true);
     });
   });
 

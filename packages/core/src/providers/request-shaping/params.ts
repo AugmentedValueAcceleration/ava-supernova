@@ -26,14 +26,30 @@ export interface ShapeableParams {
   chat_template_kwargs?: Record<string, unknown>;
 }
 
+/** Zhipu models named "flash" that are NOT the cheap fast tier the rule below
+ *  was written for, and which must keep their reasoning.
+ *
+ *  GLM-5.3-Flash is a 320B-A18B reasoning MoE where "Flash" marks the price
+ *  ($0.15/M), not the size. The substring rule was written for GLM-4.5 Air and
+ *  the small glm-*-flash tiers, and it would have switched 5.3-Flash's
+ *  thinking off on the strength of its name alone - the same mistake the
+ *  Nemotron note below warns about, and a worse one to make here, because the
+ *  failure is silent: a frontier model quietly answering below its ability
+ *  with nothing in the logs to say why. Operator call, 2026-09-01. If it does
+ *  turn out to carry the 30-60s latency hit, move it out of this set.
+ *
+ *  An id, not a pattern, for the reason the Nemotron note gives. */
+const ZHIPU_REASONING_FLASH = new Set(['glm-5.3-flash']);
+
 /** Zhipu fast models that ship with thinking ON by default but where we want
- *  it OFF (30–60s latency hit otherwise). Reconciles two previously-divergent
- *  checks: the platform route used a `flash` substring; core used an explicit
- *  set `{glm-4.5-air}` (no "flash" in the name). The union preserves both. */
-const ZHIPU_FAST_MODELS = new Set(['glm-4.5-air']);
+ *  it OFF (30–60s latency hit otherwise). This originally reconciled two
+ *  divergent checks: the platform route used a `flash` substring, core used an
+ *  explicit set `{glm-4.5-air}` (no "flash" in the name). Air retired on
+ *  2026-09-01 and the substring is all that is left, so the set went with it. */
 export function isZhipuFlashModel(provider: string, model: string): boolean {
   if (provider !== 'zhipu') return false;
-  return ZHIPU_FAST_MODELS.has(model) || model.includes('flash') || model.includes('Flash');
+  if (ZHIPU_REASONING_FLASH.has(model)) return false;
+  return model.includes('flash') || model.includes('Flash');
 }
 
 /** Models that write their reasoning into the CONTENT rather than into

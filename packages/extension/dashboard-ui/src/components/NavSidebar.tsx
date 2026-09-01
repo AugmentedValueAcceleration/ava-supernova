@@ -505,17 +505,18 @@ export function NavSidebar({
  * providers have one (`providerKeys`, booleans). So a configured provider shows
  * as saved with a Remove action rather than echoing dots we don't have.
  *
- * The nine providers here are the same set (and wording) as Settings' PROVIDERS.
+ * The eight providers here are the same set (and wording) as Settings' PROVIDERS.
+ * Anthropic left both on 2026-09-01: the models were withdrawn on 13 August
+ * and this list kept asking for a key that could not reach anything.
  */
 // Explicit union rather than `keyof ProviderKeyStatus` — that interface carries
 // a `[key: string]: boolean` index signature, so keyof widens to string | number
-// and stops meaning anything. These nine are the real providers.
+// and stops meaning anything. These eight are the real providers.
 type SidebarProviderId =
-  | 'anthropic' | 'deepseek' | 'kimi' | 'glm' | 'qwen'
+  | 'deepseek' | 'kimi' | 'glm' | 'qwen'
   | 'mistral' | 'xiaomi' | 'tencent' | 'nvidia';
 
 const SIDEBAR_PROVIDERS: Array<{ id: SidebarProviderId; label: string; placeholder: string }> = [
-  { id: 'anthropic', label: 'Anthropic (Claude)', placeholder: 'sk-ant-...' },
   { id: 'deepseek', label: 'DeepSeek', placeholder: 'sk-...' },
   { id: 'kimi', label: 'Kimi (Moonshot)', placeholder: 'sk-...' },
   { id: 'glm', label: 'GLM (Zhipu AI)', placeholder: '...' },

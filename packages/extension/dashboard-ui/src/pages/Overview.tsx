@@ -1414,7 +1414,7 @@ function ByokOverview({
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.session_usage')}</li>
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.own_keys')}</li>
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.all_tools')}</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.free_models')}</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.no_account')}</li>
                 </ul>
               </div>
               <div>

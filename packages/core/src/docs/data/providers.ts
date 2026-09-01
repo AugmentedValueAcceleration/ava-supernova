@@ -181,10 +181,10 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'zhipu',
     name: 'Zhipu AI',
     kind: 'byok',
-    notes: 'GLM-5.2 is Zhipu\'s open-weights (MIT) flagship with a 1M-token context window. Both GLM models we offer are TEXT ONLY — Zhipu keeps vision in a separate "V" line (GLM-5V, GLM-4.6V) that we do not carry, so a higher GLM version number does not mean it can read images. Verified against Zhipu\'s API 2026-07-17.',
+    notes: 'GLM-5.3 is Zhipu\'s open-weights (MIT) flagship with a 1M-token context window, and it is TEXT ONLY — as the whole GLM main line has been, because Zhipu keeps vision in a separate "V" line (GLM-5V, GLM-4.6V) that we do not carry. A higher GLM version number does not mean it can read images. The one exception is GLM-5.3 Flash, which genuinely does take image and video input; "Flash" there is the price tier, not a smaller model. Verified against Zhipu\'s documentation 2026-09-01.',
     models: [
-      { id: 'glm-5.2', displayName: 'GLM-5.2', inputPricePerM: 1.40, outputPricePerM: 4.40, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'glm-4.5-air', displayName: 'GLM-4.5 Air', inputPricePerM: 0.20, outputPricePerM: 1.10, contextWindow: 128_000, capabilities: ['tools', 'streaming'] },
+      { id: 'glm-5.3', displayName: 'GLM-5.3', inputPricePerM: 1.40, outputPricePerM: 4.40, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'glm-5.3-flash', displayName: 'GLM-5.3 Flash', inputPricePerM: 0.15, outputPricePerM: 0.50, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {

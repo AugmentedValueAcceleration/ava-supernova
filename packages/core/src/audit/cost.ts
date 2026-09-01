@@ -89,8 +89,13 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'mimo-v2.5':     { inputPerMillion: 0.40, outputPerMillion: 2.00 },
   },
   zhipu: {
-    'glm-5.2':     { inputPerMillion: 1.40, outputPerMillion: 4.40 },
-    'glm-4.5-air': { inputPerMillion: 0.20, outputPerMillion: 1.10 },
+    'glm-5.3':       { inputPerMillion: 1.40, outputPerMillion: 4.40 },
+    // List, not the launch promotion ($0.075/M input to 2026-09-09).
+    'glm-5.3-flash': { inputPerMillion: 0.15, outputPerMillion: 0.50 },
+    // UNREACHABLE - retained only so existing receipts still cost out, the
+    // same as hy3-preview below. Retired 2026-09-01 when 5.3 landed.
+    'glm-5.2':       { inputPerMillion: 1.40, outputPerMillion: 4.40 },
+    'glm-4.5-air':   { inputPerMillion: 0.20, outputPerMillion: 1.10 },
   },
   mistral: {
     'mistral-large-3':    { inputPerMillion: 0.50, outputPerMillion: 1.50 },

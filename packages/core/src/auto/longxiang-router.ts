@@ -56,7 +56,7 @@ import type { TaskCategory } from './types.js';
  * Do NOT publish the end-to-end claim until Qwen 3.7 Plus weights are
  * actually public — verify at source, not from vendor intent. If Qwen has
  * not opened by launch, the contingency is to swap the Base seat (and only
- * the Base seat) to GLM-5.2, which is MIT today. GLM is a capable code
+ * the Base seat) to GLM-5.3, which is MIT today. GLM is a capable code
  * *writer* but scores weakly on Tool-Decathlon, so it is a substitute for
  * Qwen's mid-tier build work, never for K3's coordinator/Builder seat.
  *
@@ -88,7 +88,7 @@ import type { TaskCategory } from './types.js';
  * Before flipping to true, verify AT SOURCE:
  *   - K3 weights are on Hugging Face (not just announced)
  *   - Qwen 3.7 Plus weights are public, OR the Base seat has been swapped
- *     to GLM-5.2 and the marketing copy no longer claims "open end to end"
+ *     to GLM-5.3 and the marketing copy no longer claims "open end to end"
  *   - The trademark search has come back clean
  */
 export const LONGXIANG_ENABLED = true;
