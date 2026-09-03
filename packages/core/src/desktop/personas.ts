@@ -18,6 +18,16 @@ export type DesktopPersonaName = 'scout' | 'planner' | 'actor' | 'verifier' | 'n
 
 // ── Desktop persona definition ────────────────────────────────────────────
 
+// What each persona may DO is not declared here. It is structural: the
+// desktop conductor never touches the ToolRegistry, it drives the input,
+// vision and browser providers directly, and a persona can only reach what
+// the conductor hands it. Scout cannot click because Scout is never given an
+// input provider — not because a list says so.
+//
+// There WAS a list. `allowedTools` sat on every persona, carefully scoped,
+// and read by nothing at all. It was removed on 2026-09-03: it looked exactly
+// like the control that stops Scout clicking, and anyone auditing the safety
+// story would have cited a decoration.
 export interface DesktopPersonaDefinition {
   name: DesktopPersonaName;
   display: string;
@@ -27,8 +37,6 @@ export interface DesktopPersonaDefinition {
   responseFormat: 'json';
   /** Which typed schema the output must conform to */
   outputSchema: string;
-  /** Tools this persona is allowed to call (empty = no tool access) */
-  allowedTools: string[];
   /** Approximate prompt token budget (system + step context) — from prototype C3 measurements */
   estimatedPromptTokens: number;
   /** Approximate output token budget — from prototype C3 measurements */
@@ -51,7 +59,6 @@ export const DESKTOP_SCOUT: DesktopPersonaDefinition = {
   display: 'Scout',
   responseFormat: 'json',
   outputSchema: 'ScreenState',
-  allowedTools: ['uia_tree', 'playwright_dom', 'omni_parse', 'take_screenshot'],
   estimatedPromptTokens: 3000,
   estimatedOutputTokens: 500,
   systemPrompt: `You are Scout — the first persona in a desktop automation wave. Your only job is to observe what is visible on screen right now and report it faithfully.
@@ -81,7 +88,6 @@ export const DESKTOP_PLANNER: DesktopPersonaDefinition = {
   display: 'Planner',
   responseFormat: 'json',
   outputSchema: 'ProposedAction',
-  allowedTools: [],
   estimatedPromptTokens: 2000,
   estimatedOutputTokens: 1000,
   systemPrompt: `You are Planner. You decide the single next action that moves toward the user's task. Exactly one action per step — never batch.
@@ -143,10 +149,6 @@ export const DESKTOP_ACTOR: DesktopPersonaDefinition = {
   display: 'Actor',
   responseFormat: 'json',
   outputSchema: 'ExecutionResult',
-  allowedTools: [
-    'playwright_act', 'uia_invoke', 'mouse_click', 'mouse_move',
-    'keyboard_type', 'keyboard_press', 'browser_navigate', 'app_focus',
-  ],
   estimatedPromptTokens: 1000,
   estimatedOutputTokens: 300,
   systemPrompt: `You are Actor. You receive a ProposedAction that has already passed the permission gate. You execute it exactly as specified.
@@ -171,7 +173,6 @@ export const DESKTOP_VERIFIER: DesktopPersonaDefinition = {
   display: 'Verifier',
   responseFormat: 'json',
   outputSchema: 'VerificationResult',
-  allowedTools: ['uia_tree', 'playwright_dom', 'omni_parse', 'take_screenshot'],
   estimatedPromptTokens: 2000,
   estimatedOutputTokens: 500,
   systemPrompt: `You are Verifier. You check whether the action that just executed produced the expected result.
@@ -208,7 +209,6 @@ export const DESKTOP_NARRATOR: DesktopPersonaDefinition = {
   display: 'Narrator',
   responseFormat: 'json',
   outputSchema: 'UserUpdate',
-  allowedTools: ['journal_write', 'memory_save'],
   estimatedPromptTokens: 1000,
   estimatedOutputTokens: 300,
   systemPrompt: `You are Narrator. You are the only voice the user hears during a desktop automation trajectory.
