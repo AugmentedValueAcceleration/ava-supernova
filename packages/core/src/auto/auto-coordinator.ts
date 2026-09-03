@@ -29,6 +29,7 @@ import { avaEvents, withTrajectory, withChildTrajectory, getTrajectory } from '.
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
 import { chargeCredits, extractUsage } from '../billing/meter.js';
 import { randomUUID } from 'node:crypto';
+import { resolveVisionDescriber } from '../agent/vision-bridge.js';
 
 // Categories where Conductor orchestration may trigger on the spawned agent
 const ORCHESTRATED_CATEGORIES = new Set<TaskCategory>(['planning', 'security', 'brainstorm', 'teach']);
@@ -201,7 +202,15 @@ export class AutoCoordinator {
     const visionResolved =
       opts.providerRegistry.resolveModel(`platform:${visionId}`)
       ?? opts.providerRegistry.resolveModel(visionId)
-      ?? (this.mode === 'aurora' ? opts.providerRegistry.resolveModel(`mistral:${visionId}`) : null);
+      ?? (this.mode === 'aurora' ? opts.providerRegistry.resolveModel(`mistral:${visionId}`) : null)
+      // Net under the fleet's own choice, NOT a replacement for it. Each
+      // fleet names a vision model deliberately — Aurora's is Mistral Medium
+      // because its encoder handles odd aspect ratios best, and because
+      // Aurora is the EU-sovereign fleet, so routing its images to whatever
+      // is cheapest would break the promise the fleet exists to make. Only
+      // when the fleet's own pick is unreachable do we ask the broader
+      // question: does this user hold a key for anything that can see?
+      ?? resolveVisionDescriber(opts.providerRegistry);
     this.visionProvider = visionResolved?.provider ?? null;
     this.visionModel = visionResolved?.model ?? null;
 

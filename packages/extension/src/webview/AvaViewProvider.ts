@@ -4,6 +4,7 @@ import { join, extname, relative } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import {
   Agent,
+  resolveVisionDescriber,
   Conversation,
   ToolRegistry,
   ProviderRegistry,
@@ -2364,15 +2365,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       .getConfiguration('ava-supernova')
       .get<boolean>('loopPrevention.enabled', true);
 
-    // Vision bridge — a vision-capable model (Qwen Omni) used to describe images
-    // when the coordinator is text-only (Supernova/DeepSeek, Aurora/Mistral
-    // Codestral). Resolves to the platform provider for managed users, or the
-    // user's Qwen BYOK provider (Supernova BYOK already requires a Qwen key).
-    // The agent only uses it when its own model can't see images.
-    const visionResolved = this.providerRegistry.resolveModel('platform:qwen3.5-omni-plus')
-      || this.providerRegistry.resolveModel('qwen:qwen3.5-omni-plus')
-      || this.providerRegistry.resolveModel('platform:qwen3.5-omni-flash')
-      || this.providerRegistry.resolveModel('qwen:qwen3.5-omni-flash');
+    // Vision bridge — describes images when the chosen model can't see them.
+    // Was a four-entry Qwen chain, which asked "is Qwen available?" instead of
+    // "does this user hold a key for anything that can see?" — so a BYOK user
+    // whose only key was Zhipu, Moonshot, Mistral, Xiaomi or MiniMax got no
+    // relay while holding a perfectly good describer. The agent only uses it
+    // when its own model can't see images.
+    const visionResolved = resolveVisionDescriber(this.providerRegistry);
 
     this.agent = new Agent({
       provider: resilientProvider,

@@ -387,6 +387,11 @@ export type { SupportedLocale } from './i18n/types.js';
 export { SUPPORTED_LOCALES, LANGUAGE_NAMES } from './i18n/types.js';
 
 // Personas
+// Which model describes images for a text-only coordinator. Exported
+// because the IDE sidecar resolves its own, and used to do it with a
+// hardcoded Qwen pair that ignored every other key the user held.
+export { resolveVisionDescriber } from './agent/vision-bridge.js';
+
 export { Conductor } from './personas/index.js';
 export type {
   PersonaId,

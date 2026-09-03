@@ -28,6 +28,7 @@ import {
   setLocale,
   resolveLocale,
   installDatasetConsumer,
+  resolveVisionDescriber,
 } from '@ava/core';
 // Deep import, not from the index — keeping desktop tools out of the main
 // module graph is what stops them reaching the VS Code extension's bundle.
@@ -203,9 +204,16 @@ async function main(): Promise<void> {
       })
     : resolved.provider;
 
+  // Describes images when the chosen model can't see them. The CLI passed
+  // nothing here, so a terminal user on a text-only model was told to switch
+  // models however many vision-capable keys they held.
+  const visionResolved = resolveVisionDescriber(providerRegistry);
+
   const agent = new Agent({
     provider,
     model: resolved.model,
+    visionProvider: visionResolved?.provider,
+    visionModel: visionResolved?.model,
     toolRegistry,
     cwd,
     sharedState,
@@ -214,6 +222,8 @@ async function main(): Promise<void> {
   const conductor = new Conductor({
     provider,
     model: resolved.model,
+    visionProvider: visionResolved?.provider,
+    visionModel: visionResolved?.model,
     toolRegistry,
     cwd,
     sharedState,
