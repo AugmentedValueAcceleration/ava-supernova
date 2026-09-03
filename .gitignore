@@ -22,3 +22,8 @@ packages/plugins/
 # scratch esbuild bundles
 *.bb.mjs
 .bb.mjs
+
+# Decisions — Ava's project-context folder. Committed in USER projects (it is
+# their shared direction); never in ours. Ours is working notes and plans in
+# progress, and it is not the place a reader should learn what we are doing.
+Decisions/
