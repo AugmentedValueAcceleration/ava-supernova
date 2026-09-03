@@ -3628,7 +3628,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'すべて',
   'dash.settings.vision.off': 'オフ',
   'dash.settings.vision.private': 'プライベート',
-  'dash.settings.vision.fast': '高速',
   'dash.perm.cat.file_ops': 'ファイル操作',
   'dash.perm.cat.shell': 'シェル',
   'dash.perm.cat.git': 'Git',

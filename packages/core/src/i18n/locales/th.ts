@@ -3626,7 +3626,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'ทั้งหมด',
   'dash.settings.vision.off': 'ปิด',
   'dash.settings.vision.private': 'ส่วนตัว',
-  'dash.settings.vision.fast': 'เร็ว',
   'dash.perm.cat.file_ops': 'การจัดการไฟล์',
   'dash.perm.cat.shell': 'เชลล์',
   'dash.perm.cat.git': 'Git',

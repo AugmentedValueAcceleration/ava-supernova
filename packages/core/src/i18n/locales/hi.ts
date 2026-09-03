@@ -3626,7 +3626,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'सभी',
   'dash.settings.vision.off': 'बंद',
   'dash.settings.vision.private': 'निजी',
-  'dash.settings.vision.fast': 'तेज़',
   'dash.perm.cat.file_ops': 'फ़ाइल कार्रवाई',
   'dash.perm.cat.shell': 'शेल',
   'dash.perm.cat.git': 'Git',

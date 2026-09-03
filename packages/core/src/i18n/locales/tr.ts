@@ -3626,7 +3626,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Tümü',
   'dash.settings.vision.off': 'Kapalı',
   'dash.settings.vision.private': 'Özel',
-  'dash.settings.vision.fast': 'Hızlı',
   'dash.perm.cat.file_ops': 'Dosya İşlemleri',
   'dash.perm.cat.shell': 'Kabuk',
   'dash.perm.cat.git': 'Git',

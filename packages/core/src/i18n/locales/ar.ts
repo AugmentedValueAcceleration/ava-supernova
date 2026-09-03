@@ -3626,7 +3626,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'الكل',
   'dash.settings.vision.off': 'إيقاف',
   'dash.settings.vision.private': 'خاص',
-  'dash.settings.vision.fast': 'سريع',
   'dash.perm.cat.file_ops': 'عمليات الملفات',
   'dash.perm.cat.shell': 'طرفية',
   'dash.perm.cat.git': 'Git',

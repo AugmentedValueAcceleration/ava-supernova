@@ -3626,7 +3626,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Все',
   'dash.settings.vision.off': 'Выкл',
   'dash.settings.vision.private': 'Приватный',
-  'dash.settings.vision.fast': 'Быстрый',
   'dash.perm.cat.file_ops': 'Операции с файлами',
   'dash.perm.cat.shell': 'Оболочка',
   'dash.perm.cat.git': 'Git',

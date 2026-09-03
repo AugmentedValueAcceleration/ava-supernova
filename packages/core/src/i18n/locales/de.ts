@@ -3606,7 +3606,6 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Alle',
   'dash.settings.vision.off': 'Aus',
   'dash.settings.vision.private': 'Privat',
-  'dash.settings.vision.fast': 'Schnell',
   'dash.perm.cat.file_ops': 'Dateibearbeitung',
   'dash.perm.cat.shell': 'Shell',
   'dash.perm.cat.git': 'Git',

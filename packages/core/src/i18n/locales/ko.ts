@@ -3626,7 +3626,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': '전체',
   'dash.settings.vision.off': '꺼짐',
   'dash.settings.vision.private': '프라이빗',
-  'dash.settings.vision.fast': '빠름',
   'dash.perm.cat.file_ops': '파일 작업',
   'dash.perm.cat.shell': '쉘',
   'dash.perm.cat.git': 'Git',

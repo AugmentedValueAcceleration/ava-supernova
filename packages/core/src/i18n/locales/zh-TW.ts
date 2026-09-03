@@ -3626,7 +3626,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': '全部',
   'dash.settings.vision.off': '關閉',
   'dash.settings.vision.private': '私人',
-  'dash.settings.vision.fast': '快速',
   'dash.perm.cat.file_ops': '檔案操作',
   'dash.perm.cat.shell': '指令列',
   'dash.perm.cat.git': 'Git',

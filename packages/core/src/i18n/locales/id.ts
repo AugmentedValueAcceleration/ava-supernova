@@ -3624,7 +3624,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Semua',
   'dash.settings.vision.off': 'Matikan',
   'dash.settings.vision.private': 'Privat',
-  'dash.settings.vision.fast': 'Cepat',
   'dash.perm.cat.file_ops': 'Operasi File',
   'dash.perm.cat.shell': 'Cangkang',
   'dash.perm.cat.git': 'Git',

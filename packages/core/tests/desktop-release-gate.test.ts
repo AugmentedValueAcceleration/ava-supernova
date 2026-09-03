@@ -12,42 +12,40 @@ import { classifyAction } from '../src/desktop/safety.js';
 import { imageKey, matchScreen, averageHash } from '../src/desktop/screen-key.js';
 
 describe('vision consent contract (release bar #4)', () => {
-  it('OFF means unavailable — regardless of what keys/models exist', () => {
-    const cap = probeVisionCapability({
-      visionMode: 'off', localModelInstalled: true, hasHCompanyKey: true, hasPlatformKey: true,
-    });
+  it('OFF means unavailable — regardless of what is installed', () => {
+    const cap = probeVisionCapability({ visionMode: 'off', localModelInstalled: true });
     expect(cap.available).toBe(false);
     expect(cap.lane).toBe('off');
   });
 
-  it('LOCAL never falls through to cloud: model missing = unavailable, even with keys present', () => {
-    const cap = probeVisionCapability({
-      visionMode: 'local', localModelInstalled: false, hasHCompanyKey: true, hasPlatformKey: true,
-    });
+  it('no model installed = unavailable, and still on the local lane', () => {
+    // There is nowhere else to go. This used to assert "no silent cloud
+    // switch"; there is no cloud to switch to since 2026-09-03, which is a
+    // stronger guarantee than the one the test was checking.
+    const cap = probeVisionCapability({ visionMode: 'local', localModelInstalled: false });
     expect(cap.available).toBe(false);
-    expect(cap.lane).toBe('local'); // stays on the local lane — no silent cloud switch
+    expect(cap.lane).toBe('local');
   });
 
-  it('LOCAL stays honestly unverified until H Company confirms', () => {
-    const cap = probeVisionCapability({
-      visionMode: 'local', localModelInstalled: true, hasHCompanyKey: false, hasPlatformKey: false,
-    });
+  it('LOCAL stays honestly unverified until someone measures it', () => {
+    // Deleting the cloud option did not verify the on-device one. This flips
+    // when there are numbers — hit rate on a dense UI, seconds per localize.
+    const cap = probeVisionCapability({ visionMode: 'local', localModelInstalled: true });
     expect(cap.available).toBe(true);
     expect(cap.verified).toBe(false);
   });
 
-  it('CLOUD requires the user\'s OWN key (BYOK-only): the verified lane', () => {
-    const withKey = probeVisionCapability({
-      visionMode: 'cloud', localModelInstalled: false, hasHCompanyKey: true, hasPlatformKey: false,
-    });
-    expect(withKey.available).toBe(true);
-    expect(withKey.lane).toBe('cloud-byok');
-    expect(withKey.verified).toBe(true);
-
-    const withoutKey = probeVisionCapability({
-      visionMode: 'cloud', localModelInstalled: false, hasHCompanyKey: false, hasPlatformKey: false,
-    });
-    expect(withoutKey.available).toBe(false);
+  it('every lane the probe can return keeps the screen on this machine', () => {
+    // The release bar is "the screen never leaves the machine without
+    // consent". With the cloud lanes gone it never leaves at all, and this
+    // asserts the type has not quietly grown a third option back.
+    const lanes = new Set<string>();
+    for (const visionMode of ['off', 'local'] as const) {
+      for (const localModelInstalled of [true, false]) {
+        lanes.add(probeVisionCapability({ visionMode, localModelInstalled }).lane);
+      }
+    }
+    expect([...lanes].sort()).toEqual(['local', 'off']);
   });
 });
 

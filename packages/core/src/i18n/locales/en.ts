@@ -1205,7 +1205,6 @@ export const enStrings = {
   // Desktop vision mode. "Private" = on-device; "Fast" = cloud vision.
   'dash.settings.vision.off': 'Off',
   'dash.settings.vision.private': 'Private',
-  'dash.settings.vision.fast': 'Fast',
   // Tool-permission categories. Only the LABELS are translated — each `desc` is
   // a list of literal tool names (bash, glob, test_run), which are identifiers,
   // not prose, and must stay as-is in every language.

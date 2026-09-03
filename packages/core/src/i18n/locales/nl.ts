@@ -3626,7 +3626,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Alles',
   'dash.settings.vision.off': 'Uit',
   'dash.settings.vision.private': 'Privé',
-  'dash.settings.vision.fast': 'Snel',
   'dash.perm.cat.file_ops': 'Bestandsbewerkingen',
   'dash.perm.cat.shell': 'Terminal',
   'dash.perm.cat.git': 'Git',

@@ -3624,7 +3624,6 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Tudo',
   'dash.settings.vision.off': 'Desligado',
   'dash.settings.vision.private': 'Privado',
-  'dash.settings.vision.fast': 'Rápido',
   'dash.perm.cat.file_ops': 'Operações de Arquivo',
   'dash.perm.cat.shell': 'Terminal',
   'dash.perm.cat.git': 'Git',

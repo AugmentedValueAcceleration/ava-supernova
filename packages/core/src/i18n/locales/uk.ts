@@ -3606,7 +3606,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Усе',
   'dash.settings.vision.off': 'Вимкнено',
   'dash.settings.vision.private': 'Приватно',
-  'dash.settings.vision.fast': 'Швидко',
   'dash.perm.cat.file_ops': 'Дії з файлами',
   'dash.perm.cat.shell': 'Оболонка',
   'dash.perm.cat.git': 'Git',

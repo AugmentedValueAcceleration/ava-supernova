@@ -3626,7 +3626,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Tutti',
   'dash.settings.vision.off': 'Disattivato',
   'dash.settings.vision.private': 'Privato',
-  'dash.settings.vision.fast': 'Veloce',
   'dash.perm.cat.file_ops': 'Operazioni File',
   'dash.perm.cat.shell': 'Terminale',
   'dash.perm.cat.git': 'Git',

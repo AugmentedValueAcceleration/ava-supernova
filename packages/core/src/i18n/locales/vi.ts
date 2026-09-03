@@ -3626,7 +3626,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.all': 'Tất cả',
   'dash.settings.vision.off': 'Tắt',
   'dash.settings.vision.private': 'Riêng tư',
-  'dash.settings.vision.fast': 'Nhanh',
   'dash.perm.cat.file_ops': 'Thao tác tệp',
   'dash.perm.cat.shell': 'Dòng lệnh',
   'dash.perm.cat.git': 'Quyền · Danh mục Git',

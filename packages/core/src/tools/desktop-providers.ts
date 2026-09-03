@@ -114,7 +114,7 @@ export interface VisionProvider {
    *  can advertise vision honestly (e.g. "local vision, unverified"). Optional
    *  for back-compat; hosts should implement it. Shape mirrors
    *  `VisionCapability` from `@ava/core/desktop`. */
-  capability?(): { available: boolean; lane: 'off' | 'local' | 'cloud-byok' | 'cloud-platform'; verified: boolean; reason: string };
+  capability?(): { available: boolean; lane: 'off' | 'local'; verified: boolean; reason: string };
 }
 
 export interface AppLauncherProvider {
