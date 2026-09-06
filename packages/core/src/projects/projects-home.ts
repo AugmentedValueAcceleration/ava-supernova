@@ -14,13 +14,29 @@
  */
 
 /**
- * The default folder name, under the user's home directory.
+ * The default location, relative to the user's home directory.
  *
- * Visible on purpose, and deliberately NOT under `~/.ava`: that is application
- * data and it is hidden. Source code in a dotfolder is a trap — people lose
- * it, and backup tools routinely skip dotfolders.
+ * `~/.ava/projects` — INSIDE Ava's own folder, alongside everything else she
+ * keeps. It used to be `~/Ava Projects`, a second top-level folder, on the
+ * argument that source code in a dotfolder gets lost and that backup tools skip
+ * dotfolders. Operator, 2026-09-06, and he is right: what that actually
+ * produced was two folders called "projects" on one machine, one of them his
+ * work and one of them Ava's notes about his work, and no way to tell which
+ * from the outside. One findable place beats two that look like duplicates.
+ *
+ * The safety argument did not survive being checked, either — nothing in this
+ * codebase deletes `~/.ava` wholesale; reclaimStorage only removes paths
+ * matching /backup/i.
+ *
+ * Ava's notes moved to `project-notes/` in the same change, so nothing shares
+ * this name any more.
  */
-export const DEFAULT_PROJECTS_DIRNAME = 'Ava Projects';
+export const PROJECTS_DIRNAME = 'projects';
+export const AVA_DIRNAME = '.ava';
+
+/** @deprecated The old `~/Ava Projects` name. Kept ONLY so the one-time move
+ *  can find what it is moving; never use it to decide where a project goes. */
+export const LEGACY_PROJECTS_DIRNAME = 'Ava Projects';
 
 /** Join two path segments without caring which separator the platform uses. */
 function joinPath(base: string, name: string): string {
@@ -40,5 +56,10 @@ function joinPath(base: string, name: string): string {
 export function projectsHomeFrom(homeDir: string, configured?: string | null): string {
   const trimmed = configured?.trim();
   if (trimmed) return trimmed.replace(/[\\/]+$/, '');
-  return joinPath(homeDir, DEFAULT_PROJECTS_DIRNAME);
+  return joinPath(joinPath(homeDir, AVA_DIRNAME), PROJECTS_DIRNAME);
+}
+
+/** Where projects used to go. The one-time move reads this; nothing else should. */
+export function legacyProjectsHomeFrom(homeDir: string): string {
+  return joinPath(homeDir, LEGACY_PROJECTS_DIRNAME);
 }

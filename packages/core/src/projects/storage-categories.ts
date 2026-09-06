@@ -21,10 +21,11 @@ export const CATEGORY_LABEL: Record<string, string> = {
   memory: 'Memory',
   journal: 'Journal',
   datasets: 'Datasets',
-  // NOT "Projects". `~/.ava/projects/` holds what Ava knows ABOUT a project —
-  // trust state, brainstorm sessions — keyed by a hash of its path. The user's
-  // code is wherever they made it. A row called "Projects" reading 1 KB would
-  // say something false about where their work lives.
+  // NOT "Projects". `~/.ava/project-notes/` holds what Ava knows ABOUT a
+  // project — trust state, brainstorm sessions — keyed by a hash of its path.
+  // The user's own work is `~/.ava/projects`, measured separately as their
+  // half of the bar. A row called "Projects" reading 1 KB would say something
+  // false about where their work lives.
   projects: 'Project data',
   backups: 'Old backups',
   other: 'Other',
@@ -46,9 +47,24 @@ export function categoryOf(name: string): string {
   if (n === 'memory' || n === 'memory.json' || n === 'memory.md' || n === 'embeddings' || n === 'graph.json') return 'memory';
   if (n === 'journal') return 'journal';
   if (n === 'datasets') return 'datasets';
-  if (n === 'projects') return 'projects';
+  if (n === 'project-notes') return 'projects';
+  // NOTE: 'projects' is deliberately absent. Since 2026-09-06 that folder is
+  // the USER'S WORK, and it is measured separately as their half of the bar.
+  // Categorising it here would count their source twice and file it under
+  // Ava's own footprint — the one thing this bar exists to report honestly.
+  // Scanners must skip it; SKIP_IN_AVA_SCAN says so in one place.
   return 'other';
 }
+
+/**
+ * Top-level names in `~/.ava` that the Ava-footprint scan must NOT walk.
+ *
+ * `projects` is the user's own code. It is measured by measureProjects as the
+ * other half of the bar, so walking it here would double-count it AND present
+ * their work as Ava's footprint. Shared because the extension and the IDE walk
+ * the disk separately — the rule lives here so they cannot disagree.
+ */
+export const SKIP_IN_AVA_SCAN: readonly string[] = ['projects'];
 
 /** What the user's projects folder costs. Measured separately from `~/.ava`,
  *  because it is their work rather than Ava's footprint — and because it is

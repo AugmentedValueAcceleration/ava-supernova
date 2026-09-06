@@ -1,11 +1,15 @@
 /**
- * Where Ava's per-project data lives, and which project it belongs to.
+ * Where Ava's per-project NOTES live, and which project they belong to.
  *
- * `~/.ava/projects/<hash>/` holds what Ava knows about a project — verification
- * trust, brainstorm sessions — keyed by a hash of the project's path. Note what
- * that is NOT: it is not where projects live. The user's code is wherever they
- * made it. A row in the storage bar called "Projects" pointing here would say
- * something false.
+ * `~/.ava/project-notes/<hash>/` holds what Ava knows about a project —
+ * verification trust, brainstorm sessions — keyed by a hash of the project's
+ * path. Note what that is NOT: it is not where projects live.
+ *
+ * It was called `projects/` until 2026-09-06, which was the whole trouble: the
+ * operator had two folders called "projects", one his work and one Ava's notes
+ * about his work, and nothing to tell them apart from the outside. Named for
+ * what it is keyed BY rather than what it HOLDS. Projects now live at
+ * `~/.ava/projects` and these are the notes.
  *
  * Two things brought this module into being.
  *
@@ -27,8 +31,17 @@ import { join, resolve } from 'node:path';
 import { mkdir, readFile, writeFile, readdir } from 'node:fs/promises';
 // The path rule itself lives in a dependency-free leaf, because the IDE
 // renderer needs the same answer and cannot import node:fs.
-import { projectsHomeFrom, DEFAULT_PROJECTS_DIRNAME } from './projects-home.js';
-export { projectsHomeFrom, DEFAULT_PROJECTS_DIRNAME };
+import {
+  projectsHomeFrom, legacyProjectsHomeFrom,
+  PROJECTS_DIRNAME, LEGACY_PROJECTS_DIRNAME, AVA_DIRNAME,
+} from './projects-home.js';
+export {
+  projectsHomeFrom, legacyProjectsHomeFrom,
+  PROJECTS_DIRNAME, LEGACY_PROJECTS_DIRNAME, AVA_DIRNAME,
+};
+
+/** The folder holding Ava's notes about projects — NOT the projects. */
+export const PROJECT_NOTES_DIRNAME = 'project-notes';
 
 /** Ava's data root. */
 export function avaHome(): string {
@@ -38,10 +51,9 @@ export function avaHome(): string {
 /**
  * The folder new projects are created in.
  *
- * `~/Ava Projects` unless the user has pointed `preferences.projectsHome`
- * somewhere else. Visible on purpose, and deliberately NOT under `~/.ava` —
- * that is application data and it is hidden; source code in a dotfolder gets
- * lost and gets skipped by backup tools.
+ * `~/.ava/projects` unless the user has pointed `preferences.projectsHome`
+ * somewhere else — one roof, so everything Ava has is findable in one place
+ * rather than split across two folders that look like duplicates.
  *
  * Resolved here rather than in each surface so the IDE, the extension and the
  * CLI cannot disagree about where a project went. That is the mistake this
@@ -49,6 +61,11 @@ export function avaHome(): string {
  */
 export function projectsHome(configured?: string | null): string {
   return projectsHomeFrom(homedir(), configured);
+}
+
+/** Where the notes live. Separate from projectsHome and never equal to it. */
+export function projectNotesHome(globalDir?: string): string {
+  return join(globalDir ?? avaHome(), PROJECT_NOTES_DIRNAME);
 }
 
 /**
@@ -85,7 +102,7 @@ export function projectHash(projectPath: string): string {
 
 /** Directory holding Ava's data for one project. Does not create it. */
 export function projectDataDir(projectPath: string, globalDir?: string): string {
-  return join(globalDir ?? avaHome(), 'projects', projectHash(projectPath));
+  return join(projectNotesHome(globalDir), projectHash(projectPath));
 }
 
 /** What `project.json` records — the path the hash was made from. */
@@ -135,7 +152,7 @@ export async function ensureProjectData(projectPath: string, globalDir?: string)
  * an error; they are simply not listable.
  */
 export async function listKnownProjects(globalDir?: string): Promise<ProjectRecord[]> {
-  const root = join(globalDir ?? avaHome(), 'projects');
+  const root = projectNotesHome(globalDir);
   let entries: string[];
   try {
     entries = (await readdir(root, { withFileTypes: true }))

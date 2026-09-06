@@ -14,7 +14,8 @@ import { join } from 'node:path';
 import {
   projectHash, projectDataDir, ensureProjectData, listKnownProjects,
 } from '../src/projects/project-data.js';
-import { projectsHomeFrom, DEFAULT_PROJECTS_DIRNAME } from '../src/projects/projects-home.js';
+import { projectsHomeFrom, PROJECTS_DIRNAME } from '../src/projects/projects-home.js';
+import { PROJECT_NOTES_DIRNAME } from '../src/projects/project-data.js';
 import { projectHash as brainstormHash } from '../src/brainstorm/brainstorm-store.js';
 import { _internals as trustInternals } from '../src/tools/verification-trust.js';
 
@@ -41,13 +42,22 @@ describe('the project hash', () => {
 });
 
 describe('the projects home', () => {
-  it('defaults to a visible folder in the home directory, not inside .ava', () => {
-    const home = projectsHomeFrom('/home/sam');
-    expect(home).toBe('/home/sam/' + DEFAULT_PROJECTS_DIRNAME);
-    // The whole point: source code must not live in a hidden app-data folder,
-    // where people lose it and backup tools skip it.
-    expect(home).not.toContain('.ava');
-    expect(DEFAULT_PROJECTS_DIRNAME.startsWith('.')).toBe(false);
+  it('defaults to ~/.ava/projects — one roof', () => {
+    // This asserted the OPPOSITE until 2026-09-06: that projects must live in
+    // a VISIBLE folder outside `.ava`, because source in a dotfolder gets lost
+    // and backup tools skip it. What that produced was two folders called
+    // "projects" on one machine — the user's work at ~/Ava Projects and Ava's
+    // notes at ~/.ava/projects — indistinguishable from the outside. Operator,
+    // and he was right. The safety half did not survive checking either:
+    // nothing in this codebase deletes ~/.ava wholesale.
+    expect(projectsHomeFrom('/home/sam')).toBe('/home/sam/.ava/projects');
+  });
+
+  it('never collides with the notes folder', () => {
+    // The whole point of the rename. If these two were ever equal again, Ava's
+    // trust records and somebody's source tree would share a directory.
+    expect(PROJECTS_DIRNAME).not.toBe(PROJECT_NOTES_DIRNAME);
+    expect(projectsHomeFrom('/home/sam')).not.toContain(PROJECT_NOTES_DIRNAME);
   });
 
   it('yields to a path the user chose', () => {
@@ -59,12 +69,12 @@ describe('the projects home', () => {
     // An empty string in config must not resolve to '' or to the folder name
     // on its own — both would put projects somewhere unpredictable.
     for (const empty of ['', '   ', null, undefined]) {
-      expect(projectsHomeFrom('/home/sam', empty)).toBe('/home/sam/' + DEFAULT_PROJECTS_DIRNAME);
+      expect(projectsHomeFrom('/home/sam', empty)).toBe('/home/sam/.ava/projects');
     }
   });
 
   it('keeps the platform separator it was given', () => {
-    expect(projectsHomeFrom('C:\\Users\\sam')).toBe('C:\\Users\\sam\\' + DEFAULT_PROJECTS_DIRNAME);
+    expect(projectsHomeFrom('C:\\Users\\sam')).toBe('C:\\Users\\sam\\.ava\\projects');
   });
 });
 

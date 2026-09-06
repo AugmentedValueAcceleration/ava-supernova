@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { ensureProjectsHome } from '@ava/core/projects';
+import { migrateProjectsLayout } from '@ava/core/projects/migrate';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
 import { DashboardPanel } from './webview/DashboardPanel.js';
@@ -26,9 +27,48 @@ export function activate(context: vscode.ExtensionContext): void {
   // starts a project. Two surfaces already show its path; this is what makes
   // that path true. Fire-and-forget — nothing here should delay activation,
   // and a failure to create it is not a reason to fail to start.
-  void ensureProjectsHome(
-    vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.projectsHome'),
-  );
+  //
+  // The one-time layout move runs FIRST and the folder is created after it,
+  // so Ava's notes have vacated `~/.ava/projects` before a project can land in
+  // it. Both are idempotent; on every launch after the first they are two
+  // readdirs that miss.
+  void (async () => {
+    const configured = vscode.workspace
+      .getConfiguration('ava-supernova').get<string>('preferences.projectsHome');
+    try {
+      const moved = await migrateProjectsLayout(configured);
+      if (moved.notesMoved > 0 || moved.projectsMoved.length > 0) {
+        console.log(
+          `[Ava] Projects layout migrated: ${moved.projectsMoved.length} project(s) into ~/.ava/projects`
+          + `, ${moved.notesMoved} note folder(s) into ~/.ava/project-notes`
+          + (moved.skipped.length ? ` — left alone: ${moved.skipped.join('; ')}` : ''),
+        );
+      }
+      // SAY SO when a project could not move. On Windows a directory
+      // rename fails with EPERM while ANY process holds a handle inside it —
+      // and the project somebody is working in right now is open in an editor,
+      // so this is the COMMON case, not an edge one. Verified 2026-09-06: a
+      // test project with a dev server running stayed behind with WinError 32.
+      //
+      // Without this the user gets a silent partial migration: two folders
+      // again, no reason given, which is the exact confusion this change set
+      // out to remove. It retries on the next activation by itself, so the
+      // message says that rather than asking them to do anything.
+      if (moved.skipped.length > 0) {
+        void vscode.window.showWarningMessage(
+          `Ava couldn't move ${moved.skipped.length} project${moved.skipped.length > 1 ? 's' : ''} `
+          + `into ~/.ava/projects — something is using ${moved.skipped.length > 1 ? 'them' : 'it'} `
+          + `(${moved.skipped.join('; ')}). Nothing was lost; Ava will move `
+          + `${moved.skipped.length > 1 ? 'them' : 'it'} next time it starts and they are free.`,
+        );
+      }
+    } catch (err) {
+      // Never a reason to fail activation. The worst case is the old layout
+      // survives, which is exactly what the user has today.
+      console.warn('[Ava] Projects layout migration skipped:', err);
+    }
+    await ensureProjectsHome(configured);
+  })();
   try {
   // Install the dataset capture consumer once at activation. No-op for
   // any user who hasn't opted in via ~/.ava/datasets/config.json — defaults

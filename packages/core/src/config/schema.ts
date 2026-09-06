@@ -57,10 +57,12 @@ export interface AvaConfig {
     /**
      * Where new projects are created.
      *
-     * Absolute path. Unset means the default, `~/Ava Projects` — a real,
-     * VISIBLE folder, deliberately not under `~/.ava`: that is application
-     * data and it is hidden, and source code in a dotfolder is a trap (people
-     * lose it, and backup tools routinely skip dotfolders).
+     * Absolute path. Unset means the default, `~/.ava/projects` — inside
+     * Ava's own folder, alongside everything else she keeps, so there is ONE
+     * place to look. It was `~/Ava Projects` until 2026-09-06; a second
+     * top-level folder meant two directories called "projects" on one machine,
+     * one the user's work and one Ava's notes about it, indistinguishable from
+     * the outside.
      *
      * A default, not a prison. Developers have settled habits about `~/dev` or
      * `D:\work`, and the point is to remove a decision from someone who does

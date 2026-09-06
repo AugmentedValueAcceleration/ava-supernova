@@ -56,7 +56,8 @@ export class BrainstormStore {
 
   /** Sessions belonging to a project. */
   private projectDir(projectPath: string): string {
-    return join(this.globalDir, 'projects', projectHash(projectPath), BRAINSTORM_DIR);
+    // project-notes, not projects — `projects/` is the user's own work now.
+    return join(this.globalDir, 'project-notes', projectHash(projectPath), BRAINSTORM_DIR);
   }
 
   private dirFor(session: Pick<BrainstormSession, 'projectPath'>): string {

@@ -43,7 +43,7 @@ describe('nothing is written into the project', () => {
     await store.save(s);
 
     expect(await readdir(project)).toEqual([]);
-    expect(existsSync(join(home, 'projects', projectHash(project), 'brainstorm', s.id + '.json'))).toBe(true);
+    expect(existsSync(join(home, 'project-notes', projectHash(project), 'brainstorm', s.id + '.json'))).toBe(true);
   });
 
   it('hashes the project path the same way regardless of trailing slash or case', async () => {
@@ -105,7 +105,7 @@ describe('attaching to a project', () => {
     const moved = await store.attach(s.id, project);
     expect(moved?.projectPath).toBe(project);
     expect(existsSync(loose)).toBe(false);
-    expect(existsSync(join(home, 'projects', projectHash(project), 'brainstorm', s.id + '.json'))).toBe(true);
+    expect(existsSync(join(home, 'project-notes', projectHash(project), 'brainstorm', s.id + '.json'))).toBe(true);
     // …and still nothing in the project itself.
     expect(await readdir(project)).toEqual([]);
   });

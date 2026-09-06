@@ -7,17 +7,24 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  categoryOf, CATEGORY_LABEL, CATEGORY_ORDER,
+  categoryOf, CATEGORY_LABEL, CATEGORY_ORDER, SKIP_IN_AVA_SCAN,
   isUsageStale, measuredAgo, PROJECTS_USAGE_TTL_MS,
   type ProjectsUsage,
 } from '../src/projects/storage-categories.js';
 
 describe('categorising what is in ~/.ava', () => {
   it('gives Ava project data its own row instead of burying it in Other', () => {
-    // This is what the change is for: `~/.ava/projects` used to fall through
-    // to 'other', so it was invisible in the bar.
-    expect(categoryOf('projects')).toBe('projects');
-    expect(categoryOf('projects')).not.toBe('other');
+    // `~/.ava/project-notes` — what Ava knows ABOUT a project. It was called
+    // `projects/` and this asserted THAT name, until 2026-09-06 when the
+    // user's own work moved to `~/.ava/projects` and the notes were renamed
+    // out of the way.
+    expect(categoryOf('project-notes')).toBe('projects');
+    expect(categoryOf('project-notes')).not.toBe('other');
+
+    // And `projects` is now deliberately NOT categorised: it is the user's
+    // work, measured as the other half of the bar. Counting it here would
+    // report their source as Ava's own footprint AND count it twice.
+    expect(SKIP_IN_AVA_SCAN).toContain('projects');
   });
 
   it('does not call it "Projects"', () => {

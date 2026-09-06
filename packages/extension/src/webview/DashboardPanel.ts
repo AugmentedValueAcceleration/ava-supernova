@@ -2069,8 +2069,23 @@ export class DashboardPanel {
         const scan = await scanStorage(AVA_HOME);
         this.post({ type: 'storage_scan_loaded', scan });
         // The cached projects figure rides along, so the bar can show both
-        // halves immediately. Measuring is a separate, explicit request.
-        this.post({ type: 'projects_usage_loaded', usage: await readProjectsUsage(AVA_HOME) });
+        // halves immediately.
+        const cached = await readProjectsUsage(AVA_HOME);
+        this.post({ type: 'projects_usage_loaded', usage: cached });
+        // NO CACHE MEANS MEASURE IT. This used to wait for an explicit request,
+        // so on a first open the "Your projects" row rendered '—' — which reads
+        // as "not counted" rather than "not measured yet", and is exactly why
+        // the operator believed his projects folder was untracked. Measured
+        // once, in the background, and cached like everything else; the manual
+        // request below still exists for a refresh.
+        if (!cached) {
+          void (async () => {
+            try {
+              const home = projectsHomeFrom(require('node:os').homedir(), this.readProjectsHomeSetting());
+              this.post({ type: 'projects_usage_loaded', usage: await measureProjects(home, AVA_HOME) });
+            } catch { /* the bar simply keeps the dash */ }
+          })();
+        }
         break;
       }
 

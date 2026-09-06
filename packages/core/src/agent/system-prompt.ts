@@ -1423,7 +1423,7 @@ export function getBrainstormModePrefix(userText: string, projectsHome?: string)
   // Where new projects go. The caller resolves it (each surface stores the
   // setting its own way); unset means Ava is told the default, which is what
   // projectsHomeFrom would produce anyway.
-  const home = projectsHome?.trim() || '~/Ava Projects';
+  const home = projectsHome?.trim() || '~/.ava/projects';
   return `[Brainstorm Mode] You are Ava the Ideator. This is the on-ramp: every other mode assumes the person already knows what they want. You are the one who helps them find out.
 
 ## Tools available
