@@ -45,13 +45,25 @@ export interface PostStore {
   write(post: SocialPostInput): Promise<SocialPostWritten>;
 }
 
-/** A finished short-form video post: the clip, the voiceover, and the caption. */
+/**
+ * A finished short-form video post — as the PARTS a person assembles: the
+ * storyboard, the voiceover, and the caption.
+ *
+ * We do not generate video. The stills and the read come back finished and the
+ * operator cuts them together, which is why `shots` is a SEQUENCE laid end to
+ * end rather than a set of alternatives.
+ */
 export interface VideoPostInput {
   /** tiktok | instagram | youtube | facebook — all vertical short-form. */
   platform: string;
-  /** What is ON SCREEN, as a generation prompt. */
-  visual: string;
-  /** What she SAYS over it. Empty for a silent clip carried by on-screen text. */
+  /**
+   * The STORYBOARD — one still per five seconds, in order. Three for fifteen
+   * seconds, six for thirty; the count is checked against `duration` rather
+   * than asked for separately, because two numbers that must agree are two
+   * numbers that can disagree.
+   */
+  shots: string[];
+  /** What she SAYS over it. Empty for a silent piece carried by on-screen text. */
   script?: string;
   /** The caption — the post itself. */
   caption: string;
@@ -61,37 +73,37 @@ export interface VideoPostInput {
   hashtags?: string[];
   tagNote?: string;
   /**
-   * Fix the dice. Without a seed every regeneration lands in a different
-   * universe, so changing one word and comparing is impossible — you are not
-   * iterating, you are re-rolling. Pass the seed a previous clip reported to
-   * change ONE thing and see only that thing change.
-   */
-  seed?: number;
-  /**
-   * A dish we already have a photograph of. Naming one animates OUR hero image
-   * instead of generating a plausible stranger's version of the dish.
+   * A dish we already have a photograph of. Naming one puts OUR hero shot in
+   * the storyboard as the opening frame, instead of generating a plausible
+   * stranger's version of the dish.
    *
-   * Food is the right subject for this and a squat is not: there is no anatomy
-   * to get wrong, and the motion food wants — steam, a slow push, light moving
-   * across a surface — is exactly what these models do well. The picture is
-   * already the dish; animating it does not make it a different dish.
+   * `seed` used to sit here, to hold a video still while one thing changed.
+   * The image lane takes no seed, so the field would have been a knob wired to
+   * nothing — which is worse than a missing one, because she would use it and
+   * report back that she had.
    */
   recipe?: string;
 }
 
-/** What the surface reports back once the job is accepted. */
+/** What the surface reports back — the finished parts, not a job to poll. */
 export interface VideoPostWritten {
-  /** Generation job id — the surface polls this; the clip is NOT ready yet. */
-  taskId: string;
-  /** The seed actually used. Reported so the next attempt can reuse it and
-   *  change one thing, rather than starting from scratch. */
-  seed: number;
-  /** The dish whose hero image became the first frame, when one was found.
+  /** The stills, IN ORDER. Permanent URLs, already in the Library. */
+  shots: Array<{ url: string; prompt: string }>;
+  /** Shots that did not render, in her words. Reported rather than hidden:
+   *  a storyboard with a hole in it is not a storyboard, and she has to know
+   *  before she tells the operator it is ready. */
+  shotErrors: string[];
+  /** The voiceover, when there was a script. Permanent URL. */
+  voiceUrl?: string | null;
+  /** Measured off the WAV header. The one fact about a read nobody can check
+   *  by looking, and the one that decides whether it fits the picture. */
+  voiceSeconds?: number | null;
+  /** The dish whose hero photograph opens the storyboard, when one was found.
    *  Null when she named a recipe we have no photograph of — she is told, so
-   *  she does not claim the clip shows our dish when it was generated. */
+   *  she does not claim the piece shows our dish when it was generated. */
   recipeImageUsed?: string | null;
-  /** False when the voiceover failed, so the clip carries the model's own dub
-   *  rather than her voice. She must say so rather than let it pass as hers. */
+  /** False when the voiceover failed. There is no dub to fall back on now:
+   *  a failed read means the piece is silent, and she must say so. */
   voiced: boolean;
   voiceError?: string | null;
 }
@@ -99,12 +111,14 @@ export interface VideoPostWritten {
 /**
  * Surface-injected sink for finished video posts.
  *
- * The split matters: core validates and enforces the caption cap (surface-free
- * work it can do anywhere), while the IMPLEMENTATION renders the voiceover and
- * submits the generation job — because those need provider keys and a wallet,
- * which core has no business holding. Same shape as PostStore, one extra fact:
- * write() returns a job, not a finished video, because generation outlives the
- * turn and the caption is usable long before the picture is.
+ * The split matters: core validates and enforces the caption cap and the shot
+ * count (surface-free work it can do anywhere), while the IMPLEMENTATION
+ * renders the voice and the stills — because those need provider keys and a
+ * wallet, which core has no business holding.
+ *
+ * write() returns the FINISHED parts. It used to return a job, because a video
+ * render outlived the turn; stills and speech do not, so the card is complete
+ * when it lands and there is nothing left to poll.
  */
 export interface VideoPostStore {
   write(post: VideoPostInput): Promise<VideoPostWritten>;
@@ -207,6 +221,29 @@ export function imageSizeFor(platform: string, format?: string): string {
   return PLATFORM_IMAGE_SPECS[key]
     ?? PLATFORM_IMAGE_SPECS[platform.toLowerCase()]
     ?? '1280*1280';
+}
+
+/**
+ * The format key that makes a platform VERTICAL.
+ *
+ * Short-form is always 9:16, so the storyboard must never ask imageSizeFor for
+ * a bare platform name: 'facebook' on its own is the 1.91:1 link card and
+ * 'instagram' on its own is the 4:5 feed. Either would put the wrong shape in
+ * a Reel — the exact trap PLATFORM_IMAGE_SPECS documents, one call site away
+ * from being fallen into again.
+ *
+ * tiktok is absent on purpose: it has no second shape, so its bare key is
+ * already right.
+ */
+const SHORT_FORM_FORMATS: Readonly<Record<string, string>> = {
+  instagram: 'reel',
+  youtube: 'short',
+  facebook: 'reel',
+};
+
+/** The 9:16 size for a short-form platform. */
+export function shortFormImageSize(platform: string): string {
+  return imageSizeFor(platform, SHORT_FORM_FORMATS[platform.toLowerCase()]);
 }
 
 /** A picture for a post — generated, or REPAIRED from one that already exists. */

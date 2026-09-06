@@ -60,7 +60,7 @@ export type {
   // The day plan the Posts floor and Ava share.
   DayPlanRow, NewDayPlanItem, DayPlanStore,
 } from './social/index.js';
-export { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, PLATFORM_TAG_POLICY, VIDEO_CAPTION_LIMITS, PLATFORM_IMAGE_SPECS, imageSizeFor } from './social/index.js';
+export { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, PLATFORM_TAG_POLICY, VIDEO_CAPTION_LIMITS, PLATFORM_IMAGE_SPECS, imageSizeFor, shortFormImageSize } from './social/index.js';
 
 // Health profile-fill registry (the "Ava fills your profile" flow)
 export {

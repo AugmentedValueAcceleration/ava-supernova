@@ -8,9 +8,14 @@
 //
 // Two things this file guards that were learned the hard way:
 //
-//   A voiced clip is never shorter than 10s. Below that every script short
-//   enough to fit is too short for Wan to accept as audio at all, so the window
-//   is empty and the clip fails to render.
+//   A voiced clip is never shorter than 10s. Below that the floor computes
+//   above the ceiling, so every script short enough to fit is shorter than the
+//   minimum read worth making — the window is empty.
+//
+//   Every call also carries a STORYBOARD sized to the duration (one still per
+//   five seconds), because that is now checked. The helper derives it, except
+//   where the tool CLAMPS the length — there the count is stated outright,
+//   since the clamp is the thing under test.
 //
 //   Duration is DERIVED from the script when she does not name one. She used to
 //   have to guess a length and then cram words into it, finding out only after
@@ -24,19 +29,39 @@ function words(n: number): string {
 }
 
 const tool = new WriteVideoPostTool();
-let lastWritten: { duration?: number } | null = null;
+let lastWritten: { duration?: number; shots?: string[] } | null = null;
 const store = {
-  write: async (post: { duration?: number }) => {
+  write: async (post: { duration?: number; shots?: string[] }) => {
     lastWritten = post;
-    return { id: 'x', path: 'x.mp4' };
+    return {
+      shots: (post.shots ?? []).map(p => ({ url: 'https://x/1.jpg', prompt: p })),
+      shotErrors: [],
+      voiced: true,
+    };
   },
 };
 const ctx = { cwd: '.', sharedState: { videoPostStore: store } } as never;
 
-async function attempt(args: Record<string, unknown>) {
+/** A storyboard of `n` distinct frames — distinct because a real one is. */
+function storyboard(n: number): string[] {
+  return Array.from({ length: n }, (_, i) => `frame ${i + 1}: something happens`);
+}
+
+/**
+ * `shotCount` overrides the derived one. Needed wherever the tool changes the
+ * duration under the request — a voiced 5s becomes 10s and needs two frames,
+ * 45s clamps to 30 and needs six — which is exactly what those cases assert.
+ */
+async function attempt(args: Record<string, unknown>, shotCount?: number) {
   lastWritten = null;
+  const seconds = typeof args.duration === 'number' ? args.duration : 15;
   const r = await tool.execute(
-    { platform: 'tiktok', visual: 'a still shot', caption: 'a caption', ...args },
+    {
+      platform: 'tiktok',
+      shots: storyboard(shotCount ?? Math.max(1, Math.ceil(seconds / 5))),
+      caption: 'a caption',
+      ...args,
+    },
     ctx,
   );
   return r;
@@ -119,20 +144,61 @@ describe('the ceilings are the models’ own', () => {
   });
 
   it('everything else reaches 30', async () => {
-    expect((await attempt({ duration: 45, script: words(60) })).success).toBe(true);
+    // Six frames for the thirty it clamps to, not nine for the forty-five asked.
+    expect((await attempt({ duration: 45, script: words(60) }, 6)).success).toBe(true);
     expect(lastWritten!.duration).toBe(30);
+  });
+});
+
+describe('one still per five seconds, and the count is checked', () => {
+  // Derived from the duration rather than asked for separately: two numbers
+  // that must agree are two numbers that can disagree, and the one that would
+  // have lost is the picture — silently, leaving a thirty-second piece with
+  // three frames and ten seconds of nothing to cut to.
+  it('a 15s post takes exactly three', async () => {
+    await attempt({ script: words(28) });
+    expect(lastWritten!.shots).toHaveLength(3);
+  });
+
+  it('too few is refused, with the arithmetic', async () => {
+    const r = await attempt({ script: words(28) }, 2);
+    expect(r.success).toBe(false);
+    expect(r.output).toContain('needs 3 shots');
+    expect(r.output).toContain('you wrote 2');
+  });
+
+  it('too many is refused, and offers the longer duration instead', async () => {
+    const r = await attempt({ script: words(28) }, 5);
+    expect(r.success).toBe(false);
+    expect(r.output).toContain('set duration to 25');
+  });
+
+  it('a length that is not a multiple of five rounds up', async () => {
+    // The last still simply holds a beat longer — better than refusing a
+    // perfectly good storyboard over arithmetic nobody asked her to do.
+    expect((await attempt({ duration: 12, script: words(22) }, 3)).success).toBe(true);
+  });
+
+  it('the shot count is measured against the duration she GETS, not the one she asked for', async () => {
+    // A default she never saw decides the count. Measuring against the raw
+    // request would refuse a correct three-frame storyboard for a 15s post
+    // that never named a duration at all.
+    expect((await attempt({ script: words(28) }, 3)).success).toBe(true);
   });
 });
 
 describe('a voiced clip is never five seconds', () => {
   it('asking for 5 with a script is raised to 10', async () => {
-    const r = await attempt({ duration: 5, script: words(19) });
+    // Two frames, not one: the clip it actually becomes is ten seconds long.
+    const r = await attempt({ duration: 5, script: words(19) }, 2);
     expect(r.success).toBe(true);
     expect(lastWritten!.duration).toBe(10);
   });
 
   it('a silent clip may be short', async () => {
+    // One frame, and it stays five seconds because nothing raises it.
     expect((await attempt({ duration: 5 })).success).toBe(true);
     expect(lastWritten!.duration).toBe(5);
+    expect(lastWritten!.shots).toHaveLength(1);
   });
 });

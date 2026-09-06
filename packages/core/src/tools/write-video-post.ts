@@ -7,30 +7,47 @@ import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput } from '
 const AVA_URL = 'avasupernova.com';
 
 /**
- * Emit a finished SHORT-FORM VIDEO POST — the clip, the voiceover, and the
- * caption as one artefact.
+ * How long one still holds on screen.
+ *
+ * Operator's number, and the reason the storyboard has a fixed cadence at all:
+ * a person cutting this in Canva wants a rhythm they can lay down without
+ * thinking, not a per-shot timing decision on every frame.
+ */
+const SECONDS_PER_SHOT = 5;
+
+/**
+ * Emit a finished SHORT-FORM VIDEO POST as the PARTS a person assembles — the
+ * storyboard, the voiceover, and the caption.
+ *
+ * WE DO NOT GENERATE VIDEO. Operator, 2026-09-05: it is not good enough for
+ * what these posts are for. So this produces a voiceover and one still per
+ * five seconds, and the operator cuts them together in Canva — where a human
+ * can see what they are making, which is the whole point of the change.
+ *
+ * That is why `shots` is a SEQUENCE. Three takes on the same moment is not a
+ * storyboard, it is one shot photographed three times, and laid end to end it
+ * makes a video that does not move.
  *
  * The split mirrors write_post: this tool does the surface-free work (validate
- * the three parts, enforce the caption cap deterministically) and the injected
- * `videoPostStore` does everything that needs a provider key — rendering her
- * voice and submitting the generation job.
+ * the parts, enforce the caption cap and the shot count deterministically) and
+ * the injected `videoPostStore` does everything that needs a provider key —
+ * rendering her voice and the stills.
  *
- * The one thing that differs from every other card: what comes back is a JOB,
- * not a finished video. Generation runs for minutes and outlives the turn, so
- * the caption ships immediately and the picture arrives later. She must not
- * describe a clip she has not seen.
+ * Nothing is pending any more. Stills and speech are both synchronous, so the
+ * card is complete when it lands and there is no job to poll. She still has
+ * not SEEN the pictures, and must not describe them.
  */
 export class WriteVideoPostTool implements Tool {
   readonly name = 'write_video_post';
   readonly description =
-    'Emit a finished short-form video post — the clip, your voiceover, and the caption together. One call per video.';
+    'Emit a short-form video post as its parts — a storyboard of stills, your voiceover, and the caption. One call per video.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'write_video_post',
     description:
-      'Emit a finished SHORT-FORM VIDEO POST — the clip, the voiceover in your own voice, and the caption, as one artefact. Use when the idea wants to be a video rather than text (TikTok, Reels, Shorts). Call it ONCE PER VIDEO. Do not write the script or caption in your narration — only call this tool. Generation takes a couple of minutes and finishes after your turn, so say what you made and why that angle; never claim you have watched it back.',
+      'Emit a finished SHORT-FORM VIDEO POST as the PARTS a person assembles: the voiceover in your own voice, a storyboard of stills (one per five seconds), and the caption. We do not generate video — the operator cuts these together in Canva, which is why the shots must work as a SEQUENCE laid end to end rather than as alternatives. Use when the idea wants to be a video rather than text (Shorts, Reels, TikTok). Call it ONCE PER VIDEO. Do not write the script or caption in your narration — only call this tool. The stills and the voice are generated after your turn, so say what you made and why that angle; never claim you have seen them.',
     parameters: {
       type: 'object',
       properties: {
@@ -39,9 +56,10 @@ export class WriteVideoPostTool implements Tool {
           enum: ['tiktok', 'instagram', 'youtube', 'facebook'],
           description: 'Where this is going. All four are vertical short-form (9:16); "youtube" means Shorts, "instagram" means Reels, "facebook" means Reels on our Page.',
         },
-        visual: {
-          type: 'string',
-          description: 'What is ON SCREEN, written as a video generation prompt — subject, action, setting, camera movement, lighting, mood. Not the caption and not the script; the shot. Be concrete: the model cannot render an abstraction like "the feeling of trust", but it can render a hand stopping halfway to a pan.',
+        shots: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'The STORYBOARD — one still per five seconds of the finished piece, in order. A 15-second post takes exactly 3, a 30-second one takes 6; the count must match duration ÷ 5 and is refused with the arithmetic if it does not. Each entry describes ONE FRAME: subject, setting, framing, light, mood. Not camera movement — these are photographs, and asking for a slow push in describes something a still cannot do. They run END TO END, so they must carry the script forward rather than restate it: the hand reaching, the pan at heat, the plate finished. Three angles on the same moment is not a storyboard, it is one shot photographed three times, and it makes a video that does not move. Be concrete — a model cannot render "the feeling of trust", but it can render a hand stopping halfway to a pan.',
         },
         script: {
           type: 'string',
@@ -53,7 +71,7 @@ export class WriteVideoPostTool implements Tool {
         },
         duration: {
           type: 'number',
-          description: 'Clip length in seconds, 2-30. LEAVE IT OUT and you get 15s, whatever the subject — that is the format, and it holds one clear thought. Set it ONLY when the material genuinely needs otherwise, and the script band moves with whatever you set. 10 is a hook. 15 is the default: a full coaching line, a dish, a single point made properly. 30 is for something that truly needs showing — a walkthrough, a before-and-after, a process — and costs about twice the wait, so it should earn it. A padded clip loses the viewer, and padding gets easier the more room you have.',
+          description: 'Finished length in seconds, 2-30. LEAVE IT OUT and you get 15s, whatever the subject — that is the format, and it holds one clear thought. It decides TWO things: how many words the voiceover can carry, and HOW MANY SHOTS you must write (one per five seconds — 15s takes 3, 30s takes 6). Set it ONLY when the material genuinely needs otherwise. 10 is a hook. 15 is the default: a full coaching line, a dish, a single point made properly. 30 is for something that truly needs showing — a walkthrough, a before-and-after, a process — and it is six separate frames to think of, so it should earn them. A padded piece loses the viewer, and padding gets easier the more room you have.',
         },
         title: { type: 'string', description: 'Optional short title for the library.' },
         hashtags: {
@@ -64,14 +82,10 @@ export class WriteVideoPostTool implements Tool {
         tag_note: { type: 'string', description: 'One short line on why these tags.' },
         recipe: {
           type: 'string',
-          description: 'For a FOOD video: the name of a dish we already have a photograph of. CHECK FIRST with find_recipe — naming a dish we do not have is REFUSED, not generated, because a plausible stranger plate filed among our own photographs is one careless caption away from being posted as ours. Naming a real one animates OUR hero image, so the picture is already the food and cannot misrepresent it. Use this for anything about a recipe. When you do, describe only gentle motion in the visual (steam, a slow push in, light shifting) and say what stays STILL; a locked plate is the whole point.',
-        },
-        seed: {
-          type: 'number',
-          description: 'Reuse the seed a previous clip reported to change ONE thing and see only that thing change. Without it every attempt is a different clip entirely, which is re-rolling rather than fixing. Omit for a genuinely new idea.',
+          description: 'For a FOOD video: the name of a dish we already have a photograph of. CHECK FIRST with find_recipe — naming a dish we do not have is REFUSED, not generated, because a plausible stranger plate filed among our own photographs is one careless caption away from being posted as ours. Naming a real one puts OUR hero photograph in as the OPENING SHOT, so the first frame is genuinely the food and cannot misrepresent it. Use this for anything about a recipe. Your first entry in `shots` is then a description of that photograph rather than a request — it is not generated, so write the rest of the storyboard to follow on from it.',
         },
       },
-      required: ['platform', 'visual', 'caption'],
+      required: ['platform', 'shots', 'caption'],
     },
   };
 
@@ -99,12 +113,19 @@ export class WriteVideoPostTool implements Tool {
           + 'ones) before calling this again: tiktok, instagram, youtube or facebook.',
       };
     }
-    const visual = ((args.visual as string | undefined) || '').trim();
+    const shots = Array.isArray(args.shots)
+      ? (args.shots as unknown[]).map(x => String(x ?? '').trim()).filter(Boolean)
+      : [];
     const caption = ((args.caption as string | undefined) || '').trim();
     const script = ((args.script as string | undefined) || '').trim();
 
-    if (!visual) {
-      return { success: false, output: 'write_video_post requires a visual — describe what is on screen.' };
+    if (shots.length === 0) {
+      return {
+        success: false,
+        output:
+          'write_video_post requires `shots` — the storyboard, one still per five seconds, in order. '
+          + 'A 15-second post takes 3.',
+      };
     }
     if (!caption) {
       return { success: false, output: 'write_video_post requires a caption — the clip is only half the post.' };
@@ -138,21 +159,23 @@ export class WriteVideoPostTool implements Tool {
     }
 
     // ── The voiceover has to FIT ─────────────────────────────────────────
-    // We hand Wan a finished audio file, so we cannot offset when it starts —
-    // the only lever is making the speech short enough to sit inside the clip.
+    // The read is laid against a fixed run of stills, so the only lever is
+    // making the speech short enough to sit inside it. This mattered when Wan
+    // took the audio as input and it matters just as much now that a person
+    // does the cutting: a voice still talking after the last still is the same
+    // broken short either way, and now there is nobody to notice but them.
     // Budget: the duration minus a second of air at each end, at roughly two
     // words a second. A 10s clip is therefore about 16 words, NOT the 20-25 the
     // guidance used to claim — that was 10-12 seconds of speech over a 10 second
     // clip, which is why the voice ran past the end.
     //
-    // And a FLOOR, which the ceiling alone hid. Wan refuses any supplied audio
-    // under 3.0 seconds outright — "duration should be at least 3.0s, got
-    // 1.68s" — so a very short line does not sound sparse, it fails to render.
-    // At two words a second that floor is about six words, which is ALSO the
-    // ceiling for a 5s clip: the window for a voiced 5s clip is empty, every
-    // script short enough to fit being too short to accept. So a voiced clip is
-    // always 10s. Found the hard way after a six-word line killed every food
-    // video with a generic "generation failed".
+    // And a FLOOR, which the ceiling alone hid. Three seconds was Wan's own
+    // refusal threshold for supplied audio; it stays as the shortest read worth
+    // making, because at 5 seconds the arithmetic still closes the window on
+    // its own — the floor lands above the ceiling, so every script short enough
+    // to fit is too short to be worth hearing. A voiced piece is therefore
+    // always 10s or more. Found the hard way, when a six-word line killed every
+    // food video with a generic "generation failed".
     // MEASURED through the real voice — qwen3-tts-instruct-flash, the 'Maia'
     // brand voice, the shipped voice direction, timed off the returned WAV
     // headers rather than derived from an assumed rate:
@@ -205,16 +228,15 @@ export class WriteVideoPostTool implements Tool {
     /**
      * How long the clip may run: 30 seconds, whatever the subject is.
      *
-     * Food used to stop at 15. Not a judgement about food — a recipe animates
-     * OUR photograph of the dish, that went to wan2.7-i2v, and wan2.7-i2v stops
-     * at 15. One model does everything now and it reaches 30, so the cap has
-     * nothing left to enforce.
+     * Food used to stop at 15, because a recipe animated OUR photograph through
+     * wan2.7-i2v and that model stopped at 15. Nothing is animated any more, so
+     * that cap had nothing left to enforce even before this.
      *
-     * This is the model's own ceiling, quoted from its validator, and the
-     * platform route clamps to it independently; matching it here means the
-     * SCRIPT is written for the length that will actually render. Get it wrong
-     * and a script sized for 30 seconds gets a 15-second clip, and the voice
-     * runs past the end — the exact failure everything below exists to prevent.
+     * 30 is now an EDITORIAL ceiling rather than a provider one: six separate
+     * frames is already a lot to hold one idea together, and a seventh is
+     * almost always padding. Kept because the script band is derived from it —
+     * the read has to be written for the length it will actually be laid
+     * against, which is the failure everything below exists to prevent.
      */
     const maxDuration = 30;
 
@@ -223,10 +245,11 @@ export class WriteVideoPostTool implements Tool {
       Math.floor(Math.max(1, seconds - LEAD_IN_SECONDS - TRAILING_AIR_SECONDS) * SLOWEST_WORDS_PER_SECOND);
 
     /**
-     * A voiced clip is never shorter than 10 seconds. The window below that is
-     * empty: every script short enough to fit is too short for Wan to accept as
-     * audio at all (see the 3.0s minimum above). Learned when a six-word line
-     * killed every food video with a generic "generation failed".
+     * A voiced piece is never shorter than 10 seconds. The window below that is
+     * empty: at 5 seconds the floor computes above the ceiling, so every script
+     * short enough to fit is shorter than the minimum read (see the 3.0s
+     * minimum above). Learned when a six-word line killed every food video with
+     * a generic "generation failed".
      */
     const MIN_VOICED_SECONDS = 10;
 
@@ -263,11 +286,41 @@ export class WriteVideoPostTool implements Tool {
           ? Math.max(MIN_VOICED_SECONDS, Math.min(maxDuration, Math.round(requested)))
           : Math.max(2, Math.min(maxDuration, Math.round(requested))));
 
+    /**
+     * ONE STILL PER FIVE SECONDS, and the count is checked rather than trusted.
+     *
+     * Derived from `duration` instead of asked for separately, because two
+     * numbers that must agree are two numbers that can disagree — and the one
+     * that would have lost is the picture, silently, leaving a 30-second piece
+     * with three frames and ten seconds of nothing to cut to.
+     *
+     * Checked HERE, after the duration is settled, because a duration she did
+     * not set was decided by this code: measuring against the raw request would
+     * refuse a perfectly good three-shot storyboard for a default she never saw.
+     *
+     * Ceiling, not exact division, so a length that is not a multiple of five
+     * still works — the last still simply holds a beat longer. Refused with the
+     * arithmetic shown, the same way the caption cap and the script band are,
+     * so she fixes it and re-calls in the same turn instead of guessing.
+     */
+    const expectedShots = Math.max(1, Math.ceil(plannedDuration / SECONDS_PER_SHOT));
+    if (shots.length !== expectedShots) {
+      return {
+        success: false,
+        output:
+          `A ${plannedDuration}s post needs ${expectedShots} shot${expectedShots === 1 ? '' : 's'} ` +
+          `(${plannedDuration} \u00f7 ${SECONDS_PER_SHOT}, rounded up) and you wrote ${shots.length}. ` +
+          (shots.length < expectedShots
+            ? `Add ${expectedShots - shots.length} that carry the script FORWARD — the next moment, not another angle on this one.`
+            : `Cut ${shots.length - expectedShots}, or set duration to ${shots.length * SECONDS_PER_SHOT} if the piece genuinely needs the room.`),
+      };
+    }
+
     if (script) {
       const words = scriptWords;
       const budget = wordBudget(plannedDuration);
-      // Never below what Wan will accept as audio at all, however short the
-      // clip: MIN_SPEECH_SECONDS at the FASTEST observed rate.
+      // Never below the shortest read worth making, however short the piece:
+      // MIN_SPEECH_SECONDS at the FASTEST observed rate.
       const audioFloor = Math.ceil(MIN_SPEECH_SECONDS * 2.78);
       const floor = Math.max(audioFloor, Math.round(budget * FILL_RATIO));
       if (words > budget) {
@@ -295,7 +348,7 @@ export class WriteVideoPostTool implements Tool {
 
     const post: VideoPostInput = {
       platform,
-      visual,
+      shots,
       script: script || undefined,
       caption: withLink,
       // The length the SCRIPT was written for, not the raw request. If these
@@ -306,39 +359,45 @@ export class WriteVideoPostTool implements Tool {
         ? (args.hashtags as unknown[]).map(h => String(h).trim().replace(/^#/, '')).filter(Boolean)
         : [],
       tagNote: ((args.tag_note as string | undefined)?.trim()) || undefined,
-      seed: typeof args.seed === 'number' && Number.isFinite(args.seed) ? args.seed : undefined,
       recipe: ((args.recipe as string | undefined)?.trim()) || undefined,
     };
 
     try {
       const written = await store.write(post);
-      // Report the voiceover honestly. A failed TTS still produces a clip — the
-      // model dubs its own — and she needs to know that is not her on it before
-      // she tells the operator otherwise.
-      // Say plainly whether the clip is built on our own photograph or on a
+      // Say plainly whether the opening frame is our own photograph or a
       // generated dish. She must not claim it shows our food if it does not.
       const recipeLine = post.recipe
         ? (written.recipeImageUsed
-            ? ` Built on our own photograph of ${written.recipeImageUsed} — you can say it is our dish.`
+            ? ` The first still is our own photograph of ${written.recipeImageUsed} — you can say it is our dish.`
             : ` NO photograph found for "${post.recipe}", so the food is generated, not ours. Do not say it is our dish.`)
         : '';
+      // A failed read is not a cosmetic problem any more. There is no model
+      // dubbing its own track behind this — the piece is simply SILENT, and
+      // she has to say so rather than let "video post ready" imply a voice.
       const voiceLine = post.script
         ? written.voiced
-          ? ' Voiceover is in your voice.'
-          : ` The VOICEOVER FAILED${written.voiceError ? ` (${written.voiceError})` : ''} — the clip carries the model's own dub, NOT your voice. Say so plainly.`
+          ? ` The voiceover is in your voice${typeof written.voiceSeconds === 'number' ? `, ${written.voiceSeconds.toFixed(1)}s long` : ''}.`
+          : ` The VOICEOVER FAILED${written.voiceError ? ` (${written.voiceError})` : ''} — there is NO audio, so this is stills and a caption only. Say so plainly.`
+        : '';
+      // A hole in the storyboard is reported, never hidden: she is about to
+      // tell the operator it is ready, and a missing frame is the one thing
+      // they cannot work around in Canva without knowing.
+      const shotLine = written.shotErrors.length > 0
+        ? ` ${written.shotErrors.length} of the ${shots.length} stills did NOT render (${written.shotErrors.join('; ')}) — tell them which are missing.`
         : '';
       return {
         success: true,
         output:
-          `Video post queued for ${platform} — the caption is on the card now, the clip is still rendering ` +
-          `(job ${written.taskId}). Seed ${written.seed} — pass that same seed back if they ask for a change, ` +
-          `so you adjust THIS clip instead of rolling a different one. ` +
-          `You have not seen it: say what you made and why that angle, never how it looks.${recipeLine}${voiceLine}`,
+          `Storyboard ready for ${platform} — ${written.shots.length} still${written.shots.length === 1 ? '' : 's'} ` +
+          `for ${plannedDuration}s, the caption, and the voiceover, all saved to the Library. They go in ORDER, ` +
+          `${SECONDS_PER_SHOT} seconds each, assembled in Canva. ` +
+          `You have not seen the pictures: say what you made and why that angle, never how it looks.` +
+          `${recipeLine}${voiceLine}${shotLine}`,
       };
     } catch (err) {
       return {
         success: false,
-        output: `Could not queue the video: ${err instanceof Error ? err.message : String(err)}`,
+        output: `Could not make the storyboard: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
   }
