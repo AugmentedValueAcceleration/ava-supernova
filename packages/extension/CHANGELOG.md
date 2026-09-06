@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.98.0 — 2026-09-06 — One home for your projects, and I can read pictures again
+
+- Images reach me again. The chain that finds a model to describe a picture named four that no longer exist — on every plan, for every user.
+- Your projects live in ~/.ava/projects now, with everything else I keep, instead of a second folder sitting outside it.
+- What I know about a project moved to project-notes, so only one folder on your machine is called projects and it is the one with your work in it.
+- Anything in the old folder moves itself on first start. Nothing is overwritten, and a project in use is left alone and reported rather than moved out from under you.
+- The storage bar measures your projects instead of showing a dash, and never counts your source as my footprint.
+
+## 0.97.0 — 2026-08-29 — Ava works without an account, and every mode can do its job
+
+- Signing out hid your own files. Data is stored per account; without the account name I read an empty folder while the storage bar counted the gigabyte still sitting there.
+- Signing out also replaced the dashboard with a sign-in page — while you held working keys. Ava is local-first: an account adds credits and support, never access.
+- Usage works without an account: your tokens, your per-model spend and an estimated cost, from counters on your machine. Completed months are kept instead of discarded.
+- Starting a new project creates one in your projects home, with its Decisions folder ready — instead of building inside whatever project happened to be open.
+- Stop now means stop, including in prose — and a failed approach gets three attempts, then the error and a question, instead of the same idea tried again in different words.
+- No mode could open a file, and the builder could not write code — a rename left the tool lists pointing at names that no longer existed, so they were withheld in silence.
+
+## 0.96.1 — 2026-08-18 — Say no in your own words
+
+- Deny a tool call and say why — the reason reaches me, so I stop guessing my way around the refusal.
+- The input box no longer locks while I work. Correct me mid-run and I pick it up at the next step.
+- Errors arrive in plain English instead of provider JSON, and never again as [object Object].
+- Anything counted per day now follows your local calendar rather than UTC.
+- A billing bug is fixed in your disfavour: Aurora was charging a quarter of its real rate and now charges correctly.
+
 ## 0.96.0 — 2026-08-16 — A coder tier at last
 
 - Qwen3 Coder Next and Coder Flash — the first coder-specialised models in the line-up, at a fraction of what the previous coder tier cost.
