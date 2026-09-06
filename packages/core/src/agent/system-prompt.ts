@@ -1008,12 +1008,34 @@ export function getSocialStudioPrefix(
   brandKitSummary?: string,
   recentPostsSummary?: string,
   performanceSummary?: string,
+  /**
+   * THE WORK ITSELF — recent commits from the public repo.
+   *
+   * Her sources were: what we shipped (release notes), what the docs say, and
+   * what an AI executive said this week. Two wells and a puddle, which is why
+   * the beats rhymed. This one is different every day by definition, it is the
+   * most specific material we have, and it is the build-in-public material we
+   * are supposed to be known for. Public repo only — quoting it can leak
+   * nothing that is not already readable by anyone.
+   */
+  recentWork?: string,
 ): string {
   let prefix = SOCIAL_STUDIO_PERSONA;
 
   if (brandKitSummary) prefix += `\n\n## Their brand kit\n${brandKitSummary}`;
   if (performanceSummary) prefix += `\n\n## What's landed lately (Bluesky — learn from it, don't just repeat it)\n${performanceSummary}`;
   if (recentPostsSummary) prefix += `\n\n## What you have ALREADY MADE — do not repeat it\nThis is your own back catalogue. Read it before you propose anything. Picking the same subject twice is the fastest way to look like you are not paying attention, and if a SUBJECTS ALREADY COVERED line appears below, those are off the table unless they ask for one by name. There is a whole catalogue you have not touched — go and find something in it.\n\n${recentPostsSummary}`;
+  if (recentWork) {
+    prefix += `\n\n## THE WORK ITSELF — what we actually did, this week\n`
+      + `The commit log of the public repo. This is the richest material you have and the least used: `
+      + `every line is specific, checkable, and ours, and it is different every single day — which is `
+      + `exactly what a release note is not. "We deleted a feature because the AI was not good enough" `
+      + `is a better post than "0.97 shipped", and only one of those is in here.\n\n`
+      + `Read it for the DECISION underneath the change, not the change itself. A commit that REMOVES `
+      + `something says what we refuse to ship; a commit that fixes a silent failure says what we think `
+      + `a bug actually IS. Never paste a commit message, never name a file, never quote a hash — take `
+      + `the thing it reveals and write THAT.\n\n${recentWork}`;
+  }
   prefix += `\n\n## Their request\n${userText}`;
   return prefix;
 }

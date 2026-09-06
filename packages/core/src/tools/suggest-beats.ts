@@ -17,13 +17,13 @@ export class SuggestBeatsTool implements Tool {
 
   readonly schema: FunctionSchema = {
     name: 'suggest_beats',
-    description: 'Propose 3-5 things worth posting about TODAY — the studio\'s briefing. Call this when the operator asks "what should I post today" / "today\'s beats" / opens a planning request. First ground yourself: release_notes for anything just shipped, research_post or web_search for what\'s currently landing in our space, memory_recall to avoid repeating recent angles. Then return STORIES that fit the mission — each a concrete angle, one line on why it lands now, and what FORM it wants. Form is part of the idea, not a flag bolted onto it: some beats only exist as a film, some only work written down. Offer a mix rather than a list of text posts with the occasional video attached. Do NOT name platforms: a story goes to every crowd in the same slot, adapted to each, and where it goes is a planning decision the operator makes, not a property of the idea. Do NOT write the posts either; this is the menu, the operator picks one to draft.',
+    description: 'Propose the things worth posting about TODAY — up to 5, and TWO IS A FINE ANSWER — the studio\'s briefing. Call this when the operator asks "what should I post today" / "today\'s beats" / opens a planning request. First ground yourself: release_notes for anything just shipped, research_post or web_search for what\'s currently landing in our space, memory_recall to avoid repeating recent angles. Then return STORIES that fit the mission — each a concrete angle, one line on why it lands now, and what FORM it wants. Form is part of the idea, not a flag bolted onto it: some beats only exist as a film, some only work written down. Offer a mix rather than a list of text posts with the occasional video attached. Do NOT name platforms: a story goes to every crowd in the same slot, adapted to each, and where it goes is a planning decision the operator makes, not a property of the idea. Do NOT write the posts either; this is the menu, the operator picks one to draft.',
     parameters: {
       type: 'object',
       properties: {
         beats: {
           type: 'array',
-          description: '3-5 post ideas for today.',
+          description: 'The post ideas the day actually has — 2-5. Do not pad to a number: forcing five out of a thin day is how a briefing turns into the same briefing.',
           items: {
             type: 'object',
             properties: {

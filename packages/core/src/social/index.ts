@@ -26,6 +26,16 @@ export interface SocialPostInput {
   hashtags?: string[];
   /** One line on the reach/niche tag split, shown under the chips. */
   tagNote?: string | null;
+  /**
+   * What this post is ABOUT — the story, not the platform.
+   *
+   * Filed so "have we covered this already" is a LOOKUP rather than a guess.
+   * The Social Studio prefix has always promised a SUBJECTS ALREADY COVERED
+   * line and nothing ever filled it, because there was no way to say what a
+   * post was about; so a release stayed fresh-looking for exactly as long as a
+   * row survived inside a recency window, and then came round again.
+   */
+  subject?: string | null;
 }
 
 /** What the store returns after a post is written. */
