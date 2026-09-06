@@ -161,7 +161,7 @@ The work that isn't code, but still has to happen:
   - **Emails** (`.docx`) with tone-aware fonts (serif for formal, sans-serif for casual)
   - **Reports** (`.docx`) — board briefs, sprint reviews, weekly status pulled from your tasks, journal, memory, and git history
   - **Documents & spreadsheets** (`.docx`, `.xlsx`, `.pdf`, `.csv`, `.md`)
-- **Browser automation** — drives a visible Chromium window via Playwright when a task needs real-world interaction: navigate, snapshot the DOM, click, fill forms, scrape. Fully opt-in, approved on first use. Desktop-level automation (app control, screen capture) lives in the dedicated Ava IDE, not this extension.
+- **Browser automation** — drives a headless Chromium via Playwright when a task needs real-world interaction: navigate, click, fill forms, screenshot, extract text, run JavaScript. Fully opt-in, approved on first use. Desktop-level automation (app control, screen capture) lives in the dedicated Ava IDE, not this extension.
 - **Tasks** — track work across global and project scopes, synced to the dashboard
 - **Journal** — your entry and Ava's, side by side, with mood tracking and streaks
 - **Daily briefing** — a proactive morning check-in: today's tasks, overdue items, journal streak, learning progress
@@ -242,9 +242,9 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 ## Tools
 
-**121 user-facing tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
+**111 user-facing tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
 
-Counted from the registry, not estimated: 129 register, minus 8 that are internal plumbing for the agent loop.
+Counted from the registry as this extension builds it, not estimated: 119 register here, minus 8 that are internal plumbing for the agent loop. Every tool below is one you can actually call — the list and the number agree.
 
 | Category | Tools |
 |---|---|
@@ -255,15 +255,12 @@ Counted from the registry, not estimated: 129 register, minus 8 that are interna
 | **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `regenerate_hero`, `regenerate_demo`, `open_design_studio` |
 | **Office & Authoring** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `conversation_recall` |
-| **Tasks & Planning** | `todo_write`, `task_manage`, `task_suggest` |
+| **Tasks & Planning** | `todo_write`, `task_manage`, `task_suggest`, `create_project`, `brainstorm_session` |
 | **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress`, `open_learning_room` |
-| **Health & Fitness** | `health_catalogue_search`, `health_plan_list`, `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_delete`, `health_profile_ask` |
 | **Security & data** | `audit_dependencies`, `database_query` |
 | **System** | `get_datetime`, `detect_language`, `support_request`, `propose_tool` |
 | **Health & nutrition** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room`, `find_recipe`, `read_recipe`, `write_recipe`, `check_recipe`, `add_ingredient`, `find_exercise`, `read_exercise`, `write_exercise`, `check_exercise`, `propose_exercises`, `set_muscles`, `set_nutrition`, `add_equipment`, `add_contraindication`, `day_plan_read`, `day_plan_write`, `day_plan_item_status`, `record_machine_rule` |
 | **Newsroom & social** | `discover_news`, `research_story`, `suggest_stories`, `suggest_beats`, `scan_industry`, `fact_check`, `write_article`, `revise_section`, `research_post`, `write_post`, `write_post_image`, `write_video_post`, `write_voiceover`, `propose_seeds`, `propose_hooks`, `post_performance` |
-| **Desktop automation** | `desktop_launch_app`, `desktop_focus_window`, `desktop_list_elements`, `desktop_click_by_name`, `desktop_type`, `desktop_key_press`, `desktop_plan_approve` |
-| **Browser automation** | `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_close` |
 
 ---
 
