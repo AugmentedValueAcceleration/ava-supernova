@@ -69,8 +69,21 @@ export class TaskSuggestTool implements Tool {
 
   async execute(_args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
     // Normally bypassed — the host's confirmation handler creates the task (on
-    // Add) and returns the outcome. This fallback runs only if a surface has no
+    // Add) and returns the outcome. This runs ONLY on a surface with no
     // task-suggestion bridge wired.
-    return { success: true, output: 'Task suggestion shown.' };
+    //
+    // It used to return success with "Task suggestion shown." Nothing had been
+    // shown and nothing had been added, and TaskSuggestCard renders its
+    // resolved state — "✓ Added to your tasks" — off exactly that success. So
+    // the one path meaning "this surface cannot offer the card" was the path
+    // that claimed the task was on their board. Reported honestly now, and she
+    // is told to say it plainly rather than leaving them to find the gap.
+    return {
+      success: false,
+      output:
+        'This surface has no task-suggestion card, so nothing was shown and NOTHING WAS ADDED. '
+        + 'Do not tell them it is on their board. Say you would add it and ask them to add it '
+        + 'themselves, or use task_manage if they ask you to put it there directly.',
+    };
   }
 }

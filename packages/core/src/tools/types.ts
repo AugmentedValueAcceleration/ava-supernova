@@ -87,6 +87,20 @@ export interface Tool {
    */
   readonly outputTrust?: ToolOutputTrust;
   /** @deprecated Use riskLevel instead. Kept for backwards compat. */
+  /**
+   * ADVISORY ONLY — documentation, not a gate. `ToolRegistry.needsConfirmation()`
+   * is the sole authority and does not read this field.
+   *
+   * Thirty-one tools set it true; twenty-six of those are 'write' or
+   * 'dangerous' and already reach the category permission flow, so making this
+   * authoritative would force a prompt on every file write, bash call and
+   * commit regardless of permission mode — overriding "always allow"
+   * everywhere. A 'safe' tool that must still prompt has to be NAMED in
+   * needsConfirmation() instead.
+   *
+   * task_suggest and task_manage both set this and were both unguarded until
+   * 2026-09-07, because it reads as a promise the registry never made.
+   */
   readonly requiresConfirmation: boolean;
   /**
    * When true, the tool handles approval inside its own execute() (e.g. the

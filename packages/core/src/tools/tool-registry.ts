@@ -616,10 +616,21 @@ export class ToolRegistry {
   // ── Permission check ────────────────────────────────────────────────────
 
   needsConfirmation(tool: Tool, args?: Record<string, unknown>): boolean {
-    // Plans, ask_user, switch_mode, and the profile-fill card always require
-    // confirmation — collaboration checkpoints where the user's input IS the
-    // result (the host bridges the answer back as the tool result).
-    if (tool.name === 'present_plan' || tool.name === 'ask_user' || tool.name === 'switch_mode' || tool.name === 'health_profile_ask') return true;
+    // Plans, ask_user, switch_mode, the profile-fill card and task suggestions
+    // always require confirmation — collaboration checkpoints where the user's
+    // input IS the result (the host bridges the answer back as the tool result).
+    //
+    // task_suggest was missing here until 2026-09-07 and it is the clearest case
+    // of the rule: it writes NOTHING unless the user taps Add. Without a card
+    // there is no tap, so its execute() fell through to the "no bridge wired"
+    // fallback, that fallback reports success, and the card paints "Added to
+    // your tasks" over a task nobody added. Found live: the chip said added, her
+    // own sentence beside it said "tap Add if you want it", and the board was
+    // empty. It is 'safe' risk, so the short-circuit below would drop it.
+    if (
+      tool.name === 'present_plan' || tool.name === 'ask_user' || tool.name === 'switch_mode'
+      || tool.name === 'health_profile_ask' || tool.name === 'task_suggest'
+    ) return true;
 
     // Tools that handle approval inside their own execute() (desktop-safety-gate
     // pattern) skip the generic flow — they carry richer per-invocation
@@ -643,10 +654,25 @@ export class ToolRegistry {
     // user must see the card before history is rewritten.
     if (tool.name === 'git_commit' && args && args.amend === true) return true;
 
+    // task_manage WRITING to the user's personal list prompts; reading it does
+    // not. Its own comment has said this since it was written — "list/complete
+    // prompts are mild friction, create/update/delete prompts are the whole
+    // point", added because Ava was creating tasks unprompted from tangential
+    // mentions — and it has never happened, because the tool is 'safe' risk and
+    // the short-circuit below returned false before anything looked at the
+    // action. Same args-based shape as the two rules above.
+    if (tool.name === 'task_manage' && args && typeof args.action === 'string') {
+      if (['create', 'update', 'delete'].includes(args.action)) return true;
+    }
+
     // Safe tools never require confirmation — they have no real-world side effects.
     // This honors the riskLevel contract from types.ts and prevents safe tools like
     // todo_write from getting trapped in category-level "first_time" gates that
     // never resolve (e.g. the documents-category trap that hung the planning loop).
+    //
+    // NOTE: anything that must prompt DESPITE being 'safe' has to be named
+    // above this line. A tool cannot opt in from its own file — see the note on
+    // `requiresConfirmation` in types.ts.
     if (tool.riskLevel === 'safe') return false;
 
     const category = this.getCategoryForTool(tool.name);
