@@ -19,6 +19,10 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { logger } from '../core/logger.js';
+// The same list the stripper uses, so the two cannot disagree about what
+// counts as a prefix — one of them keeping a node the other would delete is
+// how this kind of thing comes back.
+import { startsWithContextTag } from './ambient-capture.js';
 import { TfIdfIndex, tokenize, cosineSimilarity, buildTermVector } from './tfidf.js';
 import type {
   MemoryNode,
@@ -92,12 +96,48 @@ export class MemoryGraph {
         logger.warn(`[graph] Unexpected graph version ${parsed.version}, loading anyway`);
       }
       this.store = parsed;
+      this.pruneCapturedPrompts();
       this.rebuildTfIdfIndex();
       logger.debug(`[graph] Loaded ${this.store.nodes.length} nodes, ${this.store.edges.length} edges from ${this.graphPath}`);
     } catch (err) {
       logger.warn(`[graph] Failed to load graph: ${err instanceof Error ? err.message : String(err)}`);
       this.store = createEmptyGraphStore();
     }
+  }
+
+  /**
+   * Drop nodes that are a MODE PROMPT rather than a memory.
+   *
+   * Ambient capture built its content from the user message, and every surface
+   * prefixes that message with the mode prompt — so what got stored was the
+   * first 300 characters of Ava's own instructions. The operator's graph held
+   * 30: 24 [Work Mode], 5 [Memory Brief] (the memory summary block fed back
+   * INTO memory) and 1 [Design Studio].
+   *
+   * stripModePrefix() stops new ones. This clears the ones already written,
+   * which matters more than it sounds: novelty is measured with findSimilar()
+   * over stored content, so each copy made the next work-mode turn look less
+   * novel until nothing could clear the promote threshold. Without this prune
+   * an existing install keeps ambient capture switched off after the fix.
+   *
+   * BEFORE rebuildTfIdfIndex() deliberately — index first and the poison still
+   * shapes similarity for the whole session, on its way out or not.
+   *
+   * Narrow: content must OPEN with a [Mode] tag, a shape nobody types and no
+   * distilled memory produces. Edges to a removed node go with it. Nothing is
+   * written here; the next ordinary save persists it, so a read-only session
+   * never rewrites a file it did not mean to touch.
+   */
+  private pruneCapturedPrompts(): void {
+    const doomed = new Set(
+      this.store.nodes.filter(n => startsWithContextTag(n.content ?? '')).map(n => n.id),
+    );
+    if (doomed.size === 0) return;
+
+    this.store.nodes = this.store.nodes.filter(n => !doomed.has(n.id));
+    this.store.edges = this.store.edges.filter(e => !doomed.has(e.fromNodeId) && !doomed.has(e.toNodeId));
+    this.dirty = true;
+    logger.debug(`[graph] Pruned ${doomed.size} captured-prompt node(s)`);
   }
 
   async save(): Promise<void> {

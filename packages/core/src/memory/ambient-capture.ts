@@ -103,6 +103,85 @@ export function parseScoringResponse(response: string): CandidateScore | null {
   }
 }
 
+// ── The mode prefix is not what they said ───────────────────────────────────
+
+/**
+ * Every surface prepends the mode prompt to the user's message before it
+ * reaches the agent — `getWorkModePrefix(text)` and its siblings. So what
+ * arrives here as `userMessage` is thousands of characters of instructions
+ * with the actual question at the very end.
+ *
+ * That broke ambient capture twice over, found 2026-09-08:
+ *
+ *   distilCandidate() stores `userText.slice(0, 300)` whenever the user
+ *   message is the longer one — which, after a prefix, it always is. The
+ *   operator's graph held 24 nodes that were all the identical opening 300
+ *   characters of the Work Mode prompt.
+ *
+ *   heuristicScore() measures novelty with findSimilar() over that same text,
+ *   so every stored copy made the NEXT work-mode turn look less novel. The
+ *   more prompt it saved, the less able it became to save anything real — it
+ *   disabled itself against precisely the mode where the building happens.
+ *
+ * Conservative on purpose. It only acts on text that opens with a `[Mode]`
+ * tag, prefers an explicit request marker, falls back to the final paragraph
+ * (exactly how getWorkModePrefix ends), and returns the input untouched if
+ * that yields nothing. Storing a prefix is bad; losing the message is worse.
+ */
+/**
+ * The context tags this codebase actually emits.
+ *
+ * Gathered from the prefix builders in system-prompt.ts and the injected
+ * context blocks. Deliberately an EXACT LIST rather than a shape: the first
+ * version matched any capitalised word in brackets, and a test caught it
+ * pruning `[BUG] the idle animation restarts every frame` — a thing a person
+ * types. `[TODO]`, `[NOTE]`, `[URGENT]` would have gone the same way. Losing
+ * somebody's memory to a convention we did not anticipate is far worse than
+ * keeping a prompt we did.
+ *
+ * `[Project: name]` carries a variable, so it is matched by its prefix.
+ */
+export const CONTEXT_TAGS: readonly string[] = [
+  '[Work Mode]', '[Plan Mode]', '[Chat Mode]', '[Teach Mode]', '[Write Mode]',
+  '[Brainstorm Mode]', '[Security Audit Mode]', '[Desktop Automation Mode]',
+  '[Newsroom]', '[Social Studio]', '[Pantry]', '[Gym]', '[Health Room]',
+  '[Design Studio]', '[Memory Brief]', '[Project Brain]',
+];
+
+/** True when the text OPENS with one of our own context tags. */
+export function startsWithContextTag(text: string): boolean {
+  const t = text.trimStart();
+  return CONTEXT_TAGS.some(tag => t.startsWith(tag)) || /^\[Project: [^\]]*\]/.test(t);
+}
+
+/** Headings the prefixes use to introduce the real message. */
+const REQUEST_MARKERS = [
+  '\n## Their request\n',
+  "\n## User's Request\n",
+  '\nUser\'s request: ',
+];
+
+export function stripModePrefix(text: string): string {
+  if (!startsWithContextTag(text)) return text;
+
+  for (const marker of REQUEST_MARKERS) {
+    const at = text.lastIndexOf(marker);
+    if (at !== -1) {
+      const tail = text.slice(at + marker.length).trim();
+      if (tail) return tail;
+    }
+  }
+
+  // No marker — getWorkModePrefix ends with a blank line then the message.
+  const lastBreak = text.lastIndexOf('\n\n');
+  if (lastBreak !== -1) {
+    const tail = text.slice(lastBreak + 2).trim();
+    if (tail) return tail;
+  }
+
+  return text;
+}
+
 // ── Ambient Capture Manager ─────────────────────────────────────────────────
 
 interface HeldCandidate {
@@ -118,10 +197,19 @@ export class AmbientCaptureManager {
   constructor(private readonly graph: MemoryGraph) {}
 
   async evaluate(
-    candidate: CaptureCandidate,
+    rawCandidate: CaptureCandidate,
     llmScore?: CandidateScore | null,
     scope: 'global' | 'project' = 'project',
   ): Promise<string | null> {
+    // THE SINGLE DOOR IN, so scoring, holding and distilling all see what the
+    // person actually said. Stripping inside distilCandidate alone would fix
+    // the text that gets stored and leave novelty still being measured against
+    // the mode prompt — which is the half that made it stop capturing at all.
+    const candidate: CaptureCandidate = {
+      ...rawCandidate,
+      userMessage: stripModePrefix(rawCandidate.userMessage ?? ''),
+    };
+
     const score = llmScore ?? heuristicScore(candidate, this.graph);
 
     logger.debug(`[ambient] Scored: n=${score.novelty.toFixed(2)} r=${score.relevance.toFixed(2)} c=${score.confidence.toFixed(2)} composite=${score.composite.toFixed(2)}`);

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.98.2 — 2026-09-08 — I was remembering my own instructions instead of your work
+
+- Automatic memory was storing my mode instructions instead of what you said, so a full day of building left behind copies of my own prompt and nothing about the work.
+- That also disabled it: new memories are kept only if they look new, and every stored copy made your next message look more familiar, until long sessions could save nothing at all.
+- The instructions are now stripped before anything is judged or kept, and prompt notes already in your memory are cleared on load. Your own notes are untouched, including ones starting with tags like [BUG].
+
 ## 0.98.1 — 2026-09-07 — A task card that said "Added" and added nothing
 
 - A suggested task showed "Added to your tasks" without ever offering the Add button, and nothing reached your board. The card now always appears, and that line only shows after you tap Add.
