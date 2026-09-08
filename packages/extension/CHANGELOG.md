@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.98.1 — 2026-09-07 — A task card that said "Added" and added nothing
+
+- A suggested task showed "Added to your tasks" without ever offering the Add button, and nothing reached your board. The card now always appears, and that line only shows after you tap Add.
+- Creating, updating or deleting a task on your list now asks you first — a check that was written to stop me adding things you only mentioned in passing, and had never actually run. Reading your list still does not interrupt you.
+
 ## 0.98.0 — 2026-09-06 — One home for your projects, and I can read pictures again
 
 - Images reach me again. The chain that finds a model to describe a picture named four that no longer exist — on every plan, for every user.
