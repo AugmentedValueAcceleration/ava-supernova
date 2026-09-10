@@ -3871,7 +3871,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': '拒绝',
   'dash.model.select': '选择模型',
   'dash.model.aurora_title': 'Aurora — 仅 Mistral 的欧盟技术栈。三层模型集群：Mistral Medium 3.5 领衔（协调员 + 构建者 + 视觉 + 深度专家），Mistral Small 4 承载主要流量（聊天、长上下文、头脑风暴、意图门控），Mistral Large 3 为重型储备。仅限欧盟数据驻留，GDPR 严格合规，开源权重。',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash 协调员 + V4 Flash 专家，搭配 Qwen 构建者。适用于重负载多步任务。',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash 既做协调也做专项，搭配 Qwen 构建者。适用于重负载多步任务。',
   'dash.model.maestro_title': 'Maestro — 单一 Qwen 3.7 Plus 指挥。日常任务，成本可预测。',
   'model.add_key': '添加密钥',
   'dash.model.sub.maestro_best': '每任务最佳模型',

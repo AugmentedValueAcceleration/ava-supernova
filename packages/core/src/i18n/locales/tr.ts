@@ -3891,7 +3891,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'reddedildi',
   'dash.model.select': 'Model Seç',
   'dash.model.aurora_title': 'Aurora — Sadece Mistral tabanlı AB altyapısı. Üç seviyeli küme: Mistral Medium 3.5 önderlik eder (koordinatör + Oluşturucu + Görüntü + Derin Uzmanlar), Mistral Small 4 yükü taşır (sohbet, uzun bağlam, beyin fırtınası, niyet kontrolü), Mistral Large 3 güçlü yedektir. Sadece AB veri yerleşimi, GDPR uyumlu, açık ağırlıklı.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash koordinatörü + V4 Flash uzmanları ile Qwen oluşturucuları. Yoğun çok adımlı işler.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash hem koordine eder hem uzmanlaşır, Qwen oluşturucularıyla. Yoğun çok adımlı işler.',
   'dash.model.maestro_title': 'Maestro — Tek Qwen 3.7 Plus yönetici. Günlük işler, tahmin edilebilir maliyet.',
   'model.add_key': 'Anahtar Ekle',
   'dash.model.sub.maestro_best': 'Görev başına en iyi model',

@@ -3891,7 +3891,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'отклонено',
   'dash.model.select': 'Выберите модель',
   'dash.model.aurora_title': 'Aurora — стек Mistral только для ЕС. Трехуровневый флот: Mistral Medium 3.5 ведет (координатор + Создатель + визуал + глубокие специалисты), Mistral Small 4 берет на себя основной объем (чат, длинный контекст, мозговой штурм, проверка намерений), Mistral Large 3 — тяжелый резерв. Данные только в ЕС, строгое соответствие GDPR, открытые веса.',
-  'dash.model.supernova_title': 'Supernova — координатор DeepSeek Flash + специалисты V4 Flash с создателями Qwen. Сложная многошаговая работа.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash координирует и специализируется, с создателями Qwen. Сложная многошаговая работа.',
   'dash.model.maestro_title': 'Maestro — единый дирижер Qwen 3.7 Plus. Ежедневная работа, предсказуемая стоимость.',
   'model.add_key': 'Добавить ключ',
   'dash.model.sub.maestro_best': 'Лучшая модель для задачи',

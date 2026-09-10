@@ -69,8 +69,9 @@ export function resolveIntentGateModel(
   }
 
   // BYOK — any small/fast model will do the classification.
-  // V4 Flash replaces `deepseek-chat` (retired upstream 2026-07-24) and is the
-  // cheaper of the two V4 tiers, which is what this gate wants.
+  // DeepSeek Flash replaces `deepseek-chat` (retired upstream 2026-07-24). It
+  // was picked as the cheaper of the two V4 tiers; since 2026-09-10 there is
+  // only one DeepSeek tier, so it is here on availability, not on price.
   // Nemotron 3.5 Lightning is last, and measured rather than assumed. Over the
   // 20-prompt gate set on 2026-08-16 it scored 20/20, same as Qwen 3.5 Flash,
   // at 36.3 output tokens against 29.9 and a 909ms median against 752ms —

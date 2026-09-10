@@ -2030,7 +2030,7 @@ export const enStrings = {
   'dash.model.sub.add_moonshot': 'Add Moonshot key',
   'dash.model.sub.connect_longxiang': 'Connect or add 3 keys',
   'dash.model.aurora_title': 'Aurora — Mistral-only EU stack. Three-tier fleet: Mistral Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Mistral Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Mistral Large 3 is the heavy reserve. EU-only data residency, GDPR-strict, open weights.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash coordinator + V4 Flash specialists with Qwen builders. Heavy multi-step work.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash coordinating and specialising, with Qwen builders. Heavy multi-step work.',
   'dash.model.maestro_title': 'Maestro — single Qwen 3.7 Plus conductor. Daily work, predictable cost.',
   // Careful with this string: it must NOT claim "open weights end to end"
   // until Qwen 3.7 Plus weights are actually public. See longxiang-router.ts.

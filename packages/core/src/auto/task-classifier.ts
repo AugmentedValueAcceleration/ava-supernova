@@ -23,8 +23,9 @@ const MODEL_ALIASES: Record<string, string> = {
   // Bare 'qwen plus' = the current Plus flagship (3.5 Plus retired from
   // primary routes — operator, 2026-07-04).
   'qwen plus': 'qwen3.7-plus',
-  // DeepSeek — bare 'deepseek' routes to the current frontier V4 Pro. The old
-  // `deepseek-chat`/`deepseek-reasoner` ids retire upstream on 2026-07-24.
+  // DeepSeek — every alias lands in the same place, because there is only one
+  // DeepSeek model since 2026-09-10. 'deepseek pro' is kept as a spoken alias
+  // deliberately: users will keep asking for it by name for a long while yet.
   'deepseek': 'deepseek-flash',
   'deepseek pro': 'deepseek-flash',
   'deepseek flash': 'deepseek-flash',

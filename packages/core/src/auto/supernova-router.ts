@@ -7,10 +7,14 @@ import type { TaskCategory } from './types.js';
  * it. Supernova picks the best model for each role based on what each model
  * is actually best at:
  *
- *   - DeepSeek Flash    — coordinator, deep reasoning, long-context synthesis
+ *   - DeepSeek Flash     — coordinator, deep reasoning, long-context synthesis,
+ *                          AND the mid-tier review/verification seat. DeepSeek
+ *                          collapsed its line into one model on 2026-09-10, so
+ *                          every DeepSeek seat below is the same model at the
+ *                          same price. The seats are still distinct roles; they
+ *                          are no longer distinct tiers.
  *   - Qwen 3.7 Plus      — agent loops (Terminal-Bench leader), vision input,
  *                          MCP tool orchestration, production-tested
- *   - DeepSeek Flash  — mid-tier review/verification, anomaly price/perf
  *   - Qwen 3.5 Plus      — OUTAGE FALLBACK ONLY (retired from primary routes,
  *                          operator decision 2026-07-04)
  *   - Qwen 3.5 Flash     — light filtering / classification (cheapest input)
@@ -31,12 +35,17 @@ export const SUPERNOVA_COORDINATOR_ID = 'deepseek-flash';
 export const SUPERNOVA_BUILDER_ID = 'qwen3.7-plus';
 
 /** Vision input override — any prompt with images bypasses persona / category
- *  routing and lands on Qwen 3.7 Plus (native vision + video). V4 is blind via API. */
+ *  routing and lands on Qwen 3.7 Plus (native vision + video).
+ *
+ *  This used to be forced: DeepSeek was blind at the API level. It is not any
+ *  more — V4.1 Flash takes images — so this is now a CHOICE, kept because Qwen
+ *  is what our vision paths are tuned and tested against and it handles video
+ *  too. Revisit it in the fleet evaluation, not here. */
 export const SUPERNOVA_VISION_ID = 'qwen3.7-plus';
 
 /** Intent gate — cheapest classifier in the roster. Same model Auto Mode uses
  *  upstream of spawn decisions. No reason to swap; Qwen Flash at $0.065 input
- *  is cheaper than V4 Flash for the input-heavy classification workload. */
+ *  is cheaper than DeepSeek Flash ($0.15) for this input-heavy workload. */
 export const SUPERNOVA_INTENT_GATE_ID = 'qwen3.5-flash';
 
 // ── Per-task-category routing ─────────────────────────────────────────────
@@ -65,36 +74,36 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // computer_use route retired alongside the Holo3 integration.
   // Planning is Architect + Researcher territory — Architect is Qwen 3.6
   // Plus per the map, but planning leans heavily on Researcher's
-  // long-context synthesis where V4 Pro wins. Default to V4 Pro; Architect
-  // gets routed back to Qwen 3.7 Plus per persona below.
+  // long-context synthesis, which is DeepSeek's strength. Architect gets
+  // routed back to Qwen 3.7 Plus per persona below.
   planning:     { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — long-context planning + synthesis depth',                          fallbackModelId: 'qwen3.7-plus' },
-  // Chat is a single-turn response — doesn't exercise V4 Pro's MoE
-  // coordinator strengths (specialist dispatch, multi-step reasoning).
-  // V4 Flash is the right tier: same DeepSeek family, 1M context, MIT
-  // open-weight, 13B active params — fast and materially cheaper. V4
-  // Pro stays reserved for the workloads where the coordinator pattern
-  // actually pays off (planning, orchestration, security, brainstorm,
-  // long_context).
-  chat:         { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — fast chat tier, V4 Pro reserved for orchestration',              fallbackModelId: 'qwen3.7-plus' },
-  // 1M-context grunt: V4 Pro shines (10% KV cache footprint at 1M).
+  // Chat shares the coordinator's model. That used to be a downgrade to a
+  // cheaper tier; now it is simply the same model, so a chat turn costs what
+  // an orchestration turn costs per token and the fleet has no cheap-chat
+  // tier left to fall to. 1M context, MIT open-weight, fast enough for
+  // single-turn.
+  chat:         { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — 1M-context chat on the fleet coordinator',              fallbackModelId: 'qwen3.7-plus' },
+  // 1M-context grunt: DeepSeek shines (10% KV cache footprint at 1M).
   long_context: { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.7-plus' },
-  // Teach = Tutor + Curriculum Architect (both medium-depth) → V4 Flash sweet spot.
+  // Teach = Tutor + Curriculum Architect (both medium-depth) → DeepSeek's sweet spot.
   teach:        { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.7-plus', creationModelId: 'deepseek-flash' },
   // Security = CVE Researcher leads — depth 4 reasoning over attack surface.
   security:     { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.7-plus' },
-  // Brainstorm = ideation, not depth-bound reasoning. V4 Flash is the
-  // right cognitive shape for breadth — fast, cheap, less RLHF-cautious
-  // than V4 Pro Think-Max, which produces more samey ideation output
-  // because its reward model favours careful reasoning over creative
-  // range. V4 Pro stays as the fallback for rare deep-reasoning workloads.
-  brainstorm:   { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — breadth over depth for ideation, cheaper and creatively wider than V4 Pro', fallbackModelId: 'deepseek-flash' },
+  // Brainstorm = ideation, not depth-bound reasoning. The old note here
+  // preferred Flash over Pro Think-Max on cognitive shape — breadth beats
+  // careful reasoning for ideation. There is no Think-Max tier to avoid any
+  // more, so the preference is moot and DeepSeek is simply the fleet's
+  // reasoning model. Note the fallback is the same model: with the line
+  // collapsed there is nothing to fall back TO inside DeepSeek, so a real
+  // outage here degrades to nothing. Worth fixing in the fleet evaluation.
+  brainstorm:   { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — breadth-first ideation at 1M context', fallbackModelId: 'deepseek-flash' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────
 //
 // Used by Conductor when spawning specific personas. Persona is finer-grained
 // than task category — a "planning" task might invoke Architect (Qwen 3.7 Plus)
-// AND Researcher (V4 Pro) within the same orchestration. Persona override
+// AND Researcher (DeepSeek Flash) within the same orchestration. Persona override
 // wins over the category route when set.
 //
 // Keys match persona names from packages/core/src/personas/definitions.ts.
@@ -117,7 +126,9 @@ export const SUPERNOVA_PERSONA_MODEL: Record<string, string> = {
   challenger:          'qwen3.5-flash',
   integrator:          'qwen3.5-flash',
 
-  // Mid-light specialists — reasoning depth 3 → V4 Flash earns its 2× input cost.
+  // Mid-light specialists — reasoning depth 3. These sat on the cheaper
+  // DeepSeek tier when there were two; they now sit on the same model as the
+  // coordinator, so "mid-light" describes the work, not the price.
   code_reviewer:       'deepseek-flash',
   fact_checker:        'deepseek-flash',
   quiz_master:         'deepseek-flash',

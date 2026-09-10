@@ -3891,7 +3891,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'Negato',
   'dash.model.select': 'Seleziona modello',
   'dash.model.aurora_title': 'Aurora — Stack UE solo Mistral. Flotta a tre livelli: Mistral Medium 3.5 coordina (coordinatore + Costruttore + visione + specialisti profondi), Mistral Small 4 gestisce il volume (chat, contesto lungo, brainstorming, porta intento), Mistral Large 3 è la riserva pesante. Residenza dati solo UE, GDPR rigoroso, pesi aperti.',
-  'dash.model.supernova_title': 'Supernova — Coordinatore DeepSeek Flash + Specialisti V4 Flash con costruttori Qwen. Lavoro multi-step pesante.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash coordina e si specializza, con costruttori Qwen. Lavoro multi-step pesante.',
   'dash.model.maestro_title': 'Maestro — Direttore singolo Qwen 3.7 Plus. Lavoro quotidiano, costo prevedibile.',
   'model.add_key': 'Aggiungi chiave',
   'dash.model.sub.maestro_best': 'Modello migliore per attività',

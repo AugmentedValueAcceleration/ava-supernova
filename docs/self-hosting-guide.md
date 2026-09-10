@@ -144,7 +144,7 @@ The real power of local models is as a zero-dependency fallback. Configure both 
       ]
     }
   },
-  "activeModel": "deepseek:deepseek-chat"
+  "activeModel": "deepseek:deepseek-flash"
 }
 ```
 

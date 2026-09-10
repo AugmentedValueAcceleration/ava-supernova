@@ -18,7 +18,7 @@ export type StatusBarState = 'ready' | 'busy' | 'error' | 'generating';
  *  fleet's name doesn't tell you what you're paying for. Showing both is what
  *  surfaced the direct-category routing problem in the first place: the fleet
  *  said Longxiang while the model said Kimi K3, on a chat turn that was
- *  supposed to run on V4 Flash. Operator's call, and the right one — a user
+ *  supposed to run on DeepSeek Flash. Operator's call, and the right one — a user
  *  should always be able to see which model their credits are going to. */
 const MODE_LABELS: Record<string, string> = {
   aurora:    'Aurora',
@@ -48,7 +48,7 @@ export class StatusBar {
   /** Model that actually ran the most recent turn, from the coordinator's
    *  progress event. `modelDef` is the fleet's COORDINATOR, fixed when the
    *  fleet is picked — it cannot tell you which tier a given turn used, so on
-   *  a fleet it would read "Kimi K3" whether a chat turn routed to V4 Flash or
+   *  a fleet it would read "Kimi K3" whether a chat turn routed to DeepSeek Flash or
    *  not. Persisted after the turn rather than cleared: "what did that just
    *  cost me" is a question you ask once the answer has arrived. */
   private runningModelName?: string;

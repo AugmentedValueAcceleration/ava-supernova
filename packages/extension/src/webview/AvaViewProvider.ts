@@ -2418,7 +2418,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Routing mode — 'supernova' when the operator picks Supernova,
     // 'aurora' when they pick the EU-stack Mistral-only routing,
     // otherwise 'auto'. AutoCoordinator honours this for coordinator
-    // selection (V4 Pro on Supernova, Mistral Medium 3.5 on Aurora) and
+    // selection (DeepSeek Flash on Supernova, Mistral Medium 3.5 on Aurora) and
     // for the Builder spawn model (Qwen 3.7 Plus on Supernova,
     // Mistral Medium 3.5 on Aurora — AURORA_BUILDER_ID).
     // Prefer the fleet passed in by setActiveModel — it is known synchronously
@@ -2489,7 +2489,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const mistralKey = await this.context.secrets.get('ava-supernova.provider.mistral.apiKey');
       if (mistralKey) availableProviders.add('mistral');
 
-      // Supernova pins coordinator to V4 Pro. Aurora pins coordinator to
+      // Supernova pins coordinator to DeepSeek Flash. Aurora pins coordinator to
       // Mistral Medium 3.5 (AURORA_COORDINATOR_ID), the fleet's lead seat.
       // Auto follows the default priority ladder. Aurora uses a strict
       // Mistral-only resolution chain so it never silently routes to a

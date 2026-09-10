@@ -124,7 +124,8 @@ export function videoCreditCost(
 /** Default cache-hit discount: user pays 0.3× normal cost when the provider
  *  reports a prompt-cache hit. Cache savings on input-heavy turns roughly
  *  match this; output cost is unaffected by cache so on output-heavy models
- *  (V4 Pro) a flat 0.3× whole-turn discount over-credits the user and the
+ *  (DeepSeek Flash bills 4× more for output than for input) a flat 0.3×
+ *  whole-turn discount over-credits the user and the
  *  margin can flip negative — see CACHE_HIT_MULTIPLIER_BY_MODEL.
  *
  *  Minimum 1 credit is deducted so cache hits are never free. */
@@ -156,9 +157,11 @@ export function cacheHitMultiplier(model: string | null | undefined): number {
 
 // ── Per-model cost multiplier ─────────────────────────────────────────────
 /** Action costs are flat brackets (chat_turn = 2, heavy_persona = 3, etc.)
- *  but per-token spend varies wildly by model — V4 Pro is ~17× the cost of
- *  Qwen Flash for the same input. Without a per-model adjustment, V4 Pro
- *  on chat_turn loses money on every call. The multiplier scales the
+ *  but per-token spend varies wildly by model — Kimi K3 is ~15× the cost of
+ *  Qwen Flash for the same input. Without a per-model adjustment, K3 on
+ *  chat_turn loses money on every call. (This named V4 Pro until 2026-09-10;
+ *  DeepSeek is now one of the CHEAP models at 0.44×, so it no longer
+ *  illustrates the problem it was here to illustrate.) The multiplier scales the
  *  bracket cost to track actual spend.
  *
  *  SUPERSEDED IN PART, 2026-08-16. Everything below describes a table built
@@ -491,7 +494,7 @@ const TOKEN_SCALING_ACTIONS: ReadonlySet<CreditAction> = new Set([
 export const TOKENS_PER_BRACKET = 16_000;
 
 /** Output tokens cost ~3-6× more than input across our model lineup
- *  (Qwen 3.7 Plus: 5.86×, V4 Pro: 2.0×, Qwen Flash: 8×). A flat 4× weight
+ *  (Qwen 3.7 Plus: 5.86×, DeepSeek Flash: 4.0×, Qwen Flash: 8×). A flat 4× weight
  *  is the reasonable midpoint without per-model pricing tables here.
  *  The cache discount weight (0.1×) reflects ~90% provider cache savings. */
 export const OUTPUT_TOKEN_WEIGHT = 4;

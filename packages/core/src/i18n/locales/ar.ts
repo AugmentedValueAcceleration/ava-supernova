@@ -3891,7 +3891,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'مرفوض',
   'dash.model.select': 'اختر نموذجًا',
   'dash.model.aurora_title': 'أورورا — بنية EU تعتمد على Mistral فقط. أسطول ثلاثي الطبقات: يقود Mistral Medium 3.5 (منسق + مُهيئ + رؤية + متخصصون عميقون)، يتولى Mistral Small 4 العبء (دردشة، سياق طويل، عصف ذهني، بوابة النية)، بينما Mistral Large 3 هو الاحتياطي الثقيل. إقامة بيانات مقيدة بـ EU فقط، صارمة بموجب GDPR، أوزان مفتوحة.',
-  'dash.model.supernova_title': 'Supernova — منسق DeepSeek Flash + متخصصو V4 Flash مع مُهيئات Qwen. أعمال مكثفة متعددة الخطوات.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash ينسّق ويتخصّص، مع مُهيئات Qwen. أعمال مكثفة متعددة الخطوات.',
   'dash.model.maestro_title': 'مايسترو — قائد Qwen 3.7 Plus وحيد. عمل يومي، تكلفة متوقعة.',
   'model.add_key': 'إضافة مفتاح',
   'dash.model.sub.maestro_best': 'أفضل نموذج لكل مهمة',

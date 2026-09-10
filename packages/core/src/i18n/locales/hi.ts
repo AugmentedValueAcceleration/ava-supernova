@@ -3891,7 +3891,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'अस्वीकृत',
   'dash.model.select': 'मॉडल चुनें',
   'dash.model.aurora_title': 'Aurora — केवल Mistral वाला EU स्टैक। तीन-स्तरीय फ्लीट: Mistral Medium 3.5 अग्रणी (समन्वयक + बिल्डर + विजन + गहन विशेषज्ञ), Mistral Small 4 भारी मात्रा संभालता है (चैट, लंबे संदर्भ, ब्रेनस्टॉर्म, इंटेंट गेट), Mistral Large 3 भारी रिज़र्व है। केवल EU में डेटा निवास, GDPR-कठोर, खुले वजन।',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash समन्वयक + V4 Flash विशेषज्ञ, Qwen बिल्डर्स के साथ। भारी बहु-चरण कार्य।',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash समन्वय और विशेषज्ञता दोनों संभालता है, Qwen बिल्डर्स के साथ। भारी बहु-चरण कार्य।',
   'dash.model.maestro_title': 'Maestro — एकल Qwen 3.7 Plus संचालक। दैनिक कार्य, पूर्वानुमेय लागत।',
   'model.add_key': 'कुंजी जोड़ें',
   'dash.model.sub.maestro_best': 'कार्य के लिए सर्वश्रेष्ठ मॉडल',

@@ -3891,7 +3891,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'ปฏิเสธ',
   'dash.model.select': 'เลือกโมเดล',
   'dash.model.aurora_title': 'Aurora — สแต็ก EU ที่ใช้เฉพาะ Mistral. ฟลีต 3 ระดับ: Mistral Medium 3.5 นำทีม (ผู้ประสานงาน + บิลเดอร์ + วิชัน + ผู้เชี่ยวชาญเชิงลึก), Mistral Small 4 รองรับปริมาณงาน (แชท, บริบทยาว, ระดมสมอง, เกตเจตนา), Mistral Large 3 เป็นสำรองหลัก. ที่อยู่ข้อมูลใน EU เท่านั้น, ยึด GDPR อย่างเคร่งครัด, น้ำหนักเปิด.',
-  'dash.model.supernova_title': 'Supernova — ผู้ประสานงาน DeepSeek Flash + ผู้เชี่ยวชาญ V4 Flash พร้อมบิลเดอร์ Qwen. งานหลายขั้นตอนที่ซับซ้อน.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash ทั้งประสานงานและทำงานเฉพาะทาง พร้อมบิลเดอร์ Qwen. งานหลายขั้นตอนที่ซับซ้อน.',
   'dash.model.maestro_title': 'Maestro — Qwen 3.7 Plus ผู้ประสานงานรายเดียว. งานประจำวัน, ต้นทุนคาดการณ์ได้.',
   'model.add_key': 'เพิ่มคีย์',
   'dash.model.sub.maestro_best': 'โมเดลที่ดีที่สุดสำหรับแต่ละงาน',

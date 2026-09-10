@@ -263,7 +263,7 @@ export class AutoCoordinator {
     mode?: RoutingMode;
   }): AutoCoordinator | null {
     // Supernova / Aurora mode pin specific coordinators — that's part of
-    // what makes each mode itself. Supernova → V4 Pro, Aurora → Mistral
+    // what makes each mode itself. Supernova → DeepSeek Flash, Aurora → Mistral
     // Large 3. Falls through to the default priority ladder if the
     // operator already passed an explicit preference (rare; means they're
     // admin-overriding the override).
@@ -648,20 +648,24 @@ export class AutoCoordinator {
     // model, so every fleet's cheap chat tier was dead code and the credits
     // page quoted prices we weren't charging. Aurora chat cost 7 credits
     // against a quoted 2 (Medium 3.5 at 3.64x instead of Small 4 at 0.99x);
-    // Longxiang cost 15 against a quoted 1 (K3 at 7.28x instead of V4 Flash
-    // at 0.43x). Billing was accurate for the model that ran — the wrong
+    // Longxiang cost 15 against a quoted 1 (K3 at 7.28x instead of DeepSeek
+    // Flash at 0.43x — 0.44x today). Billing was accurate for the model that ran — the wrong
     // model was running.
     //
     // Now the router picks the model and it runs DIRECTLY (still no spawn,
     // still no persona team). Vision is deliberately excluded below.
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
-      // Image inputs: a text-only coordinator (Supernova's DeepSeek V4) is blind
-      // to images. Rather than hand the whole turn to the vision model (which
-      // loses the coordinator's agentic depth), the coordinatorAgent carries the
-      // vision bridge — it runs the vision model (Qwen Omni) to DESCRIBE the
-      // image, then acts on that description itself. So Supernova "sees" the
-      // image and still does the work. No-op when the coordinator already
-      // supports vision (a BYOK Qwen or GLM that can see images directly).
+      // Image inputs: a text-only coordinator is blind to images. Rather than
+      // hand the whole turn to the vision model (which loses the coordinator's
+      // agentic depth), the coordinatorAgent carries the vision bridge — it
+      // runs the vision model (Qwen Omni) to DESCRIBE the image, then acts on
+      // that description itself. No-op when the coordinator already supports
+      // vision.
+      //
+      // Supernova now takes that no-op path: its coordinator was DeepSeek V4,
+      // which was blind, and V4.1 Flash sees. Nothing here changed — the
+      // capability flag did, and the bridge steps aside on its own. Aurora and
+      // any text-only BYOK coordinator still use it.
       const directAgent = this.resolveDirectAgent(classification.category);
       onEvent({ type: 'progress', labelKey: 'thinking.working', model: directAgent.modelName });
       return this.runWithActiveAgent(directAgent.agent, messages, onEvent, signal);

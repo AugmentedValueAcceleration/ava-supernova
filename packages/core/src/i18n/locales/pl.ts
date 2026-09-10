@@ -3871,7 +3871,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'Odrzucone',
   'dash.model.select': 'Wybierz model',
   'dash.model.aurora_title': 'Aurora — unijny stos oparty wyłącznie na Mistral. Trójwarstwowa flota: Mistral Medium 3.5 kieruje (koordinator + Budowniczy + wizja + specjaliści głębocy), Mistral Small 4 obsługuje główny ruch (czat, długi kontekst, burza mózgów, brama intencji), Mistral Large 3 stanowi ciężką rezerwę. Dane rezydują wyłącznie w UE, zgodność z RODO, otwarte wagi.',
-  'dash.model.supernova_title': 'Supernova — koordynator DeepSeek Flash + specjaliści V4 Flash z budowniczymi Qwen. Ciężka praca wieloetapowa.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash koordynuje i specjalizuje się, z budowniczymi Qwen. Ciężka praca wieloetapowa.',
   'dash.model.maestro_title': 'Maestro — pojedynczy dyrygent Qwen 3.7 Plus. Praca codzienna, przewidywalny koszt.',
   'model.add_key': 'Dodaj klucz',
   'dash.model.sub.maestro_best': 'Najlepszy model na zadanie',

@@ -3889,7 +3889,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'ditolak',
   'dash.model.select': 'Pilih model',
   'dash.model.aurora_title': 'Aurora — Stack UE eksklusif Mistral. Armada tiga tingkat: Mistral Medium 3.5 memimpin (koordinator + Pembangun + visi + spesialis mendalam), Mistral Small 4 menangani volume (obrolan, konteks panjang, curah ide, gerbang niat), Mistral Large 3 adalah cadangan utama. Residensi data eksklusif UE, ketat GDPR, bobot terbuka.',
-  'dash.model.supernova_title': 'Supernova — Koordinator DeepSeek Flash + spesialis V4 Flash dengan pembangun Qwen. Pekerjaan multi-langkah berat.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash mengoordinasi sekaligus menangani spesialisasi, dengan pembangun Qwen. Pekerjaan multi-langkah berat.',
   'dash.model.maestro_title': 'Maestro — konduktor tunggal Qwen 3.7 Plus. Pekerjaan harian, biaya yang dapat diprediksi.',
   'model.add_key': 'Tambahkan kunci',
   'dash.model.sub.maestro_best': 'Model terbaik untuk setiap tugas',

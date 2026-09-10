@@ -3891,7 +3891,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': '已拒絕',
   'dash.model.select': '選擇模型',
   'dash.model.aurora_title': '奧羅拉 — 僅限 Mistral 的歐盟堆疊。三層艦隊：Mistral Medium 3.5 領銜（協調員 + 構建者 + 視覺 + 深度專家），Mistral Small 4 承擔主要任務量（聊天、長上下文、創意發想、意圖閘門），Mistral Large 3 是主力備援。僅限歐盟數據駐留，嚴格符合 GDPR，權重開放。',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash 協調員 + V4 Flash 專家搭配 Qwen 構建者。處理複雜多步驟工作。',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash 既負責協調也負責專項，搭配 Qwen 構建者。處理複雜多步驟工作。',
   'dash.model.maestro_title': '大師 — 單一 Qwen 3.7 Plus 指揮官。日常工作，成本可預測。',
   'model.add_key': '新增金鑰',
   'dash.model.sub.maestro_best': '每項任務的最佳模型',

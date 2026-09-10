@@ -3891,7 +3891,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'từ chối',
   'dash.model.select': 'Chọn mô hình',
   'dash.model.aurora_title': 'Cực quang — Chỉ Mistral cho hệ thống Châu Âu. Đội ngũ ba tầng: Mistral Trung bình 3.5 dẫn đầu (người phối hợp + Nhà xây dựng + thị giác + chuyên gia sâu), Mistral Nhỏ 4 xử lý khối lượng lớn (trò chuyện, ngữ cảnh dài, gợi ý ý tưởng, cổng mục đích), Mistral Lớn 3 là dự bị chính. Tuân thủ dữ liệu chỉ Châu Âu, nghiêm ngặt GDPR, trọng số mở.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash người phối hợp + chuyên gia V4 Flash cùng nhà xây dựng Qwen. Công việc đa bước phức tạp.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash vừa phối hợp vừa đảm nhận chuyên môn, cùng nhà xây dựng Qwen. Công việc đa bước phức tạp.',
   'dash.model.maestro_title': 'Nhạc trưởng — một nhạc trưởng Qwen 3.7 Plus duy nhất. Công việc hàng ngày, chi phí dự đoán được.',
   'model.add_key': 'Mô hình · Thêm khóa',
   'dash.model.sub.maestro_best': 'Phân loại Mô hình Maestro Tốt nhất cho từng nhiệm vụ',

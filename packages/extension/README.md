@@ -88,7 +88,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 
 **Her internal team activates for complex work:** Scout → Architect → Verifier → Sequencer → Challenger → Builder. Simple questions skip orchestration entirely — zero overhead.
 
-Pick the fleet that fits the job: **Maestro** (a tier-differentiated Qwen ensemble — the predictable daily driver), **Aurora** (the EU-sovereign Mistral stack — open weights, never leaves EU infrastructure), **Supernova** (the polyglot — DeepSeek Flash coordinates, Qwen 3.7 Plus builds, V4 Flash takes chat and mid-tier; runs today on your DeepSeek + Qwen keys, managed version in preview), or **Longxiang** 龙翔 (built entirely on Chinese models — Kimi K3 leads and builds, Qwen 3.7 Plus takes vision and long context, DeepSeek Flash handles chat).
+Pick the fleet that fits the job: **Maestro** (a tier-differentiated Qwen ensemble — the predictable daily driver), **Aurora** (the EU-sovereign Mistral stack — open weights, never leaves EU infrastructure), **Supernova** (the polyglot — DeepSeek Flash coordinates and takes the chat and mid-tier seats, Qwen 3.7 Plus builds and handles vision; runs today on your DeepSeek + Qwen keys, managed version in preview), or **Longxiang** 龙翔 (built entirely on Chinese models — Kimi K3 leads and builds, Qwen 3.7 Plus takes vision and long context, DeepSeek Flash handles chat).
 
 ---
 
@@ -272,7 +272,7 @@ Every plan gets every managed model. Tiers differ only on monthly credit allowan
 |---|---|
 | **Ava Managed** | Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
 | **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.7 Flash, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
-| **BYOK — DeepSeek** | V4 Pro, V4 Flash *(MIT-licensed open-weight, 1M context)* |
+| **BYOK — DeepSeek** | DeepSeek Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
 | **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
 | **BYOK — Mistral** | Medium 3.5, Small 4, Large 3 |

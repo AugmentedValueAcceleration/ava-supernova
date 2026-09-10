@@ -3893,7 +3893,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': '拒否',
   'dash.model.select': 'モデルを選択',
   'dash.model.aurora_title': 'オーロラ — Mistral のみ採用の欧州スタック。3 段構成ファーム：Mistral Medium 3.5 が主導（コーディネーター＋ビルダー＋ビジョン＋ディープスペシャリスト）、Mistral Small 4 がボリュームを担う（チャット、長文脈、ブレインストーミング、意図ゲート）、Mistral Large 3 は主力予備。欧州限定データ所在地、GDPR 厳守、オープンウェイト。',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash コーディネーター ＋ V4 Flash スペシャリスト、Qwen ビルダー付き。複雑な多ステップ作業用。',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash が調整と専門処理の両方を担当、Qwen ビルダー付き。複雑な多ステップ作業用。',
   'dash.model.maestro_title': 'マエストロ — 単一の Qwen 3.7 Plus 指揮者。日常業務向け、コスト予測可能。',
   'model.add_key': 'キーを追加',
   'dash.model.sub.maestro_best': 'タスク別ベストモデル',

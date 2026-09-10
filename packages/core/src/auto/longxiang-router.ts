@@ -111,8 +111,9 @@ export const LONGXIANG_BUILDER_ID = 'kimi-k3';
  *  tuned against on Supernova. K3 remains a genuine vision fallback. */
 export const LONGXIANG_VISION_ID = 'qwen3.7-plus';
 
-/** Intent gate — the cheapest classifier in the fleet. V4 Flash at
- *  $0.14/$0.28 with 1M context; short routing calls don't need K3. */
+/** Intent gate — the cheapest classifier in the fleet. DeepSeek Flash at
+ *  $0.15/$0.60 off-peak with 1M context; short routing calls don't need K3.
+ *  Output is a category label, so the output rate barely registers here. */
 export const LONGXIANG_INTENT_GATE_ID = 'deepseek-flash';
 
 // ── Per-task-category routing ─────────────────────────────────────────────

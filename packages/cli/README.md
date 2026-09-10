@@ -36,7 +36,7 @@ Bring your own key for any provider, or use Ava-managed models with a free or pa
 | Provider | Models |
 |---|---|
 | **Qwen (Alibaba)** | Qwen 3.8 Max, 3.7 Plus, 3.5 Plus, 3.7 Flash, 3.5 Flash, Coder Next / Flash |
-| **DeepSeek** | V4 Pro, V4 Flash |
+| **DeepSeek** | DeepSeek Flash |
 | **Moonshot** | Kimi K3, K2.7 Code, K2.6 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash |
 | **Mistral** | Medium 3.5, Small 4, Large 3 |

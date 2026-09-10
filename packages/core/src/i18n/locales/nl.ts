@@ -3891,7 +3891,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'geweigerd',
   'dash.model.select': 'Model selecteren',
   'dash.model.aurora_title': 'Aurora — Uitsluitend Mistral EU-stack. Drie-niveau vloot: Mistral Medium 3.5 leidt (coördinator + Bouwer + Vision + diepe specialisten), Mistral Small 4 verwerkt het volume (chat, lange context, brainstorm, intentie-poort), Mistral Large 3 is de zware reserve. Alleen EU-gegevensresidentie, GDPR-strikt, open gewichten.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash coördinator + V4 Flash specialisten met Qwen bouwers. Complexe meerstaps taken.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash coördineert én specialiseert, met Qwen bouwers. Complexe meerstaps taken.',
   'dash.model.maestro_title': 'Maestro — enkele Qwen 3.7 Plus dirigent. Dagelijks werk, voorspelbare kosten.',
   'model.add_key': 'Sleutel toevoegen',
   'dash.model.sub.maestro_best': 'Beste model per taak',
