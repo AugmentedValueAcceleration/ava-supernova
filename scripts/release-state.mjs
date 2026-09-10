@@ -49,10 +49,31 @@ function localVersion(rel) {
 }
 
 async function githubLatest(repo, token) {
-  try {
+  // A dead token used to make this return { error } -- which left `version`
+  // undefined, which printed the same em-dash as "never released". Those mean
+  // opposite things and looked identical, and the dash was believed: IDE
+  // 0.45.0's notes were written announcing three features that had shipped in
+  // 0.44.0 nine days earlier, because this said 0.44.0 was never released.
+  //
+  // Both repos are public, so auth is an optimisation (rate limit), not a
+  // requirement. If the token is rejected, drop it and ask again rather than
+  // reporting nothing.
+  const attempt = async (useToken) => {
     const res = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=5`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: useToken ? { Authorization: `Bearer ${token}` } : {},
     });
+    return res;
+  };
+
+  try {
+    let usedToken = !!token;
+    let res = await attempt(usedToken);
+    if (!res.ok && usedToken && (res.status === 401 || res.status === 403)) {
+      res = await attempt(false);
+      usedToken = false;
+      if (res.ok) authWarning = `GitHub token rejected (was HTTP 401/403) — read unauthenticated. `
+        + `That token is the hub's VITE_GITHUB_TOKEN and is what PUBLISHES releases, so publishing will fail too.`;
+    }
     if (!res.ok) return { error: `HTTP ${res.status}` };
     const list = await res.json();
     if (!Array.isArray(list) || !list.length) return { version: null, published: null };
@@ -64,6 +85,9 @@ async function githubLatest(repo, token) {
     };
   } catch (err) { return { error: err.message }; }
 }
+
+/** Set when the token was rejected and we fell back. Printed with the rows. */
+let authWarning = null;
 
 async function marketplaceLatest(extensionId) {
   try {
@@ -121,16 +145,22 @@ const state = {
 if (AS_JSON) {
   console.log(JSON.stringify({ ...state, notes: notes.rows ?? notes }, null, 2));
 } else {
-  const row = (label, local, published, where, when) => {
+  // `err` distinguishes "the lookup failed" from "nothing is published".
+  // Printing a bare dash for both is what made this tool lie.
+  const row = (label, local, published, where, when, err) => {
     const shipped = published && local === published;
-    console.log(`  ${label.padEnd(11)} local ${String(local).padEnd(9)} ${where.padEnd(12)} ${String(published ?? '—').padEnd(9)} ${when ?? ''}`
+    const shown = err ? `LOOKUP FAILED` : String(published ?? '—');
+    console.log(`  ${label.padEnd(11)} local ${String(local).padEnd(9)} ${where.padEnd(12)} ${shown.padEnd(9)} ${when ?? ''}`
+      + (err ? `   ⚠️  ${err} — this is NOT "nothing published", it is "could not tell"` : '')
       + (shipped ? '   ⚠️  SAME VERSION IS ALREADY PUBLISHED' : ''));
   };
 
   console.log('\nPublished state — read this BEFORE writing notes or tagging.\n');
-  row('extension', state.extension.local, state.extension.marketplace, 'marketplace', market.published);
-  row('extension', state.extension.local, state.extension.github, 'github', ext.published);
-  row('ide', state.ide.local, state.ide.github, 'github', ide.published);
+  row('extension', state.extension.local, state.extension.marketplace, 'marketplace', market.published, market.error);
+  row('extension', state.extension.local, state.extension.github, 'github', ext.published, ext.error);
+  row('ide', state.ide.local, state.ide.github, 'github', ide.published, ide.error);
+
+  if (authWarning) console.log(`\n  ⚠️  ${authWarning}`);
 
   if (ext.recent) console.log(`\n  ava-supernova releases:     ${ext.recent}`);
   if (ide.recent) console.log(`  ava-supernova-ide releases: ${ide.recent}`);

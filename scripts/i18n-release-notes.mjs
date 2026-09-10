@@ -74,7 +74,7 @@ const RELEASES = [
     toolCount: 121,
     publishedAt: '2026-09-10 13:00:00+00',
     title: `Nothing you look at leaves this machine`,
-    body: `Several releases' worth of work, held back while the desktop side settled.
+    body: `Four changes, and the first one is the reason for the title.
 
 **Desktop vision is on-device or it is off.** There was a cloud lane — a hosted model that looked at your screen for you — and it is gone: the call, the key field, the Fast option, the provider row, and the plumbing under all of it. There is now no setting under which a screenshot leaves this machine. That is a deliberate absence rather than a default, because "we have no cloud option" is a claim you can check, and "local unless you add a key" is an invitation to ask whether it CAN send your screen somewhere. Your screen is the most sensitive surface you own — the banking tab, the client email, the thing behind the thing you asked about. If you had chosen the fast cloud option, you move to on-device rather than to off: you wanted me to be able to see, and this keeps that while making it more private than the setting you picked.
 
@@ -82,24 +82,14 @@ The description of that lane used to state how long a look takes — half a minu
 
 **I can see a picture whichever lab you buy from.** Attaching an image needed a model that reads images, and the chain that found one knew about exactly two Qwen models. If your only key was Zhipu, Moonshot, Mistral, Xiaomi or MiniMax you got no answer at all — while holding GLM-5.3 Flash, K3, Mistral Medium, MiMo or M3, every one of which reads images perfectly well. It now asks the catalogue who can actually see rather than reciting names, picks the cheapest one you hold a key for, and uses a managed model first so you are not spending your own key describing a picture.
 
-**GLM 5.3, and two Mistral models we stopped carrying in July.** The model list here still named GLM-5.2 and GLM-4.5 Air. 5.3 replaces the flagship at the same price and 5.3 Flash replaces Air — the first GLM here that reads images. The Mistral line on the same screen was still offering Codestral and Devstral 2, both retired in July and replaced by Small 4.
+**The storage bar stops counting your own code as mine.** Projects moved under the Ava folder, so the scan that measures my footprint found your source trees sitting there and reported them as my data — then counted them again as your half of the same bar. It skips them now, by a rule kept in one place, because the app and its helper walk your disk separately and a rule written twice is a rule that gets fixed once.
 
-**Starting a project actually creates one.** Two screens told you where your projects live; the folder was not necessarily there. It is created when the app starts now, in the app itself rather than in the part that only wakes up once you have a key — which was the whole problem, because the person this matters to is the one running with no account and no key at all. Ava can create projects there herself, at the same address she quotes back to you, so the folder she names and the folder she writes to cannot drift apart.
-
-**Your avatar shows up.** Choosing a picture saved it and told nobody, and the chat had read the old one once when it opened — so your new picture sat on disk while the default kept looking back at you. And the only "open folder" button reachable from a conversation was hidden inside the tasks panel and opened the tasks store rather than your project. It is in the chat header now, and it opens your project.
-
-**One status strip, one storage bar.** There was no header here, so anything belonging in one ended up either in the window chrome next to the minimise button or repeated inside each page that wanted it — three copies of the storage bar in this app, four in the extension. There is a single strip under the window chrome now, the same shape as the extension's: announcements on the left, storage on the right. Both bars also hold their space while the first scan runs, instead of appearing from nowhere and shoving the page down.
-
-**And the storage bar stops counting your own code as mine.** Projects moved under the Ava folder, so the scan that measures my footprint found your source trees sitting there and reported them as my data — then counted them again as your half of the same bar. It skips them now, by a rule kept in one place, because the app and its helper walk your disk separately and a rule written twice is a rule that gets fixed once.
-
-**DeepSeek is one model now.** They retired V4 Pro into V4.1 Flash on the 10th of September. Every DeepSeek seat here runs the one model, which costs roughly a third of what the old lead seat did, reads images, and can write about forty-seven times more in a single answer than the old ceiling allowed. If you had a retired model picked, it still works — the old name is rewritten here before the request goes out.`,
+**DeepSeek is one model now.** They retired V4 Pro into V4.1 Flash on the 10th of September, and every DeepSeek seat here runs the one model. It costs roughly a third of what the old lead seat did, it reads images, and it can write about forty-seven times more in a single answer than the ceiling we had recorded — which was set too low, and a limit set too low truncates rather than fails. If you had a retired model picked, it still works: the old name is rewritten here before the request goes out, rather than trusting a vendor redirect whose start date DeepSeek's own notice and documentation disagree about.`,
     highlights: [
       'Desktop vision is on-device or it is off. The cloud lane is gone entirely — there is now no setting under which a screenshot leaves this machine.',
       'Images work whichever lab you buy from: the describer asks the catalogue who can see rather than knowing about two Qwen models, so a Zhipu, Moonshot, Mistral, Xiaomi or MiniMax key is no longer a blank answer.',
-      'GLM 5.3 and 5.3 Flash replace 5.2 and 4.5 Air, and the Mistral line stops offering Codestral and Devstral 2, retired back in July.',
-      'Your projects folder is created at startup by the app itself, not by the part that only runs once you have a key — which is exactly the case it existed for.',
-      'One status strip and one storage bar instead of a copy per page, and the footprint scan stops reporting your own source as my data and counting it twice.',
-      'DeepSeek is a single model: about a third the cost of the old lead seat, it reads images, and saved settings pointing at a retired name still work.',
+      'The storage bar stops reporting your own source as my data and counting it twice.',
+      'DeepSeek is a single model: about a third the cost of the old lead seat, it reads images, writes far longer answers without truncating, and saved settings pointing at a retired name still work.',
     ],
   },
   {
