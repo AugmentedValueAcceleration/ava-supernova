@@ -94,21 +94,54 @@ const COMPLETION_URL = args['base-url']
  * it's what the user's Ava install actually uses day-to-day, so we inherit
  * any enterprise pricing / routing their account has set up.
  */
+/**
+ * Qwen key from packages/web/.env.local, so this does not depend on anyone
+ * exporting an env var first. Translation is internal tooling and must not
+ * spend customer-facing platform credits — every call through the platform
+ * endpoint is metered, and preferring it silently emptied a monthly allowance
+ * on a test account.
+ */
+function qwenKeyFromEnvFile() {
+  try {
+    const here = path.dirname(url.fileURLToPath(import.meta.url));
+    const p = path.join(here, '..', 'packages', 'web', '.env.local');
+    for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*QWEN_API_KEY\s*=\s*(.*)$/);
+      if (m) return m[1].trim().replace(/^["']|["']$/g, '') || null;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function warnPlatform() {
+  console.warn('\n  !!  No Qwen key found — falling back to a PLATFORM key.');
+  console.warn('      Every call will be METERED against that account\'s credits.');
+  console.warn('      Put QWEN_API_KEY in packages/web/.env.local to avoid this.\n');
+}
+
 function resolveCredential() {
   const classify = (raw) => raw
     ? { kind: raw.startsWith('sk-ava-') ? 'platform' : 'qwen', key: raw }
     : null;
 
+  // An explicit --api-key wins: naming a credential outright means it.
   if (args['api-key']) return classify(args['api-key']);
-  if (process.env.AVA_PLATFORM_KEY) return { kind: 'platform', key: process.env.AVA_PLATFORM_KEY };
+
+  // QWEN FIRST. This used to check AVA_PLATFORM_KEY here and config.json's
+  // platformKey below, so with no env vars set it billed a platform account
+  // for internal tooling, silently.
   if (process.env.QWEN_API_KEY) return { kind: 'qwen', key: process.env.QWEN_API_KEY };
+  const fromFile = qwenKeyFromEnvFile();
+  if (fromFile) return { kind: 'qwen', key: fromFile };
   try {
     const cfgPath = path.join(os.homedir(), '.ava', 'config.json');
     if (fs.existsSync(cfgPath)) {
       const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-      if (cfg?.platformKey) return { kind: 'platform', key: cfg.platformKey };
       if (cfg?.providers?.qwen?.apiKey) return { kind: 'qwen', key: cfg.providers.qwen.apiKey };
+      if (process.env.AVA_PLATFORM_KEY) { warnPlatform(); return { kind: 'platform', key: process.env.AVA_PLATFORM_KEY }; }
+      if (cfg?.platformKey) { warnPlatform(); return { kind: 'platform', key: cfg.platformKey }; }
     }
+    if (process.env.AVA_PLATFORM_KEY) { warnPlatform(); return { kind: 'platform', key: process.env.AVA_PLATFORM_KEY }; }
   } catch { /* ignore */ }
   return null;
 }

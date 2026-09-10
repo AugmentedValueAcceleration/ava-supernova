@@ -40,10 +40,10 @@ You don't pick a model. You pick the work, and the right fleet falls out of it.
 
 | Fleet | Status | Coordinator | Specialists | Residency |
 |---|---|---|---|---|
-| **Maestro** | **Ships now** | Qwen 3.7 Plus | Qwen 3.8 Flash (second rung) · Qwen 3.5 Flash (chat, image-gen, intent gate) | Alibaba |
+| **Maestro** | **Ships now** | Qwen 3.7 Plus | Qwen 3.8 Flash (second rung) · Qwen 3.7 Flash (intent gate) · Qwen 3.5 Flash (chat, image-gen) | Alibaba |
 | **Aurora** | **Ships now** | Mistral Medium 3.5 | Mistral Medium 3.5 (Builder + vision + long-form) · Mistral Small 4 (chat + image-gen + intent gate) | EU-only · open weights |
-| **Supernova** | BYOK now · managed preview | DeepSeek V4.1 Flash | Qwen 3.7 Plus (Builder) · Qwen 3.8 Flash (vision) · DeepSeek V4.1 Flash (chat + mid-tier) · Qwen 3.5 Flash (intent gate) | DeepSeek + Alibaba |
-| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Kimi K3 (Builder) · Qwen 3.8 Flash (vision + long context + teach) · DeepSeek V4.1 Flash (chat + brainstorm + image-gen) · Qwen 3.5 Flash (intent gate) | Moonshot + Alibaba + DeepSeek |
+| **Supernova** | BYOK now · managed preview | DeepSeek V4.1 Flash | Qwen 3.7 Plus (Builder) · Qwen 3.8 Flash (vision) · DeepSeek V4.1 Flash (chat + mid-tier) · Qwen 3.7 Flash (intent gate) | DeepSeek + Alibaba |
+| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Kimi K3 (Builder) · Qwen 3.8 Flash (vision + long context + teach) · DeepSeek V4.1 Flash (chat + brainstorm + image-gen) · Qwen 3.7 Flash (intent gate) | Moonshot + Alibaba + DeepSeek |
 
 On a plan, **Maestro, Aurora and Longxiang** are live; **Supernova's managed version is in preview**. With your own keys, each fleet unlocks from the keys it needs:
 

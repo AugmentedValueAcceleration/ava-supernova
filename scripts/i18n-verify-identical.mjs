@@ -49,14 +49,39 @@ const LANGUAGE_NAMES = {
 
 function resolveCredential() {
   const classify = (raw) => (raw ? { kind: raw.startsWith('sk-ava-') ? 'platform' : 'qwen', key: raw } : null);
-  if (process.env.AVA_PLATFORM_KEY) return { kind: 'platform', key: process.env.AVA_PLATFORM_KEY };
+  // QWEN FIRST. This checked AVA_PLATFORM_KEY here and config.json's
+  // platformKey below, so with no env vars set — the normal case — it billed a
+  // platform account for internal tooling, silently. Translating strings has
+  // no business spending customer-facing credits.
   if (process.env.QWEN_API_KEY) return { kind: 'qwen', key: process.env.QWEN_API_KEY };
+
+  // Read it from the repo so this does not depend on remembering to export.
+  try {
+    const here = path.dirname(url.fileURLToPath(import.meta.url));
+    const envFile = path.join(here, '..', 'packages', 'web', '.env.local');
+    for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*QWEN_API_KEY\s*=\s*(.*)$/);
+      if (m) {
+        const k = m[1].trim().replace(/^["']|["']$/g, '');
+        if (k) return { kind: 'qwen', key: k };
+      }
+    }
+  } catch { /* fall through */ }
+
   try {
     const cfgPath = path.join(os.homedir(), '.ava', 'config.json');
     if (fs.existsSync(cfgPath)) {
       const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-      if (cfg?.platformKey) return classify(cfg.platformKey);
       if (cfg?.providers?.qwen?.apiKey) return classify(cfg.providers.qwen.apiKey);
+      // Platform last, and it announces itself. Falling back is fine; falling
+      // back in silence is what emptied an allowance.
+      const platform = process.env.AVA_PLATFORM_KEY || cfg?.platformKey;
+      if (platform) {
+        console.warn('\n  !!  No Qwen key found — falling back to a PLATFORM key.');
+        console.warn("      Every call will be METERED against that account's credits.");
+        console.warn('      Put QWEN_API_KEY in packages/web/.env.local to avoid this.\n');
+        return classify(platform);
+      }
     }
   } catch { /* fall through */ }
   return null;

@@ -49,10 +49,24 @@ export const SUPERNOVA_BUILDER_ID = 'qwen3.7-plus';
  *  place to take the new model first, ahead of the Builder seat. */
 export const SUPERNOVA_VISION_ID = 'qwen3.8-flash';
 
-/** Intent gate — cheapest classifier in the roster. Same model Auto Mode uses
- *  upstream of spawn decisions. No reason to swap; Qwen Flash at $0.065 input
- *  is cheaper than DeepSeek Flash ($0.15) for this input-heavy workload. */
-export const SUPERNOVA_INTENT_GATE_ID = 'qwen3.5-flash';
+/** Intent gate — Qwen 3.7 Flash. Same model every fleet uses upstream of spawn
+ *  decisions, so one model classifies for all of them. *
+ *  MEASURED 2026-09-10, 280 calls per candidate through DashScope:
+ *
+ *                accuracy   p50     p95     p99      worst
+ *    3.5 Flash   92.9%      538ms   672ms   847ms    1310ms
+ *    3.7 Flash   99.6%      570ms   790ms   1284ms   1667ms
+ *    3.8 Flash   96.8%      698ms   2532ms  27038ms  51700ms
+ *
+ *  3.7 Flash was parked since July on a REPORTED P99 above 90 seconds. It does
+ *  not reproduce: 1284ms here. 3.8 Flash is out on its tail alone — 27s at p99
+ *  in front of every turn is felt as the product hanging.
+ *
+ *  The 32ms it gives up at p50 buys 6.8 points of accuracy, and a miss here is
+ *  not a worse answer — it spawns a whole specialist team for a question the
+ *  coordinator should have taken alone. Re-run scripts/gate-bench.mjs before
+ *  moving this again. */
+export const SUPERNOVA_INTENT_GATE_ID = 'qwen3.7-flash';
 
 // ── Per-task-category routing ─────────────────────────────────────────────
 //

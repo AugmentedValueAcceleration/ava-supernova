@@ -32,9 +32,45 @@ const LOCALES = {
   uk: 'Ukrainian', nl: 'Dutch', id: 'Indonesian',
 };
 const FILTER = args.locales ? new Set(String(args.locales).split(',')) : null;
+/**
+ * Qwen key from packages/web/.env.local, so this does not depend on anyone
+ * exporting an env var first. Translation is internal tooling and must not
+ * spend customer-facing platform credits — every call through the platform
+ * endpoint is metered, and preferring it silently emptied a monthly allowance
+ * on a test account.
+ */
+function qwenKeyFromEnvFile() {
+  try {
+    const here = path.dirname(url.fileURLToPath(import.meta.url));
+    const p = path.join(here, '..', 'packages', 'web', '.env.local');
+    for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*QWEN_API_KEY\s*=\s*(.*)$/);
+      if (m) return m[1].trim().replace(/^["']|["']$/g, '') || null;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function warnPlatform() {
+  console.warn('\n  !!  No Qwen key found — falling back to a PLATFORM key.');
+  console.warn('      Every call will be METERED against that account\'s credits.');
+  console.warn('      Put QWEN_API_KEY in packages/web/.env.local to avoid this.\n');
+}
+
+// QWEN FIRST — internal tooling must not spend platform credits. This used to
+// take AVA_PLATFORM_KEY, then config.json's platformKey, and only then the
+// qwen key, so the default path billed a platform account silently.
 const PK = (() => {
-  if (process.env.AVA_PLATFORM_KEY) return process.env.AVA_PLATFORM_KEY;
-  try { const c = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.ava', 'config.json'), 'utf8')); return c.platformKey || c?.providers?.qwen?.apiKey; } catch { return null; }
+  if (process.env.QWEN_API_KEY) return process.env.QWEN_API_KEY;
+  const fromFile = qwenKeyFromEnvFile();
+  if (fromFile) return fromFile;
+  try {
+    const c = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.ava', 'config.json'), 'utf8'));
+    if (c?.providers?.qwen?.apiKey) return c.providers.qwen.apiKey;
+    const platform = process.env.AVA_PLATFORM_KEY || c?.platformKey;
+    if (platform) { warnPlatform(); return platform; }
+  } catch { /* ignore */ }
+  return process.env.AVA_PLATFORM_KEY || null;
 })();
 if (!PK) { console.error('No platform/Qwen key found.'); process.exit(1); }
 

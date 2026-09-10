@@ -29,13 +29,20 @@
  *   node scripts/gate-bench.mjs --repeat=3           # N passes for stable p95
  *   node scripts/gate-bench.mjs --json               # machine-readable
  *
- * Credential: AVA_PLATFORM_KEY / QWEN_API_KEY env, or ~/.ava/config.json
- * platformKey — same resolution as the i18n scripts.
+ * Credential: the QWEN key, first and by preference — $QWEN_API_KEY, else read
+ * straight out of packages/web/.env.local. A platform key is the last resort
+ * and warns, because calls through the platform are METERED and this harness
+ * makes ~28 per candidate per pass.
+ *
+ * Endpoint defaults to DashScope for the same reason. Pass
+ * --endpoint=https://avasupernova.com/api/chat only when the question really
+ * is what the gate costs a platform user.
  */
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import url from 'node:url';
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
@@ -109,13 +116,43 @@ const PROMPTS = [
 ];
 
 // ── credential ────────────────────────────────────────────────────────────
+/**
+ * QWEN KEY FIRST, and found without anyone exporting anything.
+ *
+ * This preferred AVA_PLATFORM_KEY and then config.json's platformKey, which is
+ * how earlier runs of this very script billed a free-tier account until its
+ * monthly allowance was gone. The default endpoint is DashScope now, where a
+ * platform key would not work anyway — but the ordering was the actual fault,
+ * so it is fixed rather than left to be re-found later.
+ */
 function resolveKey() {
-  const env = process.env.AVA_PLATFORM_KEY || process.env.QWEN_API_KEY;
-  if (env) return env;
+  if (process.env.QWEN_API_KEY) return process.env.QWEN_API_KEY;
+
+  // packages/web/.env.local, relative to this script.
+  try {
+    const here = path.dirname(url.fileURLToPath(import.meta.url));
+    const envFile = path.join(here, '..', '..', 'web', '.env.local');
+    for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*QWEN_API_KEY\s*=\s*(.*)$/);
+      if (m) {
+        const k = m[1].trim().replace(/^["']|["']$/g, '');
+        if (k) return k;
+      }
+    }
+  } catch { /* fall through */ }
+
   try {
     const cfg = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.ava', 'config.json'), 'utf8'));
-    return cfg.platformKey || cfg.qwenApiKey || null;
-  } catch { return null; }
+    if (cfg?.providers?.qwen?.apiKey) return cfg.providers.qwen.apiKey;
+    if (cfg?.qwenApiKey) return cfg.qwenApiKey;
+    const platform = process.env.AVA_PLATFORM_KEY || cfg?.platformKey;
+    if (platform) {
+      console.warn('\n  !!  No Qwen key — using a PLATFORM key. Every call is METERED,');
+      console.warn('      and this harness makes ~28 per candidate per pass.\n');
+      return platform;
+    }
+  } catch { /* fall through */ }
+  return null;
 }
 
 const KEY = resolveKey();
@@ -286,6 +323,9 @@ function pct(sorted, p) {
       hardAccuracy: hardTotal ? hardCorrect / hardTotal : null,
       ttftP50: pct(ttfts, 50),
       ttftP95: pct(ttfts, 95),
+      ttftP99: pct(ttfts, 99),
+      ttftMax: ttfts.length ? ttfts[ttfts.length - 1] : null,
+      samples: ttfts.length,
       calls: counted,
       failed,
       misses,
@@ -298,6 +338,11 @@ function pct(sorted, p) {
       console.log(`  on hard cases ${r.hardAccuracy === null ? 'n/a' : (r.hardAccuracy * 100).toFixed(1) + '%'}  (${hardCorrect}/${hardTotal})`);
       console.log(`  TTFT p50      ${r.ttftP50}ms`);
       console.log(`  TTFT p95      ${r.ttftP95}ms`);
+      // p99 needs samples to mean anything. With 56 it is the single worst
+      // call and tells you nothing; say so rather than print a number that
+      // looks like a measurement.
+      console.log(`  TTFT p99      ${r.ttftP99}ms${r.samples < 200 ? `  (only ${r.samples} samples — not a real p99)` : `  over ${r.samples} samples`}`);
+      console.log(`  TTFT worst    ${r.ttftMax}ms`);
       if (r.failed) console.log(`  failed calls  ${r.failed}`);
       if (thinkingSeen) console.log(`  ⚠ reasoning pass ran on ${thinkingSeen}/${counted} calls — enable_thinking is not being honoured, latency here is NOT the gate's`);
       for (const m of r.misses.slice(0, 6)) console.log(`    miss: ${m}`);
@@ -319,14 +364,35 @@ function pct(sorted, p) {
     console.log(`No candidate cleared the ${FLOOR * 100}% accuracy floor. The gate seat`);
     console.log('should not move on this run.');
   } else {
-    passing.sort((a, b) => a[1].ttftP50 - b[1].ttftP50);
+    // EXPECTED COST PER TURN, not "fastest that clears a floor".
+    //
+    // Ranking by p50 recommended the wrong model twice, because a miss here is
+    // not a slightly worse answer — it spawns an entire specialist team for a
+    // question the coordinator should have answered alone. That is seconds and
+    // several credits, against milliseconds saved on every turn.
+    //
+    // MISS_COST_MS prices one wrong escalation. It is deliberately a blunt
+    // constant: the exact figure varies by fleet, and any value in the seconds
+    // dominates a p50 gap measured in tens of milliseconds, which is the whole
+    // point. A tail penalty rides alongside it, because a gate that stalls one
+    // turn in a hundred is felt far more than its average suggests.
+    const MISS_COST_MS = 8000;
+    const cost = (r) => r.ttftP50 + (1 - r.accuracy) * MISS_COST_MS + (r.ttftP99 ?? r.ttftP95 ?? 0) * 0.05;
+
+    passing.sort((a, b) => cost(a[1]) - cost(b[1]));
     const [winner, w] = passing[0];
-    console.log(`Fastest candidate clearing the ${FLOOR * 100}% floor: ${winner}`);
-    console.log(`  ${w.ttftP50}ms p50, ${(w.accuracy * 100).toFixed(1)}% accuracy`);
-    if (passing.length > 1) {
-      const [second, s] = passing[1];
-      const gap = s.ttftP50 - w.ttftP50;
-      console.log(`  ${gap}ms faster at p50 than ${second}, for ${((w.accuracy - s.accuracy) * 100).toFixed(1)}pp accuracy difference`);
+    console.log(`Best expected cost per turn: ${winner}`);
+    console.log(`  ${w.ttftP50}ms p50, ${w.ttftP99 ?? '?'}ms p99, ${(w.accuracy * 100).toFixed(1)}% accuracy`);
+    console.log(`  → ~${Math.round(cost(w))}ms per turn once a wrong escalation is priced at ${MISS_COST_MS}ms`);
+    for (const [name, r] of passing.slice(1)) {
+      console.log(`  vs ${name}: ~${Math.round(cost(r))}ms `
+        + `(p50 ${r.ttftP50}ms, p99 ${r.ttftP99 ?? '?'}ms, ${(r.accuracy * 100).toFixed(1)}%)`);
+    }
+    const heavyTail = passing.filter(([, r]) => (r.ttftP99 ?? 0) > 5000);
+    for (const [name, r] of heavyTail) {
+      console.log(`\n  !!  ${name} has a p99 of ${r.ttftP99}ms (worst ${r.ttftMax}ms).`);
+      console.log('      A gate runs before EVERY turn. A tail like that is felt as the');
+      console.log('      product hanging, however good the median looks.');
     }
     const spread = Math.max(...passing.map(([, r]) => r.accuracy)) - Math.min(...passing.map(([, r]) => r.accuracy));
     if (spread < 0.05) {

@@ -35,7 +35,7 @@ export const PROVIDERS: ProviderFact[] = [
     models: [
       { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — second rung on the ladder; newer generation, multimodal incl. video', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — conductor + every persona', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — upstream intent gate / classifier', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
+      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — light classifier tier', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
     ],
   },
   {
@@ -48,7 +48,8 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — vision seat + Design Reviewer persona', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — Builder + coding, image-gen; Architect + Content Writer personas', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — outage fallback tier only (retired from primary routes)', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — intent gate; Scout, Verifier, Sequencer, Challenger, Integrator personas (depth ≤ 2)', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
+      { id: 'qwen3.7-flash', displayName: 'Qwen 3.7 Flash — upstream intent gate', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — Scout, Verifier, Sequencer, Challenger, Integrator personas (depth ≤ 2)', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
     ],
   },
   {
@@ -70,12 +71,12 @@ export const PROVIDERS: ProviderFact[] = [
     // Kimi K3's weights are due 2026-07-27 and Qwen 3.7 Plus is still API-only,
     // so today only DeepSeek Flash is genuinely open. Describe the fleet
     // accurately now; strengthen the wording when it becomes true.
-    notes: 'Kimi K3 holds both the coordinator and Builder seats — the strongest coder we serve (88.3 Terminal-Bench 2.1, 81.2 FrontierSWE). Qwen 3.7 Plus takes mid-tier builds and vision; DeepSeek Flash carries chat, brainstorm and the intent gate. K3 is the priciest model we serve, so Longxiang uses more credits per turn than the other fleets — or none at all on your own keys.',
+    notes: 'Kimi K3 holds both the coordinator and Builder seats — the strongest coder we serve (88.3 Terminal-Bench 2.1, 81.2 FrontierSWE). Qwen 3.8 Flash takes mid-tier builds, vision and teaching; DeepSeek V4.1 Flash carries chat and brainstorm; Qwen 3.7 Flash runs the intent gate. K3 is the priciest model we serve, so Longxiang uses more credits per turn than the other fleets — or none at all on your own keys.',
     models: [
       { id: 'kimi-k3-platform', displayName: 'Kimi K3 — lead seat: coordinator AND Builder, plus deep specialists (Architect, Researcher, CVE Researcher, Ideator). 2.8T Stable LatentMoE, native vision', inputPricePerM: 3.00, outputPricePerM: 15.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — vision input, long context, teach delivery, long-form writing', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — outage fallback for the K3 seats', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'deepseek-flash', displayName: 'DeepSeek Flash — chat, brainstorm, image-gen orchestration, intent gate, light specialists (MIT)', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash', displayName: 'DeepSeek V4.1 Flash — chat, brainstorm, image-gen orchestration, light specialists (MIT)', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   // ── Platform-managed providers ────────────────────────────────────────────

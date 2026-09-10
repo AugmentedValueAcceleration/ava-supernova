@@ -131,7 +131,7 @@ export const LONGXIANG_VISION_ID = 'qwen3.8-flash';
  *  which means that set is saturated and cannot separate the candidates. A
  *  wider test with TTFT as the primary axis is what would actually settle
  *  this seat. */
-export const LONGXIANG_INTENT_GATE_ID = 'qwen3.5-flash';
+export const LONGXIANG_INTENT_GATE_ID = 'qwen3.7-flash';
 
 // ── Per-task-category routing ─────────────────────────────────────────────
 //

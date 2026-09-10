@@ -384,18 +384,61 @@ The description of that lane used to state how long a look takes — half a minu
 ];
 
 // ── Credential ───────────────────────────────────────────────────────────────
+/**
+ * QWEN KEY FIRST, ALWAYS. This is internal tooling — translating strings has
+ * no business spending customer-facing platform credits, and every call
+ * through the platform endpoint is metered.
+ *
+ * It used to prefer the platform credential twice over: AVA_PLATFORM_KEY
+ * before QWEN_API_KEY, then config.json's platformKey before the qwen key in
+ * the same file. With no env vars set, which is the normal case, that billed a
+ * platform account silently. A benchmark and a translation run between them
+ * emptied a monthly allowance on a test account that way.
+ *
+ * Reads packages/web/.env.local directly so it does not depend on anyone
+ * remembering to export anything first.
+ */
+function qwenKeyFromEnvFile() {
+  try {
+    const p = path.join(repoRoot, 'packages', 'web', '.env.local');
+    for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*QWEN_API_KEY\s*=\s*(.*)$/);
+      if (m) return m[1].trim().replace(/^["']|["']$/g, '') || null;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 function resolveCredential() {
-  const classify = (raw) => (raw ? { kind: raw.startsWith('sk-ava-') ? 'platform' : 'qwen', key: raw } : null);
-  if (process.env.AVA_PLATFORM_KEY) return { kind: 'platform', key: process.env.AVA_PLATFORM_KEY };
   if (process.env.QWEN_API_KEY) return { kind: 'qwen', key: process.env.QWEN_API_KEY };
+
+  const fromFile = qwenKeyFromEnvFile();
+  if (fromFile) return { kind: 'qwen', key: fromFile };
+
   try {
     const cfgPath = path.join(os.homedir(), '.ava', 'config.json');
     if (fs.existsSync(cfgPath)) {
       const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-      if (cfg?.platformKey) return { kind: 'platform', key: cfg.platformKey };
       if (cfg?.providers?.qwen?.apiKey) return { kind: 'qwen', key: cfg.providers.qwen.apiKey };
     }
   } catch { /* ignore */ }
+
+  // Platform is the LAST resort and announces itself. Falling back is fine;
+  // falling back quietly is what this cost us.
+  const platform = process.env.AVA_PLATFORM_KEY || (() => {
+    try {
+      const cfgPath = path.join(os.homedir(), '.ava', 'config.json');
+      if (fs.existsSync(cfgPath)) return JSON.parse(fs.readFileSync(cfgPath, 'utf8'))?.platformKey || null;
+    } catch { /* ignore */ }
+    return null;
+  })();
+
+  if (platform) {
+    console.warn('\n  !!  No Qwen key found — falling back to a PLATFORM key.');
+    console.warn('      Every call will be METERED against that account\'s credits.');
+    console.warn('      Put QWEN_API_KEY in packages/web/.env.local to avoid this.\n');
+    return { kind: 'platform', key: platform };
+  }
   return null;
 }
 const CRED = resolveCredential();
