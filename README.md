@@ -92,8 +92,8 @@ You don't pick a model — you pick the work, and the right fleet falls out of i
 |---|---|---|---|
 | **Maestro** | **Ships now** | Qwen 3.7 Plus | Daily work, predictable cost — a tier-differentiated Qwen ensemble |
 | **Aurora** | **Ships now** | Mistral Medium 3.5 | GDPR-strict / sovereign EU work — Mistral-only, open weights, never leaves EU infrastructure |
-| **Supernova** | BYOK now · managed preview | DeepSeek Flash | Heavy multi-step work — a polyglot fleet picking the best model per role |
-| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Work you want run entirely on Chinese models — K3 leads and builds, Qwen 3.7 Plus takes vision and long context, DeepSeek Flash handles chat |
+| **Supernova** | BYOK now · managed preview | DeepSeek V4.1 Flash | Heavy multi-step work — a polyglot fleet picking the best model per role |
+| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Work you want run entirely on Chinese models — K3 leads and builds, Qwen 3.8 Flash takes vision and long context, DeepSeek V4.1 Flash handles chat |
 
 **Supernova** runs today with your own DeepSeek + Qwen keys; the managed (platform-hosted) version is in preview. **Maestro** unlocks with a Qwen key, **Aurora** with a Mistral key, and **Longxiang** with Moonshot + Qwen + DeepSeek keys.
 
@@ -103,9 +103,9 @@ Bring your own key for any provider, or use Ava-managed models on a plan. Every 
 
 | Provider | Models |
 |---|---|
-| **Ava Managed** | Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
-| **Qwen (Alibaba)** | Qwen 3.8 Max, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.7 Flash, Qwen 3.5 Flash, Qwen3 Coder Next / Flash — 1M context, vision, reasoning |
-| **DeepSeek** | DeepSeek Flash — MIT open-weight, 1M context, multimodal |
+| **Ava Managed** | Qwen 3.7 Plus, Qwen 3.8 Flash, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
+| **Qwen (Alibaba)** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash — 1M context, vision, reasoning |
+| **DeepSeek** | DeepSeek V4.1 Flash — MIT open-weight, 1M context, multimodal |
 | **Moonshot** | Kimi K3 (2.8T MoE, 1M context, native vision), K2.7 Code, K2.6 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash — MIT open-weight, 1M context; 5.3 is text only, Flash reads images and video |
 | **Mistral** | Medium 3.5, Small 4, Large 3 — EU, open weights, up to 262K context |

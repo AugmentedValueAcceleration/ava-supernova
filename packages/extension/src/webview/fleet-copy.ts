@@ -68,7 +68,7 @@ export const FLEET_COPY: Record<string, FleetCopy> = {
     // a `lockedReason` naming the single one missing, matching Aurora's
     // "Add Mistral key" pattern.
     subLocked: 'Connect or add 3 keys',
-    tip: 'Longxiang — Kimi K3 leads as coordinator and Builder, Qwen 3.7 Plus takes mid-tier builds and vision, DeepSeek Flash handles volume. K3 is the priciest model we serve, so expect more credits per turn than the other fleets.',
+    tip: 'Longxiang — Kimi K3 leads as coordinator and Builder, Qwen 3.8 Flash takes mid-tier builds and vision, DeepSeek V4.1 Flash handles volume. K3 is the priciest model we serve, so expect more credits per turn than the other fleets.',
     tipLocked: 'Longxiang — Kimi K3 + Qwen + DeepSeek. Sign in for platform access, or add all three API keys for BYOK.',
   },
 };

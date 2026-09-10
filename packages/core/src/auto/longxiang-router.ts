@@ -170,11 +170,11 @@ export const LONGXIANG_ROUTES: Record<TaskCategory, LongxiangRouteEntry> = {
   // ── Volume routes → DeepSeek Flash (the River) ─────────────────────
   // image_gen routes a generate_image tool call out to Qwen-Image — the model
   // here only orchestrates, so depth is wasted spend.
-  image_gen:    { modelId: 'deepseek-flash', reason: 'DeepSeek Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
+  image_gen:    { modelId: 'deepseek-flash', reason: 'DeepSeek V4.1 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
   // Chat is a single-turn response — doesn't exercise the coordinator pattern.
-  chat:         { modelId: 'deepseek-flash', reason: 'DeepSeek Flash — fast, cheapest tier in the fleet for typical chat turns',            fallbackModelId: 'qwen3.7-plus' },
+  chat:         { modelId: 'deepseek-flash', reason: 'DeepSeek V4.1 Flash — fast, cheapest tier in the fleet for typical chat turns',            fallbackModelId: 'qwen3.7-plus' },
   // Brainstorm = breadth over depth — cheap and creatively wide beats careful.
-  brainstorm:   { modelId: 'deepseek-flash', reason: 'DeepSeek Flash — breadth and speed for ideation at the fleet\'s lowest cost',          fallbackModelId: 'qwen3.7-plus' },
+  brainstorm:   { modelId: 'deepseek-flash', reason: 'DeepSeek V4.1 Flash — breadth and speed for ideation at the fleet\'s lowest cost',          fallbackModelId: 'qwen3.7-plus' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────

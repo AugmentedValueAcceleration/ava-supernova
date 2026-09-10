@@ -82,19 +82,19 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // Plus per the map, but planning leans heavily on Researcher's
   // long-context synthesis, which is DeepSeek's strength. Architect gets
   // routed back to Qwen 3.7 Plus per persona below.
-  planning:     { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — long-context planning + synthesis depth',                          fallbackModelId: 'qwen3.7-plus' },
+  planning:     { modelId: 'deepseek-flash',    reason: 'DeepSeek V4.1 Flash — long-context planning + synthesis depth',                          fallbackModelId: 'qwen3.7-plus' },
   // Chat shares the coordinator's model. That used to be a downgrade to a
   // cheaper tier; now it is simply the same model, so a chat turn costs what
   // an orchestration turn costs per token and the fleet has no cheap-chat
   // tier left to fall to. 1M context, MIT open-weight, fast enough for
   // single-turn.
-  chat:         { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — 1M-context chat on the fleet coordinator',              fallbackModelId: 'qwen3.7-plus' },
+  chat:         { modelId: 'deepseek-flash',  reason: 'DeepSeek V4.1 Flash — 1M-context chat on the fleet coordinator',              fallbackModelId: 'qwen3.7-plus' },
   // 1M-context grunt: DeepSeek shines (10% KV cache footprint at 1M).
-  long_context: { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.7-plus' },
+  long_context: { modelId: 'deepseek-flash',    reason: 'DeepSeek V4.1 Flash — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.7-plus' },
   // Teach = Tutor + Curriculum Architect (both medium-depth) → DeepSeek's sweet spot.
-  teach:        { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.7-plus', creationModelId: 'deepseek-flash' },
+  teach:        { modelId: 'deepseek-flash',  reason: 'DeepSeek V4.1 Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.7-plus', creationModelId: 'deepseek-flash' },
   // Security = CVE Researcher leads — depth 4 reasoning over attack surface.
-  security:     { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.7-plus' },
+  security:     { modelId: 'deepseek-flash',    reason: 'DeepSeek V4.1 Flash — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.7-plus' },
   // Brainstorm = ideation, not depth-bound reasoning. The old note here
   // preferred Flash over Pro Think-Max on cognitive shape — breadth beats
   // careful reasoning for ideation. There is no Think-Max tier to avoid any
@@ -104,7 +104,7 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // to inside the family, so an outage here degraded to nothing. It falls to
   // Qwen 3.8 Flash now, which is in-family for Supernova and a real second
   // option rather than a restatement of the first.
-  brainstorm:   { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — breadth-first ideation at 1M context', fallbackModelId: 'qwen3.8-flash' },
+  brainstorm:   { modelId: 'deepseek-flash',  reason: 'DeepSeek V4.1 Flash — breadth-first ideation at 1M context', fallbackModelId: 'qwen3.8-flash' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────

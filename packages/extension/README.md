@@ -40,10 +40,10 @@ You don't pick a model. You pick the work, and the right fleet falls out of it.
 
 | Fleet | Status | Coordinator | Specialists | Residency |
 |---|---|---|---|---|
-| **Maestro** | **Ships now** | Qwen 3.7 Plus | Qwen 3.5 Plus (long-form) · Qwen 3.5 Flash (chat, image-gen, intent gate) | Alibaba |
+| **Maestro** | **Ships now** | Qwen 3.7 Plus | Qwen 3.8 Flash (second rung) · Qwen 3.5 Flash (chat, image-gen, intent gate) | Alibaba |
 | **Aurora** | **Ships now** | Mistral Medium 3.5 | Mistral Medium 3.5 (Builder + vision + long-form) · Mistral Small 4 (chat + image-gen + intent gate) | EU-only · open weights |
-| **Supernova** | BYOK now · managed preview | DeepSeek Flash | Qwen 3.7 Plus (Builder + vision) · DeepSeek Flash (chat + mid-tier) · Qwen 3.5 Flash (intent gate) | DeepSeek + Alibaba |
-| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Kimi K3 (Builder) · Qwen 3.7 Plus (vision + long context + teach) · DeepSeek Flash (chat + brainstorm + image-gen + intent gate) | Moonshot + Alibaba + DeepSeek |
+| **Supernova** | BYOK now · managed preview | DeepSeek V4.1 Flash | Qwen 3.7 Plus (Builder) · Qwen 3.8 Flash (vision) · DeepSeek V4.1 Flash (chat + mid-tier) · Qwen 3.5 Flash (intent gate) | DeepSeek + Alibaba |
+| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Kimi K3 (Builder) · Qwen 3.8 Flash (vision + long context + teach) · DeepSeek V4.1 Flash (chat + brainstorm + image-gen) · Qwen 3.5 Flash (intent gate) | Moonshot + Alibaba + DeepSeek |
 
 On a plan, **Maestro, Aurora and Longxiang** are live; **Supernova's managed version is in preview**. With your own keys, each fleet unlocks from the keys it needs:
 
@@ -88,7 +88,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 
 **Her internal team activates for complex work:** Scout → Architect → Verifier → Sequencer → Challenger → Builder. Simple questions skip orchestration entirely — zero overhead.
 
-Pick the fleet that fits the job: **Maestro** (a tier-differentiated Qwen ensemble — the predictable daily driver), **Aurora** (the EU-sovereign Mistral stack — open weights, never leaves EU infrastructure), **Supernova** (the polyglot — DeepSeek Flash coordinates and takes the chat and mid-tier seats, Qwen 3.7 Plus builds and handles vision; runs today on your DeepSeek + Qwen keys, managed version in preview), or **Longxiang** 龙翔 (built entirely on Chinese models — Kimi K3 leads and builds, Qwen 3.7 Plus takes vision and long context, DeepSeek Flash handles chat).
+Pick the fleet that fits the job: **Maestro** (a tier-differentiated Qwen ensemble — the predictable daily driver), **Aurora** (the EU-sovereign Mistral stack — open weights, never leaves EU infrastructure), **Supernova** (the polyglot — DeepSeek V4.1 Flash coordinates and takes the chat and mid-tier seats, Qwen 3.7 Plus builds, Qwen 3.8 Flash handles vision; runs today on your DeepSeek + Qwen keys, managed version in preview), or **Longxiang** 龙翔 (built entirely on Chinese models — Kimi K3 leads and builds, Qwen 3.7 Plus takes vision and long context, DeepSeek V4.1 Flash handles chat).
 
 ---
 
@@ -270,9 +270,9 @@ Every plan gets every managed model. Tiers differ only on monthly credit allowan
 
 | Source | Models |
 |---|---|
-| **Ava Managed** | Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
-| **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.7 Flash, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
-| **BYOK — DeepSeek** | DeepSeek Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
+| **Ava Managed** | Qwen 3.7 Plus, Qwen 3.8 Flash, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
+| **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
+| **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
 | **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
 | **BYOK — Mistral** | Medium 3.5, Small 4, Large 3 |

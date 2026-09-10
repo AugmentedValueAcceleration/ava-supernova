@@ -23,7 +23,7 @@ const PROVIDERS = [
     name: 'DeepSeek',
     placeholder: 'sk-...',
     signupUrl: 'https://platform.deepseek.com',
-    description: 'DeepSeek Flash — 1M context, multimodal, MIT open-weight',
+    description: 'DeepSeek V4.1 Flash — 1M context, multimodal, MIT open-weight',
   },
   {
     id: 'kimi' as const,

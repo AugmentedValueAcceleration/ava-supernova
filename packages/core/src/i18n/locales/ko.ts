@@ -3891,7 +3891,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': '거부됨',
   'dash.model.select': '모델 선택',
   'dash.model.aurora_title': 'Aurora — Mistral 전용 EU 스택. 3 단계 플릿: Mistral Medium 3.5 가 주도합니다 (조정자 + 빌더 + 비전 + 심층 전문가), Mistral Small 4 는 대량 작업을 처리합니다 (채팅, 긴 컨텍스트, 브레인스토밍, 의도 게이트), Mistral Large 3 은 주요 백업입니다. EU 전용 데이터 위치, GDPR 엄격 준수, 가중치 공개.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek Flash가 조정과 전문 작업을 모두 담당, Qwen 빌더와 함께. 복잡한 다단계 작업용.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash가 조정과 전문 작업을 모두 담당, Qwen 빌더와 함께. 복잡한 다단계 작업용.',
   'dash.model.maestro_title': 'Maestro — 단일 Qwen 3.7 Plus 지휘자. 일상 업무, 예측 가능한 비용.',
   'model.add_key': '키 추가',
   'dash.model.sub.maestro_best': '작업별 최적 모델',
