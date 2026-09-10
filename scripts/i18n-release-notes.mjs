@@ -68,6 +68,35 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 427,
+    version: '0.99.0',
+    platform: 'extension',
+    toolCount: 121,
+    publishedAt: '2026-09-10 12:00:00+00',
+    title: `DeepSeek is one model now, and it costs a fraction of what it did`,
+    body: `DeepSeek retired V4 Pro on the 10th of September and replaced it with V4.1 Flash, which their own notice says surpasses it across every key metric. So there is no longer a big DeepSeek and a cheap one. There is one, and every place I used either of them now uses it.
+
+**It costs a third of what it did.** Supernova's lead seat was the expensive one — it ran the coordinator, planning, security, long-context work and the deep specialists, and it carried the price to match. On the same measured traffic that seat now costs about a third per turn. If you run Supernova on credits, that is the whole change in one sentence; nothing about the routing got cheaper, the model underneath it did. On your own DeepSeek key you simply pay DeepSeek less.
+
+**And it can see.** Both of the old models were blind at the API level, so when you attached a screenshot to a Supernova turn I had to run a second model just to describe the picture to myself, then work from the description. V4.1 Flash reads the image itself. That bridge was already written to step aside for a coordinator that can see, so it does — you get the picture looked at directly instead of relayed through someone else's words.
+
+**Long answers stop being cut off.** The old entry said I could write 8,192 tokens in a single response. The real ceiling is 384,000 — a difference of about forty-seven times, and the wrong kind of wrong, because a limit that is too low does not fail. It truncates. Long files, long plans and long reviews were being quietly clipped at the end rather than refused at the start.
+
+**Your saved settings keep working.** If you had V4 Pro or V4 Flash picked, or one of the older \`deepseek-chat\` / \`deepseek-reasoner\` ids in a config somewhere, it still runs — I rewrite the retired name to the live one before the request leaves your machine. DeepSeek offer a redirect of their own, but their notice and their documentation disagree by four days about when it starts, and a request that leaves here carrying a dead model id is a request whose price somebody else decides. So we do it ourselves.
+
+**The models page was showing you the same model twice.** Both cards said DeepSeek Flash, one priced at $0.66 and the other at $0.22, and neither was what DeepSeek charges. It is one card now at the real rate — $0.15 in and $0.60 out per million off-peak, exactly double during DeepSeek's peak window, which is quoted as a range because if you are working outside European hours you genuinely pay the top of it. The benchmark bars on that card are empty on purpose: the scores that were there belong to V4 Pro, and I would rather show you nothing than show you a retired model's numbers with a new model's name on them.
+
+**And a pricing claim that was never true.** The credits FAQ said premium reasoning costs more and gave V4 Pro at six times the base rate as the example. V4 Pro was not six times the base — Kimi K3 is. The sentence had been describing the right idea with the wrong model's name attached, so it names K3 now. DeepSeek, meanwhile, has gone the other way entirely and is one of the cheap ones.`,
+    highlights: [
+      "DeepSeek retired V4 Pro into V4.1 Flash, so there is one DeepSeek model instead of two — and Supernova's most expensive seat now costs about a third per turn.",
+      'It reads images. Both predecessors were blind, so a screenshot on a Supernova turn had to be described to me by a second model first; now it is looked at directly.',
+      'Long answers stop being clipped: the output ceiling was recorded as 8,192 tokens against a real 384,000, and a limit set too low truncates rather than fails.',
+      'Saved settings keep working — retired model ids are rewritten here before the request goes out, rather than relying on a vendor redirect whose start date their own notice and docs disagree about.',
+      'The models page listed the same model twice at two different wrong prices. One card now, at the real rate, with benchmark bars left empty rather than showing a retired model\u2019s scores.',
+      'The credits FAQ said V4 Pro cost six times the base rate. It never did — Kimi K3 does — so it names the right model, and DeepSeek is now one of the cheap ones.',
+    ],
+  },
+  {
     migration: 417,
     version: '0.97.0',
     platform: 'extension',

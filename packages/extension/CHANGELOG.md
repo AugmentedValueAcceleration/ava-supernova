@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.99.0 — 2026-09-10 — DeepSeek is one model now, and it costs a fraction of what it did
+
+- DeepSeek retired V4 Pro into V4.1 Flash, so there is one DeepSeek model instead of two — and Supernova's most expensive seat now costs about a third per turn.
+- It reads images. Both predecessors were blind, so a screenshot on a Supernova turn had to be described to me by a second model first; now it is looked at directly.
+- Long answers stop being clipped: the output ceiling was recorded as 8,192 tokens against a real 384,000, and a limit set too low truncates rather than fails.
+- Saved settings keep working — retired model ids are rewritten here before the request goes out, rather than relying on a vendor redirect whose start date their own notice and docs disagree about.
+- The models page listed the same model twice at two different wrong prices. One card now, at the real rate, with benchmark bars left empty rather than showing a retired model’s scores.
+- The credits FAQ said V4 Pro cost six times the base rate. It never did — Kimi K3 does — so it names the right model, and DeepSeek is now one of the cheap ones.
+
 ## 0.98.2 — 2026-09-08 — I was remembering my own instructions instead of your work
 
 - Automatic memory was storing my mode instructions instead of what you said, so a full day of building left behind copies of my own prompt and nothing about the work.
