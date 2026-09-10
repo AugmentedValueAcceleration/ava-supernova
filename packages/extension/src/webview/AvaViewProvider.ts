@@ -547,6 +547,47 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private heartbeatInterval?: ReturnType<typeof setInterval>;
   private missedPongs = 0;
 
+  /**
+   * Idle-reflection timer.
+   *
+   * End-of-session reflection was only reachable through an explicit
+   * transition — new chat, switching conversation, switching project. Closing
+   * the editor reached NONE of them: dispose() never reflected, and
+   * deactivate() is synchronous so a fire-and-forget LLM call would have died
+   * with the extension host anyway.
+   *
+   * That is how most sessions actually end. An evening of work, editor closed,
+   * nothing written to memory — and the per-turn capture cannot cover for it,
+   * because its score is dominated by novelty and novelty collapses precisely
+   * when you stay on one topic.
+   *
+   * So reflection no longer depends on a clean shutdown. It runs when the
+   * session goes quiet.
+   */
+  private idleReflectTimer?: ReturnType<typeof setTimeout>;
+
+  /**
+   * User-turn count at the last reflection, PER CONVERSATION.
+   *
+   * Keyed by id rather than held as a single number on purpose: a bare counter
+   * carries across a conversation switch, so opening a fresh chat after a long
+   * session would compare 2 turns against the old session's 20 and skip
+   * reflection entirely — the exact bug this guard exists to prevent, moved
+   * somewhere harder to see.
+   */
+  private lastReflectedTurns = new Map<string, number>();
+
+  /**
+   * How long the session must be quiet before reflecting.
+   *
+   * Ten minutes, not one. reflectOnSession was deliberately kept off the hot
+   * path so a session could not feed its own memories back into its own
+   * context mid-flow. A short window would reintroduce exactly that. Ten
+   * minutes means a resumed session is a genuinely new working period, where
+   * recalling the earlier decisions is the point rather than a loop.
+   */
+  private static readonly IDLE_REFLECT_MS = 10 * 60_000;
+
   /** External webview callback — used by DashboardPanel in unified mode */
   private externalPostMessage?: (msg: ExtToWebviewMessage) => void;
 
@@ -1293,8 +1334,75 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    */
   private reflectOutgoingSession(conversation: Conversation | undefined): void {
     if (!conversation) return;
-    void this.memoryAgent?.reflectOnSession(conversation.getMessages(), conversation.id)
-      .catch((err) => this.log(`end-of-session reflection failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`));
+    void this.reflectSession(conversation);
+  }
+
+  /**
+   * Reflect a session into memory, skipping material already reflected.
+   *
+   * Awaitable, unlike reflectOutgoingSession, so shutdown can give it a
+   * bounded chance to finish rather than firing into a dying host.
+   */
+  private async reflectSession(conversation: Conversation | undefined): Promise<number> {
+    if (!conversation || !this.memoryAgent) return 0;
+    const messages = conversation.getMessages();
+    const userTurns = messages.filter((m) => m.role === 'user').length;
+
+    // Nothing new since the last reflection OF THIS conversation. Idle
+    // reflection plus an explicit new-chat would otherwise pay for the same
+    // transcript twice.
+    if (userTurns <= (this.lastReflectedTurns.get(conversation.id) ?? 0)) return 0;
+    if (userTurns < 2) return 0; // reflectOnSession needs >= 2 user turns
+
+    try {
+      const saved = await this.memoryAgent.reflectOnSession(messages, conversation.id);
+      this.lastReflectedTurns.set(conversation.id, userTurns);
+      if (saved > 0) this.log(`session reflection saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
+      return saved;
+    } catch (err) {
+      this.log(`session reflection failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      return 0;
+    }
+  }
+
+  /** Cancel any pending idle reflection — a new turn means the session lives. */
+  private cancelIdleReflection(): void {
+    if (this.idleReflectTimer) {
+      clearTimeout(this.idleReflectTimer);
+      this.idleReflectTimer = undefined;
+    }
+  }
+
+  /**
+   * Reflect once the session has been quiet for IDLE_REFLECT_MS.
+   *
+   * This is the path that actually catches a normal evening's work, because
+   * the alternative — reflecting at shutdown — depends on the user clicking
+   * "new chat" rather than closing the window.
+   */
+  private scheduleIdleReflection(): void {
+    this.cancelIdleReflection();
+    const conversation = this.conversation;
+    if (!conversation || !this.memoryAgent) return;
+    this.idleReflectTimer = setTimeout(() => {
+      this.idleReflectTimer = undefined;
+      void this.reflectSession(conversation);
+    }, AvaViewProvider.IDLE_REFLECT_MS);
+    // Do not hold the host open purely to run this.
+    (this.idleReflectTimer as unknown as { unref?: () => void }).unref?.();
+  }
+
+  /**
+   * Best-effort reflection on shutdown, bounded so it cannot hang the editor.
+   * Called from deactivate(), which now awaits it.
+   */
+  async flushMemoryOnShutdown(timeoutMs = 4000): Promise<void> {
+    this.cancelIdleReflection();
+    if (!this.conversation || !this.memoryAgent) return;
+    await Promise.race([
+      this.reflectSession(this.conversation).then(() => undefined),
+      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
   }
 
   async newChat(): Promise<void> {
@@ -1366,6 +1474,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   dispose(): void {
+    this.cancelIdleReflection();
     this.stopHeartbeat();
     this.stopReminderScheduler();
     killBackgroundProcesses();
@@ -3877,6 +3986,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return;
     }
     this.isRunning = true;
+    // The session is alive again — do not reflect mid-flow.
+    this.cancelIdleReflection();
     this.runAbortController = new AbortController();
 
     // Lane swap — point the single run pipeline at the right conversation
@@ -4574,6 +4685,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Safety net: always send 'done' so the UI clears isStreaming.
       // If 'done' was already sent via onEvent, this is a harmless no-op in the reducer.
       this.postMessage({ type: 'done' });
+      // The turn is over — start the idle clock. If another turn arrives it is
+      // cancelled; if the user wanders off (or closes the editor later) the
+      // session still reaches memory, which it previously did not.
+      this.scheduleIdleReflection();
       // Flush session tasks from todo_write to persistent storage
       if (this.taskManager) {
         this.taskManager.flushSessionTasks().catch(() => {});

@@ -488,7 +488,17 @@ function showReleaseNotesPanel(
 </html>`;
 }
 
-export function deactivate(): void {
+export async function deactivate(): Promise<void> {
   killBackgroundProcesses();
+  // Async so VS Code waits for it. This was `void`, so end-of-session
+  // reflection had no chance to run on shutdown — a whole evening's work could
+  // end with the editor closing and nothing reaching memory. Bounded at four
+  // seconds: memory is worth a short wait, never a hung editor, and the idle
+  // timer in AvaViewProvider is the primary path regardless.
+  try {
+    await viewProvider?.flushMemoryOnShutdown();
+  } catch {
+    // Shutdown is best-effort. Never block the editor closing.
+  }
   viewProvider?.dispose();
 }
