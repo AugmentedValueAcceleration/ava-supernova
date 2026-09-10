@@ -135,7 +135,18 @@ if (!KEY) {
  *
  * Override with --endpoint= to measure a provider directly.
  */
-const ENDPOINT = args.endpoint || 'https://avasupernova.com/api/chat';
+// DEFAULTS TO DASHSCOPE, not the platform.
+//
+// The platform path is the truer measure of what a gate costs the person
+// waiting — it includes our hop — but every call through it is METERED, and
+// the first run of this harness spent a whole monthly allowance on a test
+// account before anyone noticed. Comparing models does not need our hop in
+// the number; it needs the models measured on equal terms.
+//
+// Pass --endpoint=https://avasupernova.com/api/chat when the question really
+// is "what does the gate cost a platform user", and expect to pay for it.
+const ENDPOINT = args.endpoint
+  || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 
 const SYSTEM = `You are an intent classifier for a coding agent. Decide whether the user's
 message needs a team of specialist agents spawned, or whether the coordinator
