@@ -15,7 +15,7 @@ import type { ModelDefinition } from '../../core/types.js';
 export const DEEPSEEK_MODELS: ModelDefinition[] = [
   {
     id: 'deepseek-flash',
-    name: 'DeepSeek Flash',
+    name: 'DeepSeek V4.1 Flash',
     provider: 'deepseek',
     contextWindow: 1_000_000,
     // 384K, per DeepSeek's own docs. This said 8192 while V4 Pro and V4 Flash

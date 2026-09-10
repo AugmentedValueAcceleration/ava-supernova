@@ -176,7 +176,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
   // not in this file. Read the row, not this comment.
   {
     id: 'deepseek-flash-platform',
-    name: 'DeepSeek Flash',
+    name: 'DeepSeek V4.1 Flash',
     provider: 'platform',
     contextWindow: 1_000_000,
     // 384K per DeepSeek's docs. Both merged entries said 8192 — a 47x

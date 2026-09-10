@@ -299,6 +299,14 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // ($0.47 vs $0.60), so its real multiplier cannot exceed it. Scaling from
   // 3.7 Plus and from 3.5 Flash independently both land near 0.33x. Replace
   // this the moment the traffic replay has a real number.
+  // Qwen 3.7 Flash. INTERIM at the same ceiling as 3.8 Flash, and NOT scaled
+  // from its list price on purpose. Its list rate is lower ($0.10/$0.40) but
+  // it reasons by default and bills for it — a live call asking for the single
+  // word "ok" returned 167 completion tokens, 162 of them reasoning. Its
+  // pricing is also tiered by prompt length, so the flat figure understates a
+  // long turn. Scaling from list would have produced ~0.24x, which flatters us
+  // and undercharges. The ceiling holds until the replay measures it.
+  'qwen3.7-flash':              0.44,
   'qwen3.8-flash':              0.44,
   'qwen3.7-plus':               0.94,
   'qwen-plus':                  0.94,  // legacy DashScope alias

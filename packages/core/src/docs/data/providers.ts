@@ -115,7 +115,7 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'managed',
     notes: 'Powers Supernova routing mode. One model across every DeepSeek seat since 2026-09-10, when DeepSeek retired V4 Pro into V4.1 Flash: it coordinates the persona pipeline AND handles builds and review. Open-weight MIT, 1M context, 384K max output, multimodal, dual thinking/non-thinking modes. Prices are off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri) is exactly double.',
     models: [
-      { id: 'deepseek-flash-platform', displayName: 'DeepSeek Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash-platform', displayName: 'DeepSeek V4.1 Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {
@@ -135,7 +135,7 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'byok',
     notes: 'One model, since DeepSeek collapsed the line on 2026-09-10 and retired V4 Pro into V4.1 Flash — open-weight MIT, 1M context, 384K max output, multimodal, dual thinking modes. Every retired id we have shipped (V4 Pro, V4 Flash, and the older V3.2 deepseek-chat / deepseek-reasoner) is rewritten to this one before the request goes out, so an old saved setting keeps working. Prices are off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri) is exactly double.',
     models: [
-      { id: 'deepseek-flash', displayName: 'DeepSeek Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash', displayName: 'DeepSeek V4.1 Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   // Qwen has a managed section above (models we serve on your plan). This is the
