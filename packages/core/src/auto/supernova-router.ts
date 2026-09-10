@@ -35,13 +35,19 @@ export const SUPERNOVA_COORDINATOR_ID = 'deepseek-flash';
 export const SUPERNOVA_BUILDER_ID = 'qwen3.7-plus';
 
 /** Vision input override — any prompt with images bypasses persona / category
- *  routing and lands on Qwen 3.7 Plus (native vision + video).
+ *  routing and lands on Qwen 3.8 Flash (native vision + video).
  *
- *  This used to be forced: DeepSeek was blind at the API level. It is not any
- *  more — V4.1 Flash takes images — so this is now a CHOICE, kept because Qwen
- *  is what our vision paths are tuned and tested against and it handles video
- *  too. Revisit it in the fleet evaluation, not here. */
-export const SUPERNOVA_VISION_ID = 'qwen3.7-plus';
+ *  Two moves got this here. It used to be forced: DeepSeek was blind at the
+ *  API level, so vision HAD to leave the family. That stopped being true when
+ *  V4.1 Flash shipped multimodal, which turned it into a choice — and the
+ *  choice stayed with Qwen because our vision paths are tuned against it and
+ *  DeepSeek's vision is new and unproven here.
+ *
+ *  The 2026-09-10 fleet evaluation then moved it off 3.7 Plus. Qwen 3.8 Flash
+ *  reads images AND video at roughly a third the cost, and this seat only ever
+ *  looks at a picture — no agentic depth to regress. That made it the safest
+ *  place to take the new model first, ahead of the Builder seat. */
+export const SUPERNOVA_VISION_ID = 'qwen3.8-flash';
 
 /** Intent gate — cheapest classifier in the roster. Same model Auto Mode uses
  *  upstream of spawn decisions. No reason to swap; Qwen Flash at $0.065 input
@@ -67,7 +73,7 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // we've tuned the Builder persona against.
   coding:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-flash' },
   // Vision input → Qwen 3.7 Plus (native vision + video).
-  vision:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — native vision + video, 1M context', fallbackModelId: 'qwen3.5-plus', requiresVision: true },
+  vision:       { modelId: 'qwen3.8-flash',               reason: 'Qwen 3.8 Flash — native vision + video, 1M context', fallbackModelId: 'qwen3.7-plus', requiresVision: true },
   // image_gen orchestrates a generate_image tool call to Wan —
   // no agentic depth needed at this layer. Flash is cheapest.
   image_gen:    { modelId: 'qwen3.5-flash',               reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
@@ -93,10 +99,12 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // preferred Flash over Pro Think-Max on cognitive shape — breadth beats
   // careful reasoning for ideation. There is no Think-Max tier to avoid any
   // more, so the preference is moot and DeepSeek is simply the fleet's
-  // reasoning model. Note the fallback is the same model: with the line
-  // collapsed there is nothing to fall back TO inside DeepSeek, so a real
-  // outage here degrades to nothing. Worth fixing in the fleet evaluation.
-  brainstorm:   { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — breadth-first ideation at 1M context', fallbackModelId: 'deepseek-flash' },
+  // reasoning model. The fallback was briefly the SAME id as the primary —
+  // when DeepSeek collapsed to one model there was nothing left to fall back
+  // to inside the family, so an outage here degraded to nothing. It falls to
+  // Qwen 3.8 Flash now, which is in-family for Supernova and a real second
+  // option rather than a restatement of the first.
+  brainstorm:   { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — breadth-first ideation at 1M context', fallbackModelId: 'qwen3.8-flash' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────
@@ -140,8 +148,9 @@ export const SUPERNOVA_PERSONA_MODEL: Record<string, string> = {
   explorer:            'deepseek-flash',
   refiner:             'deepseek-flash',
 
-  // Vision specialist — Qwen 3.7 Plus sees images + video natively.
-  design_reviewer:     'qwen3.7-plus',
+  // Vision specialist — follows SUPERNOVA_VISION_ID onto Qwen 3.8 Flash:
+  // same native image + video, newer generation, roughly a third the cost.
+  design_reviewer:     'qwen3.8-flash',
 };
 
 /**

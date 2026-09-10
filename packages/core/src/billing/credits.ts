@@ -289,6 +289,17 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // anchoring to Medium 3.5, and 0.94 by measurement. Only the last one was
   // derived from what the traffic actually costs; the first two inherited
   // whatever error sat in their reference.
+  // INTERIM, not measured. modelCostMultiplier falls back to 1.0x for an
+  // unlisted model, so routing to qwen3.8-flash without an entry here would
+  // have billed it ABOVE the 0.94x Qwen 3.7 Plus it replaces — a cheaper
+  // model charging the user more.
+  //
+  // 0.44x is DeepSeek Flash's MEASURED figure, borrowed as a true ceiling:
+  // qwen3.8-flash has the same input price ($0.15) and a cheaper output price
+  // ($0.47 vs $0.60), so its real multiplier cannot exceed it. Scaling from
+  // 3.7 Plus and from 3.5 Flash independently both land near 0.33x. Replace
+  // this the moment the traffic replay has a real number.
+  'qwen3.8-flash':              0.44,
   'qwen3.7-plus':               0.94,
   'qwen-plus':                  0.94,  // legacy DashScope alias
   // Qwen 3.8 Max — $2.00/$6.00, 354 calls. 2.58 → 1.36, a 47% CUT and the

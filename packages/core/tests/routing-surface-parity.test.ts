@@ -109,10 +109,12 @@ describe('Longxiang — open-weights fleet, plan or BYOK', () => {
     }
   });
 
-  it('puts vision + long context on Qwen and volume on V4 Flash', () => {
+  it('puts vision + long context on Qwen and volume on DeepSeek Flash', () => {
     const r = router('longxiang', fleet);
+    // Moved off 3.7 Plus on 2026-09-10: same seats, newer Qwen. 3.8 Flash reads
+    // images AND video, scores higher on the agentic sets, and costs a third.
     for (const c of ['vision', 'long_context', 'teach'] as const) {
-      expect(modelFor(r, c)).toBe('qwen3.7-plus');
+      expect(modelFor(r, c)).toBe('qwen3.8-flash');
     }
     for (const c of ['chat', 'brainstorm', 'image_gen'] as const) {
       expect(modelFor(r, c)).toBe('deepseek-flash');

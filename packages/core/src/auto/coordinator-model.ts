@@ -32,9 +32,21 @@ export interface CoordinatorModelResult {
 
 // Ordered by reasoning capability — best first.
 // Both Plus tiers are 1M context — no cliff on fallback. MiniMax excluded — BYOK chat only, never a coordinator.
+// Qwen 3.5 Plus left this ladder on 2026-09-10. It was dominated outright by
+// Qwen 3.8 Flash — dearer at $0.20/$1.20 against $0.15/$0.47, no vision, and a
+// generation older — so there was no workload for which it was the right rung.
+// It stays in the catalogue and resolvable by id; it is simply no longer a
+// step the ladder walks through.
+//
+// The LEAD seat has not moved. Qwen 3.8 Flash beats 3.7 Plus on SWE-bench Pro
+// (62.5 vs 55.8) and on the agentic sets, and costs a third — but those are
+// Flash-Next's published figures, not this production id's, and Maestro's lead
+// is the seat that runs everything. It gets promoted when a replay of our own
+// traffic says so, not before. Sitting second, it is reached only when the
+// lead is unavailable, which is a safe place to earn the promotion.
 const PLATFORM_PRIORITY = [
   { id: 'qwen3.7-plus',     reason: 'Qwen 3.7 Plus — best agentic coding, 1M context, native function calling' },
-  { id: 'qwen3.5-plus',     reason: 'Qwen 3.5 Plus — 1M context fallback conductor' },
+  { id: 'qwen3.8-flash',    reason: 'Qwen 3.8 Flash — 1M context, multimodal, newer generation at flash cost' },
   { id: 'qwen3.5-flash',    reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];
 
@@ -51,7 +63,7 @@ const BYOK_PRIORITY = [
   // corrected on 2026-07-17: the GLM main line cannot see. Gone with 5.2.
   { id: 'glm-5.3',              reason: 'Zhipu GLM-5.3 — open-weights, 1M context, tools + thinking (text only)' },
   { id: 'mistral-large-3',      reason: 'Mistral Large 3 — broad-knowledge fallback (non-reasoning today)' },
-  { id: 'qwen3.5-plus',         reason: 'Qwen 3.5 Plus — 1M context fallback' },
+  { id: 'qwen3.8-flash',        reason: 'Qwen 3.8 Flash — 1M context, multimodal, newer generation at flash cost' },
   { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];
 

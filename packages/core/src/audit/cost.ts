@@ -69,6 +69,7 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     // Retired from the catalogue 2026-08-09 in favour of 3.8 Max, which is
     // cheaper and more capable, so nothing routes here any more.
     'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 },
+    'qwen3.8-flash':{ inputPerMillion: 0.15,  outputPerMillion: 0.47 },
     'qwen3.7-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.60 },
     // Was $0.40 in — double the real rate, so BYOK 3.5 Plus turns were
     // costed at twice what they actually cost. Corrected 2026-08-16.

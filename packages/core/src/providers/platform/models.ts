@@ -91,6 +91,33 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
   // Qwen 3.7 Plus — flagship Maestro conductor. Agentic coding, 1M context,
   // vision + video, reasoning. Supersedes Qwen 3.6 Plus + the 3.5 Omni tier:
   // better agentic coding, multimodal, and cheaper.
+  // Qwen 3.8 Flash (production build of Flash-Next, August 2026) - 1M context,
+  // 131K max output, multimodal INCLUDING VIDEO, native tool calling.
+  //
+  // It is not a cheaper 3.7 Plus. Flash-Next is Qwen's early preview of the
+  // Qwen4 architecture, so this is a newer generation arriving in the flash
+  // line first: 180B total with 6B active. It beats 3.7 Plus on SWE-bench Pro
+  // (62.5 vs 55.8) and on CoWorkBench and LiveCodeBench v6, and sits level on
+  // GPQA, MMLU and MATH - better where it matters for agentic work, no worse
+  // anywhere found.
+  //
+  // NOTE those figures are published for Flash-Next, the open-weight preview.
+  // Alibaba have not published a separate table for this production id. Close
+  // enough to route vision on; not close enough to move the Builder seat
+  // without measuring our own traffic first.
+  {
+    id: 'qwen3.8-flash',
+    name: 'Qwen 3.8 Flash',
+    provider: 'platform',
+    contextWindow: 1000000,
+    maxOutputTokens: 131072,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.47 },
+  },
   {
     id: 'qwen3.7-plus',
     name: 'Qwen 3.7 Plus',

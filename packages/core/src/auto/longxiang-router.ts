@@ -105,16 +105,33 @@ export const LONGXIANG_COORDINATOR_ID = 'kimi-k3';
  *  weaker seat. Front and centre by design. */
 export const LONGXIANG_BUILDER_ID = 'kimi-k3';
 
-/** Vision input override — Qwen 3.7 Plus, not K3. This is a COST call, not a
+/** Vision input override — Qwen 3.8 Flash, not K3. This is a COST call, not a
  *  capability one: K3 sees natively too (text+image+video), but at $3/$15 it
- *  is ~3x the mid-tier, and Qwen is the model our vision paths are already
- *  tuned against on Supernova. K3 remains a genuine vision fallback. */
-export const LONGXIANG_VISION_ID = 'qwen3.7-plus';
+ *  is ~20x this seat, and Qwen is the model our vision paths are already
+ *  tuned against on Supernova. K3 remains a genuine vision fallback.
+ *
+ *  Moved off 3.7 Plus in the 2026-09-10 fleet evaluation, in step with
+ *  Supernova so both fleets look at a picture with the same model. */
+export const LONGXIANG_VISION_ID = 'qwen3.8-flash';
 
-/** Intent gate — the cheapest classifier in the fleet. DeepSeek Flash at
- *  $0.15/$0.60 off-peak with 1M context; short routing calls don't need K3.
- *  Output is a category label, so the output rate barely registers here. */
-export const LONGXIANG_INTENT_GATE_ID = 'deepseek-flash';
+/** Intent gate — Qwen 3.5 Flash, the cheapest and fastest model in the fleet.
+ *
+ *  This was DeepSeek Flash, picked when it was the cheap half of a two-tier
+ *  DeepSeek. It is not cheap any more relative to the alternatives: $0.15
+ *  input against Qwen 3.5 Flash's $0.05, on a call that runs before EVERY
+ *  turn and emits a single category label.
+ *
+ *  Latency is the bigger half of the argument. This call sits in front of
+ *  every answer the user sees, so time-to-first-token is what it costs them,
+ *  and 3.5 Flash activates 3B parameters per token against 3.8 Flash's 6B.
+ *  It is also the gate Maestro and Supernova already run, so all three fleets
+ *  now classify with one model instead of three.
+ *
+ *  Accuracy is NOT the reason: 3.5 Flash scored 20/20 on the August gate set,
+ *  which means that set is saturated and cannot separate the candidates. A
+ *  wider test with TTFT as the primary axis is what would actually settle
+ *  this seat. */
+export const LONGXIANG_INTENT_GATE_ID = 'qwen3.5-flash';
 
 // ── Per-task-category routing ─────────────────────────────────────────────
 //
@@ -142,13 +159,13 @@ export const LONGXIANG_ROUTES: Record<TaskCategory, LongxiangRouteEntry> = {
   // ── Vision + long-context → Qwen 3.7 Plus (the Base) ──────────────────
   // Both seats see natively; Qwen carries vision on cost, K3 is a real
   // fallback (not a degraded one) if Qwen is unreachable.
-  vision:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — native vision + video, 1M context, mid-tier cost',                       fallbackModelId: 'kimi-k3', requiresVision: true },
+  vision:       { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — native vision + video, 1M context, flash-tier cost',                    fallbackModelId: 'kimi-k3', requiresVision: true },
   // Both K3 and Qwen are long-context; route on cost — Qwen is the cheaper
   // place to push a large prompt, K3 is the depth ceiling.
-  long_context: { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — 1M context at mid-tier cost; K3 reserved for depth',                     fallbackModelId: 'kimi-k3' },
+  long_context: { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — 1M context at flash-tier cost; K3 reserved for depth',                  fallbackModelId: 'kimi-k3' },
   // Teach = Tutor + Curriculum Architect, medium depth. Curriculum *creation*
   // upgrades to K3 — running the 5-persona prep team mid-tier goes shallow.
-  teach:        { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — long-form coherence for tutorials and lesson delivery',                  fallbackModelId: 'deepseek-flash', creationModelId: 'kimi-k3' },
+  teach:        { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — long-form coherence for tutorials and lesson delivery',                 fallbackModelId: 'deepseek-flash', creationModelId: 'kimi-k3' },
 
   // ── Volume routes → DeepSeek Flash (the River) ─────────────────────
   // image_gen routes a generate_image tool call out to Qwen-Image — the model
@@ -182,8 +199,8 @@ export const LONGXIANG_PERSONA_MODEL: Record<string, string> = {
   ideator:             'kimi-k3',            // reasoning depth 5
 
   // Mid-tier — long output and anything that needs eyes.
-  content_writer:      'qwen3.7-plus',       // flagship long-form coherence
-  design_reviewer:     'qwen3.7-plus',       // sees images + video natively
+  content_writer:      'qwen3.8-flash',      // long-form coherence, newer generation
+  design_reviewer:     'qwen3.8-flash',      // sees images + video natively
 
   // Light + mid-light specialists — volume tier.
   scout:               'deepseek-flash',
