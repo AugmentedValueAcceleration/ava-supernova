@@ -68,6 +68,25 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 432,
+    version: '0.45.1',
+    platform: 'ide',
+    toolCount: 121,
+    publishedAt: '2026-09-10 17:30:00+00',
+    title: `You can see which file I am working on`,
+    body: `Two small things, both about being told what is going on.
+
+**The status line names the file now.** It always stayed with you through a job — that part was already right — but it only said what KIND of thing was happening. "Reading file..." while the name of the file sat unused a few characters away. It says "Reading package.json", "Editing src/player.ts", "Running npm test" now.
+
+That is worth more than knowing I am busy. If you are newer to this, the sequence IS the job: read the thing, change the thing, run the tests, read what broke. Watching it happen is how the shape of the work becomes obvious.
+
+**And DeepSeek is called by its name.** The API key panel described it as "DeepSeek Flash", which is the id their API uses rather than the model's name. It is DeepSeek V4.1 Flash.`,
+    highlights: [
+      'The status line names the actual file, command or search — "Editing src/player.ts" rather than "Reading file...".',
+      'DeepSeek is named properly in the API key panel: DeepSeek V4.1 Flash, not the bare API id.',
+    ],
+  },
+  {
     migration: 431,
     version: '0.100.1',
     platform: 'extension',
