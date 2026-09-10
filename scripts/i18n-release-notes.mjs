@@ -68,6 +68,31 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 434,
+    version: '0.45.2',
+    platform: 'ide',
+    toolCount: 121,
+    publishedAt: '2026-09-10 23:55:00+00',
+    title: `I remember the evening, not just the moments I was told to`,
+    body: `A memory fix, and an honest one — this was losing whole sessions.
+
+**Closing the IDE threw the session away.** Reflection — the pass where I look back over what we did and keep what matters — only ran when you started a new chat, switched conversation, or changed project. Quitting reached none of those. So an evening of real work, ended the normal way by closing the window, left nothing behind. And running it at shutdown would not have saved it either: that work is a model call, and it would have been killed mid-sentence along with everything else.
+
+**So it no longer waits for a tidy ending.** When a session goes quiet for a while, I write it down. If you come back and carry on, that is cancelled and it waits again. Whether you quit properly, or just close the laptop, the evening is kept.
+
+**Decisions are remembered because they are decisions, not because they sounded important.** Writing to your Decisions folder, or accepting a plan, is now kept outright. Before, those were scored like anything else — and the scoring leaned hard on novelty, which fades exactly when you stay on one problem. Record a decision late in a long session and it looked routine, so it was often the decision itself that got dropped.
+
+**What I deliberately do not do is keep every edit.** Fifty near-identical notes from one evening on one file would bury the things worth recalling — including the things about you rather than the code. The session summary covers the work; the decisions are kept precisely; the rest stays out of the way.
+
+The extension had the same gap and got the same fix, so the two stay in step.`,
+    highlights: [
+      'Quitting the IDE used to lose the whole session — reflection only ran on a new chat, a conversation switch, or a project change.',
+      'Memory is now written when a session goes quiet rather than when it ends tidily, so the evening is kept either way.',
+      'Writing to your Decisions folder or accepting a plan is remembered outright, instead of being scored like small talk and often missed.',
+      'Ordinary edits are still not each stored — fifty near-identical notes from one evening would bury what is worth recalling.',
+    ],
+  },
+  {
     migration: 433,
     version: '0.100.2',
     platform: 'extension',
