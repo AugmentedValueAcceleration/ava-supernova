@@ -366,14 +366,35 @@ export class MemoryAgent {
         const lastUser = [...messages].reverse().find(m => m.role === 'user');
         const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
         if (lastUser && lastAssistant) {
+          const toolCalls = (lastAssistant as any).tool_calls as
+            | Array<{ function?: { name?: string; arguments?: string } }>
+            | undefined;
+
+          // Paths written or edited this turn. Tool NAMES cannot separate a
+          // throwaway edit from a recorded decision — both are `file_edit` —
+          // but the path can, and a Decisions/ write is the strongest signal
+          // available that the turn is worth keeping.
+          const filesTouched = (toolCalls ?? [])
+            .filter((tc) => tc.function?.name === 'file_write' || tc.function?.name === 'file_edit')
+            .map((tc) => {
+              try {
+                const args = JSON.parse(tc.function?.arguments || '{}');
+                return typeof args.file_path === 'string' ? args.file_path : null;
+              } catch {
+                // Arguments can be truncated or malformed; a missing path just
+                // means this turn scores as it did before.
+                return null;
+              }
+            })
+            .filter((p): p is string => !!p);
+
           const candidate = {
             userMessage: getTextContent(lastUser.content),
             assistantMessage: getTextContent(lastAssistant.content),
-            toolsUsed: (lastAssistant as any).tool_calls
-              ? (lastAssistant as any).tool_calls.map((tc: any) => tc.function?.name).filter(Boolean)
-              : [],
+            toolsUsed: (toolCalls ?? []).map((tc) => tc.function?.name).filter(Boolean) as string[],
             turnIndex: messages.filter(m => m.role === 'user').length,
             sessionId: conversationId,
+            filesTouched,
           };
           const promoted = await ambientCapture.evaluate(candidate);
           if (promoted) {

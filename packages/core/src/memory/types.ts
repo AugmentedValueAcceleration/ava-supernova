@@ -462,6 +462,18 @@ export interface CaptureCandidate {
   turnIndex: number;
   /** Session ID for traceability. */
   sessionId?: string;
+  /**
+   * File paths written or edited in this turn, if known.
+   *
+   * Tool NAMES alone cannot tell a throwaway edit from a recorded decision —
+   * both are `file_edit`. The path can: a write into Decisions/ is the user's
+   * own convention for "this is settled", which is a far stronger signal than
+   * any keyword match, and it is one Ava already follows reliably.
+   *
+   * Optional: callers that cannot cheaply resolve arguments simply omit it and
+   * scoring behaves as before.
+   */
+  filesTouched?: string[];
 }
 
 /** Scoring dimensions for a capture candidate. */

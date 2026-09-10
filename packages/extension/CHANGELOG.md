@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.100.2 — 2026-09-10 — I remember the evening, not just the moments I was told to
+
+- Closing the editor used to lose the whole session. End-of-session reflection only ran if you started a new chat or switched project — shutting down reached none of those paths.
+- Memory is now written when a session goes quiet rather than when it ends tidily, so an evening of work is kept whether or not you closed anything properly.
+- Writing to your Decisions folder, or accepting a plan, is now remembered outright instead of being scored like small talk and often missed.
+- Ordinary edits still are not each stored on their own — fifty near-identical notes from one evening would bury the things actually worth recalling.
+
 ## 0.100.1 — 2026-09-10 — You can see what I am doing while I am doing it
 
 - The “what I am doing” line used to disappear the moment I started using a tool — the longest part of a turn — while the bottom bar still said I was working.

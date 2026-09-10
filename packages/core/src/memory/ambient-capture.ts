@@ -23,6 +23,31 @@ import { tokenize, buildTermVector, cosineSimilarity } from './tfidf.js';
 
 // ── Heuristic Scorer (zero-cost fallback) ───────────────────────────────────
 
+/**
+ * Did this turn record a decision? Returns the reason, or null.
+ *
+ * A FACT about the turn, not an opinion about it — which is the entire point.
+ * Everything else in this file guesses at significance from wording and
+ * novelty; these two signals simply state it.
+ *
+ * Kept narrow on purpose. Anything common enough to fire most turns would
+ * flood memory and defeat the recall it exists to serve.
+ */
+export function decisionEvidence(candidate: CaptureCandidate): string | null {
+  // A write into Decisions/ is the project's own record of a settled choice.
+  // Matched on the path segment so it works on either separator, and only as a
+  // FOLDER — a file merely named "decisions.md" elsewhere is not the
+  // convention and should not be treated as one.
+  const wroteDecision = (candidate.filesTouched ?? []).some((p) =>
+    /(^|[\\/])Decisions[\\/]/i.test(p));
+  if (wroteDecision) return 'Decisions/ write';
+
+  // An accepted plan is explicit approval — the user said yes to something.
+  if (candidate.toolsUsed.includes('apply_plan')) return 'plan accepted';
+
+  return null;
+}
+
 export function heuristicScore(
   candidate: CaptureCandidate,
   graph: MemoryGraph,
@@ -59,6 +84,25 @@ export function heuristicScore(
 
   // Confidence
   let confidence = 0.4;
+
+  // WORK ACTUALLY HAPPENED — the turn changed something on disk.
+  //
+  // Confidence used to move only on explicit phrases: "remember", "we
+  // decided", "approved". A working coding turn contains none of them, so
+  // confidence stayed pinned at its 0.4 floor and contributed a fixed 0.10 of
+  // the 0.6 promote threshold. With relevance realistically near 0.5, that
+  // left novelty needing to supply 0.30 of its 0.35 — novelty above 0.857,
+  // meaning the turn had to be almost entirely unlike anything already
+  // stored.
+  //
+  // Which is backwards. Novelty is the ONE signal that decays as you
+  // concentrate: spend an evening on a single subsystem and every turn starts
+  // resembling the last, so the deeper the work, the less was captured.
+  //
+  // An edit is not proof the turn was memorable, so this does not promote on
+  // its own. It removes the pin, letting a turn clear the bar on merit rather
+  // than on near-total novelty.
+  if ((candidate.filesTouched?.length ?? 0) > 0) confidence = Math.max(confidence, 0.75);
   const explicitMarkers = [
     'remember', 'keep in mind', 'note that', 'important:',
     'don\'t forget', 'make sure', 'always', 'never',
@@ -213,6 +257,26 @@ export class AmbientCaptureManager {
     const score = llmScore ?? heuristicScore(candidate, this.graph);
 
     logger.debug(`[ambient] Scored: n=${score.novelty.toFixed(2)} r=${score.relevance.toFixed(2)} c=${score.confidence.toFixed(2)} composite=${score.composite.toFixed(2)}`);
+
+    // ── Facts beat guesses ────────────────────────────────────────────────
+    //
+    // Some turns are known to matter without needing to be scored at all, and
+    // scoring them is how they got missed. A Decisions/ write is the user's
+    // own convention for "this is settled"; an accepted plan is explicit
+    // approval. Both are rare, both are unambiguous, and both were previously
+    // subject to the same novelty-dominated threshold as idle chatter — so
+    // recording a decision late in a long session, when novelty had decayed,
+    // failed to store the decision.
+    //
+    // Deliberately narrow. Ordinary file edits do NOT land here: they are
+    // frequent, and promoting every one would bury the personal memories that
+    // make her feel like she knows you under a wall of routine edits. They get
+    // the confidence floor above instead.
+    const decisionSignal = decisionEvidence(candidate);
+    if (decisionSignal) {
+      logger.debug(`[ambient] Promoting on ${decisionSignal} — bypassing score`);
+      return this.promote(candidate, score, scope);
+    }
 
     if (score.composite >= AMBIENT_PROMOTE_THRESHOLD) {
       return this.promote(candidate, score, scope);
