@@ -31,8 +31,22 @@ import url from 'node:url';
 const repoRoot = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const AS_JSON = process.argv.includes('--json');
 
-/** Tokens live in env files, not in your head. See project_release_runbook. */
-const HUB_ENV = 'C:/Users/stewa/Desktop/Stew.AI/ava-supernova/packages/augmented-value-acceleration/.env.local';
+/** Tokens live in env files, not in your head. See project_release_runbook.
+ *
+ *  This was an absolute path to a SECOND hub checkout outside this repo, and
+ *  that checkout had been stale since 6 August. The token in it is long dead,
+ *  so every GitHub lookup here 401d and every release read as unpublished --
+ *  which is how IDE 0.45.0'''s notes came to announce three features that had
+ *  shipped in 0.44.0 nine days earlier.
+ *
+ *  The hub is a submodule of this repo. Resolve it from the repo root so the
+ *  file we read is the one that ships, and keep the old path only as a
+ *  fallback for a machine that genuinely has it there. */
+const HUB_ENV_CANDIDATES = [
+  path.join(repoRoot, 'packages', 'augmented-value-acceleration', '.env.local'),
+  'C:/Users/stewa/Desktop/Stew.AI/ava-supernova/packages/augmented-value-acceleration/.env.local',
+];
+const HUB_ENV = HUB_ENV_CANDIDATES.find((f) => fs.existsSync(f)) ?? HUB_ENV_CANDIDATES[0];
 const WEB_ENV = path.join(repoRoot, 'packages', 'web', '.env.local');
 
 function readEnv(file, key) {
