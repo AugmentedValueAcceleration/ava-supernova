@@ -68,6 +68,28 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 431,
+    version: '0.100.1',
+    platform: 'extension',
+    toolCount: 121,
+    publishedAt: '2026-09-10 17:00:00+00',
+    title: `You can see what I am doing while I am doing it`,
+    body: `One fix, in the line that tells you what I am working on.
+
+**It went quiet exactly when I got busy.** You would send a message, see something sensible like "Qwen 3.7 Plus is working", and then — the moment I actually started doing the job — nothing. The line vanished. Meanwhile the bar at the bottom carried on saying I was busy, so the two disagreed, and the one you were watching was the one that had gone dark. The longest, quietest stretch of a turn was the stretch with no explanation attached to it.
+
+**Now it keeps up, and it says the real thing.** "Reading package.json", "Editing src/player.ts", "Running npm test", "Searching for /useState/" — the actual file, the actual command. When a step finishes it hands back to the model until the next one starts, so the gaps say something true rather than something left over.
+
+That is worth more than knowing I am alive. If you are newer to this, the sequence IS the job: read the thing, change the thing, run the tests, read what broke. Watching it happen is how the shape of the work becomes obvious, and a spinner teaches nobody anything.
+
+The desktop IDE gets the same detail. It had been keeping its line alive all along, but it only said what KIND of thing was happening — "Reading file..." — while the name of the file sat right there unused.`,
+    highlights: [
+      'The "what I am doing" line used to disappear the moment I started using a tool \u2014 the longest part of a turn \u2014 while the bottom bar still said I was working.',
+      'It now names the actual file, command or search: "Editing src/player.ts", "Running npm test", and hands back to the model between steps.',
+      'The desktop IDE gets the same detail \u2014 it kept its line alive already, but only said "Reading file..." while the filename sat unused on the same event.',
+    ],
+  },
+  {
     migration: 430,
     version: '0.100.0',
     platform: 'extension',

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.100.1 — 2026-09-10 — You can see what I am doing while I am doing it
+
+- The “what I am doing” line used to disappear the moment I started using a tool — the longest part of a turn — while the bottom bar still said I was working.
+- It now names the actual file, command or search: “Editing src/player.ts”, “Running npm test”, and hands back to the model between steps.
+- The desktop IDE gets the same detail — it kept its line alive already, but only said “Reading file...” while the filename sat unused on the same event.
+
 ## 0.100.0 — 2026-09-10 — Your fleets got cheaper and sharper on the same day
 
 - Both vision seats move to Qwen 3.8 Flash: a newer generation than the model it replaces, reads video as well as images, and costs about a third.
