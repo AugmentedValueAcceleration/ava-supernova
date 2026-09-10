@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.100.0 — 2026-09-10 — Your fleets got cheaper and sharper on the same day
+
+- Both vision seats move to Qwen 3.8 Flash: a newer generation than the model it replaces, reads video as well as images, and costs about a third.
+- Longxiang’s intent gate stops running on a model three times the price of the one every other fleet uses for the same one-word job.
+- Qwen 3.7 Flash is finally pickable — it has been in the catalogue since July marked as offered, while missing from the list that decides what your picker shows.
+- DeepSeek is named properly as DeepSeek V4.1 Flash, and no longer appears twice in the picker, the companion or the credits page.
+- The settings dropdown stops offering Codestral and Devstral, retired in July — picking either selected a model that could not run.
+- On an account, every turn was preceded by a hidden reasoning pass on a call that returns one word. The instruction to skip it was being dropped; BYOK was never affected.
+- Five credit multipliers in the docs disagreed with what the biller charges, including DeepSeek at three times its real rate. Fixed, with a test that fails the build if they drift again.
+
 ## 0.99.0 — 2026-09-10 — DeepSeek is one model now, and it costs a fraction of what it did
 
 - DeepSeek retired V4 Pro into V4.1 Flash, so there is one DeepSeek model instead of two — and Supernova's most expensive seat now costs about a third per turn.

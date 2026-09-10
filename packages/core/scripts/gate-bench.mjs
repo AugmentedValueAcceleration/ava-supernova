@@ -48,6 +48,11 @@ const args = Object.fromEntries(
 
 const AS_JSON = args.json === 'true';
 const REPEAT = Math.max(1, Number(args.repeat || 1));
+/** Delay between calls. This harness costs real credits — 28 calls per
+ *  candidate per pass — and its first run exhausted a monthly allowance in
+ *  one sitting. Override with --pace= if you have headroom and want it faster. */
+const PACE_MS = Math.max(0, Number(args.pace ?? 700));
+let aborted = false;
 
 /** Candidates. Add an id here to put it in the running. */
 const CANDIDATES = (args.models
@@ -170,7 +175,14 @@ async function callOnce(model, prompt, mode) {
   });
 
   if (!res.ok) {
-    return { error: `HTTP ${res.status} ${(await res.text()).slice(0, 120)}` };
+    const text = (await res.text()).slice(0, 200);
+    // A 429 is NOT a model failure, and must never be scored as one. The first
+    // run of this harness spent the whole monthly credit allowance and then
+    // recorded the LAST candidate as 0/28 — reading exactly like "this model
+    // cannot classify" when it meant "we ran out of money before its turn".
+    // Candidates run in sequence, so that bias always lands on whoever is last.
+    if (res.status === 429) return { error: `RATE_OR_CREDIT: ${text}`, fatal: true };
+    return { error: `HTTP ${res.status} ${text}` };
   }
 
   // Streaming, because TTFT is the number that matters and you cannot get it
@@ -218,17 +230,32 @@ function pct(sorted, p) {
   const results = {};
 
   for (const model of CANDIDATES) {
+    if (aborted) break;
     const ttfts = [];
     let correct = 0, hardCorrect = 0, hardTotal = 0, counted = 0, failed = 0, thinkingSeen = 0;
     const misses = [];
 
     for (let pass = 0; pass < REPEAT; pass++) {
+      if (aborted) break;
       for (const t of PROMPTS) {
         let r;
         try { r = await callOnce(model, t.p, t.mode); }
         catch (e) { r = { error: e.message }; }
 
+        // Stop the whole run on a credit/rate wall rather than grinding on and
+        // publishing a table where the later candidates look worse than they
+        // are. Partial results are fine; a biased comparison is not.
+        if (r.fatal) {
+          console.error(`\nSTOPPED: ${r.error}`);
+          console.error('This is a billing/rate limit, not a model result. Any candidate not');
+          console.error('yet measured is UNMEASURED — do not read the table below as a ranking.');
+          aborted = true;
+          break;
+        }
         if (r.error) { failed++; continue; }
+        // Pace it. This harness is ~28 calls per candidate per pass and it will
+        // happily spend a monthly allowance in one run if left to sprint.
+        await new Promise((r2) => setTimeout(r2, PACE_MS));
         if (r.thinking) thinkingSeen++;
         ttfts.push(r.ttft);
         counted++;

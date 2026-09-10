@@ -68,6 +68,40 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 430,
+    version: '0.100.0',
+    platform: 'extension',
+    toolCount: 121,
+    publishedAt: '2026-09-10 16:00:00+00',
+    title: `Your fleets got cheaper and sharper on the same day`,
+    body: `A fleet evaluation, which is something we mean to do regularly now — the point being that a fleet is defined by the LABS it may draw from, so whenever one of those labs ships something better, the fleet should get it without you doing anything.
+
+**Qwen 3.8 Flash is a newer generation than the model it replaces, and costs a third.** That is not the usual trade. It is the production build of Flash-Next, Alibaba's preview of the Qwen4 architecture, so it arrived in the flash line before anywhere else: it beats Qwen 3.7 Plus on the agentic coding benchmarks, reads video as well as images, and prices at $0.15 against $0.40. Both vision seats move to it — attach a screenshot in Supernova or Longxiang and the model that looks at it is newer, sees more, and costs you about a third of what it did. Longxiang's long-context and teaching work moves with it.
+
+**Longxiang's intent gate stops overpaying.** Before every turn, a small model reads what you asked and decides whether the job needs a full specialist team. Longxiang was running that on DeepSeek at three times the price of the model the other fleets use for the same job, for a call whose entire output is one word. It uses the same gate as everything else now.
+
+**And both Qwen flash models are actually pickable.** Qwen 3.7 Flash has been in the catalogue since July with a note saying it was offered — and it was not, because the list that decides what appears in your picker had no entry for it. It does now, alongside 3.8 Flash. They are different tools: 3.8 is newer and stronger on agentic work, 3.7 has cheaper short prompts and reasons by default. Which suits your job is yours to decide; ours was making both reachable.
+
+**DeepSeek is called by its name now.** It was showing as "DeepSeek Flash" because that is the id their API uses — but the id has no version in it, and the display name is what you read when choosing between models. It is DeepSeek V4.1 Flash. The companion and the credits page were each listing it twice; the model picker was offering it twice too.
+
+**The model list stops offering two models that no longer exist.** Codestral and Devstral were retired in July and left the catalogue, but stayed in the settings dropdown — pick either and you selected something that could not run.
+
+**Something slow in front of every turn, for anyone on an account.** That intent-gate call was supposed to skip the model's reasoning pass — it is a classifier, the thinking before the answer is pure waiting — and it does, on your own API key. Through a platform account the instruction was being dropped before the request went out, so every turn spent time and tokens reasoning about a one-word answer first. Only accounts were affected, which is why it went unseen for so long: the two paths disagreed and only one of them was wrong.
+
+**Prices you are quoted now match prices you are charged.** The documentation listed five credit multipliers that no longer matched the biller — including DeepSeek at three times its real rate, and Qwen 3.8 Max at nearly double. Those figures are also what I read from when you ask what something costs, so I have been answering confidently and wrongly. They are corrected, and a test now fails the build if the two ever disagree again.
+
+**And the models page shows benchmark scores** for the Qwen models, on their own row rather than mixed in with a different exam's numbers. Where a score has not been published, the space stays empty rather than borrowing a retired model's.`,
+    highlights: [
+      'Both vision seats move to Qwen 3.8 Flash: a newer generation than the model it replaces, reads video as well as images, and costs about a third.',
+      'Longxiang\u2019s intent gate stops running on a model three times the price of the one every other fleet uses for the same one-word job.',
+      'Qwen 3.7 Flash is finally pickable \u2014 it has been in the catalogue since July marked as offered, while missing from the list that decides what your picker shows.',
+      'DeepSeek is named properly as DeepSeek V4.1 Flash, and no longer appears twice in the picker, the companion or the credits page.',
+      'The settings dropdown stops offering Codestral and Devstral, retired in July \u2014 picking either selected a model that could not run.',
+      'On an account, every turn was preceded by a hidden reasoning pass on a call that returns one word. The instruction to skip it was being dropped; BYOK was never affected.',
+      'Five credit multipliers in the docs disagreed with what the biller charges, including DeepSeek at three times its real rate. Fixed, with a test that fails the build if they drift again.',
+    ],
+  },
+  {
     migration: 428,
     version: '0.45.0',
     platform: 'ide',
