@@ -25,9 +25,9 @@ const MODEL_ALIASES: Record<string, string> = {
   'qwen plus': 'qwen3.7-plus',
   // DeepSeek — bare 'deepseek' routes to the current frontier V4 Pro. The old
   // `deepseek-chat`/`deepseek-reasoner` ids retire upstream on 2026-07-24.
-  'deepseek': 'deepseek-v4-pro',
-  'deepseek pro': 'deepseek-v4-pro',
-  'deepseek flash': 'deepseek-v4-flash',
+  'deepseek': 'deepseek-flash',
+  'deepseek pro': 'deepseek-flash',
+  'deepseek flash': 'deepseek-flash',
   // Mistral — "use mistral" should give the flagship: Medium 3.5 is the
   // current frontier model (Index 39), above Large 3 (23).
   'mistral': 'mistral-medium-3.5',

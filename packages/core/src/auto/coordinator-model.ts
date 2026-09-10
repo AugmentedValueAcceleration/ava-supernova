@@ -45,7 +45,7 @@ const BYOK_PRIORITY = [
   { id: 'kimi-k3',              reason: 'Kimi K3 — Moonshot frontier model, 2.8T MoE, 1M context, leads agentic + browsing benchmarks' },
   { id: 'kimi-k2.7-code',       reason: 'Kimi K2.7 Code — Moonshot flagship agentic coder, ~30% fewer reasoning tokens than K2.6, 256K context' },
   { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — agentic coding fallback (SWE-Bench Pro 58.6), 256K context' },
-  { id: 'deepseek-v4-pro',      reason: 'DeepSeek V4 Pro — frontier coding + long-context reasoning' },
+  { id: 'deepseek-flash',      reason: 'DeepSeek Flash — frontier coding + long-context reasoning' },
   { id: 'qwen3.7-plus',         reason: 'Qwen 3.7 Plus — flagship Maestro coordinator: #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },
   // 'tools + vision' stood here for six weeks after the catalogue was
   // corrected on 2026-07-17: the GLM main line cannot see. Gone with 5.2.
@@ -62,7 +62,7 @@ export function resolveCoordinatorModel(
   preferredCoordinatorId?: string,
 ): CoordinatorModelResult | null {
   // Operator override — if the user has picked a specific coordinator in
-  // settings (e.g. "try DeepSeek V4 Pro in Auto Mode" during the admin-
+  // settings (e.g. "try DeepSeek Flash in Auto Mode" during the admin-
   // gated rollout), honour that choice before falling through to the
   // default priority ladder. Silently falls back if the preferred model
   // isn't actually resolvable (keys missing, not enabled, etc.) so the

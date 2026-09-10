@@ -40,7 +40,7 @@ describe('picker visibility', () => {
     // and nothing inside them, which is the bug it was added to fix.
     const shown = PLATFORM_MODELS.filter((m) => !m.disabled && !m.hiddenFromPicker);
     expect(shown.length).toBeGreaterThan(5);
-    for (const fleetModel of ['deepseek-v4-pro-platform', 'mistral-medium-3.5-platform', 'qwen3.7-plus']) {
+    for (const fleetModel of ['deepseek-flash-platform', 'mistral-medium-3.5-platform', 'qwen3.7-plus']) {
       expect(shown.map((m) => m.id)).toContain(fleetModel);
     }
   });

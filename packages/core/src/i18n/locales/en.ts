@@ -2030,11 +2030,11 @@ export const enStrings = {
   'dash.model.sub.add_moonshot': 'Add Moonshot key',
   'dash.model.sub.connect_longxiang': 'Connect or add 3 keys',
   'dash.model.aurora_title': 'Aurora — Mistral-only EU stack. Three-tier fleet: Mistral Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Mistral Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Mistral Large 3 is the heavy reserve. EU-only data residency, GDPR-strict, open weights.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4 Pro coordinator + V4 Flash specialists with Qwen builders. Heavy multi-step work.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek Flash coordinator + V4 Flash specialists with Qwen builders. Heavy multi-step work.',
   'dash.model.maestro_title': 'Maestro — single Qwen 3.7 Plus conductor. Daily work, predictable cost.',
   // Careful with this string: it must NOT claim "open weights end to end"
   // until Qwen 3.7 Plus weights are actually public. See longxiang-router.ts.
-  'dash.model.longxiang_title': 'Longxiang (龙翔) — the Chinese-model fleet. Kimi K3 leads as coordinator and Builder, Qwen 3.7 Plus carries mid-tier builds and vision, DeepSeek V4 Flash handles volume. Available on a plan, or with your own Moonshot + Qwen + DeepSeek keys. K3 is the priciest model we serve, so it uses more credits per turn than the other fleets.',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — the Chinese-model fleet. Kimi K3 leads as coordinator and Builder, Qwen 3.7 Plus carries mid-tier builds and vision, DeepSeek Flash handles volume. Available on a plan, or with your own Moonshot + Qwen + DeepSeek keys. K3 is the priciest model we serve, so it uses more credits per turn than the other fleets.',
 
   // ── Command Centre chrome ────────────────────────────────────────────────
   'dash.cc.call_you_ph': 'What should Ava call you?',

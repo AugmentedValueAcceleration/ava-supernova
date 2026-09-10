@@ -207,8 +207,8 @@
             "order": 1,
             "enum": [
               "",
-              "deepseek:deepseek-v4-pro",
-              "deepseek:deepseek-v4-flash",
+              "deepseek:deepseek-flash",
+              "deepseek:deepseek-flash",
               "kimi:kimi-k3",
               "kimi:kimi-k2.7-code",
               "qwen:qwen3.7-plus",
@@ -232,8 +232,8 @@
             ],
             "enumDescriptions": [
               "No model selected — sign in for 300 free credits/month, or bring your own keys",
-              "DeepSeek V4 Pro — frontier reasoning, 1M context, MIT open-weight",
-              "DeepSeek V4 Flash — best value at $0.14/$0.28 per M, fast long-context coding",
+              "DeepSeek Flash — frontier reasoning, 1M context, MIT open-weight",
+              "DeepSeek Flash — best value at $0.14/$0.28 per M, fast long-context coding",
               "Kimi K3 — Moonshot frontier model, 2.8T MoE, 1M context, native vision",
               "Kimi K2.7 Code — agentic coding leader, 256K context, multimodal",
               "Qwen 3.7 Plus — flagship Qwen, agentic coding, 1M context, vision",

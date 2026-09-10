@@ -31,9 +31,8 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // than removed: a saved selection keeps working, and the person holding it
   // gets a better model for less money without being asked to do anything.
   'qwen3.7-max':       'qwen3.8-max',
-  // Managed DeepSeek V4 — strip the `-platform` disambiguator
-  'deepseek-v4-pro-platform':   'deepseek-v4-pro',
-  'deepseek-v4-flash-platform': 'deepseek-v4-flash',
+  // Managed DeepSeek — strip the `-platform` disambiguator
+  'deepseek-flash-platform':   'deepseek-flash',
   // Managed Kimi K3 (Longxiang's lead seat) — strip the disambiguator.
   // Moonshot only knows `kimi-k3`; sending the suffixed id returns
   // 404 "Not found the model kimi-k3-platform or Permission denied".
@@ -75,8 +74,9 @@ export const VISION_REROUTE: Record<string, string> = {
   'qwen3.5-flash':       'qwen3.7-plus',
   'qwen-flash':          'qwen3.7-plus',
   'qwen-turbo':          'qwen3.7-plus',
-  'deepseek-v4-pro':     'qwen3.7-plus',
-  'deepseek-v4-flash':   'qwen3.7-plus',
+  // DeepSeek is deliberately absent: V4 Pro and V4 Flash were both text-only
+  // at the API level and rerouted here. V4.1 Flash is multimodal, so it takes
+  // the image itself — rerouting it would hand its own work to Qwen.
   'mistral-large-2512':  'mistral-medium-3-5',
 };
 

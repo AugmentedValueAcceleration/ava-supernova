@@ -177,7 +177,7 @@ export class ModelRouter {
   private resolveModel(modelId: string, reason: string): RouteResult | null {
     // Try platform first. The registry bridges the native/-platform id-suffix
     // duality, so a route written in either form resolves; we surface the
-    // concrete resolved id (e.g. `platform:deepseek-v4-pro-platform`) so the
+    // concrete resolved id (e.g. `platform:deepseek-flash-platform`) so the
     // downstream API call + billing key match the model actually served.
     if (this.hasPlatform) {
       const result = this.providerRegistry.resolveModel(`platform:${modelId}`);
@@ -222,7 +222,7 @@ export class ModelRouter {
     // `deepseek-chat` was here until 2026-07-17: DeepSeek retires that id (and
     // `deepseek-reasoner`) on 2026-07-24, after which it 400s. V4 Pro is the
     // current frontier DeepSeek and is what the catalogue already ships.
-    const byokModels = ['kimi-k3', 'kimi-k2.7-code', 'kimi-k2.6', 'deepseek-v4-pro', 'glm-5.3', 'mistral-medium-3.5', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
+    const byokModels = ['kimi-k3', 'kimi-k2.7-code', 'kimi-k2.6', 'deepseek-flash', 'glm-5.3', 'mistral-medium-3.5', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {

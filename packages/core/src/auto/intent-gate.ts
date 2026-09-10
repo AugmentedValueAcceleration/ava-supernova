@@ -89,7 +89,7 @@ export function resolveIntentGateModel(
   // before this — no entry here resolved, so every prompt went to the regex.
   const fallbacks = [
     'qwen3.5-flash',
-    'deepseek-v4-flash',
+    'deepseek-flash',
     'nvidia/nemotron-3.5-lightning-30b-a3b',
   ];
   for (const id of fallbacks) {

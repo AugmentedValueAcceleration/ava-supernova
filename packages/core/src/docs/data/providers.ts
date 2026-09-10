@@ -43,9 +43,9 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'orchestration',
     notes: 'Best-of-breed routing — the coordinator picks the right specialist for each subtask. Frontier reasoning where it matters, flash-tier cost where it does not.',
     models: [
-      { id: 'deepseek-v4-pro-platform', displayName: 'DeepSeek V4 Pro — coordinator + planning, chat, long-context, security, brainstorm; Researcher, CVE Researcher, Ideator personas', inputPricePerM: 0.66, outputPricePerM: 1.98, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash-platform', displayName: 'DeepSeek Flash — coordinator + planning, chat, long-context, security, brainstorm; Researcher, CVE Researcher, Ideator personas', inputPricePerM: 0.66, outputPricePerM: 1.98, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — Builder + coding, image-gen; Architect + Content Writer personas', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'deepseek-v4-flash-platform', displayName: 'DeepSeek V4 Flash — Teach route; Code Reviewer, Fact Checker, Quiz Master, Recon, Scanner, Curriculum Architect, Tutor, Curator, Explorer, Refiner, Security Verifier/Reporter personas', inputPricePerM: 0.22, outputPricePerM: 0.66, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash-platform', displayName: 'DeepSeek Flash — Teach route; Code Reviewer, Fact Checker, Quiz Master, Recon, Scanner, Curriculum Architect, Tutor, Curator, Explorer, Refiner, Security Verifier/Reporter personas', inputPricePerM: 0.22, outputPricePerM: 0.66, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — outage fallback tier only (retired from primary routes)', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — intent gate; Scout, Verifier, Sequencer, Challenger, Integrator personas (depth ≤ 2)', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
     ],
@@ -67,13 +67,13 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'orchestration',
     // Deliberately does NOT claim open weights, in the name or anywhere below:
     // Kimi K3's weights are due 2026-07-27 and Qwen 3.7 Plus is still API-only,
-    // so today only DeepSeek V4 Flash is genuinely open. Describe the fleet
+    // so today only DeepSeek Flash is genuinely open. Describe the fleet
     // accurately now; strengthen the wording when it becomes true.
-    notes: 'Kimi K3 holds both the coordinator and Builder seats — the strongest coder we serve (88.3 Terminal-Bench 2.1, 81.2 FrontierSWE). Qwen 3.7 Plus takes mid-tier builds and vision; DeepSeek V4 Flash carries chat, brainstorm and the intent gate. K3 is the priciest model we serve, so Longxiang uses more credits per turn than the other fleets — or none at all on your own keys.',
+    notes: 'Kimi K3 holds both the coordinator and Builder seats — the strongest coder we serve (88.3 Terminal-Bench 2.1, 81.2 FrontierSWE). Qwen 3.7 Plus takes mid-tier builds and vision; DeepSeek Flash carries chat, brainstorm and the intent gate. K3 is the priciest model we serve, so Longxiang uses more credits per turn than the other fleets — or none at all on your own keys.',
     models: [
       { id: 'kimi-k3-platform', displayName: 'Kimi K3 — lead seat: coordinator AND Builder, plus deep specialists (Architect, Researcher, CVE Researcher, Ideator). 2.8T Stable LatentMoE, native vision', inputPricePerM: 3.00, outputPricePerM: 15.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — mid-tier builds, vision input, long context, teach delivery, long-form writing', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash — chat, brainstorm, image-gen orchestration, intent gate, light specialists (MIT)', inputPricePerM: 0.22, outputPricePerM: 0.66, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash', displayName: 'DeepSeek Flash — chat, brainstorm, image-gen orchestration, intent gate, light specialists (MIT)', inputPricePerM: 0.22, outputPricePerM: 0.66, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
   // ── Platform-managed providers ────────────────────────────────────────────
@@ -111,8 +111,8 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'managed',
     notes: 'Powers Supernova routing mode. V4 Pro coordinates the persona pipeline; V4 Flash handles high-volume builds and review. Both open-weight MIT, 1M context, dual thinking/non-thinking modes.',
     models: [
-      { id: 'deepseek-v4-pro-platform', displayName: 'DeepSeek V4 Pro', inputPricePerM: 0.66, outputPricePerM: 1.98, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'deepseek-v4-flash-platform', displayName: 'DeepSeek V4 Flash', inputPricePerM: 0.22, outputPricePerM: 0.66, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash-platform', displayName: 'DeepSeek Flash', inputPricePerM: 0.66, outputPricePerM: 1.98, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash-platform', displayName: 'DeepSeek Flash', inputPricePerM: 0.22, outputPricePerM: 0.66, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
   {
@@ -132,8 +132,8 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'byok',
     notes: 'V4 launched 2026-04-24 — open-weight MIT, 1M context, dual thinking modes. Legacy V3.2 IDs are auto-routed to V4 Flash and retire 2026-07-24.',
     models: [
-      { id: 'deepseek-v4-pro', displayName: 'DeepSeek V4 Pro', inputPricePerM: 0.66, outputPricePerM: 1.98, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', inputPricePerM: 0.22, outputPricePerM: 0.66, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash', displayName: 'DeepSeek Flash', inputPricePerM: 0.66, outputPricePerM: 1.98, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash', displayName: 'DeepSeek Flash', inputPricePerM: 0.22, outputPricePerM: 0.66, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
   // Qwen has a managed section above (models we serve on your plan). This is the

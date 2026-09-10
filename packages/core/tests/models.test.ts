@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ModelDefinition } from '../src/core/types.js';
-import { DEEPSEEK_MODELS } from '../src/providers/deepseek/models.js';
+import { DEEPSEEK_MODELS, DEEPSEEK_RETIRED_IDS } from '../src/providers/deepseek/models.js';
 import { KIMI_MODELS } from '../src/providers/kimi/models.js';
 import { QWEN_MODELS } from '../src/providers/qwen/models.js';
 import { ZHIPU_MODELS } from '../src/providers/zhipu/models.js';
@@ -26,17 +26,34 @@ describe('Model definitions', () => {
       }
     });
 
-    it('contains the V4 variants (deepseek-v4-pro and deepseek-v4-flash)', () => {
-      // Legacy aliases deepseek-chat / deepseek-reasoner are deliberately
-      // not exposed — see deepseek/models.ts (they deprecate 2026-07-24).
-      const ids = DEEPSEEK_MODELS.map((m) => m.id);
-      expect(ids).toContain('deepseek-v4-pro');
-      expect(ids).toContain('deepseek-v4-flash');
+    it('is exactly one model — deepseek-flash', () => {
+      // ONE since 2026-09-10: DeepSeek retired V4 Pro into V4.1 Flash and
+      // `deepseek-flash` (no version in the id) is all that is live. Carrying
+      // two would mean selling the same model twice under different names at
+      // different credit rates, which is what we had for a few hours.
+      expect(DEEPSEEK_MODELS.map((m) => m.id)).toEqual(['deepseek-flash']);
     });
 
-    it('deepseek-v4-pro supports thinking', () => {
-      const pro = DEEPSEEK_MODELS.find((m) => m.id === 'deepseek-v4-pro');
-      expect(pro?.supportsThinking).toBe(true);
+    it('deepseek-flash thinks, sees, and takes 384K of output', () => {
+      const m = DEEPSEEK_MODELS.find((x) => x.id === 'deepseek-flash');
+      expect(m?.supportsThinking).toBe(true);
+      // Both predecessors were text-only at the API level. This one is not,
+      // and the vision bridge depends on the flag being right.
+      expect(m?.supportsVision).toBe(true);
+      // Was 8192 on both merged entries — a 47x understatement that truncates
+      // long work quietly rather than failing.
+      expect(m?.maxOutputTokens).toBe(384_000);
+    });
+
+    it('every retired id maps to something that still exists', () => {
+      // We rewrite these ourselves rather than trusting DeepSeek's redirect:
+      // a request leaving us with a retired id is one whose behaviour someone
+      // else controls, including how it is billed.
+      const live = new Set(DEEPSEEK_MODELS.map((m) => m.id));
+      for (const [retired, target] of Object.entries(DEEPSEEK_RETIRED_IDS)) {
+        expect(live.has(target) || target.endsWith('-platform'), `${retired} -> ${target}`).toBe(true);
+        expect(live.has(retired), `${retired} is retired and must not be live`).toBe(false);
+      }
     });
   });
 

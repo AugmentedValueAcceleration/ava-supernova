@@ -67,12 +67,20 @@ describe('resolveVisionDescriber', () => {
     expect(hit?.model.pricing?.inputPerMillion).toBe(cheapest);
   });
 
-  it('returns null when nothing the user holds can see', () => {
-    // DeepSeek has no vision model at all, so this is a real state and not a
-    // failure to look properly. The caller says so plainly instead of
-    // pretending a relay exists.
-    expect(resolveVisionDescriber(registryWith('deepseek'))).toBeNull();
+  it('returns null when the user holds nothing at all', () => {
+    // A real state, not a failure to look properly — the caller says so
+    // plainly instead of pretending a relay exists.
     expect(resolveVisionDescriber(registryWith())).toBeNull();
+  });
+
+  it('DeepSeek now COUNTS as a describer', () => {
+    // It did not until 2026-09-10. V4 Pro and V4 Flash were both text-only at
+    // the API level and this test used DeepSeek as its example of a provider
+    // that cannot see. V4.1 Flash is multimodal, so a DeepSeek-only user has
+    // a describer where they previously had none — at $0.15 in, a cheap one.
+    const hit = resolveVisionDescriber(registryWith('deepseek'));
+    expect(hit).not.toBeNull();
+    expect(hit?.model.supportsVision).toBe(true);
   });
 
   it('never offers a model that cannot see', () => {

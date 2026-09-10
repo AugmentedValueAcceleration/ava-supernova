@@ -102,7 +102,7 @@ export class StatusBar {
     const modeLabel = this.modeId ? MODE_LABELS[this.modeId] : undefined;
     // The running model wins over the coordinator — on a fleet, that is the
     // difference between "Longxiang · Kimi K3" (the lead seat, always) and
-    // "Longxiang · DeepSeek V4 Flash" (what the chat turn actually used).
+    // "Longxiang · DeepSeek Flash" (what the chat turn actually used).
     const modelName = this.runningModelName || this.modelDef?.name || 'No model';
     // Fleet AND model — "Longxiang · Kimi K3". A fleet name alone hides what
     // is actually being billed; a model name alone hides which fleet you are

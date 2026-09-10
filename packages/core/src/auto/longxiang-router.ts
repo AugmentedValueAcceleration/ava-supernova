@@ -27,7 +27,7 @@ import type { TaskCategory } from './types.js';
  *                              model our Builder persona is already tuned
  *                              against on Supernova. Carries the work that
  *                              doesn't need K3 depth but does need eyes.
- *   - DeepSeek V4 Flash      — Intent gate + light personas + chat. MIT,
+ *   - DeepSeek Flash      — Intent gate + light personas + chat. MIT,
  *                              $0.14/$0.28, 1M context. The cheapest place in
  *                              the fleet to put volume.
  *
@@ -48,7 +48,7 @@ import type { TaskCategory } from './types.js';
  * 2026-07-18 that is true of two of three seats:
  *
  *   - Kimi K3        — weights due 2026-07-27 (Modified MIT).      pending
- *   - DeepSeek V4 Flash — MIT, weights public.                     ✅
+ *   - DeepSeek Flash — MIT, weights public.                     ✅
  *   - Qwen 3.7 Plus  — CLOSED. API-only, no public weights. Alibaba's
  *                      account manager has told us it is "gearing up to
  *                      open-source soon" with no date given.       ❌
@@ -113,7 +113,7 @@ export const LONGXIANG_VISION_ID = 'qwen3.7-plus';
 
 /** Intent gate — the cheapest classifier in the fleet. V4 Flash at
  *  $0.14/$0.28 with 1M context; short routing calls don't need K3. */
-export const LONGXIANG_INTENT_GATE_ID = 'deepseek-v4-flash';
+export const LONGXIANG_INTENT_GATE_ID = 'deepseek-flash';
 
 // ── Per-task-category routing ─────────────────────────────────────────────
 //
@@ -147,16 +147,16 @@ export const LONGXIANG_ROUTES: Record<TaskCategory, LongxiangRouteEntry> = {
   long_context: { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — 1M context at mid-tier cost; K3 reserved for depth',                     fallbackModelId: 'kimi-k3' },
   // Teach = Tutor + Curriculum Architect, medium depth. Curriculum *creation*
   // upgrades to K3 — running the 5-persona prep team mid-tier goes shallow.
-  teach:        { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — long-form coherence for tutorials and lesson delivery',                  fallbackModelId: 'deepseek-v4-flash', creationModelId: 'kimi-k3' },
+  teach:        { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — long-form coherence for tutorials and lesson delivery',                  fallbackModelId: 'deepseek-flash', creationModelId: 'kimi-k3' },
 
-  // ── Volume routes → DeepSeek V4 Flash (the River) ─────────────────────
+  // ── Volume routes → DeepSeek Flash (the River) ─────────────────────
   // image_gen routes a generate_image tool call out to Qwen-Image — the model
   // here only orchestrates, so depth is wasted spend.
-  image_gen:    { modelId: 'deepseek-v4-flash', reason: 'DeepSeek V4 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
+  image_gen:    { modelId: 'deepseek-flash', reason: 'DeepSeek Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
   // Chat is a single-turn response — doesn't exercise the coordinator pattern.
-  chat:         { modelId: 'deepseek-v4-flash', reason: 'DeepSeek V4 Flash — fast, cheapest tier in the fleet for typical chat turns',            fallbackModelId: 'qwen3.7-plus' },
+  chat:         { modelId: 'deepseek-flash', reason: 'DeepSeek Flash — fast, cheapest tier in the fleet for typical chat turns',            fallbackModelId: 'qwen3.7-plus' },
   // Brainstorm = breadth over depth — cheap and creatively wide beats careful.
-  brainstorm:   { modelId: 'deepseek-v4-flash', reason: 'DeepSeek V4 Flash — breadth and speed for ideation at the fleet\'s lowest cost',          fallbackModelId: 'qwen3.7-plus' },
+  brainstorm:   { modelId: 'deepseek-flash', reason: 'DeepSeek Flash — breadth and speed for ideation at the fleet\'s lowest cost',          fallbackModelId: 'qwen3.7-plus' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────
@@ -185,23 +185,23 @@ export const LONGXIANG_PERSONA_MODEL: Record<string, string> = {
   design_reviewer:     'qwen3.7-plus',       // sees images + video natively
 
   // Light + mid-light specialists — volume tier.
-  scout:               'deepseek-v4-flash',
-  verifier:            'deepseek-v4-flash',
-  sequencer:           'deepseek-v4-flash',
-  challenger:          'deepseek-v4-flash',
-  integrator:          'deepseek-v4-flash',
-  curator:             'deepseek-v4-flash',
-  tutor:               'deepseek-v4-flash',  // mid-depth, latency matters
-  code_reviewer:       'deepseek-v4-flash',
-  fact_checker:        'deepseek-v4-flash',
-  quiz_master:         'deepseek-v4-flash',
-  recon:               'deepseek-v4-flash',
-  scanner:             'deepseek-v4-flash',
-  security_verifier:   'deepseek-v4-flash',
-  security_reporter:   'deepseek-v4-flash',
-  curriculum_architect:'deepseek-v4-flash',
-  explorer:            'deepseek-v4-flash',
-  refiner:             'deepseek-v4-flash',
+  scout:               'deepseek-flash',
+  verifier:            'deepseek-flash',
+  sequencer:           'deepseek-flash',
+  challenger:          'deepseek-flash',
+  integrator:          'deepseek-flash',
+  curator:             'deepseek-flash',
+  tutor:               'deepseek-flash',  // mid-depth, latency matters
+  code_reviewer:       'deepseek-flash',
+  fact_checker:        'deepseek-flash',
+  quiz_master:         'deepseek-flash',
+  recon:               'deepseek-flash',
+  scanner:             'deepseek-flash',
+  security_verifier:   'deepseek-flash',
+  security_reporter:   'deepseek-flash',
+  curriculum_architect:'deepseek-flash',
+  explorer:            'deepseek-flash',
+  refiner:             'deepseek-flash',
 };
 
 /**

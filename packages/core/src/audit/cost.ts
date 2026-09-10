@@ -41,10 +41,10 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'MiniMax-M2.7-highspeed': { inputPerMillion: 0.60, outputPerMillion: 2.40 },
   },
   deepseek: {
-    // Off-peak rates from the 2026-08-16 tariff. Peak (01:00-04:00 and
-    // 06:00-10:00 UTC) is exactly double both figures.
-    'deepseek-v4-pro':   { inputPerMillion: 0.66, outputPerMillion: 1.98 },
-    'deepseek-v4-flash': { inputPerMillion: 0.22, outputPerMillion: 0.66 },
+    // ONE model since 2026-09-10: V4 Pro and V4 Flash both retired into
+    // V4.1 Flash. Off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri)
+    // is exactly double.
+    'deepseek-flash': { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
   kimi: {
     // All four verified against Moonshot's per-model pricing pages 2026-07-17.

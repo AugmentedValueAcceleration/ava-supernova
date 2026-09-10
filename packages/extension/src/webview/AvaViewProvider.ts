@@ -1742,7 +1742,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       // ── Fetch enabled models from platform (non-blocking) ─────────────────
       // Sends the platform key as a Bearer token so admin-gated rows
-      // (migration 218 — currently the DeepSeek V4 Pro/Flash managed
+      // (migration 218 — currently the DeepSeek Flash/Flash managed
       // entries) are only returned when the caller resolves to tier=admin.
       // Non-admin accounts get the public list; not signing in at all
       // also works (fetch proceeds without Authorization header).
@@ -2496,7 +2496,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // non-Mistral coordinator — the EU-stack guarantee.
       let preferredCoordinatorId: string | undefined;
       if (modelId === 'supernova') {
-        preferredCoordinatorId = 'platform:deepseek-v4-pro-platform';
+        preferredCoordinatorId = 'platform:deepseek-flash-platform';
       } else if (modelId === 'aurora') {
         // Medium 3.5 first — it's the coordinator per core's aurora-router,
         // the web API (/api/chat resolves aurora -> mistral-medium-3.5-platform)
@@ -2634,7 +2634,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       .filter((m) => {
         const isAdminGatedPlatformModel =
           m.provider === 'platform' &&
-          (m.id === 'deepseek-v4-pro-platform' || m.id === 'deepseek-v4-flash-platform');
+          (m.id === 'deepseek-flash-platform' || m.id === 'deepseek-flash-platform');
         return !isAdminGatedPlatformModel || isAdmin;
       });
 

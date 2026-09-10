@@ -88,10 +88,10 @@ describe('Supernova — DeepSeek reachable on both surfaces', () => {
     it(`routes deep work to V4 Pro and mid-tier to V4 Flash (${label})`, () => {
       const r = router('supernova', setup);
       for (const c of ['planning', 'security', 'long_context'] as const) {
-        expect(modelFor(r, c)).toBe(`deepseek-v4-pro${suffix}`);
+        expect(modelFor(r, c)).toBe(`deepseek-flash${suffix}`);
       }
       for (const c of ['chat', 'teach', 'brainstorm'] as const) {
-        expect(modelFor(r, c)).toBe(`deepseek-v4-flash${suffix}`);
+        expect(modelFor(r, c)).toBe(`deepseek-flash${suffix}`);
       }
       // Builder + vision stay on Qwen per the polyglot map.
       expect(modelFor(r, 'coding')).toBe('qwen3.7-plus');
@@ -115,7 +115,7 @@ describe('Longxiang — open-weights fleet, plan or BYOK', () => {
       expect(modelFor(r, c)).toBe('qwen3.7-plus');
     }
     for (const c of ['chat', 'brainstorm', 'image_gen'] as const) {
-      expect(modelFor(r, c)).toBe('deepseek-v4-flash');
+      expect(modelFor(r, c)).toBe('deepseek-flash');
     }
   });
 
@@ -168,19 +168,37 @@ describe('Chat routes to the cheap tier, never the coordinator', () => {
   //
   // Asserting the ROUTE here — that chat resolves to the volume tier and not
   // the fleet's lead seat — is what stops it silently reverting.
+  //
+  // `sharesCoordinator` is Supernova only, since 2026-09-10. DeepSeek retired
+  // V4 Pro into V4.1 Flash, so the fleet's lead seat and its volume seat are
+  // now the SAME model — there is no cheaper DeepSeek to drop to. That is not
+  // a regression: chat moved from V4 Flash at $0.22/$0.60 to V4.1 Flash at
+  // $0.15/$0.60, so it got cheaper AND better at once.
+  //
+  // The rule this file protects is "chat must not burn the expensive tier".
+  // With one model in the line there is no expensive tier to burn, and
+  // reaching for another vendor's small model purely to keep two names would
+  // be a worse model for no reason.
   const cases = [
-    { mode: 'aurora'    as const, setup: byok('mistral'),                    chat: 'mistral-small-4',   coordinator: 'mistral-medium-3.5' },
-    { mode: 'supernova' as const, setup: byok('deepseek', 'qwen'),           chat: 'deepseek-v4-flash', coordinator: 'deepseek-v4-pro' },
-    { mode: 'longxiang' as const, setup: byok('kimi', 'qwen', 'deepseek'),   chat: 'deepseek-v4-flash', coordinator: 'kimi-k3' },
+    { mode: 'aurora'    as const, setup: byok('mistral'),                  chat: 'mistral-small-4', coordinator: 'mistral-medium-3.5', sharesCoordinator: false },
+    { mode: 'supernova' as const, setup: byok('deepseek', 'qwen'),         chat: 'deepseek-flash',  coordinator: 'deepseek-flash',     sharesCoordinator: true  },
+    { mode: 'longxiang' as const, setup: byok('kimi', 'qwen', 'deepseek'), chat: 'deepseek-flash',  coordinator: 'kimi-k3',            sharesCoordinator: false },
   ];
 
   for (const c of cases) {
-    it(`${c.mode}: chat -> ${c.chat}, not ${c.coordinator}`, () => {
+    it(`${c.mode}: chat -> ${c.chat}${c.sharesCoordinator ? ' (shared with the lead seat — one model in the line)' : `, not ${c.coordinator}`}`, () => {
       const r = router(c.mode, c.setup);
       expect(modelFor(r, 'chat')).toBe(c.chat);
-      expect(modelFor(r, 'chat')).not.toBe(c.coordinator);
+      if (!c.sharesCoordinator) expect(modelFor(r, 'chat')).not.toBe(c.coordinator);
     });
   }
+
+  it('only Supernova is allowed to share its lead seat with chat', () => {
+    // A guard on the exemption itself. If another fleet's chat quietly drifts
+    // onto its coordinator, that is the regression this file exists to catch,
+    // and the exemption must not become the habit.
+    expect(cases.filter(c => c.sharesCoordinator).map(c => c.mode)).toEqual(['supernova']);
+  });
 });
 
 describe('Maestro — Qwen on both surfaces', () => {
@@ -200,8 +218,8 @@ describe('Coordinator pinning per mode', () => {
     expect(coordinatorFor('aurora', byok('mistral'))).toBe('mistral-medium-3.5');
   });
   it('Supernova coordinator is DeepSeek V4 Pro on both surfaces', () => {
-    expect(coordinatorFor('supernova', platform)).toBe('deepseek-v4-pro-platform');
-    expect(coordinatorFor('supernova', byok('deepseek', 'qwen'))).toBe('deepseek-v4-pro');
+    expect(coordinatorFor('supernova', platform)).toBe('deepseek-flash-platform');
+    expect(coordinatorFor('supernova', byok('deepseek', 'qwen'))).toBe('deepseek-flash');
   });
   it('Supernova falls through gracefully when DeepSeek is absent', () => {
     // qwen-only Supernova user — polyglot fallback, never null.

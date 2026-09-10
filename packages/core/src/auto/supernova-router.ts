@@ -7,10 +7,10 @@ import type { TaskCategory } from './types.js';
  * it. Supernova picks the best model for each role based on what each model
  * is actually best at:
  *
- *   - DeepSeek V4 Pro    — coordinator, deep reasoning, long-context synthesis
+ *   - DeepSeek Flash    — coordinator, deep reasoning, long-context synthesis
  *   - Qwen 3.7 Plus      — agent loops (Terminal-Bench leader), vision input,
  *                          MCP tool orchestration, production-tested
- *   - DeepSeek V4 Flash  — mid-tier review/verification, anomaly price/perf
+ *   - DeepSeek Flash  — mid-tier review/verification, anomaly price/perf
  *   - Qwen 3.5 Plus      — OUTAGE FALLBACK ONLY (retired from primary routes,
  *                          operator decision 2026-07-04)
  *   - Qwen 3.5 Flash     — light filtering / classification (cheapest input)
@@ -23,7 +23,7 @@ import type { TaskCategory } from './types.js';
 // ── Coordinator + special-case routes (highest priority) ──────────────────
 
 /** The conductor that classifies tasks, picks specialists, runs the loop. */
-export const SUPERNOVA_COORDINATOR_ID = 'deepseek-v4-pro';
+export const SUPERNOVA_COORDINATOR_ID = 'deepseek-flash';
 
 /** Builder agent — TaskExecutor spawn for any session task. Terminal-Bench
  *  leader; production-tested in our existing personas; vision-aware so an
@@ -56,7 +56,7 @@ export interface SupernovaRouteEntry {
 export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // Builder dominates — Qwen 3.7 Plus is the Terminal-Bench leader and what
   // we've tuned the Builder persona against.
-  coding:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-v4-flash' },
+  coding:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-flash' },
   // Vision input → Qwen 3.7 Plus (native vision + video).
   vision:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — native vision + video, 1M context', fallbackModelId: 'qwen3.5-plus', requiresVision: true },
   // image_gen orchestrates a generate_image tool call to Wan —
@@ -67,7 +67,7 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // Plus per the map, but planning leans heavily on Researcher's
   // long-context synthesis where V4 Pro wins. Default to V4 Pro; Architect
   // gets routed back to Qwen 3.7 Plus per persona below.
-  planning:     { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — long-context planning + synthesis depth',                          fallbackModelId: 'qwen3.7-plus' },
+  planning:     { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — long-context planning + synthesis depth',                          fallbackModelId: 'qwen3.7-plus' },
   // Chat is a single-turn response — doesn't exercise V4 Pro's MoE
   // coordinator strengths (specialist dispatch, multi-step reasoning).
   // V4 Flash is the right tier: same DeepSeek family, 1M context, MIT
@@ -75,19 +75,19 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // Pro stays reserved for the workloads where the coordinator pattern
   // actually pays off (planning, orchestration, security, brainstorm,
   // long_context).
-  chat:         { modelId: 'deepseek-v4-flash',  reason: 'DeepSeek V4 Flash — fast chat tier, V4 Pro reserved for orchestration',              fallbackModelId: 'qwen3.7-plus' },
+  chat:         { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — fast chat tier, V4 Pro reserved for orchestration',              fallbackModelId: 'qwen3.7-plus' },
   // 1M-context grunt: V4 Pro shines (10% KV cache footprint at 1M).
-  long_context: { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.7-plus' },
+  long_context: { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.7-plus' },
   // Teach = Tutor + Curriculum Architect (both medium-depth) → V4 Flash sweet spot.
-  teach:        { modelId: 'deepseek-v4-flash',  reason: 'DeepSeek V4 Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.7-plus', creationModelId: 'deepseek-v4-pro' },
+  teach:        { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.7-plus', creationModelId: 'deepseek-flash' },
   // Security = CVE Researcher leads — depth 4 reasoning over attack surface.
-  security:     { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.7-plus' },
+  security:     { modelId: 'deepseek-flash',    reason: 'DeepSeek Flash — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.7-plus' },
   // Brainstorm = ideation, not depth-bound reasoning. V4 Flash is the
   // right cognitive shape for breadth — fast, cheap, less RLHF-cautious
   // than V4 Pro Think-Max, which produces more samey ideation output
   // because its reward model favours careful reasoning over creative
   // range. V4 Pro stays as the fallback for rare deep-reasoning workloads.
-  brainstorm:   { modelId: 'deepseek-v4-flash',  reason: 'DeepSeek V4 Flash — breadth over depth for ideation, cheaper and creatively wider than V4 Pro', fallbackModelId: 'deepseek-v4-pro' },
+  brainstorm:   { modelId: 'deepseek-flash',  reason: 'DeepSeek Flash — breadth over depth for ideation, cheaper and creatively wider than V4 Pro', fallbackModelId: 'deepseek-flash' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────
@@ -103,12 +103,12 @@ export const SUPERNOVA_PERSONA_MODEL: Record<string, string> = {
   // Heavy specialists — chosen per the locked routing map.
   architect:           'qwen3.7-plus',                  // vision-aware planning, MCP, production-tested
   builder:             'qwen3.7-plus',                  // Terminal-Bench leader, real agent loops
-  curator:             'deepseek-v4-flash',    // mid-tier reasoning, cost-effective
-  researcher:          'deepseek-v4-pro',      // long-context synthesis
-  cve_researcher:      'deepseek-v4-pro',      // deep reasoning over attack chain
+  curator:             'deepseek-flash',    // mid-tier reasoning, cost-effective
+  researcher:          'deepseek-flash',      // long-context synthesis
+  cve_researcher:      'deepseek-flash',      // deep reasoning over attack chain
   content_writer:      'qwen3.7-plus',                  // flagship long output — 3.5 Plus retired from primaries (operator, 2026-07-04)
-  tutor:               'deepseek-v4-flash',    // mid-depth, latency matters
-  ideator:             'deepseek-v4-pro',      // reasoning depth 5 — Think-Max territory
+  tutor:               'deepseek-flash',    // mid-depth, latency matters
+  ideator:             'deepseek-flash',      // reasoning depth 5 — Think-Max territory
 
   // Light specialists — cheapest classifier where reasoning depth ≤ 2.
   scout:               'qwen3.5-flash',
@@ -118,16 +118,16 @@ export const SUPERNOVA_PERSONA_MODEL: Record<string, string> = {
   integrator:          'qwen3.5-flash',
 
   // Mid-light specialists — reasoning depth 3 → V4 Flash earns its 2× input cost.
-  code_reviewer:       'deepseek-v4-flash',
-  fact_checker:        'deepseek-v4-flash',
-  quiz_master:         'deepseek-v4-flash',
-  recon:               'deepseek-v4-flash',
-  scanner:             'deepseek-v4-flash',
-  security_verifier:   'deepseek-v4-flash',
-  security_reporter:   'deepseek-v4-flash',
-  curriculum_architect:'deepseek-v4-flash',
-  explorer:            'deepseek-v4-flash',
-  refiner:             'deepseek-v4-flash',
+  code_reviewer:       'deepseek-flash',
+  fact_checker:        'deepseek-flash',
+  quiz_master:         'deepseek-flash',
+  recon:               'deepseek-flash',
+  scanner:             'deepseek-flash',
+  security_verifier:   'deepseek-flash',
+  security_reporter:   'deepseek-flash',
+  curriculum_architect:'deepseek-flash',
+  explorer:            'deepseek-flash',
+  refiner:             'deepseek-flash',
 
   // Vision specialist — Qwen 3.7 Plus sees images + video natively.
   design_reviewer:     'qwen3.7-plus',

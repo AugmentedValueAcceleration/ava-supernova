@@ -30,8 +30,8 @@ describe('resolveApiModel — model-id translation', () => {
   });
 
   it('strips the -platform suffix for DeepSeek V4', () => {
-    expect(resolveApiModel('deepseek-v4-pro-platform')).toBe('deepseek-v4-pro');
-    expect(resolveApiModel('deepseek-v4-flash-platform')).toBe('deepseek-v4-flash');
+    expect(resolveApiModel('deepseek-flash-platform')).toBe('deepseek-flash');
+    expect(resolveApiModel('deepseek-flash-platform')).toBe('deepseek-flash');
   });
 
   it('rolls Qwen legacy aliases forward', () => {
@@ -47,7 +47,10 @@ describe('resolveApiModel — model-id translation', () => {
   it('reroutes text-only models to vision variants when images are present', () => {
     expect(resolveApiModel('qwen3.5-flash', true)).toBe('qwen3.7-plus');
     // DeepSeek V4 is text-only at the API level -> Qwen 3.7 Plus (native vision + video)
-    expect(resolveApiModel('deepseek-v4-pro-platform', true)).toBe('qwen3.7-plus');
+    // DeepSeek is NOT rerouted for vision any more. V4 Pro and V4 Flash were
+    // both text-only at the API level and this sent their images to Qwen;
+    // V4.1 Flash is multimodal and handles them itself.
+    expect(resolveApiModel('deepseek-flash-platform', true)).toBe('deepseek-flash');
     // Aurora's Large 3 coordinator -> Medium 3.5 (its own vision encoder),
     // applied AFTER the id translation (large-3 -> large-2512 -> medium-2604).
     expect(resolveApiModel('mistral-large-3-platform', true)).toBe('mistral-medium-3-5');
@@ -168,7 +171,7 @@ describe('shapeParams — per-provider quirks', () => {
   });
 
   it('non-Qwen keeps frequency_penalty', () => {
-    const p = shapeParams('deepseek', 'deepseek-v4-pro', { frequency_penalty: 0.5 });
+    const p = shapeParams('deepseek', 'deepseek-flash', { frequency_penalty: 0.5 });
     expect(p.frequency_penalty).toBe(0.5);
   });
 

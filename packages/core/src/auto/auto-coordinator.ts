@@ -109,7 +109,7 @@ export class AutoCoordinator {
   private readonly builderProvider: Provider;
   private readonly builderModel: ModelDefinition;
   /** Provider+model for image/vision input. The coordinators are blind to
-   *  images (DeepSeek V4 Pro, Mistral Large 3 — no vision via API), so the
+   *  images (DeepSeek Flash, Mistral Large 3 — no vision via API), so the
    *  coordinator/task agents carry this as a vision bridge: an attached image
    *  is DESCRIBED by a vision-capable model (Supernova / Auto → Qwen 3.5 Omni
    *  Plus, Aurora → Mistral Medium 3.5) and injected as text, so the coordinator
@@ -256,7 +256,7 @@ export class AutoCoordinator {
     userPreferences?: UserRoutePreferences;
     projectInstructions?: string;
     systemPromptOpts?: Record<string, unknown>;
-    // Operator's chosen coordinator model id (e.g. 'platform:deepseek-v4-pro-platform').
+    // Operator's chosen coordinator model id (e.g. 'platform:deepseek-flash-platform').
     // When set and resolvable, wins over the default priority ladder.
     preferredCoordinatorId?: string;
     /** 'auto' (default) or 'supernova'. */
@@ -327,7 +327,7 @@ export class AutoCoordinator {
         }
       }
     } else if (opts.mode === 'supernova') {
-      // Supernova pins DeepSeek V4 Pro as coordinator — try platform-managed →
+      // Supernova pins DeepSeek Flash as coordinator — try platform-managed →
       // BYOK deepseek → native. Unlike Aurora, Supernova is polyglot, so it
       // falls through to the generic priority ladder if DeepSeek isn't
       // reachable rather than erroring.

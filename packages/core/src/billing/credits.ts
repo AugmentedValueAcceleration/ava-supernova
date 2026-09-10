@@ -135,8 +135,8 @@ export const CACHE_HIT_MULTIPLIER = 0.3;
  *  a 0.3× whole-turn discount exceeds actual savings. Calibrated 2026-04-25.
  *  Default 0.3× still applies for any model not listed. */
 export const CACHE_HIT_MULTIPLIER_BY_MODEL: Record<string, number> = {
-  'deepseek-v4-pro':            0.5,
-  'deepseek-v4-pro-platform':   0.5,
+  'deepseek-flash':            0.5,
+  'deepseek-flash-platform':   0.5,
 };
 
 /** Look up the cache-hit multiplier for a given model id. */
@@ -231,10 +231,21 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // 0.89-1.79 for V4 Pro: 1.35 is mid-range, which is the honest place to
   // wait rather than a value anybody verified. Left until
   // usage_logs.cached_tokens can pin the hit rate.
-  'deepseek-v4-pro':            1.35,
-  'deepseek-v4-pro-platform':   1.35,
-  'deepseek-v4-flash':            0.44,
-  'deepseek-v4-flash-platform':   0.44,
+  // ── V4 PRO IS SERVED BY V4.1 FLASH — 2026-09-10, 04:00 UTC ──────────
+  // DeepSeek retired V4 Pro into V4.1 Flash. Pro sat at 1.35 and Flash at
+  // 0.44, so the same model was charged at 3x depending which id was picked.
+  // Both ids are now `deepseek-flash` and there is one number.
+  //
+  // Set EQUAL to Flash rather than solved from the new list price (0.15/0.60):
+  // these numbers are derived from measured traffic, not rate cards, and
+  // 0.44 is the calibrated multiplier of the model actually being served.
+  // Conservative — Flash's own 0.44 was fitted against 0.22/0.66, so this
+  // slightly over-collects until a replay pins the real figure.
+  //
+  // The id stays. DeepSeek's notice says this holds "prior to the release of
+  // V4.1 Pro", so the slot comes back when that lands.
+  'deepseek-flash':            0.44,
+  'deepseek-flash-platform':   0.44,
   // ── Re-derived 2026-08-16 against MEASURED traffic ──────────────────
   // The four entries below were solved from real usage rather than list
   // price: every logged call replayed through computeRequestCredits PER CALL

@@ -139,48 +139,38 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: false,
     pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
   },
-  // DeepSeek V4 Pro (managed) — LIVE to all accounts. Frontier open-source
-  // coordinator: 1.6T / 49B active per token, SWE-bench Verified 80.6%.
-  // ID matches the row in the `models` table so server lookups resolve.
+  // DeepSeek Flash (managed) — LIVE to all accounts. The ONLY DeepSeek model:
+  // they collapsed the line on 2026-09-10, retiring V4 Pro into V4.1 Flash,
+  // which their notice says "has comprehensively surpassed V4 Pro across all
+  // key metrics". Two entries became one.
   //
-  // This comment used to say "admin-gated rollout (migration 218), only
-  // visible to admin accounts". That stopped being true when the row was
-  // un-gated in the table and nobody came back here. The `models` table is
-  // the authority on visibility — admin_only and enabled live there, not in
-  // this file. Read the row, not this comment. (2026-08-06: verified
-  // enabled=true, admin_only=false for both V4 rows.)
+  // ID matches the row in the `models` table so server lookups resolve. The
+  // table is the authority on visibility — admin_only and enabled live there,
+  // not in this file. Read the row, not this comment.
   {
-    id: 'deepseek-v4-pro-platform',
-    name: 'DeepSeek V4 Pro',
+    id: 'deepseek-flash-platform',
+    name: 'DeepSeek Flash',
     provider: 'platform',
     contextWindow: 1_000_000,
-    maxOutputTokens: 8192,
+    // 384K per DeepSeek's docs. Both merged entries said 8192 — a 47x
+    // understatement that truncates long work rather than failing on it.
+    maxOutputTokens: 384_000,
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
-    supportsVision: false,
-    desktopCapable: true, // Supernova coordinator. Frontier tool-call reliability.
-    // Off-peak rate from the 2026-08-16 tariff; peak (01:00-04:00 and
-    // 06:00-10:00 UTC) is double. Platform-served, so this is OUR cost —
-    // the credit multiplier in billing/credits.ts is derived from measured
-    // traffic against these numbers, not from the list price alone.
-    pricing: { inputPerMillion: 0.66, outputPerMillion: 1.98 },
-  },
-  // DeepSeek V4 Flash (managed) — admin-gated. 284B / 13B active. 1M ctx.
-  // Not desktop-capable: Flash bracket on the V4 line, same caution as
-  // Qwen Flash family.
-  {
-    id: 'deepseek-v4-flash-platform',
-    name: 'DeepSeek V4 Flash',
-    provider: 'platform',
-    contextWindow: 1_000_000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: false,
-    // Off-peak; peak doubles it. Same 2026-08-16 tariff as V4 Pro.
-    pricing: { inputPerMillion: 0.22, outputPerMillion: 0.66 },
+    // V4.1 Flash is multimodal; both predecessors were text-only at the API
+    // level. Real capability gain — the vision bridge picks the cheapest
+    // vision-capable model, and at $0.15 in this is now a candidate.
+    supportsVision: true,
+    // Keeps Pro's desktop capability rather than old Flash's caution. The old
+    // "not desktop-capable, Flash bracket" note was about a weaker model in a
+    // two-model line; this one replaces the coordinator, not the runt.
+    desktopCapable: true,
+    // Off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri) is exactly
+    // double. Platform-served, so this is OUR cost — the credit multiplier in
+    // billing/credits.ts is derived from measured traffic against these
+    // numbers, not from the list price alone.
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
   // Mistral Small 4 (managed, platform key) — Aurora's Builder spawn.
   // Unified Magistral + Pixtral + Devstral merge: vision-aware, agentic
