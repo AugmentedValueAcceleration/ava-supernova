@@ -1385,6 +1385,19 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.status.spinning_agent': '啟動專家代理...',
   'dash.chat.status.compressing': '壓縮上下文...',
   'dash.chat.status.thinking': '思考中...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': '正在讀取 {file}',
+  'dash.chat.status.tool.write_file': '正在寫入 {file}',
+  'dash.chat.status.tool.edit_file': '正在編輯 {file}',
+  'dash.chat.status.tool.run_cmd': '正在執行 {command}',
+  'dash.chat.status.tool.search_for': '正在搜尋 {pattern}',
+  'dash.chat.status.tool.find_files': '正在尋找符合 {pattern} 的檔案',
+  'dash.chat.status.tool.list_path': '正在列出 {file}',
+  'dash.chat.status.tool.web_for': '正在網路上搜尋 {query}',
   'dash.chat.status.tool.bash': '執行指令...',
   'dash.chat.status.tool.glob': '掃描檔案...',
   'dash.chat.status.tool.grep': '搜尋程式碼...',

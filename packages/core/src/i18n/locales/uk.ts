@@ -1365,6 +1365,19 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.status.spinning_agent': 'Запуск спеціалізованого агента...',
   'dash.chat.status.compressing': 'Стиснення контексту...',
   'dash.chat.status.thinking': 'Думаю...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': 'Читаю {file}',
+  'dash.chat.status.tool.write_file': 'Записую {file}',
+  'dash.chat.status.tool.edit_file': 'Редагую {file}',
+  'dash.chat.status.tool.run_cmd': 'Виконую {command}',
+  'dash.chat.status.tool.search_for': 'Шукаю {pattern}',
+  'dash.chat.status.tool.find_files': 'Шукаю файли за {pattern}',
+  'dash.chat.status.tool.list_path': 'Показую {file}',
+  'dash.chat.status.tool.web_for': 'Шукаю {query} в інтернеті',
   'dash.chat.status.tool.bash': 'Виконання команди...',
   'dash.chat.status.tool.glob': 'Сканування файлів...',
   'dash.chat.status.tool.grep': 'Пошук коду...',

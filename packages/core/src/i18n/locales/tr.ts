@@ -1385,6 +1385,19 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.status.spinning_agent': 'Uzman ajan başlatılıyor...',
   'dash.chat.status.compressing': 'Bağlam sıkıştırılıyor...',
   'dash.chat.status.thinking': 'Düşünüyor...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': '{file} okunuyor',
+  'dash.chat.status.tool.write_file': '{file} yazılıyor',
+  'dash.chat.status.tool.edit_file': '{file} düzenleniyor',
+  'dash.chat.status.tool.run_cmd': '{command} çalıştırılıyor',
+  'dash.chat.status.tool.search_for': '{pattern} aranıyor',
+  'dash.chat.status.tool.find_files': '{pattern} ile eşleşen dosyalar aranıyor',
+  'dash.chat.status.tool.list_path': '{file} listeleniyor',
+  'dash.chat.status.tool.web_for': 'Web\'de {query} aranıyor',
   'dash.chat.status.tool.bash': 'Komut çalıştırılıyor...',
   'dash.chat.status.tool.glob': 'Dosyalar taranıyor...',
   'dash.chat.status.tool.grep': 'Kod aranıyor...',

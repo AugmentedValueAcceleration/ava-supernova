@@ -1385,6 +1385,19 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.status.spinning_agent': 'جاري تشغيل وكيل متخصص...',
   'dash.chat.status.compressing': 'جاري ضغط السياق...',
   'dash.chat.status.thinking': 'جاري التفكير...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': 'قراءة {file}',
+  'dash.chat.status.tool.write_file': 'كتابة {file}',
+  'dash.chat.status.tool.edit_file': 'تحرير {file}',
+  'dash.chat.status.tool.run_cmd': 'تشغيل {command}',
+  'dash.chat.status.tool.search_for': 'البحث عن {pattern}',
+  'dash.chat.status.tool.find_files': 'البحث عن ملفات تطابق {pattern}',
+  'dash.chat.status.tool.list_path': 'سرد {file}',
+  'dash.chat.status.tool.web_for': 'البحث في الويب عن {query}',
   'dash.chat.status.tool.bash': 'جاري تشغيل الأمر...',
   'dash.chat.status.tool.glob': 'جاري مسح الملفات...',
   'dash.chat.status.tool.grep': 'جاري البحث في الكود...',

@@ -1385,6 +1385,19 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.status.spinning_agent': 'กำลังเริ่มเอเจนต์ผู้เชี่ยวชาญ...',
   'dash.chat.status.compressing': 'กำลังบีบอัดบริบท...',
   'dash.chat.status.thinking': 'กำลังคิด...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': 'กำลังอ่าน {file}',
+  'dash.chat.status.tool.write_file': 'กำลังเขียน {file}',
+  'dash.chat.status.tool.edit_file': 'กำลังแก้ไข {file}',
+  'dash.chat.status.tool.run_cmd': 'กำลังรัน {command}',
+  'dash.chat.status.tool.search_for': 'กำลังค้นหา {pattern}',
+  'dash.chat.status.tool.find_files': 'กำลังค้นหาไฟล์ที่ตรงกับ {pattern}',
+  'dash.chat.status.tool.list_path': 'กำลังแสดง {file}',
+  'dash.chat.status.tool.web_for': 'กำลังค้นหา {query} บนเว็บ',
   'dash.chat.status.tool.bash': 'กำลังดำเนินการคำสั่ง...',
   'dash.chat.status.tool.glob': 'กำลังสแกนไฟล์...',
   'dash.chat.status.tool.grep': 'กำลังค้นหาโค้ด...',

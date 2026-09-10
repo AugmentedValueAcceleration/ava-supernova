@@ -1385,6 +1385,19 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.status.spinning_agent': '전문 에이전트 시작 중...',
   'dash.chat.status.compressing': '컨텍스트 압축 중...',
   'dash.chat.status.thinking': '생각 중...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': '{file} 읽는 중',
+  'dash.chat.status.tool.write_file': '{file} 쓰는 중',
+  'dash.chat.status.tool.edit_file': '{file} 편집 중',
+  'dash.chat.status.tool.run_cmd': '{command} 실행 중',
+  'dash.chat.status.tool.search_for': '{pattern} 검색 중',
+  'dash.chat.status.tool.find_files': '{pattern}과(와) 일치하는 파일 찾는 중',
+  'dash.chat.status.tool.list_path': '{file} 목록 표시 중',
+  'dash.chat.status.tool.web_for': '웹에서 {query} 검색 중',
   'dash.chat.status.tool.bash': '명령 실행 중...',
   'dash.chat.status.tool.glob': '파일 스캔 중...',
   'dash.chat.status.tool.grep': '코드 검색 중...',

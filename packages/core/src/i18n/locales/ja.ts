@@ -1387,6 +1387,19 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.status.spinning_agent': '専門エージェントを起動中...',
   'dash.chat.status.compressing': 'コンテキストを圧縮中...',
   'dash.chat.status.thinking': '思考中...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': '{file} を読み込み中',
+  'dash.chat.status.tool.write_file': '{file} を書き込み中',
+  'dash.chat.status.tool.edit_file': '{file} を編集中',
+  'dash.chat.status.tool.run_cmd': '{command} を実行中',
+  'dash.chat.status.tool.search_for': '{pattern} を検索中',
+  'dash.chat.status.tool.find_files': '{pattern} に一致するファイルを検索中',
+  'dash.chat.status.tool.list_path': '{file} を一覧表示中',
+  'dash.chat.status.tool.web_for': 'ウェブで {query} を検索中',
   'dash.chat.status.tool.bash': 'コマンドを実行中...',
   'dash.chat.status.tool.glob': 'ファイルを検索中...',
   'dash.chat.status.tool.grep': 'コードを検索中...',

@@ -1385,6 +1385,19 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.status.spinning_agent': 'Đang khởi tạo tác tử chuyên biệt...',
   'dash.chat.status.compressing': 'Đang nén ngữ cảnh...',
   'dash.chat.status.thinking': 'Đang suy nghĩ...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': 'Đang đọc {file}',
+  'dash.chat.status.tool.write_file': 'Đang ghi {file}',
+  'dash.chat.status.tool.edit_file': 'Đang sửa {file}',
+  'dash.chat.status.tool.run_cmd': 'Đang chạy {command}',
+  'dash.chat.status.tool.search_for': 'Đang tìm {pattern}',
+  'dash.chat.status.tool.find_files': 'Đang tìm tệp khớp với {pattern}',
+  'dash.chat.status.tool.list_path': 'Đang liệt kê {file}',
+  'dash.chat.status.tool.web_for': 'Đang tìm {query} trên web',
   'dash.chat.status.tool.bash': 'Đang chạy lệnh...',
   'dash.chat.status.tool.glob': 'Đang quét tệp...',
   'dash.chat.status.tool.grep': 'Đang tìm kiếm mã...',

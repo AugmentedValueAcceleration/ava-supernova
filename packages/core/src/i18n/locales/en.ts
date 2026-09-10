@@ -1834,6 +1834,19 @@ export const enStrings = {
   'dash.chat.status.spinning_agent': 'Spinning up specialist agent...',
   'dash.chat.status.compressing': 'Compressing context...',
   'dash.chat.status.thinking': 'Thinking...',
+  // Specific tool status — the filename, command or pattern, not just
+  // "Reading file...". For someone learning, watching the actual loop
+  // (read this, edit that, run the tests) is the lesson; a spinner is not.
+  // The generic keys below remain as the fallback for tools with no
+  // useful argument.
+  'dash.chat.status.tool.read_file': 'Reading {file}',
+  'dash.chat.status.tool.write_file': 'Writing {file}',
+  'dash.chat.status.tool.edit_file': 'Editing {file}',
+  'dash.chat.status.tool.run_cmd': 'Running {command}',
+  'dash.chat.status.tool.search_for': 'Searching for {pattern}',
+  'dash.chat.status.tool.find_files': 'Finding files matching {pattern}',
+  'dash.chat.status.tool.list_path': 'Listing {file}',
+  'dash.chat.status.tool.web_for': 'Searching the web for {query}',
   'dash.chat.status.tool.bash': 'Running command...',
   'dash.chat.status.tool.glob': 'Scanning files...',
   'dash.chat.status.tool.grep': 'Searching code...',

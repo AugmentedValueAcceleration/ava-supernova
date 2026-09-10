@@ -67,6 +67,7 @@ function updateMessageEvents(
   return messages;
 }
 import { useVSCodeApi } from './hooks/useVSCodeApi';
+import { getToolLabel } from './lib/tool-label';
 import { ChatContainer } from './components/ChatContainer';
 import { InputArea } from './components/InputArea';
 import { Header } from './components/Header';
@@ -367,7 +368,26 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       });
       // Defensive: a tool call starting means the agent is active. Restore
       // running state if a premature done had cleared it.
-      return { ...state, messages, isStreaming: true, isThinking: false };
+      //
+      // isThinking used to be set FALSE here, which hid the status line for
+      // the whole duration of the tool call — the longest, quietest part of a
+      // turn. isStreaming stayed true, so the toolbar went on saying "working"
+      // while the line above the composer said nothing at all. Two indicators
+      // describing one turn, disagreeing.
+      //
+      // It stays up now and says what she is actually doing — "Editing
+      // src/player.ts", "Running npm test" — reusing the same labeller the
+      // tool card uses, so the transcript and the status line cannot describe
+      // the same action differently. The card is one row in a transcript you
+      // may have scrolled away from; this line is the answer to "is she still
+      // going, and on what".
+      return {
+        ...state,
+        messages,
+        isStreaming: true,
+        isThinking: true,
+        thinkingLabel: getToolLabel(action.toolCall.name, action.toolCall.arguments).label,
+      };
     }
 
     case 'tool_call_partial': {
@@ -467,7 +487,17 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         };
         return { ...msg, events: next };
       });
-      return { ...state, messages };
+      // Hand the line back to the model. Without this it would keep reading
+      // "Editing src/player.ts" through the gap between the tool finishing and
+      // the model's next token — which can be seconds, and claims she is still
+      // doing something she has already finished. The next thinking_delta or
+      // stream_delta overwrites this almost immediately; the point is that the
+      // gap says something true rather than something stale.
+      return {
+        ...state,
+        messages,
+        thinkingLabel: modelLabel(state, 'thinking.working'),
+      };
     }
 
     case 'confirmation_responded': {

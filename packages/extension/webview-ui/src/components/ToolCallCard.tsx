@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
 import { CopyButton } from './CopyButton';
 import { t, tt, useLocale } from '../i18n';
+import { getToolLabel } from '../lib/tool-label';
 
 interface ToolCallCardProps {
   toolCall: ToolCallDisplay;
@@ -12,58 +13,6 @@ interface ToolCallCardProps {
     planSelection?: string,
     userResponse?: string,
   ) => void;
-}
-
-// ─── Human-readable tool descriptions ──────────────────────────────────────
-
-function getToolLabel(name: string, argsJson: string): { label: string } {
-  let args: Record<string, unknown> = {};
-  try {
-    args = JSON.parse(argsJson);
-  } catch {
-    // fallback
-  }
-
-  const filePath = shortenPath(args.file_path as string | undefined);
-  const pattern = args.pattern as string | undefined;
-  const command = args.command as string | undefined;
-
-  switch (name) {
-    case 'file_read':
-      return { label: t('tool.read', { file: filePath || 'file' }) };
-    case 'file_write':
-      return { label: t('tool.write', { file: filePath || 'file' }) };
-    case 'file_edit':
-      return { label: t('tool.edit', { file: filePath || 'file' }) };
-    case 'glob':
-      return { label: t('tool.find_files', { pattern: pattern || '...' }) };
-    case 'grep':
-      return { label: t('tool.search', { pattern: pattern ? `/${pattern}/` : '...' }) };
-    case 'bash':
-      return { label: t('tool.run', { command: truncate(command || '...', 60) }) };
-    case 'list_directory':
-      return { label: t('tool.list_dir', { path: shortenPath(args.path as string | undefined) || 'directory' }) };
-    case 'web_search':
-      return { label: t('tool.web_search', { query: truncate((args.query as string) || '...', 50) }) };
-    case 'ask_user':
-      return { label: t('tool.ask_user') };
-    case 'git_status':
-      return { label: t('tool.git', { command: (args.command as string) || 'status' }) };
-    case 'http_request':
-      return { label: t('tool.http', { method: (args.method as string) || 'GET', url: truncate((args.url as string) || '...', 50) }) };
-    default:
-      return { label: name };
-  }
-}
-
-function shortenPath(p: string | undefined): string {
-  if (!p) return '';
-  const parts = p.replace(/\\/g, '/').split('/');
-  return parts.length <= 2 ? p : parts.slice(-2).join('/');
-}
-
-function truncate(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max) + '...' : s;
 }
 
 // ─── Status icon components ───────────────────────────────────────────────
