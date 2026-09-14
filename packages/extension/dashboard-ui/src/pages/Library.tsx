@@ -1753,10 +1753,16 @@ function AssetCard({
       }`}
     >
       {item.thumbnail ? (
+        // An icon or a logo is shown WHOLE. `cover` is right for a photo — a
+        // frame filling its card is the gallery look — but it crops a square
+        // icon on a wide card to the middle of the glyph, which for a bell
+        // meant a card showing an orange curve and nothing you could name.
         <img
           src={item.thumbnail}
           alt={item.title}
-          className="h-24 w-full object-cover"
+          className={item.designType === 'icon' || item.designType === 'logo'
+            ? 'h-24 w-full object-contain p-3'
+            : 'h-24 w-full object-cover'}
           loading="lazy"
         />
       ) : isVideo && mediaUrl ? (
