@@ -62,11 +62,86 @@ const DO_NOT_TRANSLATE = [
   'Ava', 'Supernova', 'Ava Supernova', 'Qwen', 'DeepSeek', 'Mistral',
   'conversation_recall', 'deploy_state', 'verify_change',
   'IDE', 'CLI', 'API', 'UI', 'URL', 'HTTP', 'JSON', 'SQL', 'Git', 'GitHub', 'OWASP', 'CVE', 'RLHF',
+  // The folder is literally named Decisions/ on disk. 0.101.0's German first
+  // came back as "Ordner Entscheidungen", which nobody can find in a file tree.
+  'Decisions',
+  'PNG', 'JPG', 'SVG', 'WebP',
 ];
 
 // ── Release content (English) ────────────────────────────────────────────────
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
+  {
+    migration: 437,
+    version: '0.46.0',
+    platform: 'ide',
+    toolCount: 121,
+    publishedAt: '2026-09-14 20:30:00+00',
+    title: `I design for the project, not just the brand`,
+    body: `Three things in the Creative Studio and two in the Library. The first is the one that changes how I work.
+
+**When you open the Creative Studio inside a project, I read the project first.** Your Decisions folder — the overview, the palette, the typography, the voice, and the log of what has already been made — is in front of me before you ask for anything. I have read it while coding for a long time. While designing I only ever had your brand kit, which is your standing default across everything you make, not what this particular project settled on. So a roastery could get a fintech's mark. Where the project and the kit disagree, the project wins now, and I say so in a sentence ("I've used the project's teal rather than the kit's blue — it's what this project settled on"). With no project open, nothing changes: I design from the kit as before.
+
+**Fixed: I was designing blind to the panel.** The dials beside you — form, mark type, style, colours, wordmark font — were never described to me in the IDE, so my own choices always won. "Lettermark" could be selected while a symbol rendered. I see the panel now, design from it, and tell you when I have changed one of your settings on purpose.
+
+**The Library lets you choose a download format.** A Studio make was WebP because that is what the image model returns and I do not mislabel files. Now you get the original, PNG, or JPG — made from the pixels right there, and a dialog to choose where it goes. JPG has no transparency, so a matted icon is placed on white; PNG keeps it.
+
+**SVG appears when the file is actually a vector.** Logos and flat icons are SVG already, so for those it is the real file. A generated finish or a photograph is raster, and there is no honest SVG of a photograph — wrapping the pixels in an SVG tag is a PNG in a costume, and tracing it makes a posterised blob. So it is not offered there, on purpose.
+
+**Fixed: icons on Library cards were cropped to the middle of the glyph.** A bell was an orange curve. Icons and logos are shown whole now; photos still fill the card, which is how a gallery should look.
+
+The extension got the same release.`,
+    highlights: [
+      'Inside a project, I read your Decisions folder — palette, typography, voice, and what is already made — before designing anything. The project outranks the brand kit.',
+      'Fixed: the IDE never told me what the design panel was set to, so my own choices always won. I design from your dials now.',
+      'Library downloads offer the original, PNG or JPG, with a save dialog — and SVG when the file is genuinely a vector.',
+      'Fixed: icons on Library cards were cropped; they are shown whole now.',
+    ],
+  },
+  {
+    migration: 436,
+    version: '0.101.0',
+    platform: 'extension',
+    toolCount: 121,
+    publishedAt: '2026-09-14 20:15:00+00',
+    title: `I design for the project, not just the brand`,
+    body: `Two things in the Creative Studio and three in the Library. The first is the one that changes how I work.
+
+**When you open the Creative Studio inside a project, I read the project first.** Your Decisions folder — the overview, the palette, the typography, the voice, and the log of what has already been made — is in front of me before you ask for anything. I have read it while coding for a long time. While designing I only ever had your brand kit, which is your standing default across everything you make, not what this particular project settled on. So a roastery could get a fintech's mark. Where the project and the kit disagree, the project wins now, and I say so in a sentence ("I've used the project's teal rather than the kit's blue — it's what this project settled on"). With no project open, nothing changes: I design from the kit as before.
+
+**The Library lets you choose a download format.** A Studio make was WebP because that is what the image model returns and I do not mislabel files. Now you get the original, PNG, or JPG — made from the pixels right there. JPG has no transparency, so a matted icon is placed on white; PNG keeps it.
+
+**SVG appears when the file is actually a vector.** Logos and flat icons are SVG already, so for those it is the real file. A generated finish or a photograph is raster, and there is no honest SVG of a photograph — wrapping the pixels in an SVG tag is a PNG in a costume, and tracing it makes a posterised blob. So it is not offered there, on purpose.
+
+**Fixed: the download button was missing for the very things you made in the Studio.** It only appeared for files inside your project or in the cloud, and a Studio make is neither — it lives in your library, outside any project. It has a download now, whatever is open.
+
+**Fixed: icons on Library cards were cropped to the middle of the glyph.** A bell was an orange curve. Icons and logos are shown whole now; photos still fill the card, which is how a gallery should look.
+
+The desktop IDE got the same release.`,
+    highlights: [
+      'Inside a project, I read your Decisions folder — palette, typography, voice, and what is already made — before designing anything. The project outranks the brand kit.',
+      'Library downloads offer the original, PNG or JPG — and SVG when the file is genuinely a vector.',
+      'Fixed: Studio makes had no download button at all; they do now, whatever is open.',
+      'Fixed: icons on Library cards were cropped; they are shown whole now.',
+    ],
+  },
+  {
+    migration: 435,
+    version: '0.2.83',
+    platform: 'core',
+    toolCount: 121,
+    publishedAt: '2026-09-14 18:00:00+00',
+    title: `The Designer's prompt takes the project`,
+    body: `Core is the engine every surface runs on. Two additions, both so the surfaces stop carrying their own copies of a decision.
+
+**getDesignStudioPrefix takes project context.** The coding path has loaded the Decisions folder for as long as the convention has existed, and re-injects the design files before every UI edit so the palette is the freshest thing in my context when I choose a colour. The Design Studio prompt had no slot for any of it. It has a fifth argument now — the folder as loadFreshDesignContext renders it: overview, context, palette, typography, voice, assets log — and that reader is exported, so a surface passes the same content the coding path uses rather than writing a second reader. The block sits before the brand kit, says the project wins where they disagree, and says in as many words that reading it is not brand admin, because the existing "never stop a make for brand admin" rule would otherwise be read as permission to ignore it. Six tests pin the shape.
+
+**authoring/image-formats — which downloads a Library image gets.** Dependency-free, beside the document export rules both surfaces already import, for the same reason: the answer is needed by two webview bundles and should be pinned once. Original always; PNG and JPG for any image; SVG when, and only when, the source is vector. Seven tests, including the one that says a raster image never grows an SVG option.`,
+    highlights: [
+      `getDesignStudioPrefix accepts the project's Decisions folder; loadFreshDesignContext is exported so surfaces share the coding path's reader.`,
+      'New authoring/image-formats: the Library download rules in one tested place — original, PNG, JPG, and SVG only for a vector source.',
+    ],
+  },
   {
     migration: 434,
     version: '0.45.2',
