@@ -354,6 +354,11 @@ export {
   appendMachineRule,
   loadMachineRules,
 } from './config/project.js';
+// The Decisions folder as the DESIGNER reads it — overview, context, then
+// palette / typography / voice and the assets log. One reader, two callers:
+// the coding path re-injects it before UI edits; the Design Studio hands it to
+// getDesignStudioPrefix so she designs for the project, not just the kit.
+export { loadFreshDesignContext } from './agent/design-reinjection.js';
 
 // Per-project config (decisionsOptIn etc.)
 export {

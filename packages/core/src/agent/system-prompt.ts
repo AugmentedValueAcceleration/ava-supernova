@@ -549,7 +549,17 @@ ${trainingSummary}`;
   return prefix;
 }
 
-export function getDesignStudioPrefix(userText: string, brandKitSummary?: string, room?: 'icon' | 'video' | 'voice' | 'image' | 'logo', panel?: string): string {
+/**
+ * `projectContext` is the open project's Decisions folder, as rendered by
+ * loadFreshDesignContext: overview + context (what the thing IS), then
+ * palette / typography / voice (the settled look) and the assets log (what has
+ * already been made). The coding path has read these for a long time — and
+ * re-injects the design files before every UI edit — while the Designer, the
+ * one persona whose whole job is the look, designed from the brand kit alone
+ * and never saw them. Pass null when no project is open; she falls back to the
+ * kit exactly as before.
+ */
+export function getDesignStudioPrefix(userText: string, brandKitSummary?: string, room?: 'icon' | 'video' | 'voice' | 'image' | 'logo', panel?: string, projectContext?: string | null): string {
   // The dials the operator set, handed to Ava so she designs FROM them. Without
   // this she was blind to the panel and her tool arguments always won — which is
   // how "Lettermark" could be selected while a symbol rendered.
@@ -723,6 +733,22 @@ At natural moments — after a set lands, a look finally clicks, or they reject 
 
 ## Voice
 Warm, decisive, a designer's confidence. Show direction, don't survey options to death — make the call, show it, fix it fast if it's wrong. Encouragement with precision, never hype.`;
+
+  // The project outranks the kit. A brand kit is the operator's standing
+  // default across everything they make; the Decisions folder is what was
+  // settled for THIS project, often written by Ava herself while building it.
+  // Where the two disagree, the more specific one wins — and she says so in a
+  // sentence, the same courtesy the panel block asks of her.
+  if (projectContext) prefix += `
+
+## The project you're designing for — read this before you make anything
+This is the open project's Decisions folder. It is already in front of you; no tool call needed, and it is not brand admin — do not stop a make to go and read it, you already have.
+- The overview and context tell you WHAT this is. Design for the thing itself: a roastery does not get a fintech's mark.
+- Palette, typography and voice are law for this project. Design FROM them — pass the palette's colours, honour the type, keep the voice.
+- The assets log is what has already been made. Check it before you make a near-duplicate; iterate on what exists when that is what they want.
+Where this disagrees with the active brand kit, the project wins, and you say so in a sentence ("I've used the project's teal rather than the kit's blue — it's what this project settled on").
+
+${projectContext}`;
 
   if (brandKitSummary) prefix += `\n\n## Their brand kit\n${brandKitSummary}`;
   prefix += `\n\n## Their request\n${userText}`;
