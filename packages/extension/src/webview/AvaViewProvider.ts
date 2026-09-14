@@ -28,6 +28,7 @@ import {
   getWorkModePrefix,
   getHealthRoomPrefix,
   getDesignStudioPrefix,
+  loadFreshDesignContext,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -4036,7 +4037,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.updateStatusBar('busy');
 
     const docContext = this.openDocumentContext();
-    const userText = this.applyModePrefix(
+    const userText = await this.applyModePrefix(
       docContext ? `${docContext}` + '\n\n' + `${text}` : text,
       mode,
     );
@@ -4993,7 +4994,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Mode Handling ──────────────────────────────────────────────────────────
 
-  private applyModePrefix(text: string, mode: AvaMode): string {
+  private async applyModePrefix(text: string, mode: AvaMode): Promise<string> {
     let prefixed: string;
     switch (mode) {
       case 'plan':
@@ -5020,8 +5021,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         prefixed = getWorkModePrefix(text); break;
       case 'health':
         prefixed = getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary(), this.getTrainingLogSummary()); break;
-      case 'design':
-        prefixed = getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom, this.activeDesignPanel); break;
+      case 'design': {
+        // The Designer reads the open project's Decisions folder — overview,
+        // context, palette, typography, voice, assets log. The coding path has
+        // loaded that folder since activation (loadDecisionsState) and the
+        // Designer, whose whole job is the look, never saw it. Read fresh per
+        // message so edits to Decisions/design/*.md land on the next turn.
+        // No project → null → she designs from the brand kit as before.
+        let projectContext: string | null = null;
+        try {
+          projectContext = this.projectRoot ? await loadFreshDesignContext(this.projectRoot) : null;
+        } catch { /* unreadable folder — the prefix handles null */ }
+        prefixed = getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom, this.activeDesignPanel, projectContext);
+        break;
+      }
       default:
         prefixed = text;
     }
