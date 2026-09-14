@@ -173,6 +173,11 @@
       "require": "./dist/tools/authoring/export-formats.js",
       "types": "./dist/tools/authoring/export-formats.d.ts"
     },
+    "./authoring/image-formats": {
+      "import": "./dist/tools/authoring/image-formats.js",
+      "require": "./dist/tools/authoring/image-formats.js",
+      "types": "./dist/tools/authoring/image-formats.d.ts"
+    },
     "./authoring": {
       "import": "./dist/tools/authoring/index.js",
       "require": "./dist/tools/authoring/index.js",

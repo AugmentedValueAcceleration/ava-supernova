@@ -90,7 +90,7 @@ import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { exportDocument } from '@ava/core/authoring';
-import { readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
+import { readLocalCreative, readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
 import { scanStorage, reclaimStorage, measureProjects, readProjectsUsage } from './storage-scan.js';
 import { projectsHomeFrom } from '@ava/core/projects/home';
 
@@ -2120,6 +2120,37 @@ export class DashboardPanel {
       case 'download_cloud_asset':
         await this.downloadCloudAsset(msg.url, msg.filename);
         break;
+
+      case 'download_creative_asset': {
+        // The Library's Download for a Studio make. This was the button that
+        // never appeared: the modal only offered Download for workspace files
+        // (a path) or cloud assets (a URL), and a Studio make is neither —
+        // it is a file in the account's creative gallery, known by id.
+        try {
+          const items = await readLocalCreative(this.getUserDataDir());
+          const item = items.find((i) => i.id === msg.id);
+          if (!item) { vscode.window.showWarningMessage('Could not find that asset.'); break; }
+          const ext = item.path.slice(item.path.lastIndexOf('.'));
+          const safeName = ((msg.filename || item.title || 'download')
+            .replace(/[\\/]/g, '_')
+            .replace(/[^a-zA-Z0-9._ -]/g, '_')
+            .slice(0, 200) || 'download');
+          const named = safeName.toLowerCase().endsWith(ext.toLowerCase()) ? safeName : `${safeName}${ext}`;
+          const os = await import('node:os');
+          const dest = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(path.join(os.homedir(), 'Downloads', named)),
+            filters: { 'All Files': ['*'] },
+          });
+          if (dest) {
+            const fs = await import('node:fs/promises');
+            await fs.copyFile(item.absolutePath, dest.fsPath);
+            vscode.window.showInformationMessage(`Saved to ${dest.fsPath}`);
+          }
+        } catch (err: any) {
+          this.post({ type: 'error', message: `Download failed: ${err.message}` });
+        }
+        break;
+      }
 
       case 'save_asset_copy':
         await this.saveAssetCopy(msg.url, msg.filename);

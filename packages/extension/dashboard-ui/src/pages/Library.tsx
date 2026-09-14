@@ -11,6 +11,7 @@ import { Drawer } from '../components/Drawer';
 // The dependency-free leaf, so the host and this bundle agree on what is
 // exportable and what it is called without either keeping its own list.
 import { canExport, targetsFor, TARGET_LABELS, type ExportFormat } from '@ava/core/authoring/formats';
+import { exportOptionsFor, originalExt, transcodeImage, withExt, type ExportFormat as ImageExportFormat, type ExportOption as ImageExportOption } from '../lib/image-export';
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -776,23 +777,64 @@ function PreviewModal({
   // handleReveal removed with the top-level button: each row under Formats
   // reveals its own file, which is the one the user actually pointed at.
 
-  const handleDownload = () => {
-    if (isLocal && localPath) {
-      post({ type: 'download_asset', path: localPath });
-      return;
-    }
-    if (cloudUrl) {
-      // Host-side silent download — no browser, no URL prompt, no
-      // infrastructure leakage. File lands in ~/Downloads and a VS Code
-      // toast offers Reveal. Derive a filename from the storage path
-      // so the saved file gets its original extension.
-      let filename = item.title || 'download';
+  // Download. Three sources, three routes to the bytes — and a fourth case
+  // that had none: a Studio make is local but has no workspace path, so it
+  // matched neither the path route nor the cloud route and the button simply
+  // did not render for the very things made in the Studio.
+  const canDownload = Boolean((isLocal && localPath) || isLocalCreative || cloudUrl);
+
+  // The formats on offer. Images can be re-encoded here in the webview (see
+  // image-export.ts for why SVG is offered only when the source IS vector);
+  // everything else gets its original bytes and nothing invented.
+  const downloadOptions = useMemo<ImageExportOption[]>(() => {
+    if (!canDownload) return [];
+    if (isImage && mediaSrc) return exportOptionsFor(mediaSrc);
+    const ext = originalExt(mediaSrc ?? localPath ?? item.title, '');
+    return [{ format: 'original', label: ext ? `Original (${ext.toUpperCase()})` : tt('library.download', 'Download'), ext }];
+  }, [canDownload, isImage, mediaSrc, localPath, item.title]);
+
+  const [downloading, setDownloading] = useState<ImageExportFormat | null>(null);
+
+  const baseFilename = () => {
+    let filename = item.title || 'download';
+    const src = cloudUrl ?? localPath;
+    if (src) {
       try {
-        const last = new URL(cloudUrl).pathname.split('/').pop();
+        const last = (cloudUrl ? new URL(cloudUrl).pathname : src).split('/').pop();
         if (last && last.includes('.')) filename = last;
-      } catch { /* malformed URL — fall back to title */ }
-      post({ type: 'download_cloud_asset', url: cloudUrl, filename });
+      } catch { /* fall back to title */ }
+    }
+    return filename;
+  };
+
+  const handleDownloadAs = async (opt: ImageExportOption) => {
+    if (downloading) return;
+    setDownloading(opt.format);
+    try {
+      // Original bytes (and SVG, which IS the original for a vector): the host
+      // copies the file. Never re-encoded — what was made is what you get.
+      if (opt.format === 'original' || opt.format === 'svg') {
+        if (isLocalCreative && rawCreative.id) {
+          post({ type: 'download_creative_asset', id: rawCreative.id, filename: withExt(baseFilename(), opt.ext) });
+        } else if (isLocal && localPath) {
+          post({ type: 'download_asset', path: localPath });
+        } else if (cloudUrl) {
+          post({ type: 'download_cloud_asset', url: cloudUrl, filename: baseFilename() });
+        }
+        onClose();
+        return;
+      }
+      // PNG / JPG: re-encode in the webview, hand the host the bytes. JPG is
+      // composited on white first — it has no alpha, and a matted icon would
+      // otherwise come out on black.
+      if (!mediaSrc) throw new Error('No image source to convert.');
+      const dataUri = await transcodeImage(mediaSrc, opt.format);
+      post({ type: 'save_asset_copy', url: dataUri, filename: withExt(baseFilename(), opt.ext) });
       onClose();
+    } catch (err) {
+      setExportNote({ ok: false, text: err instanceof Error ? err.message : 'Download failed.' });
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -1140,19 +1182,33 @@ function PreviewModal({
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            {((isLocal && localPath) || cloudUrl) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Download, one pill per format. The first is the original bytes
+                (or SVG when the source is vector); PNG and JPG are made here
+                from the pixels. See image-export.ts for why a raster image
+                never grows an SVG option. */}
+            {downloadOptions.length > 0 && (
+              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{tt('library.download', 'Download')}</span>
+            )}
+            {downloadOptions.map((opt, i) => (
               <button
-                onClick={handleDownload}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                  !isLocal
+                key={opt.format}
+                onClick={() => handleDownloadAs(opt)}
+                disabled={downloading !== null}
+                title={opt.format === 'original' || opt.format === 'svg'
+                  ? tt('library.download_original_title', 'The file exactly as it was made')
+                  : opt.format === 'png'
+                    ? tt('library.download_png_title', 'Lossless, keeps transparency')
+                    : tt('library.download_jpg_title', 'Smaller, no transparency — composited on white')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                  i === 0
                     ? 'border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20'
                     : 'border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                 }`}
               >
-                {t('library.download')}
+                {downloading === opt.format ? tt('library.downloading', 'Saving…') : opt.label}
               </button>
-            )}
+            ))}
             <button
               onClick={() => setConfirmDelete(true)}
               className="ml-auto rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-red-400 hover:border-red-500/40"
