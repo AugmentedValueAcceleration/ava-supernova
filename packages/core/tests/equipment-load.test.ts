@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   acceptsLoadDetail, isValidLoad, availableLoadsKg, nextLoadKg, maxLoadKg,
   canMakeLoadKg, describeLoad, describeLoads, loadDetailGaps,
-  toWeekDay, toWeekDays, equipmentAvailableOn,
+  toWeekDay, toWeekDays, equipmentAvailableOn, summariseEquipment,
   type EquipmentLoad,
 } from '../src/health/equipment-load.js';
 
@@ -192,5 +192,43 @@ describe('equipmentAvailableOn — a week is not the same every day', () => {
   it('still normalises the old stored format', () => {
     expect(equipmentAvailableOn(['Dumbbells', 'Pull-up bar'], 'mon', []))
       .toEqual(['dumbbells', 'pull_up_bar']);
+  });
+});
+
+describe('summariseEquipment — what a model actually reads', () => {
+  it('groups by place, with the gym on its own line and its days', () => {
+    const lines = summariseEquipment(
+      ['dumbbells', 'bench', 'gym_full'],
+      { dumbbells: ADJ },
+      ['tue', 'thu'],
+    );
+    expect(lines).toContain('Equipment — Home: Dumbbells, Bench');
+    expect(lines).toContain('Equipment — Gym (tue, thu): full gym floor');
+    expect(lines).toContain('Loads: Dumbbells: adjustable 2.5–24 kg in 2.5 kg steps');
+  });
+
+  it('says the gym days are not stated rather than implying never', () => {
+    const lines = summariseEquipment(['gym_full'], {}, []);
+    expect(lines.join('\n')).toContain('days not stated');
+  });
+
+  it('names the kit whose range is unknown, so a weight jump is not invented', () => {
+    const lines = summariseEquipment(['dumbbells', 'barbell'], { dumbbells: ADJ });
+    const gap = lines.find((l) => l.startsWith('Load range not stated'));
+    expect(gap).toBeDefined();
+    expect(gap).toContain('Barbell');
+    expect(gap).not.toContain('Dumbbells');   // already answered
+  });
+
+  it('says nothing at all for an empty profile', () => {
+    // "Not stated" must not become a paragraph explaining that nothing is stated.
+    expect(summariseEquipment([], {}, [])).toEqual([]);
+    expect(summariseEquipment(null)).toEqual([]);
+  });
+
+  it('reads an old name-format profile without complaint', () => {
+    expect(summariseEquipment(['Dumbbells', 'Pull-up bar'])).toContain(
+      'Equipment — Home: Dumbbells, Pull-up bar',
+    );
   });
 });

@@ -192,3 +192,67 @@ export function equipmentAvailableOn(
   // nothing downstream re-expands it.
   return ownedSlugs.filter((s) => s !== 'gym_full');
 }
+
+/**
+ * The equipment section of a profile summary, as lines a model reads.
+ *
+ * Replaces `Equipment available: dumbbells, bench, gym_full` — a flat list of
+ * slugs that says nothing about whether the next weight up exists, or whether
+ * the squat rack is reachable today. It reads as:
+ *
+ *   Equipment — Home: Dumbbells, Bench, Pull-up bar
+ *   Equipment — Gym (Tue, Thu): full gym floor
+ *   Loads: Dumbbells: adjustable 2.5–24 kg in 2.5 kg steps
+ *
+ * Grouped by place because that is the axis a WEEK is planned on, and the load
+ * lines separate because they are the ones that decide what "add weight" may
+ * say. Slugs are kept out: the summary is for reading, and the tool call that
+ * needs slugs is told to take them from the profile directly.
+ */
+export function summariseEquipment(
+  owned: readonly string[] | null | undefined,
+  loads?: EquipmentLoads,
+  gymDays?: readonly string[] | null,
+): string[] {
+  const slugs = normaliseOwned(owned);
+  if (slugs.length === 0) return [];
+
+  const lines: string[] = [];
+  const hasGym = slugs.includes('gym_full');
+  const own = slugs.filter((s) => s !== 'gym_full');
+
+  // Only kit they ticked in its own right is grouped by place; gym_full is a
+  // statement about access and gets its own line with the days on it.
+  const byPlace = new Map<string, string[]>();
+  for (const slug of own) {
+    const place = EQUIPMENT_BY_SLUG.get(slug)?.place ?? 'home';
+    const list = byPlace.get(place) ?? [];
+    list.push(equipmentName(slug));
+    byPlace.set(place, list);
+  }
+  for (const place of ['home', 'gym', 'outdoors'] as const) {
+    const list = byPlace.get(place);
+    if (!list?.length) continue;
+    const label = place === 'home' ? 'Home' : place === 'gym' ? 'Gym floor' : 'Outdoors';
+    lines.push(`Equipment — ${label}: ${list.join(', ')}`);
+  }
+
+  if (hasGym) {
+    const days = toWeekDays(gymDays);
+    // No days recorded is stated as such rather than guessed at, so nobody
+    // reads an empty list as "never" — and Ava knows there is a question worth
+    // asking before she writes a week.
+    const when = days.length ? ` (${days.join(', ')})` : ' (days not stated)';
+    lines.push(`Equipment — Gym${when}: full gym floor`);
+  }
+
+  const loadLines = describeLoads(own, loads);
+  if (loadLines.length) lines.push(`Loads: ${loadLines.join(' · ')}`);
+
+  // Named explicitly: the gap is what a plan silently guesses at otherwise.
+  const gaps = loadDetailGaps(own, loads);
+  if (gaps.length) {
+    lines.push(`Load range not stated for: ${gaps.map(equipmentName).join(', ')} — ask before promising a weight jump.`);
+  }
+  return lines;
+}

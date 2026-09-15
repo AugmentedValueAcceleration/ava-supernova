@@ -393,6 +393,7 @@ export {
   toWeekDay,
   toWeekDays,
   equipmentAvailableOn,
+  summariseEquipment,
 } from './health/equipment-load.js';
 export type { EquipmentLoad, EquipmentLoads, WeekDay } from './health/equipment-load.js';
 

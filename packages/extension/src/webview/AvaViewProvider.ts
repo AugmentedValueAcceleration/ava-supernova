@@ -29,6 +29,7 @@ import {
   getHealthRoomPrefix,
   getDesignStudioPrefix,
   loadFreshDesignContext,
+  summariseEquipment,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -5081,7 +5082,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (p?.constraints?.allergens?.length) lines.push(`Allergens: ${p.constraints.allergens.join(', ')}`);
       if (p?.constraints?.dietary?.length) lines.push(`Dietary preferences: ${p.constraints.dietary.join(', ')}`);
       if (p?.constraints?.injuries?.length) lines.push(`Injuries / limitations: ${p.constraints.injuries.join(', ')}`);
-      if (p?.constraints?.equipment_available?.length) lines.push(`Equipment available: ${p.constraints.equipment_available.join(', ')}`);
+      // Places, load ranges and gym days — not a flat list of slugs. The slug
+      // list said nothing about whether the next weight up exists or whether
+      // the squat rack is reachable today, which are the two things a week is
+      // actually planned around. Built in core so this and the IDE sidecar
+      // cannot drift.
+      for (const line of summariseEquipment(
+        p?.constraints?.equipment_available,
+        p?.constraints?.equipment_loads,
+        p?.constraints?.gym_days,
+      )) lines.push(line);
       if (p?.constraints?.minutes_per_day_target) lines.push(`Time budget per day: ${p.constraints.minutes_per_day_target} minutes`);
       const tw = p?.schedule?.training_window;
       if (tw?.start && tw?.end) lines.push(`Training window: ${tw.start}–${tw.end}`);
