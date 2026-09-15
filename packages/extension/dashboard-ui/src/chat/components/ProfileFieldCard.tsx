@@ -6,7 +6,7 @@ import { Icon } from '../../components/Icon';
 // "what this card renders", and "where it saves" never drift. Imported from the
 // built core (mirrors the i18n import convention; keeps node-only deps out of
 // the browser bundle).
-import { HEALTH_PROFILE_FIELDS, humaniseSlug } from '../../../../../core/dist/health/profile-fields.js';
+import { HEALTH_PROFILE_FIELDS, optionLabel } from '../../../../../core/dist/health/profile-fields.js';
 import { TimeInput } from '../../pages/ProfilePrimitives';
 import { CookingTimeGrid, type CookTime } from '../../components/CookingTimeGrid';
 
@@ -63,7 +63,7 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
   const skip = () =>
     onConfirmation(toolCall.confirmationId!, true, false, undefined, JSON.stringify({ field, skipped: true }));
 
-  const optLabel = (o: { value: string; labelKey?: string }) => (o.labelKey ? t(o.labelKey) : humaniseSlug(o.value));
+  const optLabel = (o: { value: string; labelKey?: string; label?: string }) => optionLabel(o, t);
 
   return (
     <div

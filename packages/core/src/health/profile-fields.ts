@@ -11,6 +11,8 @@
 // exactly one definition — no drift between "what Ava can ask", "what the card
 // renders", and "where it saves".
 
+import { EQUIPMENT } from './equipment.js';
+
 export type ProfileFieldControl = 'select' | 'multiselect' | 'number' | 'text' | 'date' | 'time' | 'cooking_grid';
 
 export interface ProfileFieldOption {
@@ -18,6 +20,12 @@ export interface ProfileFieldOption {
   value: string;
   /** i18n key for the display label; humanise `value` when absent */
   labelKey?: string;
+  /**
+   * Canonical English label, used when there is no i18n key yet. Beats
+   * humanising the slug for anything whose slug does not read as English:
+   * `gym_full` humanises to "Gym full", which is not what it means.
+   */
+  label?: string;
   /** optional one-line hint (goal cards) */
   hintKey?: string;
 }
@@ -56,22 +64,41 @@ const DIETARY_OPTIONS: ProfileFieldOption[] = [
   { value: 'kosher',         labelKey: 'health.profile.diet.kosher' },
 ];
 
-const EQUIPMENT_OPTIONS: ProfileFieldOption[] = [
-  { value: 'bodyweight',      labelKey: 'health.profile.equip.bodyweight' },
-  { value: 'dumbbells',       labelKey: 'health.profile.equip.dumbbells' },
-  { value: 'barbell',         labelKey: 'health.profile.equip.barbell' },
-  { value: 'kettlebell',      labelKey: 'health.profile.equip.kettlebell' },
-  { value: 'pull_up_bar',     labelKey: 'health.profile.equip.pull_up_bar' },
-  { value: 'bench',           labelKey: 'health.profile.equip.bench' },
-  { value: 'squat_rack',      labelKey: 'health.profile.equip.squat_rack' },
-  { value: 'cable_machine',   labelKey: 'health.profile.equip.cable_machine' },
-  { value: 'rowing_machine',  labelKey: 'health.profile.equip.rowing_machine' },
-  { value: 'treadmill',       labelKey: 'health.profile.equip.treadmill' },
-  { value: 'exercise_bike',   labelKey: 'health.profile.equip.exercise_bike' },
-  { value: 'mat',             labelKey: 'health.profile.equip.mat' },
-  { value: 'resistance_bands',labelKey: 'health.profile.equip.resistance_bands' },
-  { value: 'foam_roller',     labelKey: 'health.profile.equip.foam_roller' },
-];
+// DERIVED from the equipment vocabulary, not typed out beside it. It used to be
+// a hand-kept list of 14 while the catalogue knew 30 — so sixteen kinds of kit
+// existed on exercises that nobody could say they owned, and two chips
+// (treadmill, foam roller) were offered while matching no exercise at all.
+// Deriving means the chips and the catalogue cannot drift apart again.
+//
+// Display labels come from the vocabulary's canonical English name. `labelKey`
+// is set where an i18n key already exists, so translated chips keep their
+// translation; the rest fall back to the name, which beats an untranslated key.
+
+// The equipment i18n keys that already exist (the original 14). Anything added
+// since renders its canonical English name until a key is written for it — an
+// English word beats a raw `health.profile.equip.*` key on screen.
+const LEGACY_EQUIPMENT_LABEL_KEYS: Record<string, string | undefined> = {
+  bodyweight: 'health.profile.equip.bodyweight',
+  dumbbells: 'health.profile.equip.dumbbells',
+  barbell: 'health.profile.equip.barbell',
+  kettlebell: 'health.profile.equip.kettlebell',
+  pull_up_bar: 'health.profile.equip.pull_up_bar',
+  bench: 'health.profile.equip.bench',
+  squat_rack: 'health.profile.equip.squat_rack',
+  cable_machine: 'health.profile.equip.cable_machine',
+  rowing_machine: 'health.profile.equip.rowing_machine',
+  treadmill: 'health.profile.equip.treadmill',
+  exercise_bike: 'health.profile.equip.exercise_bike',
+  mat: 'health.profile.equip.mat',
+  resistance_bands: 'health.profile.equip.resistance_bands',
+  foam_roller: 'health.profile.equip.foam_roller',
+};
+
+const EQUIPMENT_OPTIONS: ProfileFieldOption[] = EQUIPMENT.map((e) => ({
+  value: e.slug,
+  labelKey: LEGACY_EQUIPMENT_LABEL_KEYS[e.slug],
+  label: e.name,
+}));
 
 const GOAL_OPTIONS: ProfileFieldOption[] = [
   { value: 'fat_loss',    labelKey: 'health.profile.goal.fat_loss',    hintKey: 'health.profile.goal.fat_loss.hint' },
@@ -178,6 +205,19 @@ export const HEALTH_PROFILE_FIELDS: Record<string, ProfileFieldDef> = {
 export const HEALTH_PROFILE_FIELD_IDS = Object.keys(HEALTH_PROFILE_FIELDS);
 
 /** Humanise a slug for display when no i18n label exists ("tree_nuts" → "Tree nuts"). */
+/**
+ * Label for one option: the translation if there is a key, then the canonical
+ * English name, then the humanised slug. Shared so the two ProfileFieldCards
+ * cannot disagree about what a chip says.
+ */
+export function optionLabel(
+  o: { value: string; labelKey?: string; label?: string },
+  translate: (key: string) => string,
+): string {
+  if (o.labelKey) return translate(o.labelKey);
+  return o.label ?? humaniseSlug(o.value);
+}
+
 export function humaniseSlug(slug: string): string {
   const s = slug.replace(/_/g, ' ');
   return s.charAt(0).toUpperCase() + s.slice(1);

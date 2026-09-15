@@ -192,6 +192,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
+    "equipment:check": "node scripts/equipment-check.mjs",
     "publish:public": "node scripts/publish-public.mjs",
     "publish:public:dry": "node scripts/publish-public.mjs --dry-run",
     "typecheck": "tsc --noEmit",

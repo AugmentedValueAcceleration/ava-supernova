@@ -68,6 +68,7 @@ export {
   HEALTH_PROFILE_FIELD_IDS,
   humaniseSlug,
   summariseCookingTime,
+  optionLabel,
 } from './health/profile-fields.js';
 export { summariseTrainingLog } from './health/session-summary.js';
 export type { ProfileFieldDef, ProfileFieldOption, ProfileFieldControl, CookingTime } from './health/profile-fields.js';
@@ -359,6 +360,23 @@ export {
 // the coding path re-injects it before UI edits; the Design Studio hands it to
 // getDesignStudioPrefix so she designs for the project, not just the kit.
 export { loadFreshDesignContext } from './agent/design-reinjection.js';
+
+// Equipment — ONE vocabulary and ONE stored format (slugs; names are display
+// only). Mirrors the catalogue's `equipment` table so the surfaces can match
+// offline. Replaces the fuzzy name comparison that treated every "* machine"
+// as every other one. See health/equipment.ts for the audit that produced it.
+export {
+  EQUIPMENT,
+  EQUIPMENT_BY_SLUG,
+  FULL_GYM_SLUGS,
+  equipmentName,
+  toEquipmentSlug,
+  normaliseEquipment,
+  ownedEquipmentSlugs,
+  canPerformWithEquipment,
+  missingEquipmentNames,
+} from './health/equipment.js';
+export type { EquipmentDef } from './health/equipment.js';
 
 // Per-project config (decisionsOptIn etc.)
 export {
