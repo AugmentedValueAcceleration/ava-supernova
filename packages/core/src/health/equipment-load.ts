@@ -256,3 +256,57 @@ export function summariseEquipment(
   }
   return lines;
 }
+
+/**
+ * Whatever a card or a model sends → a clean EquipmentLoad, or null.
+ *
+ * Shared so the two ProfileFieldCards and the tool that saves the answer
+ * cannot disagree about what a valid answer is. Null rather than a repaired
+ * guess, for the same reason toEquipmentSlug returns null: a load that is
+ * quietly "fixed up" is how somebody ends up with a plan built on weights they
+ * do not have, and that is the fault this whole area exists to remove.
+ *
+ * Numbers arrive as strings from every number input there is, so they are
+ * coerced here rather than in three places.
+ */
+export function coerceLoad(raw: unknown): EquipmentLoad | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const num = (v: unknown): number | null => {
+    const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v.trim()) : NaN;
+    return Number.isFinite(n) ? n : null;
+  };
+
+  if (r.mode === 'fixed') {
+    const list = Array.isArray(r.weightsKg) ? r.weightsKg : [];
+    const weightsKg = list.map(num).filter((n): n is number => n !== null && n > 0);
+    const load: EquipmentLoad = { mode: 'fixed', weightsKg: [...new Set(weightsKg)].sort((a, b) => a - b) };
+    return isValidLoad(load) ? load : null;
+  }
+
+  if (r.mode === 'adjustable') {
+    const minKg = num(r.minKg);
+    const maxKg = num(r.maxKg);
+    const stepKg = num(r.stepKg);
+    if (minKg === null || maxKg === null || stepKg === null) return null;
+    const load: EquipmentLoad = { mode: 'adjustable', minKg, maxKg, stepKg };
+    return isValidLoad(load) ? load : null;
+  }
+
+  return null;
+}
+
+/**
+ * Sensible starting values for the card, so nobody faces three empty boxes.
+ * A guess in a form the person is about to correct is help; a guess written
+ * into a plan is not — which is why this is only ever a default.
+ */
+export function defaultLoadFor(slug: string): EquipmentLoad {
+  switch (slug) {
+    case 'kettlebell':   return { mode: 'fixed', weightsKg: [12, 16] };
+    case 'barbell':      return { mode: 'adjustable', minKg: 20, maxKg: 100, stepKg: 2.5 };
+    case 'weight_plate': return { mode: 'fixed', weightsKg: [1.25, 2.5, 5, 10, 20] };
+    case 'sandbag':      return { mode: 'adjustable', minKg: 10, maxKg: 40, stepKg: 5 };
+    default:             return { mode: 'adjustable', minKg: 2.5, maxKg: 24, stepKg: 2.5 };
+  }
+}

@@ -30,6 +30,7 @@ import {
   getDesignStudioPrefix,
   loadFreshDesignContext,
   summariseEquipment,
+  coerceLoad,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -160,6 +161,13 @@ function coerceProfileFieldValue(def: ProfileFieldShape, raw: unknown): unknown 
       return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [];
     case 'cooking_grid':
       return coerceCookingGrid(raw);
+    // Without this the default branch below returns null for anything that is
+    // not a string, so the whole answer would be dropped on save without a
+    // word — the card would say saved and the profile would hold nothing.
+    // coerceLoad is core's, shared with both cards, and returns null for a
+    // range that cannot make a weight rather than repairing it into a guess.
+    case 'load_range':
+      return coerceLoad(raw);
     case 'text': {
       if (def.asArray) {
         const s = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.join('\n') : '';

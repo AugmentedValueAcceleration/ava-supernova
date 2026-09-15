@@ -13,7 +13,7 @@
 
 import { EQUIPMENT } from './equipment.js';
 
-export type ProfileFieldControl = 'select' | 'multiselect' | 'number' | 'text' | 'date' | 'time' | 'cooking_grid';
+export type ProfileFieldControl = 'select' | 'multiselect' | 'number' | 'text' | 'date' | 'time' | 'cooking_grid' | 'load_range';
 
 export interface ProfileFieldOption {
   /** persisted slug (sent to plans/recipes) — never translated */
@@ -29,6 +29,9 @@ export interface ProfileFieldOption {
   /** optional one-line hint (goal cards) */
   hintKey?: string;
 }
+
+/** The kit whose load is chosen, in the order the questions should come. */
+const LOAD_BEARING_SLUGS: string[] = EQUIPMENT.filter((e) => e.loadBearing).map((e) => e.slug);
 
 export interface ProfileFieldDef {
   /** which local store the value lands in */
@@ -46,6 +49,12 @@ export interface ProfileFieldDef {
   asArray?: boolean;
   /** render the text control as a multiline box */
   multiline?: boolean;
+  /**
+   * `load_range` only — which piece of kit this asks about, so the card can
+   * name it ("How heavy do your dumbbells go?") instead of asking about
+   * "equipment" in the abstract.
+   */
+  loadSlug?: string;
 }
 
 // Curated defaults mirror the profile page's chip lists (HealthProfilePage.tsx).
@@ -174,6 +183,27 @@ export const HEALTH_PROFILE_FIELDS: Record<string, ProfileFieldDef> = {
   // squat rack available on a Sunday?". Left empty it means "not stated",
   // which is treated as available — never as "never".
   gym_days:      { target: 'health', path: 'constraints.gym_days',             control: 'multiselect', labelKey: 'health.fill.field.gym_days',   options: WEEKDAY_OPTIONS },
+  // One field per load-bearing kind rather than a single "loads" field,
+  // because the registry links a field to ONE path and the answer is per
+  // piece of kit. setByPath builds the intermediate objects, so
+  // constraints.equipment_loads.dumbbells writes cleanly into a profile that
+  // has never held one.
+  //
+  // These are the only fields whose answer changes what a WEIGHT INSTRUCTION
+  // may say — everything else about equipment is a yes or no. Ava asks for one
+  // only when loadDetailGaps names it, so a pull-up bar is never involved.
+  ...Object.fromEntries(
+    LOAD_BEARING_SLUGS.map((slug) => [
+      `${slug}_load`,
+      {
+        target: 'health' as const,
+        path: `constraints.equipment_loads.${slug}`,
+        control: 'load_range' as const,
+        labelKey: 'health.fill.field.load_range',
+        loadSlug: slug,
+      },
+    ]),
+  ),
   injuries:      { target: 'health', path: 'constraints.injuries',             control: 'text',        labelKey: 'health.fill.field.injuries', multiline: true, asArray: true },
   minutes_per_day: { target: 'health', path: 'constraints.minutes_per_day_target', control: 'number',  labelKey: 'health.fill.field.minutes',  unit: 'min' },
 

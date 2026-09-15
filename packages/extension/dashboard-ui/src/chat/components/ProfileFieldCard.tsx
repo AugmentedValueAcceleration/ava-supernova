@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../../types/messages';
-import { t, useLocale } from '../../i18n';
+import { t, tt, useLocale } from '../../i18n';
 import { Icon } from '../../components/Icon';
 // Shared field registry — same source the host saves from, so "what Ava asks",
 // "what this card renders", and "where it saves" never drift. Imported from the
 // built core (mirrors the i18n import convention; keeps node-only deps out of
 // the browser bundle).
 import { HEALTH_PROFILE_FIELDS, optionLabel } from '../../../../../core/dist/health/profile-fields.js';
+import { coerceLoad, defaultLoadFor, describeLoad, type EquipmentLoad } from '../../../../../core/dist/health/equipment-load.js';
 import { TimeInput } from '../../pages/ProfilePrimitives';
 import { CookingTimeGrid, type CookTime } from '../../components/CookingTimeGrid';
 
@@ -52,6 +53,13 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
     def?.asArray && Array.isArray(currentValue) ? currentValue.join('\n')
     : currentValue != null && !Array.isArray(currentValue) && def?.control !== 'cooking_grid' ? String(currentValue) : '',
   );
+  // Load range — mode plus two or three numbers, which fits none of the other
+  // controls. Seeded from what they already answered, else a plausible default
+  // per kind, so nobody faces three empty boxes. A guess in a form they are
+  // about to correct is help; the same guess written into a plan is not, which
+  // is why defaultLoadFor is only ever a starting point.
+  const [load, setLoad] = useState<EquipmentLoad>(() =>
+    coerceLoad(currentValue) ?? defaultLoadFor(def?.loadSlug ?? ''));
   const [grid, setGrid] = useState<CookTime>(
     currentValue && typeof currentValue === 'object' && !Array.isArray(currentValue) && (currentValue as CookTime).by_day
       ? (currentValue as CookTime)
@@ -156,6 +164,100 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
                 {def.unit && <span className="text-[12px] text-[var(--text-muted)]">{def.unit}</span>}
               </div>
               <Actions onSave={() => send(text.trim())} onSkip={skip} disabled={!text.trim()} />
+            </>
+          )}
+
+          {/* — Load range: what this kit can actually make — */}
+          {def.control === 'load_range' && (
+            <>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-1.5">
+                  {(['adjustable', 'fixed'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setLoad(m === load.mode ? load : defaultLoadFor(def.loadSlug ?? ''))}
+                      className={`rounded-full px-3 py-1 text-[12px] transition ${
+                        load.mode === m
+                          ? 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40'
+                          : 'border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {m === 'adjustable'
+                        ? tt('health.fill.load.adjustable', 'Adjustable')
+                        : tt('health.fill.load.fixed', 'Fixed weights')}
+                    </button>
+                  ))}
+                </div>
+
+                {load.mode === 'adjustable' ? (
+                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--text-muted)]">
+                    {([
+                      ['minKg', tt('health.fill.load.from', 'from')],
+                      ['maxKg', tt('health.fill.load.to', 'to')],
+                      ['stepKg', tt('health.fill.load.step', 'in steps of')],
+                    ] as const).map(([key, label]) => (
+                      <span key={key} className="flex items-center gap-1.5">
+                        {label}
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          inputMode="decimal"
+                          value={String((load as Extract<EquipmentLoad, { mode: 'adjustable' }>)[key])}
+                          onChange={(e) => setLoad({ ...(load as Extract<EquipmentLoad, { mode: 'adjustable' }>), [key]: e.target.value === '' ? 0 : Number(e.target.value) })}
+                          className="w-20 rounded-lg border border-[var(--border)] bg-transparent px-2 py-1 text-[13px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                        />
+                        kg
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-wrap gap-1.5">
+                      {(load as Extract<EquipmentLoad, { mode: 'fixed' }>).weightsKg.map((w, i) => (
+                        <button
+                          key={`${w}-${i}`}
+                          onClick={() => setLoad({ mode: 'fixed', weightsKg: (load as Extract<EquipmentLoad, { mode: 'fixed' }>).weightsKg.filter((_, j) => j !== i) })}
+                          title={tt('health.fill.load.remove', 'Remove')}
+                          className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-[12px] text-[var(--accent)]"
+                        >
+                          {w} kg ×
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        inputMode="decimal"
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        placeholder={tt('health.fill.load.add', 'add a weight')}
+                        className="w-28 rounded-lg border border-[var(--border)] bg-transparent px-2 py-1 text-[13px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' || !text.trim()) return;
+                          const n = Number(text);
+                          if (Number.isFinite(n) && n > 0) {
+                            setLoad({ mode: 'fixed', weightsKg: [...(load as Extract<EquipmentLoad, { mode: 'fixed' }>).weightsKg, n] });
+                            setText('');
+                          }
+                        }}
+                      />
+                      <span className="text-[11px] text-[var(--text-muted)]">{tt('health.fill.load.add_hint', 'type a weight, press Enter')}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* What they just described, in the words the plan will use.
+                    Shows the ceiling, which is the number people are usually
+                    surprised by: 2.5–24 in 2.5s tops out at 22.5, not 24. */}
+                <div className="text-[11px] text-[var(--text-muted)]">
+                  {describeLoad(def.loadSlug ?? '', coerceLoad(load) ?? undefined)
+                    ?? tt('health.fill.load.invalid', 'That range cannot make any weight — check the numbers.')}
+                </div>
+              </div>
+              <Actions onSave={() => send(coerceLoad(load))} onSkip={skip} disabled={!coerceLoad(load)} />
             </>
           )}
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   acceptsLoadDetail, isValidLoad, availableLoadsKg, nextLoadKg, maxLoadKg,
   canMakeLoadKg, describeLoad, describeLoads, loadDetailGaps,
-  toWeekDay, toWeekDays, equipmentAvailableOn, summariseEquipment,
+  toWeekDay, toWeekDays, equipmentAvailableOn, summariseEquipment, coerceLoad, defaultLoadFor,
   type EquipmentLoad,
 } from '../src/health/equipment-load.js';
 
@@ -230,5 +230,46 @@ describe('summariseEquipment — what a model actually reads', () => {
     expect(summariseEquipment(['Dumbbells', 'Pull-up bar'])).toContain(
       'Equipment — Home: Dumbbells, Pull-up bar',
     );
+  });
+});
+
+describe('coerceLoad — one idea of a valid answer, shared', () => {
+  it('takes the strings every number input produces', () => {
+    expect(coerceLoad({ mode: 'adjustable', minKg: '2.5', maxKg: '24', stepKg: '2.5' }))
+      .toEqual({ mode: 'adjustable', minKg: 2.5, maxKg: 24, stepKg: 2.5 });
+    expect(coerceLoad({ mode: 'fixed', weightsKg: ['16', '12', '12'] }))
+      .toEqual({ mode: 'fixed', weightsKg: [12, 16] });   // sorted, de-duplicated
+  });
+
+  it('returns NULL rather than repairing nonsense', () => {
+    // A quietly fixed-up load is how somebody gets a plan built on weights
+    // they do not have — the exact fault this area exists to remove.
+    expect(coerceLoad({ mode: 'adjustable', minKg: 10, maxKg: 2, stepKg: 1 })).toBeNull();
+    expect(coerceLoad({ mode: 'adjustable', minKg: 0, maxKg: 10, stepKg: 0 })).toBeNull();
+    expect(coerceLoad({ mode: 'fixed', weightsKg: [] })).toBeNull();
+    expect(coerceLoad({ mode: 'fixed', weightsKg: ['heavy'] })).toBeNull();
+    expect(coerceLoad({ mode: 'nonsense' })).toBeNull();
+    expect(coerceLoad(null)).toBeNull();
+    expect(coerceLoad('20kg')).toBeNull();
+  });
+
+  it('round-trips through everything that reads a load', () => {
+    const load = coerceLoad({ mode: 'fixed', weightsKg: ['5', '10', '15'] })!;
+    expect(nextLoadKg(load, 5)).toBe(10);
+    expect(describeLoad('kettlebell', load)).toBe('Kettlebell: fixed 5, 10, 15 kg');
+  });
+});
+
+describe('defaultLoadFor — a starting point, never an answer', () => {
+  it('suggests something plausible per kind', () => {
+    expect(defaultLoadFor('kettlebell').mode).toBe('fixed');
+    expect(defaultLoadFor('barbell')).toMatchObject({ mode: 'adjustable', minKg: 20 });
+    expect(defaultLoadFor('dumbbells').mode).toBe('adjustable');
+  });
+
+  it('every default is itself valid, so the card never opens on a broken state', () => {
+    for (const slug of ['dumbbells', 'kettlebell', 'barbell', 'weight_plate', 'sandbag']) {
+      expect(isValidLoad(defaultLoadFor(slug))).toBe(true);
+    }
   });
 });
