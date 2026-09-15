@@ -38,10 +38,17 @@ describe('the vocabulary itself', () => {
     expect(FULL_GYM_SLUGS.length).toBeGreaterThan(20);
   });
 
-  it('does not put bodyweight or a mat behind a gym membership', () => {
-    // Nonsense, and it would make "gym_full" read as owning a yoga mat.
-    expect(FULL_GYM_SLUGS).not.toContain('bodyweight');
-    expect(FULL_GYM_SLUGS).not.toContain('mat');
+  it('a gym membership covers the gym FLOOR, bodyweight and a mat included', () => {
+    // This test used to assert the opposite, reasoning about ownership: a gym
+    // membership is not a yoga mat you own. But the list answers "what can you
+    // DO", and a gym plainly lets you do press-ups. Excluding them made a gym
+    // member match 88 exercises against 105 for someone with dumbbells at
+    // home — found by checking the live endpoint, not by this suite.
+    expect(FULL_GYM_SLUGS).toContain('bodyweight');
+    expect(FULL_GYM_SLUGS).toContain('mat');
+    expect(FULL_GYM_SLUGS).toContain('resistance_bands');
+    // Specialist kit is still not standard issue.
+    expect(FULL_GYM_SLUGS).not.toContain('sandbag');
   });
 });
 
@@ -115,6 +122,7 @@ describe('canPerformWithEquipment — exact, and ALL of it', () => {
   it('a gym membership covers the gym floor', () => {
     expect(canPerformWithEquipment(['cable_machine'], ['gym_full'])).toBe(true);
     expect(canPerformWithEquipment(['barbell', 'squat_rack'], ['gym_full'])).toBe(true);
+    expect(canPerformWithEquipment(['bodyweight'], ['gym_full'])).toBe(true);
     // …but not the things a gym does not give you.
     expect(canPerformWithEquipment(['sandbag'], ['gym_full'])).toBe(false);
   });

@@ -53,6 +53,13 @@ export interface EquipmentDef {
   /**
    * Covered by a full gym membership. `gym_full` expands to all of these, so
    * nobody has to tick fourteen machines individually.
+   *
+   * This is about what a gym lets you DO, not what you own. Bodyweight, a mat,
+   * a foam roller, bands and a rope are all on a gym floor, and leaving them
+   * out made a gym member match FEWER exercises than someone with dumbbells at
+   * home — 88 against 105, caught by checking the live endpoint rather than
+   * trusting the test that had pinned the wrong idea. A sandbag stays out:
+   * specialist kit, not standard issue.
    */
   inFullGym?: boolean;
 }
@@ -64,11 +71,11 @@ export interface EquipmentDef {
  */
 export const EQUIPMENT: EquipmentDef[] = [
   // — Bodyweight and the things nearly everyone has —
-  { slug: 'bodyweight',            name: 'Bodyweight',              place: 'home' },
-  { slug: 'mat',                   name: 'Mat',                     place: 'home' },
-  { slug: 'foam_roller',           name: 'Foam roller',             place: 'home' },
-  { slug: 'resistance_bands',      name: 'Resistance bands',        place: 'home' },
-  { slug: 'jump_rope',             name: 'Jump rope',               place: 'home' },
+  { slug: 'bodyweight',            name: 'Bodyweight',              place: 'home', inFullGym: true },
+  { slug: 'mat',                   name: 'Mat',                     place: 'home', inFullGym: true },
+  { slug: 'foam_roller',           name: 'Foam roller',             place: 'home', inFullGym: true },
+  { slug: 'resistance_bands',      name: 'Resistance bands',        place: 'home', inFullGym: true },
+  { slug: 'jump_rope',             name: 'Jump rope',               place: 'home', inFullGym: true },
 
   // — Free weights. These three are where progression actually happens. —
   { slug: 'dumbbells',             name: 'Dumbbells',               place: 'home', loadBearing: true, inFullGym: true },
