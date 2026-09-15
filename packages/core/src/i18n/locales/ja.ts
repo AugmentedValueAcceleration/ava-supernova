@@ -2909,6 +2909,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'アレルギー',
   'health.fill.field.dietary': '食事の好み',
   'health.fill.field.equipment': '利用可能な機器',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': '怪我・制限事項',
   'health.fill.field.minutes': '1 日あたりの時間（分）',
   'health.fill.field.likes': '好きな食べ物',

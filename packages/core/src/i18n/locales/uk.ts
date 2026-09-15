@@ -2887,6 +2887,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Алергени',
   'health.fill.field.dietary': 'Дієтичні уподобання',
   'health.fill.field.equipment': 'Наявне обладнання',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Травми / обмеження',
   'health.fill.field.minutes': 'Хвилин на день',
   'health.fill.field.likes': 'Їжа, яку ви любите',

@@ -2907,6 +2907,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Allergieën',
   'health.fill.field.dietary': 'Dieetvoorkeuren',
   'health.fill.field.equipment': 'Beschikbare apparatuur',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Blessures / beperkingen',
   'health.fill.field.minutes': 'Tijd per dag',
   'health.fill.field.likes': 'Eten waar je van houdt',

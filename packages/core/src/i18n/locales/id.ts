@@ -2905,6 +2905,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Alergen',
   'health.fill.field.dietary': 'Preferensi Diet',
   'health.fill.field.equipment': 'Peralatan Tersedia',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Cedera / Keterbatasan',
   'health.fill.field.minutes': 'Waktu per Hari',
   'health.fill.field.likes': 'Makanan yang Anda Sukai',

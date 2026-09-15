@@ -2905,6 +2905,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Alergias',
   'health.fill.field.dietary': 'Preferências alimentares',
   'health.fill.field.equipment': 'Equipamento disponível',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Lesões / limitações',
   'health.fill.field.minutes': 'Tempo por dia',
   'health.fill.field.likes': 'Comidas que você ama',

@@ -2879,6 +2879,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Alérgenos',
   'health.fill.field.dietary': 'Preferencias dietéticas',
   'health.fill.field.equipment': 'Equipo disponible',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Lesiones / limitaciones',
   'health.fill.field.minutes': 'Tiempo por día',
   'health.fill.field.likes': 'Comidas que amas',

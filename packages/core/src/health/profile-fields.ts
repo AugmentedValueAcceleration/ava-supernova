@@ -170,6 +170,10 @@ export const HEALTH_PROFILE_FIELDS: Record<string, ProfileFieldDef> = {
   allergens:     { target: 'health', path: 'constraints.allergens',            control: 'multiselect', labelKey: 'health.fill.field.allergens', options: ALLERGEN_OPTIONS },
   dietary:       { target: 'health', path: 'constraints.dietary',              control: 'multiselect', labelKey: 'health.fill.field.dietary',   options: DIETARY_OPTIONS },
   equipment:     { target: 'health', path: 'constraints.equipment_available',  control: 'multiselect', labelKey: 'health.fill.field.equipment', options: EQUIPMENT_OPTIONS },
+  // Only asked when they have a gym membership, and only to answer "is the
+  // squat rack available on a Sunday?". Left empty it means "not stated",
+  // which is treated as available — never as "never".
+  gym_days:      { target: 'health', path: 'constraints.gym_days',             control: 'multiselect', labelKey: 'health.fill.field.gym_days',   options: WEEKDAY_OPTIONS },
   injuries:      { target: 'health', path: 'constraints.injuries',             control: 'text',        labelKey: 'health.fill.field.injuries', multiline: true, asArray: true },
   minutes_per_day: { target: 'health', path: 'constraints.minutes_per_day_target', control: 'number',  labelKey: 'health.fill.field.minutes',  unit: 'min' },
 

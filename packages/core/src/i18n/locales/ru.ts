@@ -2907,6 +2907,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Аллергены',
   'health.fill.field.dietary': 'Диетические предпочтения',
   'health.fill.field.equipment': 'Доступное оборудование',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Травмы / ограничения',
   'health.fill.field.minutes': 'Время в день',
   'health.fill.field.likes': 'Любимые продукты',

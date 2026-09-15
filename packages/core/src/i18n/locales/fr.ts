@@ -2903,6 +2903,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Allergènes',
   'health.fill.field.dietary': 'Préférences alimentaires',
   'health.fill.field.equipment': 'Équipement disponible',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Blessures / limitations',
   'health.fill.field.minutes': 'Temps par jour',
   'health.fill.field.likes': 'Aliments que vous aimez',

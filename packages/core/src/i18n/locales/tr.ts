@@ -2907,6 +2907,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Alerjenler',
   'health.fill.field.dietary': 'Beslenme Tercihleri',
   'health.fill.field.equipment': 'Mevcut Ekipmanlar',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Sakatlıklar / Kısıtlamalar',
   'health.fill.field.minutes': 'Günlük Süre',
   'health.fill.field.likes': 'Sevdiğiniz Yiyecekler',

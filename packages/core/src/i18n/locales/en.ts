@@ -2441,6 +2441,7 @@ export const enStrings = {
   'health.fill.field.allergens': 'Allergens',
   'health.fill.field.dietary': 'Dietary preferences',
   'health.fill.field.equipment': 'Equipment available',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Injuries / limitations',
   'health.fill.field.minutes': 'Time per day',
   'health.fill.field.likes': 'Foods you love',

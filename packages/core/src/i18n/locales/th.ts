@@ -2907,6 +2907,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'สารก่อภูมิแพ้',
   'health.fill.field.dietary': 'ความชอบในการรับประทานอาหาร',
   'health.fill.field.equipment': 'อุปกรณ์ที่มีอยู่',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'อาการบาดเจ็บ / ข้อจำกัด',
   'health.fill.field.minutes': 'เวลาต่อวัน',
   'health.fill.field.likes': 'อาหารที่ชอบ',

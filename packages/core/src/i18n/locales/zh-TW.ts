@@ -2907,6 +2907,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': '過敏原',
   'health.fill.field.dietary': '飲食偏好',
   'health.fill.field.equipment': '可用器材',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': '傷勢 / 限制',
   'health.fill.field.minutes': '每日分鐘數',
   'health.fill.field.likes': '喜愛食物',

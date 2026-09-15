@@ -2907,6 +2907,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'एलर्जी',
   'health.fill.field.dietary': 'आहार प्राथमिकताएं',
   'health.fill.field.equipment': 'उपलब्ध उपकरण',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'चोटें / सीमाएं',
   'health.fill.field.minutes': 'प्रति दिन समय',
   'health.fill.field.likes': 'पसंदीदा भोजन',

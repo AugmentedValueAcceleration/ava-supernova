@@ -2907,6 +2907,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'Dị ứng',
   'health.fill.field.dietary': 'Sở thích ăn uống',
   'health.fill.field.equipment': 'Thiết bị sẵn có',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'Chấn thương / Hạn chế',
   'health.fill.field.minutes': 'Thời gian mỗi ngày',
   'health.fill.field.likes': 'Món bạn yêu thích',

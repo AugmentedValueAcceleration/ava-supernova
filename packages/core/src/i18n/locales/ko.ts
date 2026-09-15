@@ -2907,6 +2907,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': '알레르기 유발 식품',
   'health.fill.field.dietary': '식습관 선호도',
   'health.fill.field.equipment': '사용 가능한 장비',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': '부상 및 제한 사항',
   'health.fill.field.minutes': '하루 소요 시간 (분)',
   'health.fill.field.likes': '좋아하는 음식',

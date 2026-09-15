@@ -2907,6 +2907,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': 'مسببات الحساسية',
   'health.fill.field.dietary': 'التفضيلات الغذائية',
   'health.fill.field.equipment': 'المعدات المتاحة',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': 'الإصابات / القيود',
   'health.fill.field.minutes': 'الوقت يومياً',
   'health.fill.field.likes': 'الأطعمة التي تحبها',

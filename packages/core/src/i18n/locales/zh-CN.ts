@@ -2887,6 +2887,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'health.fill.field.allergens': '过敏原',
   'health.fill.field.dietary': '饮食偏好',
   'health.fill.field.equipment': '可用器材',
+  'health.fill.field.gym_days': 'Gym days',
   'health.fill.field.injuries': '伤病 / 限制',
   'health.fill.field.minutes': '每日时长',
   'health.fill.field.likes': '喜爱的食物',
