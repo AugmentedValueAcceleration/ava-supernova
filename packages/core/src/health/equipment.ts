@@ -101,6 +101,10 @@ export const EQUIPMENT: EquipmentDef[] = [
   // — Cardio machines —
   { slug: 'treadmill',             name: 'Treadmill',               place: 'home', inFullGym: true },
   { slug: 'exercise_bike',         name: 'Exercise bike',           place: 'home', inFullGym: true },
+  // Outdoors, and deliberately NOT the same as an exercise bike: distance,
+  // terrain, weather and daylight, and it can carry a whole training day. A
+  // gym does not give you one. The kit the whole rework started from.
+  { slug: 'road_bike',             name: 'Road bike',               place: 'outdoors' },
   { slug: 'rowing_machine',        name: 'Rowing machine',          place: 'home', inFullGym: true },
   { slug: 'stair_climber',         name: 'Stair climber',           place: 'gym',  inFullGym: true },
 
