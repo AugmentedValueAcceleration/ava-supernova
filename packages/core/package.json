@@ -1,6 +1,6 @@
 {
   "name": "@ava/core",
-  "version": "0.2.83",
+  "version": "0.2.85",
   "description": "Core engine for Ava Supernova — agent, providers, tools, config",
   "type": "module",
   "main": "./dist/index.js",
@@ -117,6 +117,11 @@
       "import": "./dist/health/types.js",
       "require": "./dist/health/types.js",
       "types": "./dist/health/types.d.ts"
+    },
+    "./health/equipment": {
+      "import": "./dist/health/equipment.js",
+      "require": "./dist/health/equipment.js",
+      "types": "./dist/health/equipment.d.ts"
     },
     "./health/shopping-list": {
       "import": "./dist/health/shopping-list.js",
