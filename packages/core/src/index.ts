@@ -378,6 +378,24 @@ export {
 } from './health/equipment.js';
 export type { EquipmentDef } from './health/equipment.js';
 
+// How heavy, and in what steps — the difference between "add 2.5kg" being an
+// instruction and being advice the person's kit cannot follow.
+export {
+  acceptsLoadDetail,
+  isValidLoad,
+  availableLoadsKg,
+  nextLoadKg,
+  maxLoadKg,
+  canMakeLoadKg,
+  describeLoad,
+  describeLoads,
+  loadDetailGaps,
+  toWeekDay,
+  toWeekDays,
+  equipmentAvailableOn,
+} from './health/equipment-load.js';
+export type { EquipmentLoad, EquipmentLoads, WeekDay } from './health/equipment-load.js';
+
 // Per-project config (decisionsOptIn etc.)
 export {
   loadProjectConfig,
