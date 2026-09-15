@@ -100,6 +100,19 @@ export class HealthCatalogueSearchTool implements Tool {
             'a diet from a recipe name — a name cannot tell you there is fish sauce in it. Ignored ' +
             'for exercises.',
         },
+        equipment: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'kind=exercise only. The equipment the person actually has, as slugs from their ' +
+            'profile (constraints.equipment_available) — e.g. ["bodyweight","dumbbells","bench"]. ' +
+            'Only exercises they can do are returned: EVERY piece a movement needs must be kit ' +
+            'they have, so a bench press is not offered to someone with no bench. Pass ' +
+            '"gym_full" for a gym membership and it expands to the gym floor. ' +
+            'PASS THIS WHENEVER YOU KNOW THEIR KIT — without it you will be shown movements ' +
+            'they cannot perform, and a plan built from those is one they cannot do. Leave it ' +
+            'out only when their profile genuinely does not say.',
+        },
         limit: {
           type: 'number',
           description: `Max results to return (default ${DEFAULT_LIMIT}, hard cap ${MAX_LIMIT}).`,
@@ -115,19 +128,29 @@ export class HealthCatalogueSearchTool implements Tool {
     const category = (args.category as string | undefined)?.trim();
     const exerciseType = kind === 'exercise' ? (args.exercise_type as string | undefined)?.trim() : undefined;
     const diet = kind === 'recipe' ? (args.diet as string | undefined)?.trim() : undefined;
+    // Accepts the array the schema asks for, and a comma-separated string,
+    // because models produce both and refusing one is a silent empty filter.
+    const equipment = kind === 'exercise'
+      ? (Array.isArray(args.equipment)
+          ? (args.equipment as unknown[]).map((e) => String(e).trim()).filter(Boolean)
+          : typeof args.equipment === 'string'
+            ? args.equipment.split(',').map((e) => e.trim()).filter(Boolean)
+            : [])
+      : [];
     const rawLimit = args.limit as number | undefined;
     const limit = Math.max(1, Math.min(MAX_LIMIT, typeof rawLimit === 'number' ? rawLimit : DEFAULT_LIMIT));
 
     if (kind !== 'exercise' && kind !== 'recipe') {
       return { success: false, output: 'Missing or invalid `kind` — must be "exercise" or "recipe".' };
     }
-    if (!query && !category && !exerciseType && !diet) {
-      return { success: false, output: 'Give a `query`, a `category`, a `diet` (recipes), or an `exercise_type` (exercises) to search by.' };
+    if (!query && !category && !exerciseType && !diet && equipment.length === 0) {
+      return { success: false, output: 'Give a `query`, a `category`, a `diet` (recipes), an `exercise_type` or `equipment` (exercises) to search by.' };
     }
 
     // Human-readable description of what we searched for — works whether the
     // search was by name, by filter, or both.
-    const criteria = [query ? `"${query}"` : null, category, exerciseType, diet].filter(Boolean).join(' · ') || 'your filters';
+    const criteria = [query ? `"${query}"` : null, category, exerciseType, diet,
+      equipment.length ? `kit: ${equipment.join(', ')}` : null].filter(Boolean).join(' · ') || 'your filters';
 
     const apiBase = (context.sharedState?.platformApiBase as string) || DEFAULT_API_BASE;
     const path = kind === 'exercise' ? '/api/health/exercises' : '/api/health/recipes';
@@ -140,6 +163,7 @@ export class HealthCatalogueSearchTool implements Tool {
       url.searchParams.set(kind === 'exercise' ? 'workout_type' : 'course', category);
     }
     if (exerciseType) url.searchParams.set('exercise_type', exerciseType);
+    if (equipment.length) url.searchParams.set('equipment', equipment.join(','));
     if (diet) {
       // Anything not on the ladder (keto, paleo, whole30 …) is a flat category
       // with nothing beneath it, so it filters on itself.

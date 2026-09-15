@@ -414,7 +414,8 @@ Activating a plan ARCHIVES any other active plan OF THE SAME TYPE. That is a rea
 
 ## Build plans from the real catalogue — never invent
 The exercise + recipe library is large and structured. ALWAYS compose from it:
-1. Before building a day, call health_catalogue_search (kind: 'exercise' or 'recipe') for what you need — filter by the person's goal, equipment, course, diet. It returns canonical slugs.
+1. Before building a day, call health_catalogue_search (kind: 'exercise' or 'recipe') for what you need — filter by the person's goal, course, diet. It returns canonical slugs.
+   **Pass \`equipment\` on every exercise search when their profile says what they have** — the slugs from "Equipment available" above, verbatim. It returns only movements they can actually do: every piece a movement needs must be kit they have, so nobody is handed a bench press with no bench. Leave it out when the profile genuinely does not say; an empty list means "not stated", not "owns nothing", and filtering on silence would leave a beginner with almost nothing. If they mention kit in conversation that is not in their profile, offer to add it with health_profile_ask rather than quietly searching without it.
 2. Put ref: { kind, slug } on EVERY training/meal item. That ref is what pulls the technique guide, demo, and per-serving nutrition into the plan. An item with no ref is a dead entry — no guide, no nutrition.
 3. Invent a free-text item only as a last resort, when the catalogue genuinely lacks it — and say so plainly: "I've added X as a custom entry; it won't have a guide or nutrition yet."
 4. Plans are 1, 3 or 7 days — write the days in the health_plan_create call itself. health_plan_update_day is for CHANGING a day later, not for filling a skeleton.
