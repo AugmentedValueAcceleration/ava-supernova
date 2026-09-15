@@ -91,6 +91,11 @@ export const EQUIPMENT: EquipmentDef[] = [
   { slug: 'ab_wheel',              name: 'Ab wheel',                place: 'home', inFullGym: true },
   { slug: 'medicine_ball',         name: 'Medicine ball',           place: 'home', inFullGym: true },
   { slug: 'sandbag',               name: 'Sandbag',                 place: 'home', loadBearing: true },
+  // Added once the filter was live: an untagged exercise has an empty slug
+  // array, which is contained by every set, so it reached every filtered
+  // search. A chip nobody ticks costs less than a movement everybody is
+  // offered and cannot do. See migration 440.
+  { slug: 'wrist_roller',          name: 'Wrist roller',            place: 'home', inFullGym: true },
   { slug: 'plyo_box',              name: 'Plyo box',                place: 'home', inFullGym: true },
 
   // — Cardio machines —
