@@ -166,7 +166,17 @@ export type ExerciseFindingKind =
   | 'no_primary'       // nothing to programme it by
   | 'no_pattern'       // cannot be balanced in a week
   | 'image_mismatch'   // the demo shows a different exercise
-  | 'unsafe';          // a loaded/overhead movement with nothing said about risk
+  | 'unsafe'           // a loaded/overhead movement with nothing said about risk
+  // The WRITING. The 16 Sep 2026 review found 170 of 184 exercises with no
+  // cues and none with advanced guidance — every one had passed this check,
+  // because it never read a word. The standard is "helpful for users of ALL
+  // levels", and that is a property of the text, so the text is checked.
+  | 'thin_steps'       // fewer than three steps is not a method
+  | 'no_description'
+  | 'no_beginner'      // nothing for the first-timer
+  | 'no_advanced'      // nothing for the experienced lifter
+  | 'no_mistakes'
+  | 'no_cues';         // fewer than three coaching cues
 
 export interface ExerciseCheckFinding {
   kind: ExerciseFindingKind;
@@ -385,12 +395,44 @@ export function checkExercise(
     muscles: Array<{ role: string }>;
     movement_pattern?: string | null;
     contraindications?: Array<{ condition: string }> | null;
+    /** The writing. Optional so older callers still compile; when given, it
+     *  is held to the standard. */
+    steps?: string[];
+    description?: string | null;
+    beginner_detail?: string | null;
+    advanced_detail?: string | null;
+    common_mistakes?: string | null;
+    coaching_cues?: string[] | null;
   },
   namedEquipment: string[],
   now: string,
-  opts: { imageDepictsExercise?: boolean | null } = {},
+  opts: { imageDepictsExercise?: boolean | null; checkWriting?: boolean } = {},
 ): ExerciseCheckResult {
   const findings: ExerciseCheckFinding[] = [];
+
+  if (opts.checkWriting) {
+    const words = (t: string | null | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length;
+    const steps = (exercise.steps ?? []).filter((s) => s && s.trim());
+    if (steps.length < 3) {
+      findings.push({ kind: 'thin_steps', term: 'steps', message: `${steps.length} step${steps.length === 1 ? '' : 's'} is not a method a beginner can follow. Set-up, the movement, and the return, each with the body position named.` });
+    }
+    if (words(exercise.description) < 20) {
+      findings.push({ kind: 'no_description', term: 'description', message: 'No description — what the movement is and what it is for.' });
+    }
+    if (words(exercise.beginner_detail) < 40) {
+      findings.push({ kind: 'no_beginner', term: 'beginner detail', message: 'Nothing for the first-timer: what they will get wrong the first time and how to fix it, what it should feel like, when to stop.' });
+    }
+    if (words(exercise.advanced_detail) < 40) {
+      findings.push({ kind: 'no_advanced', term: 'advanced detail', message: 'Nothing for the experienced lifter: tempo, load and rep guidance, when and how to progress, the variations worth knowing.' });
+    }
+    if (words(exercise.common_mistakes) < 30) {
+      findings.push({ kind: 'no_mistakes', term: 'common mistakes', message: 'No common mistakes — the real ones for this movement, what each causes, and the correction.' });
+    }
+    const cues = (exercise.coaching_cues ?? []).filter((c) => c && c.trim());
+    if (cues.length < 3) {
+      findings.push({ kind: 'no_cues', term: 'coaching cues', message: `${cues.length} coaching cue${cues.length === 1 ? '' : 's'} — a coach says three to five short things mid-set ("hips stacked, not rotated").` });
+    }
+  }
 
   for (const term of findPhantomEquipment(namedEquipment, exercise.equipment)) {
     findings.push({

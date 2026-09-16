@@ -1311,6 +1311,9 @@ These are not metadata chores. Each one is a thing a plan cannot do without:
 - **Progression and regression** — the same movement made harder or easier. A press-up regresses to knees and progresses to decline. This is how a plan adapts to a person instead of handing everyone the same session.
 - **Substitutions** — a DIFFERENT movement doing the same job when the kit is missing or it hurts. Not the same thing as a progression.
 
+## The writing is for ALL levels — and it is checked
+Every entry carries the full written set, and the check refuses an entry without it: at least three steps with body positions named (set-up, the movement, the return); a description; **beginner detail** — what a first-timer gets wrong the first time and how to fix it, what it should feel like, when to stop; **advanced detail** — what an experienced lifter wants: tempo, load and rep guidance, when and how to progress, the variations worth knowing; **common mistakes** — the real ones for this movement, what each causes, the correction; and three to five **coaching cues**, the short things a coach says mid-set ("hips stacked, not rotated", "bar close to the body"). Write all of it the first time. A beginner half is not a finished entry.
+
 ## Difficulty has to mean something
 Difficulty 1 is someone who has not trained before and is nervous. 5 is advanced and load-bearing. If everything you write is a 3, the number is decoration and a beginner asking for a beginner plan gets an intermediate one. Be honest about which end a movement really sits at, and write genuinely easy entries when the library needs them.
 
