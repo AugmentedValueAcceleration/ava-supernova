@@ -697,6 +697,7 @@ function ExerciseForm({
   const [difficulty, setDifficulty] = useState(initial?.difficulty ?? 3);
   const [description, setDescription] = useState(initial?.description ?? '');
   const [beginnerDetail, setBeginnerDetail] = useState(initial?.beginner_detail ?? '');
+  const [advancedDetail, setAdvancedDetail] = useState(initial?.advanced_detail ?? '');
   const [commonMistakes, setCommonMistakes] = useState(initial?.common_mistakes ?? '');
   const [steps, setSteps] = useState<string[]>(initial?.steps && initial.steps.length > 0 ? initial.steps : ['']);
   const [contraindicationSlugs, setContraindicationSlugs] = useState<Set<string>>(
@@ -715,6 +716,7 @@ function ExerciseForm({
       difficulty,
       description: description.trim() || null,
       beginner_detail: beginnerDetail.trim() || null,
+      advanced_detail: advancedDetail.trim() || null,
       common_mistakes: commonMistakes.trim() || null,
       steps: trimmedSteps,
       contraindication_slugs: Array.from(contraindicationSlugs),
@@ -786,6 +788,10 @@ function ExerciseForm({
         <Field label={t('health.submit.ex_beginner_label')}>
           <textarea value={beginnerDetail} onChange={e => setBeginnerDetail(e.target.value)} maxLength={800}
             rows={2} className={inputCls} placeholder={t('health.submit.ex_beginner_ph')} />
+        </Field>
+        <Field label={t('health.submit.ex_advanced_label')}>
+          <textarea value={advancedDetail} onChange={e => setAdvancedDetail(e.target.value)} maxLength={800}
+            rows={2} className={inputCls} placeholder={t('health.submit.ex_advanced_ph')} />
         </Field>
         <Field label={t('health.submit.ex_mistakes_label')}>
           <textarea value={commonMistakes} onChange={e => setCommonMistakes(e.target.value)} maxLength={800}

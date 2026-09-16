@@ -1298,6 +1298,12 @@ export function ExerciseDetailBody({ ex, rating }: { ex: HealthExerciseDetail; r
                 <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.beginner_detail}</p>
               </section>
             )}
+            {ex.advanced_detail && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.going_further')}</h3>
+                <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.advanced_detail}</p>
+              </section>
+            )}
             {ex.common_mistakes && (
               <section>
                 <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.common_mistakes')}</h3>

@@ -58,6 +58,7 @@ export class WriteExerciseTool implements Tool {
         },
         description: { type: 'string', description: 'What the movement is and what it is for. No hype.' },
         beginner_detail: { type: 'string', description: 'What a nervous first-timer needs to know that an experienced lifter does not.' },
+        advanced_detail: { type: 'string', description: 'What an experienced lifter wants that a first-timer does not: tempo, load and rep guidance, when and how to progress, the variations worth knowing. 80–160 words. Never a restatement of the steps.' },
         common_mistakes: { type: 'string', description: 'What goes wrong in practice, and what it costs.' },
         muscles: {
           type: 'array',
@@ -238,6 +239,7 @@ export class WriteExerciseTool implements Tool {
       difficulty: typeof args.difficulty === 'number' ? args.difficulty : null,
       description: args.description ? String(args.description) : null,
       beginner_detail: args.beginner_detail ? String(args.beginner_detail) : null,
+      advanced_detail: args.advanced_detail ? String(args.advanced_detail) : null,
       common_mistakes: args.common_mistakes ? String(args.common_mistakes) : null,
       muscles,
       equipment,

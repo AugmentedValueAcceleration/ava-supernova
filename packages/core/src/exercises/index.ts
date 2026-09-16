@@ -124,6 +124,11 @@ export interface ExerciseInput {
   difficulty?: number | null;
   description?: string | null;
   beginner_detail?: string | null;
+  /** Counterpart to beginner_detail: what the experienced lifter wants —
+   *  tempo, load and rep guidance, how to progress, the variations worth
+   *  knowing. The 16 Sep review scored this 1.1/5 across the whole library
+   *  because it had no home. */
+  advanced_detail?: string | null;
   common_mistakes?: string | null;
   muscles: ExerciseMuscleInput[];
   /** Everything the movement requires. "Bodyweight" is a real answer. */
