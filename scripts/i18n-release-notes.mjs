@@ -72,6 +72,97 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 446,
+    version: '0.47.0',
+    platform: 'ide',
+    toolCount: 121,
+    publishedAt: '2026-09-17 19:30:00+00',
+    title: `I plan around the kit you actually have`,
+    body: `This one is about training. It changes how I build a fitness plan, what I know about every exercise, and how many I have to choose from.
+
+**Tell me what you own and I plan from that — and only that.** Every exercise I look up now carries your equipment, so a bench press does not appear for someone without a bench, and a day I know you are at the gym gets gym movements while a home day gets home ones. Where the profile says nothing, I ask rather than guess.
+
+**I ask how heavy your kit goes.** A fixed pair of 10 kg dumbbells and an adjustable set that runs 2.5 to 24 kg are different worlds, and "add 5 kg next week" is a promise I cannot keep to the first one. So I ask — fixed weights or a range — and I only promise the jump your kit can make. When you are at the top of what you have, I say so and progress reps or tempo instead of a weight that does not exist.
+
+**The catalogue grew from 184 to 209, and someone with no equipment can finally pull.** Until now bodyweight-only meant push, squat, and not much else — there was not a single row. There are five now (an inverted row under a table, a doorway row, a towel row, and two lying floor drills), four hinges, and treadmill, road bike and foam roller work that returned nothing before.
+
+**Every exercise is now written for all levels.** Beginner detail was always good; the rest was missing. Each one carries three to five coaching cues — the things a coach says mid-set — a "Going further" section for the experienced (tempo, load and rep guidance, when and how to progress), and, for every loaded or overhead movement, who should take care and what to do instead. Any exercise written in the Gym from now on is refused until it has all of that.
+
+**Every demonstration was re-shot and checked by a person.** 209 of 209. Mid-movement, whole body in frame, dressed. The six machines no image model can draw are shown as a close crop of the working limb and the pad, because a confident photo of the wrong machine teaches the wrong machine.
+
+**Rest days are green on the calendar.** They wore the training dot before, so a week had no shape.
+
+Smaller: my catalogue searches fold into one line instead of stacking up; number fields have a proper stepper; and updating a memory by the short ID I give you works.
+
+The extension got the same release.`,
+    highlights: [
+      'A plan uses only the kit you own, and gym days get gym movements while home days get home ones.',
+      'I ask how heavy your weights go and only promise a jump your kit can make — at the top of your range I progress reps or tempo instead.',
+      '209 exercises (was 184): a bodyweight-only person can pull and hinge now, and treadmill, road bike and foam roller finally have work.',
+      'Every exercise carries coaching cues, a "Going further" section and who should take care; every demo re-shot and checked by a person.',
+    ],
+  },
+  {
+    migration: 445,
+    version: '0.102.0',
+    platform: 'extension',
+    toolCount: 121,
+    publishedAt: '2026-09-17 19:15:00+00',
+    title: `I plan around the kit you actually have`,
+    body: `This one is about training. It changes how I build a fitness plan, what I know about every exercise, and how many I have to choose from.
+
+**Tell me what you own and I plan from that — and only that.** Every exercise I look up now carries your equipment, so a bench press does not appear for someone without a bench, and a day I know you are at the gym gets gym movements while a home day gets home ones. Where the profile says nothing, I ask rather than guess.
+
+**I ask how heavy your kit goes.** A fixed pair of 10 kg dumbbells and an adjustable set that runs 2.5 to 24 kg are different worlds, and "add 5 kg next week" is a promise I cannot keep to the first one. So I ask — fixed weights or a range — and I only promise the jump your kit can make. When you are at the top of what you have, I say so and progress reps or tempo instead of a weight that does not exist.
+
+**The catalogue grew from 184 to 209, and someone with no equipment can finally pull.** Until now bodyweight-only meant push, squat, and not much else — there was not a single row. There are five now (an inverted row under a table, a doorway row, a towel row, and two lying floor drills), four hinges, and treadmill, road bike and foam roller work that returned nothing before.
+
+**Every exercise is now written for all levels.** Beginner detail was always good; the rest was missing. Each one carries three to five coaching cues — the things a coach says mid-set — a "Going further" section for the experienced (tempo, load and rep guidance, when and how to progress), and, for every loaded or overhead movement, who should take care and what to do instead. Any exercise written in the Gym from now on is refused until it has all of that.
+
+**Every demonstration was re-shot and checked by a person.** 209 of 209. Mid-movement, whole body in frame, dressed. The six machines no image model can draw are shown as a close crop of the working limb and the pad, because a confident photo of the wrong machine teaches the wrong machine.
+
+**Rest days are green on the calendar.** They wore the training dot before, so a week had no shape.
+
+**My tab comes back when VS Code does.** Close the window with me open and I am there when you return, in the same place — no re-opening every morning.
+
+Smaller: my catalogue searches fold into one line instead of stacking up; number fields have a proper stepper; and updating a memory by the short ID I give you works.
+
+The desktop IDE got the same release.`,
+    highlights: [
+      'A plan uses only the kit you own, and gym days get gym movements while home days get home ones.',
+      'I ask how heavy your weights go and only promise a jump your kit can make — at the top of your range I progress reps or tempo instead.',
+      '209 exercises (was 184): a bodyweight-only person can pull and hinge now, and treadmill, road bike and foam roller finally have work.',
+      'Every exercise carries coaching cues, a "Going further" section and who should take care; every demo re-shot and checked by a person — and my tab survives a VS Code restart.',
+    ],
+  },
+  {
+    migration: 444,
+    version: '0.2.89',
+    platform: 'core',
+    toolCount: 121,
+    publishedAt: '2026-09-17 19:00:00+00',
+    title: `The equipment model, and a gate that reads`,
+    body: `Core is the engine every surface runs on. This release is the training model underneath the extension and IDE releases of the same day.
+
+**One equipment vocabulary.** Thirty-five pieces of kit, each with a slug, a place (home, gym, outdoors), and whether it bears load. Exercises store slugs and nothing else; matching is exact and all-of — a movement is available only when every piece it needs is owned. A full gym expands to everything a gym has, including bodyweight and a mat, which it did not before.
+
+**Load ranges.** Kit that bears load carries what it can make: a fixed set of weights, or an adjustable range with a step. The helpers answer the questions a plan asks — the next load up, the ceiling, whether a given weight is reachable — and the profile asks for it with its own control rather than a text box.
+
+**The Health room plans against it.** Every catalogue search carries the profile's equipment; the three progression rules are: only promise a jump the kit can make, say so at the top of the range, and plan each day against that day's kit.
+
+**advanced_detail.** The counterpart to beginner_detail that never had a column. write_exercise carries it, and the check now reads the writing: fewer than three steps, a missing description, beginner or advanced detail, common mistakes, or fewer than three coaching cues is refused with the reason named.
+
+**Memory IDs.** memory_save reports the first eight characters of an ID; memory_update and memory_delete now accept a unique prefix, so the ID she is given is the ID that works.
+
+**Plan summaries carry rest days,** so a calendar that only holds summaries can mark rest differently from training.`,
+    highlights: [
+      'One equipment vocabulary: slugs, places, load-bearing; exact all-of matching; full gym includes bodyweight and a mat.',
+      'Load ranges — fixed weights or an adjustable range — with helpers for next load, ceiling and reachability.',
+      'The exercise check reads the writing: steps, description, beginner and advanced detail, mistakes and cues are all required.',
+      'memory_update and memory_delete accept the short ID prefix that memory_save reports.',
+    ],
+  },
+  {
     migration: 437,
     version: '0.46.0',
     platform: 'ide',
@@ -645,7 +736,7 @@ async function translateOne(locale, release, attempt = 1) {
   };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 150_000);
+  const timer = setTimeout(() => controller.abort(), 300_000);   // long bodies in th/uk/ar ran past 150s on 3.8-flash (17 Sep)
   let res;
   try {
     res = await fetch(COMPLETION_URL, {
