@@ -185,6 +185,10 @@ export interface HealthPlanSummary {
   start_date: string | null;
   source: HealthPlanSource;
   updated_at: string | null;
+  /** 1-based day indexes whose kind is 'rest'. Lets a calendar that only
+   *  holds summaries mark rest days differently from training days —
+   *  without it every day of a fitness plan wore the training dot. */
+  rest_days?: number[];
 }
 
 /** Input to `HealthPlanStore.create` — the tool's argument shape. The

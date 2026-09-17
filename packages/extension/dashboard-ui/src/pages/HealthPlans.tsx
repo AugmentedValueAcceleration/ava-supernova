@@ -449,20 +449,25 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   // Dots reflect the day's ACTUAL content (from the full dated plans), not just
   // the plan's type/range — so deleting every meal on a day clears its dot.
   const planMarks = useMemo(() => {
-    const map = new Map<string, { training: boolean; meals: boolean }>();
+    const map = new Map<string, { training: boolean; meals: boolean; rest: boolean }>();
     for (const p of fullPlans ?? []) {
       if (!p.start_date) continue;
       const start = new Date(`${p.start_date}T00:00:00`);
       if (isNaN(start.getTime())) continue;
       for (const day of p.days) {
-        const hasTraining = (p.type === 'fitness' || p.type === 'combined') && day.training.some(e => e.name);
+        const fitness = p.type === 'fitness' || p.type === 'combined';
+        // A rest day is a REST day even when it carries a stretch or a walk —
+        // it gets its own mark, not the training one. The operator saw rest
+        // days wearing the blue dot and could not tell the week's shape.
+        const isRest = fitness && day.kind === 'rest';
+        const hasTraining = fitness && !isRest && day.training.some(e => e.name);
         const hasMeals = (p.type === 'meal' || p.type === 'combined') && day.meals.some(m => m.name);
-        if (!hasTraining && !hasMeals) continue;
+        if (!hasTraining && !hasMeals && !isRest) continue;
         const d = new Date(start);
         d.setDate(d.getDate() + (day.day_index - 1));
         const key = ymd(d);
-        const prev = map.get(key) ?? { training: false, meals: false };
-        map.set(key, { training: prev.training || hasTraining, meals: prev.meals || hasMeals });
+        const prev = map.get(key) ?? { training: false, meals: false, rest: false };
+        map.set(key, { training: prev.training || hasTraining, meals: prev.meals || hasMeals, rest: prev.rest || isRest });
       }
     }
     return map;
@@ -1703,7 +1708,8 @@ function PlanBuilder({
           {draft.days.filter(d => Math.ceil(d.day_index / 7) === visibleWeek).map((d) => {
             const date = planDate(draft.start_date, d.day_index);
             const active = selectedDay === d.day_index;
-            const has = (showTraining && d.training.length > 0) || (showMeals && d.meals.length > 0);
+            const isRest = showTraining && d.kind === 'rest';
+            const has = (showTraining && !isRest && d.training.length > 0) || (showMeals && d.meals.length > 0);
             return (
               <button
                 key={d.day_index}
@@ -1716,6 +1722,7 @@ function PlanBuilder({
                 <div className={`flex items-center gap-1.5 text-[11px] font-semibold leading-none ${active ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
                   {t('health.plans.day_n', { n: d.day_index })}
                   {has && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
+                  {isRest && !has && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" title={t('health.week.rest')} aria-hidden />}
                 </div>
                 <div className="mt-1 text-[9px] leading-none text-[var(--text-muted)]">
                   {date ? date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }) : (d.kind === 'rest' ? t('health.week.rest') : '·')}
@@ -1847,7 +1854,7 @@ function PlanBuilder({
 function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelectDate, fill, logged }: {
   month: Date;
   onMonthChange: (d: Date) => void;
-  marks: Map<string, { training: boolean; meals: boolean }>;
+  marks: Map<string, { training: boolean; meals: boolean; rest: boolean }>;
   /** Dates with a RECORDED session. A planned day and a done day should not
    *  look the same — the whole reason for keeping a log is being able to see
    *  what you actually did, and a calendar that only shows intent hides it. */
@@ -1934,9 +1941,10 @@ function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelec
                   </span>
                   {isLogged && <span className="text-[10px] leading-none text-emerald-400" title={t('health.log.logged_count')} aria-hidden>✓</span>}
                   {/* Dots only when we have no detailed content to show. */}
-                  {!c && (mk?.training || mk?.meals) && (
+                  {!c && (mk?.training || mk?.meals || mk?.rest) && (
                     <span className="flex gap-1">
                       {mk?.training && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
+                      {mk?.rest && !mk?.training && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" title={t('health.week.rest')} aria-hidden />}
                       {mk?.meals && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden />}
                     </span>
                   )}

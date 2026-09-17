@@ -40,6 +40,7 @@ function toSummary(p: HealthPlan): HealthPlanSummary {
     start_date: p.start_date,
     source: p.source,
     updated_at: p.updated_at,
+    rest_days: p.days.filter((d) => d.kind === 'rest').map((d) => d.day_index),
   };
 }
 

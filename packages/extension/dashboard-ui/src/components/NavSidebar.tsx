@@ -835,19 +835,22 @@ function TaskCalendar({
   // Plan dots — same training (accent) / meal (amber) marks as the Plans
   // calendar, so the schedule reads identically in both places.
   const planMarks = useMemo(() => {
-    const map = new Map<string, { training: boolean; meals: boolean }>();
+    const map = new Map<string, { training: boolean; meals: boolean; rest: boolean }>();
     for (const p of healthPlans) {
       if (!p.start_date) continue;
       const start = new Date(`${p.start_date}T00:00:00`);
       if (isNaN(start.getTime())) continue;
       const training = p.type === 'fitness' || p.type === 'combined';
       const meals = p.type === 'meal' || p.type === 'combined';
+      const restDays = new Set(p.rest_days ?? []);
       for (let i = 0; i < p.duration_days; i++) {
         const d = new Date(start);
         d.setDate(d.getDate() + i);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const prev = map.get(key) ?? { training: false, meals: false };
-        map.set(key, { training: prev.training || training, meals: prev.meals || meals });
+        const prev = map.get(key) ?? { training: false, meals: false, rest: false };
+        // A rest day in a fitness plan is marked as rest, not as training.
+        const isRest = training && restDays.has(i + 1);
+        map.set(key, { training: prev.training || (training && !isRest), meals: prev.meals || meals, rest: prev.rest || isRest });
       }
     }
     return map;
@@ -920,6 +923,7 @@ function TaskCalendar({
           // Dots in legend order: training (accent), meals (amber), task (sky).
           const dots: string[] = [];
           if (mk?.training) dots.push('var(--accent)');
+          if (mk?.rest && !mk?.training) dots.push('#34d399');
           if (mk?.meals) dots.push('#f59e0b');
           if (taskSet.has(iso)) dots.push('#38bdf8');
           // Selected wins on background (filled accent), today gets a
