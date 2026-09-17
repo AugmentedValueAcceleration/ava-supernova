@@ -4283,4 +4283,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Verder gaan (optioneel)',
   'health.submit.ex_advanced_ph': 'Tempo, gewicht en herhalingsrichtlijnen, hoe te vorderen, variaties.',
   'health.submit.ex_advanced_label_short': 'Verder gaan',
+  'tool.lookup.catalogue': 'Oefeningencatalogus doorzocht',
+  'tool.lookup.found': 'gevonden {n}',
+  'tool.lookup.failed': 'zoekopdracht mislukt',
 };

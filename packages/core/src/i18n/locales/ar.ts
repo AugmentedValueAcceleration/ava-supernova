@@ -4283,4 +4283,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'المزيد من التفاصيل (اختياري)',
   'health.submit.ex_advanced_ph': 'الإيقاع، الحمل والتكرارات، كيفية التقدم، التنويعات.',
   'health.submit.ex_advanced_label_short': 'المزيد',
+  'tool.lookup.catalogue': 'تم البحث في كتالوج التمارين',
+  'tool.lookup.found': 'تم العثور على {n}',
+  'tool.lookup.failed': 'فشل البحث',
 };

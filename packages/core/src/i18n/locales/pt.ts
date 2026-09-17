@@ -4281,4 +4281,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Ir além (opcional)',
   'health.submit.ex_advanced_ph': 'Tempo, carga e orientação de repetições, como progredir, variações.',
   'health.submit.ex_advanced_label_short': 'Ir além',
+  'tool.lookup.catalogue': 'Pesquisado o catálogo de exercícios',
+  'tool.lookup.found': 'encontrado {n}',
+  'tool.lookup.failed': 'pesquisa falhou',
 };

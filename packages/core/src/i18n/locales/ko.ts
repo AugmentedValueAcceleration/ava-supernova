@@ -4283,4 +4283,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': '더 알아보기 (선택 사항)',
   'health.submit.ex_advanced_ph': '템포, 중량 및 반복수 안내, 진행 방법, 변형 동작 등.',
   'health.submit.ex_advanced_label_short': '더 알아보기',
+  'tool.lookup.catalogue': '연습 문제 목록을 검색했습니다',
+  'tool.lookup.found': '{n}개 찾았습니다',
+  'tool.lookup.failed': '검색 실패',
 };

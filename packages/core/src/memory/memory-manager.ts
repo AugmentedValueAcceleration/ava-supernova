@@ -566,14 +566,30 @@ export class MemoryManager {
   }
 
   /** Update an existing memory entry by ID. */
+  /**
+   * Exact ID, or a UNIQUE prefix of one. memory_save and memory_update tell
+   * the model "ID: 0c79801b" — the first eight characters — and the model
+   * hands that back to memory_update, which looked for the full ID and
+   * answered "No memory entry found". The tools speak in prefixes, so the
+   * store accepts them; an ambiguous prefix is still a miss.
+   */
+  private findById(entries: MemoryEntry[], id: string): MemoryEntry | undefined {
+    const exact = entries.find(e => e.id === id);
+    if (exact) return exact;
+    if (id.length < 6) return undefined;
+    const hits = entries.filter(e => e.id.startsWith(id));
+    return hits.length === 1 ? hits[0] : undefined;
+  }
+
   async updateEntry(scope: 'global' | 'project', id: string, updates: Partial<Pick<MemoryEntry, 'content' | 'category' | 'tags' | 'branch' | 'directoryScope'>>): Promise<MemoryEntry | null> {
     const store = scope === 'global'
       ? await this.loadGlobalStore()
       : await this.loadProjectStore();
     if (!store) return null;
 
-    const entry = store.entries.find(e => e.id === id);
+    const entry = this.findById(store.entries, id);
     if (!entry) return null;
+    id = entry.id;
 
     if (updates.content !== undefined) entry.content = updates.content;
     if (updates.category !== undefined) entry.category = updates.category;
@@ -623,8 +639,10 @@ export class MemoryManager {
       : await this.loadProjectStore();
     if (!store) return false;
 
-    const idx = store.entries.findIndex(e => e.id === id);
+    const hit = this.findById(store.entries, id);
+    const idx = hit ? store.entries.indexOf(hit) : -1;
     if (idx === -1) return false;
+    id = store.entries[idx].id;
 
     store.entries.splice(idx, 1);
     store.lastModified = new Date().toISOString();

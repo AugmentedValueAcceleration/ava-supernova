@@ -4263,4 +4263,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Детальніше (необов\'язково)',
   'health.submit.ex_advanced_ph': 'Темп, навантаження та повторення, як прогресувати, варіації.',
   'health.submit.ex_advanced_label_short': 'Детальніше',
+  'tool.lookup.catalogue': 'Виконано пошук у каталозі вправ',
+  'tool.lookup.found': 'знайдено {n}',
+  'tool.lookup.failed': 'пошук не вдався',
 };

@@ -5,6 +5,7 @@ import { t, useLocale } from '../../i18n';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallBlock } from './ToolCallBlock';
+import { LookupStrip, LOOKUP_TOOLS } from './LookupStrip';
 import { PlanCard } from './PlanCard';
 import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
@@ -282,12 +283,18 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
   // group into contiguous bubble segments.
   type Segment =
     | { kind: 'bubble'; events: MessageEvent[]; firstIdx: number; lastIdx: number }
-    | { kind: 'tool'; event: Extract<MessageEvent, { kind: 'tool_call' }>; idx: number };
+    | { kind: 'tool'; event: Extract<MessageEvent, { kind: 'tool_call' }>; idx: number }
+    // Consecutive catalogue lookups fold into one strip — see LookupStrip.
+    | { kind: 'lookups'; events: Extract<MessageEvent, { kind: 'tool_call' }>[]; idx: number };
 
   const segments: Segment[] = [];
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
-    if (ev.kind === 'tool_call') {
+    if (ev.kind === 'tool_call' && LOOKUP_TOOLS.has(ev.toolCall.name)) {
+      const last = segments[segments.length - 1];
+      if (last && last.kind === 'lookups') last.events.push(ev);
+      else segments.push({ kind: 'lookups', events: [ev], idx: i });
+    } else if (ev.kind === 'tool_call') {
       segments.push({ kind: 'tool', event: ev, idx: i });
     } else {
       const last = segments[segments.length - 1];
@@ -448,6 +455,10 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
               </div>
             </div>
           );
+        }
+
+        if (seg.kind === 'lookups') {
+          return <LookupStrip key={`lk-${seg.idx}`} toolCalls={seg.events.map((e) => e.toolCall)} />;
         }
 
         // Tool-call segment — rendered as top-level block.

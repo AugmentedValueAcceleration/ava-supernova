@@ -94,6 +94,9 @@ export const enStrings = {
   'error.msg.image_stripped': '[An image was shared but this model does not support vision]',
 
   // ── Tool UI ───────────────────────────────────────────────────────────────
+  'tool.lookup.catalogue': 'Searched the exercise catalogue',
+  'tool.lookup.found': 'found {n}',
+  'tool.lookup.failed': 'search failed',
   'tool.allow': 'Allow',
   'tool.always_allow': 'Always Allow',
   'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',

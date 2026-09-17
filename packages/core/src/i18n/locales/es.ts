@@ -4255,4 +4255,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Ir más allá (opcional)',
   'health.submit.ex_advanced_ph': 'Tempo, carga y guía de repeticiones, cómo progresar, variaciones.',
   'health.submit.ex_advanced_label_short': 'Ir más allá',
+  'tool.lookup.catalogue': 'Se buscó en el catálogo de ejercicios',
+  'tool.lookup.found': 'se encontraron {n}',
+  'tool.lookup.failed': 'la búsqueda falló',
 };

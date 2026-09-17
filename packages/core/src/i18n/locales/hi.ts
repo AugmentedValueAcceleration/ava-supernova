@@ -4283,4 +4283,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'आगे बढ़ें (वैकल्पिक)',
   'health.submit.ex_advanced_ph': 'टेम्पो, भार और पुनरावृत्ति मार्गदर्शन, प्रगति कैसे करें, विविधताएँ।',
   'health.submit.ex_advanced_label_short': 'आगे बढ़ें',
+  'tool.lookup.catalogue': 'अभ्यास सूची खोजी गई',
+  'tool.lookup.found': '{n} मिले',
+  'tool.lookup.failed': 'खोज विफल',
 };

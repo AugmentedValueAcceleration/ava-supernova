@@ -4263,4 +4263,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Weiterführend (optional)',
   'health.submit.ex_advanced_ph': 'Tempo, Gewichts- und Wiederholungshinweise, Fortschritt, Variationen.',
   'health.submit.ex_advanced_label_short': 'Weiterführend',
+  'tool.lookup.catalogue': 'Übungskatalog durchsucht',
+  'tool.lookup.found': '{n} gefunden',
+  'tool.lookup.failed': 'Suche fehlgeschlagen',
 };

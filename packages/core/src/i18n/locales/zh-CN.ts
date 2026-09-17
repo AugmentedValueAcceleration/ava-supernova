@@ -4263,4 +4263,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': '进阶内容（可选）',
   'health.submit.ex_advanced_ph': '节奏、负荷和次数指导，如何进阶，变式动作。',
   'health.submit.ex_advanced_label_short': '进阶内容',
+  'tool.lookup.catalogue': '已搜索练习目录',
+  'tool.lookup.found': '找到 {n} 项',
+  'tool.lookup.failed': '搜索失败',
 };

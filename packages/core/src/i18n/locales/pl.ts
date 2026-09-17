@@ -4263,4 +4263,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Idąc dalej (opcjonalnie)',
   'health.submit.ex_advanced_ph': 'Tempo, obciążenie i powtórzenia, jak postępować, warianty.',
   'health.submit.ex_advanced_label_short': 'Idąc dalej',
+  'tool.lookup.catalogue': 'Przeszukano katalog ćwiczeń',
+  'tool.lookup.found': 'znaleziono {n}',
+  'tool.lookup.failed': 'wyszukiwanie nie powiodło się',
 };

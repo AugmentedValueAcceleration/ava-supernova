@@ -4285,4 +4285,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'さらに詳しく（オプション）',
   'health.submit.ex_advanced_ph': 'テンポ、負荷、レップ数のガイダンス、進め方、バリエーション。',
   'health.submit.ex_advanced_label_short': 'さらに詳しく',
+  'tool.lookup.catalogue': '演習カタログを検索しました',
+  'tool.lookup.found': '{n}件見つかりました',
+  'tool.lookup.failed': '検索に失敗しました',
 };

@@ -4283,4 +4283,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Дополнительно (необязательно)',
   'health.submit.ex_advanced_ph': 'Темп, нагрузка и рекомендации по повторам, прогрессия, вариации.',
   'health.submit.ex_advanced_label_short': 'Дополнительно',
+  'tool.lookup.catalogue': 'Поиск выполнен в каталоге упражнений',
+  'tool.lookup.found': 'найдено {n}',
+  'tool.lookup.failed': 'поиск не удался',
 };

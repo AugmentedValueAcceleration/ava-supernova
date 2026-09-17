@@ -4283,4 +4283,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Nâng cao (tùy chọn)',
   'health.submit.ex_advanced_ph': 'Hướng dẫn về nhịp độ, tải trọng và số lần lặp, cách tiến bộ, các biến thể.',
   'health.submit.ex_advanced_label_short': 'Nâng cao',
+  'tool.lookup.catalogue': 'Đã tìm kiếm danh mục bài tập',
+  'tool.lookup.found': 'Tìm thấy {n}',
+  'tool.lookup.failed': 'Tìm kiếm thất bại',
 };

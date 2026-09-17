@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ToolCallDisplay } from '../../types/messages';
 import { t, tt, useLocale } from '../../i18n';
 import { Icon } from '../../components/Icon';
+import { NumberField } from './NumberField';
 // Shared field registry — same source the host saves from, so "what Ava asks",
 // "what this card renders", and "where it saves" never drift. Imported from the
 // built core (mirrors the i18n import convention; keeps node-only deps out of
@@ -152,13 +153,12 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
           {def.control === 'number' && (
             <>
               <div className="flex items-center gap-2">
-                <input
-                  type="number"
+                <NumberField
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={setText}
                   inputMode="numeric"
-                  className="w-28 rounded-lg border border-[var(--border)] bg-transparent px-2.5 py-1.5 text-[13px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-                  onKeyDown={(e) => { if (e.key === 'Enter' && text.trim()) send(text.trim()); }}
+                  widthClass="w-28"
+                  onEnter={() => { if (text.trim()) send(text.trim()); }}
                   autoFocus
                 />
                 {def.unit && <span className="text-[12px] text-[var(--text-muted)]">{def.unit}</span>}
@@ -198,14 +198,13 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
                     ] as const).map(([key, label]) => (
                       <span key={key} className="flex items-center gap-1.5">
                         {label}
-                        <input
-                          type="number"
-                          step="0.5"
-                          min="0"
+                        <NumberField
+                          step={0.5}
+                          min={0}
                           inputMode="decimal"
+                          widthClass="w-20"
                           value={String((load as Extract<EquipmentLoad, { mode: 'adjustable' }>)[key])}
-                          onChange={(e) => setLoad({ ...(load as Extract<EquipmentLoad, { mode: 'adjustable' }>), [key]: e.target.value === '' ? 0 : Number(e.target.value) })}
-                          className="w-20 rounded-lg border border-[var(--border)] bg-transparent px-2 py-1 text-[13px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                          onChange={(v) => setLoad({ ...(load as Extract<EquipmentLoad, { mode: 'adjustable' }>), [key]: v === '' ? 0 : Number(v) })}
                         />
                         kg
                       </span>
@@ -226,17 +225,16 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
                       ))}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
+                      <NumberField
+                        step={0.5}
+                        min={0}
                         inputMode="decimal"
+                        widthClass="w-28"
                         value={text}
-                        onChange={(e) => setText(e.target.value)}
+                        onChange={setText}
                         placeholder={tt('health.fill.load.add', 'add a weight')}
-                        className="w-28 rounded-lg border border-[var(--border)] bg-transparent px-2 py-1 text-[13px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Enter' || !text.trim()) return;
+                        onEnter={() => {
+                          if (!text.trim()) return;
                           const n = Number(text);
                           if (Number.isFinite(n) && n > 0) {
                             setLoad({ mode: 'fixed', weightsKg: [...(load as Extract<EquipmentLoad, { mode: 'fixed' }>).weightsKg, n] });

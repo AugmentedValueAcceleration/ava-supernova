@@ -4281,4 +4281,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Pengembangan Selanjutnya (opsional)',
   'health.submit.ex_advanced_ph': 'Panduan tempo, beban, dan repetisi, cara progresi, variasi.',
   'health.submit.ex_advanced_label_short': 'Pengembangan Selanjutnya',
+  'tool.lookup.catalogue': 'Telah menelusuri katalog latihan',
+  'tool.lookup.found': 'ditemukan {n}',
+  'tool.lookup.failed': 'pencarian gagal',
 };

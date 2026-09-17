@@ -4283,4 +4283,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Daha İleri (isteğe bağlı)',
   'health.submit.ex_advanced_ph': 'Tempo, yük ve tekrar rehberliği, ilerleme yöntemleri, varyasyonlar.',
   'health.submit.ex_advanced_label_short': 'Daha İleri',
+  'tool.lookup.catalogue': 'Egzersiz kataloğu arandı',
+  'tool.lookup.found': '{n} bulundu',
+  'tool.lookup.failed': 'arama başarısız',
 };

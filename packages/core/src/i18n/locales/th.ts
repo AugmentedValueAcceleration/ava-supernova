@@ -4283,4 +4283,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'เพิ่มเติม (ไม่บังคับ)',
   'health.submit.ex_advanced_ph': 'จังหวะ, น้ำหนัก, จำนวนครั้ง, วิธีพัฒนา และรูปแบบต่างๆ',
   'health.submit.ex_advanced_label_short': 'เพิ่มเติม',
+  'tool.lookup.catalogue': 'ค้นหาแคตตาล็อกแบบฝึกหัดแล้ว',
+  'tool.lookup.found': 'พบ {n} รายการ',
+  'tool.lookup.failed': 'ค้นหาไม่สำเร็จ',
 };

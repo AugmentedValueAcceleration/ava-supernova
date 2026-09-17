@@ -4279,4 +4279,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Aller plus loin (optionnel)',
   'health.submit.ex_advanced_ph': 'Tempo, charge et conseils de répétitions, progression, variantes.',
   'health.submit.ex_advanced_label_short': 'Aller plus loin',
+  'tool.lookup.catalogue': 'Recherché dans le catalogue d\'exercices',
+  'tool.lookup.found': 'trouvé {n}',
+  'tool.lookup.failed': 'échec de la recherche',
 };

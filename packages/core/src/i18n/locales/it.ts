@@ -4283,4 +4283,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': 'Approfondimenti (opzionale)',
   'health.submit.ex_advanced_ph': 'Tempo, carico e guida alle ripetizioni, come progredire, varianti.',
   'health.submit.ex_advanced_label_short': 'Approfondimenti',
+  'tool.lookup.catalogue': 'Cercato nel catalogo degli esercizi',
+  'tool.lookup.found': 'trovati {n}',
+  'tool.lookup.failed': 'ricerca fallita',
 };

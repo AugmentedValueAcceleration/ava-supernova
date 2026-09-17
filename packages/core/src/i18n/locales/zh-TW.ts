@@ -4283,4 +4283,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'health.submit.ex_advanced_label': '進階內容 ()',
   'health.submit.ex_advanced_ph': '節奏，負重與次數指導，如何進步，變式動作.',
   'health.submit.ex_advanced_label_short': '進階內容',
+  'tool.lookup.catalogue': '已搜尋練習目錄',
+  'tool.lookup.found': '找到 {n} 個',
+  'tool.lookup.failed': '搜尋失敗',
 };
