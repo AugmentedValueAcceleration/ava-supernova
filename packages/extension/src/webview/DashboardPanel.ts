@@ -199,35 +199,54 @@ export class DashboardPanel {
       return;
     }
 
-    // Webview localResourceRoots — the dashboard bundle root is fixed, but
-    // we also need to allow every workspace folder so the Library page can
-    // serve images / audio / video that live in the user's project. Without
-    // these roots, asWebviewUri() returns a URI the webview will refuse to
-    // load and locally-saved videos in particular show as broken (they
-    // can't be inlined as base64 — too large).
-    const localResourceRoots: vscode.Uri[] = [
-      vscode.Uri.joinPath(extensionUri, 'dist', 'dashboard'),
-      // The local creative gallery lives under ~/.ava/users/<id>/creative — allow
-      // the webview to load those images/videos via asWebviewUri.
-      vscode.Uri.file(AVA_HOME),
-    ];
-    const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
-    for (const folder of workspaceFolders) {
-      localResourceRoots.push(folder.uri);
-    }
-
     const panel = vscode.window.createWebviewPanel(
       DashboardPanel.viewType,
       'Ava Supernova',
       column,
       {
         enableScripts: true,
-        localResourceRoots,
+        localResourceRoots: DashboardPanel.localResourceRoots(extensionUri),
         retainContextWhenHidden: true,
       },
     );
 
     DashboardPanel.currentPanel = new DashboardPanel(panel, extensionUri, context, viewProvider);
+  }
+
+  /** Attach to a panel VS Code has RESTORED from the last session — same
+   *  tab, same position, no re-opening. Registered through
+   *  registerWebviewPanelSerializer in extension.ts; the activation event
+   *  `onWebviewPanel:ava-supernova.dashboard` wakes the extension for it.
+   *  The panel's options are not persisted, so they are set again here. */
+  public static restore(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, context: vscode.ExtensionContext, viewProvider?: AvaViewProvider): void {
+    if (DashboardPanel.currentPanel) {
+      // Two panels would mean two dashboards fighting over one state; keep
+      // the live one and let the restored shell go.
+      panel.dispose();
+      return;
+    }
+    panel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: DashboardPanel.localResourceRoots(extensionUri),
+    };
+    DashboardPanel.currentPanel = new DashboardPanel(panel, extensionUri, context, viewProvider);
+  }
+
+  /** Webview localResourceRoots — the dashboard bundle root is fixed, but
+   *  every workspace folder is allowed too so the Library page can serve
+   *  images / audio / video that live in the user's project. Without these
+   *  roots, asWebviewUri() returns a URI the webview will refuse to load and
+   *  locally-saved videos in particular show as broken (they can't be
+   *  inlined as base64 — too large). */
+  private static localResourceRoots(extensionUri: vscode.Uri): vscode.Uri[] {
+    const roots: vscode.Uri[] = [
+      vscode.Uri.joinPath(extensionUri, 'dist', 'dashboard'),
+      // The local creative gallery lives under ~/.ava/users/<id>/creative — allow
+      // the webview to load those images/videos via asWebviewUri.
+      vscode.Uri.file(AVA_HOME),
+    ];
+    for (const folder of vscode.workspace.workspaceFolders ?? []) roots.push(folder.uri);
+    return roots;
   }
 
   /** Reveal the dashboard and (re)show the welcome overlay. Used by the

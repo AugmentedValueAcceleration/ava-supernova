@@ -41,7 +41,8 @@
     "memory"
   ],
   "activationEvents": [
-    "onUri"
+    "onUri",
+    "onWebviewPanel:ava-supernova.dashboard"
   ],
   "icon": "media/AvaSupernovaIcon.png",
   "main": "./dist/extension.js",

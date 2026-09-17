@@ -324,6 +324,20 @@ export function activate(context: vscode.ExtensionContext): void {
     context.globalState.update(DASHBOARD_STATE_KEY, false);
   });
 
+  // Put the dashboard tab back where it was when VS Code restarts. VS Code
+  // restores the tab itself (same editor group, same position) and hands us
+  // the empty shell to fill; without a serializer it shows "The editor could
+  // not be opened" and the timer below re-creates it somewhere else — or not
+  // at all, since the extension only activated on demand.
+  context.subscriptions.push(
+    vscode.window.registerWebviewPanelSerializer('ava-supernova.dashboard', {
+      async deserializeWebviewPanel(panel: vscode.WebviewPanel) {
+        DashboardPanel.restore(panel, context.extensionUri, context, viewProvider);
+        context.globalState.update(DASHBOARD_STATE_KEY, true);
+      },
+    }),
+  );
+
   // Restore the unified panel after a short delay so VS Code's Welcome tab doesn't steal focus
   const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, false);
   const dashboardWasOpen = context.globalState.get<boolean>(DASHBOARD_STATE_KEY, false);
