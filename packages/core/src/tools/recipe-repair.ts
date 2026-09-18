@@ -34,7 +34,11 @@ export class ReadRecipeTool implements Tool {
     const store = context.sharedState?.recipeStore as RecipeStore | undefined;
     if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
 
-    const recipeId = String(args.recipe_id ?? '').trim();
+    // `id` is accepted alongside `recipe_id`: the model called read_recipe
+    // with {"id": …} four times in a row and was refused each time (18 Sep
+    // 2026). A tool that knows what was meant should not make her guess the
+    // spelling.
+    const recipeId = String(args.recipe_id ?? args.id ?? '').trim();
     if (!recipeId) return { success: false, output: 'read_recipe requires recipe_id.' };
 
     const snap = await store.readRecipe(recipeId);
@@ -176,7 +180,7 @@ export class RegenerateHeroTool implements Tool {
     const store = context.sharedState?.recipeStore as RecipeStore | undefined;
     if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
 
-    const recipeId = String(args.recipe_id ?? '').trim();
+    const recipeId = String(args.recipe_id ?? args.id ?? '').trim();
     const prompt = String(args.image_prompt ?? '').trim();
     if (!recipeId || !prompt) return { success: false, output: 'regenerate_hero requires recipe_id and image_prompt.' };
 
@@ -222,7 +226,7 @@ export class SetNutritionTool implements Tool {
     const store = context.sharedState?.recipeStore as RecipeStore | undefined;
     if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
 
-    const recipeId = String(args.recipe_id ?? '').trim();
+    const recipeId = String(args.recipe_id ?? args.id ?? '').trim();
     const level = String(args.level ?? '').toLowerCase().trim();
     if (!recipeId || !(LEVELS as string[]).includes(level)) {
       return { success: false, output: 'set_nutrition requires recipe_id and a level of beginner, intermediate or expert.' };
@@ -271,7 +275,7 @@ export class AddIngredientTool implements Tool {
     const store = context.sharedState?.recipeStore as RecipeStore | undefined;
     if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
 
-    const recipeId = String(args.recipe_id ?? '').trim();
+    const recipeId = String(args.recipe_id ?? args.id ?? '').trim();
     const name = String(args.name ?? '').trim();
     if (!recipeId || !name) return { success: false, output: 'add_ingredient requires recipe_id and name.' };
 
@@ -327,7 +331,7 @@ export class CheckRecipeTool implements Tool {
     const store = context.sharedState?.recipeStore as RecipeStore | undefined;
     if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
 
-    const recipeId = String(args.recipe_id ?? '').trim();
+    const recipeId = String(args.recipe_id ?? args.id ?? '').trim();
     if (!recipeId) return { success: false, output: 'check_recipe requires recipe_id.' };
 
     const result = await store.recheck(recipeId);
@@ -376,7 +380,7 @@ export class ReviseSectionTool implements Tool {
     const store = context.sharedState?.recipeStore as RecipeStore | undefined;
     if (!store) return { success: false, output: 'Recipe storage is not available in this context.' };
 
-    const recipeId = String(args.recipe_id ?? '').trim();
+    const recipeId = String(args.recipe_id ?? args.id ?? '').trim();
     const section = String(args.section ?? '').trim();
     const valid = ['overview', 'ingredients', 'beginner', 'intermediate', 'expert'];
     if (!recipeId || !valid.includes(section)) {

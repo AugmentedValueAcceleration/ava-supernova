@@ -31,7 +31,7 @@ export class ReadExerciseTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
     if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
-    const snapshot = await store.readExercise(String(args.exercise_id ?? '').trim());
+    const snapshot = await store.readExercise(String(args.exercise_id ?? args.id ?? '').trim());
     if (!snapshot) return { success: false, output: 'No exercise with that id.' };
     return { success: true, output: JSON.stringify(snapshot) };
   }
@@ -130,7 +130,7 @@ export class AddEquipmentTool implements Tool {
     const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
     if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
 
-    const id = String(args.exercise_id ?? '').trim();
+    const id = String(args.exercise_id ?? args.id ?? '').trim();
     const equipment = String(args.equipment ?? '').trim();
     if (!id || !equipment) return { success: false, output: 'add_equipment requires exercise_id and equipment.' };
 
@@ -196,7 +196,7 @@ export class AddContraindicationTool implements Tool {
     const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
     if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
 
-    const id = String(args.exercise_id ?? '').trim();
+    const id = String(args.exercise_id ?? args.id ?? '').trim();
     const condition = String(args.condition ?? '').trim();
     const severity = String(args.severity ?? '').trim() as 'avoid' | 'caution' | 'modify';
     const note = String(args.note ?? '').trim() || undefined;
@@ -257,7 +257,7 @@ export class SetMusclesTool implements Tool {
     const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
     if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
 
-    const id = String(args.exercise_id ?? '').trim();
+    const id = String(args.exercise_id ?? args.id ?? '').trim();
     const muscles: ExerciseMuscleInput[] = Array.isArray(args.muscles)
       ? (args.muscles as Record<string, unknown>[]).map((m): ExerciseMuscleInput => ({
           muscle: String(m?.muscle ?? '').trim(),
@@ -305,7 +305,7 @@ export class RegenerateDemoTool implements Tool {
     const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
     if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
 
-    const id = String(args.exercise_id ?? '').trim();
+    const id = String(args.exercise_id ?? args.id ?? '').trim();
     const prompt = String(args.image_prompt ?? '').trim();
     if (!id || !prompt) return { success: false, output: 'regenerate_demo requires exercise_id and image_prompt.' };
 
@@ -344,7 +344,7 @@ export class CheckExerciseTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
     if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
-    const verdict = await store.recheck(String(args.exercise_id ?? '').trim());
+    const verdict = await store.recheck(String(args.exercise_id ?? args.id ?? '').trim());
     if (!verdict) return { success: false, output: 'No exercise with that id, or the check could not run.' };
     return { success: true, output: JSON.stringify(verdict) };
   }
