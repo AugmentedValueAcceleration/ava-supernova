@@ -202,6 +202,9 @@ export interface RecipeStore {
   reviseSection(
     recipeId: string,
     section: 'overview' | 'ingredients' | SkillLevel,
+    /** What to change and nothing else. Without it the section is regenerated
+     *  whole — still from the recipe as it stands, but free to drift. */
+    instruction?: string | null,
   ): Promise<{ ok: boolean; error?: string }>;
 
   /** Re-run the check on an EXISTING recipe (by id) and return what's missing. */

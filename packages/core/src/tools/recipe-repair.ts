@@ -366,6 +366,7 @@ export class ReviseSectionTool implements Tool {
       properties: {
         recipe_id: { type: 'string' },
         section: { type: 'string', enum: ['overview', 'ingredients', 'beginner', 'intermediate', 'expert'] },
+        instruction: { type: 'string', description: 'The ONE thing to change, stated precisely ("step 6 fries the croquettes from frozen with raw beef inside — thaw first, or bake from frozen at 200°C for 25 min"). Everything else in the section is kept as it stands. Leave it out only when the whole section is wrong and should be rewritten.' },
       },
       required: ['recipe_id', 'section'],
     },
@@ -382,7 +383,8 @@ export class ReviseSectionTool implements Tool {
       return { success: false, output: `revise_section requires recipe_id and a section (${valid.join(', ')}).` };
     }
 
-    const result = await store.reviseSection(recipeId, section as 'overview' | 'ingredients' | SkillLevel);
+    const instruction = typeof args.instruction === 'string' && args.instruction.trim() ? args.instruction.trim() : null;
+    const result = await store.reviseSection(recipeId, section as 'overview' | 'ingredients' | SkillLevel, instruction);
     if (!result.ok) return { success: false, output: `Could not revise ${section}: ${result.error ?? 'unknown error'}` };
 
     const recheck = section === 'overview' ? null : await store.recheck(recipeId);
