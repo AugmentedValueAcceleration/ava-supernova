@@ -27,6 +27,8 @@ import {
   getWriteModePrefix,
   getTeachModePrefix,
   getWorkModePrefix,
+  getPantryPrefix,
+  getGymPrefix,
 } from '../src/agent/system-prompt.js';
 import { readOnlyModeToolCeiling, modeCanEditFiles } from '../src/agent/agent.js';
 import { readFileSync } from 'node:fs';
@@ -61,6 +63,10 @@ const MODES: Array<[string, (t: string) => string]> = [
   ['write', getWriteModePrefix],
   ['teach', getTeachModePrefix],
   ['work', getWorkModePrefix],
+  // The desks. Their prefixes take a user message and (optionally) a standard
+  // file; the tool list is in the prefix text like every other mode.
+  ['pantry', (t: string) => getPantryPrefix(t)],
+  ['gym', (t: string) => getGymPrefix(t)],
 ];
 
 /**

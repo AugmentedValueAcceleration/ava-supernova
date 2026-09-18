@@ -98,7 +98,7 @@ function stripModePrefix(content: string): string {
     '[Work Mode]', '[Plan Mode]', '[Chat Mode]', '[Brainstorm Mode]',
     '[Write Mode]', '[Teach Mode]', '[Security Audit Mode]',
     '[Desktop Automation Mode]', '[Health Room]', '[Design Studio]',
-    '[Social Studio]', '[Newsroom]',
+    '[Social Studio]', '[Newsroom]', '[Pantry]', '[Gym]',
     // Legacy spellings — historical transcripts only.
     '[Security Mode]', '[Learning Room]',
   ];

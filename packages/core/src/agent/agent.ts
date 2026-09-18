@@ -609,6 +609,29 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'ask_user', 'get_datetime',
     'switch_mode',
   ]),
+  // The Pantry — the recipe desk. Exactly the tools its prefix names, plus
+  // the supporting cast a recipe developer reaches for. Nothing that edits
+  // files, nothing from the other desks. Kept in step with getPantryPrefix.
+  pantry: new Set([
+    'propose_seeds', 'find_recipe', 'read_recipe', 'write_recipe', 'check_recipe',
+    'add_ingredient', 'set_nutrition', 'regenerate_hero', 'revise_section',
+    // A recipe's picture may already exist in the library.
+    'browse_library',
+    // Continuity: the cooking standard, what was fixed last time.
+    'memory_save', 'memory_recall', 'memory_update', 'journal_write',
+    'web_search', 'ask_user', 'get_datetime',
+    'switch_mode',
+  ]),
+  // The Gym — the training library desk. Same shape as the Pantry; the
+  // exercise tools, kept in step with getGymPrefix.
+  gym: new Set([
+    'propose_exercises', 'find_exercise', 'read_exercise', 'write_exercise', 'check_exercise',
+    'add_equipment', 'add_contraindication', 'set_muscles', 'regenerate_demo',
+    'browse_library',
+    'memory_save', 'memory_recall', 'memory_update', 'journal_write',
+    'web_search', 'ask_user', 'get_datetime',
+    'switch_mode',
+  ]),
   // Write mode — the author's surface. Markdown is the editable source;
   // Word/PDF are exports. Ships the authoring tool + the supporting cast a
   // writer reaches for (research, images for covers, the file ops the .md

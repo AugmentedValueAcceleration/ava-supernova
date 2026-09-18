@@ -36,7 +36,8 @@
  */
 export type AvaModeId =
   | 'work' | 'plan' | 'chat' | 'brainstorm' | 'write' | 'teach'
-  | 'security' | 'desktop' | 'health' | 'design' | 'social' | 'news';
+  | 'security' | 'desktop' | 'health' | 'design' | 'social' | 'news'
+  | 'pantry' | 'gym';
 
 export interface ModeTag {
   /** Canonical mode id — the key used by MODE_ALLOWED_TOOLS, personas and the dataset. */
@@ -67,6 +68,12 @@ export const MODE_TAGS: readonly ModeTag[] = [
   { mode: 'design', tag: '[Design Studio]' },
   { mode: 'social', tag: '[Social Studio]' },
   { mode: 'news', tag: '[Newsroom]' },
+  // The two desks. Untagged until 2026-09-18, so both fell through to code
+  // mode and were handed every tool in the registry (~120) to find their
+  // dozen in; in the Pantry the model then announced read_recipe "can't be
+  // called" while holding it. A desk gets its own list, like the Newsroom.
+  { mode: 'pantry', tag: '[Pantry]' },
+  { mode: 'gym', tag: '[Gym]' },
 ];
 
 /**
