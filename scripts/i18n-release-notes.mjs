@@ -72,6 +72,77 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 449,
+    version: '0.47.1',
+    platform: 'ide',
+    toolCount: 121,
+    publishedAt: '2026-09-19 04:30:00+00',
+    title: `I compress once, and it stays compressed`,
+    body: `A fix for long conversations, and it changes how a long session feels.
+
+**Compression used to fire every turn once you crossed the line — and never take.** The context bar would drop while I summarised, then shoot straight back up the moment I replied, because the summary lived only inside that one turn. The next message sent the whole history in again and I summarised it again. Now a compression is a boundary I keep: I summarise once, the next turn starts from that summary plus the recent messages, and I only compress again when *that* grows past the line. The bar drops and stays down.
+
+**Your scrollback is untouched.** Compression changes what I read, not what you see. Every message stays in the conversation and in my recall.
+
+**Fixed: the summary was silently failing on big conversations.** I was sending the entire compress zone to the model in one request — hundreds of thousands of tokens — and it failed or timed out, quietly. When that happened I fell back to dropping older messages and told you they had been "summarised to memory". They had not. I now summarise in bounded pieces and fold them into one handoff, so size cannot break it; and if it ever does fail, the message says exactly that — the summary could not be made and older messages were dropped from my working view, not from your transcript.
+
+**Fixed in the IDE specifically:** after each reply I was keeping only that turn's messages and rebuilding the rest from the chat text — without tool results. Each turn now appends to the conversation as it should.
+
+The extension got the same release.`,
+    highlights: [
+      'A compression is now a boundary I keep — summarise once, continue from it, compress again only when that grows past the line. The bar stays down.',
+      'Your scrollback is never touched; compression changes what I read, not what you see.',
+      'Fixed: the summary silently failed on big conversations and I dropped older messages while saying they were "summarised". Now summarised in bounded pieces, and honest when it cannot be.',
+      'Fixed (IDE): each reply appends to the conversation instead of rebuilding it from chat text without tool results.',
+    ],
+  },
+  {
+    migration: 448,
+    version: '0.102.1',
+    platform: 'extension',
+    toolCount: 121,
+    publishedAt: '2026-09-19 04:15:00+00',
+    title: `I compress once, and it stays compressed`,
+    body: `A fix for long conversations, and it changes how a long session feels.
+
+**Compression used to fire every turn once you crossed the line — and never take.** The context bar would drop while I summarised, then shoot straight back up the moment I replied, because the summary lived only inside that one turn. The next message sent the whole history in again and I summarised it again. Now a compression is a boundary I keep: I summarise once, the next turn starts from that summary plus the recent messages, and I only compress again when *that* grows past the line. The bar drops and stays down.
+
+**Your scrollback is untouched.** Compression changes what I read, not what you see. Every message stays in the conversation and in my recall — and clicking the bar to compress by hand now keeps your history too, where it used to replace it.
+
+**Fixed: the summary was silently failing on big conversations.** I was sending the entire compress zone to the model in one request — hundreds of thousands of tokens — and it failed or timed out, quietly. When that happened I fell back to dropping older messages and told you they had been "summarised to memory". They had not. I now summarise in bounded pieces and fold them into one handoff, so size cannot break it; and if it ever does fail, the message says exactly that — the summary could not be made and older messages were dropped from my working view, not from your transcript.
+
+The desktop IDE got the same release.`,
+    highlights: [
+      'A compression is now a boundary I keep — summarise once, continue from it, compress again only when that grows past the line. The bar stays down.',
+      'Your scrollback is never touched; compression changes what I read, not what you see — manual compression included.',
+      'Fixed: the summary silently failed on big conversations and I dropped older messages while saying they were "summarised". Now summarised in bounded pieces, and honest when it cannot be.',
+      'The context bar measures what I am actually sent, so it no longer jumps back to the full count after a reply.',
+    ],
+  },
+  {
+    migration: 447,
+    version: '0.2.93',
+    platform: 'core',
+    toolCount: 121,
+    publishedAt: '2026-09-19 04:00:00+00',
+    title: `A compaction boundary, and a summariser that cannot fail on size`,
+    body: `Core is the engine every surface runs on. This release is the context work under the extension and IDE releases of the same day.
+
+**Conversation carries a compaction boundary.** \`getMessages()\` is the untouched transcript; \`getContextMessages()\` is what the model is sent — system prompt with the pinned request, the continuation summary, then the transcript from the boundary on. \`applyCompaction\` records a boundary the agent produced from the context view and maps a second compaction back onto the transcript correctly. The boundary is saved with the conversation record.
+
+**Agent.shouldCompact / Agent.compact.** The same gate the in-turn pass uses (70% of the window, capped at 400K), exposed so a host compacts between turns and persists it. The in-turn pass remains as the emergency net for one enormous turn.
+
+**compressContext summarises in chunks.** The compress zone is split into pieces of at most 60K tokens, each summarised into working notes, and the notes folded into the one structured continuation header. It used to send the whole zone in one request, which failed at the threshold and was swallowed; a failure is now logged with its reason.
+
+**The truncation fallback says what it did** — the summary could not be made and N messages were dropped from the working view — instead of "summarised to memory".`,
+    highlights: [
+      'Conversation: a persisted compaction boundary — transcript untouched, model gets summary + tail; a second compaction maps back correctly.',
+      'Agent.shouldCompact / compact expose the gate so hosts compact between turns.',
+      'compressContext summarises in ≤60K-token chunks; failures are logged, not swallowed.',
+      'Truncation reports itself honestly.',
+    ],
+  },
+  {
     migration: 446,
     version: '0.47.0',
     platform: 'ide',
