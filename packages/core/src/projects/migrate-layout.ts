@@ -34,7 +34,7 @@
 
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { mkdir, readdir, rename, rmdir, stat } from 'node:fs/promises';
+import { mkdir, readdir, rename, rm, rmdir, stat } from 'node:fs/promises';
 
 import { avaHome, PROJECT_NOTES_DIRNAME } from './project-data.js';
 import { legacyProjectsHomeFrom, projectsHomeFrom, PROJECTS_DIRNAME } from './projects-home.js';
@@ -49,6 +49,26 @@ export interface LayoutMigration {
   projectsMoved: string[];
   /** Things left alone, and why — a name collision, or a move that failed. */
   skipped: string[];
+  /** Of `skipped`, the names that collided with something already at the
+   *  destination. A collision never resolves by itself, so a host should say
+   *  so ONCE, not on every start — and not call it "in use". */
+  collisions: string[];
+  /** Legacy leftovers that were only Ava's own `.ava` scaffold and were
+   *  removed so the old folder could go. Ours, not the user's. */
+  scaffoldsCleared: string[];
+}
+
+/**
+ * Is this directory nothing but Ava's own scaffold — a `.ava` folder and no
+ * user files? That is what a project the extension merely INDEXED looks like
+ * from the old layout: `~/Ava Projects/Name/.ava/project-index.json` and
+ * nothing else. It is our data, so it can go; a real project (anything else
+ * at the top level) is never touched.
+ */
+async function isAvaScaffoldOnly(dir: string): Promise<boolean> {
+  let entries: string[];
+  try { entries = await readdir(dir); } catch { return false; }
+  return entries.length > 0 && entries.every((e) => e === '.ava');
 }
 
 /**
@@ -83,7 +103,7 @@ export async function migrateProjectsLayout(
   configured?: string | null,
   home: string = homedir(),
 ): Promise<LayoutMigration> {
-  const result: LayoutMigration = { notesMoved: 0, projectsMoved: [], skipped: [] };
+  const result: LayoutMigration = { notesMoved: 0, projectsMoved: [], skipped: [], collisions: [], scaffoldsCleared: [] };
   const ava = avaHome();
   const notesDir = join(ava, PROJECT_NOTES_DIRNAME);
   const projectsDir = join(ava, PROJECTS_DIRNAME);
@@ -124,9 +144,23 @@ export async function migrateProjectsLayout(
 
   if (legacyEntries.length > 0) await mkdir(projectsDir, { recursive: true });
   for (const name of legacyEntries) {
-    const why = await moveIfFree(join(legacy, name), join(projectsDir, name));
-    if (why) result.skipped.push(`${name}: ${why}`);
-    else result.projectsMoved.push(name);
+    const from = join(legacy, name);
+    const why = await moveIfFree(from, join(projectsDir, name));
+    if (!why) { result.projectsMoved.push(name); continue; }
+    if (why === 'already exists at the destination') {
+      // The same name on both sides. When the OLD one is only our own
+      // scaffold (the extension indexed it, the user never put a file in it),
+      // it is ours to remove — otherwise it sits there for ever and every
+      // start reports a collision that nothing will resolve (19 Sep 2026:
+      // "Ava couldn't move 1 project … something is using it", on a 1 KB
+      // folder holding one project-index.json). Real files are never touched.
+      if (await isAvaScaffoldOnly(from)) {
+        try { await rm(from, { recursive: true, force: true }); result.scaffoldsCleared.push(name); continue; }
+        catch { /* fall through and report it */ }
+      }
+      result.collisions.push(name);
+    }
+    result.skipped.push(`${name}: ${why}`);
   }
 
   // Only if we emptied it. rmdir without `recursive` refuses a non-empty

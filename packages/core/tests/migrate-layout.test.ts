@@ -114,6 +114,39 @@ describe('the work moves in', () => {
     expect(existsSync(join(home, 'Ava Projects', 'shared-name', 'src', 'old.ts'))).toBe(true);
     // And the old folder stays, because it did not empty.
     expect(existsSync(join(home, 'Ava Projects'))).toBe(true);
+    // Reported as a collision — the host says it once, not every start.
+    expect(r.collisions).toEqual(['shared-name']);
+  });
+
+  it('clears a leftover that is only our own scaffold, so the old folder can go', async () => {
+    // What the operator had on 19 Sep 2026: ~/Ava Projects/SacredCrossing held
+    // nothing but .ava/project-index.json, the new location already existed,
+    // and every start warned "something is using it". Ours to remove.
+    await mkdir(join(home, 'Ava Projects', 'SacredCrossing', '.ava'), { recursive: true });
+    await writeFile(join(home, 'Ava Projects', 'SacredCrossing', '.ava', 'project-index.json'), '{}');
+    await mkdir(join(home, '.ava', 'projects', 'SacredCrossing', '.ava'), { recursive: true });
+
+    const r = await migrateProjectsLayout(undefined, home);
+
+    expect(r.scaffoldsCleared).toEqual(['SacredCrossing']);
+    expect(r.collisions).toEqual([]);
+    expect(r.skipped).toEqual([]);
+    expect(existsSync(join(home, 'Ava Projects'))).toBe(false);       // emptied, so gone
+    expect(existsSync(join(home, '.ava', 'projects', 'SacredCrossing'))).toBe(true);
+    // Never again: the second run finds nothing.
+    expect(await migrateProjectsLayout(undefined, home)).toEqual({ notesMoved: 0, projectsMoved: [], skipped: [], collisions: [], scaffoldsCleared: [] });
+  });
+
+  it('does NOT clear a leftover that has real files, even beside a .ava folder', async () => {
+    await mkdir(join(home, 'Ava Projects', 'real', '.ava'), { recursive: true });
+    await writeFile(join(home, 'Ava Projects', 'real', 'main.ts'), '// mine');
+    await mkdir(join(home, '.ava', 'projects', 'real'), { recursive: true });
+
+    const r = await migrateProjectsLayout(undefined, home);
+
+    expect(r.scaffoldsCleared).toEqual([]);
+    expect(r.collisions).toEqual(['real']);
+    expect(existsSync(join(home, 'Ava Projects', 'real', 'main.ts'))).toBe(true);
   });
 
   it('leaves a user who chose their own path completely alone', async () => {
@@ -144,13 +177,13 @@ describe('running it again', () => {
 
     expect(first.notesMoved).toBe(1);
     expect(first.projectsMoved).toEqual(['SacredCrossing']);
-    expect(second).toEqual({ notesMoved: 0, projectsMoved: [], skipped: [] });
+    expect(second).toEqual({ notesMoved: 0, projectsMoved: [], skipped: [], collisions: [], scaffoldsCleared: [] });
     expect(existsSync(join(home, '.ava', 'projects', 'SacredCrossing', 'src', 'index.ts'))).toBe(true);
   });
 
   it('does nothing at all on a fresh install', async () => {
     const r = await migrateProjectsLayout(undefined, home);
-    expect(r).toEqual({ notesMoved: 0, projectsMoved: [], skipped: [] });
+    expect(r).toEqual({ notesMoved: 0, projectsMoved: [], skipped: [], collisions: [], scaffoldsCleared: [] });
   });
 
   it('does not create the old folder by looking for it', async () => {

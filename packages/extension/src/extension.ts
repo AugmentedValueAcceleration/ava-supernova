@@ -54,13 +54,28 @@ export function activate(context: vscode.ExtensionContext): void {
       // again, no reason given, which is the exact confusion this change set
       // out to remove. It retries on the next activation by itself, so the
       // message says that rather than asking them to do anything.
-      if (moved.skipped.length > 0) {
+      // Two different reasons, two different messages. A locked folder frees
+      // itself and the retry is real. A name that exists on BOTH sides never
+      // resolves by itself, so it is said once and remembered — the old text
+      // called that "something is using it" on every single start.
+      const locked = moved.skipped.filter((s) => !s.endsWith(': already exists at the destination'));
+      if (locked.length > 0) {
         void vscode.window.showWarningMessage(
-          `Ava couldn't move ${moved.skipped.length} project${moved.skipped.length > 1 ? 's' : ''} `
-          + `into ~/.ava/projects — something is using ${moved.skipped.length > 1 ? 'them' : 'it'} `
-          + `(${moved.skipped.join('; ')}). Nothing was lost; Ava will move `
-          + `${moved.skipped.length > 1 ? 'them' : 'it'} next time it starts and they are free.`,
+          `Ava couldn't move ${locked.length} project${locked.length > 1 ? 's' : ''} `
+          + `into ~/.ava/projects — something is using ${locked.length > 1 ? 'them' : 'it'} `
+          + `(${locked.join('; ')}). Nothing was lost; Ava will move `
+          + `${locked.length > 1 ? 'them' : 'it'} next time it starts and they are free.`,
         );
+      }
+      const REPORTED_KEY = 'avaSupernova.layoutCollisionsReported';
+      const already = new Set(context.globalState.get<string[]>(REPORTED_KEY, []));
+      const fresh = moved.collisions.filter((n) => !already.has(n));
+      if (fresh.length > 0) {
+        void vscode.window.showWarningMessage(
+          `${fresh.join(', ')} ${fresh.length > 1 ? 'exist' : 'exists'} in both ~/Ava Projects and ~/.ava/projects. `
+          + `Ava left both alone. If the old one is stale, delete it; if not, rename one — Ava won't ask again.`,
+        );
+        void context.globalState.update(REPORTED_KEY, [...already, ...fresh]);
       }
     } catch (err) {
       // Never a reason to fail activation. The worst case is the old layout
