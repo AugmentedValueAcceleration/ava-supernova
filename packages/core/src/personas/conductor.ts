@@ -245,6 +245,21 @@ export class Conductor {
 
     const msg = userMessage.toLowerCase();
 
+    // A keyword is not a request. "ive just made a few changes right so stop
+    // take a breath and we are going to plan this again ok" contains "plan
+    // this" and lit the whole team up (19 Sep 2026) — on a message that
+    // begins with STOP and announces planning as the next thing, not asks for
+    // it now. Two rules before any signal is read:
+    //   1. a stop / pause phrase anywhere in the message means no team — the
+    //      agent honours "stop" on its own, but the team runs in the host
+    //      BEFORE the agent sees the message;
+    //   2. a planning phrase preceded by "going to / gonna / will / about to /
+    //      later / next / then" is the user saying what comes next. The
+    //      request, when it comes, will be its own message.
+    if (/\b(stop|halt|hold on|hold up|hang on|wait|pause|take a breath|slow down|one sec(ond)?)\b/.test(msg)) return false;
+    if (/\b(going to|gonna|will|about to|later|next|then|after that|first)\s+(we\s+|we'?ll\s+|i'?ll\s+)?(re-?)?plan\b/.test(msg)) return false;
+    if (/\b(we|i)\s+(are|'re|am|'m)\s+going to\b/.test(msg)) return false;
+
     // Mode-specific signals — shared root of "give me the full treatment"
     // plus mode-specific phrases users actually say.
     const commonFullSignals = [

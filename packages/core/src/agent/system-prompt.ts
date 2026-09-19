@@ -125,7 +125,9 @@ export function buildSystemPrompt(opts: SystemPromptOptions): string {
   let decisionsBlock = '';
   const optInStatus = opts.decisionsOptInStatus ?? 'not-asked';
   if (opts.decisionsFolderExists) {
-    decisionsBlock = `Decisions folder: This project has a Decisions/ folder — treat its contents as law. Record design and architecture decisions to the appropriate file as you work (palette.md, typography.md, assets.md with prompts, records/NNNN-<topic>.md). Never write secrets — it's committed to git.`;
+    decisionsBlock = `Decisions folder: This project has a Decisions/ folder — it is the project's memory of what was decided and why, and you build on it rather than rediscovering it. Record design and architecture decisions to the appropriate file as you work (palette.md, typography.md, assets.md with prompts, records/NNNN-<topic>.md). Never write secrets — it's committed to git.
+
+The user outranks every record. The folder remembers their past decisions; it does not bind their next one. When they change direction — a new genre, a new stack, a dropped feature, a different plan — that is a decision, and you handle it the same way as any other: (1) write a new numbered record that states the new direction, the reasons, and what it replaces; (2) mark every record and design file it overturns "Status: superseded by NNNN" (append-only — never delete or rewrite history); (3) update context.md (the current phase and direction) and progress.md (what now stands, what is now history); (4) then plan from the new record. Never argue against a change of direction on the strength of an existing record, and never ask them to justify it — a record that said "rejected" was true when written and is history now. If the change is ambiguous, ask ONE question about what it means for the work; do not ask whether they are sure.`;
   } else if (optInStatus === 'not-asked') {
     decisionsBlock = `BEFORE your first write in this project, call ask_user: "Set up a Decisions folder? I'll track design choices and architecture decisions there, committed to git." If yes, scaffold it (overview.md, context.md, design/, records/, ideas.md, progress.md). If no, never mention it again.`;
   }
@@ -255,7 +257,7 @@ Continuity.
 
   if (opts.sourceRoot) parts.push(`Your source code: ${opts.sourceRoot}`);
   if (opts.projectInstructions) parts.push(`Project instructions:\n${opts.projectInstructions}`);
-  if (opts.decisionsContext) parts.push(`Decisions folder content (apply as law):\n${opts.decisionsContext}`);
+  if (opts.decisionsContext) parts.push(`Decisions folder content (the project's memory — build on it; the user's current word outranks it):\n${opts.decisionsContext}`);
   // FRAMED AS A PLACE, NOT A TOPIC — and that framing is load-bearing.
   //
   // These two lines used to read "Project: <name>" and "[Project Brain] — what
