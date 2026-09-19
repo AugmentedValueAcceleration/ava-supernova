@@ -83,6 +83,10 @@ export class HistoryManager {
       ...(existing?.projectPath || this.projectPath
         ? { projectPath: existing?.projectPath ?? this.projectPath }
         : {}),
+      // The model's compaction boundary rides with the transcript, so a
+      // reloaded conversation is not re-summarised from the top on its first
+      // turn back.
+      ...(conversation.getCompaction() ? { compaction: conversation.getCompaction()! } : {}),
     };
 
     await this.storage.save(record);

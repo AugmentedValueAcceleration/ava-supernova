@@ -93,6 +93,14 @@ export class HistoryCoordinator {
       messages[0] = { role: 'system' as const, content: await this.deps.buildSystemPrompt() };
     }
     conversation.setMessages(messages);
+    // The compaction boundary indexes the transcript AS SAVED; the primers
+    // dropped above shift everything after them, so the index is adjusted by
+    // how many were removed before it. Without this a reloaded conversation
+    // would be re-summarised from the top on its first turn back.
+    if (record.compaction) {
+      const removedBefore = record.messages.slice(0, record.compaction.keptFrom).filter((m) => isInternalPrimer(m)).length;
+      conversation.setCompaction({ ...record.compaction, keptFrom: record.compaction.keptFrom - removedBefore });
+    }
 
     // INTO THE ROOM IT CAME FROM, not the main chat.
     //

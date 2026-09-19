@@ -2713,7 +2713,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  what the user sees on screen. */
   private emitContextUsageFromCurrent(): void {
     if (!this.agent || !this.conversation) return;
-    const messages = this.conversation.getMessages();
+    // The bar reports the model's view. Measuring the transcript is what
+    // made it jump back to the full count after every compaction.
+    const messages = this.conversation.getContextMessages();
     const used = this.agent.estimateTokenCount(messages);
     const limit = this.activeModelDef?.contextWindow ?? 128000;
     const percent = limit > 0 ? Math.round((used / limit) * 100) : 0;
@@ -4575,7 +4577,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           const { synthesisPrompt } = await this.conductor.orchestrate(
             text,
             conductorMode,
-            this.conversation.getMessages(),
+            this.conversation.getContextMessages(),
             onConductorEvent,
             this.runAbortController.signal,
             {
@@ -4609,13 +4611,39 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
 
       const runner = this.autoCoordinator || this.agent;
-      this.log(`Calling ${this.autoCoordinator ? 'autoCoordinator' : 'agent'}.run() with ${this.conversation.getMessages().length} messages`);
+
+      // ── Compact BETWEEN turns, and keep it ──────────────────────────────
+      // The agent's own in-turn compression is deliberately internal to the
+      // working context, so it never reached the saved conversation: every
+      // turn past the threshold sent the whole history in again, summarised
+      // it again from scratch, and the context bar shot back up the moment
+      // the turn ended (19 Sep 2026). Now the host asks the same gate before
+      // the turn, compacts the model's VIEW, and records the boundary on the
+      // conversation — the transcript the user scrolls is untouched, and the
+      // next turn starts from summary + tail. The in-turn pass remains as
+      // the emergency net for one enormous turn.
+      if (this.agent && this.agent.shouldCompact(this.conversation.getContextMessages())) {
+        try {
+          const { compaction } = await this.agent.compact(this.conversation.getContextMessages(), onEvent, this.runAbortController.signal);
+          if (compaction) {
+            this.conversation.applyCompaction(compaction);
+            this.log(`Compacted between turns: boundary at transcript index ${this.conversation.getCompaction()?.keptFrom}`);
+          } else {
+            this.log('Between-turn compaction produced no boundary — the summary call failed (see [agent] compression FAILED above); the turn runs uncompacted');
+          }
+        } catch (err) {
+          this.log(`Between-turn compaction failed (continuing uncompacted): ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+
+      const contextForModel = this.conversation.getContextMessages();
+      this.log(`Calling ${this.autoCoordinator ? 'autoCoordinator' : 'agent'}.run() with ${contextForModel.length} context messages (${this.conversation.getMessages().length} in transcript)`);
       // Agent.run() returns ONLY the new messages produced this turn
       // (assistant replies, tool results, interjections). We append
       // them to the conversation — compression / truncation inside the
       // agent cannot reach the persisted history by construction.
       const newMessages = await runner!.run(
-        this.conversation.getMessages(),
+        contextForModel,
         onEvent,
         this.runAbortController.signal,
       );
@@ -4822,9 +4850,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.postMessage({ type: 'compression_start' });
     try {
-      const messages = this.conversation.getMessages();
+      // Same boundary the between-turn path records: the transcript stays
+      // whole (scrollback and conversation_recall keep everything), only the
+      // model's view is compacted. Previously this REPLACED the conversation.
+      const messages = this.conversation.getContextMessages();
       let compressedTokenCount = 0;
-      const compressed = await this.agent.compressContext(messages, (event) => {
+      const { compaction } = await this.agent.compact(messages, (event) => {
         if (event.type === 'context_compression_end') {
           compressedTokenCount = event.compressedTokens;
           this.postMessage({
@@ -4834,7 +4865,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           });
         }
       });
-      this.conversation.setMessages(compressed);
+      if (compaction) this.conversation.applyCompaction(compaction);
       this.log('Context compressed successfully');
 
       // Update the context bar with post-compression token count

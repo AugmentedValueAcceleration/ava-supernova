@@ -1948,7 +1948,9 @@ export class Agent {
         onEvent({
           type: 'error',
           error: Object.assign(
-            new Error(`Context compressed: ${dropped} older messages summarised to memory. Continuing your current task.`),
+            // Truncation, not compression: the summary failed and these were
+            // dropped. Saying "summarised" here hid a real failure for months.
+            new Error(`Context trimmed: the summary could not be made, so ${dropped} older messages were dropped from my working view (they are still in the transcript). Continuing your current task.`),
             { code: 'context_compressed' },
           ),
         });
@@ -3489,6 +3491,36 @@ export class Agent {
     return { used, limit, percent: Math.round((used / limit) * 100) };
   }
 
+  /**
+   * Would the next turn compress this context? The same gate runInner uses
+   * (70% of the window, capped at 400K, and at least six messages), exposed
+   * so a host can compact BETWEEN turns and persist the boundary — see
+   * Conversation.applyCompaction. Compacting in the host, before the turn,
+   * is what stops the every-turn re-summarising: the agent's own in-turn
+   * pass stays as the emergency net for one enormous turn.
+   */
+  shouldCompact(messages: Message[]): boolean {
+    const maxInputTokens = Math.min(Math.floor(this.model.contextWindow * 0.7), 400_000);
+    return this.estimateTokenCount(messages) > maxInputTokens && messages.length >= 6;
+  }
+
+  /**
+   * Compact a context and ALSO return the boundary a Conversation can keep:
+   * what replaced the head (middle), the note for the system prompt, and
+   * where in the input the verbatim tail starts. `result` is the compacted
+   * context exactly as compressContext would return it.
+   */
+  async compact(
+    messages: Message[],
+    onEvent: AgentEventHandler,
+    signal?: AbortSignal,
+  ): Promise<{ result: Message[]; compaction: { middle: Message[]; systemNote: string; keptFromContext: number } | null }> {
+    this.lastCompaction = null;
+    const result = await this.compressContext(messages, onEvent, signal);
+    return { result, compaction: this.lastCompaction };
+  }
+  private lastCompaction: { middle: Message[]; systemNote: string; keptFromContext: number } | null = null;
+
   /** Manually compress context — triggered by user clicking the context bar. */
   async manualCompress(
     messages: Message[],
@@ -3546,14 +3578,31 @@ export class Agent {
     // outputs remain in the persisted transcript and are retrievable via
     // conversation_recall — the backstop, not the summary, is the place for
     // exact tool detail.
-    const transcript = toCompress
-      .map((m) => {
-        const text = getTextContent(m.content);
-        return `[${m.role}]: ${text || '(no text)'}`;
-      })
-      .join('\n');
+    //
+    // CHUNKED (19 Sep 2026). This used to send the whole compress zone in one
+    // request. At the 400K threshold that is a ~400K-token prompt, which
+    // fails or times out on most models — and the failure was swallowed, so
+    // auto-compression silently never happened and the turn fell through to
+    // truncation, which dropped 115 messages and called it "summarised". Now
+    // the zone is summarised in pieces of at most CHUNK_TOKENS, each into
+    // working notes, and the notes are folded into the one structured
+    // continuation header. A zone that fits in one piece takes one call.
+    const CHUNK_TOKENS = 60_000;
+    const chunks: string[] = [];
+    let cur: string[] = [];
+    let curTokens = 0;
+    for (const m of toCompress) {
+      const line = `[${m.role}]: ${getTextContent(m.content) || '(no text)'}`;
+      const t = Agent.estimateTextTokens(line);
+      if (cur.length && curTokens + t > CHUNK_TOKENS) { chunks.push(cur.join('\n')); cur = []; curTokens = 0; }
+      cur.push(line); curTokens += t;
+    }
+    if (cur.length) chunks.push(cur.join('\n'));
 
-    const compressionPrompt = `You are a conversation summarizer preparing a handoff for an AI agent that will continue the work. The agent will have zero memory of this transcript except for what you produce, so your summary must be structured and decision-focused, not narrative.
+    const notesPrompt = (part: number, total: number, text: string) =>
+      `You are summarising part ${part} of ${total} of a long transcript between a user and an AI agent, as working notes for a later handoff summary. Capture, as concise bullet points: decisions made, files and functions named, tool results and errors and how they were resolved, what the user asked for in their own words, and what was in flight at the end of this part. No preamble, no narrative.\n\nTRANSCRIPT PART ${part}/${total}:\n${text}`;
+
+    const compressionPromptFor = (transcript: string) => `You are a conversation summarizer preparing a handoff for an AI agent that will continue the work. The agent will have zero memory of this transcript except for what you produce, so your summary must be structured and decision-focused, not narrative.
 
 Produce your output in EXACTLY this format:
 
@@ -3586,32 +3635,46 @@ ${transcript}`;
     const compressedTokens = this.estimateTokenCount(toCompress);
     const summaryBudget = Math.min(4000, Math.max(1500, Math.floor(compressedTokens / 12)));
 
-    try {
+    const complete = async (prompt: string, maxTokens: number): Promise<string> => {
       const response = await this.provider.createCompletion(
         {
           model: this.model.id,
           messages: [
             { role: 'system', content: 'You are a precise conversation summarizer.' },
-            { role: 'user', content: compressionPrompt },
+            { role: 'user', content: prompt },
           ],
           // Compression is a real cost the turn incurred, so it belongs to the
           // turn. Leaving it untagged would quietly understate what a long
           // conversation actually costs to answer.
           turnId: this.runTurnId,
-          max_tokens: summaryBudget,
+          max_tokens: maxTokens,
           temperature: 0.2,
         },
         signal,
       );
-
       // Meter the compression call. It's a heavy-model completion the same
       // shape as a chat turn, just summarising rather than answering a user.
       chargeCredits('chat_turn', {
         model: this.model.id,
         rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
       });
+      return response.choices?.[0]?.message?.content || '';
+    };
 
-      const summary = response.choices?.[0]?.message?.content || '';
+    try {
+      let summary: string;
+      if (chunks.length <= 1) {
+        summary = await complete(compressionPromptFor(chunks[0] ?? ''), summaryBudget);
+      } else {
+        logger.info(`[agent] compression: summarising ${chunks.length} chunks of ≤${CHUNK_TOKENS} tokens`);
+        const notes: string[] = [];
+        for (let i = 0; i < chunks.length; i++) {
+          const n = await complete(notesPrompt(i + 1, chunks.length, chunks[i]), 1500);
+          if (!n) throw new Error(`Empty notes for chunk ${i + 1}/${chunks.length}`);
+          notes.push(`--- part ${i + 1}/${chunks.length} ---\n${n}`);
+        }
+        summary = await complete(compressionPromptFor(notes.join('\n\n')), summaryBudget);
+      }
       if (!summary) throw new Error('Empty compression response');
 
       // Memory policy: see notes at the earlier compression site. The
@@ -3695,6 +3758,9 @@ ${transcript}`;
       const result = enrichedSystem
         ? [enrichedSystem, ...middle, ...fixedTail]
         : [...middle, ...fixedTail];
+      // The boundary, for a host that keeps its transcript and compacts only
+      // the model's view: the tail starts KEEP_RECENT from the end of the input.
+      this.lastCompaction = { middle, systemNote: pinnedNote, keptFromContext: messages.length - KEEP_RECENT };
 
       const originalTokens = this.estimateTokenCount(messages);
       const compressedTokens = this.estimateTokenCount(result);
@@ -3708,8 +3774,11 @@ ${transcript}`;
       });
 
       return result;
-    } catch {
-      // Compression failed — fall back silently (caller will truncate if needed)
+    } catch (err) {
+      // Compression failed — fall back (the caller truncates if it must). Not
+      // silently any more: a swallowed failure here is how "auto never
+      // compresses" went undiagnosed.
+      logger.warn(`[agent] compression FAILED (${toCompress.length} messages, ~${compressedTokens} tokens, ${chunks.length} chunk(s)): ${err instanceof Error ? err.message : String(err)}`);
       onEvent({ type: 'context_compression_end', originalTokens: 0, compressedTokens: 0 });
       return messages;
     }

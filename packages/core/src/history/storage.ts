@@ -2,6 +2,7 @@ import { readFile, writeFile, rename, readdir, mkdir, unlink } from 'node:fs/pro
 import { join } from 'node:path';
 import { HISTORY_DIR } from '../core/constants.js';
 import type { Message } from '../core/types.js';
+import type { Compaction } from '../agent/conversation.js';
 import { deriveConversationTitle, isJunkTitle, deriveConversationSurface, type ConversationSurface } from './conversation-title.js';
 
 export interface ConversationRecord {
@@ -12,6 +13,8 @@ export interface ConversationRecord {
   messages: Message[];
   pinned?: boolean;
   projectPath?: string;
+  /** The model's compaction boundary — see Conversation. Absent on older records. */
+  compaction?: Compaction;
 }
 
 /** A conversation as it appears in the list — no messages, plus the room it
