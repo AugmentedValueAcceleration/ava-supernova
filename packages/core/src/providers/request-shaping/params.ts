@@ -89,6 +89,7 @@ export function shapeParams(
 ): Record<string, unknown> {
   const isMiniMax = provider === 'minimax';
   const isQwen = provider === 'qwen';
+  const isDeepSeek = provider === 'deepseek';
   const isZhipuFlash = isZhipuFlashModel(provider, model);
   const leaksReasoning = leaksReasoningIntoContent(provider, model);
 
@@ -109,7 +110,16 @@ export function shapeParams(
     // reasoning, and the reasoning pass is not bounded by max_tokens.
     ...(isZhipuFlash
       ? { enable_thinking: false }
-      : p.enable_thinking !== undefined && { enable_thinking: p.enable_thinking }),
+      : isDeepSeek
+        // DeepSeek IGNORES enable_thinking and wants `thinking: {type}`. Measured
+        // against api.deepseek.com on 2026-09-19 with a 300-token budget:
+        // no flag → 292 reasoning tokens, answer cut off at 27 chars;
+        // enable_thinking:false → still 165 reasoning tokens;
+        // thinking:{type:'disabled'} → 0 reasoning, clean answer, half the
+        // time. Its reasoning also counts AGAINST max_tokens, which is how
+        // every context-compression summary on DeepSeek came back empty.
+        ? p.enable_thinking !== undefined && { thinking: { type: p.enable_thinking ? 'enabled' : 'disabled' } }
+        : p.enable_thinking !== undefined && { enable_thinking: p.enable_thinking }),
     // An explicit value always wins; otherwise a content-leaking reasoner gets
     // thinking turned off by default, because its default is not usable. This
     // is applied for EVERY caller, not just the intent gate — the model ships

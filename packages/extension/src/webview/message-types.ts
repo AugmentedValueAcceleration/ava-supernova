@@ -138,6 +138,8 @@ export type ExtToWebviewMessage =
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
+  /** The summary could not be made and older messages were dropped from the model's view — a notice, never an error. */
+  | { type: 'context_truncated'; droppedCount: number }
   | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] }
   | { type: 'system_message'; content: string }
   | { type: 'ping' }

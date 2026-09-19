@@ -4435,6 +4435,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             compressedTokens: event.compressedTokens,
           });
           break;
+        case 'context_truncated':
+          this.log(`Context truncated: ${event.droppedCount} messages dropped from the model's view (summary failed — see [agent] compression FAILED)`);
+          this.postMessage({ type: 'context_truncated', droppedCount: event.droppedCount });
+          break;
         case 'interjection':
           this.log(`Interjection processed: "${event.content.slice(0, 80)}"`);
           break;

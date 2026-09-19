@@ -1945,15 +1945,11 @@ export class Agent {
           tokens_before: estimatedTotal,
           token_budget: maxInputTokens,
         });
-        onEvent({
-          type: 'error',
-          error: Object.assign(
-            // Truncation, not compression: the summary failed and these were
-            // dropped. Saying "summarised" here hid a real failure for months.
-            new Error(`Context trimmed: the summary could not be made, so ${dropped} older messages were dropped from my working view (they are still in the transcript). Continuing your current task.`),
-            { code: 'context_compressed' },
-          ),
-        });
+        // A notice, not an error. This went out on the error channel and every
+        // surface painted it red — three red boxes in one turn on 19 Sep 2026
+        // for a routine trim. `context_truncated` has existed on the event
+        // union with a translated line in 20 languages and nobody emitted it.
+        onEvent({ type: 'context_truncated', droppedCount: dropped });
       }
 
       // ── Sanitize messages for model compatibility ──────────────────────────
@@ -3635,7 +3631,7 @@ ${transcript}`;
     const compressedTokens = this.estimateTokenCount(toCompress);
     const summaryBudget = Math.min(4000, Math.max(1500, Math.floor(compressedTokens / 12)));
 
-    const complete = async (prompt: string, maxTokens: number): Promise<string> => {
+    const complete = async (prompt: string, maxTokens: number, retried = false): Promise<string> => {
       const response = await this.provider.createCompletion(
         {
           model: this.model.id,
@@ -3649,6 +3645,12 @@ ${transcript}`;
           turnId: this.runTurnId,
           max_tokens: maxTokens,
           temperature: 0.2,
+          // A summary is output, not reasoning. On a thinking model (DeepSeek
+          // V4.1 Flash, Qwen Flash) the reasoning pass ran first and — on a
+          // small budget — the answer came back EMPTY, which this code threw
+          // on, so every in-turn compression fell through to truncation
+          // (19 Sep 2026: "the summary could not be made" on each iteration).
+          enable_thinking: false,
         },
         signal,
       );
@@ -3658,7 +3660,16 @@ ${transcript}`;
         model: this.model.id,
         rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
       });
-      return response.choices?.[0]?.message?.content || '';
+      const choice = response.choices?.[0];
+      const content = choice?.message?.content || '';
+      if (!content) {
+        // Say WHY it was empty. A cut-off (finish_reason 'length') gets one
+        // more go with double the budget; anything else is reported as is.
+        const usage = (response as { usage?: { prompt_tokens?: number; completion_tokens?: number } }).usage;
+        logger.warn(`[agent] compression: empty reply from ${this.model.id} (finish_reason=${choice?.finish_reason ?? '?'}, prompt=${usage?.prompt_tokens ?? '?'}, completion=${usage?.completion_tokens ?? '?'}, max_tokens=${maxTokens})`);
+        if (choice?.finish_reason === 'length' && !retried) return complete(prompt, maxTokens * 2, true);
+      }
+      return content;
     };
 
     try {

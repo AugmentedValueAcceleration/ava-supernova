@@ -175,6 +175,18 @@ describe('shapeParams — per-provider quirks', () => {
     expect(p.frequency_penalty).toBe(0.5);
   });
 
+  it('DeepSeek: enable_thinking becomes thinking:{type}, which is the switch it honours', () => {
+    // Measured 2026-09-19: DeepSeek ignores enable_thinking, and its reasoning
+    // counts against max_tokens — the compression summariser got empty replies.
+    const off = shapeParams('deepseek', 'deepseek-flash', { enable_thinking: false });
+    expect(off.thinking).toEqual({ type: 'disabled' });
+    expect(off.enable_thinking).toBeUndefined();
+    const on = shapeParams('deepseek', 'deepseek-flash', { enable_thinking: true });
+    expect(on.thinking).toEqual({ type: 'enabled' });
+    const unset = shapeParams('deepseek', 'deepseek-flash', {});
+    expect(unset.thinking).toBeUndefined();
+  });
+
   it('Zhipu Flash: forces enable_thinking false', () => {
     expect(shapeParams('zhipu', 'glm-5-flash', {}).enable_thinking).toBe(false);
     expect(shapeParams('zhipu', 'glm-5', {})).not.toHaveProperty('enable_thinking');
