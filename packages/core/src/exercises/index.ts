@@ -202,6 +202,15 @@ export interface ExerciseSnapshot {
   difficulty: number | null;
   contraindications: Array<{ condition: string; severity: string; note?: string | null }>;
   session_role: string | null;
+  /** The writing. Absent from the snapshot until 20 Sep 2026, so the check
+   *  could say "no beginner detail" and the reader of the entry could not see
+   *  whether the advanced half was there either — she was guessing. */
+  description?: string | null;
+  beginner_detail?: string | null;
+  advanced_detail?: string | null;
+  common_mistakes?: string | null;
+  coaching_cues?: string[];
+  demo_image_prompt?: string | null;
   /** Whether the demo shows a person performing THIS exercise, and what made
    *  it. The library's 170 images are empty gym rooms — one filed under "hack
    *  squat" is a bench press — so "has an image" means nothing on its own. */
@@ -216,9 +225,35 @@ export interface ExerciseMatch {
   visible: boolean;
 }
 
+/** The fields of an existing exercise that can be rewritten in place. Every
+ *  one is authored text or a classification — the things a check can fail and
+ *  nothing could previously fix without re-landing the whole entry under a
+ *  new id, which breaks every plan that pointed at the old one. Equipment,
+ *  muscles and contraindications have their own targeted tools. */
+export interface ExerciseRevision {
+  description?: string;
+  beginner_detail?: string;
+  advanced_detail?: string;
+  common_mistakes?: string;
+  steps?: ExerciseStepInput[];
+  coaching_cues?: string[];
+  demo_image_prompt?: string;
+  difficulty?: number;
+  movement_pattern?: MovementPattern;
+  session_role?: SessionRole;
+}
+
 export interface ExerciseStore {
   save(exercise: ExerciseInput): Promise<{ id: string | null; error?: string }>;
   readExercise(exerciseId: string): Promise<ExerciseSnapshot | null>;
+  /** Rewrite the given fields of an existing exercise and nothing else. Held
+   *  to the same gate as write_exercise: a revision that would ADD a finding
+   *  (steps reaching for kit not listed, a detail shorter than the floor) is
+   *  refused with the findings, and the entry is left as it was. The id never
+   *  changes. Until 20 Sep 2026 the room had no way to touch the prose of an
+   *  entry that already existed — write_exercise is create-only and died on
+   *  the slug key — so every "no beginner detail" was operator-side. */
+  reviseExercise(exerciseId: string, revision: ExerciseRevision): Promise<{ ok: boolean; error?: string; findings?: ExerciseCheckFinding[] }>;
   findExercise(query: string): Promise<ExerciseMatch[]>;
 
   /** Look at the library without knowing a movement name — the "what have we

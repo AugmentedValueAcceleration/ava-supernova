@@ -625,7 +625,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // The Gym — the training library desk. Same shape as the Pantry; the
   // exercise tools, kept in step with getGymPrefix.
   gym: new Set([
-    'propose_exercises', 'find_exercise', 'read_exercise', 'write_exercise', 'check_exercise',
+    'propose_exercises', 'find_exercise', 'read_exercise', 'write_exercise', 'revise_exercise', 'check_exercise',
     'add_equipment', 'add_contraindication', 'set_muscles', 'regenerate_demo',
     'browse_library',
     'memory_save', 'memory_recall', 'memory_update', 'journal_write',

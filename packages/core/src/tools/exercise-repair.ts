@@ -1,6 +1,9 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import type { ExerciseStore, ExerciseMuscleInput } from '../exercises/index.js';
+import type { ExerciseStore, ExerciseMuscleInput, ExerciseRevision, MovementPattern, SessionRole } from '../exercises/index.js';
+import { MOVEMENT_PATTERNS } from '../exercises/index.js';
+
+const SESSION_ROLES: SessionRole[] = ['main', 'accessory', 'finisher', 'warmup', 'cooldown', 'mobility'];
 
 /* The repair set for the gym, mirroring the Pantry's. The doctrine is the same
    and was learned the same way: REPAIR, do not re-roll. Regenerating a whole
@@ -142,6 +145,118 @@ export class AddEquipmentTool implements Tool {
       success: true,
       output: JSON.stringify({
         ok: true, added: equipment,
+        recheck: recheck ? recheck.status : 'not re-checked',
+        remaining: recheck?.findings?.map((f) => `${f.kind}: ${f.term}`) ?? [],
+      }),
+    };
+  }
+}
+
+/** Rewrite the writing of an entry that already exists.
+ *
+ *  The gap Ava reported from the Gym on 19 Sep 2026: she could add equipment,
+ *  a contraindication or a muscle to an existing exercise, but not a word of
+ *  its prose. write_exercise is create-only — it passed the gate and died on
+ *  the slug key — and it has no id to point at. So an entry failing on
+ *  `no_beginner` could only be finished by deleting it and landing it again
+ *  under a new id, which breaks every plan referencing the old one. Seven
+ *  repairs were parked as "operator-side" for want of this. */
+export class ReviseExerciseTool implements Tool {
+  readonly name = 'revise_exercise';
+  readonly description =
+    'Rewrite one or more written fields of an EXISTING exercise in place — description, beginner or advanced detail, common mistakes, steps, cues, demo prompt, difficulty, pattern, session role. The id stays. Checked before it lands.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'revise_exercise',
+    description:
+      'Set the given fields on an existing exercise by id and leave everything else exactly as it is. This is how a check failure on the WRITING is fixed — never by writing the movement again. Give only the fields you are changing; each one you give REPLACES that field whole. The entry is re-checked afterwards and the revision is refused if it would add a finding. For equipment, muscles or contraindications use their own tools.',
+    parameters: {
+      type: 'object',
+      properties: {
+        exercise_id: { type: 'string' },
+        description: { type: 'string', description: 'What the movement is and what it is for. 20 words or more.' },
+        beginner_detail: { type: 'string', description: 'What a first-timer gets wrong the first time and how to fix it, what it should feel like, when to stop. 40 words or more.' },
+        advanced_detail: { type: 'string', description: 'Tempo, load and rep guidance, when and how to progress, the variations worth knowing. 40 words or more, never a restatement of the steps.' },
+        common_mistakes: { type: 'string', description: 'The real ones for this movement, what each causes, the correction. 30 words or more.' },
+        steps: {
+          type: 'array',
+          description: 'The WHOLE method, in order — this replaces every step, so give all of them. Plain strings, or objects with an "action" field when a step needs notes or a safety flag.',
+          items: {
+            type: 'object',
+            properties: {
+              action: { type: 'string' },
+              notes: { type: 'string' },
+              safety_flag: { type: 'boolean' },
+            },
+            required: ['action'],
+          },
+        },
+        coaching_cues: { type: 'array', items: { type: 'string' }, description: 'All of them — this replaces the list. Three to five.' },
+        demo_image_prompt: { type: 'string', description: 'A person performing the movement — position, joint angles, camera angle. Saved on the entry; it does not re-shoot the demo (use regenerate_demo for that).' },
+        difficulty: { type: 'integer', minimum: 1, maximum: 5 },
+        movement_pattern: { type: 'string', enum: MOVEMENT_PATTERNS },
+        session_role: { type: 'string', enum: ['main', 'accessory', 'finisher', 'warmup', 'cooldown', 'mobility'] },
+      },
+      required: ['exercise_id'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
+    if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
+
+    const id = String(args.exercise_id ?? args.id ?? '').trim();
+    if (!id) return { success: false, output: 'revise_exercise requires exercise_id.' };
+
+    const revision: ExerciseRevision = {};
+    const text = (k: 'description' | 'beginner_detail' | 'advanced_detail' | 'common_mistakes' | 'demo_image_prompt') => {
+      if (typeof args[k] === 'string' && (args[k] as string).trim()) revision[k] = (args[k] as string).trim();
+    };
+    text('description'); text('beginner_detail'); text('advanced_detail'); text('common_mistakes'); text('demo_image_prompt');
+    if (Array.isArray(args.steps)) {
+      revision.steps = (args.steps as unknown[]).map((s) => {
+        if (typeof s === 'string') return { action: s.trim() };
+        const o = (s ?? {}) as Record<string, unknown>;
+        return { action: String(o.action ?? '').trim(), notes: o.notes ? String(o.notes) : null, safety_flag: o.safety_flag === true };
+      }).filter((s) => s.action);
+    }
+    if (Array.isArray(args.coaching_cues)) {
+      revision.coaching_cues = (args.coaching_cues as unknown[]).map(String).map((c) => c.trim()).filter(Boolean);
+    }
+    if (typeof args.difficulty === 'number' && Number.isInteger(args.difficulty) && args.difficulty >= 1 && args.difficulty <= 5) {
+      revision.difficulty = args.difficulty;
+    }
+    if (typeof args.movement_pattern === 'string' && (MOVEMENT_PATTERNS as string[]).includes(args.movement_pattern)) {
+      revision.movement_pattern = args.movement_pattern as MovementPattern;
+    }
+    if (typeof args.session_role === 'string' && SESSION_ROLES.includes(args.session_role as SessionRole)) {
+      revision.session_role = args.session_role as SessionRole;
+    }
+    const changed = Object.keys(revision);
+    if (!changed.length) return { success: false, output: 'revise_exercise: nothing to change — give at least one field.' };
+
+    const result = await store.reviseExercise(id, revision);
+    if (!result.ok) {
+      return {
+        success: false,
+        output: JSON.stringify({
+          ok: false,
+          error: result.error ?? 'refused',
+          // The findings the revision would have introduced — fix these, then
+          // call again. The entry was not touched.
+          would_add: (result.findings ?? []).map((f) => `${f.kind}: ${f.message}`),
+        }),
+      };
+    }
+
+    const recheck = await store.recheck(id);
+    return {
+      success: true,
+      output: JSON.stringify({
+        ok: true,
+        changed,
         recheck: recheck ? recheck.status : 'not re-checked',
         remaining: recheck?.findings?.map((f) => `${f.kind}: ${f.term}`) ?? [],
       }),
