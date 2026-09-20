@@ -25,6 +25,8 @@ export type { UserIntent, IntentClassifierOptions } from './agent/intent-classif
 
 export type { SystemPromptOptions } from './agent/system-prompt.js';
 export * from './exercises/index.js';
+// The Classroom's gate, beside the Gym's: the platform store imports both from the root.
+export * from './learning/course-check.js';
 export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getWorkModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, SOCIAL_STUDIO_PERSONA, getNewsroomPrefix, getPantryPrefix, getGymPrefix } from './agent/system-prompt.js';
 
 // Newsroom contracts — the surface-injected news index + article store the

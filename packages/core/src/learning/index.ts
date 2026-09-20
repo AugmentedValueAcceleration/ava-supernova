@@ -5,5 +5,6 @@
 export * from './progression.js';
 export * from './progression-markdown.js';
 export * from './learner-context.js';
-export { libraryPathToCurriculum, type LibraryPathInput } from './library-fork.js';
+export { libraryPathToCurriculum, type LibraryPathInput, type LibraryLessonInput } from './library-fork.js';
+export { checkCourse, COURSE_REFUSAL_KINDS, SAFETY_LINE_CATEGORIES, ASK_AVA_EXEMPT_CATEGORIES, type CourseCheckInput, type CourseCheckResult, type CourseCheckFinding, type CourseFindingKind, type CourseLessonInput, type CourseModuleInput, type CourseStepInput } from './course-check.js';
 export type { LearningStore, Curriculum, Module, Lesson, Milestone } from '../tools/learning.js';

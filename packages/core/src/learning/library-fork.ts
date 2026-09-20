@@ -10,7 +10,7 @@
 // Pure + cross-env (extension host = node, IDE renderer = browser): uses only
 // globalThis.crypto + Date, no node built-ins.
 
-import type { Curriculum, Module, Lesson } from '../tools/learning.js';
+import type { Curriculum, Module, Lesson, LessonStep, QuizQuestion } from '../tools/learning.js';
 
 /** Minimal shape of a public library path detail (matches the /learning/library/:id payload). */
 export interface LibraryPathInput {
@@ -28,8 +28,41 @@ export interface LibraryPathInput {
     modules: Array<{
       title: string;
       description?: string;
-      lessons: Array<{ title: string; type?: string; difficulty?: string; content?: string }>;
+      lessons: Array<LibraryLessonInput>;
     }>;
+  };
+}
+
+export interface LibraryLessonInput {
+  title: string;
+  type?: string;
+  difficulty?: string;
+  content?: string | null;
+  estimated_minutes?: number | null;
+  learning_objectives?: string[];
+  /** The steps standard — teach → do → check. What the Classroom writes. */
+  steps?: Array<Pick<LessonStep, 'teach' | 'interaction'> & Partial<Pick<LessonStep, 'id' | 'feedback'>>> | null;
+  /** Legacy read-then-quiz shape. */
+  quiz_questions?: Array<Pick<QuizQuestion, 'question' | 'correct_answer'> & Partial<Pick<QuizQuestion, 'options' | 'explanation'>>> | null;
+}
+
+/**
+ * A step as the learner will run it: the authored half as written, the
+ * progress half reset. Until 20 Sep 2026 this converter copied `content` only,
+ * so a course written to the steps standard reached the learner as a blob —
+ * the standard the players have run since June was unreachable from the
+ * library. The id is regenerated: two learners forking the same course must
+ * not share step ids with each other's progress.
+ */
+function forkStep(s: NonNullable<LibraryLessonInput['steps']>[number]): LessonStep {
+  return {
+    id: uid(),
+    teach: s.teach,
+    interaction: { ...s.interaction },
+    feedback: s.feedback,
+    status: 'not_started',
+    attempts: 0,
+    last_attempt: null,
   };
 }
 
@@ -68,14 +101,18 @@ export function libraryPathToCurriculum(path: LibraryPathInput, nowIso?: string)
       id: uid(),
       title: l.title,
       content: l.content ?? null,
+      steps: l.steps && l.steps.length ? l.steps.map(forkStep) : undefined,
       type: coerceType(l.type),
       status: 'not_started',
       difficulty: coerceDiff(l.difficulty),
-      estimated_minutes: null,
-      learning_objectives: [],
+      estimated_minutes: l.estimated_minutes ?? null,
+      learning_objectives: l.learning_objectives ?? [],
       prerequisites: [],
       resources: [],
-      quiz_questions: [],
+      // Legacy courses carry their quiz here; it was being dropped too.
+      quiz_questions: (l.quiz_questions ?? []).map((q) => ({
+        question: q.question, options: q.options, correct_answer: q.correct_answer, explanation: q.explanation,
+      })),
       score: null,
       attempts: 0,
       best_score: null,
