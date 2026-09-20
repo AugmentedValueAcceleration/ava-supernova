@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import type { ExerciseStore, ExerciseMuscleInput, ExerciseRevision, MovementPattern, SessionRole } from '../exercises/index.js';
+import type { ExerciseStore, ExerciseMuscleInput, ExerciseRevision, MovementPattern, SessionRole, ConditionProposal } from '../exercises/index.js';
 import { MOVEMENT_PATTERNS } from '../exercises/index.js';
 
 const SESSION_ROLES: SessionRole[] = ['main', 'accessory', 'finisher', 'warmup', 'cooldown', 'mobility'];
@@ -259,6 +259,71 @@ export class ReviseExerciseTool implements Tool {
         changed,
         recheck: recheck ? recheck.status : 'not re-checked',
         remaining: recheck?.findings?.map((f) => `${f.kind}: ${f.term}`) ?? [],
+      }),
+    };
+  }
+}
+
+/** Propose a condition key the taxonomy does not have.
+ *
+ *  add_contraindication refuses a key it cannot find, and it is right to: the
+ *  keys are what a user can declare in their profile and what a plan screens
+ *  exercises against, so one invented mid-repair would be a label nobody can
+ *  ever select. But twelve keys is thin — nothing for hip pain or an ankle —
+ *  and the gap kept coming back as "Needs you". Now she proposes it with the
+ *  reason, and the operator's approval in the hub is what creates the key. */
+export class ProposeConditionTool implements Tool {
+  readonly name = 'propose_condition';
+  readonly description =
+    'Propose a NEW contraindication key for the operator to approve — when the condition an exercise should carry has no key in the vocabulary. Not a repair in itself: the key exists only once approved.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'propose_condition',
+    description:
+      'Queue a condition key for the operator to add to the vocabulary. Use it when add_contraindication lists the keys and none is the condition this movement genuinely needs — after checking the nearest existing key is not already it. Say the reason in terms of the movement: who this protects and from what. Once approved, add it to the exercise with add_contraindication.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'The key as a user would read it in their profile, e.g. "Hip pain / impingement", "Ankle injury (acute)".' },
+        category: { type: 'string', enum: ['state', 'injury', 'condition'], description: 'state = pregnancy-like states; injury = acute damage; condition = ongoing.' },
+        severity_hint: { type: 'string', enum: ['hard_block', 'strong_caveat'], description: 'hard_block when the movement should simply not be programmed for them; strong_caveat when it can be, with care.' },
+        reason: { type: 'string', description: 'Why the vocabulary needs it — the movements it would guard and what it protects. One or two sentences.' },
+        exercise_id: { type: 'string', description: 'The entry that prompted it, if there is one.' },
+      },
+      required: ['name', 'category', 'severity_hint', 'reason'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = context.sharedState?.exerciseStore as ExerciseStore | undefined;
+    if (!store) return { success: false, output: 'The exercise library is not available in this context.' };
+
+    const name = String(args.name ?? '').trim();
+    const category = String(args.category ?? '').trim();
+    const severity = String(args.severity_hint ?? '').trim();
+    const reason = String(args.reason ?? '').trim();
+    if (!name || !reason || !['state', 'injury', 'condition'].includes(category) || !['hard_block', 'strong_caveat'].includes(severity)) {
+      return { success: false, output: 'propose_condition requires name, category (state | injury | condition), severity_hint (hard_block | strong_caveat) and reason.' };
+    }
+    const proposal: ConditionProposal = {
+      name, reason,
+      category: category as ConditionProposal['category'],
+      severity_hint: severity as ConditionProposal['severity_hint'],
+      exercise_id: args.exercise_id ? String(args.exercise_id) : null,
+    };
+    const result = await store.proposeCondition(proposal);
+    if (!result.ok) {
+      return { success: false, output: result.existing ? `Not proposed: ${result.error} (${result.existing})` : `Could not propose: ${result.error ?? 'unknown error'}` };
+    }
+    return {
+      success: true,
+      output: JSON.stringify({
+        ok: true, proposed: name,
+        // What happens next, so the report can say it in one line instead of
+        // asking the operator for something they will see in the hub anyway.
+        next: 'Queued for the operator in the hub. The key exists once approved; add it to the exercise with add_contraindication then.',
       }),
     };
   }

@@ -626,7 +626,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // exercise tools, kept in step with getGymPrefix.
   gym: new Set([
     'propose_exercises', 'find_exercise', 'read_exercise', 'write_exercise', 'revise_exercise', 'check_exercise',
-    'add_equipment', 'add_contraindication', 'set_muscles', 'regenerate_demo',
+    'add_equipment', 'add_contraindication', 'propose_condition', 'set_muscles', 'regenerate_demo',
     'browse_library',
     'memory_save', 'memory_recall', 'memory_update', 'journal_write',
     'web_search', 'ask_user', 'get_datetime',

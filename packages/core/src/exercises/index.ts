@@ -243,6 +243,18 @@ export interface ExerciseRevision {
   session_role?: SessionRole;
 }
 
+/** A condition key Ava wants in the taxonomy. The taxonomy is what a user can
+ *  declare about themselves and what a plan screens on, so it is never grown
+ *  from inside an exercise repair: this is proposed, and the operator approves
+ *  it in the hub. Until 20 Sep 2026 every such gap was a "Needs you" line. */
+export interface ConditionProposal {
+  name: string;
+  category: 'state' | 'injury' | 'condition';
+  severity_hint: 'hard_block' | 'strong_caveat';
+  reason: string;
+  exercise_id?: string | null;
+}
+
 export interface ExerciseStore {
   save(exercise: ExerciseInput): Promise<{ id: string | null; error?: string }>;
   readExercise(exerciseId: string): Promise<ExerciseSnapshot | null>;
@@ -282,6 +294,9 @@ export interface ExerciseStore {
    *  model rendered an immaculate leg press. */
   regenerateDemo(exerciseId: string, prompt: string): Promise<{ ok: boolean; engine?: string; depicts?: boolean; error?: string }>;
   proposeSeeds(brief: { muscle?: string; pattern?: string; equipment?: string; count?: number }): Promise<ExerciseSeedSuggestion[]>;
+  /** Queue a condition key for the operator. `existing` when the key (or an
+   *  open proposal for it) is already there, so she can use it instead. */
+  proposeCondition(proposal: ConditionProposal): Promise<{ ok: boolean; error?: string; existing?: string }>;
 }
 
 export interface ExerciseSeedSuggestion {
