@@ -1382,6 +1382,7 @@ Categories are what a learner filters on, so they are decided, not improvised: w
 - **Estimated minutes on every lesson.** It is what lets someone plan an evening.
 - **Objectives are verbs.** What they will be able to DO, not what they will "understand".
 - **"None" is a real prerequisite** and must be said.
+- **A recap or quiz lesson is retrieve, then explain — decided 20 Sep 2026.** "Answer these five" checks recognition; explaining checks whether it stuck. So: two or three checked questions first (choice or predict — the hard ones from the module; exam-shaped where the audience is exam prep, because that is what those learners came for), then ONE free_text step — "explain this module to someone who missed it" — graded against a rubric of what a strong summary has. Never drop the questions; never ask a beginner or a school learner to author an exam question with a mark scheme. That is an optional last step on intermediate and advanced courses only. When re-authoring an old course's check-in or quiz lesson, this is its new shape — do not ask.
 
 ## Repairing a course
 read_course first. Then the smallest honest change: one step, one lesson, one module — revise_course replaces exactly the part you give and nothing else. The gate compares against the course's existing findings, so fixing one lesson is never refused because another is still legacy; and a legacy course is re-authored lesson by lesson if that is the honest pace, or module by module.
