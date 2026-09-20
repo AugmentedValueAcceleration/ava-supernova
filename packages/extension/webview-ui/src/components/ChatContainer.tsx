@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useState, type Ref, type RefObject, type WheelEvent } from 'react';
 import type { UIMessage } from '../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
@@ -29,7 +29,12 @@ interface ChatContainerProps {
   chatEndRef: RefObject<HTMLDivElement | null>;
   /** The scrolling message list, so the page can ask where it is. */
   scrollRef?: RefObject<HTMLDivElement | null>;
+  /** The content inside it — what grows. The page watches its size to follow. */
+  contentRef?: Ref<HTMLDivElement>;
   onScroll?: () => void;
+  onWheel?: (e: WheelEvent<HTMLDivElement>) => void;
+  onPointerDown?: () => void;
+  onKeyDown?: () => void;
   needsSetup?: boolean;
   consentRequired?: boolean;
   onAcceptConsent?: () => void;
@@ -62,7 +67,7 @@ interface ChatContainerProps {
 // IDE's single-seeded-message empty state. Props onSuggestion / activeModel
 // / models stay in ChatContainerProps for caller compatibility but are no
 // longer destructured here.
-export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, scrollRef, onScroll, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, scrollRef, contentRef, onScroll, onWheel, onPointerDown, onKeyDown, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -270,7 +275,8 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
           composer so the bar sits next to where the user is typing, not at
           the far top of the message list where it was easy to forget. */}
 
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('chat.messages_aria')} aria-live="polite">
+      <div ref={scrollRef} onScroll={onScroll} onWheel={onWheel} onPointerDown={onPointerDown} onKeyDown={onKeyDown} className="flex-1 overflow-y-auto" role="log" aria-label={t('chat.messages_aria')} aria-live="polite">
+      <div ref={contentRef} className="min-h-full px-3 py-2 space-y-3">
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}
@@ -291,6 +297,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
         )}
         {isThinking && <ThinkingIndicator label={thinkingLabel} />}
         <div ref={chatEndRef} />
+      </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef, useCallback, useState } from 'react';
+import { useReducer, useEffect, useRef, useCallback, useState, type WheelEvent } from 'react';
 import type { ExtToWebviewMessage, ChatState, UIMessage, MessageEvent } from './types/messages';
 
 // ── Event timeline helpers ────────────────────────────────────────────────
@@ -1085,6 +1085,18 @@ export function App() {
   // bottom, and offer a button when they are not.
   const messagesScrollRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
+  // Whether the view follows new content. A ref, not state: the follow runs
+  // from a resize observer and must read the latest answer without a render.
+  // Decided by what the USER did — a wheel tick upwards, a scroll that lands
+  // off the bottom — never by where a follow scroll happened to leave them.
+  // Deciding it from position alone was the bug: a smooth follow in flight
+  // won against the wheel, a delayed re-scroll fired after they had left,
+  // and once back within the threshold they counted as "at the bottom" and
+  // the stream pinned them there for as long as it ran (19 Sep 2026).
+  const followRef = useRef(true);
+  // Set just before a follow scroll so the one scroll event it fires is not
+  // read as the user moving.
+  const programmaticScrollRef = useRef(false);
   // Local footprint for the header chip. Local state, not the reducer: nothing
   // else in the chat reacts to it, and a field in the shared state would make
   // every reducer case carry a number only one label reads.
@@ -1098,14 +1110,78 @@ export function App() {
     if (!el) return;
     // A threshold, not equality: sub-pixel rounding and a message still
     // growing both mean scrollTop never exactly equals the maximum.
-    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80);
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    setAtBottom(near);
+    if (programmaticScrollRef.current) { programmaticScrollRef.current = false; return; }
+    // Off the bottom always means stop following, whoever moved them.
+    if (!near) { followRef.current = false; return; }
+    // Near the bottom switches following back on ONLY behind a gesture of
+    // theirs. A scroll event on its own is not intent: the browser fires one
+    // when the content SHRINKS and scrollTop is clamped to the new maximum —
+    // the thinking indicator unmounting as text starts, a tool's live output
+    // folding into its chip, a confirmation card collapsing once approved —
+    // and that clamp lands "near the bottom" with nobody having touched
+    // anything. Reading it as "they scrolled back down" re-armed the follow
+    // on every response and every tool call (19 Sep 2026). And a wheel tick
+    // UP is excluded even though it is a gesture: Chromium animates it, so
+    // its first scroll events also land within the threshold.
+    const now = performance.now();
+    const gesture = draggingRef.current || now - lastGestureAtRef.current < 1000;
+    const wheelUp = now - lastWheelUpAtRef.current < 300;
+    if (gesture && !wheelUp) followRef.current = true;
+  }, []);
+
+  // The wheel is the common case and it must win instantly: one tick up is
+  // "I am reading", whatever the position says a frame later.
+  const lastWheelUpAtRef = useRef(0);
+  // The gestures that may switch following back on: wheel, scrollbar drag,
+  // keyboard. The drag is a flag rather than a timestamp because Chromium
+  // delivers no pointer events to the page while the thumb is held.
+  const lastGestureAtRef = useRef(0);
+  const draggingRef = useRef(false);
+  const noteGesture = useCallback(() => { lastGestureAtRef.current = performance.now(); }, []);
+  const handleMessagesWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
+    noteGesture();
+    if (e.deltaY < 0) { followRef.current = false; lastWheelUpAtRef.current = performance.now(); }
+  }, [noteGesture]);
+  const handleMessagesPointerDown = useCallback(() => { draggingRef.current = true; noteGesture(); }, [noteGesture]);
+  useEffect(() => {
+    const release = () => { draggingRef.current = false; };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
+    return () => { window.removeEventListener('pointerup', release); window.removeEventListener('pointercancel', release); };
+  }, []);
+
+  // Instant, never smooth: an animation in flight is what fought the reader.
+  const scrollToLatest = useCallback(() => {
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    // Already there: no move, so no scroll event to consume the flag.
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 1) return;
+    programmaticScrollRef.current = true;
+    el.scrollTop = el.scrollHeight;
   }, []);
 
   const jumpToLatest = useCallback(() => {
-    const el = messagesScrollRef.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    followRef.current = true;
+    scrollToLatest();
     setAtBottom(true);
-  }, []);
+  }, [scrollToLatest]);
+
+  // Follow the content as it GROWS, while following is on. Driven by the
+  // content's size rather than by state changes: a tool result or an image
+  // that finishes rendering later moves the bottom too, and guessing at that
+  // with timeouts was the delayed yank. A callback ref, because the list is
+  // not mounted until setup and consent are done.
+  const contentObserverRef = useRef<ResizeObserver | null>(null);
+  const messagesContentRef = useCallback((el: HTMLDivElement | null) => {
+    contentObserverRef.current?.disconnect();
+    contentObserverRef.current = null;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => { if (followRef.current) scrollToLatest(); });
+    observer.observe(el);
+    contentObserverRef.current = observer;
+  }, [scrollToLatest]);
   const justLoadedRef = useRef(false);
 
   // Delta buffer for smooth typing animation
@@ -1220,28 +1296,22 @@ export function App() {
     };
   }, [postMessage, startFlushLoop, flushAllDeltas]);
 
-  // Auto-scroll to bottom on new content
+  // A restored conversation lands at the bottom, following. Everything after
+  // that is the resize observer's job: it sees the content grow, whatever
+  // grew it, and follows only while the reader has not left.
   useEffect(() => {
     if (state.messages.length === 0) return;
-    if (justLoadedRef.current) {
-      justLoadedRef.current = false;
-      // Restored conversation: longer delay for initial load when DOM may not be ready
-      const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            scrollToBottom();
-            // Safety: re-scroll after content finishes loading
-            setTimeout(scrollToBottom, 200);
-          }, 100);
-        });
-      });
-    } else if (atBottom) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      // Extra scroll after tool results render (present_plan, large outputs)
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
-    }
-  }, [state.messages, state.isThinking, atBottom]);
+    if (!justLoadedRef.current) return;
+    justLoadedRef.current = false;
+    followRef.current = true;
+    setAtBottom(true);
+    // After layout, and again once code blocks and images have their height.
+    requestAnimationFrame(() => {
+      scrollToLatest();
+      requestAnimationFrame(scrollToLatest);
+      setTimeout(scrollToLatest, 200);
+    });
+  }, [state.messages, scrollToLatest]);
 
   const handleSend = useCallback(
     (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => {
@@ -1577,7 +1647,11 @@ export function App() {
           onRate={handleRate}
           chatEndRef={chatEndRef}
           scrollRef={messagesScrollRef}
+          contentRef={messagesContentRef}
           onScroll={handleMessagesScroll}
+          onWheel={handleMessagesWheel}
+          onPointerDown={handleMessagesPointerDown}
+          onKeyDown={noteGesture}
           needsSetup={state.needsSetup}
           consentRequired={state.consentRequired}
           onAcceptConsent={handleAcceptConsent}
