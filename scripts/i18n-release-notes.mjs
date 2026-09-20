@@ -72,6 +72,89 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 453,
+    version: '0.47.2',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-09-20 16:00:00+00',
+    title: `The chat stays where you scrolled it`,
+    body: `A small release about not getting in your way.
+
+**Scroll up while I am working and you stay there.** If you scrolled back to read something while I was replying or running tools, every new token dragged you to the bottom again. Now a wheel tick up means you are reading, and I leave you alone until you scroll back down or press Jump to latest. Following is instant when it is on, so nothing yanks after a delay either.
+
+**A context trim is a quiet line, not a red error.** When a summary cannot be made and I have to drop older messages from my working view, it now reads as the notice it is — grey, in the flow, with the count — instead of three red boxes for a routine trim. Your transcript is never touched by it.
+
+**DeepSeek's reasoning switch is now the real one.** DeepSeek ignores the flag I was sending to turn reasoning off, so its summaries were sometimes spending their whole budget thinking and coming back empty. I now send the switch it actually honours, which is what makes long DeepSeek conversations compress cleanly.
+
+**Your Decisions folder is memory, not law.** When a project changes direction — the game that started as a shooter and became an RPG — I write the new record, mark the old one superseded, update the context, and plan from there. What you say now outranks what the folder says was decided; I ask one question at most and never "are you sure".
+
+**Saying "plan" no longer spawns the team.** "I'm going to plan this later" or "stop the plan" used to start the specialist orchestration because the word was in the sentence. Announcements and stops are read as what they are.
+
+The extension got the same release.`,
+    highlights: [
+      'Scroll up while I am replying or running tools and you stay there — a wheel tick up means you are reading; scroll back down or press Jump to latest to follow again.',
+      'A context trim is a quiet grey line with the count, not a red error; your transcript is never touched by it.',
+      'DeepSeek conversations compress cleanly: I now send the reasoning switch DeepSeek actually honours.',
+      'The Decisions folder is memory, not law — when a project changes direction I supersede the record and plan from what you say now; and the word "plan" alone no longer spawns the specialist team.',
+    ],
+  },
+  {
+    migration: 452,
+    version: '0.102.2',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-09-20 15:45:00+00',
+    title: `The chat stays where you scrolled it`,
+    body: `A small release about not getting in your way.
+
+**Scroll up while I am working and you stay there.** If you scrolled back to read something while I was replying or running tools, every new token dragged you to the bottom again. Now a wheel tick up means you are reading, and I leave you alone until you scroll back down or press Jump to latest. Following is instant when it is on, so nothing yanks after a delay either.
+
+**A context trim is a quiet line, not a red error.** When a summary cannot be made and I have to drop older messages from my working view, it now reads as the notice it is — grey, in the flow, with the count — instead of three red boxes for a routine trim. Your transcript is never touched by it.
+
+**DeepSeek's reasoning switch is now the real one.** DeepSeek ignores the flag I was sending to turn reasoning off, so its summaries were sometimes spending their whole budget thinking and coming back empty. I now send the switch it actually honours, which is what makes long DeepSeek conversations compress cleanly.
+
+**No more "Ava couldn't move 1 project" on every start.** The move into ~/.ava/projects was leaving behind a folder holding nothing but my own index file, and reporting it each launch as something in use. My own leftovers are cleared; a real name clash is told once, plainly, and not again.
+
+**Your Decisions folder is memory, not law.** When a project changes direction — the game that started as a shooter and became an RPG — I write the new record, mark the old one superseded, update the context, and plan from there. What you say now outranks what the folder says was decided; I ask one question at most and never "are you sure".
+
+**Saying "plan" no longer spawns the team.** "I'm going to plan this later" or "stop the plan" used to start the specialist orchestration because the word was in the sentence. Announcements and stops are read as what they are.
+
+The desktop IDE got the same release.`,
+    highlights: [
+      'Scroll up while I am replying or running tools and you stay there — a wheel tick up means you are reading; scroll back down or press Jump to latest to follow again.',
+      'A context trim is a quiet grey line with the count, not a red error; and DeepSeek conversations now compress cleanly.',
+      'The "Ava couldn\'t move 1 project" warning on every start is gone — my own leftover folder is cleared, and a real clash is said once.',
+      'The Decisions folder is memory, not law — when a project changes direction I supersede the record and plan from what you say now; and the word "plan" alone no longer spawns the specialist team.',
+    ],
+  },
+  {
+    migration: 451,
+    version: '0.2.96',
+    platform: 'core',
+    toolCount: 125,
+    publishedAt: '2026-09-20 15:30:00+00',
+    title: `Repair in place, propose what is missing, and a notice channel for trims`,
+    body: `Core is the engine every surface runs on. This covers 0.2.94 to 0.2.96.
+
+**Two Gym tools.** \`revise_exercise\` rewrites the writing of an existing entry in place — description, beginner and advanced detail, mistakes, steps, cues, demo prompt, difficulty, pattern, session role — checked before it lands and refused only for findings it would add; the id never changes. \`propose_condition\` queues a contraindication key with its category, severity and reason for the operator to approve, since the keys are a taxonomy users declare against. \`read_exercise\` returns the prose. The Gym prompt says repair in place, never re-land, and reports in three blocks: Done, Issues, Needs you.
+
+**\`context_truncated\` is emitted.** When the summary fails and older messages are dropped from the model's view, the agent emits the event that already existed on the union instead of an error — hosts render it as a notice.
+
+**DeepSeek's thinking switch.** The request shaper maps \`enable_thinking\` to \`thinking: { type: 'enabled' | 'disabled' }\` for DeepSeek, which is the field it honours. Measured: it ignored the flag and its reasoning counted against \`max_tokens\`.
+
+**Decisions block rewritten.** The folder is the project's memory; the user's current word outranks it; a change of direction is a new record, a superseded one, updated context and progress, and a plan from there. One question at most.
+
+**Conductor gate.** A stop or pause phrase, and an announcement ("going to plan", "later", "next"), never trigger orchestration.
+
+**Layout migration.** A legacy leftover that is only Ava's own \`.ava\` scaffold is cleared; collisions are returned separately so a host reports them once.`,
+    highlights: [
+      'revise_exercise rewrites an existing entry in place, gated like write_exercise and refused only for findings it would add; the id never changes.',
+      'propose_condition queues a contraindication key with category, severity and reason for operator approval.',
+      'context_truncated is emitted as a notice; DeepSeek gets the thinking switch it actually honours.',
+      'Decisions are memory, not law; announcements and stops never spawn the persona team; the layout migration clears its own scaffold.',
+    ],
+  },
+  {
     migration: 449,
     version: '0.47.1',
     platform: 'ide',
