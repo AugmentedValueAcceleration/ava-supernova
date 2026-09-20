@@ -632,6 +632,17 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'web_search', 'ask_user', 'get_datetime',
     'switch_mode',
   ]),
+  // The Classroom — the curated course library desk. Same shape as the Gym;
+  // the course tools, kept in step with getClassroomPrefix. web_search is
+  // load-bearing here: a course on a tool has to name the real menu.
+  classroom: new Set([
+    'propose_courses', 'find_course', 'read_course', 'write_course', 'revise_course', 'check_course',
+    'regenerate_cover', 'translate_course', 'propose_category',
+    'browse_library',
+    'memory_save', 'memory_recall', 'memory_update', 'journal_write',
+    'web_search', 'ask_user', 'get_datetime',
+    'switch_mode',
+  ]),
   // Write mode — the author's surface. Markdown is the editable source;
   // Word/PDF are exports. Ships the authoring tool + the supporting cast a
   // writer reaches for (research, images for covers, the file ops the .md

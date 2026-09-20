@@ -2,7 +2,7 @@
 // a learner is an hour of Ava teaching, and a thin one is a bad hour.
 
 import { describe, it, expect } from 'vitest';
-import { checkCourse, COURSE_REFUSAL_KINDS, type CourseCheckInput, type CourseLessonInput } from '../src/learning/course-check.js';
+import { checkCourse, COURSE_REFUSAL_KINDS, type CourseCheckInput, type CheckLessonInput } from '../src/learning/course-check.js';
 
 const NOW = '2026-09-20T12:00:00.000Z';
 
@@ -16,7 +16,7 @@ const step = (kind: 'choice' | 'free_text' | 'code' | 'predict' = 'choice', extr
   },
 });
 
-const lesson = (title = 'Layers', steps: CourseLessonInput['steps'] = [step(), step('free_text'), step('predict')]): CourseLessonInput => ({ title, steps });
+const lesson = (title = 'Layers', steps: CheckLessonInput['steps'] = [step(), step('free_text'), step('predict')]): CheckLessonInput => ({ title, steps });
 
 const good = (): CourseCheckInput => ({
   title: 'GIMP from the First Layer',

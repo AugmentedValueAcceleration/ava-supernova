@@ -29,6 +29,7 @@ import {
   getWorkModePrefix,
   getPantryPrefix,
   getGymPrefix,
+  getClassroomPrefix,
 } from '../src/agent/system-prompt.js';
 import { readOnlyModeToolCeiling, modeCanEditFiles } from '../src/agent/agent.js';
 import { readFileSync } from 'node:fs';
@@ -67,6 +68,7 @@ const MODES: Array<[string, (t: string) => string]> = [
   // file; the tool list is in the prefix text like every other mode.
   ['pantry', (t: string) => getPantryPrefix(t)],
   ['gym', (t: string) => getGymPrefix(t)],
+  ['classroom', (t: string) => getClassroomPrefix(t)],
 ];
 
 /**

@@ -53,19 +53,19 @@ export interface CourseCheckResult {
 }
 
 /** The minimum a step needs to be judged — the authored half of LessonStep. */
-export type CourseStepInput = Pick<LessonStep, 'teach' | 'interaction'> & Partial<Pick<LessonStep, 'id' | 'feedback'>>;
+export type CheckStepInput = Pick<LessonStep, 'teach' | 'interaction'> & Partial<Pick<LessonStep, 'id' | 'feedback'>>;
 
-export interface CourseLessonInput {
+export interface CheckLessonInput {
   title: string;
-  steps?: CourseStepInput[] | null;
+  steps?: CheckStepInput[] | null;
   /** Legacy shape. Present on every course written before the room. */
   content?: string | null;
 }
 
-export interface CourseModuleInput {
+export interface CheckModuleInput {
   title: string;
   description?: string | null;
-  lessons: CourseLessonInput[];
+  lessons: CheckLessonInput[];
 }
 
 export interface CourseCheckInput {
@@ -76,7 +76,7 @@ export interface CourseCheckInput {
   learning_objectives?: string[] | null;
   prerequisites?: string | null;
   target_audience?: string | null;
-  modules: CourseModuleInput[];
+  modules: CheckModuleInput[];
 }
 
 // Mirrors the hub's profanity.ts and the library_paths trigger (migration

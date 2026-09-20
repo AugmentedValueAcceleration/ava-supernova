@@ -37,7 +37,7 @@
 export type AvaModeId =
   | 'work' | 'plan' | 'chat' | 'brainstorm' | 'write' | 'teach'
   | 'security' | 'desktop' | 'health' | 'design' | 'social' | 'news'
-  | 'pantry' | 'gym';
+  | 'pantry' | 'gym' | 'classroom';
 
 export interface ModeTag {
   /** Canonical mode id — the key used by MODE_ALLOWED_TOOLS, personas and the dataset. */
@@ -74,6 +74,8 @@ export const MODE_TAGS: readonly ModeTag[] = [
   // called" while holding it. A desk gets its own list, like the Newsroom.
   { mode: 'pantry', tag: '[Pantry]' },
   { mode: 'gym', tag: '[Gym]' },
+  // The third desk — the curated course library. 20 Sep 2026.
+  { mode: 'classroom', tag: '[Classroom]' },
 ];
 
 /**
