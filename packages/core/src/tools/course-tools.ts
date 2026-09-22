@@ -63,7 +63,7 @@ const LESSON_SCHEMA = {
     difficulty: { type: 'string', enum: LESSON_DIFFICULTIES },
     estimated_minutes: { type: 'integer' },
     learning_objectives: { type: 'array', items: { type: 'string' } },
-    steps: { type: 'array', items: STEP_SCHEMA, description: 'Three or more. Every lesson is steps.' },
+    steps: { type: 'array', items: STEP_SCHEMA, description: 'Three or more — a FLOOR, not a target. As many as the lesson needs.' },
   },
   required: ['title', 'steps'],
 } as const;
@@ -73,7 +73,7 @@ const MODULE_SCHEMA = {
   properties: {
     title: { type: 'string' },
     description: { type: 'string' },
-    lessons: { type: 'array', items: LESSON_SCHEMA, description: 'Two or more.' },
+    lessons: { type: 'array', items: LESSON_SCHEMA, description: 'Two or more — a floor. A big module has more.' },
   },
   required: ['title', 'lessons'],
 } as const;
@@ -238,7 +238,7 @@ export class WriteCourseTool implements Tool {
         estimated_hours: { type: 'number' },
         learning_objectives: { type: 'array', items: { type: 'string' } },
         tags: { type: 'array', items: { type: 'string' } },
-        modules: { type: 'array', items: MODULE_SCHEMA, description: 'Three or more.' },
+        modules: { type: 'array', items: MODULE_SCHEMA, description: 'Three or more — a FLOOR. The subject decides the number: a whole syllabus gets ten if it needs ten.' },
         cover_image_prompt: { type: 'string', description: 'A scene for THIS course — a person doing the thing, the tool visible, no text. Not a room, not a "cover".' },
         seed_id: { type: 'string', description: 'If written from a seed, its id, so the seed leaves the backlog.' },
       },
