@@ -86,6 +86,13 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
   xiaomi: {
     // Absent entirely until 2026-08-16, so BYOK MiMo turns costed at $0.00
     // — the same hole MiniMax had above.
+    'mimo-v2.6-pro':            { inputPerMillion: 0.435, outputPerMillion: 0.87 },
+    'mimo-v2.6-flash':          { inputPerMillion: 0.14,  outputPerMillion: 0.28 },
+    // Ten times Pro for up to 20x the output speed — the whole point of it,
+    // and the one MiMo rate that can surprise someone.
+    'mimo-v2.6-pro-ultraspeed': { inputPerMillion: 4.35,  outputPerMillion: 8.70 },
+    // UNREACHABLE - retained only so existing receipts still cost out, the
+    // same as glm-5.2 below. Retired 2026-09-22 when V2.6 landed.
     'mimo-v2.5-pro': { inputPerMillion: 1.00, outputPerMillion: 3.00 },
     'mimo-v2.5':     { inputPerMillion: 0.40, outputPerMillion: 2.00 },
   },

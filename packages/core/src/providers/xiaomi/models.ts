@@ -1,17 +1,21 @@
 import type { ModelDefinition } from '../../core/types.js';
 
-// Xiaomi MiMo V2.5 family. Released 2026-04-22. Frontier-class open
-// MoE (1T total / 42B active) matching Claude Sonnet 4.6 on agentic
-// multimodal benchmarks and Gemini 3 Pro on Video-MME (87.7 vs 88.4).
-// 1M context, sustains 1,000+ sequential tool calls — the use case
-// pitch is long-running agents.
+// Xiaomi MiMo V2.6 family. Released 2026-09-21, MIT open weights.
+// Pro is 1.02T parameters, Flash 309B; both are full-modality (text,
+// image, video and audio in) with a 1M context and 128K output, and both
+// are pitched at long-horizon agentic work. UltraSpeed is the same Pro
+// served up to 20x faster, at ten times the price — for the cases where
+// latency is the product.
 //
-// BYOK only on Ava. DashScope-style pricing; endpoint base URL is
-// https://api.mimo.xiaomi.com/v1 (OpenAI-compatible).
+// V2.5 (2026-04-22) is retired: it is no longer listed, and its rates
+// stay in audit/cost.ts only so old receipts still cost out.
+//
+// BYOK only on Ava. OpenAI-compatible; base URL https://api.xiaomimimo.com/v1
+// (api.mimo.xiaomi.com does NOT resolve — see index.ts).
 export const XIAOMI_MODELS: ModelDefinition[] = [
   {
-    id: 'mimo-v2.5-pro',
-    name: 'MiMo V2.5-Pro',
+    id: 'mimo-v2.6-pro',
+    name: 'MiMo V2.6-Pro',
     provider: 'xiaomi',
     contextWindow: 1_048_576,
     maxOutputTokens: 131_072,
@@ -19,20 +23,33 @@ export const XIAOMI_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
-    desktopCapable: true, // Long-running-agent MoE — Xiaomi specifically pitched 1,000+ sequential tool calls.
-    pricing: { inputPerMillion: 1.00, outputPerMillion: 3.00 },
+    desktopCapable: true, // Long-horizon agentic MoE, as V2.5 was.
+    pricing: { inputPerMillion: 0.435, outputPerMillion: 0.87 },
   },
   {
-    id: 'mimo-v2.5',
-    name: 'MiMo V2.5',
+    id: 'mimo-v2.6-flash',
+    name: 'MiMo V2.6-Flash',
     provider: 'xiaomi',
     contextWindow: 1_048_576,
     maxOutputTokens: 131_072,
     supportsToolCalls: true,
     supportsStreaming: true,
-    supportsThinking: false,
+    supportsThinking: true,
     supportsVision: true,
     desktopCapable: true,
-    pricing: { inputPerMillion: 0.40, outputPerMillion: 2.00 },
+    pricing: { inputPerMillion: 0.14, outputPerMillion: 0.28 },
+  },
+  {
+    id: 'mimo-v2.6-pro-ultraspeed',
+    name: 'MiMo V2.6-Pro UltraSpeed',
+    provider: 'xiaomi',
+    contextWindow: 1_048_576,
+    maxOutputTokens: 131_072,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 4.35, outputPerMillion: 8.70 },
   },
 ];

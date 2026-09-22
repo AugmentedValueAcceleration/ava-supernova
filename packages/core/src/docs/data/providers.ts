@@ -194,10 +194,11 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'xiaomi',
     name: 'Xiaomi',
     kind: 'byok',
-    notes: 'MiMo V2.5 — open-weight multimodal model tuned for agentic work and long tool-call chains (sustains 1,000+ sequential calls). Released 2026-04-22.',
+    notes: 'MiMo V2.6 — open weights under MIT, full modality (text, image, video and audio in), 1M context, tuned for long-horizon agentic work. Pro is 1.02T parameters, Flash 309B. UltraSpeed is the SAME Pro model served up to 20x faster at ten times the price, so reach for it only when latency is the product. Released 2026-09-21; V2.5 retired the day after.',
     models: [
-      { id: 'mimo-v2.5-pro', displayName: 'MiMo V2.5-Pro', inputPricePerM: 1.00, outputPricePerM: 3.00, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mimo-v2.5',     displayName: 'MiMo V2.5',     inputPricePerM: 0.40, outputPricePerM: 2.00, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'streaming'] },
+      { id: 'mimo-v2.6-pro',            displayName: 'MiMo V2.6-Pro',            inputPricePerM: 0.435, outputPricePerM: 0.87, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mimo-v2.6-flash',          displayName: 'MiMo V2.6-Flash',          inputPricePerM: 0.14,  outputPricePerM: 0.28, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mimo-v2.6-pro-ultraspeed', displayName: 'MiMo V2.6-Pro UltraSpeed', inputPricePerM: 4.35,  outputPricePerM: 8.70, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {
