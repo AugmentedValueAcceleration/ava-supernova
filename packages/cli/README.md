@@ -41,7 +41,7 @@ Bring your own key for any provider, or use Ava-managed models with a free or pa
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash |
 | **Mistral** | Medium 3.5, Small 4, Large 3 |
 | **MiniMax** | M3, M2.7, M2.7 HighSpeed |
-| **Xiaomi** | MiMo V2.5, V2.5-Pro |
+| **Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
 | **Tencent** | Hunyuan Hy3 |
 | **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning |
 | **Custom / Local** | Ollama, LM Studio, vLLM, any standard API-format endpoint |

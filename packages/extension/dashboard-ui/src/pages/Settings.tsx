@@ -58,7 +58,7 @@ const PROVIDERS = [
     name: 'Xiaomi (MiMo)',
     placeholder: '...',
     signupUrl: 'https://platform.xiaomimimo.com',
-    description: 'MiMo V2.5 and V2.5-Pro — 1M context, native multimodal',
+    description: 'MiMo V2.6 — Pro, Flash and Pro UltraSpeed; MIT open weights, 1M context, full modality',
   },
   {
     id: 'tencent' as const,

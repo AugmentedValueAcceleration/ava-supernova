@@ -277,7 +277,7 @@ Every plan gets every managed model. Tiers differ only on monthly credit allowan
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
 | **BYOK — Mistral** | Medium 3.5, Small 4, Large 3 |
 | **BYOK — MiniMax** | M3, M2.7, M2.7 HighSpeed |
-| **BYOK — Xiaomi** | MiMo V2.5, V2.5-Pro |
+| **BYOK — Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
 | **BYOK — Tencent** | Hunyuan Hy3 *(open-weight MoE, 262K context)* |
 | **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning *(open-weight, 1M context)* |
 | **BYOK — Custom** | Ollama, LM Studio, vLLM, any standard API endpoint |
