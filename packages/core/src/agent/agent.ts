@@ -831,6 +831,10 @@ export type AgentEvent =
   | { type: 'context_compression_start' }
   | { type: 'context_compression_end'; originalTokens: number; compressedTokens: number }
   | { type: 'context_truncated'; droppedCount: number }
+  /** The model was cut off at its output limit mid-reply. Never silent: a
+   *  truncated tool call simply never arrives, and the turn used to end as
+   *  though she had chosen to stop. */
+  | { type: 'response_truncated'; hadToolCall: boolean }
   | { type: 'interjection'; content: string }
   | { type: 'done'; finalMessage: AssistantMessage }
   // Auto Mode events — emitted by AutoCoordinator
@@ -1695,6 +1699,10 @@ export class Agent {
     let repeatCount = 0;
     const MAX_SAME_TOOL_REPEATS = 3;
 
+    // A cut-off reply is nudged back into motion exactly once per run; a
+    // second one means smaller pieces are not helping and the turn should end
+    // honestly rather than loop.
+    let truncationRecovered = false;
     while (iterations < MAX_TOOL_CALL_ITERATIONS) {
       iterations++;
       logger.debug(`[agent] ── Iteration ${iterations}/${MAX_TOOL_CALL_ITERATIONS} ── messages=${messages.length}`);
@@ -2101,6 +2109,15 @@ export class Agent {
         tools: toolSchemas.length > 0 ? toolSchemas : undefined,
         tool_choice: toolSchemas.length > 0 ? 'auto' : undefined,
         stream: true,
+        // ASK FOR THE ROOM THE MODEL HAS. This was unset, so every provider
+        // applied its own default — and on DashScope that default is far
+        // below the model's real ceiling. A big tool call (a whole lesson of
+        // steps from the Classroom) hit it mid-arguments, the call never
+        // finished arriving, and the turn ended with whatever prose came
+        // before it, looking exactly like she had decided to stop. Capped at
+        // 32K so one reply cannot eat a 1M-context window, and never more
+        // than the model can actually produce.
+        max_tokens: Math.min(this.model.maxOutputTokens ?? 8192, 32_768),
         // Every iteration of this loop is another call serving the SAME user
         // turn. Tagging them all with one id is what lets a turn be costed as
         // an outcome rather than as N unrelated calls.
@@ -2110,6 +2127,7 @@ export class Agent {
       let assistantMessage: AssistantMessage;
       let promptTokens: number;
       let streamInterrupted;
+      let streamTruncated = false;
       const estimatedInput = this.estimateTokenCount(messages);
       logger.debug(`[agent] Calling streamResponse (est. ${estimatedInput} input tokens, model context: ${this.model.contextWindow})`);
       try {
@@ -2117,6 +2135,7 @@ export class Agent {
         assistantMessage = streamResult.message;
         promptTokens = streamResult.promptTokens;
         streamInterrupted = streamResult.interrupted === true;
+        streamTruncated = streamResult.truncated === true;
         logger.debug(`[agent] streamResponse returned: content=${assistantMessage.content?.length ?? 0} chars, tool_calls=${assistantMessage.tool_calls?.length ?? 0}, promptTokens=${promptTokens}${streamInterrupted ? ' (INTERRUPTED by injection)' : ''}`);
       } catch (error) {
         logger.error(`[agent] streamResponse THREW: ${error instanceof Error ? error.message : String(error)}`);
@@ -2133,6 +2152,29 @@ export class Agent {
       // mis-parse) and the full tool-execution path. The outer loop will
       // drain pendingInterjections at the top of the next iteration and
       // send a fresh request to the model.
+      // CUT OFF AT THE OUTPUT LIMIT, with nothing to execute. The reply
+      // stopped mid-sentence and no tool call arrived, so ending here would
+      // look like she chose to stop — which is exactly how a 16-lesson repair
+      // appeared to fail in silence (23 Sep 2026). Keep the partial text in
+      // the transcript, tell her plainly, and let her continue in smaller
+      // pieces. Once per turn: if it happens twice the loop must not spin.
+      if (streamTruncated && (assistantMessage.tool_calls?.length ?? 0) === 0 && !truncationRecovered) {
+        truncationRecovered = true;
+        messages = [
+          ...messages,
+          assistantMessage,
+          {
+            role: 'user' as const,
+            content:
+              'Your reply was cut off at the output limit — it stopped mid-sentence and no tool call arrived, so nothing ran. '
+              + 'Continue from where you stopped, and make the next piece smaller: one lesson, one module, one tool call at a time. '
+              + 'Do not repeat what you already wrote above.',
+          },
+        ];
+        iterations++;
+        continue;
+      }
+
       if (streamInterrupted) {
         const hasText = typeof assistantMessage.content === 'string' && assistantMessage.content.trim().length > 0;
         if (hasText) {
@@ -2843,12 +2885,13 @@ export class Agent {
     request: ChatCompletionRequest,
     onEvent: AgentEventHandler,
     signal?: AbortSignal,
-  ): Promise<{ message: AssistantMessage; promptTokens: number; interrupted?: boolean }> {
+  ): Promise<{ message: AssistantMessage; promptTokens: number; interrupted?: boolean; truncated?: boolean }> {
     onEvent({ type: 'stream_start' });
 
     let content = '';
     let reasoningContent = '';
     let usage: TokenUsage | undefined;
+    let finishReason: string | null = null;
     // Holds back a written tool call while it streams. Built from the tools
     // actually offered this turn, so it can only ever hide something that
     // recoverWrittenToolCalls would go on to lift out of the finished reply.
@@ -2886,6 +2929,13 @@ export class Agent {
         if (chunk.usage) {
           usage = chunk.usage;
         }
+
+        // Why the model stopped. Nothing read this until 23 Sep 2026, so a
+        // reply cut off at the output limit was indistinguishable from one
+        // that finished — the difference being that a cut-off tool call
+        // never executes.
+        const reason = chunk.choices[0]?.finish_reason;
+        if (reason) finishReason = reason;
 
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
@@ -3092,9 +3142,19 @@ export class Agent {
       cacheHit,
     });
 
+    // A cut-off is reported, always. When it lands mid tool call the call is
+    // simply absent, so without this the turn ends in silence and the work
+    // never happened.
+    if (finishReason === 'length') {
+      const hadToolCall = (message.tool_calls?.length ?? 0) > 0;
+      logger.warn(`[agent] response TRUNCATED at the output limit (model=${this.model.id}, max_tokens=${request.max_tokens ?? 'provider default'}, completion=${usage?.completion_tokens ?? '?'}, tool_calls=${message.tool_calls?.length ?? 0})`);
+      onEvent({ type: 'response_truncated', hadToolCall });
+    }
+
     return {
       message,
       promptTokens: usage?.prompt_tokens ?? 0,
+      truncated: finishReason === 'length',
       ...(interruptedByInjection ? { interrupted: true } : {}),
     };
   }
