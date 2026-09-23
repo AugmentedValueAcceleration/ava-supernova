@@ -102,7 +102,19 @@ export abstract class BaseProvider implements Provider {
    *
    * Still bounded, deliberately: without any ceiling a hung connection would
    * hang the surface forever with no way to tell it apart from thinking.
+   *
+   * SPLIT IN TWO on 23 Sep 2026. One number was doing two different jobs and
+   * failing the harder one. Waiting for the FIRST byte is prefill: the model
+   * has to read the whole prompt before it can say anything, so the wait grows
+   * with the input. A Classroom turn that ran ten web searches and then asked
+   * for a whole course tripped 90s before the first token and was reported as
+   * a stalled stream — measured against Qwen the same day, generation itself
+   * streams steadily (first chunk 1.3s, largest gap between chunks 279ms on a
+   * course-sized reply), so a gap that long between chunks really is a dead
+   * connection, while a gap that long before the first one is just a large
+   * prompt being read.
    */
+  private static readonly STREAM_FIRST_CHUNK_TIMEOUT_MS = 300_000;
   private static readonly STREAM_READ_TIMEOUT_MS = 90_000;
 
   protected async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
@@ -286,25 +298,32 @@ export abstract class BaseProvider implements Provider {
     // Per-chunk read timeout — prevents hanging if stream stalls mid-response.
     // Clears the timer on every successful read to avoid dangling unhandled
     // rejections that can crash the extension host.
+    let sawFirstChunk = false;
     const readWithTimeout = () => {
       // Check abort signal before each read
       if (signal?.aborted) {
         return Promise.reject(new DOMException('Aborted', 'AbortError'));
       }
 
+      // Prefill before the first byte, a stalled stream after it.
+      const budget = sawFirstChunk
+        ? BaseProvider.STREAM_READ_TIMEOUT_MS
+        : BaseProvider.STREAM_FIRST_CHUNK_TIMEOUT_MS;
       let timeoutId: ReturnType<typeof setTimeout>;
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(
           () => reject(new ProviderError(
-            `${this.displayName} stream stalled — no data received for ${BaseProvider.STREAM_READ_TIMEOUT_MS / 1000}s`,
+            sawFirstChunk
+              ? `${this.displayName} stream stalled — no data received for ${budget / 1000}s`
+              : `${this.displayName} sent nothing for ${budget / 1000}s — the request was never answered`,
             this.name,
           )),
-          BaseProvider.STREAM_READ_TIMEOUT_MS,
+          budget,
         );
       });
       // Wrap reader.read() to clear timeout on settle (success or error)
       const readPromise = reader.read().then(
-        (result) => { clearTimeout(timeoutId); return result; },
+        (result) => { clearTimeout(timeoutId); if (!result.done) sawFirstChunk = true; return result; },
         (err) => { clearTimeout(timeoutId); throw err; },
       );
       return Promise.race([readPromise, timeoutPromise]);
