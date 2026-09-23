@@ -116,6 +116,25 @@ export abstract class BaseProvider implements Provider {
    */
   private static readonly STREAM_FIRST_CHUNK_TIMEOUT_MS = 300_000;
   private static readonly STREAM_READ_TIMEOUT_MS = 90_000;
+  /**
+   * Silence allowed once a TOOL CALL has begun streaming.
+   *
+   * MEASURED against DashScope on 23 Sep 2026, same model, back to back:
+   *   plain text   — 1459 chunks, largest gap 279ms
+   *   a tool call  —   10 chunks, largest gap 114,880ms
+   *
+   * The provider buffers tool-call arguments: it emits the call's name almost
+   * at once, then generates the whole argument body in silence and ships it
+   * in a handful of lumps at the end. Nearly two minutes of nothing is not a
+   * dead connection there, it is the normal shape of a large call — and the
+   * Classroom writes courses in single calls tens of thousands of tokens
+   * long, which is how "stream stalled — no data received for 90s" started
+   * appearing on turns that were working perfectly.
+   *
+   * Bounded by what the model can actually emit: max_tokens is capped at 32K
+   * per reply, and this is generous room for that at the observed rate.
+   */
+  private static readonly STREAM_TOOL_CALL_TIMEOUT_MS = 420_000;
 
   protected async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
     // Extract the caller's abort signal (for user cancellation) — it must not
@@ -299,23 +318,31 @@ export abstract class BaseProvider implements Provider {
     // Clears the timer on every successful read to avoid dangling unhandled
     // rejections that can crash the extension host.
     let sawFirstChunk = false;
+    // Set by processLine the moment a tool call starts arriving.
+    let toolCallStarted = false;
     const readWithTimeout = () => {
       // Check abort signal before each read
       if (signal?.aborted) {
         return Promise.reject(new DOMException('Aborted', 'AbortError'));
       }
 
-      // Prefill before the first byte, a stalled stream after it.
-      const budget = sawFirstChunk
-        ? BaseProvider.STREAM_READ_TIMEOUT_MS
-        : BaseProvider.STREAM_FIRST_CHUNK_TIMEOUT_MS;
+      // Three different silences, three different meanings: prefill before
+      // the first byte, a provider generating a buffered tool call, and a
+      // genuinely stalled stream.
+      const budget = !sawFirstChunk
+        ? BaseProvider.STREAM_FIRST_CHUNK_TIMEOUT_MS
+        : toolCallStarted
+          ? BaseProvider.STREAM_TOOL_CALL_TIMEOUT_MS
+          : BaseProvider.STREAM_READ_TIMEOUT_MS;
       let timeoutId: ReturnType<typeof setTimeout>;
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(
           () => reject(new ProviderError(
-            sawFirstChunk
-              ? `${this.displayName} stream stalled — no data received for ${budget / 1000}s`
-              : `${this.displayName} sent nothing for ${budget / 1000}s — the request was never answered`,
+            !sawFirstChunk
+              ? `${this.displayName} sent nothing for ${budget / 1000}s — the request was never answered`
+              : toolCallStarted
+                ? `${this.displayName} stopped part-way through a tool call — nothing for ${budget / 1000}s`
+                : `${this.displayName} stream stalled — no data received for ${budget / 1000}s`,
             this.name,
           )),
           budget,
@@ -347,7 +374,12 @@ export abstract class BaseProvider implements Provider {
           );
         }
 
-        return this.normalizeStreamChunk(parsed);
+        const chunk = this.normalizeStreamChunk(parsed);
+        // The name arrives long before the arguments do, so this flips early
+        // — which is the whole point: the silence that follows is the model
+        // writing the call, not the connection dying.
+        if (chunk?.choices?.[0]?.delta?.tool_calls?.length) toolCallStarted = true;
+        return chunk;
       } catch (err) {
         // Re-throw ProviderErrors (from the check above)
         if (err instanceof ProviderError) throw err;
