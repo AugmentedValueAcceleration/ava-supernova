@@ -240,6 +240,8 @@ export class WriteCourseTool implements Tool {
         tags: { type: 'array', items: { type: 'string' } },
         modules: { type: 'array', items: MODULE_SCHEMA, description: 'Three or more — a FLOOR. The subject decides the number: a whole syllabus gets ten if it needs ten.' },
         cover_image_prompt: { type: 'string', description: 'A scene for THIS course — a person doing the thing, the tool visible, no text. Not a room, not a "cover".' },
+        region: { type: 'string', description: 'ISO country code (GB, DE, IE…) ONLY when the subject IS its jurisdiction — law, tax, benefits, anything where the country is the content. Leave it out for maths, biology, a language, a tool.' },
+        locale_bound: { type: 'boolean', description: 'True with a region: this course must never be translated into other languages, because it describes one country\'s rules. Sets it apart from a course that merely happens to be written in English.' },
         seed_id: { type: 'string', description: 'If written from a seed, its id, so the seed leaves the backlog.' },
       },
       required: ['title', 'description', 'category', 'subject', 'level', 'audience_type', 'prerequisites', 'target_audience', 'learning_objectives', 'modules'],
@@ -276,6 +278,11 @@ export class WriteCourseTool implements Tool {
       tags: strList(args.tags),
       modules: (Array.isArray(args.modules) ? args.modules : []).map(parseModule).filter((m): m is CourseModuleInput => !!m),
       cover_image_prompt: str(args.cover_image_prompt) || null,
+      // A region without the lock, or a lock without a region, is always a
+      // mistake: one gets translated when it must not be, the other is
+      // untranslatable for no stated reason.
+      region: str(args.region).toUpperCase() || null,
+      locale_bound: args.locale_bound === true || !!str(args.region),
       seed_id: str(args.seed_id) || null,
     };
 
@@ -333,6 +340,8 @@ export class ReviseCourseTool implements Tool {
         learning_objectives: { type: 'array', items: { type: 'string' } },
         tags: { type: 'array', items: { type: 'string' } },
         cover_image_prompt: { type: 'string', description: 'Saved on the course; does not re-shoot (regenerate_cover does).' },
+        region: { type: 'string', description: 'ISO country code, or empty to unlock a course that is not actually jurisdiction-bound.' },
+        locale_bound: { type: 'boolean' },
         modules: { type: 'array', items: MODULE_SCHEMA, description: 'Replaces EVERY module.' },
         module_index: { type: 'integer', minimum: 1 },
         module: { ...MODULE_SCHEMA, required: [] as string[], description: 'Replaces the module at module_index. Lessons given replace all of its lessons.' },
@@ -363,6 +372,11 @@ export class ReviseCourseTool implements Tool {
       }
       meta.category = str(args.category);
     }
+    if (typeof args.region === 'string') {
+      meta.region = str(args.region).toUpperCase() || null;
+      meta.locale_bound = !!meta.region;
+    }
+    if (typeof args.locale_bound === 'boolean') meta.locale_bound = args.locale_bound;
     if (oneOf(args.level, COURSE_LEVELS)) meta.level = oneOf(args.level, COURSE_LEVELS);
     if (oneOf(args.audience_type, COURSE_AUDIENCES)) meta.audience_type = oneOf(args.audience_type, COURSE_AUDIENCES);
     if (num(args.estimated_hours) !== null) meta.estimated_hours = num(args.estimated_hours);

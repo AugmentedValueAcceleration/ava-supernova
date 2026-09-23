@@ -53,6 +53,14 @@ export interface CourseInput {
   modules: CourseModuleInput[];
   /** A scene for THIS course — a person doing the thing, not a room. */
   cover_image_prompt?: string | null;
+  /** ISO country code when the subject IS its jurisdiction — law, tax,
+   *  benefits, anything where the country is the content rather than the
+   *  setting. Null for every other course. */
+  region?: string | null;
+  /** True when the course must NOT be translated: it is tied to a place, not
+   *  a language. "Everyday law in Germany" in Polish would read as though it
+   *  applied in Poland. */
+  locale_bound?: boolean;
   seed_id?: string | null;
 }
 
@@ -60,7 +68,7 @@ export interface CourseInput {
  *  tool takes them 1-based, the way the check reports them. Whatever is given
  *  replaces that part whole. */
 export interface CourseRevision {
-  meta?: Partial<Pick<CourseInput, 'title' | 'description' | 'category' | 'subject' | 'level' | 'audience_type' | 'goal' | 'prerequisites' | 'target_audience' | 'estimated_hours' | 'learning_objectives' | 'tags' | 'cover_image_prompt'>>;
+  meta?: Partial<Pick<CourseInput, 'title' | 'description' | 'category' | 'subject' | 'level' | 'audience_type' | 'goal' | 'prerequisites' | 'target_audience' | 'estimated_hours' | 'learning_objectives' | 'tags' | 'cover_image_prompt' | 'region' | 'locale_bound'>>;
   /** Replace every module. */
   modules?: CourseModuleInput[];
   /** Replace one module. */
@@ -86,6 +94,8 @@ export interface CourseSnapshot {
   learning_objectives: string[];
   tags: string[];
   status: string;
+  region: string | null;
+  locale_bound: boolean;
   modules: CourseModuleInput[];
   cover: { exists: boolean; prompt: string | null };
   translations: { locales: number; missing: string[] };
@@ -109,6 +119,9 @@ export interface CourseSeedSuggestion {
   audience_type: CourseAudience;
   goal: string;
   why: string;
+  /** Set only when the subject IS its jurisdiction. */
+  region?: string | null;
+  locale_bound?: boolean;
 }
 
 export interface CategoryProposal {
