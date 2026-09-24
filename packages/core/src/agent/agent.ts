@@ -2117,7 +2117,7 @@ export class Agent {
         // before it, looking exactly like she had decided to stop. Capped at
         // 32K so one reply cannot eat a 1M-context window, and never more
         // than the model can actually produce.
-        max_tokens: Math.min(this.model.maxOutputTokens ?? 8192, 32_768),
+        max_tokens: this.model.maxOutputTokens ?? 32_768,
         // Every iteration of this loop is another call serving the SAME user
         // turn. Tagging them all with one id is what lets a turn be costed as
         // an outcome rather than as N unrelated calls.
@@ -3280,11 +3280,33 @@ export class Agent {
   ): Promise<Message[]> {
     onEvent({ type: 'tool_call_start', toolCall });
 
+    // A tool call we cannot read used to become an EMPTY one, silently. The
+    // tool then reported whatever an empty call looks like to it — for
+    // write_course, "0 modules is not a course" — and the model spent six
+    // turns rewriting perfectly good work to fix punctuation that was never
+    // wrong (24 Sep 2026). The arguments had simply been cut off partway
+    // through. Say that, and say it to the model, so it shortens the call
+    // instead of doubting itself.
     let parsedArgs: Record<string, unknown>;
+    const rawArgs = toolCall.function.arguments ?? '';
     try {
-      parsedArgs = JSON.parse(toolCall.function.arguments);
+      parsedArgs = JSON.parse(rawArgs);
     } catch {
-      parsedArgs = {};
+      const looksTruncated = rawArgs.length > 0;
+      logger.error(`[agent] tool call ${toolCall.function.name} arguments UNREADABLE (${rawArgs.length} chars) — almost certainly cut off at the output limit`);
+      const message = looksTruncated
+        ? `Your ${toolCall.function.name} call did not arrive in one piece — it was cut off after ${rawArgs.length} characters, part-way through, so nothing could be read from it and NOTHING was saved. This is not a formatting mistake on your part and re-checking your punctuation will not help. Send the same work in smaller calls: fewer modules or lessons per call, then grow it with the revise tool.`
+        : `Your ${toolCall.function.name} call arrived empty. Nothing was saved.`;
+      onEvent({
+        type: 'tool_call_end',
+        toolCall,
+        result: message,
+        success: false,
+      });
+      return [
+        ...messages,
+        { role: 'tool' as const, tool_call_id: toolCall.id, content: message },
+      ];
     }
 
     const toolRunContext = {

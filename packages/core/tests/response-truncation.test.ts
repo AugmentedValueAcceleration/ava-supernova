@@ -64,9 +64,9 @@ describe('a reply cut off at the output limit', () => {
   it('asks for the room the model has instead of the provider default', async () => {
     const { provider, requests } = cutOffProvider(['done']);
     await makeAgent(provider).run(say('hello'), () => {});
-    // 131_072 capped to 32_768 — enough for a large tool call, not enough for
-    // one reply to eat a 1M window.
-    expect(requests[0].max_tokens).toBe(32_768);
+    // The model's own limit, not a cap of ours. A 32K cap cut a whole course
+    // in half and the wreckage was reported to her as "0 modules".
+    expect(requests[0].max_tokens).toBe(131_072);
   });
 
   it('is REPORTED rather than ending the turn in silence', async () => {
