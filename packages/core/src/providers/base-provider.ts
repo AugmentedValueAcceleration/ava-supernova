@@ -136,6 +136,53 @@ export abstract class BaseProvider implements Provider {
    */
   private static readonly STREAM_TOOL_CALL_TIMEOUT_MS = 420_000;
 
+  /**
+   * Node's own ceiling on silence, which sits UNDER all of the above.
+   *
+   * Node's HTTP layer gives a response body 300 seconds between bytes and
+   * then destroys the connection with `TypeError: terminated`. A whole course
+   * written in one tool call is silent for longer than that — measured at
+   * 307.5s to failure on 24 Sep 2026, and 144.7s to success once the limit
+   * was lifted — so our own budgets never got a say and the turn died with a
+   * one-word error that named nothing.
+   *
+   * Raised rather than removed: 600s is longer than every budget above, so
+   * OUR guard fires first and says which silence it was, while a genuinely
+   * hung socket still cannot hang the surface for ever.
+   */
+  private static readonly HTTP_BODY_TIMEOUT_MS = 600_000;
+
+  /**
+   * A dispatcher with that ceiling, for our requests only.
+   *
+   * Per-request rather than global: changing the global one would relax the
+   * guard for every fetch in the process, including the ones that SHOULD give
+   * up quickly. Built lazily because Node only creates its dispatcher on the
+   * first fetch, and left undefined anywhere the internals are not there —
+   * a browser, or a future Node that moves them — where the request simply
+   * runs with the default and nothing breaks.
+   */
+  private static patientDispatcher: unknown | null | undefined;
+
+  private static getPatientDispatcher(): unknown | undefined {
+    if (BaseProvider.patientDispatcher !== undefined) {
+      return BaseProvider.patientDispatcher ?? undefined;
+    }
+    BaseProvider.patientDispatcher = null;
+    try {
+      const current = (globalThis as Record<symbol, unknown>)[Symbol.for('undici.globalDispatcher.1')];
+      const Agent = (current as { constructor?: new (o: unknown) => unknown } | undefined)?.constructor;
+      if (!Agent) return undefined;
+      BaseProvider.patientDispatcher = new Agent({
+        bodyTimeout: BaseProvider.HTTP_BODY_TIMEOUT_MS,
+        headersTimeout: BaseProvider.STREAM_FIRST_CHUNK_TIMEOUT_MS,
+      });
+    } catch {
+      BaseProvider.patientDispatcher = null;
+    }
+    return BaseProvider.patientDispatcher ?? undefined;
+  }
+
   protected async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
     // Extract the caller's abort signal (for user cancellation) — it must not
     // be overwritten by our internal timeout controller.
@@ -160,7 +207,13 @@ export abstract class BaseProvider implements Provider {
       try {
         // Remove caller signal from init — our combined controller handles it
         const { signal: _ignored, ...restInit } = init;
-        response = await fetch(url, { ...restInit, signal: controller.signal });
+        const dispatcher = BaseProvider.getPatientDispatcher();
+        response = await fetch(url, {
+          ...restInit,
+          signal: controller.signal,
+          // Node reads this off the init object; anywhere else it is ignored.
+          ...(dispatcher ? { dispatcher } : {}),
+        } as RequestInit);
       } catch (err: unknown) {
         clearTimeout(timeoutId);
         callerSignal?.removeEventListener('abort', onCallerAbort);
