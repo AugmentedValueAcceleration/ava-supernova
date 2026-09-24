@@ -12,6 +12,7 @@ import { getTextContent } from '../core/types.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { ToolExecutionContext } from '../tools/types.js';
 import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/constants.js';
+import type { AvaModeId } from './mode-tags.js';
 import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
 import { modeForTaggedText } from './mode-tags.js';
@@ -1041,6 +1042,8 @@ export class Agent {
    * turns (e.g. switches from Work to Plan via the [Plan Mode] prefix).
    */
   private lastDetectedMode: AvaMode | null = null;
+  /** The room the caller said this is, if it said. See `mode` in the options. */
+  private readonly declaredMode: AvaModeId | undefined;
 
   constructor(opts: {
     provider: Provider;
@@ -1060,6 +1063,23 @@ export class Agent {
      * events get the correct attribution.
      */
     surface?: AvaSurface;
+    /**
+     * The room this turn is in, when the CALLER already knows.
+     *
+     * Mode is otherwise worked out by reading a literal tag off the user's
+     * message text, which is fine for a person typing `::` in an editor and
+     * wrong for a surface that opened a specific room deliberately. On
+     * 24 Sep 2026 a Classroom turn ran as code mode: the tag did not reach
+     * the detector, every course tool vanished from the turn, and rather
+     * than being told she had no way to write a course, Ava wrote a report
+     * of a course that did not exist — with an id, a module count and a gate
+     * verdict, none of it real.
+     *
+     * The platform knows which room it opened. Passing it removes the guess.
+     * The surface rule still applies: a declared mode is filtered the same
+     * way a detected one is.
+     */
+    mode?: AvaModeId;
     /** Optional session UUID. Defaults to a fresh UUID per Agent. */
     sessionId?: string;
     /** Optional secret-grant callback for the secret_request tool. */
@@ -1087,6 +1107,7 @@ export class Agent {
       surface: sf === 'extension' ? 'ext' : sf,
     };
     this.surface = sf;
+    this.declaredMode = opts.mode;
     this.sessionId = opts.sessionId ?? randomUUID();
     this.loopPreventionEnabled = opts.loopPreventionEnabled ?? true;
   }
@@ -1256,7 +1277,10 @@ export class Agent {
    * assuming one implicit one was enough.
    */
   private detectModeForSurface(messages: Message[]): string | null {
-    const mode = detectModeFromMessages(messages);
+    // What the caller declared beats what the text looks like. A surface that
+    // opened a room knows the answer; the tag is a fallback for the ones that
+    // do not, like a person typing a prefix by hand.
+    const mode = this.declaredMode ?? detectModeFromMessages(messages);
     if (mode === 'desktop' && this.toolContext.sharedState?.clientSurface === 'extension') {
       return null;
     }
