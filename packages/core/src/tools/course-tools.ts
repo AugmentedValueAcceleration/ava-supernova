@@ -127,6 +127,34 @@ function parseModule(v: unknown): CourseModuleInput | null {
 const findingsOut = (findings: Array<{ kind: string; where: string; message: string }>) =>
   findings.map((f) => `${f.kind} — ${f.where}: ${f.message}`);
 
+/**
+ * "No course with that id" is where a turn used to stop dead. Say what the id
+ * actually IS instead: a seed (the id printed in the brief, one line from the
+ * one the tool wants), something deleted, or a lookup that failed — which is
+ * not the same as a course that is missing, and must never read like one.
+ */
+async function explainMissingId(store: CourseStore, id: string, tool: string): Promise<string> {
+  if (!id) return `${tool} requires a course_id.`;
+  let what;
+  try {
+    what = await store.identify(id);
+  } catch {
+    return `No course with id ${id}, and the check for what that id is did not answer either.`;
+  }
+  switch (what.kind) {
+    case 'seed':
+      return what.courseId
+        ? `That is the SEED id for "${what.title}", not the course id. The course written from it is ${what.courseId} — use that.`
+        : `That is the SEED id for "${what.title}". No course has been written from it yet, so there is nothing to read: write it first with write_course, passing this id as seed_id.`;
+    case 'malformed':
+      return `"${id}" is not a course id. Course ids are uuids — find_course returns them.`;
+    case 'lookup_failed':
+      return `The library could not be reached to look up ${id} (${what.error}). This is NOT a missing course — do not conclude the course is gone, and do not rewrite it. Try again.`;
+    default:
+      return `No course with id ${id}. It may have been deleted since you last saw it — find_course to get the current id rather than working from one you remember.`;
+  }
+}
+
 /** Find the honest gaps and seed the backlog with them. */
 export class ProposeCoursesTool implements Tool {
   readonly name = 'propose_courses';
@@ -205,8 +233,9 @@ export class ReadCourseTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const store = storeOf(context);
     if (!store) return { success: false, output: NOT_HERE };
-    const snapshot = await store.readCourse(str(args.course_id ?? args.id));
-    if (!snapshot) return { success: false, output: 'No course with that id.' };
+    const id = str(args.course_id ?? args.id);
+    const snapshot = await store.readCourse(id);
+    if (!snapshot) return { success: false, output: await explainMissingId(store, id, 'read_course') };
     return { success: true, output: JSON.stringify(snapshot) };
   }
 }
@@ -451,8 +480,9 @@ export class CheckCourseTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const store = storeOf(context);
     if (!store) return { success: false, output: NOT_HERE };
-    const verdict = await store.recheck(str(args.course_id ?? args.id));
-    if (!verdict) return { success: false, output: 'No course with that id.' };
+    const checkId = str(args.course_id ?? args.id);
+    const verdict = await store.recheck(checkId);
+    if (!verdict) return { success: false, output: await explainMissingId(store, checkId, 'check_course') };
     return { success: true, output: JSON.stringify({ status: verdict.status, checked_at: verdict.checked_at, findings: findingsOut(verdict.findings) }) };
   }
 }

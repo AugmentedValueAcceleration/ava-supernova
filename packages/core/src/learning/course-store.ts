@@ -129,6 +129,17 @@ export interface CategoryProposal {
   reason: string;
 }
 
+export type IdentifiedId =
+  /** A seed in the backlog — and the course written from it, if there is one. */
+  | { kind: 'seed'; title: string; courseId: string | null }
+  /** Well-formed, but nothing in the library has it. */
+  | { kind: 'unknown' }
+  /** Not a uuid at all. */
+  | { kind: 'malformed' }
+  /** The lookup itself failed — NOT the same as "not found", and saying so
+   *  stops a database problem being read as a missing course. */
+  | { kind: 'lookup_failed'; error: string };
+
 export interface CourseStore {
   /** Land a course as a DRAFT. The tool has already run the gate. */
   save(course: CourseInput): Promise<{ id: string | null; error?: string }>;
@@ -150,4 +161,9 @@ export interface CourseStore {
   proposeSeeds(brief: { category?: string; level?: string; audience?: string; count?: number }): Promise<CourseSeedSuggestion[]>;
   proposeCategory(proposal: CategoryProposal): Promise<{ ok: boolean; error?: string; existing?: string }>;
   listCategories(): Promise<Array<{ slug: string; name: string }>>;
+  /** What IS this id? Asked only when a course lookup came back empty, so
+   *  "no course with that id" can say something useful instead of ending the
+   *  trail. A seed id is the common confusion — it is the id printed in the
+   *  brief, right next to the one the tool wants. */
+  identify(id: string): Promise<IdentifiedId>;
 }
