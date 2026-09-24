@@ -23,10 +23,42 @@ function storeOf(context: ToolExecutionContext): CourseStore | undefined {
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
-const strList = (v: unknown): string[] => (Array.isArray(v) ? v.map(String).map((s) => s.trim()).filter(Boolean) : []);
+/**
+ * An array, or the JSON text of one.
+ *
+ * Models hand back `modules: "[{...}]"` often enough that treating it as "not
+ * an array" is a silent data loss: the course arrives with every field but
+ * its content, the gate refuses it as thin, and the refusal blames the
+ * writing rather than the one pair of quotes that caused it.
+ */
+const list = (v: unknown): unknown[] => {
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string' && v.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(v) as unknown;
+      if (Array.isArray(parsed)) return parsed;
+    } catch { /* not JSON after all — treat it as absent */ }
+  }
+  return [];
+};
+const strList = (v: unknown): string[] => list(v).map(String).map((s) => s.trim()).filter(Boolean);
+/** Was a list GIVEN at all — as against parsing to nothing. Revisions turn on it: an empty list means "remove these", absent means "leave them alone". */
+const gaveList = (v: unknown): boolean => Array.isArray(v) || (typeof v === 'string' && v.trim().startsWith('['));
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-const oneOf = <T extends string>(v: unknown, allowed: readonly T[]): T | undefined =>
-  typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : undefined;
+const oneOf = <T extends string>(v: unknown, allowed: readonly T[]): T | undefined => {
+  if (typeof v !== 'string') return undefined;
+  const want = v.trim().toLowerCase().replace(/[\s_-]+/g, ' ');
+  // Case and spacing are not the point. "Professional Development",
+  // "professional development" and "Professional_development" all mean the
+  // one value in the list, and refusing them taught nothing.
+  return (allowed as readonly string[]).find((a) => a.toLowerCase().replace(/[\s_-]+/g, ' ') === want) as T | undefined;
+};
+
+/** What arrived, quoted, for an error that has to be actionable. */
+const got = (v: unknown): string =>
+  v === undefined ? 'nothing'
+    : typeof v === 'string' ? `"${v}"`
+      : JSON.stringify(v).slice(0, 80);
 
 /** JSON schema for one authored step, shared by write and revise. */
 const STEP_SCHEMA = {
@@ -90,7 +122,7 @@ function parseStep(v: unknown): CourseStepInput | null {
     interaction: {
       kind,
       prompt: str(it.prompt),
-      ...(Array.isArray(it.options) ? { options: strList(it.options) } : {}),
+      ...(gaveList(it.options) ? { options: strList(it.options) } : {}),
       ...(str(it.answer) ? { answer: str(it.answer) } : {}),
       ...(str(it.evaluation) ? { evaluation: str(it.evaluation) } : {}),
       ...(str(it.starter) ? { starter: String(it.starter) } : {}),
@@ -109,7 +141,7 @@ function parseLesson(v: unknown): CourseLessonInput | null {
     ...(oneOf(o.difficulty, LESSON_DIFFICULTIES) ? { difficulty: oneOf(o.difficulty, LESSON_DIFFICULTIES) } : {}),
     estimated_minutes: num(o.estimated_minutes),
     learning_objectives: strList(o.learning_objectives),
-    steps: (Array.isArray(o.steps) ? o.steps : []).map(parseStep).filter((s): s is CourseStepInput => !!s),
+    steps: list(o.steps).map(parseStep).filter((s): s is CourseStepInput => !!s),
   };
 }
 
@@ -120,7 +152,7 @@ function parseModule(v: unknown): CourseModuleInput | null {
   return {
     title,
     description: str(o.description) || null,
-    lessons: (Array.isArray(o.lessons) ? o.lessons : []).map(parseLesson).filter((l): l is CourseLessonInput => !!l),
+    lessons: list(o.lessons).map(parseLesson).filter((l): l is CourseLessonInput => !!l),
   };
 }
 
@@ -284,9 +316,38 @@ export class WriteCourseTool implements Tool {
     const level = oneOf(args.level, COURSE_LEVELS);
     const audience = oneOf(args.audience_type, COURSE_AUDIENCES);
     const category = str(args.category);
-    if (!str(args.title) || !level || !audience || !category) {
-      return { success: false, output: `write_course requires title, category, level (${COURSE_LEVELS.join(' | ')}) and audience_type (${COURSE_AUDIENCES.join(' | ')}).` };
+    // One message per field that is actually wrong, with what arrived. The
+    // old one listed all four whatever the fault was, so a single mistyped
+    // value read as "you sent none of this" — and the fix was invisible.
+    const missing: string[] = [];
+    if (!str(args.title)) missing.push(`title — got ${got(args.title)}`);
+    if (!category) missing.push(`category — got ${got(args.category)}; it is a slug like "software_development"`);
+    if (!level) missing.push(`level — got ${got(args.level)}; one of ${COURSE_LEVELS.join(' | ')}`);
+    if (!audience) missing.push(`audience_type — got ${got(args.audience_type)}; one of ${COURSE_AUDIENCES.join(' | ')}`);
+    if (missing.length) {
+      const bare = Object.keys(args).length === 0;
+      return {
+        success: false,
+        output: bare
+          ? 'write_course arrived with no arguments at all — nothing was saved. Send the course again; if it keeps arriving empty it is too large for one call, so send fewer modules and grow it with revise_course.'
+          : `write_course could not use ${missing.length === 1 ? 'one field' : `${missing.length} fields`}:\n- ${missing.join('\n- ')}\nEverything else you sent was fine — fix ${missing.length === 1 ? 'that field' : 'those fields'} and call again.`,
+      };
     }
+    // Count what arrived against what survived parsing. A module without a
+    // title is dropped silently, and a course that loses every module that
+    // way reads to the gate as a course that was never written — so say it
+    // here, where the cause is still visible.
+    const rawModules = list(args.modules);
+    const parsedModules = rawModules.map(parseModule).filter((m): m is CourseModuleInput => !!m);
+    if (!parsedModules.length) {
+      return {
+        success: false,
+        output: rawModules.length
+          ? `None of the ${rawModules.length} modules could be read — every one needs a "title" string, and lessons need one too. Nothing was saved.`
+          : `write_course arrived with no modules — got ${got(args.modules)}. A course is its modules; nothing was saved. If the call is being cut off, send fewer modules now and add the rest with revise_course.`,
+      };
+    }
+
     const categories = await store.listCategories();
     if (!categories.some((c) => c.slug === category)) {
       return { success: false, output: `No category "${category}". The library has: ${categories.map((c) => `${c.slug} (${c.name})`).join(', ')}. If none is right, propose_category.` };
@@ -305,7 +366,7 @@ export class WriteCourseTool implements Tool {
       estimated_hours: num(args.estimated_hours),
       learning_objectives: strList(args.learning_objectives),
       tags: strList(args.tags),
-      modules: (Array.isArray(args.modules) ? args.modules : []).map(parseModule).filter((m): m is CourseModuleInput => !!m),
+      modules: parsedModules,
       cover_image_prompt: str(args.cover_image_prompt) || null,
       // A region without the lock, or a lock without a region, is always a
       // mistake: one gets translated when it must not be, the other is
@@ -409,13 +470,22 @@ export class ReviseCourseTool implements Tool {
     if (oneOf(args.level, COURSE_LEVELS)) meta.level = oneOf(args.level, COURSE_LEVELS);
     if (oneOf(args.audience_type, COURSE_AUDIENCES)) meta.audience_type = oneOf(args.audience_type, COURSE_AUDIENCES);
     if (num(args.estimated_hours) !== null) meta.estimated_hours = num(args.estimated_hours);
-    if (Array.isArray(args.learning_objectives)) meta.learning_objectives = strList(args.learning_objectives);
-    if (Array.isArray(args.tags)) meta.tags = strList(args.tags);
+    if (gaveList(args.learning_objectives)) meta.learning_objectives = strList(args.learning_objectives);
+    if (gaveList(args.tags)) meta.tags = strList(args.tags);
     if (Object.keys(meta).length) revision.meta = meta;
 
     const mi = num(args.module_index), li = num(args.lesson_index), si = num(args.step_index);
-    if (Array.isArray(args.modules)) {
-      revision.modules = args.modules.map(parseModule).filter((m): m is CourseModuleInput => !!m);
+    if (gaveList(args.modules)) {
+      const raw = list(args.modules);
+      revision.modules = raw.map(parseModule).filter((m): m is CourseModuleInput => !!m);
+      if (!revision.modules.length) {
+        return {
+          success: false,
+          output: raw.length
+            ? `None of the ${raw.length} modules could be read — every one needs a "title" string. Nothing was changed.`
+            : 'revise_course was given an empty modules list, which would delete every module. Nothing was changed. To replace one module use `module` with module_index.',
+        };
+      }
     } else if (args.step !== undefined) {
       if (mi === null || li === null || si === null) return { success: false, output: 'A step revision needs module_index, lesson_index and step_index (1-based).' };
       const step = parseStep(args.step);
@@ -430,8 +500,8 @@ export class ReviseCourseTool implements Tool {
         ...(oneOf(o.type, LESSON_TYPES) ? { type: oneOf(o.type, LESSON_TYPES) } : {}),
         ...(oneOf(o.difficulty, LESSON_DIFFICULTIES) ? { difficulty: oneOf(o.difficulty, LESSON_DIFFICULTIES) } : {}),
         ...(num(o.estimated_minutes) !== null ? { estimated_minutes: num(o.estimated_minutes) } : {}),
-        ...(Array.isArray(o.learning_objectives) ? { learning_objectives: strList(o.learning_objectives) } : {}),
-        ...(Array.isArray(o.steps) ? { steps: o.steps.map(parseStep).filter((s): s is CourseStepInput => !!s) } : {}),
+        ...(gaveList(o.learning_objectives) ? { learning_objectives: strList(o.learning_objectives) } : {}),
+        ...(gaveList(o.steps) ? { steps: list(o.steps).map(parseStep).filter((s): s is CourseStepInput => !!s) } : {}),
       };
     } else if (args.module !== undefined) {
       if (mi === null) return { success: false, output: 'A module revision needs module_index (1-based).' };
@@ -440,7 +510,7 @@ export class ReviseCourseTool implements Tool {
         index: mi - 1,
         ...(str(o.title) ? { title: str(o.title) } : {}),
         ...(str(o.description) ? { description: str(o.description) } : {}),
-        ...(Array.isArray(o.lessons) ? { lessons: o.lessons.map(parseLesson).filter((l): l is CourseLessonInput => !!l) } : {}),
+        ...(gaveList(o.lessons) ? { lessons: list(o.lessons).map(parseLesson).filter((l): l is CourseLessonInput => !!l) } : {}),
       };
     }
 
