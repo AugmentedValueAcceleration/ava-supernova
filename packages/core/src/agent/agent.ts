@@ -637,7 +637,11 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // load-bearing here: a course on a tool has to name the real menu.
   classroom: new Set([
     'propose_courses', 'find_course', 'read_course', 'write_course', 'revise_course', 'check_course',
-    'regenerate_cover', 'translate_course', 'propose_category',
+    // No translate_course: nineteen locales inside a writing turn is twenty
+    // minutes of model calls hanging off the end of a course, and it was
+    // taking the connection down with it. The operator translates from the
+    // Curated Courses page, where it is a button with a count on it.
+    'regenerate_cover', 'propose_category',
     'browse_library',
     'memory_save', 'memory_recall', 'memory_update', 'journal_write',
     'web_search', 'ask_user', 'get_datetime',
