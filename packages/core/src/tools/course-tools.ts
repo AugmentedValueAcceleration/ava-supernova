@@ -10,7 +10,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { checkCourse, COURSE_REFUSAL_KINDS, COURSE_INCOMPLETE_KINDS } from '../learning/course-check.js';
-import { parseReviewFinding, describeReviewKinds, isRepairKind, type ReviewFinding } from '../learning/course-review.js';
+import { parseReviewFinding, describeReviewKinds, type ReviewFinding } from '../learning/course-review.js';
 import {
   COURSE_LEVELS, COURSE_AUDIENCES, LESSON_TYPES, LESSON_DIFFICULTIES,
   type CourseStore, type CourseInput, type CourseRevision, type CourseStepInput, type CourseLessonInput, type CourseModuleInput,
@@ -898,21 +898,29 @@ export class ReviewCourseTool implements Tool {
     const fault = listFault(args.findings, 'findings');
     if (fault) return { success: false, output: `${fault} Nothing was recorded.` };
 
-    // All or nothing. A half-recorded review is worse than none: the operator
-    // reads a list believing it is what was found, and acts on the gap.
+    // Record what is usable; say plainly what is not.
+    //
+    // This was all-or-nothing, and on 25 Sep 2026 one finding with no
+    // replacement value threw away the ten sound ones sent with it. The risk
+    // worth guarding against is a review that LOOKS complete while quietly
+    // missing things — so the answer is to name every gap, not to discard the
+    // work. A finding that cannot be rendered at all is dropped and named; a
+    // repair that cannot be made approvable is demoted to a judgement by
+    // parseReviewFinding and keeps its message.
     const findings: ReviewFinding[] = [];
-    const problems: string[] = [];
+    const unusable: string[] = [];
     raw.forEach((r, i) => {
       const parsed = parseReviewFinding(r, i);
-      if (typeof parsed === 'string') problems.push(parsed);
+      if (typeof parsed === 'string') unusable.push(parsed);
       else findings.push(parsed);
     });
-    if (problems.length) {
+    if (!findings.length && unusable.length) {
       return {
         success: false,
-        output: `The review was not recorded — ${problems.length} of ${raw.length} findings could not be used:\n- ${problems.join('\n- ')}\nFix those and send the whole review again.`,
+        output: `None of the ${raw.length} findings could be read, so nothing was recorded:\n- ${unusable.join('\n- ')}`,
       };
     }
+    const demoted = findings.filter((f) => f.note);
 
     const saved = await store.saveReview({
       course_id: id,
@@ -923,8 +931,12 @@ export class ReviewCourseTool implements Tool {
     });
     if (!saved.ok) return { success: false, output: `Could not record the review: ${saved.error ?? 'unknown error'}` };
 
-    const repairs = findings.filter((f) => isRepairKind(f.kind));
-    const raised = findings.filter((f) => !isRepairKind(f.kind));
+    // Split on whether there is something to APPROVE, not on the kind. A
+    // repair demoted for want of an exact replacement keeps its kind but has
+    // no button, so counting it among the approvable ones would promise the
+    // operator a click that is not there.
+    const repairs = findings.filter((f) => !!f.fix);
+    const raised = findings.filter((f) => !f.fix);
     return {
       success: true,
       output: JSON.stringify({
@@ -932,10 +944,18 @@ export class ReviewCourseTool implements Tool {
         course: snapshot.title,
         reviewed: { modules: snapshot.modules.length, lessons: snapshot.modules.reduce((n, m) => n + m.lessons.length, 0) },
         proposed_repairs: repairs.map((f) => `[${f.kind}] ${whereOf(f)} — ${f.message} (${JSON.stringify(f.fix?.from ?? '')} → ${JSON.stringify(f.fix?.to ?? '')})`),
-        raised: raised.map((f) => `[${f.kind}] ${whereOf(f)} — ${f.message}`),
+        raised: raised.map((f) => `[${f.kind}] ${whereOf(f)} — ${f.message}${f.note ? ` [${f.note}]` : ''}`),
+        ...(demoted.length ? {
+          // Recorded, but without a button. Said out loud so the next review
+          // carries the value rather than repeating the omission.
+          no_button: demoted.map((f) => `${f.kind} at ${whereOf(f)} — ${f.note}`),
+        } : {}),
+        ...(unusable.length ? { not_recorded: unusable } : {}),
         next: findings.length === 0
           ? 'Recorded as read with nothing found. It is ready for the operator to translate.'
-          : `Recorded. NOTHING has been changed: the operator approves each repair with a button, and the raised items are for them to decide. Say in your report what you found, ${repairs.length} to approve and ${raised.length} to consider.`,
+          : `Recorded. NOTHING has been changed: the operator approves each repair with a button, and the raised items are for them to decide. Say in your report what you found, ${repairs.length} to approve and ${raised.length} to consider.`
+            + (demoted.length ? ` ${demoted.length} of them arrived without an exact replacement, so they were kept as judgements with no button — give fix.to next time and they become one-click.` : '')
+            + (unusable.length ? ` ${unusable.length} could not be read at all and were NOT recorded; they are listed under not_recorded, and are yours to send again.` : ''),
       }),
     };
   }

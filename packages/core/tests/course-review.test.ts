@@ -69,25 +69,47 @@ describe('a repair must be approvable', () => {
     expect(f.fix.to).toBe('"105"');
   });
 
-  it('a repair with no replacement is refused — there would be nothing to approve', () => {
-    const r = parseReviewFinding({ ...answerWrong, fix: { from: '15' } }, 0);
-    expect(typeof r).toBe('string');
-    expect(r as string).toContain('exact replacement, not a description');
+  // A repair that cannot become a button is DEMOTED, never discarded. On
+  // 25 Sep 2026 one `estimate_wrong` with no replacement value threw away the
+  // ten sound findings sent with it — and it was not even a wrong observation,
+  // only an unapprovable one. Losing the message costs the operator the
+  // finding; losing the button costs them one click.
+  const demoted = (over: Record<string, unknown>) => {
+    const r = parseReviewFinding({ ...answerWrong, ...over }, 0);
+    if (typeof r === 'string') throw new Error(`discarded instead of demoted: ${r}`);
+    return r;
+  };
+
+  it('a repair with no replacement keeps its message and loses its button', () => {
+    const f = demoted({ fix: { from: '15' } });
+    expect(f.fix).toBeUndefined();
+    expect(f.message).toContain('prints "105"');
+    expect(f.note).toContain('No Apply button');
+    expect(f.note).toContain('not a description of it');
   });
 
-  it('a repair that changes nothing is refused', () => {
-    const r = parseReviewFinding({ ...answerWrong, fix: { from: '15', to: '15' } }, 0);
-    expect(r as string).toContain('nothing would change');
+  it('a repair that changes nothing is demoted, not dropped', () => {
+    const f = demoted({ fix: { from: '15', to: '15' } });
+    expect(f.fix).toBeUndefined();
+    expect(f.note).toContain('nothing would change');
   });
 
-  it('a step repair without its indices is refused', () => {
-    const r = parseReviewFinding({ ...answerWrong, location: { field: 'answer' } }, 0);
-    expect(r as string).toContain('module_index, lesson_index and step_index');
+  it('a step repair without its indices is demoted and says which are missing', () => {
+    const f = demoted({ location: { field: 'answer' } });
+    expect(f.fix).toBeUndefined();
+    expect(f.note).toContain('module_index, lesson_index and step_index');
   });
 
-  it('a field that cannot be repaired in place says to raise it instead', () => {
-    const r = parseReviewFinding({ ...answerWrong, location: { ...answerWrong.location, field: 'module_order' } }, 0);
-    expect(r as string).toContain('raise it instead');
+  it('a field that cannot be changed in place is demoted and says so', () => {
+    const f = demoted({ location: { ...answerWrong.location, field: 'module_order' } });
+    expect(f.fix).toBeUndefined();
+    expect(f.note).toContain('cannot be changed in place');
+  });
+
+  it('a finding that cannot be RENDERED at all is still refused', () => {
+    // No message, no field: nothing to put on a card, so nothing to record.
+    expect(typeof parseReviewFinding({ kind: 'answer_wrong', location: { field: 'answer' } }, 0)).toBe('string');
+    expect(typeof parseReviewFinding({ kind: 'answer_wrong', message: 'x' }, 0)).toBe('string');
   });
 
   it('an unknown kind lists the kinds that exist', () => {
@@ -185,5 +207,78 @@ describe('an approved repair applies exactly what the card showed', () => {
   it('a judgement has nothing to apply', () => {
     const f = ok(parseReviewFinding({ kind: 'jump', message: 'Uses an arrow function before functions exist.', location: { field: 'modules' } }, 0)) as never;
     expect(reviewFindingToRevision(f, modules()) as string).toContain('nothing to apply');
+  });
+});
+
+describe('one unusable finding does not throw away the rest', () => {
+  // 25 Sep 2026: eleven findings were sent, one carried no replacement value,
+  // and all eleven were refused. Ten sound observations about a real course
+  // were lost to protect against a risk that was never partiality — it was
+  // SILENCE. Naming every gap answers that; discarding the work does not.
+  const store = () => {
+    const reviews: Array<{ findings: Array<Record<string, unknown>> }> = [];
+    return {
+      reviews,
+      store: {
+        async readCourse() { return { id: 'c1', title: 'JavaScript from Scratch', modules: [{ title: 'M', lessons: [{ title: 'L', steps: [] }] }] }; },
+        async saveReview(r: { findings: Array<Record<string, unknown>> }) { reviews.push(r); return { ok: true }; },
+        async identify() { return { kind: 'unknown' as const }; },
+      },
+    };
+  };
+  const good = (i: number) => ({
+    kind: 'answer_wrong', message: `wrong key ${i}`,
+    location: { module_index: 1, lesson_index: 1, step_index: i, field: 'answer' },
+    fix: { from: '15', to: '"105"' },
+  });
+
+  it('records the ten and says why the eleventh has no button', async () => {
+    const { store: st, reviews } = store();
+    const { ReviewCourseTool } = await import('../src/tools/course-tools.js');
+    const r = await new ReviewCourseTool().execute({
+      course_id: 'c1',
+      findings: [
+        ...[1, 2, 3, 4, 5, 6, 7, 8].map(good),
+        // The one that lost the other ten.
+        { kind: 'estimate_wrong', message: 'Says 14; the lessons sum to less.', location: { field: 'estimated_hours' } },
+        { kind: 'goal_not_met', message: 'Never reaches an interactive page.', location: { field: 'goal' } },
+      ],
+    }, { sharedState: { courseStore: st } } as never);
+
+    expect(r.success).toBe(true);
+    const o = JSON.parse(r.output);
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0].findings).toHaveLength(10);
+    expect(o.proposed_repairs).toHaveLength(8);
+    // The demoted one is recorded, and its reason is said out loud.
+    expect(o.no_button).toHaveLength(1);
+    expect(o.no_button[0]).toContain('estimate_wrong');
+    expect(o.next).toContain('give fix.to next time');
+    expect(o.not_recorded).toBeUndefined();
+  });
+
+  it('a finding that cannot be read at all is named but does not sink the review', async () => {
+    const { store: st, reviews } = store();
+    const { ReviewCourseTool } = await import('../src/tools/course-tools.js');
+    const r = await new ReviewCourseTool().execute({
+      course_id: 'c1',
+      findings: [good(1), { kind: 'looks_wrong', message: 'hmm', location: { field: 'answer' } }],
+    }, { sharedState: { courseStore: st } } as never);
+    expect(r.success).toBe(true);
+    expect(reviews[0].findings).toHaveLength(1);
+    const o = JSON.parse(r.output);
+    expect(o.not_recorded).toHaveLength(1);
+    expect(o.not_recorded[0]).toContain('is not a review kind');
+  });
+
+  it('only when NOTHING survives is the review refused', async () => {
+    const { store: st, reviews } = store();
+    const { ReviewCourseTool } = await import('../src/tools/course-tools.js');
+    const r = await new ReviewCourseTool().execute({
+      course_id: 'c1', findings: [{ kind: 'nope', message: 'x', location: { field: 'y' } }],
+    }, { sharedState: { courseStore: st } } as never);
+    expect(r.success).toBe(false);
+    expect(r.output).toContain('None of the 1 findings could be read');
+    expect(reviews).toHaveLength(0);
   });
 });

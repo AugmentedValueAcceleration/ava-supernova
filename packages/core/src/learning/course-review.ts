@@ -143,6 +143,8 @@ export interface ReviewFinding {
    * unapprovable. A `raise` never carries one.
    */
   fix?: { from: string; to: string };
+  /** Why this has no Apply button, when a repair could not be made approvable. */
+  note?: string;
 }
 
 /** Fields a repair is allowed to touch. Anything else is a rewrite, not a repair. */
@@ -181,25 +183,40 @@ export function parseReviewFinding(raw: unknown, index: number): ReviewFinding |
     ...(n(loc.step_index) !== undefined ? { step_index: n(loc.step_index) } : {}),
   };
 
+  const id = s(o.id) || `f${index + 1}`;
   if (!isRepairKind(kind)) {
     // A judgement has nothing to approve. Carrying a fix here would put an
     // Apply button on something that needs a conversation.
-    return { id: s(o.id) || `f${index + 1}`, kind, location, message };
+    return { id, kind, location, message };
   }
+
+  /*
+   * A repair that cannot be turned into a button is DEMOTED, not discarded.
+   *
+   * This used to be a refusal, and on 25 Sep 2026 one `estimate_wrong` with no
+   * replacement value threw away the ten sound findings sent with it. The
+   * thing worth guarding against was a review that LOOKED complete while
+   * quietly missing things — not a review that is partly approvable. A finding
+   * with no exact change is still a true observation about the course; it just
+   * cannot be applied in one click, which is precisely what a judgement is.
+   *
+   * So it keeps its kind and its message, loses its fix, and carries a note
+   * saying why there is no button. Nothing is lost and nothing is hidden.
+   */
+  const demote = (why: string): ReviewFinding => ({ id, kind, location, message, note: `No Apply button: ${why}` });
 
   const fix = (o.fix ?? {}) as Record<string, unknown>;
   const from = s(fix.from), to = s(fix.to);
-  if (!to) return `finding ${index + 1} (${kind}): a repair must carry fix.to — the exact replacement, not a description of it. Without it there is nothing to approve.`;
-  if (from === to) return `finding ${index + 1} (${kind}): fix.from and fix.to are the same, so nothing would change.`;
-
+  if (!to) return demote('no exact replacement was given, so there is nothing to approve. Give fix.to — the value itself, not a description of it.');
+  if (from === to) return demote('the replacement is the same as what is there, so nothing would change.');
   if (STEP_FIELDS.has(field) && (location.module_index === undefined || location.lesson_index === undefined || location.step_index === undefined)) {
-    return `finding ${index + 1} (${kind}): a ${field} repair needs module_index, lesson_index and step_index (1-based).`;
+    return demote(`a ${field} repair needs module_index, lesson_index and step_index (1-based) to know which step to change.`);
   }
   if (!STEP_FIELDS.has(field) && !COURSE_FIELDS.has(field)) {
-    return `finding ${index + 1} (${kind}): "${field}" cannot be repaired in place. Repairable fields are ${[...STEP_FIELDS, ...COURSE_FIELDS].join(', ')}; anything else is a rewrite, so raise it instead.`;
+    return demote(`"${field}" cannot be changed in place. Repairable fields are ${[...STEP_FIELDS, ...COURSE_FIELDS].join(', ')}; anything else is a rewrite.`);
   }
 
-  return { id: s(o.id) || `f${index + 1}`, kind, location, message, fix: { from, to } };
+  return { id, kind, location, message, fix: { from, to } };
 }
 
 /* ── Turning an approved finding into the change that applies it ───────── */
