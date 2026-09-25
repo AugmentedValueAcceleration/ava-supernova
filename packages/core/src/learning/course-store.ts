@@ -62,6 +62,14 @@ export interface CourseInput {
    *  applied in Poland. */
   locale_bound?: boolean;
   seed_id?: string | null;
+  /**
+   * The full course this is the FIRST INSTALMENT of.
+   *
+   * Given, the gate lets the course land short — one module is enough — so
+   * that a course can be BORN small and grown. Without it, write_course holds
+   * the full standard, because a course with no plan is claiming to be done.
+   */
+  plan?: CoursePlanLesson[];
 }
 
 /** Rewrite one part of an existing course. Indices are 0-based here; the
@@ -191,7 +199,12 @@ export type IdentifiedId =
 
 export interface CourseStore {
   /** Land a course as a DRAFT. The tool has already run the gate. */
-  save(course: CourseInput): Promise<{ id: string | null; error?: string }>;
+  /**
+   * `seed` says what became of the seed_id: whether a seed was actually
+   * taken off the backlog, or the id matched nothing. A silent no-op here
+   * let a report announce a seed cleared that had never existed.
+   */
+  save(course: CourseInput): Promise<{ id: string | null; error?: string; seed?: { consumed: boolean; note?: string } }>;
   readCourse(courseId: string): Promise<CourseSnapshot | null>;
   findCourse(query: string): Promise<CourseMatch[]>;
   /** Count plus a sample — the count is what stops an empty search reading as

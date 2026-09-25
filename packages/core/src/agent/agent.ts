@@ -839,7 +839,7 @@ export type AgentEvent =
   /** The model was cut off at its output limit mid-reply. Never silent: a
    *  truncated tool call simply never arrives, and the turn used to end as
    *  though she had chosen to stop. */
-  | { type: 'response_truncated'; hadToolCall: boolean }
+  | { type: 'response_truncated'; hadToolCall: boolean; roomChars?: number }
   | { type: 'interjection'; content: string }
   | { type: 'done'; finalMessage: AssistantMessage }
   // Auto Mode events — emitted by AutoCoordinator
@@ -929,6 +929,14 @@ export class Agent {
   // Verifying tools that ran this run() (name + success), for the soft
   // honesty gate (claims-auditor) at final-answer time. Reset per run.
   private runToolEvidence: Array<{ name: string; ok: boolean }> = [];
+  /**
+   * What the tools RETURNED this run, for the honesty gate's identifier
+   * check. Capped per result and in total: this exists to answer "did any
+   * tool ever mention this id", which needs the text but not all of it.
+   */
+  private runToolOutput: string[] = [];
+  /** What the caller said this turn, as backing for identifiers they supplied. */
+  private runUserText = '';
   /**
    * The id of the turn currently running — one per run(), shared by every
    * model call the turn makes, sent to our platform as X-Ava-Turn-Id.
@@ -1276,6 +1284,41 @@ export class Agent {
    * there at all. Two locks, because we already broke this promise once by
    * assuming one implicit one was enough.
    */
+  /**
+   * How much output to ask for, given what the input already costs.
+   *
+   * A model's output ceiling and its context window are not independent: the
+   * reply has to fit in what the prompt leaves behind. Asking for the full
+   * ceiling on a nearly-full window does not get it — the provider trims the
+   * answer to fit, mid-sentence and mid-tool-call, and reports nothing.
+   *
+   * Asking for the honest number instead means `finish_reason: length` fires
+   * where it should, our own truncation handling runs, and the remaining room
+   * can be SAID rather than discovered by bisection.
+   */
+  private outputBudget(messages: Message[]): number {
+    const ceiling = this.model.maxOutputTokens ?? 32_768;
+    // The estimate is approximate and erring high costs a truncation, so keep
+    // a margin under the window rather than racing it to the byte.
+    const MARGIN_TOKENS = 4_000;
+    const FLOOR_TOKENS = 1_024;
+    const room = this.model.contextWindow - this.estimateTokenCount(messages) - MARGIN_TOKENS;
+    const budget = Math.max(FLOOR_TOKENS, Math.min(ceiling, room));
+    this.lastOutputBudget = budget;
+    if (budget < ceiling) {
+      logger.debug(`[agent] output budget ${budget} (ceiling ${ceiling}, window ${this.model.contextWindow}) — context is filling`);
+    }
+    return budget;
+  }
+
+  /** The last budget asked for, so a cut-off can say how much room was left. */
+  private lastOutputBudget: number | null = null;
+
+  /** That budget in characters, which is the unit the caller actually thinks in. */
+  private get lastOutputBudgetChars(): number | null {
+    return this.lastOutputBudget === null ? null : this.lastOutputBudget * 4;
+  }
+
   private detectModeForSurface(messages: Message[]): string | null {
     // What the caller declared beats what the text looks like. A surface that
     // opened a room knows the answer; the tag is a fallback for the ones that
@@ -1304,6 +1347,16 @@ export class Agent {
     this.runTurnId = randomUUID();
     // Reset per-run tool evidence for the honesty gate (claims-auditor).
     this.runToolEvidence = [];
+    this.runToolOutput = [];
+    // The caller's own words this turn. An id they SUPPLIED is not one she
+    // invented, so the gate treats it as backing — flagging a brief's own
+    // seed id would teach everyone to ignore the warning. Recent turns only:
+    // an id remembered from six turns ago is exactly what is worth catching.
+    this.runUserText = messages
+      .filter((m) => m.role === 'user')
+      .slice(-3)
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
     this.runClaimFlagged = false;
     this.lastAudit = null;
     this.honestyVerifyAttempted = false;
@@ -2145,7 +2198,15 @@ export class Agent {
         // before it, looking exactly like she had decided to stop. Capped at
         // 32K so one reply cannot eat a 1M-context window, and never more
         // than the model can actually produce.
-        max_tokens: this.model.maxOutputTokens ?? 32_768,
+        //
+        // 26 Sep 2026: asking for the model's full ceiling regardless of how
+        // much context was already spent is how a session silently strangles
+        // itself. The provider quietly caps the reply to whatever room is
+        // left, we never adjust, and nothing says so — so the same course was
+        // sent sixteen times and guillotined at a different, invisible point
+        // each time: 49k, 32k, 18k, 11k, 6k, 1.6k. From the inside that looks
+        // like the tool breaking at random. It is arithmetic.
+        max_tokens: this.outputBudget(messages),
         // Every iteration of this loop is another call serving the SAME user
         // turn. Tagging them all with one id is what lets a turn be costed as
         // an outcome rather than as N unrelated calls.
@@ -2195,6 +2256,12 @@ export class Agent {
             role: 'user' as const,
             content:
               'Your reply was cut off at the output limit — it stopped mid-sentence and no tool call arrived, so nothing ran. '
+              + (this.lastOutputBudgetChars !== null
+                // The number, not the advice, is what stops the bisecting. A
+                // caller told only "make it smaller" halves blindly; a caller
+                // told the actual room sizes the next call once and correctly.
+                ? `You have roughly ${this.lastOutputBudgetChars.toLocaleString()} characters of output room left in this session, and it SHRINKS as the conversation grows — so this will keep happening and getting worse, not better. Size the next call to fit inside that, with room to spare. `
+                : '')
               + 'Continue from where you stopped, and make the next piece smaller: one lesson, one module, one tool call at a time. '
               + 'Do not repeat what you already wrote above.',
           },
@@ -3112,7 +3179,12 @@ export class Agent {
     // verifying tool this run, and append a visible caveat so the unverified
     // claim doesn't stand as fact. Soft by design — annotates, never blocks.
     if (toolCalls.length === 0 && typeof finalContent === 'string' && finalContent.trim()) {
-      const audit = auditClaims({ text: finalContent, toolsUsed: this.runToolEvidence });
+      const audit = auditClaims({
+        text: finalContent,
+        toolsUsed: this.runToolEvidence,
+        toolOutput: this.runToolOutput.join('\n'),
+        userText: this.runUserText,
+      });
       this.lastAudit = audit;
       if (audit.flagged) {
         // Record for the verification_evidence dataset event (shape-only:
@@ -3176,7 +3248,7 @@ export class Agent {
     if (finishReason === 'length') {
       const hadToolCall = (message.tool_calls?.length ?? 0) > 0;
       logger.warn(`[agent] response TRUNCATED at the output limit (model=${this.model.id}, max_tokens=${request.max_tokens ?? 'provider default'}, completion=${usage?.completion_tokens ?? '?'}, tool_calls=${message.tool_calls?.length ?? 0})`);
-      onEvent({ type: 'response_truncated', hadToolCall });
+      onEvent({ type: 'response_truncated', hadToolCall, ...(this.lastOutputBudgetChars !== null ? { roomChars: this.lastOutputBudgetChars } : {}) });
     }
 
     return {
@@ -3258,6 +3330,12 @@ export class Agent {
 
     // Record for the soft honesty gate: did a verifying tool succeed this run?
     this.runToolEvidence.push({ name: toolName, ok: result.success });
+    // And WHAT it said, so an identifier in the final report can be checked
+    // against something rather than taken on trust. Bounded hard — a long
+    // course body would otherwise carry the whole library into memory.
+    if (this.runToolOutput.length < 400) {
+      this.runToolOutput.push(result.output.slice(0, 8_000));
+    }
 
     // ── Tool-error + guidance emits ─────────────────────────────────────
     // On failure, emit tool_error with the matched pattern key (if any),

@@ -29,6 +29,16 @@ export interface ClaimAuditInput {
   text: string;
   /** Tools that ran this turn, with whether each succeeded. */
   toolsUsed: Array<{ name: string; ok: boolean }>;
+  /**
+   * Everything the tools actually RETURNED this turn, concatenated.
+   *
+   * Phrasing can only be judged as a pattern; an identifier can be judged
+   * exactly. An id that no tool returned and nobody supplied was invented,
+   * and that is checkable rather than guessable.
+   */
+  toolOutput?: string;
+  /** What the caller said this turn — an id they supplied is not invented. */
+  userText?: string;
 }
 
 export interface ClaimAuditResult {
@@ -53,7 +63,50 @@ const VERIFYING_TOOLS = new Set<string>([
   'http_request', 'browser', 'browser_snapshot', 'browser_navigate', 'browser_click',
   'bash', 'git_diff', 'git_status', 'file_read', 'grep', 'database_query',
   'analyze_architecture', 'self_inspect', 'audit_dependencies',
+  // Reads of the library a course claim is ABOUT. Without these a report on
+  // what the library contains counted as verified because some unrelated
+  // tool had succeeded — so "nine courses were lost" passed the gate on the
+  // strength of a web search (26 Sep 2026).
+  'read_course', 'check_course', 'find_course', 'browse_library',
+  'read_recipe', 'check_recipe', 'find_recipe',
+  'read_exercise', 'check_exercise', 'find_exercise',
 ]);
+
+/**
+ * Identifiers the reply states that nothing this turn produced.
+ *
+ * A uuid or a short hex id is either something a tool handed back, something
+ * the caller supplied, or something that was made up. There is no fourth
+ * case, which makes this the one honesty check that is exact.
+ *
+ * 26 Sep 2026: a report announced a course rebuilt at one id and a seed
+ * cleared at another. The course was real; the seed did not exist, and nine
+ * further courses it named as "lost" had never been in the library at all.
+ * Every phrase-level check passed, because nothing about the SENTENCES was
+ * wrong — only the identifiers in them.
+ */
+export function findUnbackedIds(text: string, backing: string): string[] {
+  // A uuid, or a run of hex long enough to be an id rather than a number.
+  const ID = /\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b|\b[0-9a-f]{8,}\b/gi;
+  const backed = backing.toLowerCase();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of text.matchAll(ID)) {
+    const id = m[0].toLowerCase();
+    // A truncated form ("6940f5c9…" for a full uuid) is backed by the whole
+    // one, so compare by prefix rather than demanding an exact match.
+    if (backed.includes(id)) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(m[0]);
+  }
+  return out;
+}
+
+const CAVEAT_INVENTED_ID = (ids: string[]): string =>
+  `⚠ Unbacked identifier${ids.length === 1 ? '' : 's'}: this turn names ${ids.map((i) => `\`${i}\``).join(', ')}, which `
+  + `${ids.length === 1 ? 'appears' : 'appear'} in no tool result and in nothing you said. Nothing confirms that record exists — `
+  + 'check it before acting on this report.';
 
 /**
  * Tier A — critical: security / safety claims. The single most dangerous thing
@@ -130,6 +183,14 @@ const CAVEAT_CRITICAL =
 export function auditClaims(input: ClaimAuditInput): ClaimAuditResult {
   const text = input.text || '';
   const empty: ClaimAuditResult = { flagged: false, claims: [], caveat: null, tier: null };
+
+  // (0) Identifiers first — the only check here that is exact rather than a
+  // pattern, so it outranks the rest and is NOT excused by hedging or by some
+  // other tool having succeeded. An invented id is invented either way.
+  const unbacked = findUnbackedIds(text, `${input.toolOutput ?? ''}\n${input.userText ?? ''}`);
+  if (unbacked.length > 0) {
+    return { flagged: true, claims: unbacked, caveat: CAVEAT_INVENTED_ID(unbacked), tier: 'high' };
+  }
 
   // (2) Real evidence this run → the claim has something behind it.
   if (input.toolsUsed.some(t => t.ok && VERIFYING_TOOLS.has(t.name))) return empty;

@@ -9,7 +9,7 @@
 
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { checkCourse, COURSE_REFUSAL_KINDS } from '../learning/course-check.js';
+import { checkCourse, COURSE_REFUSAL_KINDS, COURSE_INCOMPLETE_KINDS } from '../learning/course-check.js';
 import {
   COURSE_LEVELS, COURSE_AUDIENCES, LESSON_TYPES, LESSON_DIFFICULTIES,
   type CourseStore, type CourseInput, type CourseRevision, type CourseStepInput, type CourseLessonInput, type CourseModuleInput,
@@ -423,6 +423,11 @@ export class WriteCourseTool implements Tool {
         region: { type: 'string', description: 'ISO country code (GB, DE, IE…) ONLY when the subject IS its jurisdiction — law, tax, benefits, anything where the country is the content. Leave it out for maths, biology, a language, a tool.' },
         locale_bound: { type: 'boolean', description: 'True with a region: this course must never be translated into other languages, because it describes one country\'s rules. Sets it apart from a course that merely happens to be written in English.' },
         seed_id: { type: 'string', description: 'If written from a seed, its id, so the seed leaves the backlog.' },
+        plan: {
+          type: 'array',
+          description: 'The FULL course this is the first instalment of — every lesson it will have, in order, as {module, lesson}. Give this whenever the subject is bigger than one call can carry: the course then lands even with a single module, and you grow it with add_module / add_lesson / add_step. Without it, the course must arrive complete.',
+          items: { type: 'object', properties: { module: { type: 'string' }, lesson: { type: 'string' } }, required: ['module', 'lesson'] },
+        },
       },
       required: ['title', 'description', 'category', 'subject', 'level', 'audience_type', 'prerequisites', 'target_audience', 'learning_objectives', 'modules'],
     },
@@ -456,6 +461,14 @@ export class WriteCourseTool implements Tool {
     // title is dropped silently, and a course that loses every module that
     // way reads to the gate as a course that was never written — so say it
     // here, where the cause is still visible.
+    // The plan is read before the gate runs, because it changes what the gate
+    // is allowed to refuse.
+    const planned = gaveList(args.plan)
+      ? list(args.plan)
+        .map((e) => { const o = (e ?? {}) as Record<string, unknown>; return { module: name(o.module), lesson: name(o.lesson) }; })
+        .filter((e) => e.module && e.lesson)
+      : [];
+
     const rawModules = list(args.modules);
     const parsedModules = rawModules.map(parseModule).filter((m): m is CourseModuleInput => !!m);
     if (!parsedModules.length) {
@@ -496,10 +509,22 @@ export class WriteCourseTool implements Tool {
       region: str(args.region).toUpperCase() || null,
       locale_bound: args.locale_bound === true || !!str(args.region),
       seed_id: str(args.seed_id) || null,
+      ...(planned.length ? { plan: planned } : {}),
     };
 
     const verdict = checkCourse(course, new Date().toISOString());
-    const refusals = verdict.findings.filter((f) => COURSE_REFUSAL_KINDS.has(f.kind));
+    // A course being BORN as the first instalment of a declared plan is
+    // allowed to be short — that is what a first instalment is. Without this,
+    // the gate's three-modules-by-two-lessons minimum has to fit in one call,
+    // and when the output budget falls below it the course cannot be created
+    // at all: the growth calls have nothing to grow. That is exactly how a
+    // JavaScript course failed sixteen times on 26 Sep 2026 while the tools
+    // meant to make it possible sat unused.
+    //
+    // Nothing is hidden: the findings still come back, the plan says what is
+    // owed, and the course is a draft the operator publishes.
+    const refusals = verdict.findings.filter((f) =>
+      COURSE_REFUSAL_KINDS.has(f.kind) && !(planned.length && COURSE_INCOMPLETE_KINDS.has(f.kind)));
     if (refusals.length) {
       return {
         success: false,
@@ -517,7 +542,11 @@ export class WriteCourseTool implements Tool {
         modules: course.modules.length, lessons: course.modules.reduce((n, m) => n + m.lessons.length, 0),
         recheck: recheck?.status ?? 'not re-checked',
         remaining: findingsOut(recheck?.findings ?? []),
-        next: 'It is a draft. The operator publishes. If there is no cover yet, regenerate_cover with the scene; translate_course when the text is final.',
+        ...(saved.seed ? { seed: saved.seed } : {}),
+        ...(planned.length ? { build_plan: planProgress({ lessons: planned, set_at: new Date().toISOString() }, course.modules) } : {}),
+        next: planned.length
+          ? `Landed as the first instalment. Now add the rest ONE call at a time — add_lesson (module_index) for a lesson in a module that exists, add_module for a new one. Never resend this course. Its id is ${saved.id}.`
+          : 'It is a draft. The operator publishes. If there is no cover yet, regenerate_cover with the scene; translate_course when the text is final.',
       }),
     };
   }
