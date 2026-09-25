@@ -3,8 +3,29 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 
 const DUCKDUCKGO_URL = 'https://lite.duckduckgo.com/lite/';
-const REQUEST_TIMEOUT = 10_000;
+const REQUEST_TIMEOUT = 15_000;
 const DEFAULT_MAX_RESULTS = 5;
+
+/**
+ * DuckDuckGo Lite serves a browser, and says so.
+ *
+ * Measured 26 Sep 2026: the same query with "Ava-Supernova/1.0" returned 200
+ * OK, 22KB of HTML and ZERO parseable results; with a browser User-Agent it
+ * returned results. Announcing ourselves as a script is answered with a page
+ * that looks fine and contains nothing.
+ */
+const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+/**
+ * What being throttled looks like: HTTP 202 and an anomaly page.
+ *
+ * Not 429, not an error — a 200-shaped response with no results in it. So a
+ * block was indistinguishable from "the web has nothing on this", and Ava was
+ * told the second thing when the first had happened. Three requests in a row
+ * was enough to trigger it from a home connection; from a datacenter address
+ * it is worse.
+ */
+const BLOCKED_RE = /anomaly|captcha|unusual traffic|rate ?limit|too many requests|blocked/i;
 
 interface SearchResult {
   title: string;
@@ -12,7 +33,9 @@ interface SearchResult {
   snippet: string;
 }
 
-function fetchDuckDuckGo(query: string): Promise<string> {
+interface SearchResponse { status: number; html: string }
+
+function fetchDuckDuckGo(query: string): Promise<SearchResponse> {
   return new Promise((resolve, reject) => {
     const postData = `q=${encodeURIComponent(query)}`;
     const req = request(
@@ -22,14 +45,19 @@ function fetchDuckDuckGo(query: string): Promise<string> {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Content-Length': Buffer.byteLength(postData),
-          'User-Agent': 'Ava-Supernova/1.0',
+          'User-Agent': BROWSER_UA,
+          // Sent because a browser sends them, and the page served differs.
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-GB,en;q=0.9',
         },
         timeout: REQUEST_TIMEOUT,
       },
       (res) => {
         const chunks: Buffer[] = [];
         res.on('data', (chunk: Buffer) => chunks.push(chunk));
-        res.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+        // The status matters: a throttle arrives as 202 with a page, so a
+        // caller that only sees the body cannot tell it from an empty result.
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, html: Buffer.concat(chunks).toString('utf-8') }));
         res.on('error', reject);
       },
     );
@@ -44,6 +72,8 @@ function fetchDuckDuckGo(query: string): Promise<string> {
     req.end();
   });
 }
+
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 function parseResults(html: string, maxResults: number): SearchResult[] {
   const results: SearchResult[] = [];
@@ -136,13 +166,39 @@ export class WebSearchTool implements Tool {
     }
 
     try {
-      const html = await fetchDuckDuckGo(query);
-      const results = parseResults(html, maxResults);
+      // One retry, because a throttle is often over in a second or two and
+      // failing the whole turn for it is expensive.
+      let res = await fetchDuckDuckGo(query);
+      let blocked = res.status === 202 || BLOCKED_RE.test(res.html);
+      if (blocked) {
+        await wait(1_500);
+        res = await fetchDuckDuckGo(query);
+        blocked = res.status === 202 || BLOCKED_RE.test(res.html);
+      }
+
+      // BEING REFUSED IS NOT AN EMPTY RESULT. This used to return success with
+      // "No results found", so a throttled search told the caller the web had
+      // nothing on the subject — a false negative stated as fact, which is
+      // worse than an error because it gets believed and acted on.
+      if (blocked) {
+        return {
+          success: false,
+          output: `The search was refused, not empty — DuckDuckGo answered with a rate-limit page (HTTP ${res.status}) rather than results. `
+            + `This says NOTHING about whether "${query}" has answers on the web; do not conclude there is nothing. `
+            + 'Wait a moment and try once more, or carry on from what you already know and say plainly that you could not search.',
+          metadata: { count: 0, blocked: true },
+        };
+      }
+
+      const results = parseResults(res.html, maxResults);
 
       if (results.length === 0) {
         return {
-          success: true,
-          output: `No results found for "${query}".`,
+          // Still a failure: a page with no parseable results is far more
+          // often the markup having moved than the web being silent.
+          success: false,
+          output: `No results could be read for "${query}". The page came back ${res.html.length.toLocaleString()} characters long and HTTP ${res.status}, but nothing in it parsed as a result — `
+            + 'which usually means the search page changed shape rather than that there is nothing to find. Do not report this as "no information exists".',
           metadata: { count: 0 },
         };
       }
@@ -162,7 +218,11 @@ export class WebSearchTool implements Tool {
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      return { success: false, output: `Web search failed: ${message}` };
+      return {
+        success: false,
+        output: `Web search failed: ${message}. This is the search not reaching an answer, not an answer — `
+          + `say you could not search rather than that "${query}" has nothing behind it.`,
+      };
     }
   }
 }

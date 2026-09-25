@@ -14,10 +14,10 @@ const mockRequest = request as unknown as ReturnType<typeof vi.fn>;
 const ctx = { cwd: '/test' };
 
 /** Helper: mock DuckDuckGo returning HTML */
-function mockDDGResponse(html: string) {
+function mockDDGResponse(html: string, statusCode = 200) {
   mockRequest.mockImplementation((_url: string, _opts: unknown, callback: Function) => {
     const res = new EventEmitter() as any;
-    res.statusCode = 200;
+    res.statusCode = statusCode;
     callback(res);
     process.nextTick(() => {
       res.emit('data', Buffer.from(html));
@@ -68,11 +68,30 @@ describe('WebSearchTool', () => {
     expect(result.metadata?.count).toBe(2);
   });
 
-  it('returns "No results found" when HTML has no matching links', async () => {
+  // A page that parses to nothing is FAR more often the markup having moved,
+  // or a throttle, than the web being silent. Reporting it as "no results
+  // found" with success:true told the caller a fact about the world that it
+  // had no business asserting — measured 26 Sep 2026, when DuckDuckGo was
+  // answering a script's User-Agent with 22KB of results-free HTML.
+  it('a page with nothing parseable is a FAILURE, not an empty web', async () => {
     mockDDGResponse('<html><body>No results</body></html>');
     const result = await tool.execute({ query: 'xyznonexistent' }, ctx);
-    expect(result.success).toBe(true);
-    expect(result.output).toContain('No results found');
+    expect(result.success).toBe(false);
+    expect(result.output).toContain('nothing in it parsed as a result');
+    expect(result.output).toContain('changed shape');
+    // The conclusion that must never be drawn from it.
+    expect(result.output).toContain('Do not report this as "no information exists"');
+  });
+
+  it('a throttle says it was refused, not that there is nothing', async () => {
+    // What being rate-limited actually looks like: HTTP 202 and an anomaly
+    // page. Not 429, not an error — a 200-shaped response with no results.
+    mockDDGResponse('<html><body>If this error persists, please let us know... anomaly</body></html>', 202);
+    const result = await tool.execute({ query: 'javascript modulo' }, ctx);
+    expect(result.success).toBe(false);
+    expect(result.output).toContain('refused, not empty');
+    expect(result.output).toContain('do not conclude there is nothing');
+    expect(result.metadata?.blocked).toBe(true);
   });
 
   it('handles network errors gracefully', async () => {
