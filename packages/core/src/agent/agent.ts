@@ -637,7 +637,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // the course tools, kept in step with getClassroomPrefix. web_search is
   // load-bearing here: a course on a tool has to name the real menu.
   classroom: new Set([
-    'propose_courses', 'find_course', 'read_course', 'write_course', 'revise_course', 'check_course',
+    'propose_courses', 'find_course', 'read_course', 'write_course', 'revise_course', 'check_course', 'review_course',
     // No translate_course: nineteen locales inside a writing turn is twenty
     // minutes of model calls hanging off the end of a course, and it was
     // taking the connection down with it. The operator translates from the

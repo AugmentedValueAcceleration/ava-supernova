@@ -94,6 +94,38 @@ export interface CourseBuildPlan {
   set_at: string;
 }
 
+/** A finding's life after it is reported. A skip is a DECISION, kept visible. */
+export type ReviewFindingState = 'proposed' | 'applied' | 'skipped';
+
+export interface StoredReviewFinding {
+  id: string;
+  kind: string;
+  location: { module_index?: number; lesson_index?: number; step_index?: number; field: string };
+  message: string;
+  fix?: { from: string; to: string };
+  state: ReviewFindingState;
+  /** When it stopped being `proposed`, and what the change did. */
+  decided_at?: string | null;
+  note?: string | null;
+}
+
+export interface CourseReview {
+  course_id: string;
+  reviewed_at: string;
+  /** The model that read it. Kept because a change of model changes the reading. */
+  model: string | null;
+  findings: StoredReviewFinding[];
+  /** The reviewer's own sentence about the course as a whole. */
+  summary: string | null;
+  /**
+   * The course's `updated_at` when it was read. A review of a course that has
+   * moved since is STALE — its line numbers and its `from` values describe a
+   * course that no longer exists, and applying from it would overwrite work
+   * nobody approved.
+   */
+  course_updated_at: string | null;
+}
+
 export interface CourseRevision {
   meta?: Partial<Pick<CourseInput, 'title' | 'description' | 'category' | 'subject' | 'level' | 'audience_type' | 'goal' | 'prerequisites' | 'target_audience' | 'estimated_hours' | 'learning_objectives' | 'tags' | 'cover_image_prompt' | 'region' | 'locale_bound'>>;
   /** Replace every module. */
@@ -132,6 +164,17 @@ export interface CourseRevision {
 
   /** Set or replace the build plan. Never touches the course itself. */
   plan?: CoursePlanLesson[];
+
+  /**
+   * Review findings this change answers, marked resolved once it lands.
+   *
+   * For the conversational path — a `raise` talked through and then fixed.
+   * The operator's Apply button does NOT come through here: it computes the
+   * revision from the finding with `reviewFindingToRevision` and applies it
+   * directly, so approving a repair costs nothing and does exactly what the
+   * card said.
+   */
+  resolves?: string[];
 }
 
 export interface CourseSnapshot {
@@ -210,6 +253,19 @@ export interface CourseStore {
   /** Count plus a sample — the count is what stops an empty search reading as
    *  an empty library. */
   browseCourses(limit: number, category?: string): Promise<{ total: number; sample: CourseMatch[] }>;
+
+  /** Record a reading of the course. Replaces any previous review of it. */
+  saveReview(review: Omit<CourseReview, 'reviewed_at'>): Promise<{ ok: boolean; error?: string }>;
+  /** The last review, or null if it has never been read. */
+  readReview(courseId: string): Promise<CourseReview | null>;
+  /**
+   * Apply one approved finding. Deterministic and model-free: the revision is
+   * computed from the finding, so what lands is what the card showed — and it
+   * refuses if the course has moved since the review.
+   */
+  applyReviewFinding(courseId: string, findingId: string): Promise<{ ok: boolean; error?: string; applied?: string }>;
+  /** Turn one down. It stays visible as a decision, so a re-review does not raise it again. */
+  skipReviewFinding(courseId: string, findingId: string, note?: string): Promise<{ ok: boolean; error?: string }>;
   /** Re-run the gate on a stored course and write the verdict on the row. */
   recheck(courseId: string): Promise<CourseCheckResult | null>;
   /** Rewrite one part in place. Refused only for findings it would ADD —

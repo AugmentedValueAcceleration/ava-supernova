@@ -10,6 +10,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { checkCourse, COURSE_REFUSAL_KINDS, COURSE_INCOMPLETE_KINDS } from '../learning/course-check.js';
+import { parseReviewFinding, describeReviewKinds, isRepairKind, type ReviewFinding } from '../learning/course-review.js';
 import {
   COURSE_LEVELS, COURSE_AUDIENCES, LESSON_TYPES, LESSON_DIFFICULTIES,
   type CourseStore, type CourseInput, type CourseRevision, type CourseStepInput, type CourseLessonInput, type CourseModuleInput,
@@ -227,6 +228,13 @@ function parseModule(v: unknown): CourseModuleInput | null {
     lessons: list(o.lessons).map(parseLesson).filter((l): l is CourseLessonInput => !!l),
   };
 }
+
+/** Where a review finding is, as the operator reads it. */
+const whereOf = (f: ReviewFinding): string => {
+  const { module_index: m, lesson_index: l, step_index: st, field } = f.location;
+  const path = [m && `module ${m}`, l && `lesson ${l}`, st && `step ${st}`].filter(Boolean).join(' › ');
+  return path ? `${path} › ${field}` : field;
+};
 
 const findingsOut = (findings: Array<{ kind: string; where: string; message: string }>) =>
   findings.map((f) => `${f.kind} — ${f.where}: ${f.message}`);
@@ -638,6 +646,11 @@ export class ReviseCourseTool implements Tool {
         add_step: { ...STEP_SCHEMA, description: 'APPEND a new step to the lesson at module_index / lesson_index. With at_index, inserts before that step.' },
         at_index: { type: 'integer', minimum: 1, description: 'Optional, with any add_*: insert BEFORE this position instead of appending at the end. 1-based.' },
 
+        resolves: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Review finding ids this change answers, marked resolved once it lands. For a raised item talked through and then fixed — the operator\'s Apply button does not come through here.',
+        },
         plan: {
           type: 'array',
           description: 'Set the build plan: every lesson this course is MEANT to have, in order, as {module, lesson}. Does not change the course. read_course and check_course then report what is written against it and name the next piece.',
@@ -682,6 +695,7 @@ export class ReviseCourseTool implements Tool {
     if (gaveList(args.learning_objectives)) meta.learning_objectives = strList(args.learning_objectives);
     if (gaveList(args.tags)) meta.tags = strList(args.tags);
     if (Object.keys(meta).length) revision.meta = meta;
+    if (gaveList(args.resolves)) revision.resolves = strList(args.resolves);
 
     const mi = num(args.module_index), li = num(args.lesson_index), si = num(args.step_index);
     const atIndex = num(args.at_index);
@@ -796,6 +810,132 @@ export class ReviseCourseTool implements Tool {
           : worklist.length
             ? 'Take the next worklist entry, on its own, in its own call.'
             : 'Nothing outstanding. check_course to confirm, then translate_course when the text is final.',
+      }),
+    };
+  }
+}
+
+/**
+ * Read a course for what the gate cannot see, and PROPOSE the fixes.
+ *
+ * The gate is structural: it proves a course is well-formed, never that it is
+ * right. On 25 Sep 2026 a course that had just passed it marked 15 as the
+ * answer to what `10 + "5"` prints, graded a `filter` prompt against a
+ * `forEach` rubric, and accepted "undefined" where its own teach block said
+ * Node throws. All three were found by reading.
+ *
+ * This tool records that reading. It writes NOTHING to the course — not even
+ * the fixes it has worked out — because the operator approves each one with a
+ * button, and a change made before it was seen is not a change that was
+ * approved.
+ */
+export class ReviewCourseTool implements Tool {
+  readonly name = 'review_course';
+  readonly description =
+    'Read a course properly and report what is WRONG with it — wrong answer keys, rubrics that grade the wrong question, a check that contradicts its own teach. Proposes exact fixes; changes nothing.';
+  readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'review_course',
+    description:
+      'Record your reading of a course. read_course FIRST and read every step — this is not a re-run of check_course, which only sees shape. Report what is wrong ABOUT the course. '
+      + 'A repair kind must carry the exact replacement in fix.from / fix.to, because the operator approves it with one button and cannot approve a description. '
+      + 'A raise kind carries no fix: there is no single right answer, so it opens a conversation instead. '
+      + 'Nothing you report here changes the course.\n\n' + describeReviewKinds(),
+    parameters: {
+      type: 'object',
+      properties: {
+        course_id: { type: 'string' },
+        summary: { type: 'string', description: 'One or two sentences on the course as a whole — what it does well and what worried you.' },
+        findings: {
+          type: 'array',
+          description: 'Everything you found. An empty list is a real answer and means you read it and it is sound — say so in the summary.',
+          items: {
+            type: 'object',
+            properties: {
+              kind: { type: 'string' },
+              message: { type: 'string', description: 'What is wrong, in one sentence, as the operator will read it on the card.' },
+              location: {
+                type: 'object',
+                description: 'Where it is. Indices are 1-based, as the check reports them.',
+                properties: {
+                  module_index: { type: 'integer', minimum: 1 },
+                  lesson_index: { type: 'integer', minimum: 1 },
+                  step_index: { type: 'integer', minimum: 1 },
+                  field: { type: 'string', description: 'answer | evaluation | teach | prompt | estimated_hours | tags, or the field a raise is about.' },
+                },
+                required: ['field'],
+              },
+              fix: {
+                type: 'object',
+                description: 'REPAIR kinds only. The exact values, verbatim — never a description of them.',
+                properties: {
+                  from: { type: 'string', description: 'What it says now, exactly, so the change can be refused if the course has moved.' },
+                  to: { type: 'string', description: 'What it should say. This is what lands when the operator presses Apply.' },
+                },
+                required: ['to'],
+              },
+            },
+            required: ['kind', 'message', 'location'],
+          },
+        },
+      },
+      required: ['course_id', 'findings'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = storeOf(context);
+    if (!store) return { success: false, output: NOT_HERE };
+    const id = str(args.course_id ?? args.id);
+    if (!id) return { success: false, output: 'review_course requires course_id.' };
+
+    const snapshot = await store.readCourse(id);
+    if (!snapshot) return { success: false, output: await explainMissingId(store, id, 'review_course') };
+
+    const raw = list(args.findings);
+    const fault = listFault(args.findings, 'findings');
+    if (fault) return { success: false, output: `${fault} Nothing was recorded.` };
+
+    // All or nothing. A half-recorded review is worse than none: the operator
+    // reads a list believing it is what was found, and acts on the gap.
+    const findings: ReviewFinding[] = [];
+    const problems: string[] = [];
+    raw.forEach((r, i) => {
+      const parsed = parseReviewFinding(r, i);
+      if (typeof parsed === 'string') problems.push(parsed);
+      else findings.push(parsed);
+    });
+    if (problems.length) {
+      return {
+        success: false,
+        output: `The review was not recorded — ${problems.length} of ${raw.length} findings could not be used:\n- ${problems.join('\n- ')}\nFix those and send the whole review again.`,
+      };
+    }
+
+    const saved = await store.saveReview({
+      course_id: id,
+      model: str(args.model) || null,
+      summary: str(args.summary) || null,
+      findings: findings.map((f) => ({ ...f, state: 'proposed' as const })),
+      course_updated_at: null,
+    });
+    if (!saved.ok) return { success: false, output: `Could not record the review: ${saved.error ?? 'unknown error'}` };
+
+    const repairs = findings.filter((f) => isRepairKind(f.kind));
+    const raised = findings.filter((f) => !isRepairKind(f.kind));
+    return {
+      success: true,
+      output: JSON.stringify({
+        ok: true,
+        course: snapshot.title,
+        reviewed: { modules: snapshot.modules.length, lessons: snapshot.modules.reduce((n, m) => n + m.lessons.length, 0) },
+        proposed_repairs: repairs.map((f) => `[${f.kind}] ${whereOf(f)} — ${f.message} (${JSON.stringify(f.fix?.from ?? '')} → ${JSON.stringify(f.fix?.to ?? '')})`),
+        raised: raised.map((f) => `[${f.kind}] ${whereOf(f)} — ${f.message}`),
+        next: findings.length === 0
+          ? 'Recorded as read with nothing found. It is ready for the operator to translate.'
+          : `Recorded. NOTHING has been changed: the operator approves each repair with a button, and the raised items are for them to decide. Say in your report what you found, ${repairs.length} to approve and ${raised.length} to consider.`,
       }),
     };
   }

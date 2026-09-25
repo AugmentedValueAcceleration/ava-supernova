@@ -67,7 +67,7 @@ import { WriteRecipeTool } from './write-recipe.js';
 import { AddIngredientTool, SetNutritionTool, RegenerateHeroTool, CheckRecipeTool, ReviseSectionTool, ProposeSeedsTool, ReadRecipeTool, FindRecipeTool } from './recipe-repair.js';
 import { WriteExerciseTool } from './write-exercise.js';
 import { ReadExerciseTool, FindExerciseTool, ReviseExerciseTool, AddEquipmentTool, AddContraindicationTool, ProposeConditionTool, SetMusclesTool, RegenerateDemoTool, CheckExerciseTool, ProposeExerciseSeedsTool } from './exercise-repair.js';
-import { ProposeCoursesTool, FindCourseTool, ReadCourseTool, WriteCourseTool, ReviseCourseTool, CheckCourseTool, RegenerateCoverTool, ProposeCategoryTool } from './course-tools.js';
+import { ProposeCoursesTool, FindCourseTool, ReadCourseTool, WriteCourseTool, ReviseCourseTool, CheckCourseTool, ReviewCourseTool, RegenerateCoverTool, ProposeCategoryTool } from './course-tools.js';
 import { PostPerformanceTool } from './post-performance.js';
 import { SuggestBeatsTool } from './suggest-beats.js';
 import { ScanIndustryTool } from './scan-industry.js';
@@ -514,6 +514,7 @@ export class ToolRegistry {
       new WriteCourseTool(),
       new ReviseCourseTool(),
       new CheckCourseTool(),
+      new ReviewCourseTool(),
       new RegenerateCoverTool(),
       new ProposeCategoryTool(),
       new CheckRecipeTool(),
