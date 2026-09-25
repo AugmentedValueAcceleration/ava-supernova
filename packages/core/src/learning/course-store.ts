@@ -67,6 +67,25 @@ export interface CourseInput {
 /** Rewrite one part of an existing course. Indices are 0-based here; the
  *  tool takes them 1-based, the way the check reports them. Whatever is given
  *  replaces that part whole. */
+/**
+ * One entry in a course's build plan: a lesson that is meant to exist.
+ *
+ * The plan is authoring scaffolding, not course content. It is what lets a
+ * long course be written a piece at a time without losing the thread — and
+ * what lets the tools say "6 of 14 written, next is module 3 lesson 2"
+ * instead of leaving it to be remembered across a run.
+ */
+export interface CoursePlanLesson {
+  module: string;
+  lesson: string;
+}
+
+export interface CourseBuildPlan {
+  lessons: CoursePlanLesson[];
+  /** When the plan was set, so a stale one is visible as stale. */
+  set_at: string;
+}
+
 export interface CourseRevision {
   meta?: Partial<Pick<CourseInput, 'title' | 'description' | 'category' | 'subject' | 'level' | 'audience_type' | 'goal' | 'prerequisites' | 'target_audience' | 'estimated_hours' | 'learning_objectives' | 'tags' | 'cover_image_prompt' | 'region' | 'locale_bound'>>;
   /** Replace every module. */
@@ -77,9 +96,39 @@ export interface CourseRevision {
   lesson?: { module_index: number; index: number } & Partial<CourseLessonInput>;
   /** Replace one step. */
   step?: { module_index: number; lesson_index: number; index: number; step: CourseStepInput };
+
+  /*
+   * ── Appending ─────────────────────────────────────────────────────────
+   *
+   * Every operation above REPLACES something at a known index, which means
+   * growing a course meant resending the whole of whatever was being grown:
+   * a fourth module required all four, a seventh lesson required that
+   * module's every lesson and every step inside them.
+   *
+   * On 25 Sep 2026 that made a real course unwritable. Ava tried nineteen
+   * times to land a Git course, each attempt the entire syllabus in one
+   * call, each one cut off in transit — because the tools gave her no way to
+   * add a piece to something that already existed. She said so herself,
+   * correctly, and kept trying the only move she had.
+   *
+   * These three add ONE thing to the end. The largest call needed to build
+   * any course, of any size, is now a single lesson.
+   */
+
+  /** Append a module. With `at_index`, insert before that module instead. */
+  add_module?: { at_index?: number } & CourseModuleInput;
+  /** Append a lesson to a module. With `at_index`, insert before that lesson. */
+  add_lesson?: { module_index: number; at_index?: number } & CourseLessonInput;
+  /** Append a step to a lesson. With `at_index`, insert before that step. */
+  add_step?: { module_index: number; lesson_index: number; at_index?: number; step: CourseStepInput };
+
+  /** Set or replace the build plan. Never touches the course itself. */
+  plan?: CoursePlanLesson[];
 }
 
 export interface CourseSnapshot {
+  /** The build plan, when one was set. Authoring scaffolding — never shown to a learner. */
+  build_plan?: CourseBuildPlan | null;
   id: string;
   title: string;
   description: string | null;
@@ -152,7 +201,12 @@ export interface CourseStore {
   recheck(courseId: string): Promise<CourseCheckResult | null>;
   /** Rewrite one part in place. Refused only for findings it would ADD —
    *  compared against the course's existing findings, never a clean slate. */
-  reviseCourse(courseId: string, revision: CourseRevision): Promise<{ ok: boolean; error?: string; findings?: CourseCheckFinding[] }>;
+  /**
+   * `added` names where an add_* landed — "lesson 3 \"Branches\" in module 2"
+   * — because the next call addresses it by index, and guessing the index is
+   * how a growing course gets written over instead of extended.
+   */
+  reviseCourse(courseId: string, revision: CourseRevision): Promise<{ ok: boolean; error?: string; findings?: CourseCheckFinding[]; added?: string }>;
   regenerateCover(courseId: string, prompt: string): Promise<{ ok: boolean; url?: string; error?: string }>;
   /** Fill every locale. Reports what is still missing rather than claiming done. */
   translate(courseId: string): Promise<{ ok: boolean; locales: number; missing: string[]; error?: string }>;

@@ -13,7 +13,7 @@ import { checkCourse, COURSE_REFUSAL_KINDS } from '../learning/course-check.js';
 import {
   COURSE_LEVELS, COURSE_AUDIENCES, LESSON_TYPES, LESSON_DIFFICULTIES,
   type CourseStore, type CourseInput, type CourseRevision, type CourseStepInput, type CourseLessonInput, type CourseModuleInput,
-  type CourseLevel, type CourseAudience,
+  type CourseLevel, type CourseAudience, type CourseBuildPlan,
 } from '../learning/course-store.js';
 
 const NOT_HERE = 'The course library is not available in this context.';
@@ -56,9 +56,36 @@ const list = (v: unknown): unknown[] => {
     try {
       const parsed = JSON.parse(v) as unknown;
       if (Array.isArray(parsed)) return parsed;
-    } catch { /* not JSON after all — treat it as absent */ }
+    } catch { /* see listFault — the caller has to be TOLD, not handed [] */ }
   }
   return [];
+};
+
+/**
+ * Why a list came back empty, in words that point at the real cause.
+ *
+ * On 25 Sep 2026 a whole run died against "write_course arrived with no
+ * modules". The modules HAD been sent — as JSON text that was cut off
+ * mid-flight, so the parse threw and the value fell through to empty. Ava
+ * spent nineteen attempts theorising about size, then formatting, then stray
+ * braces, because the message never once said "this was truncated". She was
+ * debugging a fiction.
+ */
+const listFault = (v: unknown, field: string): string | null => {
+  if (Array.isArray(v) || v === undefined || v === null) return null;
+  if (typeof v !== 'string') return `\`${field}\` arrived as ${typeof v}, which cannot be a list of items.`;
+  const t = v.trim();
+  if (!t.startsWith('[')) return `\`${field}\` arrived as text that is not a list — it starts with ${JSON.stringify(t.slice(0, 40))}.`;
+  try {
+    JSON.parse(t);
+    return null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const at = /position (\d+)/.exec(msg)?.[1];
+    return `\`${field}\` arrived as JSON TEXT, ${v.length.toLocaleString()} characters long, and it is incomplete — it could not be parsed${at ? ` (it stops making sense at character ${at} of ${v.length.toLocaleString()})` : ''}. `
+      + 'The call was CUT OFF in transit; nothing was wrong with your punctuation and re-checking it will not help. '
+      + 'Send less in one call: land a small course, then grow it with revise_course add_module / add_lesson / add_step, one piece per call.';
+  }
 };
 const strList = (v: unknown): string[] => list(v).map(String).map((s) => s.trim()).filter(Boolean);
 /** Was a list GIVEN at all — as against parsing to nothing. Revisions turn on it: an empty list means "remove these", absent means "leave them alone". */
@@ -179,6 +206,67 @@ const findingsOut = (findings: Array<{ kind: string; where: string; message: str
   findings.map((f) => `${f.kind} — ${f.where}: ${f.message}`);
 
 /**
+ * How far through the build plan the course is, and what to write next.
+ *
+ * Without this, a course written a piece at a time has to be held in memory
+ * across a long run — which is exactly what fails. The tool that changed the
+ * course is the one that knows what is left, so it says so on the way out.
+ */
+/** Read a course for a REPORT, where failing to read it must change nothing. */
+async function safeRead(store: CourseStore, id: string) {
+  try {
+    return await store.readCourse(id);
+  } catch {
+    return null;
+  }
+}
+
+function planProgress(
+  plan: CourseBuildPlan | null | undefined,
+  modules: CourseModuleInput[],
+): { written: number; total: number; next: string | null; remaining: string[] } | null {
+  if (!plan?.lessons?.length) return null;
+  const have = new Set<string>();
+  for (const m of modules) for (const l of m.lessons ?? []) have.add(`${m.title}\u0000${l.title}`.toLowerCase());
+  const outstanding = plan.lessons.filter((e) => !have.has(`${e.module}\u0000${e.lesson}`.toLowerCase()));
+  return {
+    written: plan.lessons.length - outstanding.length,
+    total: plan.lessons.length,
+    next: outstanding.length ? `${outstanding[0].module} › ${outstanding[0].lesson}` : null,
+    // Capped: the point is to name the next few, not to re-print the plan.
+    remaining: outstanding.slice(0, 8).map((e) => `${e.module} › ${e.lesson}`),
+  };
+}
+
+/**
+ * A repair turned into a list that is worked one entry at a time.
+ *
+ * A course with thirty findings used to arrive as thirty findings, and the
+ * honest response to that looked like "rewrite it" — which is the one move
+ * that loses work and cannot fit in a call. Ordered by where it is, with the
+ * exact call that fixes it, a repair becomes thirty small calls instead.
+ */
+function repairWorklist(findings: Array<{ kind: string; where: string; message: string }>): string[] {
+  const CALL: Record<string, string> = {
+    no_steps: 'revise_course lesson (with module_index + lesson_index) giving its steps',
+    step_unchecked: 'revise_course step (with module_index + lesson_index + step_index) adding answer or evaluation',
+    step_no_prompt: 'revise_course step, giving the interaction a prompt',
+    ask_ai_method: 'revise_course step, replacing "ask an AI" with the learner doing it themselves',
+    thin_outline: 'revise_course add_lesson (with module_index) — append, do not resend the module',
+    no_objectives: 'revise_course learning_objectives',
+    no_prereqs: 'revise_course prerequisites',
+    no_audience: 'revise_course target_audience',
+    no_description: 'revise_course description',
+    vulgar_title: 'revise_course title',
+    no_safety_line: 'revise_course description, carrying the safety line',
+    no_cover: 'regenerate_cover with a scene for this course',
+    untranslated: 'translate_course, once the text is final',
+  };
+  return findings.map((f, i) =>
+    `${i + 1}. [${f.kind}] ${f.where} — ${f.message} → ${CALL[f.kind] ?? 'revise_course, the smallest part that covers it'}`);
+}
+
+/**
  * "No course with that id" is where a turn used to stop dead. Say what the id
  * actually IS instead: a seed (the id printed in the brief, one line from the
  * one the tool wants), something deleted, or a lookup that failed — which is
@@ -287,7 +375,19 @@ export class ReadCourseTool implements Tool {
     const id = str(args.course_id ?? args.id);
     const snapshot = await store.readCourse(id);
     if (!snapshot) return { success: false, output: await explainMissingId(store, id, 'read_course') };
-    return { success: true, output: JSON.stringify(snapshot) };
+    const progress = planProgress(snapshot.build_plan, snapshot.modules);
+    return {
+      success: true,
+      output: JSON.stringify({
+        ...snapshot,
+        ...(progress ? {
+          build_plan: progress,
+          how: progress.next
+            ? `Written ${progress.written} of ${progress.total} planned lessons. Next: ${progress.next} — add it with revise_course add_lesson (module_index), one lesson per call.`
+            : `All ${progress.total} planned lessons are written. check_course, then translate_course when the text is final.`,
+        } : {}),
+      }),
+    };
   }
 }
 
@@ -359,11 +459,14 @@ export class WriteCourseTool implements Tool {
     const rawModules = list(args.modules);
     const parsedModules = rawModules.map(parseModule).filter((m): m is CourseModuleInput => !!m);
     if (!parsedModules.length) {
+      const fault = listFault(args.modules, 'modules');
       return {
         success: false,
-        output: rawModules.length
-          ? `None of the ${rawModules.length} modules could be read — every one needs a "title" string, and lessons need one too. Nothing was saved.`
-          : `write_course arrived with no modules — got ${got(args.modules)}. A course is its modules; nothing was saved. If the call is being cut off, send fewer modules now and add the rest with revise_course.`,
+        output: fault
+          ? `${fault} Nothing was saved.`
+          : rawModules.length
+            ? `None of the ${rawModules.length} modules could be read — every one needs a "title" string, and lessons need one too. Nothing was saved.`
+            : `write_course arrived with no modules — got ${got(args.modules)}. A course is its modules; nothing was saved. Land a smaller course now and grow it with revise_course add_module.`,
       };
     }
 
@@ -431,7 +534,7 @@ export class ReviseCourseTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'revise_course',
     description:
-      'Repair an existing course where it is: give the fields to change, OR `modules` (replaces all), OR `module` with module_index, OR `lesson` with module_index + lesson_index, OR `step` with module_index + lesson_index + step_index. Indices are 1-based, as the check reports them. What you give replaces that part whole; everything else is untouched. Never write the course again to fix it.',
+      'Change ONE thing about an existing course. To GROW it: add_module, or add_lesson with module_index, or add_step with module_index + lesson_index — each one call, each one piece, never resend what is already there. To REPAIR it: give the fields to change, OR `module` with module_index, OR `lesson` with module_index + lesson_index, OR `step` with module_index + lesson_index + step_index (`modules` replaces ALL and is a last resort). Indices are 1-based, as the check reports them. Never write the course again to fix or extend it.',
     parameters: {
       type: 'object',
       properties: {
@@ -458,6 +561,21 @@ export class ReviseCourseTool implements Tool {
         lesson: { ...LESSON_SCHEMA, required: [] as string[], description: 'Replaces the lesson at module_index / lesson_index. Steps given replace all of its steps.' },
         step_index: { type: 'integer', minimum: 1 },
         step: { ...STEP_SCHEMA, description: 'Replaces the step at module_index / lesson_index / step_index.' },
+
+        add_module: { ...MODULE_SCHEMA, description: 'APPEND a new module to the end. Use this to GROW a course — never resend the whole course to add to it. With at_index, inserts before that module instead.' },
+        add_lesson: { ...LESSON_SCHEMA, description: 'APPEND a new lesson to the module at module_index. With at_index, inserts before that lesson.' },
+        add_step: { ...STEP_SCHEMA, description: 'APPEND a new step to the lesson at module_index / lesson_index. With at_index, inserts before that step.' },
+        at_index: { type: 'integer', minimum: 1, description: 'Optional, with any add_*: insert BEFORE this position instead of appending at the end. 1-based.' },
+
+        plan: {
+          type: 'array',
+          description: 'Set the build plan: every lesson this course is MEANT to have, in order, as {module, lesson}. Does not change the course. read_course and check_course then report what is written against it and name the next piece.',
+          items: {
+            type: 'object',
+            properties: { module: { type: 'string' }, lesson: { type: 'string' } },
+            required: ['module', 'lesson'],
+          },
+        },
       },
       required: ['course_id'],
     },
@@ -495,15 +613,50 @@ export class ReviseCourseTool implements Tool {
     if (Object.keys(meta).length) revision.meta = meta;
 
     const mi = num(args.module_index), li = num(args.lesson_index), si = num(args.step_index);
-    if (gaveList(args.modules)) {
+    const atIndex = num(args.at_index);
+
+    // Growing comes first, because growing is what a course needs most and
+    // what there was previously no way to do: every other branch REPLACES at
+    // an index, so adding anything meant resending the whole of whatever it
+    // was being added to.
+    if (args.add_step !== undefined) {
+      if (mi === null || li === null) return { success: false, output: 'add_step needs module_index and lesson_index (1-based) saying which lesson to add the step to.' };
+      const step = parseStep(args.add_step);
+      if (!step) return { success: false, output: 'The step needs `teach` and an `interaction` with a `kind` (choice | free_text | code | predict) and a `prompt`.' };
+      revision.add_step = { module_index: mi - 1, lesson_index: li - 1, step, ...(atIndex !== null ? { at_index: atIndex - 1 } : {}) };
+    } else if (args.add_lesson !== undefined) {
+      if (mi === null) return { success: false, output: 'add_lesson needs module_index (1-based) saying which module to add the lesson to.' };
+      const lesson = parseLesson(args.add_lesson);
+      if (!lesson) return { success: false, output: 'The lesson needs a `title`. Give its steps too, or add them afterwards with add_step.' };
+      revision.add_lesson = { module_index: mi - 1, ...lesson, ...(atIndex !== null ? { at_index: atIndex - 1 } : {}) };
+    } else if (args.add_module !== undefined) {
+      const mod = parseModule(args.add_module);
+      if (!mod) return { success: false, output: 'The module needs a `title`. Give its lessons too, or add them afterwards with add_lesson.' };
+      revision.add_module = { ...mod, ...(atIndex !== null ? { at_index: atIndex - 1 } : {}) };
+    } else if (gaveList(args.plan)) {
+      const planned = list(args.plan)
+        .map((e) => { const o = (e ?? {}) as Record<string, unknown>; return { module: name(o.module), lesson: name(o.lesson) }; })
+        .filter((e) => e.module && e.lesson);
+      if (!planned.length) {
+        const fault = listFault(args.plan, 'plan');
+        return { success: false, output: fault ?? 'Every plan entry needs a `module` and a `lesson`. Nothing was changed.' };
+      }
+      revision.plan = planned;
+    } else if (gaveList(args.modules)) {
       const raw = list(args.modules);
       revision.modules = raw.map(parseModule).filter((m): m is CourseModuleInput => !!m);
       if (!revision.modules.length) {
+        // Truncation first: "empty modules list" is a very different fault
+        // from "the call did not arrive", and confusing them is what cost a
+        // whole run on 25 Sep 2026.
+        const fault = listFault(args.modules, 'modules');
         return {
           success: false,
-          output: raw.length
-            ? `None of the ${raw.length} modules could be read — every one needs a "title" string. Nothing was changed.`
-            : 'revise_course was given an empty modules list, which would delete every module. Nothing was changed. To replace one module use `module` with module_index.',
+          output: fault
+            ? `${fault} Nothing was changed.`
+            : raw.length
+              ? `None of the ${raw.length} modules could be read — every one needs a "title" string. Nothing was changed.`
+              : 'revise_course was given an empty modules list, which would delete every module. Nothing was changed. To replace one module use `module` with module_index; to ADD one use add_module.',
         };
       }
     } else if (args.step !== undefined) {
@@ -534,8 +687,13 @@ export class ReviseCourseTool implements Tool {
       };
     }
 
-    if (!revision.meta && !revision.modules && !revision.module && !revision.lesson && !revision.step) {
-      return { success: false, output: 'revise_course: nothing to change — give a field, or modules, or a module / lesson / step with its index.' };
+    if (!revision.meta && !revision.modules && !revision.module && !revision.lesson && !revision.step
+      && !revision.add_module && !revision.add_lesson && !revision.add_step && !revision.plan) {
+      return {
+        success: false,
+        output: 'revise_course: nothing to change. To grow the course: add_module, or add_lesson with module_index, or add_step with module_index + lesson_index. '
+          + 'To repair it: a field, or `module` / `lesson` / `step` with its index. To record what is still to be written: `plan`.',
+      };
     }
 
     const result = await store.reviseCourse(id, revision);
@@ -543,13 +701,30 @@ export class ReviseCourseTool implements Tool {
       return { success: false, output: JSON.stringify({ ok: false, error: result.error ?? 'refused', would_add: findingsOut(result.findings ?? []) }) };
     }
     const recheck = await store.recheck(id);
+    // The call that just changed the course is the one that knows what is
+    // still outstanding, so it hands back the next piece rather than leaving
+    // it to be remembered across a long run.
+    // Never let the progress REPORT break a revision that already landed.
+    // `.catch()` only covers a rejected promise, not a store that cannot be
+    // asked at all — and the change is saved by this point either way.
+    const after = await safeRead(store, id);
+    const progress = planProgress(after?.build_plan, after?.modules ?? []);
+    const worklist = repairWorklist(recheck?.findings ?? []);
     return {
       success: true,
       output: JSON.stringify({
         ok: true,
         changed: Object.keys(revision),
+        ...(result.added ? { added: result.added } : {}),
         recheck: recheck?.status ?? 'not re-checked',
         remaining: findingsOut(recheck?.findings ?? []),
+        ...(worklist.length ? { worklist } : {}),
+        ...(progress ? { build_plan: progress } : {}),
+        next: progress?.next
+          ? `Next planned lesson: ${progress.next}. Add it with revise_course add_lesson — one lesson per call.`
+          : worklist.length
+            ? 'Take the next worklist entry, on its own, in its own call.'
+            : 'Nothing outstanding. check_course to confirm, then translate_course when the text is final.',
       }),
     };
   }
@@ -573,7 +748,25 @@ export class CheckCourseTool implements Tool {
     const checkId = str(args.course_id ?? args.id);
     const verdict = await store.recheck(checkId);
     if (!verdict) return { success: false, output: await explainMissingId(store, checkId, 'check_course') };
-    return { success: true, output: JSON.stringify({ status: verdict.status, checked_at: verdict.checked_at, findings: findingsOut(verdict.findings) }) };
+    // The findings as a numbered list of small jobs, each naming the call that
+    // does it. A long list used to read as "this course needs rewriting",
+    // which is the one move that loses work and will not fit in a call.
+    const worklist = repairWorklist(verdict.findings);
+    const snapshot = await safeRead(store, checkId);
+    const progress = planProgress(snapshot?.build_plan, snapshot?.modules ?? []);
+    return {
+      success: true,
+      output: JSON.stringify({
+        status: verdict.status,
+        checked_at: verdict.checked_at,
+        findings: findingsOut(verdict.findings),
+        ...(worklist.length ? {
+          worklist,
+          how: 'Work this list ONE entry at a time: make the call named, then check_course again. Do not rewrite the course, and do not batch several fixes into one call — that is what gets cut off.',
+        } : {}),
+        ...(progress ? { build_plan: progress } : {}),
+      }),
+    };
   }
 }
 

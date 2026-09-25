@@ -39,6 +39,23 @@ export const COURSE_REFUSAL_KINDS: ReadonlySet<CourseFindingKind> = new Set<Cour
   'no_objectives', 'no_prereqs', 'no_audience', 'no_description', 'vulgar_title', 'no_safety_line',
 ]);
 
+/**
+ * Findings that mean "not finished yet" rather than "done wrong".
+ *
+ * A module with one lesson and a lesson with no steps are both real faults in
+ * a course that claims to be done — and both are the NORMAL state of a course
+ * being built a piece at a time. Blocking an append for them makes building
+ * in pieces impossible: the first add_module is refused for the module being
+ * incomplete, which is the exact thing the next call was going to fix.
+ *
+ * So an append is never refused for these. They still appear in the check, in
+ * the worklist, and in every report — and they still refuse a write_course,
+ * where the course is being presented as finished. Only growth is let past.
+ */
+export const COURSE_INCOMPLETE_KINDS: ReadonlySet<CourseFindingKind> = new Set<CourseFindingKind>([
+  'no_steps', 'thin_outline',
+]);
+
 export interface CourseCheckFinding {
   kind: CourseFindingKind;
   /** Where: "module 2 › lesson 3 › step 1", or the field name. */
