@@ -117,13 +117,18 @@ export interface CourseReview {
   findings: StoredReviewFinding[];
   /** The reviewer's own sentence about the course as a whole. */
   summary: string | null;
-  /**
-   * The course's `updated_at` when it was read. A review of a course that has
-   * moved since is STALE — its line numbers and its `from` values describe a
-   * course that no longer exists, and applying from it would overwrite work
-   * nobody approved.
-   */
+  /** The course's `updated_at` when it was read. Kept for the record only. */
   course_updated_at: string | null;
+  /**
+   * A hash of the course's CONTENT when it was read — and the actual test for
+   * whether this review still describes it.
+   *
+   * `updated_at` was the test first, and it moves for writes that do not touch
+   * a word of the course: storing a gate verdict, stamping last_reviewed_at.
+   * So a check run after a review invalidated the review, and every Apply
+   * button went dead on work that was perfectly current (25 Sep 2026).
+   */
+  content_hash?: string | null;
 }
 
 export interface CourseRevision {
@@ -266,6 +271,16 @@ export interface CourseStore {
   applyReviewFinding(courseId: string, findingId: string): Promise<{ ok: boolean; error?: string; applied?: string }>;
   /** Turn one down. It stays visible as a decision, so a re-review does not raise it again. */
   skipReviewFinding(courseId: string, findingId: string, note?: string): Promise<{ ok: boolean; error?: string }>;
+  /**
+   * Throw the review away entirely, so the course reads as never reviewed.
+   *
+   * A review that cannot be cleared is a review that accumulates: every
+   * finding decided long ago stays on the card, and the rail can never return
+   * to a clean state. Discarding is not the same as skipping everything —
+   * skipping records a decision, this says the reading itself is no longer
+   * the one to work from.
+   */
+  discardReview(courseId: string): Promise<{ ok: boolean; error?: string }>;
   /** Re-run the gate on a stored course and write the verdict on the row. */
   recheck(courseId: string): Promise<CourseCheckResult | null>;
   /** Rewrite one part in place. Refused only for findings it would ADD —
