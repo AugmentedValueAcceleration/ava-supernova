@@ -157,7 +157,7 @@ export class WebSearchTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const query = args.query as string;
     const maxResults = Math.min(Math.max((args.max_results as number) || DEFAULT_MAX_RESULTS, 1), 10);
 
@@ -165,6 +165,55 @@ export class WebSearchTool implements Tool {
       return { success: false, output: 'Search query cannot be empty.' };
     }
 
+    /*
+     * A real search backend, when the surface has one.
+     *
+     * The platform injects Brave as `sharedState.webSearch`, and two other
+     * tools have read it since it was added. THIS tool never did — it took a
+     * `_context` it ignored and scraped DuckDuckGo regardless. So an account
+     * that was paid for and under half used sat idle while every search went
+     * to an endpoint that answers a datacenter address with a rate-limit page:
+     * measured 26 Sep 2026, six searches three seconds apart, six blocked.
+     *
+     * DuckDuckGo stays as the fallback, because the CLI and a local install
+     * have no platform key and something is better than nothing there.
+     */
+    const backend = context?.sharedState?.webSearch as
+      | ((q: string, max?: number) => Promise<Array<{ title: string; url: string; snippet: string }>>)
+      | undefined;
+    if (typeof backend === 'function') {
+      try {
+        const results = await backend(query, maxResults);
+        if (!results.length) {
+          return {
+            success: true,
+            output: `No results found for "${query}".`,
+            metadata: { count: 0, backend: 'platform' },
+          };
+        }
+        return {
+          success: true,
+          output: `Search results for "${query}":\n\n${results
+            .map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}${r.snippet ? `\n   ${r.snippet}` : ''}`)
+            .join('\n\n')}`,
+          metadata: { count: results.length, backend: 'platform' },
+        };
+      } catch (error: unknown) {
+        // Fall through to the fallback rather than failing the turn — but say
+        // which one answered, so a bad result can be traced to its source.
+        const message = error instanceof Error ? error.message : String(error);
+        const fallback = await this.searchDuckDuckGo(query, maxResults);
+        return fallback.success
+          ? fallback
+          : { ...fallback, output: `The platform's search backend failed (${message}), and the fallback did not answer either. ${fallback.output}` };
+      }
+    }
+
+    return this.searchDuckDuckGo(query, maxResults);
+  }
+
+  /** The fallback: scraped, unauthenticated, and blocked from a datacenter. */
+  private async searchDuckDuckGo(query: string, maxResults: number): Promise<ToolResult> {
     try {
       // One retry, because a throttle is often over in a second or two and
       // failing the whole turn for it is expensive.

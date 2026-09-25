@@ -139,3 +139,50 @@ describe('WebSearchTool', () => {
     expect(result.metadata?.count).toBeLessThanOrEqual(10);
   });
 });
+
+describe('the platform backend is used when the surface has one', () => {
+  const tool = new WebSearchTool();
+  // Brave was injected as sharedState.webSearch and read by two other tools.
+  // This one took a context it ignored and scraped DuckDuckGo regardless, so
+  // a paid account under half its limit sat idle while every search went to an
+  // endpoint that blocks a datacenter address (26 Sep 2026: six searches, six
+  // blocked).
+  const withBackend = (fn: unknown) => ({ sharedState: { webSearch: fn } }) as never;
+
+  it('asks the injected backend and never touches DuckDuckGo', async () => {
+    mockRequest.mockClear();
+    const backend = vi.fn().mockResolvedValue([
+      { title: 'MDN — Remainder (%)', url: 'https://developer.mozilla.org/x', snippet: 'Returns the remainder.' },
+    ]);
+    const r = await tool.execute({ query: 'modulo', max_results: 3 }, withBackend(backend));
+    expect(r.success).toBe(true);
+    expect(r.output).toContain('MDN — Remainder (%)');
+    expect(r.metadata?.backend).toBe('platform');
+    expect(backend).toHaveBeenCalledWith('modulo', 3);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the scrape when the backend throws, rather than failing the turn', async () => {
+    mockDDGResponse(SAMPLE_HTML);
+    const backend = vi.fn().mockRejectedValue(new Error('401 unauthorised'));
+    const r = await tool.execute({ query: 'modulo' }, withBackend(backend));
+    expect(r.success).toBe(true);
+    expect(r.output).toContain('Example Page 1');
+  });
+
+  it('when BOTH fail, it says the backend failed and names why', async () => {
+    mockDDGResponse('<html><body>anomaly</body></html>', 202);
+    const backend = vi.fn().mockRejectedValue(new Error('401 unauthorised'));
+    const r = await tool.execute({ query: 'modulo' }, withBackend(backend));
+    expect(r.success).toBe(false);
+    expect(r.output).toContain("platform's search backend failed");
+    expect(r.output).toContain('401 unauthorised');
+  });
+
+  it('with no backend it still scrapes, because the CLI has no platform key', async () => {
+    mockDDGResponse(SAMPLE_HTML);
+    const r = await tool.execute({ query: 'modulo' }, { sharedState: {} } as never);
+    expect(r.success).toBe(true);
+    expect(r.output).toContain('Example Page 1');
+  });
+});
