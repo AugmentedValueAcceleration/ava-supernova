@@ -3397,12 +3397,30 @@ export class Agent {
     const rawArgs = toolCall.function.arguments ?? '';
     try {
       parsedArgs = JSON.parse(rawArgs);
-    } catch {
-      const looksTruncated = rawArgs.length > 0;
-      logger.error(`[agent] tool call ${toolCall.function.name} arguments UNREADABLE (${rawArgs.length} chars) — almost certainly cut off at the output limit`);
-      const message = looksTruncated
-        ? `Your ${toolCall.function.name} call did not arrive in one piece — it was cut off after ${rawArgs.length} characters, part-way through, so nothing could be read from it and NOTHING was saved. This is not a formatting mistake on your part and re-checking your punctuation will not help. Send the same work in smaller calls: fewer modules or lessons per call, then grow it with the revise tool.`
-        : `Your ${toolCall.function.name} call arrived empty. Nothing was saved.`;
+    } catch (parseError) {
+      // WHERE it stops parsing is the whole diagnosis, and asserting "cut
+      // off" without looking cost a run on 26 Sep 2026: arguments that had
+      // arrived COMPLETE and were malformed in the middle were reported as
+      // truncated, so the author shrank a call that had never been too big.
+      // Dying at the very end is a cut-off. Dying in the middle, with valid
+      // text still after it, is not.
+      const at = Number(/position (\d+)/.exec(parseError instanceof Error ? parseError.message : '')?.[1] ?? NaN);
+      const len = rawArgs.length;
+      const brokeMidway = !Number.isNaN(at) && at < len - 32;
+      const around = brokeMidway
+        ? rawArgs.slice(Math.max(0, at - 60), at + 60).replace(/\n/g, ' ')
+        : '';
+      logger.error(
+        `[agent] tool call ${toolCall.function.name} arguments UNREADABLE (${len} chars, parse died at ${Number.isNaN(at) ? '?' : at})`
+        + (brokeMidway ? ` — MALFORMED MIDWAY, not truncated. Around the break: ${JSON.stringify(around)}` : ' — consistent with a cut-off at the output limit'),
+      );
+      const message = len === 0
+        ? `Your ${toolCall.function.name} call arrived empty. Nothing was saved.`
+        : brokeMidway
+          // Arrived whole and broke in the middle. Sending less cannot fix
+          // this, and saying so sends the author round in circles.
+          ? `Your ${toolCall.function.name} call arrived COMPLETE — all ${len.toLocaleString()} characters — but the JSON is malformed at character ${at}, with the rest of it still there after that point. NOTHING was saved. This was NOT cut off, so sending less will not help. Around the break: …${around}… Something is wrong with the text itself there — most often an unescaped quote or backslash inside a string. Send structured values rather than strings containing JSON: structure does not need escaping.`
+          : `Your ${toolCall.function.name} call did not arrive in one piece — it was cut off after ${len.toLocaleString()} characters, part-way through, so nothing could be read from it and NOTHING was saved. This is not a formatting mistake on your part and re-checking your punctuation will not help. Send the same work in smaller calls: one lesson, or even one step, per call.`;
       onEvent({
         type: 'tool_call_end',
         toolCall,
