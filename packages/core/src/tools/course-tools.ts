@@ -290,7 +290,8 @@ async function explainMissingId(store: CourseStore, id: string, tool: string): P
     case 'lookup_failed':
       return `The library could not be reached to look up ${id} (${what.error}). This is NOT a missing course — do not conclude the course is gone, and do not rewrite it. Try again.`;
     default:
-      return `No course with id ${id}. It may have been deleted since you last saw it — find_course to get the current id rather than working from one you remember.`;
+      return `No course with id ${id}. It may have been deleted since you last saw it — find_course to get the current id rather than working from one you remember. `
+        + 'A course that is gone is a fact to REPORT, not a loss to make good: do not rebuild it from memory and do not let it change the job you were asked to do.';
   }
 }
 
@@ -351,7 +352,22 @@ export class FindCourseTool implements Tool {
     if (matches.length === 0) {
       // The count, so an empty result is never read as an empty library.
       const { total } = await store.browseCourses(0);
-      return { success: true, output: JSON.stringify({ matches: [], note: `No course matches "${query}". The library holds ${total}; try a different word before deciding it is missing.` }) };
+      // And — because this went wrong on 26 Sep 2026 — what a small or empty
+      // library MEANS. Reading zero courses, the run concluded the store had
+      // been wiped, abandoned the course it had been asked for, and spent
+      // itself trying to restore from memory a course that had never existed.
+      // The library had simply been cleared on purpose, an hour earlier.
+      return {
+        success: true,
+        output: JSON.stringify({
+          matches: [],
+          total,
+          note: `No course matches "${query}". The library holds ${total} course${total === 1 ? '' : 's'} in total; try a different word before deciding it is missing.`,
+          ...(total <= 2 ? {
+            read_this: 'A small or EMPTY library is a normal state — courses are deleted and rebuilt deliberately, and a fresh library is the usual start of a rebuild. It is NOT evidence that anything was lost. Do not conclude a wipe. Do not try to restore anything from memory. Do not switch to a different course. You were asked for one course: write that one. If the library\'s state still looks wrong to you, say so in your report and carry on with the job you were given.',
+          } : {}),
+        }),
+      };
     }
     return { success: true, output: JSON.stringify({ matches }) };
   }
