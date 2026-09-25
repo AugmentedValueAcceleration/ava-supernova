@@ -23,6 +23,25 @@ function storeOf(context: ToolExecutionContext): CourseStore | undefined {
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
+
+/**
+ * A name, with HTML entities turned back into the characters they stand for.
+ *
+ * "HTML & CSS: Your First Web Page" was written to the library as
+ * "HTML &amp; CSS: Your First Web Page" on 25 Sep 2026. The seed and the
+ * brief both said `&`; the escaping happened on the way into the tool call,
+ * and it then showed in every heading and every list.
+ *
+ * Deliberately applied to NAMES ONLY — title, subject, category. An entity
+ * inside a lesson is often correct: a web course teaching `&amp;` has to be
+ * able to say `&amp;`, and decoding it there would quietly break the very
+ * courses most likely to contain it.
+ */
+const name = (v: unknown): string => str(v)
+  .replace(/&(amp|lt|gt|quot|apos|nbsp|#0?39);/gi, (_m, e: string) => ({
+    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '39': "'", '039': "'",
+  }[e.toLowerCase().replace('#', '')] ?? _m))
+  .trim();
 /**
  * An array, or the JSON text of one.
  *
@@ -133,7 +152,7 @@ function parseStep(v: unknown): CourseStepInput | null {
 
 function parseLesson(v: unknown): CourseLessonInput | null {
   const o = (v ?? {}) as Record<string, unknown>;
-  const title = str(o.title);
+  const title = name(o.title);
   if (!title) return null;
   return {
     title,
@@ -147,7 +166,7 @@ function parseLesson(v: unknown): CourseLessonInput | null {
 
 function parseModule(v: unknown): CourseModuleInput | null {
   const o = (v ?? {}) as Record<string, unknown>;
-  const title = str(o.title);
+  const title = name(o.title);
   if (!title) return null;
   return {
     title,
@@ -315,12 +334,12 @@ export class WriteCourseTool implements Tool {
 
     const level = oneOf(args.level, COURSE_LEVELS);
     const audience = oneOf(args.audience_type, COURSE_AUDIENCES);
-    const category = str(args.category);
+    const category = name(args.category);
     // One message per field that is actually wrong, with what arrived. The
     // old one listed all four whatever the fault was, so a single mistyped
     // value read as "you sent none of this" — and the fix was invisible.
     const missing: string[] = [];
-    if (!str(args.title)) missing.push(`title — got ${got(args.title)}`);
+    if (!name(args.title)) missing.push(`title — got ${got(args.title)}`);
     if (!category) missing.push(`category — got ${got(args.category)}; it is a slug like "software_development"`);
     if (!level) missing.push(`level — got ${got(args.level)}; one of ${COURSE_LEVELS.join(' | ')}`);
     if (!audience) missing.push(`audience_type — got ${got(args.audience_type)}; one of ${COURSE_AUDIENCES.join(' | ')}`);
@@ -354,10 +373,10 @@ export class WriteCourseTool implements Tool {
     }
 
     const course: CourseInput = {
-      title: str(args.title),
+      title: name(args.title),
       description: str(args.description),
       category,
-      subject: str(args.subject),
+      subject: name(args.subject),
       level: level as CourseLevel,
       audience_type: audience as CourseAudience,
       goal: str(args.goal) || null,
@@ -453,14 +472,15 @@ export class ReviseCourseTool implements Tool {
     const revision: CourseRevision = {};
     const meta: NonNullable<CourseRevision['meta']> = {};
     for (const k of ['title', 'description', 'subject', 'goal', 'prerequisites', 'target_audience', 'cover_image_prompt'] as const) {
-      if (str(args[k])) meta[k] = str(args[k]);
+      const clean = k === 'title' || k === 'subject' ? name(args[k]) : str(args[k]);
+      if (clean) meta[k] = clean;
     }
-    if (str(args.category)) {
+    if (name(args.category)) {
       const categories = await store.listCategories();
-      if (!categories.some((c) => c.slug === str(args.category))) {
-        return { success: false, output: `No category "${str(args.category)}". The library has: ${categories.map((c) => c.slug).join(', ')}.` };
+      if (!categories.some((c) => c.slug === name(args.category))) {
+        return { success: false, output: `No category "${name(args.category)}". The library has: ${categories.map((c) => c.slug).join(', ')}.` };
       }
-      meta.category = str(args.category);
+      meta.category = name(args.category);
     }
     if (typeof args.region === 'string') {
       meta.region = str(args.region).toUpperCase() || null;

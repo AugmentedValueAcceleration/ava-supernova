@@ -1224,7 +1224,22 @@ export class LearningTeachTool implements Tool {
         await persist(globalDir, store, context);
 
         let out = `**Review: ${lesson.title}** (review #${lesson.review_count})\n\n`;
-        if (lesson.content) {
+        // A lesson is either steps or prose. Reading only prose meant a review
+        // of a Classroom lesson returned this header and nothing else — the
+        // same reader gap that made the whole library look empty on 25 Sep.
+        if (lesson.steps && lesson.steps.length > 0) {
+          out += 'This lesson was learned by DOING it. Review it the same way: pick the steps that matter, ';
+          out += 'ask the learner to do them again from memory, and judge the real answer — do not read the material back to them.\n';
+          out += '\n**Steps:**';
+          out += lesson.steps.map((st, i) => {
+            let line = `\n\n${i + 1}. teach: ${st.teach}\n   do (${st.interaction.kind}): ${st.interaction.prompt}`;
+            if (st.interaction.options?.length) line += `\n   options: ${st.interaction.options.join(' | ')}`;
+            if (st.interaction.answer) line += `\n   answer: ${st.interaction.answer}`;
+            if (st.interaction.evaluation) line += `\n   evaluation (grade their real answer against this): ${st.interaction.evaluation}`;
+            if (st.status && st.status !== 'not_started') line += `\n   [learner progress: ${st.status}]`;
+            return line;
+          }).join('');
+        } else if (lesson.content) {
           out += lesson.content;
         }
         if (lesson.quiz_questions.length > 0) {
@@ -1362,7 +1377,11 @@ export class LearningProgressTool implements Tool {
                 (next.estimated_minutes ? ` ~${next.estimated_minutes}m` : '') +
                 (next.status === 'needs_review' ? ' ⟳ RETRY' : '') +
                 `\n[curriculum_id: ${curriculum.id}, lesson_id: ${next.id}]\n` +
-                (next.content ? `\n\nReady to start? Use learning_teach with action "deliver".` : '\nNo content yet — use learning_teach with action "write_content" first.'),
+                // `steps` OR `content` — a steps lesson was being reported to
+                // the learner as having nothing in it.
+                (next.steps?.length || next.content
+                  ? `\n\nReady to start? Use learning_teach with action "deliver".`
+                  : '\nNo content yet — use learning_teach with action "write_content" first.'),
               metadata: { curriculum_id: curriculum.id, lesson_id: next.id, type: next.type },
             };
           }
@@ -1399,9 +1418,16 @@ export class LearningProgressTool implements Tool {
         for (const curr of store.curriculums) {
           for (const mod of curr.modules) {
             for (const lesson of mod.lessons) {
+              // Search the steps as well as the prose, or a Classroom course
+              // is unfindable by anything except its title.
+              const stepText = (lesson.steps ?? [])
+                .map(st => `${st.teach} ${st.interaction?.prompt ?? ''}`)
+                .join(' ')
+                .toLowerCase();
               const matches =
                 lesson.title.toLowerCase().includes(q) ||
                 (lesson.content || '').toLowerCase().includes(q) ||
+                stepText.includes(q) ||
                 lesson.tags.some(t => t.toLowerCase().includes(q));
 
               if (matches) {

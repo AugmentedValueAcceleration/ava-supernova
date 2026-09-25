@@ -148,3 +148,39 @@ describe('revise_course holds the same line', () => {
     expect(revisions[0].revision.meta?.level).toBe('intermediate');
   });
 });
+
+describe('a name never keeps an HTML entity', () => {
+  it('&amp; in the title becomes &', async () => {
+    const { store, saved } = fakeStore();
+    const r = await new WriteCourseTool().execute({ ...goodArgs(), title: 'HTML &amp; CSS: Your First Web Page' }, ctx(store));
+    expect(r.success).toBe(true);
+    expect(saved[0].title).toBe('HTML & CSS: Your First Web Page');
+  });
+
+  it('module and lesson titles are cleaned too', async () => {
+    const { store, saved } = fakeStore();
+    const args = goodArgs();
+    const mods = modules();
+    mods[0].title = 'Cut &amp; Paste';
+    mods[0].lessons[0].title = 'Copy &amp; Move';
+    const r = await new WriteCourseTool().execute({ ...args, modules: mods }, ctx(store));
+    expect(r.success).toBe(true);
+    expect(saved[0].modules[0].title).toBe('Cut & Paste');
+    expect(saved[0].modules[0].lessons[0].title).toBe('Copy & Move');
+  });
+
+  it('LESSON TEXT is left alone — a web course has to be able to teach &amp;', async () => {
+    const { store, saved } = fakeStore();
+    const mods = modules();
+    mods[0].lessons[0].steps[0].teach = 'To show an ampersand on a page you write &amp; in the HTML.';
+    const r = await new WriteCourseTool().execute({ ...goodArgs(), modules: mods }, ctx(store));
+    expect(r.success).toBe(true);
+    expect(saved[0].modules[0].lessons[0].steps[0].teach).toContain('&amp;');
+  });
+
+  it('revise_course cleans a title the same way', async () => {
+    const { store, revisions } = fakeStore();
+    await new ReviseCourseTool().execute({ course_id: 'course-1', title: 'Git &amp; GitHub' }, ctx(store));
+    expect(revisions[0].revision.meta?.title).toBe('Git & GitHub');
+  });
+});
