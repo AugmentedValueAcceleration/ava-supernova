@@ -197,6 +197,24 @@ export function checkCourse(
         if (it.kind === 'choice' && (it.options ?? []).length < 2) {
           findings.push({ kind: 'step_unchecked', where: stepWhere, message: 'A choice step with fewer than two options is not a choice.' });
         }
+        // The answer has to be one of the things the learner can actually
+        // click. Two of these reached a finished course and only a READING
+        // found them (25 Sep 2026) — "input, which fires on every keystroke"
+        // as the key, against options of click | input | submit | load. Every
+        // learner gets it wrong, every time, and no structural check saw it
+        // because an answer was present and the options were plural.
+        //
+        // Compared leniently: case and surrounding space are not the learner's
+        // mistake, and marking them wrong would be a second bug on top.
+        if (it.kind === 'choice' && (it.options ?? []).length >= 2 && (it.answer ?? '').trim()) {
+          const same = (x: string) => x.trim().toLowerCase();
+          if (!(it.options ?? []).some((o) => same(String(o)) === same(it.answer!))) {
+            findings.push({
+              kind: 'step_unchecked', where: stepWhere,
+              message: `The answer is not one of the options, so no choice the learner can click is ever right. Answer: ${JSON.stringify(it.answer)}. Options: ${JSON.stringify(it.options)}.`,
+            });
+          }
+        }
         if (!exemptAskAi) {
           const text = `${s.teach ?? ''} ${it.prompt}`;
           if (ASK_AI_RE.test(text) && !NOT_DELEGATION_RE.test(text)) {

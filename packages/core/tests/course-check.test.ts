@@ -134,3 +134,48 @@ describe('checkCourse', () => {
     for (const f of r.findings) expect(COURSE_REFUSAL_KINDS.has(f.kind)).toBe(false);
   });
 });
+
+describe('a choice whose answer is not on the list', () => {
+  // 25 Sep 2026: two of these reached a finished 25-lesson course and only a
+  // READING found them — "input, which fires on every keystroke" as the key,
+  // against options of click | input | submit | load. Every learner gets it
+  // wrong, every time. The gate saw an answer present and options plural, and
+  // passed it. That is a structural fault and belongs here, not in a review.
+  const course = (answer: string, options: string[]) => ({
+    title: 'Events, Briefly', description: 'A short course on DOM events for people who have written a little JavaScript already.',
+    category: 'software_development', subject: 'JavaScript', level: 'beginner', audience_type: 'Career change',
+    goal: 'Handle an event.', prerequisites: 'None', target_audience: 'Written a little JavaScript.',
+    estimated_hours: 2, learning_objectives: ['Handle an event'], tags: [], cover_image_prompt: 'x',
+    region: null, locale_bound: false,
+    modules: [1, 2, 3].map((m) => ({
+      title: `Module ${m}`, description: null,
+      lessons: [1, 2].map((l) => ({
+        title: `Lesson ${m}.${l}`, estimated_minutes: 10, learning_objectives: [],
+        steps: [1, 2, 3].map(() => ({
+          teach: 'Events fire when something happens on the page, and you listen for them by name.',
+          interaction: { kind: 'choice' as const, prompt: 'Which event fires on every keystroke?', options, answer },
+        })),
+      })),
+    })),
+  });
+
+  it('is refused, and the message shows both sides', () => {
+    const v = checkCourse(course('input, which fires on every keystroke', ['click', 'input', 'submit', 'load']), 'now');
+    const f = v.findings.find((x) => x.message.includes('not one of the options'));
+    expect(f).toBeDefined();
+    expect(f!.kind).toBe('step_unchecked');
+    expect(f!.message).toContain('"input, which fires on every keystroke"');
+    expect(f!.message).toContain('"click"');
+    expect(v.status).toBe('fail');
+  });
+
+  it('an answer that IS on the list passes', () => {
+    const v = checkCourse(course('input', ['click', 'input', 'submit', 'load']), 'now');
+    expect(v.findings.some((x) => x.message.includes('not one of the options'))).toBe(false);
+  });
+
+  it('case and stray spacing are not the learner\'s mistake', () => {
+    const v = checkCourse(course('  Input ', ['click', 'input', 'submit', 'load']), 'now');
+    expect(v.findings.some((x) => x.message.includes('not one of the options'))).toBe(false);
+  });
+});

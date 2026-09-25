@@ -700,17 +700,39 @@ export class ReviseCourseTool implements Tool {
     const mi = num(args.module_index), li = num(args.lesson_index), si = num(args.step_index);
     const atIndex = num(args.at_index);
 
+    /**
+     * Which index is missing, and what arrived instead.
+     *
+     * "A lesson revision needs module_index and lesson_index" states the rule
+     * and hides the fault: it does not say which of the two was absent, nor
+     * what was sent in its place — and a number sent as the string "3", or
+     * under the wrong name, looks identical to nothing at all from the
+     * outside. Every other message in this room was given the same treatment
+     * today; this one was missed.
+     */
+    const missingIndex = (what: string, need: Array<[string, number | null]>): string | null => {
+      const absent = need.filter(([, v]) => v === null);
+      if (!absent.length) return null;
+      const said = need.map(([k, v]) => `${k}: ${v === null ? got(args[k]) : v}`).join(', ');
+      return `${what} needs ${absent.map(([k]) => k).join(' and ')} — 1-based, as the check reports them. You sent ${said}. `
+        + 'If you meant to send a number, send it as a number rather than text.';
+    };
+
     // Growing comes first, because growing is what a course needs most and
     // what there was previously no way to do: every other branch REPLACES at
     // an index, so adding anything meant resending the whole of whatever it
     // was being added to.
     if (args.add_step !== undefined) {
-      if (mi === null || li === null) return { success: false, output: 'add_step needs module_index and lesson_index (1-based) saying which lesson to add the step to.' };
+      if (mi === null || li === null) {
+        return { success: false, output: `${missingIndex('add_step', [['module_index', mi], ['lesson_index', li]])} They say which lesson to add the step to.` };
+      }
       const step = parseStep(args.add_step);
       if (!step) return { success: false, output: 'The step needs `teach` and an `interaction` with a `kind` (choice | free_text | code | predict) and a `prompt`.' };
       revision.add_step = { module_index: mi - 1, lesson_index: li - 1, step, ...(atIndex !== null ? { at_index: atIndex - 1 } : {}) };
     } else if (args.add_lesson !== undefined) {
-      if (mi === null) return { success: false, output: 'add_lesson needs module_index (1-based) saying which module to add the lesson to.' };
+      if (mi === null) {
+        return { success: false, output: `${missingIndex('add_lesson', [['module_index', mi]])} It says which module to add the lesson to.` };
+      }
       const lesson = parseLesson(args.add_lesson);
       if (!lesson) return { success: false, output: 'The lesson needs a `title`. Give its steps too, or add them afterwards with add_step.' };
       revision.add_lesson = { module_index: mi - 1, ...lesson, ...(atIndex !== null ? { at_index: atIndex - 1 } : {}) };
@@ -745,12 +767,16 @@ export class ReviseCourseTool implements Tool {
         };
       }
     } else if (args.step !== undefined) {
-      if (mi === null || li === null || si === null) return { success: false, output: 'A step revision needs module_index, lesson_index and step_index (1-based).' };
+      if (mi === null || li === null || si === null) {
+        return { success: false, output: missingIndex('A step revision', [['module_index', mi], ['lesson_index', li], ['step_index', si]])! };
+      }
       const step = parseStep(args.step);
       if (!step) return { success: false, output: 'The step needs teach and an interaction with a kind.' };
       revision.step = { module_index: mi - 1, lesson_index: li - 1, index: si - 1, step };
     } else if (args.lesson !== undefined) {
-      if (mi === null || li === null) return { success: false, output: 'A lesson revision needs module_index and lesson_index (1-based).' };
+      if (mi === null || li === null) {
+        return { success: false, output: `${missingIndex('A lesson revision', [['module_index', mi], ['lesson_index', li]])} To ADD a lesson rather than replace one, use add_lesson with module_index only.` };
+      }
       const o = (args.lesson ?? {}) as Record<string, unknown>;
       revision.lesson = {
         module_index: mi - 1, index: li - 1,
@@ -762,7 +788,9 @@ export class ReviseCourseTool implements Tool {
         ...(gaveList(o.steps) ? { steps: list(o.steps).map(parseStep).filter((s): s is CourseStepInput => !!s) } : {}),
       };
     } else if (args.module !== undefined) {
-      if (mi === null) return { success: false, output: 'A module revision needs module_index (1-based).' };
+      if (mi === null) {
+        return { success: false, output: missingIndex('A module revision', [['module_index', mi]])! };
+      }
       const o = (args.module ?? {}) as Record<string, unknown>;
       revision.module = {
         index: mi - 1,
