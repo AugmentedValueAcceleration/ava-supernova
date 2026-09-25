@@ -184,3 +184,41 @@ describe('a name never keeps an HTML entity', () => {
     expect(revisions[0].revision.meta?.title).toBe('Git & GitHub');
   });
 });
+
+describe('a cut-off call and a malformed one are different faults', () => {
+  const bigLesson = (n: number) => `{"title":"L${n}","steps":[{"teach":"${'x'.repeat(400)}","interaction":{"kind":"free_text","prompt":"do it","evaluation":"they did"}}]}`;
+
+  it('a string that STOPS at its own end is called cut off', async () => {
+    const { store } = fakeStore();
+    // Ends mid-token: nothing follows the break.
+    const cut = `[{"title":"M1","lessons":[${bigLesson(1)},${bigLesson(2)}`;
+    const r = await new WriteCourseTool().execute({ ...goodArgs(), modules: cut }, ctx(store));
+    expect(r.output).toContain('CUT OFF in transit');
+    expect(r.output).toContain('Send less in one call');
+  });
+
+  it('a string that arrives COMPLETE and breaks in the middle is not', async () => {
+    const { store, saved } = fakeStore();
+    // A bad escape early on, with thousands of valid characters after it —
+    // the shape seen live on 26 Sep: 34,437 characters present, broken at
+    // 5,565. Telling this author to "send less" wastes their whole run.
+    const broken = `[{"title":"M1","description":"a "quote" that was never escaped","lessons":[${bigLesson(1)},${bigLesson(2)},${bigLesson(3)}]}]`;
+    const r = await new WriteCourseTool().execute({ ...goodArgs(), modules: broken }, ctx(store));
+    expect(r.output).toContain('arrived COMPLETE');
+    expect(r.output).toContain('NOT cut off');
+    expect(r.output).toContain('sending less will not fix it');
+    // It must SHOW the break, since that is the only thing that identifies it.
+    expect(r.output).toContain('Around the break:');
+    expect(r.output).toContain('quote');
+    // And point at the fix that removes the whole class.
+    expect(r.output).toContain('real ARRAY');
+    expect(saved).toHaveLength(0);
+  });
+
+  it('the cut-off message never claims punctuation is fine when it is not', async () => {
+    const { store } = fakeStore();
+    const broken = `[{"title":"M1","description":"a "quote"","lessons":[${bigLesson(1)},${bigLesson(2)}]}]`;
+    const r = await new WriteCourseTool().execute({ ...goodArgs(), modules: broken }, ctx(store));
+    expect(r.output).not.toContain('re-checking it will not help');
+  });
+});

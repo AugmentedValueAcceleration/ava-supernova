@@ -81,10 +81,36 @@ const listFault = (v: unknown, field: string): string | null => {
     return null;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const at = /position (\d+)/.exec(msg)?.[1];
-    return `\`${field}\` arrived as JSON TEXT, ${v.length.toLocaleString()} characters long, and it is incomplete — it could not be parsed${at ? ` (it stops making sense at character ${at} of ${v.length.toLocaleString()})` : ''}. `
-      + 'The call was CUT OFF in transit; nothing was wrong with your punctuation and re-checking it will not help. '
-      + 'Send less in one call: land a small course, then grow it with revise_course add_module / add_lesson / add_step, one piece per call.';
+    const at = Number(/position (\d+)/.exec(msg)?.[1] ?? NaN);
+    const len = t.length;
+
+    // TWO different faults were wearing one message, and telling them apart
+    // is the whole diagnosis. A string that ARRIVES COMPLETE and breaks in
+    // the middle was not cut off — 34,437 characters all present, broken at
+    // 5,565 (26 Sep 2026) — and telling its author "your punctuation is fine"
+    // sent them to shrink a payload that was never too big. A string that
+    // stops at its own end is the one that was truncated.
+    const brokeAtTheEnd = !Number.isNaN(at) && at >= len - 32;
+
+    if (Number.isNaN(at) || brokeAtTheEnd) {
+      return `\`${field}\` arrived as JSON TEXT, ${len.toLocaleString()} characters long, and it stops part-way through — the call was CUT OFF in transit. `
+        + 'Nothing was wrong with your punctuation and re-checking it will not help. '
+        + 'Send less in one call: land a small course with a `plan`, then grow it with revise_course add_module / add_lesson / add_step, one piece per call.';
+    }
+
+    // Broken in the middle, with everything after it still present. Show the
+    // actual characters, because that is the only thing that identifies it.
+    const from = Math.max(0, at - 60);
+    const around = t.slice(from, at + 60).replace(/\n/g, '\\n');
+    // Logged too, so the fault can be diagnosed from the server rather than
+    // reconstructed from a report.
+    try {
+      console.error(`[classroom] ${field} malformed at ${at}/${len}: ${JSON.stringify(around)}`);
+    } catch { /* no console in some hosts */ }
+    return `\`${field}\` arrived COMPLETE — all ${len.toLocaleString()} characters — but the JSON is malformed at character ${at}, and the rest of it after that point is still there. `
+      + `So this was NOT cut off, and sending less will not fix it. Around the break: …${around}… `
+      + 'Something is wrong with the text itself at that point — most often a quote or a backslash inside a `teach` or `prompt` string that was not escaped. '
+      + 'Better still: send `modules` as a real ARRAY rather than as a string containing JSON. The escaping is what breaks; structure does not need escaping.';
   }
 };
 const strList = (v: unknown): string[] => list(v).map(String).map((s) => s.trim()).filter(Boolean);
@@ -434,7 +460,7 @@ export class WriteCourseTool implements Tool {
         estimated_hours: { type: 'number' },
         learning_objectives: { type: 'array', items: { type: 'string' } },
         tags: { type: 'array', items: { type: 'string' } },
-        modules: { type: 'array', items: MODULE_SCHEMA, description: 'Three or more — a FLOOR. The subject decides the number: a whole syllabus gets ten if it needs ten.' },
+        modules: { type: 'array', items: MODULE_SCHEMA, description: 'Three or more — a FLOOR. The subject decides the number: a whole syllabus gets ten if it needs ten. Send it as a real ARRAY, never as a string containing JSON: a stringified one has to escape every quote and backslash in every teach and prompt, and that escaping is what breaks.' },
         cover_image_prompt: { type: 'string', description: 'A scene for THIS course — a person doing the thing, the tool visible, no text. Not a room, not a "cover".' },
         region: { type: 'string', description: 'ISO country code (GB, DE, IE…) ONLY when the subject IS its jurisdiction — law, tax, benefits, anything where the country is the content. Leave it out for maths, biology, a language, a tool.' },
         locale_bound: { type: 'boolean', description: 'True with a region: this course must never be translated into other languages, because it describes one country\'s rules. Sets it apart from a course that merely happens to be written in English.' },
