@@ -15,6 +15,7 @@ import {
   COURSE_LEVELS, COURSE_AUDIENCES, LESSON_TYPES, LESSON_DIFFICULTIES,
   type CourseStore, type CourseInput, type CourseRevision, type CourseStepInput, type CourseLessonInput, type CourseModuleInput,
   type CourseLevel, type CourseAudience, type CourseBuildPlan,
+  SEED_COMMISSION_FIELDS, type SeedCommissionField, type SeedProposal,
 } from '../learning/course-store.js';
 
 const NOT_HERE = 'The course library is not available in this context.';
@@ -865,6 +866,128 @@ export class ReviseCourseTool implements Tool {
  * button, and a change made before it was seen is not a change that was
  * approved.
  */
+/**
+ * Turn a seed from a title into a commission — proposing, never writing.
+ *
+ * A seed carried a title, a subject, a level, an audience and a sentence of
+ * goal. Everything that decides what the course IS was invented at writing
+ * time and, because it was never specified, could not be called wrong.
+ *
+ * 27 Sep 2026: "How Computers Actually Work", audience SCHOOL, produced a
+ * course built on Windows Character Map and the macOS Character Viewer. The
+ * facts were all checked before use. A thirteen-year-old at school is quite
+ * plausibly on a locked-down Chromebook. Nothing was done wrong — the seed
+ * never said what machine the learner has, so it had to be guessed.
+ *
+ * What it proposes is constraints, never lessons. A seed that dictates the
+ * arc makes the author a typist and wastes the only hard part.
+ */
+export class SharpenSeedTool implements Tool {
+  readonly name = 'sharpen_seed';
+  readonly description =
+    'Turn a seed from a title into a commission: propose what the learner MAKES, what they can DO afterwards, where it STOPS, and what MACHINE they are on. Proposes only; changes nothing.';
+  readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'sharpen_seed',
+    description:
+      'Read a seed and propose the facts a title cannot carry. The operator approves each one with a button, so every value must be the value ITSELF, never a description of it — "a script that renames a folder of holiday photos by the date they were taken", not "the artefact should be clearer".\n\n'
+      + 'Propose only what the seed does not already say; what it says is the operator\'s decision and stands.\n\n'
+      + 'CONSTRAINTS, NOT A SYLLABUS. Never propose modules, lessons or an order — a seed that dictates the arc makes the author a typist. The test: could this be worked out from the subject? If yes, leave it out; if it is something only the operator knows, propose it.\n\n'
+      + 'artefact — what the learner MAKES or DOES. For anything hands-on this IS the course, and naming it settles the skills, their order and the length. Leave it out for a course that genuinely builds nothing rather than inventing one.\n'
+      + 'goal — what they can DO afterwards that they could not before, as a VERB. Not what they will know: knowing is not checkable and every lesson here is checked.\n'
+      + 'boundary — where it stops, and what is deliberately left out. One line that prevents a course nobody wanted.\n'
+      + 'equipment — what they are sitting in front of, and whether they can install anything. Think hardest about this for a School or a beginner audience.',
+    parameters: {
+      type: 'object',
+      properties: {
+        seed_id: { type: 'string' },
+        proposals: {
+          type: 'array',
+          description: 'One per field you are proposing. Omit a field the seed already answers.',
+          items: {
+            type: 'object',
+            properties: {
+              field: { type: 'string', enum: SEED_COMMISSION_FIELDS as unknown as string[] },
+              value: { type: 'string', description: 'The value itself, as it would be stored and read.' },
+              because: { type: 'string', description: 'Why this one and not another — one sentence, shown on the card.' },
+            },
+            required: ['field', 'value', 'because'],
+          },
+        },
+      },
+      required: ['seed_id', 'proposals'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const store = storeOf(context);
+    if (!store) return { success: false, output: NOT_HERE };
+    const id = str(args.seed_id ?? args.id);
+    if (!id) return { success: false, output: 'sharpen_seed requires seed_id.' };
+
+    const seed = await store.readSeed(id);
+    if (!seed) return { success: false, output: `No seed with id ${id}. The Seeds rail has the real ids.` };
+
+    const raw = list(args.proposals);
+    const fault = listFault(args.proposals, 'proposals');
+    if (fault) return { success: false, output: `${fault} Nothing was recorded.` };
+
+    const allowed = new Set<string>(SEED_COMMISSION_FIELDS);
+    const proposals: SeedProposal[] = [];
+    const rejected: string[] = [];
+    const alreadySaid: string[] = [];
+
+    for (const r of raw) {
+      const o = (r ?? {}) as Record<string, unknown>;
+      const field = str(o.field);
+      const value = str(o.value);
+      const because = str(o.because);
+      if (!allowed.has(field)) { rejected.push(`"${field || '(none)'}" is not a commission field — they are ${[...allowed].join(', ')}.`); continue; }
+      if (!value) { rejected.push(`${field}: no value. The operator approves the VALUE with a button and cannot approve a description of one.`); continue; }
+      // What the seed already says is the operator's decision and stands. A
+      // proposal over the top of it would be the author overruling them.
+      if (str(seed.has[field as SeedCommissionField])) { alreadySaid.push(field); continue; }
+      proposals.push({ field: field as SeedCommissionField, value, because, state: 'proposed' });
+    }
+
+    if (!proposals.length) {
+      return {
+        success: false,
+        output: rejected.length
+          ? `Nothing was recorded:\n- ${rejected.join('\n- ')}`
+          : alreadySaid.length
+            ? `The seed already answers ${alreadySaid.join(', ')}, and what it says is the operator's decision — there was nothing left to propose. If you think one of them is wrong, say so in your report rather than proposing over it.`
+            : 'No proposals were given, so nothing was recorded.',
+      };
+    }
+
+    const saved = await store.proposeSeedCommission(id, proposals);
+    if (!saved.ok) return { success: false, output: `Could not record the proposals: ${saved.error ?? 'unknown error'}` };
+
+    const missing = SEED_COMMISSION_FIELDS.filter(
+      (f) => !str(seed.has[f]) && !proposals.some((p) => p.field === f),
+    );
+    return {
+      success: true,
+      output: JSON.stringify({
+        ok: true,
+        seed: seed.title,
+        proposed: proposals.map((p) => `${p.field}: ${JSON.stringify(p.value)} — ${p.because}`),
+        ...(alreadySaid.length ? { already_answered: alreadySaid } : {}),
+        ...(rejected.length ? { not_recorded: rejected } : {}),
+        ...(missing.length ? {
+          // Said out loud rather than left implied: a field with no proposal
+          // and no value is still a decision the writer will make silently.
+          still_open: `${missing.join(', ')} — you proposed nothing for ${missing.length === 1 ? 'this' : 'these'}. If that is because the subject settles it, say so; if it is because you do not know, say that instead.`,
+        } : {}),
+        next: 'NOTHING has been changed. The operator approves each one with a button, and what they approve becomes the brief the course is written from.',
+      }),
+    };
+  }
+}
+
 export class ReviewCourseTool implements Tool {
   readonly name = 'review_course';
   readonly description =

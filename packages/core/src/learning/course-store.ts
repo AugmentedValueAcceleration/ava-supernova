@@ -229,6 +229,45 @@ export interface CourseSeedSuggestion {
   locale_bound?: boolean;
 }
 
+/**
+ * The fields a commission adds to a title, and nothing more.
+ *
+ * Deliberately NOT a syllabus. A seed that dictates the lessons makes the
+ * author a typist and wastes the only hard part; the test for whether a fact
+ * belongs here is whether it could be worked out from the subject. If it
+ * could, leave it out.
+ */
+export const SEED_COMMISSION_FIELDS = ['artefact', 'goal', 'boundary', 'equipment'] as const;
+export type SeedCommissionField = (typeof SEED_COMMISSION_FIELDS)[number];
+
+/**
+ * One proposed value for one field of a seed — written by nobody until the
+ * operator presses Apply.
+ *
+ * The same discipline as a course review: the author does the work of
+ * deciding, the operator keeps the decision, and the value is concrete enough
+ * to approve at a glance. "The artefact should be clearer" cannot be
+ * approved; "a script that renames a folder of holiday photos by the date
+ * they were taken" can.
+ */
+export interface SeedProposal {
+  field: SeedCommissionField;
+  /** The exact value, as it would be stored. Never a description of one. */
+  value: string;
+  /** Why this and not something else — one sentence, for the card. */
+  because: string;
+  state: 'proposed' | 'applied' | 'skipped';
+  decided_at?: string | null;
+}
+
+export interface SeedCommission {
+  seed_id: string;
+  title: string;
+  /** What the seed already says, so a proposal never overwrites a decision. */
+  has: Partial<Record<SeedCommissionField, string | null>>;
+  proposals: SeedProposal[];
+}
+
 export interface CategoryProposal {
   name: string;
   reason: string;
@@ -297,6 +336,15 @@ export interface CourseStore {
   /** Propose seeds for the backlog — grounded in the library's actual
    *  coverage — and write them to it, so the hub's Seeds rail shows them. */
   proposeSeeds(brief: { category?: string; level?: string; audience?: string; count?: number }): Promise<CourseSeedSuggestion[]>;
+
+  /** One seed as it stands, so a sharpening proposes only what is missing. */
+  readSeed(seedId: string): Promise<SeedCommission | null>;
+  /** Record proposals against a seed. Changes NOTHING about the seed itself. */
+  proposeSeedCommission(seedId: string, proposals: SeedProposal[]): Promise<{ ok: boolean; error?: string }>;
+  /** Write one approved value. The operator's action, not the author's. */
+  applySeedProposal(seedId: string, field: SeedCommissionField): Promise<{ ok: boolean; error?: string; applied?: string }>;
+  /** Turn one down; it stays visible so a second sharpening does not re-raise it. */
+  skipSeedProposal(seedId: string, field: SeedCommissionField): Promise<{ ok: boolean; error?: string }>;
   proposeCategory(proposal: CategoryProposal): Promise<{ ok: boolean; error?: string; existing?: string }>;
   listCategories(): Promise<Array<{ slug: string; name: string }>>;
   /** What IS this id? Asked only when a course lookup came back empty, so
