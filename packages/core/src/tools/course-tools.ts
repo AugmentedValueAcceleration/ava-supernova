@@ -367,13 +367,13 @@ export class ProposeCoursesTool implements Tool {
 
 export class FindCourseTool implements Tool {
   readonly name = 'find_course';
-  readonly description = 'Search the library by title or subject BEFORE writing anything, so the same course is not written twice under two titles.';
+  readonly description = 'Search the library by title or subject. Finding nothing is the EXPECTED answer when writing from a seed — it means the course is yours to define.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'find_course',
-    description: 'Search the course library by title or subject. Word-wise, best match first. Call it before write_course, always.',
+    description: 'Search the course library by title or subject. Word-wise, best match first. Call it before write_course, always — but note what a result MEANS: a match is a course to repair, and no match is a course to define. When you are working from a seed, no match is the normal answer and not a problem to solve.',
     parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
   };
 
@@ -397,6 +397,14 @@ export class FindCourseTool implements Tool {
           matches: [],
           total,
           note: `No course matches "${query}". The library holds ${total} course${total === 1 ? '' : 's'} in total; try a different word before deciding it is missing.`,
+          // The POSITIVE reading, which was missing. Every framing around this
+          // tool was a check — "search before you write so the same course is
+          // not written twice", "do not conclude the library was wiped" — so
+          // finding nothing read as a failed lookup. On 27 Sep the author had
+          // to argue herself into authoring: "so this is a fresh write, not a
+          // repair." That sentence should never have needed writing.
+          what_this_means: 'A match would be a course to REPAIR. No match is a course to DEFINE — and if you are working from a seed, that is exactly what a seed is for, so it is the expected answer rather than a problem. '
+            + 'You are now deciding what this course IS: what the learner makes, what they can do at the end, where it stops, and what they are sitting in front of. Take those from the seed where it says, and say plainly in your report where it did not.',
           ...(total <= 2 ? {
             read_this: 'A small or EMPTY library is a normal state — courses are deleted and rebuilt deliberately, and a fresh library is the usual start of a rebuild. It is NOT evidence that anything was lost. Do not conclude a wipe. Do not try to restore anything from memory. Do not switch to a different course. You were asked for one course: write that one. If the library\'s state still looks wrong to you, say so in your report and carry on with the job you were given.',
           } : {}),

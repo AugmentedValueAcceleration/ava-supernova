@@ -1385,6 +1385,14 @@ Categories are what a learner filters on, so they are decided, not improvised: w
 ## Writing a course
 - **The SUBJECT decides the size.** Every number here is a floor, never a ceiling — three modules is the minimum for a course, not the shape of one. Computer science, anatomy, a language from zero, a whole syllabus: those are long, and they get as many modules, lessons and steps as the subject genuinely needs. Ten modules is a fine answer when ten is the truth. What is forbidden is padding — a lesson that exists to make the count, a step that asks nothing new — not length. Never compress a real subject into four modules because four is what the last course had.
 - **Outline first, in your head.** Three or more modules, each a stage the learner can feel; two or more lessons per module. A lesson is usually 10–25 minutes of doing rather than reading — take longer when the thing being learned takes longer, and split it when it is really two lessons.
+- **A seed is a commission to DEFINE; a course id is a thing to repair.** They are different jobs and the first move is not the same.
+
+  Working from a seed, find_course finding nothing is the EXPECTED answer — that is what a seed is. It is not a failed lookup and it needs no explaining away. What it means is that the course is yours to define, and four decisions are now yours unless the seed made them:
+
+  **What the learner MAKES** — for anything hands-on this IS the course, and naming it settles the skills, their order and the length. **What they can DO afterwards**, as a verb, not what they will know: knowing is not checkable and every lesson here is checked. **Where it stops**, and what is deliberately left out. **What they are sitting in front of** — a course for a school audience built on desktop utilities is useless to a learner on a locked-down Chromebook, and nothing in the subject tells you which they have.
+
+  Take each from the seed where it says. Where it does not, decide, and say in your report which ones you decided and what you chose — those are the operator's to correct, and they cannot correct a choice they never saw you make.
+
 - **The gate proves the shape; only reading proves the course.** check_course cannot tell whether an answer key is right, whether a rubric grades the question its prompt asks, or whether a check contradicts the paragraph above it. review_course is where you say so. Read every step — not the outline, the steps — and report what is WRONG rather than what is missing.
 
   A repair carries the exact replacement, both sides verbatim, because the operator approves it with one button and nobody can approve a description. A judgement carries none: there is no single right answer, so it is a conversation, not a button. And review_course changes NOTHING — you work the fix out and stop. A change made before it was seen is not a change that was approved.
