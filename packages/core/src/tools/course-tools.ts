@@ -11,6 +11,7 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import { checkCourse, COURSE_REFUSAL_KINDS, COURSE_INCOMPLETE_KINDS } from '../learning/course-check.js';
 import { parseReviewFinding, describeReviewKinds, type ReviewFinding } from '../learning/course-review.js';
+import { parseJsonForgivingly } from '../utils/json-repair.js';
 import {
   COURSE_LEVELS, COURSE_AUDIENCES, LESSON_TYPES, LESSON_DIFFICULTIES,
   type CourseStore, type CourseInput, type CourseRevision, type CourseStepInput, type CourseLessonInput, type CourseModuleInput,
@@ -55,10 +56,12 @@ const name = (v: unknown): string => str(v)
 const list = (v: unknown): unknown[] => {
   if (Array.isArray(v)) return v;
   if (typeof v === 'string' && v.trim().startsWith('[')) {
-    try {
-      const parsed = JSON.parse(v) as unknown;
-      if (Array.isArray(parsed)) return parsed;
-    } catch { /* see listFault — the caller has to be TOLD, not handed [] */ }
+    // Forgiving, because the commonest fault is an escape lost to double
+    // parsing rather than anything the author did: an escaped \n arrives as a
+    // real newline, and a real newline inside a JSON string is invalid. That
+    // is never ambiguous, so it is repaired rather than refused.
+    const parsed = parseJsonForgivingly<unknown>(v.trim());
+    if (parsed.ok && Array.isArray(parsed.value)) return parsed.value;
   }
   return [];
 };
@@ -78,12 +81,10 @@ const listFault = (v: unknown, field: string): string | null => {
   if (typeof v !== 'string') return `\`${field}\` arrived as ${typeof v}, which cannot be a list of items.`;
   const t = v.trim();
   if (!t.startsWith('[')) return `\`${field}\` arrived as text that is not a list — it starts with ${JSON.stringify(t.slice(0, 40))}.`;
-  try {
-    JSON.parse(t);
-    return null;
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const at = Number(/position (\d+)/.exec(msg)?.[1] ?? NaN);
+  const attempt = parseJsonForgivingly<unknown>(t);
+  if (attempt.ok) return null;
+  {
+    const at = Number(attempt.position ?? NaN);
     const len = t.length;
 
     // TWO different faults were wearing one message, and telling them apart
@@ -710,6 +711,38 @@ export class ReviseCourseTool implements Tool {
     const atIndex = num(args.at_index);
 
     /**
+     * Why a lesson or a step could not be read, and what was probably meant.
+     *
+     * "The lesson needs a `title`" fired five times in one run on 27 Sep 2026
+     * and never once said what HAD arrived. A payload carrying only `steps` is
+     * not a malformed lesson — it is somebody trying to add steps to a lesson
+     * that already exists, reaching for the nearest tool. Naming the keys that
+     * came and the call that fits them ends that in one go; stating the rule
+     * again does not.
+     */
+    const shapeFault = (what: 'lesson' | 'module' | 'step', given: unknown): string => {
+      const o = (given ?? {}) as Record<string, unknown>;
+      const keys = Object.keys(o);
+      const seen = keys.length ? `What arrived: ${keys.join(', ')}.` : 'It arrived empty.';
+      if (what === 'step') {
+        const it = (o.interaction ?? {}) as Record<string, unknown>;
+        return `A step needs \`teach\` and an \`interaction\` with a \`kind\` (choice | free_text | code | predict) and a \`prompt\`. ${seen}`
+          + (str(o.teach) && !str(it.kind) ? ' You gave teach but the interaction has no kind, so nothing could mark it.' : '')
+          + (!str(o.teach) && str(it.kind) ? ' You gave an interaction but no teach, so there is nothing to present before the learner acts.' : '');
+      }
+      if (what === 'lesson') {
+        return `A lesson needs a \`title\`. ${seen}`
+          + (keys.includes('steps')
+            ? ' You sent steps — if you meant to add them to a lesson that ALREADY exists, that is add_step with module_index and lesson_index, one step per call. add_lesson creates a new lesson and so needs a name for it.'
+            : ' Give its steps too, or add them afterwards with add_step.');
+      }
+      return `A module needs a \`title\`. ${seen}`
+        + (keys.includes('lessons')
+          ? ' You sent lessons — to add one to a module that already exists, use add_lesson with module_index.'
+          : ' Give its lessons too, or add them afterwards with add_lesson.');
+    };
+
+    /**
      * Which index is missing, and what arrived instead.
      *
      * "A lesson revision needs module_index and lesson_index" states the rule
@@ -736,18 +769,18 @@ export class ReviseCourseTool implements Tool {
         return { success: false, output: `${missingIndex('add_step', [['module_index', mi], ['lesson_index', li]])} They say which lesson to add the step to.` };
       }
       const step = parseStep(args.add_step);
-      if (!step) return { success: false, output: 'The step needs `teach` and an `interaction` with a `kind` (choice | free_text | code | predict) and a `prompt`.' };
+      if (!step) return { success: false, output: shapeFault('step', args.add_step) };
       revision.add_step = { module_index: mi - 1, lesson_index: li - 1, step, ...(atIndex !== null ? { at_index: atIndex - 1 } : {}) };
     } else if (args.add_lesson !== undefined) {
       if (mi === null) {
         return { success: false, output: `${missingIndex('add_lesson', [['module_index', mi]])} It says which module to add the lesson to.` };
       }
       const lesson = parseLesson(args.add_lesson);
-      if (!lesson) return { success: false, output: 'The lesson needs a `title`. Give its steps too, or add them afterwards with add_step.' };
+      if (!lesson) return { success: false, output: shapeFault('lesson', args.add_lesson) };
       revision.add_lesson = { module_index: mi - 1, ...lesson, ...(atIndex !== null ? { at_index: atIndex - 1 } : {}) };
     } else if (args.add_module !== undefined) {
       const mod = parseModule(args.add_module);
-      if (!mod) return { success: false, output: 'The module needs a `title`. Give its lessons too, or add them afterwards with add_lesson.' };
+      if (!mod) return { success: false, output: shapeFault('module', args.add_module) };
       revision.add_module = { ...mod, ...(atIndex !== null ? { at_index: atIndex - 1 } : {}) };
     } else if (gaveList(args.plan)) {
       const planned = list(args.plan)
@@ -780,7 +813,7 @@ export class ReviseCourseTool implements Tool {
         return { success: false, output: missingIndex('A step revision', [['module_index', mi], ['lesson_index', li], ['step_index', si]])! };
       }
       const step = parseStep(args.step);
-      if (!step) return { success: false, output: 'The step needs teach and an interaction with a kind.' };
+      if (!step) return { success: false, output: shapeFault('step', args.step) };
       revision.step = { module_index: mi - 1, lesson_index: li - 1, index: si - 1, step };
     } else if (args.lesson !== undefined) {
       if (mi === null || li === null) {

@@ -222,3 +222,63 @@ describe('a cut-off call and a malformed one are different faults', () => {
     expect(r.output).not.toContain('re-checking it will not help');
   });
 });
+
+describe('a lost escape is repaired, not refused', () => {
+  const step = () => ({
+    teach: 'Run this:\n# deploy\ngit push\n\nthen open the live URL and check your change is there.',
+    interaction: { kind: 'free_text', prompt: 'Deploy it and paste the URL.', evaluation: 'A live URL that loads.' },
+  });
+  const mods = () => [
+    { title: 'Ship it', lessons: [{ title: 'Push', steps: [step(), step(), step()] }, { title: 'Watch', steps: [step(), step(), step()] }] },
+    { title: 'Fix it', lessons: [{ title: 'Read the log', steps: [step(), step(), step()] }, { title: 'Roll back', steps: [step(), step(), step()] }] },
+    { title: 'Hand over', lessons: [{ title: 'README', steps: [step(), step(), step()] }, { title: 'Walk them through', steps: [step(), step(), step()] }] },
+  ];
+
+  it('modules whose newlines arrived raw still land, with the text intact', async () => {
+    const { store, saved } = fakeStore();
+    // Exactly what double parsing does to an authored \n.
+    const mangled = JSON.stringify(mods()).replace(/\n/g, '\n');
+    const r = await new WriteCourseTool().execute({ ...goodArgs(), modules: mangled }, ctx(store));
+    expect(r.success).toBe(true);
+    expect(saved[0].modules).toHaveLength(3);
+    // The prose survives — repairing must not flatten what it recovers.
+    expect(saved[0].modules[0].lessons[0].steps[0].teach).toContain('\n# deploy\n');
+  });
+
+  it('something genuinely broken is still refused', async () => {
+    const { store, saved } = fakeStore();
+    const broken = '[{"title":"M","lessons":"he said "no" to that"}]';
+    const r = await new WriteCourseTool().execute({ ...goodArgs(), modules: broken }, ctx(store));
+    expect(r.success).toBe(false);
+    expect(saved).toHaveLength(0);
+  });
+});
+
+describe('a shape error says what arrived and what was probably meant', () => {
+  // "The lesson needs a `title`" fired five times in one run and never once
+  // said what HAD arrived. A payload carrying only steps is not a malformed
+  // lesson — it is somebody adding steps to a lesson that already exists.
+  it('add_lesson with steps but no title points at add_step', async () => {
+    const { store } = fakeStore();
+    const r = await new ReviseCourseTool().execute({
+      course_id: 'c1', module_index: 2, add_lesson: { steps: [{ teach: 'x', interaction: { kind: 'choice', prompt: 'y', answer: 'z' } }] },
+    }, ctx(store));
+    expect(r.success).toBe(false);
+    expect(r.output).toContain('What arrived: steps');
+    expect(r.output).toContain('add_step with module_index and lesson_index');
+  });
+
+  it('add_lesson with neither says it arrived empty', async () => {
+    const { store } = fakeStore();
+    const r = await new ReviseCourseTool().execute({ course_id: 'c1', module_index: 1, add_lesson: {} }, ctx(store));
+    expect(r.output).toContain('It arrived empty');
+  });
+
+  it('a step with teach but no kind says which half is missing', async () => {
+    const { store } = fakeStore();
+    const r = await new ReviseCourseTool().execute({
+      course_id: 'c1', module_index: 1, lesson_index: 1, add_step: { teach: 'Layers stack.', interaction: { prompt: 'do it' } },
+    }, ctx(store));
+    expect(r.output).toContain('the interaction has no kind');
+  });
+});

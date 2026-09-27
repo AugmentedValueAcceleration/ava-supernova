@@ -19,6 +19,7 @@ import { modeForTaggedText } from './mode-tags.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
 import { bridgeImagesForTextModel } from './vision-bridge.js';
 import { auditClaims, type ClaimAuditResult } from './claims-auditor.js';
+import { parseJsonForgivingly } from '../utils/json-repair.js';
 import { autoExtractAndSave } from '../memory/auto-extract.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import { maybeBuildDesignReinjection, isUIFilePath as isUIFilePathLocal } from './design-reinjection.js';
@@ -3395,16 +3396,23 @@ export class Agent {
     // instead of doubting itself.
     let parsedArgs: Record<string, unknown>;
     const rawArgs = toolCall.function.arguments ?? '';
-    try {
-      parsedArgs = JSON.parse(rawArgs);
-    } catch (parseError) {
+    // Repair a lost escape before giving up. A control character raw inside a
+    // string literal is never valid JSON and can only have been an escape, so
+    // putting it back is the one possible reading rather than a guess.
+    const forgiving = parseJsonForgivingly<Record<string, unknown>>(rawArgs);
+    if (forgiving.ok) {
+      parsedArgs = forgiving.value;
+      if (forgiving.repaired) {
+        logger.warn(`[agent] tool call ${toolCall.function.name} arguments needed an escape repaired (${rawArgs.length} chars) — a control character was raw inside a string`);
+      }
+    } else {
       // WHERE it stops parsing is the whole diagnosis, and asserting "cut
       // off" without looking cost a run on 26 Sep 2026: arguments that had
       // arrived COMPLETE and were malformed in the middle were reported as
       // truncated, so the author shrank a call that had never been too big.
       // Dying at the very end is a cut-off. Dying in the middle, with valid
       // text still after it, is not.
-      const at = Number(/position (\d+)/.exec(parseError instanceof Error ? parseError.message : '')?.[1] ?? NaN);
+      const at = Number(forgiving.position ?? NaN);
       const len = rawArgs.length;
       const brokeMidway = !Number.isNaN(at) && at < len - 32;
       const around = brokeMidway
