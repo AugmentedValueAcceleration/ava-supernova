@@ -259,7 +259,7 @@ export class GenerateImageTool implements Tool {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'wan2.7-image',
+        model: 'qwen-image-3.0-pro',
         input: {
           messages: [
             {
@@ -464,7 +464,7 @@ export class GenerateImageTool implements Tool {
     return { usePlatform: false };
   }
 
-  private async generateViaPlatform(prompt: string, size: string, platformKey: string, model: string = 'wan2.7'): Promise<string | null> {
+  private async generateViaPlatform(prompt: string, size: string, platformKey: string, model: string = 'qwen-image-3.0-pro'): Promise<string | null> {
     const res = await fetch('https://avasupernova.com/api/generate-image', {
       method: 'POST',
       headers: {
