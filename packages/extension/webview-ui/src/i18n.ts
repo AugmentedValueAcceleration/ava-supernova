@@ -1,10 +1,24 @@
 /**
  * Lightweight i18n for the webview.
- * English strings are bundled inline; other locales are auto-loaded from bundled files.
+ *
+ * English is bundled. Every other language is SENT BY THE HOST over postMessage
+ * — see loadStrings below — because a webview cannot fetch one itself.
+ *
+ * It used to try. There was a map of `() => import('./locales/xx.js')` here and
+ * it could not work for two independent reasons: Vite emits a relative
+ * specifier, which in a classic script resolves against the webview's document
+ * URL rather than the bundle's folder, and the CSP is `script-src 'nonce-…'`
+ * with no 'strict-dynamic', so a dynamic import carries no nonce and is blocked.
+ * setLocale caught the failure and fell back to English, so nineteen of twenty
+ * languages silently showed English and nothing ever reported an error.
+ *
+ * The locale files now live in src/webview/locales (aliased as
+ * @ava-extension/locales) so the HOST can read them too. The host holds all
+ * twenty — it is Node, it can afford to — and posts only the one in use.
  */
 
 import { useState, useEffect } from 'react';
-import { enStrings } from './locales/en.js';
+import { enStrings } from '@ava-extension/locales/en.js';
 
 let currentLocale = 'en';
 let localeVersion = 0;
@@ -12,53 +26,24 @@ const translations: Record<string, Record<string, string>> = {
   en: enStrings,
 };
 
-/** Locale file import map — Vite bundles these as dynamic imports. */
-const localeImports: Record<string, () => Promise<Record<string, Record<string, string>>>> = {
-  ar: () => import('./locales/ar.js'),
-  de: () => import('./locales/de.js'),
-  es: () => import('./locales/es.js'),
-  fr: () => import('./locales/fr.js'),
-  hi: () => import('./locales/hi.js'),
-  id: () => import('./locales/id.js'),
-  it: () => import('./locales/it.js'),
-  ja: () => import('./locales/ja.js'),
-  ko: () => import('./locales/ko.js'),
-  nl: () => import('./locales/nl.js'),
-  pl: () => import('./locales/pl.js'),
-  pt: () => import('./locales/pt.js'),
-  ru: () => import('./locales/ru.js'),
-  th: () => import('./locales/th.js'),
-  tr: () => import('./locales/tr.js'),
-  uk: () => import('./locales/uk.js'),
-  vi: () => import('./locales/vi.js'),
-  'zh-CN': () => import('./locales/zh-CN.js'),
-  'zh-TW': () => import('./locales/zh-TW.js'),
-};
-
 /**
- * Set the active locale and auto-load its translations from bundled files.
- * Falls back to English if locale is not available.
+ * Set the active locale. Does NOT load anything — the strings arrive separately
+ * via loadStrings, sent by the host. Kept synchronous and dumb on purpose: the
+ * version that tried to fetch its own strings is what hid the bug.
  */
-export async function setLocale(locale: string): Promise<void> {
+export function setLocale(locale: string): void {
   currentLocale = locale;
-
-  if (locale !== 'en' && !translations[locale] && localeImports[locale]) {
-    try {
-      const mod = await localeImports[locale]();
-      const exportName = Object.keys(mod).find(k => k.endsWith('Strings'));
-      if (exportName && mod[exportName]) {
-        translations[locale] = mod[exportName] as unknown as Record<string, string>;
-      }
-    } catch {
-      // Locale file not found — will fall back to English
-    }
-  }
-
   localeVersion++;
   window.dispatchEvent(new CustomEvent('ava-locale-changed'));
 }
 
-/** Load translated strings for a locale (sent from extension host via postMessage). */
+/**
+ * Take the active language's strings from the host and re-render.
+ *
+ * This is now the ONLY way a non-English UI happens. It existed before and the
+ * webview called it correctly — the host simply never sent anything, and because
+ * `localeStrings` is optional nothing complained. Half a mechanism, silent.
+ */
 export function loadStrings(locale: string, strings: Record<string, string>): void {
   translations[locale] = strings;
   localeVersion++;

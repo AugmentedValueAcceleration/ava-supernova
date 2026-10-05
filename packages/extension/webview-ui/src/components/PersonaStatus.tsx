@@ -1,5 +1,5 @@
 import { t, useLocale } from '../i18n';
-import type { StringKey } from '../locales/en';
+import type { StringKey } from '@ava-extension/locales/en.js';
 
 interface PersonaTool {
   name: string;

@@ -20,6 +20,16 @@ export default defineConfig({
         __dirname,
         '../src/webview/fleet-copy.ts',
       ),
+      // UI strings, shared with the HOST. They moved out of webview-ui/src on
+      // 2026-10-05 because the host has to be able to read them: a webview
+      // cannot load a locale on demand (a nonce CSP blocks the dynamic import
+      // and the relative specifier resolves against the wrong base), so the
+      // host sends the active language's strings over postMessage instead.
+      // The webview bundles English alone, as the fallback.
+      '@ava-extension/locales': path.resolve(
+        __dirname,
+        '../src/webview/locales',
+      ),
     },
   },
   build: {

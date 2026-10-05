@@ -90,6 +90,7 @@ function isFleetId(id: string | null | undefined): id is RoutingMode {
   return isRoutingMode(id);
 }
 import { creditsFor } from '@ava/core/billing/credits';
+import { localeStringsFor } from './locale-strings.js';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
 import { ExtensionHealthPlanStore } from './health-plan-store-impl.js';
@@ -1445,7 +1446,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.secretAccess.forgetAll();
 
     this.postMessage({ type: 'chat_cleared' });
-    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale });
+    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale, localeStrings: localeStringsFor(this.currentLocale) });
   }
 
   focusInput(): void {
@@ -1459,7 +1460,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.toolRegistry?.resetSessionFirstTime();
     this.auditLog = [];
     this.postMessage({ type: 'chat_cleared' });
-    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale });
+    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale, localeStrings: localeStringsFor(this.currentLocale) });
   }
 
   async switchModel(): Promise<void> {
@@ -2019,6 +2020,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       needsSetup: !this.agent,
       consentRequired: !this.context.globalState.get('ava.consentAccepted'),
       locale: this.currentLocale,
+      // The webview cannot fetch a locale itself — CSP blocks the dynamic
+      // import and the relative specifier resolves against the wrong base — so
+      // the strings travel with init. Undefined for English, where the
+      // webview's bundled copy is already right. See locale-strings.ts.
+      localeStrings: localeStringsFor(this.currentLocale),
       providerSource: this.providerSource,
       platformStatus,
       // Onboarding/welcome now lives in the dashboard (Command Centre) — the
