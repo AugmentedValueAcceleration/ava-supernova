@@ -743,6 +743,75 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     [loadedSources],
   );
 
+  // ── Sidebar loading spinner ───────────────────────────────────────────────
+  //
+  // Clicking a nav item used to be silent. The highlight moved, which says
+  // WHICH page you are on, and nothing said anything was still happening — so a
+  // page that took a few seconds to fill looked like a page that had finished
+  // and was empty.
+  //
+  // Each nav item waits on the sources it actually needs, from the same
+  // loadedSources registry above. Nothing new is tracked and nothing is timed:
+  // the spinner stops because the data arrived, not because a timer expired.
+  //
+  // A revisit shows no spinner — the sources are already in the set, so the
+  // cached data renders at once and there is nothing to wait for. That is
+  // correct: the spinner answers "is anything coming?", and on a revisit it
+  // already came.
+  //
+  // ONLY pages that actually request something on navigation belong here, and
+  // only the sources they really ask for. I first listed `planner` and `memory`
+  // and both were wrong — neither requests anything when you navigate to it, so
+  // each would have spun for the full eight seconds, every time, saying work was
+  // happening when none was. Checked against the `[page]` effect below rather
+  // than assumed. If you add a page here, find its post() first.
+  const NAV_WAITS_ON: Record<string, string[]> = {
+    // Fires load_tasks, load_weather, load_news, load_memories and more — but
+    // waits only on tasks, which is a LOCAL read and therefore always arrives.
+    // Weather and news are network calls that simply never land when offline,
+    // and a spinner that depends on them would run to its cap on every visit
+    // for anyone without a connection.
+    overview: ['tasks_loaded'],
+    // load_library, load_cloud_assets, load_local_creative, load_library_paths.
+    // cloud_assets is remote and excluded for the same reason as weather.
+    library: ['library_loaded', 'library_paths_loaded'],
+    // load_active_health_plans + load_health_plans.
+    health: ['active_health_plans_loaded', 'health_plans_loaded'],
+    // load_conversations + load_session_stats.
+    history: ['conversations_loaded', 'session_stats_loaded'],
+    // load_support_conversations + load_roadmap. Only the first: roadmap comes
+    // from the platform over the network and can fail silently.
+    help: ['support_conversations_loaded'],
+    //
+    // Deliberately absent: chat is live; account renders from state already in
+    // hand; planner and memory request nothing on arrival — their data is loaded
+    // elsewhere, so there is nothing for a spinner to wait on.
+  };
+
+  // Give up after this long. A spinner that never stops is a worse lie than no
+  // spinner: it says "still coming" about something that failed silently.
+  const NAV_SPINNER_CAP_MS = 8000;
+  const [navSpinnerSince, setNavSpinnerSince] = useState<number>(() => Date.now());
+  const [navSpinnerExpired, setNavSpinnerExpired] = useState(false);
+
+  useEffect(() => {
+    setNavSpinnerSince(Date.now());
+    setNavSpinnerExpired(false);
+  }, [page]);
+
+  useEffect(() => {
+    if (navSpinnerExpired) return;
+    const timer = setTimeout(() => setNavSpinnerExpired(true), NAV_SPINNER_CAP_MS);
+    return () => clearTimeout(timer);
+  }, [navSpinnerSince, navSpinnerExpired]);
+
+  const navLoadingPage = (() => {
+    if (navSpinnerExpired) return null;
+    const waits = NAV_WAITS_ON[page];
+    if (!waits || waits.length === 0) return null;
+    return waits.some((src) => !loadedSources.has(src)) ? page : null;
+  })();
+
   // ── Local-first persistence ─────────────────────────────────────────────
   useEffect(() => { try { localStorage.setItem('ava-dash-tasks', JSON.stringify(tasks)); } catch {} }, [tasks]);
   // Always persist (incl. an empty list) so deleting the last course clears the
@@ -2106,6 +2175,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
           byokMode={byokMode}
           onSetByokMode={handleSourceToggle}
           accountLoading={accountLoading}
+          loadingPage={navLoadingPage}
           onConnectAccount={handleConnectAccount}
           providerKeys={providerKeys}
           aiName={personalityData?.name}

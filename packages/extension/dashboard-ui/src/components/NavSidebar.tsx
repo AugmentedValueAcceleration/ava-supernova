@@ -29,6 +29,16 @@ interface NavSidebarProps {
    *  a loading skeleton in the account block instead of flashing
    *  the signed-out Connect screen. */
   accountLoading?: boolean;
+  /**
+   * The nav item whose page is still waiting on its data, or null.
+   *
+   * Clicking a nav item used to be silent — the highlight moved, which says
+   * which page you are on, and nothing said work was still happening. A page
+   * that takes a few seconds to fill then looks like a page that finished and
+   * is empty. Derived in App from the loadedSources registry, so the spinner
+   * stops because data arrived rather than because a timer ran out.
+   */
+  loadingPage?: Page | null;
   onConnectAccount?: () => void;
   /** Which BYOK providers already hold a key. Presence flags only — the host
    *  keeps the values in SecretStorage and never sends them to the webview.
@@ -120,6 +130,7 @@ export type { Page };
 
 export function NavSidebar({
   currentPage,
+  loadingPage,
   onNavigate,
   mode,
   email,
@@ -255,7 +266,7 @@ export function NavSidebar({
                   : 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/50 hover:text-white'
               } ${item.comingSoon ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
-              {item.icon}
+              {loadingPage === item.page ? <NavSpinner /> : item.icon}
               {item.page === 'help' && supportUnread && supportUnread > 0 ? (
                 <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{supportUnread}</span>
               ) : null}
@@ -360,6 +371,7 @@ export function NavSidebar({
             label={item.label}
             description={item.description}
             isActive={currentPage === item.page}
+            loading={loadingPage === item.page}
             onClick={() => handleNavigate(item.page)}
             comingSoon={item.comingSoon}
             earlyAccess={item.earlyAccess}
@@ -632,6 +644,30 @@ function TierBadge({ tier, isAdmin }: { tier: string; isAdmin?: boolean }) {
 
 /* ── NavItem ──────────────────────────────────────────────────────────── */
 
+/**
+ * The sidebar's loading spinner.
+ *
+ * Occupies the icon's slot rather than sitting beside it, so nothing shifts when
+ * it appears or goes — a nav list that reflows while you are reading it is worse
+ * than one that is briefly silent. Same size as the icons it stands in for.
+ *
+ * Plain CSS rotation, no library: this sits in a bundle that was 9.97MB a day
+ * ago, and a spinner is twelve lines.
+ */
+function NavSpinner() {
+  return (
+    <span
+      aria-label="Loading"
+      role="status"
+      className="inline-block h-[13px] w-[13px] animate-spin rounded-full align-middle"
+      style={{
+        border: '1.5px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+        borderTopColor: 'var(--accent)',
+      }}
+    />
+  );
+}
+
 function NavItem({
   icon,
   label,
@@ -641,12 +677,16 @@ function NavItem({
   comingSoon,
   earlyAccess,
   badge,
+  loading,
 }: {
   icon: ReactNode;
   label: string;
   description: string;
   isActive: boolean;
   onClick: () => void;
+  /** This page is still waiting on its data — show a spinner in place of the
+   *  icon so the click that got you here is visibly still working. */
+  loading?: boolean;
   comingSoon?: boolean;
   /** Shipped and usable, but still moving. Not a warning — the honest state of a
    *  surface that hasn't settled. Cheaper to say than to let someone find out. */
@@ -680,7 +720,7 @@ function NavItem({
       style={{ borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent' }}
     >
       <span className="w-5 text-center text-sm shrink-0 relative">
-        {icon}
+        {loading ? <NavSpinner /> : icon}
         {badge && badge > 0 ? (
           <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{badge}</span>
         ) : null}
