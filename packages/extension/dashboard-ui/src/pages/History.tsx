@@ -211,19 +211,52 @@ export function History({ sessionStats, localAllTime, usageHistory, mode, accoun
     return 'conversations';
   });
 
+  // Which tabs we have asked the host for and not yet heard back on.
+  //
+  // Conversations always had this, as the `loaded` prop. Usage and Audit did
+  // not, so while their data was in flight they rendered their EMPTY states —
+  // the audit tab said "no entries" and the usage tab showed zeroes. That is not
+  // a slow page, it is a page stating something false, and it is why switching
+  // tabs here felt like nothing happened.
+  //
+  // Derived rather than timed: a tab stops pending when its data actually turns
+  // up (the effects below), so this cannot get stuck lying in the other
+  // direction either.
+  const [pendingTabs, setPendingTabs] = useState<Set<TopTab>>(new Set());
+  const markPending = (tab: TopTab) => setPendingTabs((prev) => new Set(prev).add(tab));
+  const clearPending = (tab: TopTab) => setPendingTabs((prev) => {
+    if (!prev.has(tab)) return prev;
+    const next = new Set(prev);
+    next.delete(tab);
+    return next;
+  });
+
   // Deep-link support — when the page mounts already on the audit tab (e.g.
   // the Command Centre's "Review in audit" button), request the log so it's
   // not empty. handleTabChange covers the click-through case.
   useEffect(() => {
-    if (activeTab === 'audit') post({ type: 'request_audit_log' });
+    if (activeTab === 'audit') {
+      markPending('audit');
+      post({ type: 'request_audit_log' });
+    }
   }, []);
+
+  // The data landing is what ends the wait. auditLog/usageHistory arrive as
+  // props from App, so watching them is the only honest signal we have.
+  useEffect(() => { if (auditLog !== undefined) clearPending('audit'); }, [auditLog]);
+  // Usage is tracked for symmetry and for the tab-strip hint below; AllTimeView
+  // already renders its own spinner when data is null, so it needs nothing else.
+  useEffect(() => { if (usageHistory !== null) clearPending('usage'); }, [usageHistory]);
+  useEffect(() => { if (loaded) clearPending('conversations'); }, [loaded]);
 
   const handleTabChange = (tab: TopTab) => {
     setActiveTab(tab);
     if (tab === 'usage' && mode === 'platform') {
+      markPending('usage');
       post({ type: 'load_usage_history' });
     }
     if (tab === 'audit') {
+      markPending('audit');
       post({ type: 'request_audit_log' });
     }
     if (tab === 'conversations') {
@@ -257,6 +290,16 @@ export function History({ sessionStats, localAllTime, usageHistory, mode, accoun
             }`}
           >
             {tab.label}
+            {/* A pulsing dot on the tab that is still waiting. The content area
+                shows its own skeleton, but the eye is on the tab you just
+                clicked, so the acknowledgement belongs here too. */}
+            {pendingTabs.has(tab.id) && (
+              <span
+                aria-hidden
+                className="ml-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full align-middle"
+                style={{ background: 'var(--accent)' }}
+              />
+            )}
           </button>
         ))}
       </div>
@@ -279,7 +322,7 @@ export function History({ sessionStats, localAllTime, usageHistory, mode, accoun
       )}
 
       {activeTab === 'audit' && (
-        <AuditView entries={auditLog || []} findings={auditFindings || []} />
+        <AuditView entries={auditLog || []} findings={auditFindings || []} loading={pendingTabs.has('audit')} />
       )}
     </div>
   );
@@ -552,7 +595,7 @@ const INTEGRITY_META: Record<IntegrityKey, { glyph: string; text: string; badge:
 
 const AUDIT_PAGE_SIZE = 25;
 
-function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: AuditFinding[] }) {
+function AuditView({ entries, findings, loading }: { entries: AuditEntry[]; findings: AuditFinding[]; loading?: boolean }) {
   useLocale();
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [search, setSearch] = useState('');
@@ -710,8 +753,23 @@ function AuditView({ entries, findings }: { entries: AuditEntry[]; findings: Aud
         </div>
       )}
 
+      {/* Loading beats empty. Rendering "no entries" while the log is still on
+          its way states something false — the complaint this fixes was not that
+          the tab was slow but that it looked finished and wrong. */}
+      {loading && entries.length === 0 && (
+        <div className="space-y-2" aria-busy="true">
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-9 rounded-lg animate-pulse"
+              style={{ background: 'rgba(255,255,255,0.04)', opacity: 1 - i * 0.18 }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Empty state */}
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <EmptyState icon={<Icon.clipboard size={24} />}>
           {entries.length === 0 ? t('dash.audit.empty_none') : t('dash.audit.empty_filtered')}
         </EmptyState>
