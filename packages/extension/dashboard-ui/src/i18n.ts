@@ -1,50 +1,27 @@
 /**
- * Dashboard i18n — ALL locales loaded statically.
- * No dynamic imports — VS Code webview can't resolve them at runtime.
- * Dispatches 'ava-locale-changed' event to trigger React re-renders.
+ * Dashboard i18n.
+ *
+ * English is bundled. Every other language is REQUESTED FROM THE HOST, which
+ * reads dist/locales/<locale>.json and posts it back.
+ *
+ * ── Why, since the previous comment here said the opposite ──
+ *
+ * It used to statically import all twenty of core's locale files, under a note
+ * saying "No dynamic imports — VS Code webview can't resolve them at runtime".
+ * That note was correct, and the workaround was the problem: twenty locales is
+ * 5.79MB of a 9.97MB bundle, 58% of it, fetched and parsed before the dashboard
+ * painted anything, for nineteen languages the reader does not want. It is the
+ * single largest reason opening the dashboard took seconds.
+ *
+ * The host has no such limit. It reads one JSON file and sends it. The webview
+ * carries English, which is every other locale's fallback anyway, so there is
+ * never a frame with no strings at all — just a brief one in English while the
+ * real language is in flight.
  */
-import { useState, useEffect } from 'react';
 
-// @ts-ignore
+import { useState, useEffect } from 'react';
+// @ts-ignore — core ships .js without .d.ts for locale modules
 import { enStrings } from '../../../core/dist/i18n/locales/en.js';
-// @ts-ignore
-import { arStrings } from '../../../core/dist/i18n/locales/ar.js';
-// @ts-ignore
-import { deStrings } from '../../../core/dist/i18n/locales/de.js';
-// @ts-ignore
-import { esStrings } from '../../../core/dist/i18n/locales/es.js';
-// @ts-ignore
-import { frStrings } from '../../../core/dist/i18n/locales/fr.js';
-// @ts-ignore
-import { hiStrings } from '../../../core/dist/i18n/locales/hi.js';
-// @ts-ignore
-import { idStrings } from '../../../core/dist/i18n/locales/id.js';
-// @ts-ignore
-import { itStrings } from '../../../core/dist/i18n/locales/it.js';
-// @ts-ignore
-import { jaStrings } from '../../../core/dist/i18n/locales/ja.js';
-// @ts-ignore
-import { koStrings } from '../../../core/dist/i18n/locales/ko.js';
-// @ts-ignore
-import { nlStrings } from '../../../core/dist/i18n/locales/nl.js';
-// @ts-ignore
-import { plStrings } from '../../../core/dist/i18n/locales/pl.js';
-// @ts-ignore
-import { ptStrings } from '../../../core/dist/i18n/locales/pt.js';
-// @ts-ignore
-import { ruStrings } from '../../../core/dist/i18n/locales/ru.js';
-// @ts-ignore
-import { thStrings } from '../../../core/dist/i18n/locales/th.js';
-// @ts-ignore
-import { trStrings } from '../../../core/dist/i18n/locales/tr.js';
-// @ts-ignore
-import { ukStrings } from '../../../core/dist/i18n/locales/uk.js';
-// @ts-ignore
-import { viStrings } from '../../../core/dist/i18n/locales/vi.js';
-// @ts-ignore
-import { zhCNStrings } from '../../../core/dist/i18n/locales/zh-CN.js';
-// @ts-ignore
-import { zhTWStrings } from '../../../core/dist/i18n/locales/zh-TW.js';
 
 let currentLocale = 'en';
 let localeVersion = 0;
@@ -82,18 +59,44 @@ const chatStrings: Record<string, string> = {
   'input.mode.code': 'Code',
 };
 
+// English only at build time. Other languages are added by loadStrings when the
+// host answers, so this map grows at runtime rather than shipping full.
 const translations: Record<string, Record<string, string>> = {
-  en: { ...enStrings, ...chatStrings }, ar: arStrings, de: deStrings, es: esStrings, fr: frStrings,
-  hi: hiStrings, id: idStrings, it: itStrings, ja: jaStrings, ko: koStrings,
-  nl: nlStrings, pl: plStrings, pt: ptStrings, ru: ruStrings, th: thStrings,
-  tr: trStrings, uk: ukStrings, vi: viStrings, 'zh-CN': zhCNStrings, 'zh-TW': zhTWStrings,
+  en: { ...enStrings, ...chatStrings },
 };
+
+/** Languages the host can serve. Used to decide whether to ASK — not whether we
+ *  already hold the strings, which we never do at boot. Must stay in step with
+ *  the files emit-locales.mjs writes, i.e. with core's locale directory. */
+const AVAILABLE = new Set([
+  'en', 'ar', 'de', 'es', 'fr', 'hi', 'id', 'it', 'ja', 'ko',
+  'nl', 'pl', 'pt', 'ru', 'th', 'tr', 'uk', 'vi', 'zh-CN', 'zh-TW',
+]);
+
+/** Which language we want but have not been sent yet, so App can ask for it. */
+let awaiting: string | null = null;
+
+/** The locale the dashboard wants strings for, or null when English is correct
+ *  or the request is already out. App polls this immediately after initLocale. */
+export function pendingLocaleRequest(): string | null {
+  const want = awaiting;
+  awaiting = null;
+  return want;
+}
+
 
 /** Set locale. Call on startup or language switch. */
 export async function initLocale(locale?: string): Promise<void> {
   const stored = locale || localStorage.getItem('ava-dashboard-language') || 'auto';
   const resolved = stored === 'auto' ? (navigator.language?.split('-')[0] || 'en') : stored;
-  currentLocale = translations[resolved] ? resolved : 'en';
+  // Gate on what the host CAN serve, not on what we already hold. The old test
+  // was `translations[resolved]`, which was true for all twenty because all
+  // twenty were bundled; now only English is, so that test would pin every user
+  // to English forever.
+  currentLocale = AVAILABLE.has(resolved) ? resolved : 'en';
+
+  // Ask for anything other than English we do not already have in hand.
+  awaiting = currentLocale !== 'en' && !translations[currentLocale] ? currentLocale : null;
 
   localeVersion++;
   window.dispatchEvent(new CustomEvent('ava-locale-changed'));
@@ -193,17 +196,34 @@ export function formatDateCompact(date: Date | string): string {
 
 /** Set locale directly (used by chat init) */
 export function setLocale(locale: string): void {
-  const resolved = translations[locale] ? locale : 'en';
+  // Gate on what the host can SERVE, not on what is already loaded. This read
+  // `translations[locale]`, which was true for all twenty while all twenty were
+  // bundled; with only English bundled that test would pin every user to English
+  // and look exactly like the bug this change exists to fix.
+  const resolved = AVAILABLE.has(locale) ? locale : 'en';
   currentLocale = resolved;
+  if (resolved !== 'en' && !translations[resolved]) awaiting = resolved;
   localeVersion++;
   window.dispatchEvent(new CustomEvent('ava-locale-changed'));
 }
 
-/** Load additional strings for a locale (used by chat init) */
-export function loadStrings(locale: string, strings: Record<string, string>): void {
-  if (translations[locale]) {
-    translations[locale] = { ...translations[locale], ...strings };
-  } else {
-    translations[locale] = strings;
+/**
+ * Take strings for a locale — from the host's locale_strings reply, or from chat
+ * init, which also used this.
+ *
+ * Two changes on 2026-10-05. It now accepts null, because the host answers
+ * explicitly when it has no file for a language rather than staying quiet, and
+ * "looked and found nothing" has to be distinguishable from "no answer yet".
+ * And it now fires ava-locale-changed: strings arriving AFTER first paint is the
+ * normal case since the dashboard stopped bundling all twenty, and without the
+ * event the UI stayed in English until something else happened to re-render it.
+ */
+export function loadStrings(locale: string, strings: Record<string, string> | null): void {
+  if (strings) {
+    translations[locale] = translations[locale]
+      ? { ...translations[locale], ...strings }
+      : strings;
   }
+  localeVersion++;
+  window.dispatchEvent(new CustomEvent('ava-locale-changed'));
 }

@@ -1643,6 +1643,22 @@ export interface CreativeAsset {
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
 
 export type ExtToDashboardMessage =
+  /**
+   * UI strings for ONE language, in reply to request_locale_strings.
+   *
+   * The dashboard used to statically import all twenty of core's locale files —
+   * 5.79MB of a 9.97MB bundle, parsed before anything painted, for nineteen
+   * languages the reader does not want. It could not lazily import them either:
+   * the CSP is nonce-based with no 'strict-dynamic', so a dynamic import is
+   * blocked, and Vite's relative specifier resolves against the webview document
+   * rather than the bundle folder.
+   *
+   * So the host reads dist/locales/<locale>.json and sends the one in use.
+   * `strings` is null when that file is missing, which the dashboard treats as
+   * "stay on English" — an explicit answer, so a missing language looks
+   * different from a request that never came back.
+   */
+  | { type: 'locale_strings'; locale: string; strings: Record<string, string> | null }
   | {
       type: 'init';
       account: AccountInfo | null;
@@ -1992,6 +2008,11 @@ export type ExtToDashboardMessage =
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
 export type DashboardToExtMessage =
+  /** "Send me the strings for this language." The dashboard asks rather than
+   *  being pushed to, because it owns its own locale choice —
+   *  localStorage['ava-dashboard-language'], which can differ from the host's
+   *  VS Code language setting. Asked on boot and again on every switch. */
+  | { type: 'request_locale_strings'; locale: string }
   | { type: 'webview_ready' }
   | { type: 'set_welcome_on_startup'; enabled: boolean }
   | { type: 'connect_account'; key: string }

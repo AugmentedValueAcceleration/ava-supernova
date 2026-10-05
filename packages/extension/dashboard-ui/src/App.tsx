@@ -1,6 +1,6 @@
 import type { ProjectsUsage } from '@ava/core/projects/storage';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { initLocale, useLocale, getLocale } from './i18n';
+import { initLocale, useLocale, getLocale, loadStrings, pendingLocaleRequest } from './i18n';
 import { post } from './vscode';
 
 import { NavSidebar } from './components/NavSidebar';
@@ -879,6 +879,12 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'show_welcome':
         setShowWelcome(true);
         break;
+      case 'locale_strings':
+        // null means the host looked and found no file — loadStrings leaves us
+        // on English rather than retrying.
+        loadStrings(msg.locale, msg.strings);
+        break;
+
       case 'init':
         setAccount(msg.account);
         setConnections(msg.connections);
@@ -1504,8 +1510,16 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     window.addEventListener('message', handleMessage);
     console.log(`[health-perf] webview POST webview_ready (+${Date.now() - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
     post({ type: 'webview_ready' });
-    // Initialise i18n from core locale strings
-    initLocale().catch(() => {});
+    // Initialise i18n, then ask the host for the language's strings if it is not
+    // English. The dashboard bundles English only — see i18n.ts for why it can
+    // neither bundle all twenty (5.79MB before anything paints) nor fetch them
+    // itself (nonce CSP blocks dynamic imports).
+    initLocale()
+      .then(() => {
+        const want = pendingLocaleRequest();
+        if (want) post({ type: 'request_locale_strings', locale: want });
+      })
+      .catch(() => {});
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
 
@@ -2172,7 +2186,10 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
           onNavigate={(p) => setPagePersist(p as Page)}
           onSetLanguage={(loc) => {
             localStorage.setItem('ava-dashboard-language', loc);
-            initLocale(loc);
+            initLocale(loc).then(() => {
+              const want = pendingLocaleRequest();
+              if (want) post({ type: 'request_locale_strings', locale: want });
+            }).catch(() => {});
             setSettings((prev) => {
               const updated = { ...prev, language: loc };
               post({ type: 'save_settings', settings: updated });

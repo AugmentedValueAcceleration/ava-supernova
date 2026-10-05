@@ -340,6 +340,41 @@ export class DashboardPanel {
     }
 
     switch (msg.type) {
+      /**
+       * Serve one language's UI strings from dist/locales/<locale>.json.
+       *
+       * Read from disk per request rather than cached in memory: it happens once
+       * at boot and again only when someone switches language, and a 371KB
+       * string map held forever to save a rare read is the wrong trade in a
+       * process that is already the heaviest thing in the window.
+       *
+       * Every failure answers with strings: null rather than staying silent. The
+       * bug this replaces was a silent one — nineteen languages showed English
+       * because a failure was swallowed — so "I looked and there is nothing"
+       * must be distinguishable from "nobody answered".
+       */
+      case 'request_locale_strings': {
+        const requested = typeof msg.locale === 'string' ? msg.locale : 'en';
+        // Only ever a bare locale tag. The value reaches a file path, so nothing
+        // that could climb out of dist/locales is allowed near it.
+        const safe = /^[a-zA-Z]{2}(-[a-zA-Z]{2})?$/.test(requested) ? requested : 'en';
+        if (safe !== requested) {
+          this.log(`[locale] refused suspicious locale "${requested}" — falling back to en`);
+        }
+        try {
+          const fs = await import('node:fs/promises');
+          const file = vscode.Uri.joinPath(this.extensionUri, 'dist', 'locales', `${safe}.json`).fsPath;
+          const raw = await fs.readFile(file, 'utf8');
+          const strings = JSON.parse(raw) as Record<string, string>;
+          this.log(`[locale] sent ${Object.keys(strings).length} strings for ${safe}`);
+          this.panel.webview.postMessage({ type: 'locale_strings', locale: safe, strings });
+        } catch (err) {
+          this.log(`[locale] no strings for ${safe}: ${err instanceof Error ? err.message : String(err)}`);
+          this.panel.webview.postMessage({ type: 'locale_strings', locale: safe, strings: null });
+        }
+        break;
+      }
+
       case 'webview_ready': {
         const tReady = Date.now();
         this.log(`[health-perf] HOST recv webview_ready at ${tReady}`);
