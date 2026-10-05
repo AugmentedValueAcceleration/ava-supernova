@@ -509,6 +509,25 @@ export interface ChatState {
    */
   accountLoading: boolean;
   historyLoading: boolean;
+  /**
+   * Which click we are still waiting on, so the button that was pressed can say
+   * so. One at a time: these are all navigation-ish actions nobody fires in
+   * parallel, and a single slot cannot leak a stale entry the way a set can.
+   *
+   * Why this exists. Several handlers were a bare postMessage and nothing else
+   * — open the dashboard, open history, new chat, load a conversation. The host
+   * then took anywhere up to several seconds (opening the dashboard builds a
+   * whole webview panel), and in the meantime the UI did not change at all.
+   * Not a spinner, not a pressed state: the buttons set `background` inline, so
+   * there is not even a browser default to fall back on. A click that produces
+   * no change within a frame reads as broken, and the honest fix is to say
+   * "started" immediately rather than to make the work faster.
+   *
+   * Cleared when the matching inbound message lands, or by a timeout for the
+   * ones the host never acknowledges — see PENDING_TIMEOUT_MS in App.tsx. A
+   * spinner that never stops is worse than none.
+   */
+  pendingAction: 'dashboard' | 'history' | 'newChat' | 'loadConversation' | null;
   /** Sign-in state — v0.37.0 OAuth flow */
   signInPending: 'github' | 'email' | null;
   signInError: string | null;

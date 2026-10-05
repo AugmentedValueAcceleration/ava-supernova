@@ -21,6 +21,9 @@ interface HeaderProps {
   onOpenHistory: () => void;
   onNewChat: () => void;
   onToggleTasks: () => void;
+  /** Which click is still in flight, so the button that was pressed can say so.
+   *  Null means idle. See ChatState.pendingAction for why this exists. */
+  pendingAction?: 'dashboard' | 'history' | 'newChat' | 'loadConversation' | null;
   tasksOpen: boolean;
   /** Length of session task list — drives the badge on the Tasks pill. */
   sessionTaskCount?: number;
@@ -50,6 +53,7 @@ export function Header({
   onSwitch,
   onOpenDashboard,
   onNewChat,
+  pendingAction,
   conversationTitle,
   storageBytes,
 }: HeaderProps) {
@@ -119,19 +123,25 @@ export function Header({
       {typeof storageBytes === 'number' && storageBytes > 0 && (
         <button
           onClick={onOpenDashboard}
+          disabled={pendingAction === 'dashboard'}
           title={t('dash.cc.storage')}
           className="flex-shrink-0 rounded-md px-2 py-1 text-[10px] tabular-nums transition"
           style={{
-            background: 'rgba(168,85,247,0.06)',
+            // Opening the dashboard builds a webview panel and loads a large
+            // bundle — seconds, not milliseconds. The pill now holds a visibly
+            // busy state for the duration instead of looking untouched, and is
+            // disabled so a second click cannot queue a second panel.
+            background: pendingAction === 'dashboard' ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.06)',
             border: '1px solid rgba(168,85,247,0.15)',
-            color: '#6c7086',
+            color: pendingAction === 'dashboard' ? '#a855f7' : '#6c7086',
             fontFamily: 'monospace',
-            cursor: 'pointer',
+            cursor: pendingAction === 'dashboard' ? 'wait' : 'pointer',
+            opacity: pendingAction === 'dashboard' ? 0.75 : 1,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#a855f7'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = '#6c7086'; }}
+          onMouseEnter={(e) => { if (pendingAction !== 'dashboard') e.currentTarget.style.color = '#a855f7'; }}
+          onMouseLeave={(e) => { if (pendingAction !== 'dashboard') e.currentTarget.style.color = '#6c7086'; }}
         >
-          {formatBytes(storageBytes)}
+          {pendingAction === 'dashboard' ? '···' : formatBytes(storageBytes)}
         </button>
       )}
 
@@ -139,18 +149,23 @@ export function Header({
           DashboardPages.tsx:4256-4273. */}
       <button
         onClick={onNewChat}
+        disabled={pendingAction === 'newChat'}
         title={t('header.new_chat')}
         aria-label={t('header.new_chat')}
         style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-          background: 'rgba(168,85,247,0.1)',
+          // Held brighter while the host clears the conversation, so the press
+          // registers even when that takes a moment.
+          background: pendingAction === 'newChat' ? 'rgba(168,85,247,0.22)' : 'rgba(168,85,247,0.1)',
           border: '1px solid rgba(168,85,247,0.25)',
           borderRadius: 8,
           color: '#a855f7',
-          fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          fontSize: 11, fontWeight: 600,
+          cursor: pendingAction === 'newChat' ? 'wait' : 'pointer',
+          opacity: pendingAction === 'newChat' ? 0.75 : 1,
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.2)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+        onMouseEnter={(e) => { if (pendingAction !== 'newChat') e.currentTarget.style.background = 'rgba(168,85,247,0.2)'; }}
+        onMouseLeave={(e) => { if (pendingAction !== 'newChat') e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <line x1="12" y1="5" x2="12" y2="19" />

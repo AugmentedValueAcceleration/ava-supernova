@@ -130,7 +130,12 @@ type ChatAction =
   | { type: 'clear_sign_in_error' }
   | { type: 'dismiss_welcome' }
   | { type: 'start_sign_in_local'; method: 'github' | 'email' }
-  | { type: 'history_watchdog' };
+  | { type: 'history_watchdog' }
+  // Say "started" the moment a click lands, before the host has done anything.
+  | { type: 'action_pending'; action: NonNullable<ChatState['pendingAction']> }
+  | { type: 'action_settled' }
+  // Tick a task off now rather than when the host gets round to confirming it.
+  | { type: 'task_toggled_locally'; taskId: string };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -706,6 +711,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         historyLoading: false,
         historyList: action.conversations,
         historyOpen: true,
+        // The click it answers is done with.
+        pendingAction: state.pendingAction === 'history' ? null : state.pendingAction,
       };
 
     case 'history_search_results':
@@ -758,12 +765,16 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         // A restored conversation means history loaded — drop the gate even if
         // the separate history_list event is delayed or never arrives.
         historyLoading: false,
+        // The row the user clicked has arrived.
+        pendingAction: null,
       };
     }
 
     case 'chat_cleared':
       return {
         ...state,
+        // New Chat landed.
+        pendingAction: null,
         messages: [],
         currentConversationId: null,
         conversationTitle: null,
@@ -780,6 +791,40 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // spinning. No-op once the real events have arrived.
       if (!state.accountLoading && !state.historyLoading) return state;
       return { ...state, accountLoading: false, historyLoading: false };
+
+    // ── Click acknowledgement ───────────────────────────────────────────
+    //
+    // These exist so a click changes something within one frame. The work
+    // itself still takes as long as it takes — opening the dashboard builds a
+    // whole webview panel — but the difference between "slow" and "broken" is
+    // whether anything happened when you pressed the button.
+
+    case 'action_pending':
+      // History opens its panel straight away, with the skeleton it already has.
+      // historyOpen / historyLoading existed and were only ever set on the way
+      // BACK, so the click itself did nothing visible while the host read files.
+      if (action.action === 'history') {
+        return { ...state, pendingAction: 'history', historyOpen: true, historyLoading: true };
+      }
+      return { ...state, pendingAction: action.action };
+
+    case 'action_settled':
+      return state.pendingAction === null ? state : { ...state, pendingAction: null };
+
+    case 'task_toggled_locally': {
+      // Tick it now. The host writes the task file and sends the authoritative
+      // list back, which replaces this — but a checkbox that waits for a round
+      // trip before moving is a checkbox people click twice.
+      const flip = <T extends { id: string; status: string }>(t: T): T =>
+        t.id === action.taskId
+          ? { ...t, status: t.status === 'done' ? 'todo' : 'done' }
+          : t;
+      return {
+        ...state,
+        todayTasks: state.todayTasks.map(flip),
+        allTasks: state.allTasks.map(flip),
+      };
+    }
 
     // ── Memory ──────────────────────────────────────────────────────────
 
@@ -1004,6 +1049,7 @@ const initialState: ChatState = {
   // loading banner). See ChatState comment in message-types.ts.
   accountLoading: true,
   historyLoading: true,
+  pendingAction: null,
   lastUsage: null,
   contextUsage: null,
   isCompressing: false,
@@ -1345,8 +1391,33 @@ export function App() {
   }, [postMessage]);
 
   const handleOpenDashboard = useCallback(() => {
+    // The heaviest click in the extension: the host builds a webview panel and
+    // loads a ~10MB bundle, which takes seconds. Nothing here can make that
+    // faster, but saying "opening" costs one dispatch and is the difference
+    // between a slow button and a dead one.
+    //
+    // Nothing comes back to clear this — the panel is a separate webview and
+    // never reports in — so it is released on a timer. See PENDING_TIMEOUT_MS.
+    dispatch({ type: 'action_pending', action: 'dashboard' });
     postMessage({ type: 'open_dashboard' });
   }, [postMessage]);
+
+  // Release any "working" state that nothing came back to clear.
+  //
+  // Opening the dashboard is the case this exists for: it spawns a separate
+  // webview panel that never reports back, so there is no message to settle on.
+  // The others settle properly in the reducer, and this is only their backstop
+  // for when the host errors out silently.
+  //
+  // A button stuck saying "opening" forever is a worse lie than one that says
+  // nothing, so the timer is deliberately short — long enough to cover a slow
+  // panel build, short enough that a failure looks like a failure.
+  useEffect(() => {
+    if (!state.pendingAction) return;
+    const PENDING_TIMEOUT_MS = 6000;
+    const timer = setTimeout(() => dispatch({ type: 'action_settled' }), PENDING_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [state.pendingAction]);
 
   // Recovery watchdog: never let the chat sit locked behind the loading gates.
   // If account/history data hasn't arrived within the window (e.g. a failed
@@ -1358,10 +1429,16 @@ export function App() {
   }, []);
 
   const handleOpenHistory = useCallback(() => {
+    // Open the panel now and show its skeleton, rather than leaving the button
+    // inert until the host has finished reading conversation files. historyOpen
+    // + historyLoading already drive that skeleton; they were just never set on
+    // the way out, only on the way back.
+    dispatch({ type: 'action_pending', action: 'history' });
     postMessage({ type: 'request_history' });
   }, [postMessage]);
 
   const handleNewChat = useCallback(() => {
+    dispatch({ type: 'action_pending', action: 'newChat' });
     postMessage({ type: 'new_chat' });
   }, [postMessage]);
 
@@ -1390,6 +1467,9 @@ export function App() {
   const handleLoadConversation = useCallback(
     (conversationId: string) => {
       justLoadedRef.current = true;
+      // Reading and rehydrating a conversation is not instant, and the row you
+      // clicked gave no sign it had been chosen.
+      dispatch({ type: 'action_pending', action: 'loadConversation' });
       postMessage({ type: 'load_conversation', conversationId });
     },
     [postMessage],
@@ -1494,6 +1574,10 @@ export function App() {
 
   const handleToggleTask = useCallback(
     (taskId: string) => {
+      // Flip it immediately; the host's authoritative list replaces this when it
+      // arrives. Same reasoning as handleConfirmation below — a control that
+      // does not move when pressed gets pressed again.
+      dispatch({ type: 'task_toggled_locally', taskId });
       postMessage({ type: 'toggle_task', taskId });
     },
     [postMessage],
@@ -1598,6 +1682,7 @@ export function App() {
           onOpenHistory={handleOpenHistory}
           onNewChat={handleNewChat}
           onToggleTasks={handleToggleTasks}
+          pendingAction={state.pendingAction}
           tasksOpen={state.tasksOpen}
           sessionTaskCount={state.sessionTasks?.length ?? 0}
           conversationTitle={state.conversationTitle}
@@ -1731,6 +1816,7 @@ export function App() {
           <ErrorBoundary>
             <HistoryPanel
               conversations={state.historyList}
+              loading={state.historyLoading}
               onClose={handleCloseHistory}
               onSelect={handleLoadConversation}
               onDelete={handleDeleteConversation}

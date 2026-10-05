@@ -11,6 +11,13 @@ interface HistoryPanelProps {
   onRename: (conversationId: string, newTitle: string) => void;
   onPin: (conversationId: string, pinned: boolean) => void;
   onExport: (conversationId: string, format: 'markdown' | 'json') => void;
+  /** True while the host is still reading the conversation list.
+   *
+   *  The panel now opens the instant the button is clicked rather than when the
+   *  host answers, so there is a window where the list is legitimately unknown.
+   *  Without this the empty state would render and tell the user they have no
+   *  conversations, which is a lie rather than a delay. */
+  loading?: boolean;
 }
 
 function formatRelativeDate(isoString: string): string {
@@ -38,6 +45,7 @@ export function HistoryPanel({
   onRename,
   onPin,
   onExport,
+  loading,
 }: HistoryPanelProps) {
   useLocale();
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,7 +183,17 @@ export function HistoryPanel({
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto px-2">
-        {sortedConversations.length === 0 ? (
+        {loading && sortedConversations.length === 0 ? (
+          /* Unknown, not empty. Three placeholder rows rather than a spinner, so
+             the panel settles into its real shape instead of jumping. */
+          <div className="flex flex-col gap-1 py-1" aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
+                <div className="h-3 flex-1 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.06)', maxWidth: `${70 - i * 12}%` }} />
+              </div>
+            ))}
+          </div>
+        ) : sortedConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 opacity-40 text-xs gap-2">
             <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-30">
               <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
