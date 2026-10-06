@@ -32,6 +32,10 @@ const AVA_URL = 'avasupernova.com';
  */
 const TAGLINE = 'Ava Supernova — Every plan is the whole product. Credits scale. Features never do.';
 
+/** Spoken length of the sign-off, in words. Used to extend the clip rather than
+ *  to shrink the script — see the sign-off block in run(). */
+const TAGLINE_WORDS = TAGLINE.trim().split(/\s+/).length;
+
 /**
  * How long one still holds on screen.
  *
@@ -375,14 +379,34 @@ export class WriteVideoPostTool implements Tool {
       }
     }
 
+    // ── The spoken sign-off ──────────────────────────────────────────────
+    //
+    // The tagline is read at the end of every voiced post, and it is ON TOP of
+    // the word budget rather than inside it: the script above was already
+    // validated against the full allowance for the clip, so the content never
+    // gets shorter to make room. Operator's call, and the right one — a sign-off
+    // that eats a third of a 15s reel is a sign-off that costs you the reel.
+    //
+    // The consequence is that the CLIP gets longer, and it has to, or the voice
+    // runs past the last still — the one thing the length check above exists to
+    // prevent. So the duration reported downstream covers the whole read. The
+    // final still holds through the sign-off; no extra shot is required, and
+    // the output below says so because the operator is the one cutting it.
+    const voicedScript = script
+      ? (script.includes(TAGLINE) ? script : `${script} ${TAGLINE}`)
+      : script;
+    const outroSeconds = script ? Math.ceil(TAGLINE_WORDS / SLOWEST_WORDS_PER_SECOND) : 0;
+    const clipDuration = plannedDuration + outroSeconds;
+
     const post: VideoPostInput = {
       platform,
       shots,
-      script: script || undefined,
+      script: voicedScript || undefined,
       caption: withLink,
-      // The length the SCRIPT was written for, not the raw request. If these
-      // diverge the voice overruns the picture.
-      duration: plannedDuration,
+      // Covers the WHOLE read — the script the model wrote plus the sign-off
+      // appended above. If this diverges from the audio the voice overruns the
+      // picture, which is the most obviously broken thing a short can do.
+      duration: clipDuration,
       title: ((args.title as string | undefined)?.trim()) || undefined,
       hashtags: Array.isArray(args.hashtags)
         ? (args.hashtags as unknown[]).map(h => String(h).trim().replace(/^#/, '')).filter(Boolean)
@@ -420,6 +444,13 @@ export class WriteVideoPostTool implements Tool {
           `Storyboard ready for ${platform} — ${written.shots.length} still${written.shots.length === 1 ? '' : 's'} ` +
           `for ${plannedDuration}s, the caption, and the voiceover, all saved to the Library. They go in ORDER, ` +
           `${SECONDS_PER_SHOT} seconds each, assembled in Canva. ` +
+          // The operator cuts this by hand, so the extra seconds have to be
+          // stated or the last still gets cut on the beat and the sign-off is
+          // clipped mid-sentence.
+          (outroSeconds > 0
+            ? `The voiceover ends with the sign-off, which runs about ${outroSeconds}s past the ${plannedDuration}s of ` +
+              `shots — hold the LAST still through it, so the finished clip is roughly ${clipDuration}s. `
+            : '') +
           `You have not seen the pictures: say what you made and why that angle, never how it looks.` +
           `${recipeLine}${voiceLine}${shotLine}`,
       };
