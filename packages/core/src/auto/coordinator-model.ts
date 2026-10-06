@@ -38,15 +38,26 @@ export interface CoordinatorModelResult {
 // It stays in the catalogue and resolvable by id; it is simply no longer a
 // step the ladder walks through.
 //
-// The LEAD seat has not moved. Qwen 3.8 Flash beats 3.7 Plus on SWE-bench Pro
-// (62.5 vs 55.8) and on the agentic sets, and costs a third — but those are
-// Flash-Next's published figures, not this production id's, and Maestro's lead
-// is the seat that runs everything. It gets promoted when a replay of our own
-// traffic says so, not before. Sitting second, it is reached only when the
-// lead is unavailable, which is a safe place to earn the promotion.
+// ── 2026-10-06: Qwen 3.8 Flash promoted to the lead seat ──
+//
+// This block previously held 3.8 Flash at second and said the lead moves "when
+// a replay of our own traffic says so, not before" — because its published
+// figures (SWE-bench Pro 62.5 vs 3.7 Plus's 55.8) were Flash-Next's, not this
+// production id's. That replay still has not been run. The operator promoted it
+// anyway, deliberately, on cost: Maestro's lead runs every step of every turn,
+// and the credit multiplier drops from 0.94 to 0.44 — a little over half.
+//
+// So this is a cost decision taken ahead of the quality evidence, which is the
+// opposite of the usual order here. Recorded plainly rather than dressed up: if
+// Maestro turns start needing more steps, or verification starts failing more
+// often, this line is the first thing to put back.
+//
+// 3.7 Plus stays directly beneath it, so the fallback is a step UP in capability
+// rather than down — which is the right shape for a lead that is cheaper than
+// its own backup.
 const PLATFORM_PRIORITY = [
+  { id: 'qwen3.8-flash',    reason: 'Qwen 3.8 Flash — Maestro coordinator: 1M context, multimodal, newer generation at flash cost' },
   { id: 'qwen3.7-plus',     reason: 'Qwen 3.7 Plus — best agentic coding, 1M context, native function calling' },
-  { id: 'qwen3.8-flash',    reason: 'Qwen 3.8 Flash — 1M context, multimodal, newer generation at flash cost' },
   { id: 'qwen3.5-flash',    reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];
 
@@ -58,7 +69,7 @@ const BYOK_PRIORITY = [
   { id: 'kimi-k2.7-code',       reason: 'Kimi K2.7 Code — Moonshot flagship agentic coder, ~30% fewer reasoning tokens than K2.6, 256K context' },
   { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — agentic coding fallback (SWE-Bench Pro 58.6), 256K context' },
   { id: 'deepseek-flash',      reason: 'DeepSeek V4.1 Flash — frontier coding + long-context reasoning' },
-  { id: 'qwen3.7-plus',         reason: 'Qwen 3.7 Plus — flagship Maestro coordinator: #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },
+  { id: 'qwen3.7-plus',         reason: 'Qwen 3.7 Plus — #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },
   // 'tools + vision' stood here for six weeks after the catalogue was
   // corrected on 2026-07-17: the GLM main line cannot see. Gone with 5.2.
   { id: 'glm-5.3',              reason: 'Zhipu GLM-5.3 — open-weights, 1M context, tools + thinking (text only)' },

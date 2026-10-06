@@ -7,7 +7,7 @@ import { LONGXIANG_ROUTES } from './longxiang-router.js';
 // The fleet list lives in routing-modes.ts — its own dependency-free file so
 // browser surfaces can import it through a narrow subpath instead of writing
 // their own copy, which is how 'longxiang' went missing nine times.
-export { ROUTING_MODES, isRoutingMode } from './routing-modes.js';
+export { ROUTING_MODES, isRoutingMode, AURORA_ENABLED, LONGXIANG_ENABLED, VISIBLE_ROUTING_MODES, isVisibleRoutingMode } from './routing-modes.js';
 export type { RoutingMode } from './routing-modes.js';
 import type { RoutingMode } from './routing-modes.js';
 

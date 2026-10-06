@@ -91,7 +91,11 @@ import type { TaskCategory } from './types.js';
  *     to GLM-5.3 and the marketing copy no longer claims "open end to end"
  *   - The trademark search has come back clean
  */
-export const LONGXIANG_ENABLED = true;
+// Moved to routing-modes.ts on 2026-10-06 and re-exported here so the existing
+// importers keep working. Two booleans meaning the same thing in two files is
+// how this family of bug starts — and routing-modes is the file every surface
+// can reach, which is the whole reason it has no imports.
+export { LONGXIANG_ENABLED } from './routing-modes.js';
 
 // ── Coordinator + special-case routes (highest priority) ──────────────────
 

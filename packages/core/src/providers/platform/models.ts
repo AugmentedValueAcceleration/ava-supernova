@@ -39,31 +39,21 @@ const KIMI_K3_PLATFORM: ModelDefinition = {
   pricing: { inputPerMillion: 3.00, outputPerMillion: 15.00 },
 };
 
-/**
- * Kimi K2.7 Code as a MANAGED single model — a Longxiang fleet member opened
- * for direct credit selection (2026-07-23). 1T MoE / 32B active, 256K context,
- * native vision, agentic-coding leader at $0.95/$4.00. Credit multiplier 1.68×
- * in credits.ts. Unlike K3 this is NOT gated on Longxiang — it stands on its
- * own as a pickable single model, served through the same Moonshot billing
- * path that made K3 managed. The "Kimi is BYOK-only" rule was retired.
+/*
+ * Kimi K2.7 Code stood here as a managed single model until 2026-10-06.
+ *
+ * Its own comment recorded that it was deliberately NOT gated on Longxiang and
+ * that "the Kimi is BYOK-only rule was retired". That rule is back: Moonshot
+ * never answered the 9 September approach, and a managed seat means we pay a
+ * platform key to resell a lab that has not replied.
+ *
+ * BYOK is untouched — providers/kimi still serves the whole line, so anyone with
+ * a Moonshot key has exactly what they had. Restoring the managed seat is a
+ * `git show` away if they write back.
  */
-const KIMI_K2_7_CODE_PLATFORM: ModelDefinition = {
-  id: 'kimi-k2.7-code-platform',
-  name: 'Kimi K2.7 Code',
-  provider: 'platform',
-  contextWindow: 256000,
-  maxOutputTokens: 8192,
-  supportsToolCalls: true,
-  supportsStreaming: true,
-  supportsThinking: true,
-  supportsVision: true,
-  desktopCapable: true, // Agentic-coding leader.
-  pricing: { inputPerMillion: 0.95, outputPerMillion: 4.00 },
-};
 
 export const PLATFORM_MODELS: ModelDefinition[] = [
   ...(LONGXIANG_ENABLED ? [KIMI_K3_PLATFORM] : []),
-  KIMI_K2_7_CODE_PLATFORM,
   // Qwen 3.8 Max — Alibaba's flagship as of 3 August 2026, and the successor to
   // 3.7 Max on credits. Strictly better and strictly cheaper: $2/$6 against
   // $2.50/$7.50, 131,072 output against 65,536. Cheaper input means a LOWER
@@ -199,55 +189,19 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     // numbers, not from the list price alone.
     pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
-  // Mistral Small 4 (managed, platform key) — Aurora's Builder spawn.
-  // Unified Magistral + Pixtral + Devstral merge: vision-aware, agentic
-  // coding capable, configurable reasoning. Same id pattern as the V4
-  // platform entries; ID resolves server-side via /api/chat alias.
-  {
-    id: 'mistral-small-4-platform',
-    name: 'Mistral Small 4',
-    provider: 'platform',
-    contextWindow: 262_000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    desktopCapable: true,
-    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
-  },
-  // Mistral Large 3 (managed, platform key) — Aurora's heavy reserve / fallback.
-  // Sparse MoE 41B active / 675B total, broad knowledge + long-context
-  // synthesis. Non-reasoning today, so it holds no primary Aurora route.
-  {
-    id: 'mistral-large-3-platform',
-    name: 'Mistral Large 3',
-    provider: 'platform',
-    contextWindow: 262_000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true, // multimodal (text + image) per the vendor def — was wrongly false here + in the DB
-    desktopCapable: true,
-    pricing: { inputPerMillion: 0.50, outputPerMillion: 1.50 },
-  },
-  // Mistral Medium 3.5 (managed, platform key) — Aurora's LEAD seat:
-  // coordinator + Builder + vision + the deep specialists. Mistral's frontier
-  // flagship (128B dense, 256K, from-scratch vision encoder, configurable
-  // reasoning, AA Intelligence Index 39). The Aurora routing table targets
-  // this model for every hard/deep route, so it must exist on platform.
-  {
-    id: 'mistral-medium-3.5-platform',
-    name: 'Mistral Medium 3.5',
-    provider: 'platform',
-    contextWindow: 256_000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    desktopCapable: true,
-    pricing: { inputPerMillion: 1.50, outputPerMillion: 7.50 },
-  },
+  //
+  // ── The three Mistral entries and Kimi K2.7 Code came off on 2026-10-06 ──
+  //
+  // Every managed Mistral seat existed to serve Aurora, and the Kimi ones to
+  // serve Longxiang. Both fleets went dark the same day: five labs were
+  // approached on 9 September and only Qwen and DeepSeek replied, so paying a
+  // platform key to resell models from labs that have not answered is the one
+  // thing we should not be doing.
+  //
+  // They are gone from the ACCOUNT list only. Mistral and Kimi remain fully
+  // supported BYOK — see providers/mistral/models.ts and providers/kimi — so a
+  // user with their own key loses nothing. The /api/chat aliases stay too, so a
+  // stale `mistral-medium-3.5-platform` resolves rather than 404s.
+  //
+  // What is left is exactly the labs that answered: Qwen and DeepSeek.
 ];

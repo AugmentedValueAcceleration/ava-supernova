@@ -12,8 +12,29 @@
  * adding a fleet is one entry instead of four scattered ternary arms per file.
  */
 
-/** Orchestrated fleet ids — everything else in a picker is a raw model id. */
+/** Orchestrated fleet ids — everything else in a picker is a raw model id.
+ *  Complete on purpose: a saved preference of `aurora` must still be RECOGNISED
+ *  as a fleet so it can be handled, rather than mistaken for a model id. */
 export const FLEET_IDS: readonly string[] = ['auto', 'supernova', 'aurora', 'longxiang'];
+
+/**
+ * The fleets a picker may SHOW. Aurora and Longxiang went dark on 2026-10-06 —
+ * we approached five labs on 9 Sep and only Qwen and DeepSeek replied, so a
+ * Mistral fleet and a Moonshot fleet both advertise a relationship that does
+ * not exist yet.
+ *
+ * Mirrors AURORA_ENABLED / LONGXIANG_ENABLED in core's routing-modes.ts, which
+ * is the source of truth. It is duplicated here only because these two webview
+ * bundles cannot import core — and that duplication is exactly the failure that
+ * file's header documents nine times over, so if you change one, change both.
+ */
+export const VISIBLE_FLEET_IDS: readonly string[] = ['auto', 'supernova'];
+
+/** True when a fleet should appear in a picker. Use this for display;
+ *  use isFleetModelId for recognising an id that already exists. */
+export function isVisibleFleetId(id: string | null | undefined): boolean {
+  return !!id && VISIBLE_FLEET_IDS.includes(id);
+}
 
 export function isFleetModelId(id: string | null | undefined): boolean {
   return !!id && FLEET_IDS.includes(id);

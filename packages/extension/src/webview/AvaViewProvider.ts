@@ -58,6 +58,7 @@ import {
   summariseTrainingLog,
   DESKTOP_TOOL_NAMES,
   LONGXIANG_ENABLED,
+  AURORA_ENABLED,
   isRoutingMode,
   // Calendar days in the user's terms, not UTC's — core/src/core/dates.ts.
   todayLocal,
@@ -86,7 +87,11 @@ import type { RoutingMode } from '@ava/core';
  *  path while the fleet is dark. */
 function isFleetId(id: string | null | undefined): id is RoutingMode {
   if (!id) return false;
+  // Both dark fleets, not just Longxiang. Aurora went dark on 2026-10-06 — a
+  // stale `activeModel: 'aurora'` in settings must not route through the fleet
+  // path any more than a stale longxiang one does.
   if (id === 'longxiang') return LONGXIANG_ENABLED;
+  if (id === 'aurora') return AURORA_ENABLED;
   return isRoutingMode(id);
 }
 import { creditsFor } from '@ava/core/billing/credits';
@@ -2866,7 +2871,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // strike through a fleet that handles images perfectly well.
     modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: maestroAvailable, supportsVision: true });
     modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: supernovaAvailable, supportsVision: true });
-    modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable, supportsVision: true });
+    // Aurora — dark since 2026-10-06, same treatment as Longxiang below: not
+    // pushed at all rather than pushed-and-greyed, because an unavailable row
+    // still shows the name and the fleet is unannounced while Mistral has not
+    // answered our 9 Sep approach.
+    if (AURORA_ENABLED) {
+      modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable, supportsVision: true });
+    }
     // Longxiang — BYOK-only, so no `hasPlatform ||` branch: a plan can never
     // unlock it (Moonshot won't invoice us for the K3 lead seat). While the
     // launch flag is off it is not pushed at all, rather than pushed-and-
