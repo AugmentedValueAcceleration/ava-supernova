@@ -7,6 +7,27 @@ import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput } from '
 const AVA_URL = 'avasupernova.com';
 
 /**
+ * The line that goes on every video post.
+ *
+ * It is the one claim a competitor cannot copy, because their business IS the
+ * tier: plans here scale credits and storage and never features, so Free and
+ * Enterprise are the same product with different allowances. Said plainly it
+ * sounds like it cannot be true, which is exactly why it is worth repeating.
+ *
+ * Appended here rather than asked for, for the same reason as the link below:
+ * a rule the model has to remember is a rule that is missing from the one post
+ * that mattered. Idempotent, so a caption that already carries it is left alone.
+ *
+ * No brand name in it — the account and the link already say who is talking,
+ * and a caption that introduces itself wastes a line.
+ *
+ * It is a COMMITMENT, not decoration. The day anything ships as a paid-tier
+ * exclusive this has to come out, because it is the sentence people will quote
+ * back.
+ */
+const TAGLINE = 'Every plan is the whole product. Credits scale. Features never do.';
+
+/**
  * How long one still holds on screen.
  *
  * Operator's number, and the reason the storyboard has a fixed cadence at all:
@@ -67,7 +88,7 @@ export class WriteVideoPostTool implements Tool {
         },
         caption: {
           type: 'string',
-          description: 'The post copy that goes in the caption box, ready to paste. The first line is the hook that decides whether anyone watches. It must NOT restate the voiceover — the script is heard and the caption is read, so saying the same thing twice wastes one of them; the caption carries what the voice cannot (the dish or movement by NAME, the concrete detail, why it exists). Write it to be SEARCHED: caption keywords now do more for discovery than hashtags, so the subject belongs in the words and not only in the tags. A one-liner plus two tags is not a caption. Hashtags inline per the platform tag policy. The link to avasupernova.com is appended automatically — do not write it yourself, and never write "link in bio".',
+          description: 'The post copy that goes in the caption box, ready to paste. The first line is the hook that decides whether anyone watches. It must NOT restate the voiceover — the script is heard and the caption is read, so saying the same thing twice wastes one of them; the caption carries what the voice cannot (the dish or movement by NAME, the concrete detail, why it exists). Write it to be SEARCHED: caption keywords now do more for discovery than hashtags, so the subject belongs in the words and not only in the tags. A one-liner plus two tags is not a caption. Hashtags inline per the platform tag policy. The tagline and the link to avasupernova.com are both appended automatically — do not write either yourself, and never write "link in bio".',
         },
         duration: {
           type: 'number',
@@ -137,9 +158,12 @@ export class WriteVideoPostTool implements Tool {
     // for. A rule the model has to remember is a rule that is missing from the
     // one post that mattered — and a video nobody can act on is a video that
     // did nothing. Idempotent: if she already wrote it, it is not doubled.
-    const withLink = caption.toLowerCase().includes(AVA_URL)
-      ? caption
-      : `${caption}\n\n${AVA_URL}`;
+    // The tagline goes on first, then the link — so a reader hits the claim
+    // and then the place to check it, which is the order that persuades.
+    const withTagline = caption.includes(TAGLINE) ? caption : `${caption}\n\n${TAGLINE}`;
+    const withLink = withTagline.toLowerCase().includes(AVA_URL)
+      ? withTagline
+      : `${withTagline}\n\n${AVA_URL}`;
 
     // Enforced AFTER the link, because the link is not optional — if adding it
     // breaks the cap then the caption is what gives, not the link.
@@ -151,7 +175,7 @@ export class WriteVideoPostTool implements Tool {
         return {
           success: false,
           output:
-            `This ${platform} caption is ${len} characters with the ${AVA_URL} link appended — ` +
+            `This ${platform} caption is ${len} characters with the tagline and ${AVA_URL} appended — ` +
             `${over} over the ${hardLimit} limit. Trim ${over}+ characters from the caption and ` +
             `call write_video_post again. The link is not optional; the words are what give.`,
         };
