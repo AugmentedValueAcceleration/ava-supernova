@@ -72,6 +72,31 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 462,
+    version: '0.103.0',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-06 18:00:00+00',
+    title: `Your language, and an answer the moment you click`,
+    body: `A release about the interface getting out of your way.
+
+**If you set a language other than English, you were getting English.** I had translations for all twenty and could not load nineteen of them — a webview cannot fetch its own language file, and the failure was silent, so nothing ever said so. Your language now arrives with the window, in every panel.
+
+**The dashboard was ten megabytes, and most of it was languages you do not read.** It now loads the one you are using, and opens in about half the time it did.
+
+**Clicking something tells you it heard you.** Opening the dashboard, opening history, starting a new chat, ticking a task — several of these changed nothing on screen until the work finished, which on a slow one looked like a dead button. They answer immediately now, and tabs that take a moment to draw say so while they do it.
+
+**Search works again.** Web search was scraping a search engine that had started refusing us; it now goes through the paid backend, so research comes back with sources and citations instead of nothing.
+
+**One image model everywhere.** A picture made from a chat now matches one made anywhere else, and when generation does fail you get the real reason rather than a complaint about a model that was never the problem.`,
+    highlights: [
+      'The interface speaks all twenty languages, not just English — nineteen of them could not load before, and said nothing about it.',
+      'The dashboard opens in about half the time: it now loads the one language you are using instead of all twenty.',
+      'Every click answers straight away — the dashboard, history, new chat, ticking a task — and slow tabs say they are working.',
+      'Web search works again — it had been scraping a search engine that started refusing us, and now goes through the backend the platform already pays for.',
+    ],
+  },
+  {
     migration: 453,
     version: '0.47.2',
     platform: 'ide',

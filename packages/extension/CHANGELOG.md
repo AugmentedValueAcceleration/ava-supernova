@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.103.0 — 2026-10-06 — Your language, and an answer the moment you click
+
+- If you set a language other than English, you were getting English. The interface had translations for all twenty and could not load nineteen of them — a webview cannot fetch its own language file, and the failure was swallowed, so nothing ever said so. Your language now arrives with the window.
+- The dashboard was ten megabytes, and 5.8MB of that was the nineteen languages you are not reading. It loads the one you are using and opens in about half the time.
+- Clicking something now tells you it heard you. Opening the dashboard, opening history, starting a new chat and ticking a task all used to change nothing on screen until the work finished.
+- Tabs that take a moment to draw say so while they draw. A tab switch is a render, not a fetch, so it needed a transition rather than a spinner — set the usual way it could never have painted at all.
+- The audit tab used to show "no entries" while it was still loading, which reads as finished and empty rather than busy.
+- Web search works again. It had been scraping a search engine that started refusing us; it now goes through the backend the platform already pays for.
+- One image model everywhere, so a picture made in one place matches one made anywhere else.
+- MiMo V2.6 in the surfaces that keep their own model lists.
+
 ## 0.100.2 — 2026-09-10 — I remember the evening, not just the moments I was told to
 
 - Closing the editor used to lose the whole session. End-of-session reflection only ran if you started a new chat or switched project — shutting down reached none of those paths.
