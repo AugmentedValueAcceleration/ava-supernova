@@ -18,14 +18,19 @@ const AVA_URL = 'avasupernova.com';
  * a rule the model has to remember is a rule that is missing from the one post
  * that mattered. Idempotent, so a caption that already carries it is left alone.
  *
- * No brand name in it — the account and the link already say who is talking,
- * and a caption that introduces itself wastes a line.
+ * The brand name leads it. I argued for leaving it off — the account name and
+ * the link already say who is talking — and that was wrong for the job this
+ * line actually does. A caption gets reposted, screenshotted and quoted away
+ * from the account that wrote it, and a claim this specific is worth nothing
+ * if the reader cannot tell whose it is. The operator called it; he was right.
+ *
+ * Em dash, not a pipe: the brand is "Ava Supernova" and never "Ava | Supernova".
  *
  * It is a COMMITMENT, not decoration. The day anything ships as a paid-tier
  * exclusive this has to come out, because it is the sentence people will quote
  * back.
  */
-const TAGLINE = 'Every plan is the whole product. Credits scale. Features never do.';
+const TAGLINE = 'Ava Supernova — Every plan is the whole product. Credits scale. Features never do.';
 
 /**
  * How long one still holds on screen.
