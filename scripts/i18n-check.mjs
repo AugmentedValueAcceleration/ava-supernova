@@ -4,7 +4,7 @@
  *
  * Covers three surfaces:
  *   1. packages/core/src/i18n/locales/*.ts          (CLI + IDE)
- *   2. packages/extension/webview-ui/src/locales/*.ts  (chat webview)
+ *   2. packages/extension/src/webview/locales/*.ts  (chat webview, shared with the host)
  *   3. packages/extension/package.nls*.json         (VSCode manifest)
  *
  * Fails (exit 1) on:
@@ -83,31 +83,19 @@ const SURFACES = [
   },
   {
     name: 'webview',
-    dir: path.join(repoRoot, 'packages/extension/webview-ui/src/locales'),
+    dir: path.join(repoRoot, 'packages/extension/src/webview/locales'),
     kind: 'ts',
     enFile: 'en.ts',
     localeCodeFromFile: (f) => f.replace(/\.ts$/, ''),
     localeFiles() {
       return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts');
     },
-    keepEnglishFile: path.join(repoRoot, 'packages/extension/webview-ui/src/locales/keep-english.ts'),
+    keepEnglishFile: path.join(repoRoot, 'packages/extension/src/webview/locales/keep-english.ts'),
   },
-  {
-    // The companion. Its locale files and keep-english.ts existed from the
-    // start — and keep-english.ts even documents itself as "used by
-    // scripts/i18n-check.mjs" — but the surface was never registered here, so
-    // the companion has had NO parity guard and those exclusions never
-    // applied. Added 2026-07-18.
-    name: 'companion',
-    dir: path.join(repoRoot, 'packages/web/src/companion/locales'),
-    kind: 'ts',
-    enFile: 'en.ts',
-    localeCodeFromFile: (f) => f.replace(/\.ts$/, ''),
-    localeFiles() {
-      return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts');
-    },
-    keepEnglishFile: path.join(repoRoot, 'packages/web/src/companion/locales/keep-english.ts'),
-  },
+  // The companion was here until 2026-10-05, when the web companion was
+  // retired and src/companion/ was deleted. Removed rather than left pointing
+  // at a missing directory: a guard that fails because its subject no longer
+  // exists blocks every package build and teaches people to skip the check.
   {
     name: 'package.nls',
     dir: path.join(repoRoot, 'packages/extension'),
@@ -294,7 +282,7 @@ function auditEmittedLabelKeys() {
 
   const renderers = [
     ['core', path.join(repoRoot, 'packages/core/src/i18n/locales/en.ts')],
-    ['webview', path.join(repoRoot, 'packages/extension/webview-ui/src/locales/en.ts')],
+    ['webview', path.join(repoRoot, 'packages/extension/src/webview/locales/en.ts')],
   ];
   for (const [name, file] of renderers) {
     if (!fs.existsSync(file)) { errors.push(`${name}: en locale not found at ${file}`); continue; }
