@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode, type ComponentProps } from 'react';
+import { useTabTransition } from '../lib/useTabTransition';
+import { TabSpinner } from '../components/TabSpinner';
 import { ContentRating, type RatingVerdict } from '../components/ContentRating';
 import { StarterShelf, StarterDetailBody } from '../components/StartersSheet';
 import { planFromCurated } from '../../../../core/dist/health/starters.js';
@@ -188,7 +190,12 @@ export function Health({
   // Lands on Plans, not the catalogue: the section is named after the thing
   // you are trying to do, and your plan is that thing. Browsing is how you
   // build one, not the destination.
-  const [tab, setTab] = useState<Tab>(() => initialTab ?? 'plans');
+  // Only the tab BAR goes through a transition — see the onClick below. setTab
+  // here stays immediate because it is also called from the initialTab sync
+  // effect and from inside other handlers, where a deferred state change would
+  // be a behaviour change on paths that expect it to land at once.
+  const { current: tab, pending: pendingTab, switchTo: switchTab, setNow: setTab } =
+    useTabTransition<Tab>(() => initialTab ?? 'plans');
   /** A card opened from the Ready-made tab, shown as its full week. */
   const [starterOpenId, setStarterOpenId] = useState<string | null>(null);
   /** An exercise opened from inside a plan. Separate from the Exercises
@@ -396,7 +403,7 @@ export function Health({
             return (
               <button
                 key={tabKey}
-                onClick={() => { setTab(tabKey); setModalExerciseSlug(null); setModalRecipeSlug(null); }}
+                onClick={() => { switchTab(tabKey); setModalExerciseSlug(null); setModalRecipeSlug(null); }}
                 className={`-mb-px border-b-2 border-x-0 border-t-0 bg-transparent px-4 py-2 text-xs transition cursor-pointer ${
                   isActive
                     ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
@@ -404,6 +411,7 @@ export function Health({
                 }`}
               >
                 {label}
+                {pendingTab === tabKey && <TabSpinner />}
               </button>
             );
           })}

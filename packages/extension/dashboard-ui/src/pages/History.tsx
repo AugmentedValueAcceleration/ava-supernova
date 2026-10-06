@@ -8,6 +8,8 @@ import { Icon } from '../components/Icon';
 import { Skeleton } from '../components/Skeleton';
 import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry, ConversationSurface, Page } from '../types/messages';
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
+import { useTabTransition } from '../lib/useTabTransition';
+import { TabSpinner } from '../components/TabSpinner';
 
 // ─── Model pricing (per 1M tokens) ──────────────────────────────────────────
 
@@ -202,7 +204,9 @@ export function History({ sessionStats, localAllTime, usageHistory, mode, accoun
   // The stored key survives ONLY as a one-shot deep link: the Command Centre's
   // "Review in audit" writes it immediately before navigating, so it is read
   // once and cleared. Next open is the first tab again.
-  const [activeTab, setActiveTab] = useState<TopTab>(() => {
+  // Wrapped in a transition so the pending spinner can paint before the new tab
+  // renders — the audit table in particular is not cheap. See useTabTransition.
+  const { current: activeTab, pending: renderingTab, switchTo: setActiveTab } = useTabTransition<TopTab>(() => {
     try {
       const deepLink = localStorage.getItem('ava-analytics-tab');
       localStorage.removeItem('ava-analytics-tab');
@@ -290,16 +294,12 @@ export function History({ sessionStats, localAllTime, usageHistory, mode, accoun
             }`}
           >
             {tab.label}
-            {/* A pulsing dot on the tab that is still waiting. The content area
-                shows its own skeleton, but the eye is on the tab you just
-                clicked, so the acknowledgement belongs here too. */}
-            {pendingTabs.has(tab.id) && (
-              <span
-                aria-hidden
-                className="ml-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full align-middle"
-                style={{ background: 'var(--accent)' }}
-              />
-            )}
+            {/* ONE indicator, two causes. These tabs both fetch (usage, audit)
+                and re-render, so the earlier version had a dot for the data wait
+                and would have needed a second thing for the render wait — two
+                marks on one tab, each meaning "wait" in a different way. The
+                spinner covers either. */}
+            {(pendingTabs.has(tab.id) || renderingTab === tab.id) && <TabSpinner />}
           </button>
         ))}
       </div>

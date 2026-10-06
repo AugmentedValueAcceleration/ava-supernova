@@ -6,6 +6,8 @@ import { LibraryPapers } from './LibraryPapers';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
 import { tabBar, tab as tabClass } from '../components/ui';
+import { useTabTransition } from '../lib/useTabTransition';
+import { TabSpinner } from '../components/TabSpinner';
 import { DESIGN_GROUPS, designTypeMeta, coarseKindToType } from '../lib/design-types';
 import { Drawer } from '../components/Drawer';
 // The dependency-free leaf, so the host and this bundle agree on what is
@@ -193,7 +195,11 @@ export function Library({
   // Papers is the entry-point tab — Library is a research/output surface
   // (courses moved to the dedicated Learning room). Assets / Documents are
   // the other browse surfaces.
-  const [tab, setTab] = useState<TopTab>('papers');
+  // Switching tabs here re-renders ~2,000 lines with twenty-odd mapped lists,
+  // which blocks the main thread — so a plain loading flag set on click could
+  // never paint. The transition lets the pending state land first. See
+  // useTabTransition.
+  const { current: tab, pending: pendingTab, switchTo: setTab } = useTabTransition<TopTab>('papers');
   // Two-tier Assets filter: group (Open Canvas / Web / App / Game) then a
   // specific type within it. Both are data-driven — see groupChips/typeChips.
   const [assetGroup, setAssetGroup] = useState<string>('all');
@@ -348,6 +354,7 @@ export function Library({
             className={tabClass(tab === tb.key)}
           >
             {tb.label}
+            {pendingTab === tb.key && <TabSpinner />}
           </button>
         ))}
       </div>
