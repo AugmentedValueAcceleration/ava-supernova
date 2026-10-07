@@ -1,5 +1,25 @@
+import { lazy, Suspense } from 'react';
 import type { AccountInfo, ExtToDashboardMessage, ChatModel, ChatPlatformStatus } from '../types/messages';
-import { DesignStudio } from './DesignStudio';
+
+/**
+ * Design Studio is loaded ON DEMAND, and it is the one page where that matters
+ * most.
+ *
+ * It is not the page code that makes it heavy — it is what the page drags in.
+ * `lib/asset-forge/` is reachable from nowhere else, and it pulls `lucide`
+ * (imported as the whole `icons` barrel, 722KB, untreeshakeable) and
+ * `opentype.js` (475KB) for logo and shape generation. Measured on 7 Oct 2026,
+ * this single lazy() took the dashboard's main bundle from 5,422KB to 4,391KB
+ * — 1,031KB, 19%, off what every user parses before anything paints, whether
+ * or not they ever open Creative Studio.
+ *
+ * This is also the first page split after the webview was proven able to load
+ * a chunk at all. See the <script type="module"> note in DashboardPanel.ts for
+ * why that took a CSP change and a spike rather than just a lazy() call.
+ */
+const DesignStudio = lazy(() =>
+  import('./DesignStudio').then((m) => ({ default: m.DesignStudio })),
+);
 
 export type DesignModelState = { models: ChatModel[]; activeModel: string | null; needsSetup: boolean; platformStatus: ChatPlatformStatus | null };
 
@@ -29,7 +49,26 @@ export function CreativeStudio({ account, onRegisterDesignChatDispatch, designMo
   // workspace is full-bleed and the page never scrolls — only the inspector.
   return (
     <div className="w-[calc(100%+4rem)] flex flex-col -m-8 h-[calc(100%+4rem)] min-h-0 overflow-hidden">
-      <DesignStudio account={account} onRegisterDesignChatDispatch={onRegisterDesignChatDispatch} designModelState={designModelState} onSwitchDesignModel={onSwitchDesignModel} userName={userName} userAvatarUrl={userAvatarUrl} />
+      {/* The spinner deliberately copies Design Studio's own, so the handoff
+          from "chunk loading" to "page loading its gallery" is one continuous
+          state rather than two different-looking waits. Reading a local file
+          off disk, this is usually a single frame — but unlike a tab switch
+          it IS a real fetch, so a plain spinner works here and does not need
+          a transition to become visible. */}
+      <Suspense
+        fallback={
+          <div className="flex flex-1 items-center justify-center">
+            <div
+              className="animate-spin"
+              style={{ width: 26, height: 26, borderRadius: '50%', border: '2px solid var(--border-card)', borderTopColor: 'var(--accent)' }}
+              role="status"
+              aria-label="Loading"
+            />
+          </div>
+        }
+      >
+        <DesignStudio account={account} onRegisterDesignChatDispatch={onRegisterDesignChatDispatch} designModelState={designModelState} onSwitchDesignModel={onSwitchDesignModel} userName={userName} userAvatarUrl={userAvatarUrl} />
+      </Suspense>
     </div>
   );
 }

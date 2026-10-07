@@ -27,8 +27,29 @@ export default defineConfig({
     rollupOptions: {
       input: 'src/index.tsx',
       output: {
-        entryFileNames: 'index.js',
-        assetFileNames: 'index.[ext]',
+        // CONTENT-HASHED, and it has to be, now that the dashboard splits.
+        //
+        // These were 'index.js' / 'index.[ext]', and the host cache-busted them
+        // with a `?v=<mtime>` query because a fixed name can be served stale
+        // from Electron's webview cache after a rebuild. That query is fatal to
+        // code splitting: the document loads `index.js?v=123`, while a chunk
+        // imports `../index.js` with no query, and a module's identity is its
+        // FULL url. The browser therefore treats them as two different modules
+        // and runs the whole bundle a second time — which surfaced as
+        // "An instance of the VS Code API has already been acquired", because
+        // vscode.ts calls acquireVsCodeApi() at module scope and it is only
+        // allowed once per document.
+        //
+        // A content hash is a better cache-buster than a query anyway: it
+        // changes only when the bytes change, and it is part of the path, so
+        // every importer agrees on it.
+        entryFileNames: 'index-[hash].js',
+        assetFileNames: 'index-[hash].[ext]',
+        // Lazily-loaded pages land here. `dist/dashboard` is already a
+        // localResourceRoot, so a subfolder under it needs no host change.
+        // It needs its own pattern because assetFileNames is 'index.[ext]'
+        // and every chunk would otherwise collide on one filename.
+        chunkFileNames: 'chunks/[name]-[hash].js',
       },
     },
   },

@@ -6496,15 +6496,34 @@ export class DashboardPanel {
   }
 
   private getHtml(webview: vscode.Webview): string {
-    // Cache-bust the fixed-name entry bundle (index.js/index.css aren't
-    // content-hashed) so a rebuild isn't masked by Electron's webview cache.
+    // The bundle is CONTENT-HASHED (index-<hash>.js), so its name is found by
+    // reading the directory rather than written here.
+    //
+    // This used to be a fixed `index.js` with a `?v=<mtime>` query bolted on to
+    // defeat Electron's webview cache. That query cannot survive code
+    // splitting: the document loads `index.js?v=123` while a chunk imports
+    // `../index.js`, and since a module's identity is its full url the browser
+    // treats those as two modules and executes the bundle TWICE. The visible
+    // symptom was "An instance of the VS Code API has already been acquired" on
+    // opening Creative Studio — vscode.ts calls acquireVsCodeApi() at module
+    // scope, which is legal exactly once per document.
+    //
+    // A content hash does the same job strictly better: it changes when the
+    // bytes change rather than when the file is touched, and because it is part
+    // of the path every importer resolves to the same url.
     const distDir = vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard');
-    let stamp = '0';
-    try {
-      stamp = String(Math.floor(require('node:fs').statSync(vscode.Uri.joinPath(distDir, 'index.js').fsPath).mtimeMs));
-    } catch { /* file missing during dev */ }
-    const scriptUri = `${webview.asWebviewUri(vscode.Uri.joinPath(distDir, 'index.js'))}?v=${stamp}`;
-    const styleUri = `${webview.asWebviewUri(vscode.Uri.joinPath(distDir, 'index.css'))}?v=${stamp}`;
+    const pick = (re: RegExp, fallback: string): string => {
+      try {
+        const hit = (require('node:fs').readdirSync(distDir.fsPath) as string[]).find((f) => re.test(f));
+        if (hit) return hit;
+      } catch { /* not built yet — fall through */ }
+      // Loud rather than blank. A webview whose script 404s renders an empty
+      // panel with nothing in the log, which is a miserable thing to debug.
+      console.error(`[ava] dashboard asset matching ${re} not found in ${distDir.fsPath} — did the build run?`);
+      return fallback;
+    };
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distDir, pick(/^index-.*\.js$/, 'index.js')));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distDir, pick(/^index-.*\.css$/, 'index.css')));
     const iconUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'icon.png'),
     );
@@ -6516,6 +6535,12 @@ export class DashboardPanel {
     );
     const nonce = getNonce();
 
+    // 'strict-dynamic' in script-src below: trust whatever the nonced bundle
+    // itself loads, which is exactly what a dynamic import() is. Required for
+    // code splitting — see the note on the <script> tag. It is deliberately
+    // NOT commented inline: the CSP lives in a quoted attribute, so an HTML
+    // comment placed inside it becomes part of the policy string and swallows
+    // the script-src directive, leaving default-src 'none' to block the bundle.
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6524,7 +6549,7 @@ export class DashboardPanel {
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'none';
                  style-src ${webview.cspSource} 'unsafe-inline';
-                 script-src 'nonce-${nonce}';
+                 script-src 'nonce-${nonce}' 'strict-dynamic';
                  connect-src https://avasupernova.com https://*.supabase.co;
                  img-src ${webview.cspSource} data: https: vscode-resource:;
                  media-src ${webview.cspSource} data: https: blob:;">
@@ -6533,7 +6558,25 @@ export class DashboardPanel {
 </head>
 <body>
   <div id="root" data-icon-uri="${iconUri}" data-ava-avatar-uri="${avaAvatarUri}"></div>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
+  <!-- type="module" is what lets the dashboard CODE-SPLIT. Do not change it
+       back to a classic script without lazy-loading the pages first.
+
+       As a classic script, a dynamic import() in the bundle was broken twice
+       over: Vite emits a RELATIVE specifier ("./chunks/x-hash.js"), which a
+       classic script resolves against the webview DOCUMENT url rather than the
+       bundle folder (404), and the nonce CSP below has no 'strict-dynamic', so
+       the fetched script carried no nonce and was refused anyway.
+
+       Both are properties of OUR setup, not of VS Code. A module script
+       resolves a relative specifier against the IMPORTING MODULE's url — the
+       real asset url — and a module script's nonce is inherited by the modules
+       it imports. Proven with a throwaway probe on 7 Oct 2026 before any of
+       the page splitting was written: the chunk fetched and executed, and the
+       dashboard rendered normally behind it.
+
+       Worth knowing: a module script is DEFERRED, so it runs after the
+       document is parsed. Nothing here depended on synchronous execution. -->
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
