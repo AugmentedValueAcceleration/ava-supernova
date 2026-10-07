@@ -14,15 +14,21 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const SRC_ROOT = join(__dirname, '..', 'src', 'docs');
-// TWO mirrors, not one. The website reads src/lib/docs and the companion
-// reads src/companion/lib/docs, and only the first was ever synced — so the
-// companion's copy carried the "GENERATED — run pnpm docs:sync" banner while
-// nothing on earth regenerated it, and it quietly drifted for months. A
-// generated file that lies about being generated is worse than a hand-written
-// one, because nobody thinks to check it.
+// ONE mirror. The website reads src/lib/docs.
+//
+// There were two until 2026-10-07. The companion read src/companion/lib/docs
+// and for a long time only the website mirror was synced, so the companion's
+// copy carried the "GENERATED — run pnpm docs:sync" banner while nothing on
+// earth regenerated it, and it drifted for months. A generated file that lies
+// about being generated is worse than a hand-written one, because nobody
+// thinks to check it.
+//
+// The companion was retired on 5 Oct and packages/web/src/companion deleted
+// with it — but this script went on writing there, so a sync RECREATED the
+// whole directory. Removing the second root is the fix; a sync must never
+// resurrect a surface that was deleted on purpose.
 const WEB_ROOTS = [
   join(__dirname, '..', '..', 'web', 'src', 'lib', 'docs'),
-  join(__dirname, '..', '..', 'web', 'src', 'companion', 'lib', 'docs'),
 ];
 
 // Files/folders to copy. Everything else in the docs/ dir (outline, sync script itself) stays put.

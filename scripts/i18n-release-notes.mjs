@@ -72,6 +72,50 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 463,
+    version: '0.104.0',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-07 18:00:00+00',
+    title: `The dashboard opens in a third of the time`,
+    body: `A short release, and most of it is speed you will feel immediately.
+
+**The dashboard was loading every page before it showed you any of them.** Design Studio and the documentation are the two heaviest things in it, and you were paying for both whether or not you opened either — the documentation alone carried itself translated into twenty languages. They now load when you ask for them. What loads before the window appears is a third of what it was.
+
+**The documentation had started describing a product we no longer sell.** Two routing styles were listed that are not offered, models were named that you cannot select, and the per-model credit figures had been copied by hand and drifted. The figures now live in one place, on the credits page, which reads them from the system that actually charges — so they cannot quietly disagree with your bill again.
+
+**Creative Studio opens the way it always did.** It is simply fetched at the moment you click it rather than carried around all day.`,
+    highlights: [
+      'The dashboard opens in about a third of the time — it no longer loads every page before showing you one.',
+      'Design Studio and the documentation load when you open them, not when you start.',
+      'The documentation no longer describes routing styles or models that are not offered.',
+      'Credit costs are published in one place and read from the system that charges them, so they cannot drift.',
+    ],
+  },
+  {
+    migration: 464,
+    version: '0.48.0',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-07 18:00:00+00',
+    title: `Five times lighter, and it tells you when it is thinking`,
+    body: `The desktop app was carrying a great deal it never needed to.
+
+**More than half of it was languages.** Every one of the twenty was loaded before the window appeared, so that you could read one. Yours now arrives on its own, and switching between them is still instant. Together with loading the documentation and Design Studio only when you open them, what the app reads at startup is about a fifth of what it was.
+
+**Switching a tab now shows you that it heard you.** On the bigger pages — Health, Plans, Papers, Usage and History — drawing a tab takes a moment, and until now that moment looked like nothing happening. A tab that is still drawing says so. One that is ready stays silent, because there is nothing to wait for.
+
+**Your account shows your account.** The sidebar was showing part of your API key where your email belongs, and your profile picture only appeared there sometimes. Both are fixed, and the key is not displayed anywhere.
+
+**Open folder buttons open folders.** The buttons that reveal your saved images, your project and your tasks on disk were doing nothing at all when clicked. They work.`,
+    highlights: [
+      'Starts about five times lighter — your language loads on its own instead of all twenty.',
+      'Tabs on the bigger pages show they are drawing, instead of looking like nothing happened.',
+      'The sidebar shows your email and your picture, not a piece of your API key.',
+      'The buttons that open your saved images, project and tasks folders now actually open them.',
+    ],
+  },
+  {
     migration: 462,
     version: '0.103.0',
     platform: 'extension',
