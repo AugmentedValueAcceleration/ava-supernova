@@ -24,17 +24,22 @@ export interface ProviderFact {
 
 export const PROVIDERS: ProviderFact[] = [
   // ── Orchestration ensembles ──────────────────────────────────────────────
-  // The 3 routing modes that appear in the model selector (✦ Maestro,
-  // ✦ Supernova, ✦ Aurora). Each one is an ensemble — the listed models
-  // are the constituent specialists the conductor routes to.
+  // The 2 routing modes that appear in the model selector (✦ Maestro,
+  // ✦ Supernova). Each one is an ensemble — the listed models are the
+  // constituent specialists the conductor routes to.
+  //
+  // Aurora and Longxiang were removed on 2026-10-06 when both fleets went
+  // dark. The gate lives in core/src/auto/routing-modes.ts; this file is
+  // documentation and simply must not describe what the selector no longer
+  // offers.
   {
     id: 'maestro',
     name: '✦ Maestro — single-conductor',
     kind: 'orchestration',
     notes: 'One conductor drives the entire persona pipeline (Scout, Architect, Builder, Verifier). A cheap fast model handles the upstream intent gate so the conductor only spins up when orchestration is actually needed. Default for everyone, live on every plan.',
     models: [
-      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — second rung on the ladder; newer generation, multimodal incl. video', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — conductor + every persona', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — conductor + every persona + vision; multimodal incl. video', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — second rung on the ladder, and long-form writing', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — light classifier tier', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
     ],
   },
@@ -52,41 +57,13 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — Scout, Verifier, Sequencer, Challenger, Integrator personas (depth ≤ 2)', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
     ],
   },
-  {
-    id: 'aurora',
-    name: '✦ Aurora — European AI stack',
-    kind: 'orchestration',
-    notes: 'Mistral-only routing. Every call lands on a Mistral model — Aurora deployments never leave European infrastructure. For GDPR-strict deployments, AI Act compliance, sovereignty mandates. Open weights end-to-end. No cross-routing fallback — that is the EU-stack guarantee.',
-    models: [
-      { id: 'mistral-medium-3.5-platform', displayName: 'Mistral Medium 3.5 — lead seat: coordinator + Builder + vision + deep specialists (Researcher, Challenger, CVE Researcher, Fact Checker, Security Verifier, Architect, Tutor, Content Writer). Frontier flagship', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4 — high-volume workhorse: chat, intent gate, image-gen orchestration, long-context, brainstorm; light specialists (Verifier, Sequencer, Recon, Scanner, Reporter, Quiz Master). Cheaper than Large 3', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-large-3-platform', displayName: 'Mistral Large 3 — heavy reserve / fallback (675B/41B MoE, Apache-2.0, broad knowledge, multimodal; non-reasoning today)', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-    ],
-  },
-  {
-    id: 'longxiang',
-    name: '✦ Longxiang — Chinese-model stack',
-    kind: 'orchestration',
-    // Deliberately does NOT claim open weights, in the name or anywhere below:
-    // Kimi K3's weights are due 2026-07-27 and Qwen 3.7 Plus is still API-only,
-    // so today only DeepSeek Flash is genuinely open. Describe the fleet
-    // accurately now; strengthen the wording when it becomes true.
-    notes: 'Kimi K3 holds both the coordinator and Builder seats — the strongest coder we serve (88.3 Terminal-Bench 2.1, 81.2 FrontierSWE). Qwen 3.8 Flash takes mid-tier builds, vision and teaching; DeepSeek V4.1 Flash carries chat and brainstorm; Qwen 3.7 Flash runs the intent gate. K3 is the priciest model we serve, so Longxiang uses more credits per turn than the other fleets — or none at all on your own keys.',
-    models: [
-      { id: 'kimi-k3-platform', displayName: 'Kimi K3 — lead seat: coordinator AND Builder, plus deep specialists (Architect, Researcher, CVE Researcher, Ideator). 2.8T Stable LatentMoE, native vision', inputPricePerM: 3.00, outputPricePerM: 15.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — vision input, long context, teach delivery, long-form writing', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — outage fallback for the K3 seats', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'deepseek-flash', displayName: 'DeepSeek V4.1 Flash — chat, brainstorm, image-gen orchestration, light specialists (MIT)', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-    ],
-  },
   // ── Platform-managed providers ────────────────────────────────────────────
   {
     id: 'qwen',
     name: 'Qwen (Alibaba Cloud)',
     kind: 'managed',
-    notes: 'Qwen 3.7 Plus coordinates Auto Mode; 3.5 Flash is the fast-path option. All models available on every plan.',
+    notes: 'Qwen 3.8 Flash coordinates Auto Mode; 3.5 Flash is the fast-path option. All models available on every plan.',
     models: [
-      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
@@ -117,17 +94,6 @@ export const PROVIDERS: ProviderFact[] = [
     notes: 'Powers Supernova routing mode. One model across every DeepSeek seat since 2026-09-10, when DeepSeek retired V4 Pro into V4.1 Flash: it coordinates the persona pipeline AND handles builds and review. Open-weight MIT, 1M context, 384K max output, multimodal, dual thinking/non-thinking modes. Prices are off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri) is exactly double.',
     models: [
       { id: 'deepseek-flash-platform', displayName: 'DeepSeek V4.1 Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-    ],
-  },
-  {
-    id: 'mistral-managed',
-    name: 'Mistral AI (Aurora orchestration)',
-    kind: 'managed',
-    notes: 'Powers Aurora routing mode. EU-based, open weights, never leaves European infrastructure. Medium 3.5 (frontier flagship) leads; Small 4 carries volume; Large 3 is the heavy reserve.',
-    models: [
-      { id: 'mistral-medium-3.5-platform', displayName: 'Mistral Medium 3.5', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-large-3-platform', displayName: 'Mistral Large 3', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {
@@ -172,7 +138,7 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'mistral',
     name: 'Mistral AI',
     kind: 'byok',
-    notes: 'Same models the Aurora routing mode uses — pick them directly with your own Mistral key, or let Aurora orchestrate. EU infrastructure, open weights (Large 3 and Small 4 Apache-2.0; Medium 3.5 Modified MIT).',
+    notes: 'Bring your own Mistral key and pick any of these directly. EU infrastructure, open weights (Large 3 and Small 4 Apache-2.0; Medium 3.5 Modified MIT).',
     models: [
       { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5 (frontier flagship)', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
