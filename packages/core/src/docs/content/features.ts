@@ -130,7 +130,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.office-suite',
     title: 'Office Suite',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 40,
     section: 'features',
     body: [
@@ -194,7 +194,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.daily-briefing',
     title: 'Daily briefing',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 70,
     section: 'features',
     body: [
@@ -220,7 +220,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.events',
     title: 'Events and notifications',
     audience: ['power'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 90,
     section: 'features',
     body: [
@@ -233,7 +233,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.personality',
     title: 'Personality Designer',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 100,
     section: 'features',
     body: [
@@ -259,7 +259,7 @@ export const FEATURE_PAGES: DocPage[] = [
     status: 'preview',
     title: 'Desktop Automation',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     requires: ['desktop_automation'],
     order: 120,
     section: 'features',

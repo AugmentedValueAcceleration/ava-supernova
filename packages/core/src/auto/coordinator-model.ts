@@ -12,8 +12,16 @@ import type { ModelDefinition } from '../core/types.js';
  *
  * Priority (all coordinator-eligible Plus models are 1M context; Flash tiers are 256K).
  * Every plan has access to every model — tier differs by token allowance, not model access.
- *   Platform  → Qwen 3.7 Plus (1M) → Qwen 3.5 Plus (1M) → Qwen 3.5 Flash (256K)
- *   BYOK      → Kimi K2.6 > Opus 4.8 > Sonnet > K2.5 > DeepSeek > GLM-5.3 > Mistral > Qwen
+ *   Platform  → Qwen 3.8 Flash (1M) → Qwen 3.7 Plus (1M) → Qwen 3.5 Flash (256K)
+ *   BYOK      → Kimi K3 > K2.7 Code > K2.6 > DeepSeek > Qwen 3.7 Plus > GLM-5.3
+ *               > Mistral Large 3 > Qwen 3.8 Flash > Qwen 3.5 Flash
+ *
+ * Both lines above were wrong until 2026-10-07 and contradicted the arrays
+ * directly beneath them: the platform ladder still led with 3.7 Plus (3.8 Flash
+ * took the seat on 6 Oct) and still listed 3.5 Plus (off the ladder since 10
+ * Sep), while the BYOK line named Opus 4.8 and Sonnet — models removed from
+ * the product entirely on 13 Aug. A comment that names a model we do not sell
+ * is worse than no comment.
  *
  * BYOK ordering puts Kimi K2.6 at the top because Ava is an agentic coder first
  * and K2.6 is SoTA on the benchmarks that measure that job:

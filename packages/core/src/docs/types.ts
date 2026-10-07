@@ -10,7 +10,10 @@ export type Audience = 'newcomer' | 'power' | 'both';
  * filtering applies. 'web' is the public site — a superset that shows every
  * page with per-surface badges, so capability filtering never hides on web.
  */
-export type Surface = 'web' | 'ext' | 'ide' | 'companion' | 'cli';
+// 'companion' removed 2026-10-07: the surface was retired on 5 Oct and a
+// capability marked available everywhere was still rendering a "Companion"
+// badge in the extension and IDE docs.
+export type Surface = 'web' | 'ext' | 'ide' | 'cli';
 
 /**
  * What you want to do — the task-first front door. Pages are grouped by task;

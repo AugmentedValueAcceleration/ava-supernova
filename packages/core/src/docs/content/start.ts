@@ -7,7 +7,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.what',
     title: 'What is Ava?',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 10,
     section: 'start',
     body: [
@@ -27,7 +27,6 @@ export const START_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'VS Code extension — Ava next to your editor: a chat panel, a dashboard, and changes shown inline before they happen.',
         'Desktop IDE — a standalone app with the whole thing in one window. Adds desktop control (opening apps, clicking, typing for you).',
-        'Companion — Ava in your browser at avasupernova.com/companion, for when you\'re away from your desk: tasks, journal, memory, quick chats. Nothing to install, and it works on a phone.',
         'CLI — Ava in your terminal, for people who live there.',
       ]},
       { type: 'heading', level: 3, text: 'How she works, in brief' },
@@ -38,7 +37,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.for-non-coders',
     title: "Never written code? Start here",
     audience: ['newcomer'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 15,
     section: 'start',
     body: [
@@ -65,7 +64,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.install',
     title: 'Install',
     audience: ['newcomer'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 20,
     section: 'start',
     body: [
@@ -100,7 +99,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.first-five',
     title: 'Your first thing with Ava',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 30,
     section: 'start',
     task: 'build',
@@ -138,7 +137,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.local-vs-cloud',
     title: 'Local vs cloud, in one paragraph',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 40,
     section: 'start',
     body: [
@@ -151,7 +150,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.first-model',
     title: 'Do I need to choose an AI?',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 50,
     section: 'start',
     body: [
@@ -178,7 +177,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.glossary',
     title: 'Plain-English glossary',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 60,
     section: 'start',
     body: [

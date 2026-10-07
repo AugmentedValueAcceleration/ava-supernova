@@ -72,7 +72,7 @@ export const TROUBLESHOOTING_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'What you were trying to do.',
         'What actually happened.',
-        'Which surface (extension, IDE, CLI, companion) and which version.',
+        'Which surface (extension, IDE, CLI) and which version.',
         'Any error message or log excerpt. Redact credentials first.',
       ]},
     ],

@@ -299,7 +299,8 @@ function PermBadge({ perm }: { perm: 'auto' | 'first_time' | 'always_ask' }) {
 }
 
 // Friendly labels for the "works on" surface badges (derived from the capability matrix).
-const SURFACE_LABELS: Record<string, string> = { ext: 'Extension', ide: 'IDE', companion: 'Companion', cli: 'CLI', web: 'Web' };
+// 'companion' dropped 2026-10-07 with the surface itself.
+const SURFACE_LABELS: Record<string, string> = { ext: 'Extension', ide: 'IDE', cli: 'CLI', web: 'Web' };
 
 function Pill({ children }: { children: ReactNode }) {
   return <span className="px-1.5 py-0.5 rounded text-[9px] bg-white/5 text-[var(--text-muted)]">{children}</span>;

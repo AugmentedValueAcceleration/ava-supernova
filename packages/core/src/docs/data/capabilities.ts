@@ -3,7 +3,7 @@
 // surface that lacks it, and surface badges are derived from this table. So
 // "the extension has no screenshot" is never written by hand — it's derived.
 //
-// Surfaces here are the *products* ('ext' | 'ide' | 'companion' | 'cli'). The
+// Surfaces here are the *products* ('ext' | 'ide' | 'cli'). The
 // public website ('web') is a superset: it shows every page regardless, with
 // per-surface badges, so it is intentionally never listed as a gate below.
 
@@ -70,7 +70,7 @@ export function surfacesFor(capability: Capability): ProductSurface[] {
   return BY_ID[capability]?.surfaces ?? [];
 }
 
-const ALL_PRODUCTS: ProductSurface[] = ['ext', 'ide', 'companion', 'cli'];
+const ALL_PRODUCTS: ProductSurface[] = ['ext', 'ide', 'cli'];
 
 /**
  * The product surfaces where *every* given capability is available — i.e. where
