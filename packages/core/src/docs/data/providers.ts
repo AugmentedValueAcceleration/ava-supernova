@@ -63,17 +63,23 @@ export const PROVIDERS: ProviderFact[] = [
     name: 'Qwen (Alibaba Cloud)',
     kind: 'managed',
     notes: 'Qwen 3.8 Flash coordinates Auto Mode; 3.5 Flash is the fast-path option. All models available on every plan.',
+    // MUST MATCH PLATFORM_MODELS in core/src/providers/platform/models.ts —
+    // the managed catalogue, which is what a signed-in plan can actually drive.
+    // Nothing else belongs in a `managed` entry. Corrected 2026-10-07: this
+    // listed qwen3-coder-next, qwen3-coder-flash and qwen3.7-flash, none of
+    // which are in PLATFORM_MODELS, and omitted qwen3.8-max, which is. Listing
+    // a model here that a plan cannot select is selling something we do not
+    // offer; omitting one hides something we do.
+    //
+    // qwen3.7-flash is deliberately absent despite being very much in use: it
+    // runs every fleet's intent gate, so it appears in the ORCHESTRATION
+    // entries above. Served on your behalf is not the same as selectable.
     models: [
+      { id: 'qwen3.8-max', displayName: 'Qwen 3.8 Max', inputPricePerM: 2.00, outputPricePerM: 6.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
-      // Tiered by prompt length: $0.03/$0.13 under 32K, $0.10/$0.40 to 256K,
-      // $0.20/$0.80 to 1M. The middle tier is quoted because a real turn clears
-      // 32K almost immediately, and the headline rate would flatter us.
-      { id: 'qwen3-coder-next', displayName: 'Qwen3 Coder Next — 80B/3B active, 70.6% SWE-bench Verified', inputPricePerM: 0.12, outputPricePerM: 0.80, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
-      { id: 'qwen3-coder-flash', displayName: 'Qwen3 Coder Flash — 1M context; dearer than Coder Next despite the name', inputPricePerM: 0.195, outputPricePerM: 0.975, contextWindow: 1_000_000, capabilities: ['tools', 'streaming'] },
-      { id: 'qwen3.7-flash', displayName: 'Qwen 3.7 Flash — tiered pricing; reasons by default, so short answers cost more than the rate implies', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {

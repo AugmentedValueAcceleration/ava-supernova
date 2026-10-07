@@ -1,113 +1,80 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { modelCostMultiplier } from '../src/billing/credits.js';
 
 /**
- * The credit multipliers quoted in the docs must match the ones that charge.
+ * The docs must NOT restate per-model credit multipliers.
  *
- * WHY THIS TEST EXISTS
+ * WHAT THIS TEST USED TO DO, AND WHY IT CHANGED
  *
- * The credits PAGE reads the multiplier straight out of the pricing table, so
- * it cannot lie. The DOCS hand-write the same numbers into prose, and on
+ * It used to read the multipliers out of the prose and compare them with the
+ * billing table, because the docs hand-wrote the same numbers and on
  * 2026-09-10 five of eleven had drifted:
  *
  *   Mistral Medium 3.5   docs 3.12x   actual 3.87x
  *   Qwen 3.8 Max         docs 2.58x   actual 1.36x
  *   Qwen 3.7 Plus        docs 0.82x   actual 0.94x
- *   DeepSeek             docs 1.35x   actual 0.44x   (and listed TWICE, once
- *                                      at each value, after a rename)
+ *   DeepSeek             docs 1.35x   actual 0.44x   (listed TWICE after a rename)
  *   Qwen 3.5 Flash       docs 0.22x   actual 0.16x
  *
- * Two models were missing entirely and two retired ones were still priced.
- * Nobody noticed because nothing checked. These docs also back `docs_lookup`,
- * so Ava answers billing questions out of them — a wrong number here is a
- * wrong answer given confidently.
+ * On 2026-10-07 the list came out altogether. One of its bullets was anchored
+ * on "Mistral Medium 3.5 — this is the model the whole table is calibrated
+ * against", a fleet lead we had stopped serving the day before; the drift was
+ * not a stale number but a stale premise, which no comparison would have
+ * caught. avasupernova.com/credits reads the multipliers from the live billing
+ * table and cannot lie, so the live numbers now have exactly one home.
  *
- * The test reads the prose rather than asking anyone to remember. Change a
- * multiplier and this fails until the docs say the same thing.
+ * Checking a copy is weaker than not having a copy. This test therefore guards
+ * the stronger property: that the copy stays gone. These docs back
+ * `docs_lookup`, so Ava answers billing questions out of them — a number
+ * reintroduced here is a wrong answer given confidently, later.
  */
 
 const CONCEPTS = join(__dirname, '..', 'src', 'docs', 'content', 'concepts.ts');
-
-/** Display names as written in the docs -> the id that gets charged. */
-const NAME_TO_ID: Record<string, string> = {
-  'Kimi K3': 'kimi-k3',
-  'Kimi K2.7 Code': 'kimi-k2.7-code',
-  'Mistral Medium 3.5': 'mistral-medium-3.5',
-  'Mistral Large 3': 'mistral-large-3',
-  'Mistral Small 4': 'mistral-small-4',
-  'Qwen 3.7 Max': 'qwen3.7-max',
-  'Qwen 3.8 Max': 'qwen3.8-max',
-  'Qwen 3.7 Plus': 'qwen3.7-plus',
-  'Qwen 3.8 Flash': 'qwen3.8-flash',
-  'Qwen 3.7 Flash': 'qwen3.7-flash',
-  'Qwen 3.5 Plus': 'qwen3.5-plus',
-  'Qwen 3.5 Flash': 'qwen3.5-flash',
-  'DeepSeek V4.1 Flash': 'deepseek-flash',
-};
+const src = () => readFileSync(CONCEPTS, 'utf8');
 
 /**
- * A priced bullet: "0.44× — Some Model, Another Model. Prose...".
+ * A priced bullet: "0.44× — Some Model. Prose...".
  *
  * Split on /\r?\n/ rather than '\n'. These files are CRLF, and a bare '\n'
  * split leaves a trailing \r on every line — JS treats \r as a line
- * terminator, so `.` refuses to cross it and `(.*)$` can never reach the end
- * of the string. Split the wrong way, this matched NOTHING, silently.
+ * terminator, so `.` refuses to cross it and `(.*)$` can never reach the end of
+ * the string. Split the wrong way, this matches NOTHING, silently.
  */
 function pricedBullets(): Array<{ value: number; rest: string }> {
-  const src = readFileSync(CONCEPTS, 'utf8');
   const out: Array<{ value: number; rest: string }> = [];
-  for (const line of src.split(/\r?\n/)) {
-    const m = line.match(/'(\d+\.\d+)×\s+—\s+(.*)$/);
-    if (m) out.push({ value: Number(m[1]), rest: m[2] });
-  }
-  return out;
-}
-
-/** Every (model, multiplier) pair the docs actually assert. */
-function quotedMultipliers(): Array<{ value: number; name: string }> {
-  const out: Array<{ value: number; name: string }> = [];
-  for (const { value, rest } of pricedBullets()) {
-    for (const name of Object.keys(NAME_TO_ID)) {
-      if (rest.includes(name)) out.push({ value, name });
-    }
+  for (const line of src().split(/\r?\n/)) {
+    const m = line.match(/'(\d+(?:\.\d+)?)×\s+—\s+(.*)$/);
+    if (!m) continue;
+    // "1.0× — any model without a listed multiplier" is a RULE, not a copied
+    // figure: it names no model and cannot drift, because there is nothing in
+    // the billing table for it to disagree with. Everything else states a
+    // number for a named model, which is the thing that drifts.
+    if (/any model without a listed multiplier/i.test(m[2])) continue;
+    out.push({ value: Number(m[1]), rest: m[2] });
   }
   return out;
 }
 
 describe('docs credit multipliers', () => {
-  // Guards the checks below from passing vacuously. An earlier draft stopped
-  // its match at the first full stop, which breaks on "Qwen 3.7 Plus", found
-  // 3 of 13 bullets and went green — a matching test that checks almost
-  // nothing is worse than no test, because it reads as coverage.
-  it('finds the bullets at all, so the checks below mean something', () => {
-    expect(pricedBullets().length).toBeGreaterThanOrEqual(10);
-    expect(quotedMultipliers().length).toBeGreaterThanOrEqual(10);
+  it('does not quote per-model multipliers — the credits page owns them', () => {
+    const quoted = pricedBullets().map(({ value, rest }) => `${value}× — ${rest.slice(0, 60)}`);
+
+    // If this fails, someone has hand-copied the billing table back into the
+    // prose. Delete the numbers rather than correcting them: they drift, and
+    // the drift is invisible to a reader. 1.0× is excluded below because it is
+    // a rule ("anything unlisted"), not a copied figure.
+    expect(quoted).toEqual([]);
   });
 
-  it('matches the table that actually charges', () => {
-    const mismatches = quotedMultipliers()
-      .filter(({ value, name }) => modelCostMultiplier(NAME_TO_ID[name]) !== value)
-      .map(({ value, name }) =>
-        `${name}: docs say ${value}x, billing charges ${modelCostMultiplier(NAME_TO_ID[name])}x`);
-
-    expect(mismatches).toEqual([]);
+  it('still explains what a multiplier IS, so removing the numbers cost no meaning', () => {
+    const text = src();
+    expect(text).toContain('Per-model multipliers');
+    expect(text).toMatch(/1\.0× — any model without a listed multiplier/);
   });
 
-  it('never quotes one model at two different multipliers', () => {
-    const byName = new Map<string, Set<number>>();
-    for (const { value, name } of quotedMultipliers()) {
-      if (!byName.has(name)) byName.set(name, new Set());
-      byName.get(name)!.add(value);
-    }
-    // This is the shape a model rename leaves behind: two bullets that used to
-    // name different models now name the same one, each at its old price.
-    const doubled = [...byName.entries()]
-      .filter(([, values]) => values.size > 1)
-      .map(([name, values]) => `${name} quoted at ${[...values].join('x and ')}x`);
-
-    expect(doubled).toEqual([]);
+  it('sends the reader to the one place the live numbers exist', () => {
+    expect(src()).toContain('avasupernova.com/credits');
   });
 
   it('does not PRICE a model that no longer exists', () => {
@@ -116,19 +83,25 @@ describe('docs credit multipliers', () => {
     // Retired names may still appear in prose. "It fell from 1.35x when
     // DeepSeek retired V4 Pro into V4.1 Flash" is the sentence that explains
     // the change, and deleting it would throw away the history. What must not
-    // happen is a dead model being quoted a PRICE, so only bullets are checked.
-    // Only the HEAD of the bullet — the model list before the first sentence
-    // break — names what is being priced. Splitting on ". " is safe because
-    // model names put digits after their dots ("V4.1", "3.7"), never a space.
+    // happen is a dead model being quoted a PRICE.
     const priced = pricedBullets().flatMap(({ value, rest }) => {
       const head = rest.split('. ')[0];
       return retired.filter((r) => head.includes(r)).map((r) => `${r} priced at ${value}x`);
     });
-
     expect(priced).toEqual([]);
 
     // The Omni models have no such excuse — nothing refers to them any more.
-    const src = readFileSync(CONCEPTS, 'utf8');
-    expect(['Qwen 3.5 Omni Flash', 'Qwen 3.5 Omni Plus'].filter((r) => src.includes(r))).toEqual([]);
+    expect(['Qwen 3.5 Omni Flash', 'Qwen 3.5 Omni Plus'].filter((r) => src().includes(r))).toEqual([]);
+  });
+
+  it('does not describe the fleets that went dark on 2026-10-06', () => {
+    // Aurora and Longxiang are not offered. The docs sold them until this date:
+    // a three-column comparison table, a "pick one of three styles" chooser,
+    // and provider entries for both. The gate is in auto/routing-modes.ts; this
+    // check is here because documentation drifts separately from code and has
+    // its own translations, nineteen of them, to drag along behind it.
+    const text = src();
+    expect(text).not.toMatch(/Aurora/);
+    expect(text).not.toMatch(/Longxiang/);
   });
 });
