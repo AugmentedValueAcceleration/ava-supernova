@@ -7,6 +7,7 @@ import { NavSidebar } from './components/NavSidebar';
 import type { GenerationJobLite } from './components/NavSidebar';
 import { DashboardTopBar } from './components/DashboardTopBar';
 import { WelcomeOnboarding } from './components/WelcomeOnboarding';
+import { LazyPage } from './components/LazyPage';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
 import { Memory } from './pages/Memory';
@@ -19,7 +20,7 @@ import { Planner } from './pages/Planner';
 import { CreativeStudio } from './pages/CreativeStudio';
 import { AccountPage } from './pages/AccountPage';
 import { HelpPage } from './pages/HelpPage';
-import { DocumentationPage } from './pages/DocumentationPage';
+import { DocumentationPageLazy } from './pages/DocumentationPage.lazy';
 import { ArticleReader } from './pages/ArticleReader';
 import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import { Health } from './pages/Health';
@@ -1979,7 +1980,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         );
 
       case 'documentation':
-        return <DocumentationPage />;
+        return <LazyPage><DocumentationPageLazy /></LazyPage>;
 
       // ── Standalone pages ────────────────────────────────────────────
       case 'overview':

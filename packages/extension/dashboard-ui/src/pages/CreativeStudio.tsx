@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
+import { LazyPage } from '../components/LazyPage';
 import type { AccountInfo, ExtToDashboardMessage, ChatModel, ChatPlatformStatus } from '../types/messages';
 
 /**
@@ -49,26 +50,9 @@ export function CreativeStudio({ account, onRegisterDesignChatDispatch, designMo
   // workspace is full-bleed and the page never scrolls — only the inspector.
   return (
     <div className="w-[calc(100%+4rem)] flex flex-col -m-8 h-[calc(100%+4rem)] min-h-0 overflow-hidden">
-      {/* The spinner deliberately copies Design Studio's own, so the handoff
-          from "chunk loading" to "page loading its gallery" is one continuous
-          state rather than two different-looking waits. Reading a local file
-          off disk, this is usually a single frame — but unlike a tab switch
-          it IS a real fetch, so a plain spinner works here and does not need
-          a transition to become visible. */}
-      <Suspense
-        fallback={
-          <div className="flex flex-1 items-center justify-center">
-            <div
-              className="animate-spin"
-              style={{ width: 26, height: 26, borderRadius: '50%', border: '2px solid var(--border-card)', borderTopColor: 'var(--accent)' }}
-              role="status"
-              aria-label="Loading"
-            />
-          </div>
-        }
-      >
+      <LazyPage>
         <DesignStudio account={account} onRegisterDesignChatDispatch={onRegisterDesignChatDispatch} designModelState={designModelState} onSwitchDesignModel={onSwitchDesignModel} userName={userName} userAvatarUrl={userAvatarUrl} />
-      </Suspense>
+      </LazyPage>
     </div>
   );
 }

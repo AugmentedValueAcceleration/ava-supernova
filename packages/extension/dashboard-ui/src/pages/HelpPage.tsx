@@ -4,7 +4,8 @@ import { t, useLocale } from '../i18n';
 import { SupportChat } from './SupportChat';
 import { Releases } from './Releases';
 import { Roadmap } from './Roadmap';
-import { DocumentationPage } from './DocumentationPage';
+import { DocumentationPageLazy } from './DocumentationPage.lazy';
+import { LazyPage } from '../components/LazyPage';
 import type { ReleaseNote, RoadmapTheme } from '../types/messages';
 
 type HelpTab = 'support' | 'docs' | 'releases' | 'roadmap';
@@ -75,7 +76,7 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
         />
       )}
 
-      {activeTab === 'docs' && <DocumentationPage />}
+      {activeTab === 'docs' && <LazyPage><DocumentationPageLazy /></LazyPage>}
 
       {activeTab === 'releases' && (
         <Releases releases={releases} />
