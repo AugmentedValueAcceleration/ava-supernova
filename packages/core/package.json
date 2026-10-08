@@ -197,6 +197,11 @@
       "import": "./dist/auto/routing-modes.js",
       "require": "./dist/auto/routing-modes.js",
       "types": "./dist/auto/routing-modes.d.ts"
+    },
+    "./mode-tags": {
+      "import": "./dist/agent/mode-tags.js",
+      "require": "./dist/agent/mode-tags.js",
+      "types": "./dist/agent/mode-tags.d.ts"
     }
   },
   "scripts": {
