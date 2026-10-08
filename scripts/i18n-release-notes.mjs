@@ -72,6 +72,50 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 465,
+    version: '0.105.0',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-08 02:00:00+00',
+    title: `The tasks I make for you now reach your planner`,
+    body: `A short release about tasks going where you expect them.
+
+**A task I created for you could sit in the sidebar and never appear in the Planner.** Two things were doing it. The Planner was reading the wrong folder — it works out where your data lives when the dashboard opens, which is a moment before your account has finished loading, and it kept that first answer for the rest of the session. And a task with no due date was being filtered out of every single day, because the Tasks tab opens showing one day at a time and "no date" never matches any of them.
+
+**Both are fixed.** The Planner re-reads once your account is known, and a task without a date now stays in view — it is not scheduled for another day, it is unscheduled, and it belongs in front of you until you decide otherwise. The header says so plainly.
+
+**One more thing you will feel more than see.** Signing out now clears the data the dashboard had cached for the previous account instead of keeping it until a reload.`,
+    highlights: [
+      'Tasks I create for you now show up in the Planner, not just the sidebar.',
+      'A task with no due date no longer disappears — it was being filtered out of every day at once.',
+      'The Planner reads your account folder once your account has loaded, instead of keeping the guess it made a moment earlier.',
+      "Signing out clears the previous account's cached data straight away.",
+    ],
+  },
+  {
+    migration: 466,
+    version: '0.49.0',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-08 02:00:00+00',
+    title: `Your old conversations come back whole`,
+    body: `This one is mostly about reopening work you have already done.
+
+**Reopened conversations were full of blank gaps.** Every step I took — reading a file, running a search, making an edit — left an empty bubble where the record of it should have been. The work was saved all along; it was being thrown away on the way to the screen. You now see what I actually did, with each result beside the step that produced it.
+
+**And your own messages were showing my briefing instead of your words.** When you work in a particular mode, the instructions for it ride along at the front of your message. Restored, that is what you saw. Now you see what you typed.
+
+**A long conversation could not be reopened at all.** Clicking it did nothing, with no error — the transcript was being passed through a store far too small to hold it. Length no longer decides whether a conversation will open.
+
+**Tasks now live in one place.** The Planner kept a private list that had nothing to do with the tasks I create or the ones in your sidebar, so the two never agreed. They are the same list now, and the Planner has the day/all switch the extension has — with a difference: it opens showing everything, so an overdue task cannot hide behind today.`,
+    highlights: [
+      'Reopened conversations show what I actually did, instead of blank gaps where each step was.',
+      'Your own messages read as what you typed, not the internal briefing that travels with them.',
+      'A long conversation opens — clicking one used to do nothing at all, silently.',
+      'The Planner and your sidebar are finally the same task list, with a day/all switch.',
+    ],
+  },
+  {
     migration: 463,
     version: '0.104.0',
     platform: 'extension',

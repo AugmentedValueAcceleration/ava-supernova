@@ -34,23 +34,19 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 
 ---
 
-## Four fleets, four jobs
+## Two fleets, two jobs
 
 You don't pick a model. You pick the work, and the right fleet falls out of it.
 
 | Fleet | Status | Coordinator | Specialists | Residency |
 |---|---|---|---|---|
-| **Maestro** | **Ships now** | Qwen 3.7 Plus | Qwen 3.8 Flash (second rung) · Qwen 3.7 Flash (intent gate) · Qwen 3.5 Flash (chat, image-gen) | Alibaba |
-| **Aurora** | **Ships now** | Mistral Medium 3.5 | Mistral Medium 3.5 (Builder + vision + long-form) · Mistral Small 4 (chat + image-gen + intent gate) | EU-only · open weights |
-| **Supernova** | BYOK now · managed preview | DeepSeek V4.1 Flash | Qwen 3.7 Plus (Builder) · Qwen 3.8 Flash (vision) · DeepSeek V4.1 Flash (chat + mid-tier) · Qwen 3.7 Flash (intent gate) | DeepSeek + Alibaba |
-| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Kimi K3 (Builder) · Qwen 3.8 Flash (vision + long context + teach) · DeepSeek V4.1 Flash (chat + brainstorm + image-gen) · Qwen 3.7 Flash (intent gate) | Moonshot + Alibaba + DeepSeek |
+| **Maestro** | **Ships now** | Qwen 3.8 Flash | Qwen 3.8 Flash (Builder + vision, reuses the coordinator) · Qwen 3.7 Flash (intent gate) · Qwen 3.5 Flash (chat, image-gen) · Qwen 3.7 Plus (long-form) | Alibaba |
+| **Supernova** | **Ships now** | DeepSeek V4.1 Flash | Qwen 3.7 Plus (Builder) · Qwen 3.8 Flash (vision) · DeepSeek V4.1 Flash (chat + mid-tier) · Qwen 3.7 Flash (intent gate) | DeepSeek + Alibaba |
 
-On a plan, **Maestro, Aurora and Longxiang** are live; **Supernova's managed version is in preview**. With your own keys, each fleet unlocks from the keys it needs:
+Both are live on every plan. With your own keys, each unlocks from the keys it needs:
 
 - **Maestro** — a **Qwen** key.
-- **Aurora** — a **Mistral** key.
 - **Supernova** — **DeepSeek + Qwen** keys.
-- **Longxiang** — **Moonshot + Qwen + DeepSeek** keys.
 
 BYOK users also get the raw individual models (Kimi, GLM, DeepSeek, Qwen, and more) per the keys they've added.
 
@@ -88,7 +84,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 
 **Her internal team activates for complex work:** Scout → Architect → Verifier → Sequencer → Challenger → Builder. Simple questions skip orchestration entirely — zero overhead.
 
-Pick the fleet that fits the job: **Maestro** (a tier-differentiated Qwen ensemble — the predictable daily driver), **Aurora** (the EU-sovereign Mistral stack — open weights, never leaves EU infrastructure), **Supernova** (the polyglot — DeepSeek V4.1 Flash coordinates and takes the chat and mid-tier seats, Qwen 3.7 Plus builds, Qwen 3.8 Flash handles vision; runs today on your DeepSeek + Qwen keys, managed version in preview), or **Longxiang** 龙翔 (built entirely on Chinese models — Kimi K3 leads and builds, Qwen 3.7 Plus takes vision and long context, DeepSeek V4.1 Flash handles chat).
+Pick the fleet that fits the job: **Maestro** (a tier-differentiated Qwen ensemble — the predictable daily driver, with Qwen 3.8 Flash coordinating and building) or **Supernova** (the polyglot — DeepSeek V4.1 Flash coordinates and takes the chat and mid-tier seats, Qwen 3.7 Plus builds, Qwen 3.8 Flash handles vision).
 
 ---
 
@@ -242,7 +238,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 ## Tools
 
-**111 user-facing tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
+**Over 120 user-facing tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
 
 Counted from the registry as this extension builds it, not estimated: 119 register here, minus 8 that are internal plumbing for the agent loop. Every tool below is one you can actually call — the list and the number agree.
 
@@ -270,7 +266,7 @@ Every plan gets every managed model. Tiers differ only on monthly credit allowan
 
 | Source | Models |
 |---|---|
-| **Ava Managed** | Qwen 3.7 Plus, Qwen 3.8 Flash, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
+| **Ava Managed** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, DeepSeek V4.1 Flash |
 | **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
 | **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
 | **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
@@ -328,7 +324,6 @@ Built by **Augmented Value Acceleration Ltd**, registered in England and Wales. 
 
 - [Website](https://avasupernova.com)
 - [GitHub](https://github.com/AugmentedValueAcceleration/ava-supernova)
-- [Companion App](https://companion.avasupernova.com)
 - [YouTube](https://youtube.com/@AugmentedValueAcceleration)
 - [Release Notes](https://avasupernova.com/releases)
 

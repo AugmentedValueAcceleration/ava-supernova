@@ -44,7 +44,6 @@ The same agent engine (`@ava/core`) powers every surface — same tools, same pe
 | **CLI** (`@ava/cli`) | A terminal REPL with the full agent loop. | Living in the terminal, scripting, servers, SSH. |
 | **VS Code Extension** | Ava inside the editor you already use — chat, agent, command-centre dashboard. | Adding Ava to your existing VS Code workflow. |
 | **IDE** | A standalone desktop app (Tauri + Rust) with Ava native and a local engine. Owns **desktop automation**. | A dedicated AI-native workspace; controlling the whole machine. |
-| **Companion** | A mobile/web app — chat, tasks, journal, memory on the go. | Ava away from your desk. |
 
 ## What Makes Ava Different
 
@@ -90,12 +89,10 @@ You don't pick a model — you pick the work, and the right fleet falls out of i
 
 | Fleet | Status | Coordinator | Best for |
 |---|---|---|---|
-| **Maestro** | **Ships now** | Qwen 3.7 Plus | Daily work, predictable cost — a tier-differentiated Qwen ensemble |
-| **Aurora** | **Ships now** | Mistral Medium 3.5 | GDPR-strict / sovereign EU work — Mistral-only, open weights, never leaves EU infrastructure |
-| **Supernova** | BYOK now · managed preview | DeepSeek V4.1 Flash | Heavy multi-step work — a polyglot fleet picking the best model per role |
-| **Longxiang** 龙翔 | **Ships now** | Kimi K3 | Work you want run entirely on Chinese models — K3 leads and builds, Qwen 3.8 Flash takes vision and long context, DeepSeek V4.1 Flash handles chat |
+| **Maestro** | **Ships now** | Qwen 3.8 Flash | Daily work, predictable cost — a tier-differentiated Qwen ensemble |
+| **Supernova** | **Ships now** | DeepSeek V4.1 Flash | Heavy multi-step work — a polyglot fleet picking the best model per role |
 
-**Supernova** runs today with your own DeepSeek + Qwen keys; the managed (platform-hosted) version is in preview. **Maestro** unlocks with a Qwen key, **Aurora** with a Mistral key, and **Longxiang** with Moonshot + Qwen + DeepSeek keys.
+Both are live on every plan. With your own keys, **Maestro** unlocks with a Qwen key and **Supernova** with DeepSeek + Qwen keys.
 
 ### Supported models
 
@@ -103,7 +100,7 @@ Bring your own key for any provider, or use Ava-managed models on a plan. Every 
 
 | Provider | Models |
 |---|---|
-| **Ava Managed** | Qwen 3.7 Plus, Qwen 3.8 Flash, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
+| **Ava Managed** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, DeepSeek V4.1 Flash |
 | **Qwen (Alibaba)** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash — 1M context, vision, reasoning |
 | **DeepSeek** | DeepSeek V4.1 Flash — MIT open-weight, 1M context, multimodal |
 | **Moonshot** | Kimi K3 (2.8T MoE, 1M context, native vision), K2.7 Code, K2.6 |
@@ -207,7 +204,7 @@ Or run fully local with your own keys — the floor is free, forever.
 
 ## Architecture
 
-A pnpm monorepo with a shared core, plus submodules for the IDE, web platform, and companion app:
+A pnpm monorepo with a shared core, plus submodules for the IDE and web platform:
 
 ```
 packages/
@@ -215,7 +212,7 @@ packages/
 ├── cli/         # @ava/cli — terminal REPL
 ├── extension/   # VS Code extension host + React webview + dashboard
 ├── ide/         # Standalone IDE (Tauri v2 + Rust + Node.js engine) — submodule
-├── mobile/      # Companion app — submodule
+├── mobile/      # Dormant — the companion was retired 2026-10-05
 └── web/         # Platform website — submodule
 ```
 
@@ -241,7 +238,6 @@ Contributions are welcome — this is built for the community.
 
 - [Website](https://ava-supernova.com)
 - [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova)
-- [Companion App](https://companion.ava-supernova.com)
 - [Release Notes](https://ava-supernova.com/releases)
 - [YouTube](https://youtube.com/@AugmentedValueAcceleration)
 

@@ -46,7 +46,7 @@ Bring your own key for any provider, or use Ava-managed models with a free or pa
 | **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning |
 | **Custom / Local** | Ollama, LM Studio, vLLM, any standard API-format endpoint |
 
-Switch the orchestration fleet with `/route`: **Maestro** (Qwen ensemble, everyday), **Aurora** (EU-sovereign Mistral stack), or **Supernova** (polyglot, best-model-per-role — with your DeepSeek + Qwen keys).
+Switch the orchestration fleet with `/route`: **Maestro** (Qwen ensemble, everyday) or **Supernova** (polyglot, best-model-per-role).
 
 ## Commands
 
@@ -54,7 +54,7 @@ Switch the orchestration fleet with `/route`: **Maestro** (Qwen ensemble, everyd
 |---|---|---|
 | `/help` | `/h` | Show all commands |
 | `/model [provider:id]` | `/m` | List models, or switch the active model |
-| `/route [mode]` | `/r` | Switch routing fleet — Maestro / Supernova / Aurora |
+| `/route [mode]` | `/r` | Switch routing fleet — Maestro / Supernova |
 | `/provider [add <name>]` | `/p` | List providers, or add a provider API key |
 | `/permission [mode]` | `/perm` | View or set permission mode — strict / balanced / autonomous |
 | `/tools` | | List every tool available to the agent |
