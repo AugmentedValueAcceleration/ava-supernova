@@ -409,6 +409,11 @@ export class DashboardPanel {
         // reset — one fact with two answers. Falling through to the provider
         // gives the last-account fallback a single home.
         this.accountScopedDir = null;
+        // And the managers cached against it, or the panel keeps serving the
+        // signed-out account's data from a stale handle. Same reason the
+        // scoped dir is cleared above: one fact should not have two answers.
+        this.taskManager = undefined;
+        this.journalManager = undefined;
         this.post({ type: 'account_updated', account: null });
         break;
 
@@ -2719,6 +2724,15 @@ export class DashboardPanel {
             // resolved corrects itself (same fix the health re-emit below does).
             this.journalManager = undefined;
             { const now = new Date(); this.loadJournalMonth(now.getFullYear(), now.getMonth() + 1).catch(() => { /* non-fatal */ }); }
+            // TASKS, for exactly the same reason — and this one was missed.
+            // getTaskManager() caches against getUserDataDir(), so a Planner
+            // opened before the account resolved built a TaskManager on the
+            // un-scoped ~/.ava/tasks (empty for a signed-in user, whose tasks
+            // live under ~/.ava/users/<id>/tasks) and KEPT it for the session.
+            // The chat sidebar has its own host and scopes correctly, so the
+            // same three tasks showed there and the Planner stayed empty.
+            this.taskManager = undefined;
+            this.loadTasks().catch(() => { /* non-fatal */ });
             // Memory load gated on account success — fire-and-forget too.
             this.loadMemories().catch(() => { /* non-fatal */ });
             // Re-emit sync status now the scoped path is known, so a

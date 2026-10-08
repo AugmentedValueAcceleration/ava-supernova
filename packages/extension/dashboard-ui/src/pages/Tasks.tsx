@@ -177,8 +177,19 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
 
     // Date filter — only when scope is "selected". "All" shows every
     // task regardless of due_date.
+    //
+    // UNDATED TASKS STAY VISIBLE. `t.due_date === activeDate` is false for a
+    // task with no due date, on every date, so an undated task was hidden from
+    // the Planner on every single day — and this view opens date-scoped. Ava
+    // creates tasks without a due date unless one is asked for, so a task she
+    // made appeared in the sidebar's All list and nowhere in the Planner,
+    // which is exactly how it was reported.
+    //
+    // A task with no date is not scheduled for ANOTHER day, it is unscheduled.
+    // Unscheduled work belongs in front of you until it is scheduled or done;
+    // filtering it out of a day view loses it rather than tidies it.
     if (dateScope === 'selected') {
-      list = list.filter(t => t.due_date === activeDate);
+      list = list.filter(t => !t.due_date || t.due_date === activeDate);
     }
 
     // Tab filter
@@ -306,7 +317,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
         <CalendarIcon className="h-3.5 w-3.5 text-[var(--text-muted)]" />
         <span className="text-[11px] text-[var(--text-muted)]">
           {dateScope === 'selected'
-            ? <>{tt('ext.tasks.showing_for', 'Showing tasks for')} <span className="font-semibold text-[var(--accent)]">{activeDate === todayIso ? tt('ext.tasks.today', 'today') : new Date(activeDate).toLocaleDateString(getLocale(), { weekday: 'short', day: 'numeric', month: 'short' })}</span></>
+            ? <>{tt('ext.tasks.showing_for', 'Showing tasks for')} <span className="font-semibold text-[var(--accent)]">{activeDate === todayIso ? tt('ext.tasks.today', 'today') : new Date(activeDate).toLocaleDateString(getLocale(), { weekday: 'short', day: 'numeric', month: 'short' })}</span>{' '}{tt('ext.tasks.plus_undated', 'plus anything undated')}</>
             : <>Showing <span className="font-semibold text-[var(--accent)]">all tasks</span></>}
         </span>
         <div className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] p-0.5">
