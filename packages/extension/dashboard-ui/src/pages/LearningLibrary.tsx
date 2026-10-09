@@ -247,17 +247,24 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
           }}
         >
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              {/* The course's OWN cover. Every curated course has one
+                  generated for it, and the card in the grid has always used
+                  it — the detail hero never did, so opening a course replaced
+                  its artwork with a generic glyph on a purple square. That
+                  is the icon the operator meant.
+
+                  No glyph fallback. Without a cover this is the gradient on
+                  its own, which reads as deliberate; a stock pictogram reads
+                  as a missing image. */}
             <div
               style={{
-                flexShrink: 0, width: 56, height: 56, borderRadius: 14, display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-                background: `linear-gradient(135deg, ${id.from}, ${id.to})`,
+                flexShrink: 0, width: 56, height: 56, borderRadius: 14,
+                background: selected.cover_image_url
+                  ? `center/cover no-repeat url(${selected.cover_image_url})`
+                  : `linear-gradient(135deg, ${id.from}, ${id.to})`,
                 boxShadow: `0 6px 20px -6px ${id.from}`,
-                color: '#fff',
               }}
-            >
-              <id.icon size={26} />
-            </div>
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span style={{ ...(sourceColors[selected.source] || {}), padding: '3px 9px', borderRadius: 999, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -706,16 +713,8 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
                     : `linear-gradient(135deg, ${id.from}, ${id.to})`,
                 }}
               >
-                {!path.cover_image_url && (
-                  <div
-                    style={{
-                      width: 42, height: 42, borderRadius: 12, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', background: 'rgba(0,0,0,0.18)', color: '#fff',
-                    }}
-                  >
-                    <id.icon size={20} />
-                  </div>
-                )}
+                {/* No pictogram when a cover is missing — the gradient alone
+                    reads as deliberate, a stock glyph reads as a broken image. */}
                 <span style={{
                   marginLeft: 'auto',
                   padding: '3px 9px', borderRadius: 999, fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px',
