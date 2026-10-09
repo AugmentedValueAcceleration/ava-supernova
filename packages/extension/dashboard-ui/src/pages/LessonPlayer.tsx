@@ -34,6 +34,26 @@ export function LessonPlayer({ lesson, curriculumId, onClose }: Props) {
   const resumeAt = steps.findIndex(s => s.status !== 'mastered');
   const [i, setI] = useState(resumeAt === -1 ? 0 : resumeAt);
   const [done, setDone] = useState(false);
+  // When this sitting began. Nothing else measures lesson time: core's
+  // trackTime needs `started_at`, which only the Ava-taught path sets, so a
+  // course done entirely here showed 0 hours on its certificate.
+  const [openedAt] = useState(() => Date.now());
+  // What the lesson came to, kept so the finish screen can say it. A
+  // congratulations screen that cannot tell you how you did is the same
+  // participation trophy the hardcoded 100 was.
+  const [result, setResult] = useState<{ mastered: number; total: number } | null>(null);
+  // What each step actually came to, so the lesson can be scored on it.
+  //
+  // Seeded from the steps' own statuses rather than starting empty: a lesson
+  // resumed at step 7 must be scored on all of it, not on the three steps
+  // done in this sitting.
+  const [outcomes, setOutcomes] = useState<Record<string, StepResult['status']>>(() => {
+    const seed: Record<string, StepResult['status']> = {};
+    for (const s of steps) {
+      if (s.status === 'mastered' || s.status === 'attempted') seed[s.id] = s.status;
+    }
+    return seed;
+  });
 
   if (steps.length === 0) {
     return (
@@ -57,6 +77,16 @@ export function LessonPlayer({ lesson, curriculumId, onClose }: Props) {
           <p className="mt-2 text-sm text-[var(--text-secondary)]">
             You worked through every step yourself — that&apos;s the skill, not the reading.
           </p>
+          {/* What it came to. This feeds the course score, and the course
+              score is what a certificate states, so saying it here is also
+              saying what the certificate will claim. */}
+          {result && (
+            <p className="mt-3 text-xs text-[var(--text-muted)]">
+              {result.mastered === result.total
+                ? tt('ext.lesson.all_mastered', 'Every step mastered.')
+                : `${result.mastered}/${result.total} ${tt('ext.lesson.steps_mastered', 'steps mastered')} — ${tt('ext.lesson.revisit_hint', 'the rest are worth another look.')}`}
+            </p>
+          )}
           <button
             onClick={onClose}
             className="mt-5 rounded-lg border-none bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white cursor-pointer hover:opacity-90 transition"
@@ -73,8 +103,21 @@ export function LessonPlayer({ lesson, curriculumId, onClose }: Props) {
     if (curriculumId) {
       post({ type: 'learning_step_progress', curriculumId, lessonId: lesson.id, stepId: step.id, status: result.status, lastAttempt: result.lastAttempt });
     }
+    const settled = { ...outcomes, [step.id]: result.status };
+    setOutcomes(settled);
     if (i + 1 >= steps.length) {
-      if (curriculumId) post({ type: 'learning_lesson_complete', curriculumId, lessonId: lesson.id, score: 100 });
+      // The score is what they MASTERED, not the fact they reached the end.
+      //
+      // This was hardcoded to 100. Every lesson therefore reported a perfect
+      // score, and since a certificate averages lesson scores, someone could
+      // be graded weak on every open answer, press Move on each time, and
+      // finish with a 100% certificate. The machinery was sound; the number
+      // going into it was invented.
+      const mastered = steps.filter((s) => settled[s.id] === 'mastered').length;
+      const score = steps.length === 0 ? 0 : Math.round((mastered / steps.length) * 100);
+      const minutes = Math.round((Date.now() - openedAt) / 60000);
+      if (curriculumId) post({ type: 'learning_lesson_complete', curriculumId, lessonId: lesson.id, score, minutes });
+      setResult({ mastered, total: steps.length });
       setDone(true);
     } else {
       setI(i + 1);

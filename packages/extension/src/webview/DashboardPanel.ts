@@ -972,7 +972,7 @@ export class DashboardPanel {
         break;
 
       case 'learning_lesson_complete':
-        await this.completeLessonInStore(msg.curriculumId, msg.lessonId, msg.score);
+        await this.completeLessonInStore(msg.curriculumId, msg.lessonId, msg.score, msg.minutes);
         break;
 
       // ─── Learning Library messages ─────────────────────────────────────
@@ -4200,7 +4200,7 @@ export class DashboardPanel {
     } catch { /* best-effort — local copy is the source of truth */ }
   }
 
-  private async completeLessonInStore(curriculumId: string, lessonId: string, score: number): Promise<void> {
+  private async completeLessonInStore(curriculumId: string, lessonId: string, score: number, minutes?: number): Promise<void> {
     try {
       const fs = await import('node:fs/promises');
       const learningPath = path.join(this.getUserDataDir(), 'learning.json');
@@ -4212,6 +4212,12 @@ export class DashboardPanel {
       lesson.score = score;
       lesson.best_score = Math.max(lesson.best_score ?? 0, score);
       lesson.completed_at = new Date().toISOString();
+      // Time the learner actually spent, measured by the player. Capped at
+      // two hours per lesson the same way core's trackTime caps it, so a
+      // tab left open overnight does not become a 14-hour lesson.
+      if (typeof minutes === 'number' && minutes > 0) {
+        lesson.time_spent_minutes = (lesson.time_spent_minutes ?? 0) + Math.min(minutes, 120);
+      }
       // Recompute module + curriculum progress so the UI bars + ticks update.
       for (const mod of curr.modules ?? []) {
         const lessons = mod.lessons ?? [];
@@ -4228,7 +4234,15 @@ export class DashboardPanel {
         curr.progress_percent = Math.round(
           mods.reduce((s: number, m: { progress_percent?: number }) => s + (m.progress_percent ?? 0), 0) / mods.length,
         );
-        if (curr.progress_percent === 100) curr.status = 'completed';
+        if (curr.progress_percent === 100) {
+          curr.status = 'completed';
+        // Stamp the finish. deriveCertificates dates the certificate from
+        // this and folds it into the verification hash, so a course that
+        // completed without it produced an undated certificate. Core
+        // backfills a missing value from updated_at on its next read, which
+        // hid this — the date was approximately right, by accident.
+          if (!curr.completed_at) curr.completed_at = new Date().toISOString();
+        }
       }
       await fs.writeFile(learningPath, JSON.stringify(store, null, 2), 'utf-8');
       this.post({ type: 'learning_loaded', curriculums: Array.isArray(store.curriculums) ? store.curriculums : [] });

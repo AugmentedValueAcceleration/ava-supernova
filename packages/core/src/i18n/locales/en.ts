@@ -1969,6 +1969,12 @@ export const enStrings = {
   'ext.lesson.no_rubric': 'This step has no marking guide yet, so it cannot be graded. That is the course to fix, not your answer.',
   'ext.lesson.grade_failed': 'Grading did not come back. Your answer is untouched.',
   'ext.lesson.self_check': 'This step has no marking guide yet, so it is yours to judge. Read it back against what the step asked for.',
+  // Said on the finish screen. A congratulations screen that cannot tell you
+  // how you did is a participation trophy, and the lesson score is what a
+  // certificate goes on to state.
+  'ext.lesson.all_mastered': 'Every step mastered.',
+  'ext.lesson.steps_mastered': 'steps mastered',
+  'ext.lesson.revisit_hint': 'the rest are worth another look.',
   'ext.vault.reference_hint': 'Reference a key by label in your message. Ava receives an opaque handle — the value is swapped in on your machine when a tool runs, so it never reaches the model or your saved chat.',
   'ext.vault.autogrant_hint': 'Auto-granted to Ava on this project — clear by deleting and re-adding the secret',
   'ext.tasks.no_reminder': 'No reminder',

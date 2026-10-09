@@ -2154,7 +2154,14 @@ export type DashboardToExtMessage =
   | { type: 'open_progression_folder' }
   // Interactive lesson player → persist progress back to the learning store
   | { type: 'learning_step_progress'; curriculumId: string; lessonId: string; stepId: string; status: 'attempted' | 'mastered'; lastAttempt: string | null }
-  | { type: 'learning_lesson_complete'; curriculumId: string; lessonId: string; score: number }
+  /**
+   * `score` is the share of steps MASTERED, not a participation mark.
+   * `minutes` is what the player measured, because nothing else measures it:
+   * core's trackTime needs `started_at`, which only the learning_teach path
+   * sets, so a course done entirely in the player showed 0 hours on its
+   * certificate.
+   */
+  | { type: 'learning_lesson_complete'; curriculumId: string; lessonId: string; score: number; minutes?: number }
   /**
    * Grade one open answer. The host holds the keys, so the webview cannot and
    * must not call the grading route itself.
