@@ -5,7 +5,7 @@
 
 // Derived learner-progression types (skills/certs/achievements/stats). Type-only
 // import — erased at runtime, so the webview bundle stays free of node deps.
-import type { LearnerProgression } from '@ava/core/learning';
+import type { LearnerProgression, GradeResult } from '@ava/core/learning';
 import type { ExportFormat } from '@ava/core/authoring/formats';
 import type { ProjectsUsage } from '@ava/core/projects/storage';
 
@@ -1805,6 +1805,20 @@ export type ExtToDashboardMessage =
   | { type: 'health_morning_brief_generated'; ok: boolean; brief?: string; error?: string }
   | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
   | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
+  /**
+   * The verdict on one open answer, keyed by the step that asked for it.
+   *
+   * `result` carries core's GradeResult rather than a copy of its fields, so
+   * the webview, the host and the server cannot disagree about what "strong"
+   * means.
+   *
+   * `reason` separates the cases the player has to render differently:
+   * 'no_rubric' is a hole in the COURSE and must never be shown as a failed
+   * answer, 'unreadable' means grading itself failed and the learner's answer
+   * is untouched. Without it every failure collapses into one red message and
+   * a learner gets blamed for our outage.
+   */
+  | { type: 'open_answer_graded'; stepId: string; ok: boolean; result?: GradeResult; error?: string; reason?: 'no_rubric' | 'empty_answer' | 'unreadable' }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
   | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
   | { type: 'library_path_forked'; curriculumId: string; title: string }
@@ -2141,6 +2155,25 @@ export type DashboardToExtMessage =
   // Interactive lesson player → persist progress back to the learning store
   | { type: 'learning_step_progress'; curriculumId: string; lessonId: string; stepId: string; status: 'attempted' | 'mastered'; lastAttempt: string | null }
   | { type: 'learning_lesson_complete'; curriculumId: string; lessonId: string; score: number }
+  /**
+   * Grade one open answer. The host holds the keys, so the webview cannot and
+   * must not call the grading route itself.
+   *
+   * Everything here is already on the learner's screen except `answer`, which
+   * is what they typed. `rubric` is the step's `interaction.evaluation`.
+   */
+  | {
+      type: 'grade_open_answer';
+      stepId: string;
+      kind: 'free_text' | 'code';
+      prompt: string;
+      rubric: string;
+      answer: string;
+      starter?: string;
+      lessonTitle?: string;
+      courseTitle?: string;
+      locale?: string;
+    }
   // Learning Library messages
   | { type: 'load_library_paths'; search?: string; subject?: string; level?: string; sort?: string }
   | { type: 'load_library_path_detail'; id: string }

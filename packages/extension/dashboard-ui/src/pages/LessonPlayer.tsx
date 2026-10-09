@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { tt } from '../i18n';
+import { useState, useEffect } from 'react';
+import { tt, getLocale } from '../i18n';
 import { post } from '../App';
 import type { DashboardLearningLesson, DashboardLessonStep } from '../types/messages';
+import type { GradeResult } from '@ava/core/learning';
 
 type StepResult = { status: 'attempted' | 'mastered'; lastAttempt: string | null };
 
@@ -11,9 +12,13 @@ type StepResult = { status: 'attempted' | 'mastered'; lastAttempt: string | null
  * the learner does something, immediate feedback, advance.
  *
  * Deterministic steps (choice / predict) are checked right here against the
- * step's `answer`. Open steps (free_text / code) have no single right answer —
- * the player shows the learner what a strong answer contains (the `evaluation`
- * rubric) and lets them self-check for now; live Ava grading is the next layer.
+ * step's `answer`. Open steps (free_text / code) have no single right answer,
+ * so the host grades the learner's ACTUAL attempt against the step's
+ * `evaluation` rubric and only a "strong" verdict counts as mastery.
+ *
+ * It used to show the rubric and let the learner self-check, with Continue
+ * marking the step mastered either way. That made a completed course mean
+ * nothing: every open step passed regardless of what was typed in it.
  */
 interface Props {
   lesson: DashboardLearningLesson;
@@ -91,18 +96,70 @@ export function LessonPlayer({ lesson, curriculumId, onClose }: Props) {
         ))}
       </div>
 
-      <StepCard key={step.id} step={step} onDone={handleStepDone} />
+      <StepCard key={step.id} step={step} lessonTitle={lesson.title} onDone={handleStepDone} />
     </div>
   );
 }
 
-function StepCard({ step, onDone }: { step: DashboardLessonStep; onDone: (r: StepResult) => void }) {
+function StepCard({ step, lessonTitle, onDone }: { step: DashboardLessonStep; lessonTitle: string; onDone: (r: StepResult) => void }) {
   const kind = step.interaction.kind;
   const [picked, setPicked] = useState<string | null>(null);
   const [text, setText] = useState(step.last_attempt ?? step.interaction.starter ?? '');
   const [revealed, setRevealed] = useState(false);
+  const [grading, setGrading] = useState(false);
+  const [grade, setGrade] = useState<GradeResult | null>(null);
+  const [gradeError, setGradeError] = useState<string | null>(null);
 
   const isDeterministic = kind === 'choice' || kind === 'predict';
+  // No rubric means there is nothing to grade against. The step still plays,
+  // self-checked, and no request is sent — spending a credit to be told the
+  // course is missing something is the learner paying for our gap.
+  const gradable = !isDeterministic && !!step.interaction.evaluation?.trim();
+
+  // One listener per step card, matched on stepId. Only one step is ever on
+  // screen, but matching means a late reply from a step already left behind
+  // can never land on the next one.
+  useEffect(() => {
+    if (!gradable) return;
+    const handler = (e: MessageEvent) => {
+      const msg = e.data;
+      if (!msg || msg.type !== 'open_answer_graded' || msg.stepId !== step.id) return;
+      setGrading(false);
+      if (msg.ok && msg.result) {
+        setGrade(msg.result as GradeResult);
+        setGradeError(null);
+        return;
+      }
+      setGrade(null);
+      // A missing rubric is the COURSE's gap, and saying so is the honest
+      // answer. Anything else is ours, and the learner's answer is untouched
+      // either way — neither is a reason to mark them down.
+      setGradeError(
+        msg.reason === 'no_rubric'
+          ? tt('ext.lesson.no_rubric', 'This step has no marking guide yet, so it cannot be graded. That is the course to fix, not your answer.')
+          : (msg.error || tt('ext.lesson.grade_failed', 'Grading did not come back. Your answer is untouched.')),
+      );
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [step.id, gradable]);
+
+  const askForGrade = () => {
+    setGrading(true);
+    setGrade(null);
+    setGradeError(null);
+    post({
+      type: 'grade_open_answer',
+      stepId: step.id,
+      kind: kind === 'code' ? 'code' : 'free_text',
+      prompt: step.interaction.prompt,
+      rubric: step.interaction.evaluation ?? '',
+      answer: text,
+      starter: step.interaction.starter,
+      lessonTitle,
+      locale: getLocale(),
+    });
+  };
   const correct = isDeterministic && picked !== null && norm(picked) === norm(step.interaction.answer ?? '');
 
   return (
@@ -170,11 +227,65 @@ function StepCard({ step, onDone }: { step: DashboardLessonStep; onDone: (r: Ste
             : (step.feedback?.incorrect || `Not quite — the answer is "${step.interaction.answer}".`)}
         </p>
       )}
-      {!isDeterministic && revealed && step.interaction.evaluation && (
+      {/* The verdict on an open answer. The rubric is shown ALONGSIDE it, not
+          instead of it: the learner should be able to see what was asked of
+          them next to what they were told about their attempt. */}
+      {grading && (
+        <p className="mt-3 text-xs text-[var(--text-muted)]">{tt('ext.lesson.grading', 'Reading your answer…')}</p>
+      )}
+      {!grading && grade && (
+        <div
+          className="mt-3 rounded-lg border p-3"
+          style={{
+            borderColor: grade.verdict === 'strong' ? 'rgba(52,211,153,0.3)' : grade.verdict === 'partial' ? 'rgba(251,191,36,0.3)' : 'rgba(248,113,113,0.3)',
+            background: grade.verdict === 'strong' ? 'rgba(52,211,153,0.06)' : grade.verdict === 'partial' ? 'rgba(251,191,36,0.06)' : 'rgba(248,113,113,0.06)',
+          }}
+        >
+          <p
+            className="text-[10px] font-semibold uppercase tracking-wide"
+            style={{ color: grade.verdict === 'strong' ? '#34d399' : grade.verdict === 'partial' ? '#fbbf24' : '#f87171' }}
+          >
+            {grade.verdict === 'strong'
+              ? tt('ext.lesson.verdict_strong', 'That holds up')
+              : grade.verdict === 'partial'
+                ? tt('ext.lesson.verdict_partial', 'Part of the way there')
+                : tt('ext.lesson.verdict_weak', 'Not yet')}
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-white">{grade.feedback}</p>
+          {grade.met.length > 0 && (
+            <ul className="mt-2 list-none space-y-1 p-0">
+              {grade.met.map((m, k) => (
+                <li key={`met-${k}`} className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                  <span style={{ color: '#34d399' }}>{'✓'}</span> {m}
+                </li>
+              ))}
+            </ul>
+          )}
+          {grade.missing.length > 0 && (
+            <ul className="mt-2 list-none space-y-1 p-0">
+              {grade.missing.map((m, k) => (
+                <li key={`missing-${k}`} className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                  <span style={{ color: '#fbbf24' }}>{'→'}</span> {m}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {!grading && gradeError && (
+        <p className="mt-3 text-xs leading-relaxed" style={{ color: '#f87171' }}>{gradeError}</p>
+      )}
+      {/* Self-check fallback: no rubric to grade against, so the best the
+          player can do is let them move on. Never silently mastered. */}
+      {!isDeterministic && !gradable && revealed && (
+        <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+          {tt('ext.lesson.self_check', 'This step has no marking guide yet, so it is yours to judge. Read it back against what the step asked for.')}
+        </p>
+      )}
+      {!isDeterministic && (grade || gradeError) && step.interaction.evaluation && (
         <div className="mt-3 rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">{tt('ext.lesson.strong_answer','What a strong answer has')}</p>
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">{step.interaction.evaluation}</p>
-          <p className="mt-2 text-[10px] text-[var(--text-muted)]">{tt('ext.lesson.soon','Soon: Ava reads your actual answer and grades it against this live.')}</p>
         </div>
       )}
 
@@ -188,20 +299,49 @@ function StepCard({ step, onDone }: { step: DashboardLessonStep; onDone: (r: Ste
           >
             Continue
           </button>
-        ) : !revealed ? (
+        ) : grade?.mastered ? (
+          /* Mastery comes from the verdict, never from pressing Continue. */
           <button
-            disabled={text.trim().length === 0}
-            onClick={() => setRevealed(true)}
+            onClick={() => onDone({ status: 'mastered', lastAttempt: text })}
             className="rounded-lg border-none bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white cursor-pointer hover:opacity-90 transition disabled:opacity-30 disabled:cursor-default"
           >
-            Check
+            {tt('ext.lesson.continue', 'Continue')}
+          </button>
+        ) : grade || gradeError ? (
+          /* Graded short, or grading failed. Another go is the useful default,
+             and moving on is still allowed — the step records what it was,
+             which is attempted, so the course cannot complete on it. */
+          <div className="flex gap-2">
+            <button
+              onClick={() => onDone({ status: 'attempted', lastAttempt: text })}
+              className="rounded-lg border border-[var(--border-card)] bg-transparent px-4 py-1.5 text-xs font-medium text-[var(--text-secondary)] cursor-pointer hover:text-white transition"
+            >
+              {tt('ext.lesson.move_on', 'Move on')}
+            </button>
+            <button
+              disabled={text.trim().length === 0}
+              onClick={askForGrade}
+              className="rounded-lg border-none bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white cursor-pointer hover:opacity-90 transition disabled:opacity-30 disabled:cursor-default"
+            >
+              {tt('ext.lesson.try_again', 'Try again')}
+            </button>
+          </div>
+        ) : !gradable && revealed ? (
+          /* No rubric, so nothing graded it. Attempted, not mastered: a step
+             nobody could check must not count towards a certificate. */
+          <button
+            onClick={() => onDone({ status: 'attempted', lastAttempt: text })}
+            className="rounded-lg border-none bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white cursor-pointer hover:opacity-90 transition disabled:opacity-30 disabled:cursor-default"
+          >
+            {tt('ext.lesson.continue', 'Continue')}
           </button>
         ) : (
           <button
-            onClick={() => onDone({ status: 'mastered', lastAttempt: text })}
-            className="rounded-lg border-none bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white cursor-pointer hover:opacity-90 transition"
+            disabled={text.trim().length === 0 || grading}
+            onClick={() => (gradable ? askForGrade() : setRevealed(true))}
+            className="rounded-lg border-none bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white cursor-pointer hover:opacity-90 transition disabled:opacity-30 disabled:cursor-default"
           >
-            Continue
+            {grading ? tt('ext.lesson.checking', 'Checking…') : tt('ext.lesson.check', 'Check')}
           </button>
         )}
       </div>
