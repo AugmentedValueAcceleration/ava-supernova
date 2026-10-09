@@ -754,14 +754,21 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
 
                 {/* Footer stats */}
                 <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border-card)', paddingTop: 10, marginTop: 'auto' }}>
-                  {path.estimated_hours && <span>{'\u23f1 '}{path.estimated_hours}h</span>}
-                  <span>{'\ud83d\udc65 '}{path.fork_count}</span>
+                  {/* No glyphs. On the detail header the label under each
+                      number said what it was, so the icons were decoration;
+                      here there are no labels, so the glyph WAS the label —
+                      strip it and the row reads "2.3h 0 0". Each value says
+                      what it is instead: hours carry their unit, learners
+                      carry the word, and a rating out of five is legible as
+                      a rating without a star in front of it. */}
+                  {path.estimated_hours && <span>{path.estimated_hours}h</span>}
+                  <span>{path.fork_count} {t('dash.learning_library.learners')}</span>
                   {/* Always shown, 0 when nobody has rated it. Hiding it gave
                       unrated courses one fewer stat than their neighbours, so
                       the tiles came out ragged and the rated ones looked like
                       the only real ones. "No ratings yet" is information. */}
                   <span style={{ color: path.average_rating ? '#fbbf24' : 'var(--text-muted)' }}>
-                    {'\u2605 '}{path.average_rating ?? 0}
+                    {path.average_rating ?? 0}/5
                   </span>
                 </div>
               </div>
