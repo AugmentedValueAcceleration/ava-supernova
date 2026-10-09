@@ -282,12 +282,12 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
 
           {/* Stats row */}
           <div style={{ display: 'flex', gap: 20, marginTop: 18, flexWrap: 'wrap' }}>
-            {selected.estimated_hours ? <Stat icon={<Icon.clock size={15} />} label={`${selected.estimated_hours}h`} sub={t('learning_library.stat_estimated')} /> : null}
-            <Stat icon={<Icon.users size={15} />} label={String(selected.fork_count)} sub={t('dash.learning_library.learners')} />
+            {selected.estimated_hours ? <Stat label={`${selected.estimated_hours}h`} sub={t('learning_library.stat_estimated')} /> : null}
+            <Stat label={String(selected.fork_count)} sub={t('dash.learning_library.learners')} />
             {/* Shown even at zero — an unrated course is a fact worth stating. */}
-            <Stat icon={<Icon.star size={15} />} label={`${selected.average_rating ?? 0}/5`} sub={t('learning_library.stat_rating')} />
-            {moduleCount > 0 ? <Stat icon={<Icon.package size={15} />} label={String(moduleCount)} sub={`module${moduleCount !== 1 ? 's' : ''}`} /> : null}
-            {lessonCount > 0 ? <Stat icon={<Icon.note size={15} />} label={String(lessonCount)} sub={`lesson${lessonCount !== 1 ? 's' : ''}`} /> : null}
+            <Stat label={`${selected.average_rating ?? 0}/5`} sub={t('learning_library.stat_rating')} />
+            {moduleCount > 0 ? <Stat label={String(moduleCount)} sub={`module${moduleCount !== 1 ? 's' : ''}`} /> : null}
+            {lessonCount > 0 ? <Stat label={String(lessonCount)} sub={`lesson${lessonCount !== 1 ? 's' : ''}`} /> : null}
           </div>
         </div>
 
@@ -820,11 +820,15 @@ function PagerButton({ disabled, onClick, label }: { disabled: boolean; onClick:
   );
 }
 
-// A small stat block for the course-detail hero — icon, bold value, quiet label.
-function Stat({ icon, label, sub }: { icon: React.ReactNode; label: string; sub: string }) {
+// A small stat block for the course-detail hero: bold value, quiet label.
+//
+// It carried a small icon in front of each figure. Operator, 9 Oct 2026:
+// they read as cheap. They were also doing nothing — the label under each
+// number already says what it is, so the glyph was decoration competing
+// with the one thing worth reading. The numbers carry it alone now.
+function Stat({ label, sub }: { label: string; sub: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{label}</span>
         <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{sub}</span>
