@@ -9,3 +9,4 @@ export { libraryPathToCurriculum, type LibraryPathInput, type LibraryLessonInput
 export * from './course-store.js';
 export { checkCourse, COURSE_REFUSAL_KINDS, SAFETY_LINE_CATEGORIES, ASK_AVA_EXEMPT_CATEGORIES, type CourseCheckInput, type CourseCheckResult, type CourseCheckFinding, type CourseFindingKind, type CheckLessonInput, type CheckModuleInput, type CheckStepInput } from './course-check.js';
 export type { LearningStore, Curriculum, Module, Lesson, Milestone } from '../tools/learning.js';
+export { checkGradeable, buildGradeUserMessage, parseGradeResult, GRADE_SYSTEM_PROMPT, MIN_ANSWER_CHARS, MAX_ANSWER_CHARS, type GradeRequest, type GradeResult, type GradeVerdict, type GradeRefusal } from './grade-open-answer.js';
