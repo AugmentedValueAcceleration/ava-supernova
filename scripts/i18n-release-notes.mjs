@@ -72,6 +72,56 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 468,
+    version: '0.106.0',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-09 22:00:00+00',
+    title: `I read what you actually wrote`,
+    body: `The last release promised that I would start grading your answers properly. This is that.
+
+**When a lesson asked you to write something, nothing read it.** You typed your answer, pressed Check, and I showed you the marking guide and a note saying live grading was coming. Then the step was marked as mastered — whatever you had written. Every open question passed, which meant finishing a course proved nothing, and that is why the certificates had nothing real behind them.
+
+**Now I read it.** Your answer goes against the marking guide the course author wrote, and you get back where you met it, what is missing, and what to add. It runs on the model you have selected, so if you are on your own provider key it is your model marking your work and it costs you nothing here. A step counts as mastered only when the answer holds up; when it does not, you can have another go or move on, and moving on records what it was.
+
+**A lesson now scores on what you mastered.** It used to report a flat full marks for reaching the last step. A certificate averages those scores, so it is finally saying something true about the work.
+
+**You can keep a course without starting it.** Save for later puts the whole thing in My Courses, waiting, under its own heading — and it stays there when you switch between courses.
+
+**And the course pages read better.** A course opens with its own cover instead of a stock symbol, its sections fold so you can see the shape of it before you commit, and the library turns pages at thirty-two rather than running on forever.`,
+    highlights: [
+      'Write an answer and I read it against the lesson\u2019s marking guide \u2014 on the model you picked, or your own key.',
+      'A step counts as mastered only when the answer holds up, so finishing a course finally means something.',
+      'Save a course for later without starting it; it waits in My Courses under its own heading.',
+      'Course pages show their own cover and fold their sections, and the library turns pages at thirty-two.',
+    ],
+  },
+  {
+    migration: 469,
+    version: '0.50.0',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-09 22:00:00+00',
+    title: `I read what you actually wrote`,
+    body: `The same step forward as the extension, plus some room where My Learning needed it.
+
+**When a lesson asked you to write something, nothing read it.** You typed your answer, pressed Check, and I showed you the marking guide and a note saying live grading was coming. Then the step was marked as mastered \u2014 whatever you had written. Every open question passed, so finishing a course proved nothing.
+
+**Now I read it.** Your answer goes against the marking guide the course author wrote, and you get back where you met it, what is missing, and what to add. It runs on the model you have selected, and it follows you when you switch models mid-session. On your own provider key it is your model marking your work, whichever provider that is \u2014 not only one of them.
+
+**A lesson now scores on what you mastered**, rather than reporting full marks for reaching the last step. Finishing a course records the date it happened and the time you actually spent, so a certificate describes the work instead of the fact you got to the end.
+
+**You can keep a course without starting it**, and My Courses gives saved courses their own heading rather than filing them with the ones you set aside half-finished.
+
+**My Courses and Progression now fill the window** instead of huddling against the left edge, and Progression shows your picture if you have set one. Course pages open with their own cover, fold their sections, and the library turns pages at thirty-two.`,
+    highlights: [
+      'Write an answer and I read it against the lesson\u2019s marking guide, on whichever model you are using.',
+      'A step counts as mastered only when the answer holds up, and a finished course records when and how long.',
+      'My Courses and Progression fill the window, and Progression shows your picture.',
+      'Save a course for later, and course pages open with their own cover and fold their sections.',
+    ],
+  },
+  {
     migration: 465,
     version: '0.105.0',
     platform: 'extension',
