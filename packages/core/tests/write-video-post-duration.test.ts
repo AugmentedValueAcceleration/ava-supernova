@@ -22,7 +22,7 @@
 //   the attempt. With more lengths available that is more ways to guess wrong,
 //   and each wrong guess costs a turn.
 import { describe, it, expect } from 'vitest';
-import { WriteVideoPostTool } from '../src/tools/write-video-post.js';
+import { WriteVideoPostTool, VOICED_OUTRO_SECONDS } from '../src/tools/write-video-post.js';
 
 function words(n: number): string {
   return Array.from({ length: n }, (_, i) => `word${i}`).join(' ');
@@ -98,7 +98,10 @@ describe('length is a format decision, and the format is fifteen seconds', () =>
     // the model's: half the render, half the compute, and completion rate is
     // what ranks a Reel.
     await attempt({ script: words(28) });
-    expect(lastWritten!.duration).toBe(15);
+    // Fifteen is the format for the SCRIPT. The clip is longer by the spoken
+    // sign-off, which rides on top of the word budget rather than eating into
+    // it, so the content never shrinks to make room for the tagline.
+    expect(lastWritten!.duration).toBe(15 + VOICED_OUTRO_SECONDS);
   });
 
   it('a food video gets the same 15 seconds as everything else', async () => {
@@ -106,7 +109,7 @@ describe('length is a format decision, and the format is fifteen seconds', () =>
     // that animated our photograph stopped there. That cap is gone; this is the
     // format applying evenly, not the old ceiling returning.
     await attempt({ recipe: 'miso aubergine', script: words(28) });
-    expect(lastWritten!.duration).toBe(15);
+    expect(lastWritten!.duration).toBe(15 + VOICED_OUTRO_SECONDS);
   });
 
   it('a hook-length line no longer quietly becomes a short clip', async () => {
@@ -131,7 +134,7 @@ describe('length is a format decision, and the format is fifteen seconds', () =>
     // Length is not only about the script — a demonstration may have few words
     // and a great deal to show.
     await attempt({ duration: 10, script: words(18) });
-    expect(lastWritten!.duration).toBe(10);
+    expect(lastWritten!.duration).toBe(10 + VOICED_OUTRO_SECONDS);
   });
 });
 
@@ -140,13 +143,13 @@ describe('the ceilings are the models’ own', () => {
     // The cap was wan2.7-i2v's ceiling wearing a recipe's clothes. Both went.
     const r = await attempt({ duration: 30, recipe: 'miso aubergine', script: words(60) });
     expect(r.success).toBe(true);
-    expect(lastWritten!.duration).toBe(30);
+    expect(lastWritten!.duration).toBe(30 + VOICED_OUTRO_SECONDS);
   });
 
   it('everything else reaches 30', async () => {
     // Six frames for the thirty it clamps to, not nine for the forty-five asked.
     expect((await attempt({ duration: 45, script: words(60) }, 6)).success).toBe(true);
-    expect(lastWritten!.duration).toBe(30);
+    expect(lastWritten!.duration).toBe(30 + VOICED_OUTRO_SECONDS);
   });
 });
 
@@ -192,7 +195,10 @@ describe('a voiced clip is never five seconds', () => {
     // Two frames, not one: the clip it actually becomes is ten seconds long.
     const r = await attempt({ duration: 5, script: words(19) }, 2);
     expect(r.success).toBe(true);
-    expect(lastWritten!.duration).toBe(10);
+    // Raised to the ten-second floor, then the sign-off on top of that. The
+    // frame count is measured against the floor, not against the finished
+    // clip, because the last still holds through the sign-off.
+    expect(lastWritten!.duration).toBe(10 + VOICED_OUTRO_SECONDS);
   });
 
   it('a silent clip may be short', async () => {

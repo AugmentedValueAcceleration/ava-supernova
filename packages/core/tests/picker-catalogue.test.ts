@@ -35,14 +35,31 @@ describe('picker visibility', () => {
     ).toEqual([]);
   });
 
-  it('still lists the models the fleets are built from', () => {
-    // The point of the plan group. If this empties, signing in shows fleets
-    // and nothing inside them, which is the bug it was added to fix.
+  it('still lists the models the account plan is built from', () => {
+    // The point of the plan group. If this empties, signing in shows a plan
+    // and nothing inside it, which is the bug it was added to fix.
+    //
+    // Rewritten 9 Oct 2026. It used to require more than five models and to
+    // find 'mistral-medium-3.5-platform' among them, which was true while the
+    // two advertised fleets were live. Only Qwen and DeepSeek ever came back
+    // on rates, so the managed plan is Qwen + DeepSeek and Mistral and Kimi
+    // stay BYOK. The old assertion was testing a decision that had been
+    // reversed, which is worse than no assertion: it fails for the right
+    // reason and reads like a regression.
     const shown = PLATFORM_MODELS.filter((m) => !m.disabled && !m.hiddenFromPicker);
-    expect(shown.length).toBeGreaterThan(5);
-    for (const fleetModel of ['deepseek-flash-platform', 'mistral-medium-3.5-platform', 'qwen3.7-plus']) {
-      expect(shown.map((m) => m.id)).toContain(fleetModel);
+    expect(shown.length).toBeGreaterThan(1);
+    for (const planModel of ['qwen3.8-max', 'qwen3.8-flash', 'qwen3.7-plus', 'deepseek-flash-platform']) {
+      expect(shown.map((m) => m.id)).toContain(planModel);
     }
+  });
+
+  it('BYOK-only providers never appear in the managed plan', () => {
+    // The other half of the same decision, asserted so a managed Mistral or
+    // Kimi entry cannot reappear quietly — it would be billed as if we had
+    // rates we do not have.
+    const ids = PLATFORM_MODELS.map((m) => m.id).join(' ');
+    expect(ids).not.toMatch(/mistral/i);
+    expect(ids).not.toMatch(/kimi|moonshot/i);
   });
 
   it('hidden models stay RESOLVABLE — hiding is not removal', () => {

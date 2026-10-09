@@ -37,6 +37,31 @@ const TAGLINE = 'Ava Supernova — Every plan is the whole product. Credits scal
 const TAGLINE_WORDS = TAGLINE.trim().split(/\s+/).length;
 
 /**
+ * Measured read rate for the brand voice, in words per second — the SLOWEST
+ * of the measured range, so the budget stays safe on the long lines. The
+ * measurements themselves, and the caveat that they belong to Maia and must be
+ * re-measured if the brand voice changes, sit with the word-budget block in
+ * run(), the other place this is used.
+ *
+ * Module level rather than local to run() so the sign-off length below is
+ * derived from it ONCE. Restating 2.41 in a second place is how the clip length
+ * and the spoken length drift apart, and a voice still talking after the last
+ * still is the most obviously broken thing a short can do.
+ */
+const SLOWEST_WORDS_PER_SECOND = 2.41;
+
+/**
+ * Seconds the spoken sign-off adds to a VOICED clip, on top of the script's own
+ * word budget.
+ *
+ * Exported because it is the whole difference between the duration she asks for
+ * and the clip that actually gets cut: ask for 15 and the file is 15 plus this.
+ * Tests assert that RELATIONSHIP rather than a magic number, so changing the
+ * tagline moves the expectation with it instead of turning the suite red.
+ */
+export const VOICED_OUTRO_SECONDS = Math.ceil(TAGLINE_WORDS / SLOWEST_WORDS_PER_SECOND);
+
+/**
  * How long one still holds on screen.
  *
  * Operator's number, and the reason the storyboard has a fixed cadence at all:
@@ -229,7 +254,8 @@ export class WriteVideoPostTool implements Tool {
     // w/s, which would put the ceiling at 18 rather than 22. If AVA_BRAND_VOICE
     // changes, re-measure; do not carry these numbers over.
     const MIN_SPEECH_SECONDS = 3.0;
-    const SLOWEST_WORDS_PER_SECOND = 2.41;
+    // SLOWEST_WORDS_PER_SECOND is module-level now: the sign-off length is
+    // derived from the same number, and it has to BE the same number.
     /**
      * Air at BOTH ends, so the voice does not start on frame one and does not
      * stop on the last frame.
@@ -395,7 +421,7 @@ export class WriteVideoPostTool implements Tool {
     const voicedScript = script
       ? (script.includes(TAGLINE) ? script : `${script} ${TAGLINE}`)
       : script;
-    const outroSeconds = script ? Math.ceil(TAGLINE_WORDS / SLOWEST_WORDS_PER_SECOND) : 0;
+    const outroSeconds = script ? VOICED_OUTRO_SECONDS : 0;
     const clipDuration = plannedDuration + outroSeconds;
 
     const post: VideoPostInput = {
