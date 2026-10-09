@@ -95,6 +95,14 @@ function isFleetId(id: string | null | undefined): id is RoutingMode {
   return isRoutingMode(id);
 }
 import { creditsFor } from '@ava/core/billing/credits';
+import {
+  checkGradeable,
+  buildGradeUserMessage,
+  parseGradeResult,
+  GRADE_SYSTEM_PROMPT,
+  type GradeRequest,
+  type GradeResult,
+} from '@ava/core/learning';
 import { localeStringsFor } from './locale-strings.js';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
@@ -1037,6 +1045,76 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * Handle a chat message from the unified dashboard panel.
    * Maps dashboard message types to the internal WebviewToExtMessage format.
    */
+  /**
+   * Grade ONE open lesson answer on the model the user CHOSE.
+   *
+   * It runs here, on the host, rather than through a dedicated platform
+   * route, because this is the only place that knows both the selection and
+   * the keys. That buys two things a server route could not:
+   *
+   *  - The dropdown is honoured. Someone who picked Qwen 3.8 Max is graded
+   *    by it, not by whatever model we decided was cheap enough.
+   *  - BYOK works on ANY provider. The route it replaces proxied Qwen keys
+   *    only, so a learner on a DeepSeek or Mistral key could not be graded
+   *    at all — the feature was account-holders-plus-Qwen.
+   *
+   * In fleet mode there is no single chosen model, so the fleet's lead seat
+   * grades. That is the same model answering everything else in that mode.
+   *
+   * The prompt and the parser come from @ava/core, shared with the IDE's
+   * sidecar, so a verdict means the same thing on both surfaces.
+   */
+  async gradeOpenAnswer(req: GradeRequest): Promise<
+    | { ok: true; result: GradeResult }
+    | { ok: false; error: string; reason?: 'no_rubric' | 'empty_answer' | 'unreadable' }
+  > {
+    const gradeable = checkGradeable(req);
+    if (!gradeable.ok) {
+      // A missing rubric is a hole in the COURSE. It must never reach the
+      // learner as a failed answer, and it costs nothing to say so here.
+      return gradeable.reason === 'no_rubric'
+        ? { ok: false, error: 'This step has no marking guide yet, so it cannot be graded.', reason: 'no_rubric' }
+        : { ok: false, error: 'Write an answer first.', reason: 'empty_answer' };
+    }
+
+    const def = this.activeModelDef;
+    const resolved = def ? this.providerRegistry.resolveModel(`${def.provider}:${def.id}`) : null;
+    if (!resolved) {
+      return { ok: false, error: 'No model is configured, so your answer cannot be graded yet. Pick a model or add a provider key in Settings.' };
+    }
+
+    try {
+      const response = await resolved.provider.createCompletion({
+        model: resolved.model.id,
+        messages: [
+          { role: 'system', content: GRADE_SYSTEM_PROMPT },
+          { role: 'user', content: buildGradeUserMessage(req) },
+        ],
+        // Low, not zero. Two learners comparing notes on the same step must
+        // not get different verdicts; a dull phrasing is the cheaper price.
+        temperature: 0.2,
+        max_tokens: 700,
+        // No reasoning pass. This is a bounded judgement against a rubric
+        // that is already written down, and thinking tokens bill separately
+        // without being capped by max_tokens.
+        enable_thinking: false,
+      });
+      // The reply is a chat completion, so the text sits on the first
+      // choice's message.
+      const raw = response.choices?.[0]?.message?.content;
+      const result = parseGradeResult(typeof raw === 'string' ? raw : '');
+      if (!result) {
+        // The grader did not answer. Say exactly that. Inventing a verdict
+        // would either mark a learner down for our failure or hand out
+        // mastery for one.
+        return { ok: false, error: 'Grading did not come back in a readable form. Your answer is untouched.', reason: 'unreadable' };
+      }
+      return { ok: true, result };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Grading failed.' };
+    }
+  }
+
   async handleChatMessage(msg: Record<string, unknown>): Promise<void> {
     this.log(`handleChatMessage received: type=${msg.type}`);
     // Remap unified message types to internal chat types

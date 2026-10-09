@@ -87,7 +87,7 @@ import * as healthStore from './health-file-store.js';
 import type { GymSession } from '@ava/core/health';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
-import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput, type GradeResult } from '@ava/core/learning';
+import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { exportDocument } from '@ava/core/authoring';
 import { readLocalCreative, readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
@@ -1788,80 +1788,51 @@ export class DashboardPanel {
       }
 
       case 'grade_open_answer': {
-        // Grade ONE open answer against the rubric the course author wrote.
+        // Graded on the model the USER chose, by the view provider, which is
+        // the only place that holds both the selection and the keys.
         //
-        // The webview never holds a key, so this has to run host-side — the
-        // same two auth paths as the health drafts: a platform account uses the
-        // platform key and spends 1 credit, a BYOK Qwen key is proxied and
-        // spends nothing.
+        // This went through a dedicated platform route first. That route
+        // picked the model for them and proxied Qwen keys only, so the
+        // dropdown was ignored and a learner on a DeepSeek or Mistral key
+        // could not be graded at all. Operator's call, 9 Oct 2026: it should
+        // follow the selection, which also covers every BYOK provider.
         //
-        // Every failure posts a reply. A player left waiting on a message that
-        // never comes is the one outcome worse than a bad verdict: the learner
-        // cannot tell a hung request from a slow one, and the step has already
-        // taken their answer.
-        try {
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          const byokKey = await this.secrets.get('ava-supernova.provider.qwen.apiKey');
-          const extraHeaders: Record<string, string> = {};
-          if (!platformKey && byokKey) {
-            extraHeaders['X-BYOK-Provider'] = 'qwen';
-            extraHeaders['X-BYOK-Key'] = byokKey;
-          }
-          if (!platformKey && !byokKey) {
-            this.post({
-              type: 'open_answer_graded',
-              stepId: msg.stepId,
-              ok: false,
-              error: 'Grading needs a platform account or a Qwen key in Settings.',
-            });
-            break;
-          }
-          const res = await apiFetch('/learning/grade', {
-            platformKey,
-            method: 'POST',
-            body: {
-              kind: msg.kind,
-              prompt: msg.prompt,
-              rubric: msg.rubric,
-              answer: msg.answer,
-              starter: msg.starter,
-              lessonTitle: msg.lessonTitle,
-              courseTitle: msg.courseTitle,
-              locale: msg.locale,
-            },
-            extraHeaders,
-            // One short answer on a Flash model. Generous enough for a cold
-            // start, short enough that a learner is not left staring.
-            timeoutMs: 60000,
+        // Every path posts a reply. A player left waiting on a message that
+        // never comes is worse than a bad verdict — the learner cannot tell a
+        // hung request from a slow one, and the step already took their
+        // answer.
+        if (!this.viewProvider) {
+          this.post({
+            type: 'open_answer_graded',
+            stepId: msg.stepId,
+            ok: false,
+            error: 'Grading needs the chat side loaded. Open the Ava panel once, then try again.',
           });
-          if (!res.ok) {
-            const data = res.data as { error?: string; reason?: string } | string | undefined;
-            const error = data && typeof data === 'object' && data.error
-              ? data.error
-              : typeof data === 'string' && data ? `HTTP ${res.status} — ${data}` : `HTTP ${res.status}`;
-            const reason = data && typeof data === 'object' ? data.reason : undefined;
-            this.log(`[classroom] grade failed: ${error}`);
+          break;
+        }
+        try {
+          const outcome = await this.viewProvider.gradeOpenAnswer({
+            kind: msg.kind,
+            prompt: msg.prompt,
+            rubric: msg.rubric,
+            answer: msg.answer,
+            starter: msg.starter,
+            lessonTitle: msg.lessonTitle,
+            courseTitle: msg.courseTitle,
+            locale: msg.locale,
+          });
+          if (outcome.ok) {
+            this.post({ type: 'open_answer_graded', stepId: msg.stepId, ok: true, result: outcome.result });
+          } else {
+            this.log(`[classroom] grade failed: ${outcome.error}`);
             this.post({
               type: 'open_answer_graded',
               stepId: msg.stepId,
               ok: false,
-              error,
-              reason: reason as 'no_rubric' | 'empty_answer' | 'unreadable' | undefined,
+              error: outcome.error,
+              reason: outcome.reason,
             });
-            break;
           }
-          const result = (res.data as { result?: GradeResult }).result;
-          if (!result) {
-            this.post({
-              type: 'open_answer_graded',
-              stepId: msg.stepId,
-              ok: false,
-              error: 'Grading came back empty.',
-              reason: 'unreadable',
-            });
-            break;
-          }
-          this.post({ type: 'open_answer_graded', stepId: msg.stepId, ok: true, result });
         } catch (err) {
           const error = err instanceof Error ? err.message : String(err);
           this.log(`[classroom] grade error: ${error}`);
@@ -1869,6 +1840,7 @@ export class DashboardPanel {
         }
         break;
       }
+
       case 'load_health_profile': {
         const profile = this.getHealthProfile();
         this.post({ type: 'health_profile_loaded', profile });
