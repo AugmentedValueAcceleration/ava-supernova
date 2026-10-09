@@ -4019,7 +4019,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': '你做到了',
   'ext.lesson.answer_ph': '你的答案…',
   'ext.lesson.strong_answer': '優秀的答案包含',
-  'ext.lesson.soon': '即將：Ava 會閱讀您的實際答案並即時根據此標準評分。',
   'ext.vault.reference_hint': '在訊息中以標籤引用金鑰。Ava 會收到一個不透明句柄——當工具執行時，該值會在您的機器上替換，因此它永遠不會到達模型或您保存的對話。',
   'ext.vault.autogrant_hint': '本專案已自動授予 Ava——刪除並重新新增密鑰即可清除',
   'ext.tasks.no_reminder': '無提醒',

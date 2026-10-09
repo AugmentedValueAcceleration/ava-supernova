@@ -4019,7 +4019,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'Bạn đã làm được rồi',
   'ext.lesson.answer_ph': 'Câu trả lời của bạn…',
   'ext.lesson.strong_answer': 'Điều gì tạo nên một câu trả lời hay',
-  'ext.lesson.soon': 'Sắp tới: Ava sẽ đọc câu trả lời thực tế của bạn và chấm điểm dựa trên nội dung này ngay lập tức.',
   'ext.vault.reference_hint': 'Tham chiếu một khóa bằng nhãn trong tin nhắn của bạn. Ava chỉ nhận được một tham chiếu ẩn — giá trị sẽ được thay thế trên máy của bạn khi công cụ chạy, nên nó không bao giờ đến được mô hình hoặc cuộc trò chuyện đã lưu của bạn.',
   'ext.vault.autogrant_hint': 'Đã tự động cấp cho Ava trong dự án này — hủy bằng cách xóa và thêm lại bí mật',
   'ext.tasks.no_reminder': 'Không nhắc nhở',

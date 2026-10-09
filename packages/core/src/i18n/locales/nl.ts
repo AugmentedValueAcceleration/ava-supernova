@@ -4019,7 +4019,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'Je hebt het gedaan',
   'ext.lesson.answer_ph': 'Jouw antwoord…',
   'ext.lesson.strong_answer': 'Wat een sterk antwoord heeft',
-  'ext.lesson.soon': 'Binnenkort: Ava leest je daadwerkelijke antwoord en beoordeelt dit live.',
   'ext.vault.reference_hint': 'Verwijs naar een sleutel via label in je bericht. Ava ontvangt een onleesbare referentie — de waarde wordt vervangen op je machine wanneer een hulpmiddel draait, zodat deze nooit het model of je opgeslagen gesprek bereikt.',
   'ext.vault.autogrant_hint': 'Automatisch toegestaan aan Ava op dit project — wissen door het geheim te verwijderen en opnieuw toe te voegen',
   'ext.tasks.no_reminder': 'Geen herinnering',

@@ -4017,7 +4017,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'Kamu berhasil',
   'ext.lesson.answer_ph': 'Jawaban Anda…',
   'ext.lesson.strong_answer': 'Apa yang dimiliki jawaban kuat',
-  'ext.lesson.soon': 'Segera: Ava membaca jawaban asli Anda dan menilainya secara langsung.',
   'ext.vault.reference_hint': 'Rujuk kunci dengan label dalam pesan Anda. Ava menerima pegangan opaque — nilainya ditukar di mesin Anda saat alat dijalankan, sehingga tidak pernah mencapai model atau obrolan tersimpan Anda.',
   'ext.vault.autogrant_hint': 'Otomatis diberikan ke Ava pada proyek ini — hapus dengan menghapus dan menambahkan kembali rahasia',
   'ext.tasks.no_reminder': 'Tidak ada pengingat',

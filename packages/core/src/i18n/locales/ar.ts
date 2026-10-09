@@ -4019,7 +4019,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'لقد نجحت',
   'ext.lesson.answer_ph': 'إجابتك…',
   'ext.lesson.strong_answer': 'ما يميز الإجابة القوية',
-  'ext.lesson.soon': 'قريباً: تقرأ Ava إجابتك الفعلية وتقيّمها مقابل هذا مباشرةً.',
   'ext.vault.reference_hint': 'الرجوع إلى مفتاح بالتسمية في رسالتك. تستقبل Ava مقبضًا غير واضح — يتم استبدال القيمة على جهازك عند تشغيل الأداة، بحيث لا تصل أبدًا إلى النموذج أو محادثتك المحفوظة.',
   'ext.vault.autogrant_hint': 'مُمنَح تلقائيًا لـ Ava في هذا المشروع — يُحذف بحذفه وإعادة إضافة السر.',
   'ext.tasks.no_reminder': 'لا تنبيه',

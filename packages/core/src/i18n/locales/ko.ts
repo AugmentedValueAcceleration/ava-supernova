@@ -4019,7 +4019,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': '잘했어요!',
   'ext.lesson.answer_ph': '당신의 답변…',
   'ext.lesson.strong_answer': '훌륭한 답변의 특징',
-  'ext.lesson.soon': '곧: Ava 가 실제 답변을 확인하고 이를 실시간으로 채점합니다.',
   'ext.vault.reference_hint': '메시지 라벨로 키를 참조하세요. Ava 는 불투명한 핸들을 받습니다 — 값은 도구 실행 시 로컬 머신에서 교체되므로 모델이나 저장된 채팅에 도달하지 않습니다.',
   'ext.vault.autogrant_hint': '이 프로젝트에서 Ava 에게 자동 부여됨 — 비밀정보를 삭제하고 다시 추가하여 권한을 해제하세요.',
   'ext.tasks.no_reminder': '알림 없음',

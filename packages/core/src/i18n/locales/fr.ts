@@ -4015,7 +4015,6 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'Bravo !',
   'ext.lesson.answer_ph': 'Votre réponse…',
   'ext.lesson.strong_answer': 'Ce qu\'une bonne réponse contient',
-  'ext.lesson.soon': 'Bientôt : Ava lit votre réponse réelle et la note en direct par rapport à celle-ci.',
   'ext.vault.reference_hint': 'Référez-vous à une clé par son libellé dans votre message. Ava reçoit un identifiant opaque — la valeur est remplacée sur votre machine lors de l\'exécution d\'un outil, elle n\'atteint donc jamais le modèle ni votre conversation sauvegardée.',
   'ext.vault.autogrant_hint': 'Accordé automatiquement à Ava pour ce projet — supprimez-le en retirant et en réajoutant le secret',
   'ext.tasks.no_reminder': 'Aucun rappel',

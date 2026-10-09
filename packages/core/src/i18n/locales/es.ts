@@ -3991,7 +3991,6 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': '¡Lo lograste!',
   'ext.lesson.answer_ph': 'Tu respuesta…',
   'ext.lesson.strong_answer': 'Qué contiene una respuesta sólida',
-  'ext.lesson.soon': 'Pronto: Ava leerá tu respuesta real y la calificará en tiempo real frente a esto.',
   'ext.vault.reference_hint': 'Referencia una clave por etiqueta en tu mensaje. Ava recibe un identificador opaco — el valor se sustituye en tu máquina cuando se ejecuta una herramienta, así que nunca llega al modelo ni a tu chat guardado.',
   'ext.vault.autogrant_hint': 'Otorgado automáticamente a Ava en este proyecto — límpialo borrando y volviendo a agregar el secreto',
   'ext.tasks.no_reminder': 'Sin recordatorio',

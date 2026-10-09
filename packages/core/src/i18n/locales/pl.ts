@@ -3999,7 +3999,6 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'Masz to!',
   'ext.lesson.answer_ph': 'Twoja odpowiedź…',
   'ext.lesson.strong_answer': 'Co zawiera mocna odpowiedź',
-  'ext.lesson.soon': 'Wkrótce: Ava czyta Twoją rzeczywistą odpowiedź i ocenia ją na żywo w odniesieniu do tego.',
   'ext.vault.reference_hint': 'Odwołaj się do klucza za pomocą etykiety w swojej wiadomości. Ava otrzymuje nieprzejrzysty wskaźnik — wartość jest podmieniana na Twoim komputerze, gdy uruchamiane jest narzędzie, więc nigdy nie trafia do modelu ani do zapisanej rozmowy.',
   'ext.vault.autogrant_hint': 'Automatycznie przyznane Avie w tym projekcie — aby usunąć, usuń i ponownie dodaj sekret.',
   'ext.tasks.no_reminder': 'Brak przypomnienia',

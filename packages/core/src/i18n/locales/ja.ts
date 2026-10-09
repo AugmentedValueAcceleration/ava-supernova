@@ -4021,7 +4021,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'できました！',
   'ext.lesson.answer_ph': 'あなたの回答…',
   'ext.lesson.strong_answer': '優れた回答の特徴',
-  'ext.lesson.soon': 'まもなく：Ava があなたの実際の回答を読み取り、これに対してリアルタイムで採点します。',
   'ext.vault.reference_hint': 'メッセージ内でラベルによりキーを参照してください。Ava は不透明なハンドルを受け取ります — ツール実行時に値がローカルマシンで置換されるため、モデルや保存チャットには一切届きません。',
   'ext.vault.autogrant_hint': 'このプロジェクトでは Ava に自動付与されています — シークレットを削除して再追加することでクリアできます',
   'ext.tasks.no_reminder': 'リマインダーなし',

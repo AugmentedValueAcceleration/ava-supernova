@@ -4019,7 +4019,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'Ce l\'hai fatta!',
   'ext.lesson.answer_ph': 'La tua risposta…',
   'ext.lesson.strong_answer': 'Cosa contiene una risposta forte',
-  'ext.lesson.soon': 'Presto: Ava leggerà la tua risposta effettiva e la valuterà in tempo reale rispetto a questa.',
   'ext.vault.reference_hint': 'Riferisci una chiave tramite etichetta nel messaggio. Ava riceve un handle opaco: il valore viene sostituito sulla tua macchina quando viene eseguito uno strumento, così non arriva mai al modello o alla tua chat salvata.',
   'ext.vault.autogrant_hint': 'Concesso automaticamente ad Ava in questo progetto — rimuovi eliminando e riaggiungendo il segreto',
   'ext.tasks.no_reminder': 'Nessun promemoria',

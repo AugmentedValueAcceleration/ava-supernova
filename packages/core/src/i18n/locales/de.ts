@@ -3999,7 +3999,6 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'Geschafft!',
   'ext.lesson.answer_ph': 'Deine Antwort…',
   'ext.lesson.strong_answer': 'Was eine starke Antwort ausmacht',
-  'ext.lesson.soon': 'Bald: Ava liest deine tatsächliche Antwort und bewertet sie live daran.',
   'ext.vault.reference_hint': 'Referenziere einen Schlüssel nach Bezeichnung in deiner Nachricht. Ava erhält einen undurchsichtigen Handle — der Wert wird auf deinem Gerät getauscht, wenn ein Tool ausgeführt wird, sodass er niemals das Modell oder deinen gespeicherten Chat erreicht.',
   'ext.vault.autogrant_hint': 'Automatisch für Ava in diesem Projekt freigegeben – entfernen durch Löschen und erneutes Hinzufügen des Geheimnisses',
   'ext.tasks.no_reminder': 'Keine Erinnerung',

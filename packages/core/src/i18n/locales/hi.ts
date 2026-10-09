@@ -4019,7 +4019,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'आपने कर दिखाया',
   'ext.lesson.answer_ph': 'आपका उत्तर…',
   'ext.lesson.strong_answer': 'एक मजबूत उत्तर में क्या शामिल है',
-  'ext.lesson.soon': 'जल्द ही: Ava आपके वास्तविक उत्तर को पढ़ेगी और इसे लाइव इससे ग्रेड करेंगी।',
   'ext.vault.reference_hint': 'संदेश में लेबल द्वारा कुंजी का संदर्भ दें। Ava एक अपारदर्शी हैंडल प्राप्त करती है — जब कोई टूल चलता है तो मान आपकी मशीन पर बदल दिया जाता है, इसलिए यह मॉडल या आपके सहेजे गए चैट तक नहीं पहुंचता।',
   'ext.vault.autogrant_hint': 'इस परियोजना पर Ava को स्वतः अनुमति दी गई है — गुप्त तत्व को हटाकर पुनः जोड़कर साफ करें',
   'ext.tasks.no_reminder': 'कोई अनुस्मारक नहीं',

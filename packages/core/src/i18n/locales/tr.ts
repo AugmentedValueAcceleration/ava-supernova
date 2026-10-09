@@ -4019,7 +4019,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': 'Başardın',
   'ext.lesson.answer_ph': 'Cevabınız…',
   'ext.lesson.strong_answer': 'Güçlü bir cevabın sahip olduğu',
-  'ext.lesson.soon': 'Yakında: Ava gerçek cevabınızı okur ve bunu canlı olarak buna göre puanlar.',
   'ext.vault.reference_hint': 'Mesajınızda bir anahtarı etiketle referans gösterin. Ava şeffaf olmayan bir referans alır — değer, bir araç çalıştığında makinenizde yerleştirilir, böylece asla modele veya kaydedilmiş sohbetinize ulaşmaz.',
   'ext.vault.autogrant_hint': 'Bu projede Ava\'ya otomatik verildi — gizliyi silip yeniden ekleyerek temizlenir',
   'ext.tasks.no_reminder': 'Hatırlatma yok',

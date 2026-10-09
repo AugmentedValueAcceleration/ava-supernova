@@ -3999,7 +3999,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'ext.lesson.you_did_it': '你做到了',
   'ext.lesson.answer_ph': '你的回答…',
   'ext.lesson.strong_answer': '优秀答案包含什么',
-  'ext.lesson.soon': '即将：Ava 将读取您的实际答案，并实时对照此内容进行评分。',
   'ext.vault.reference_hint': '在消息中通过标签引用密钥。Ava 会收到一个不透明的句柄——当工具运行时，该值会在您的机器上替换，因此它永远不会到达模型或您保存的聊天中。',
   'ext.vault.autogrant_hint': '自动授予本项目中的 Ava —— 删除并重新添加密钥即可清除',
   'ext.tasks.no_reminder': '无提醒',
