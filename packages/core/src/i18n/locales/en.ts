@@ -961,6 +961,13 @@ export const enStrings = {
   'dash.learning_library.learners': 'learners',
   'dash.learning_library.modules': 'modules',
   'dash.learning_library.lessons': 'lessons',
+  'dash.learning_library.lesson_one': 'lesson',
+  // Paging the course grid. The count is shown rather than numbered page
+  // buttons: at 32 a page a large library runs to a dozen of them, and
+  // nobody browsing courses wants to aim for page 9.
+  'dash.learning_library.prev_page': 'Previous',
+  'dash.learning_library.next_page': 'Next',
+  'dash.learning_library.courses_count': 'courses',
   'dash.learning_library.what_you_learn': 'What you will learn',
   'dash.learning_library.curriculum': 'Curriculum',
   'dash.learning_library.prerequisites': 'Prerequisites',

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
@@ -95,6 +95,10 @@ interface Props {
   loading?: boolean;
 }
 
+/** Courses per page. Thirty-two fills the grid at every column count it can
+ *  land on (2, 3 or 4 across) without leaving a ragged last row. */
+const PATHS_PER_PAGE = 32;
+
 export function LearningLibrary({ paths, detail, courseRatings, loading }: Props) {
   useLocale();
   const [search, setSearch] = useState('');
@@ -104,6 +108,17 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
   const [levelFilter, setLevelFilter] = useState('all');
   const [sort, setSort] = useState<SortOption>('popular');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  /**
+   * Which curriculum modules are open on the detail page.
+   *
+   * Collapsed by default. A five-module course rendered every lesson at
+   * once, which pushed Start learning and Save for later below ten rows of
+   * syllabus — the decision the page exists for was under the detail it was
+   * meant to inform. Titles and descriptions stay visible either way, so
+   * the shape of the course reads without opening anything.
+   */
+  const [openModules, setOpenModules] = useState<Set<number>>(new Set());
   const [forking, setForking] = useState(false);
 
   // Shelves, in the taxonomy's own order rather than alphabetically: Using Ava
@@ -162,10 +177,26 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
     }
   }, [paths, shelfFilter, subjectFilter, audienceFilter, levelFilter, search, sort]);
 
+  // Paginate what is SHOWN, not what is fetched.
+  //
+  // The shelf and subject filters are derived from the paths held, so
+  // fetching a page at a time would silently drop whole categories out of
+  // the filter row — a browse UI that hides categories is worse than no
+  // browse UI. The full set still arrives; only the grid is cut.
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PATHS_PER_PAGE));
+  // Clamped rather than trusted: narrowing a filter while on page 3 of 4
+  // would otherwise leave the grid empty with results sitting behind it.
+  const safePage = Math.min(page, pageCount - 1);
+  const visiblePaths = filtered.slice(safePage * PATHS_PER_PAGE, (safePage + 1) * PATHS_PER_PAGE);
+
+  // Any change to what is being looked for starts again at the first page.
+  useEffect(() => { setPage(0); }, [shelfFilter, subjectFilter, audienceFilter, levelFilter, search, sort]);
+
   const selected = detail && detail.id === selectedId ? detail : null;
 
   function handleSelect(id: string) {
     setSelectedId(id);
+    setOpenModules(new Set());
     post({ type: 'load_library_path_detail', id });
   }
 
@@ -296,13 +327,44 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
                     {mi + 1}
                   </div>
                   <div style={{ borderRadius: 14, border: '1px solid var(--border-card)', background: 'var(--bg-card)', padding: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: mod.description ? 2 : 8 }}>
-                      {mod.title}
-                    </div>
-                    {mod.description && (
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>{mod.description}</div>
-                    )}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* The whole header toggles. A <button> rather than a div
+                        with onClick so it is reachable by keyboard and reads
+                        as a control to a screen reader. */}
+                    <button
+                      type="button"
+                      onClick={() => setOpenModules(prev => {
+                        const next = new Set(prev);
+                        if (next.has(mi)) next.delete(mi); else next.add(mi);
+                        return next;
+                      })}
+                      aria-expanded={openModules.has(mi)}
+                      style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%',
+                        background: 'transparent', border: 'none', padding: 0, margin: 0,
+                        textAlign: 'left', cursor: 'pointer', color: 'inherit',
+                      }}
+                    >
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: mod.description ? 2 : 0 }}>
+                          {mod.title}
+                        </span>
+                        {mod.description && (
+                          <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>{mod.description}</span>
+                        )}
+                      </span>
+                      {/* The lesson count carries the weight when the list is
+                          shut: the module still says how much is in it. */}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, fontSize: 11, color: 'var(--text-muted)' }}>
+                        {(mod.lessons || []).length} {(mod.lessons || []).length === 1 ? tt('dash.learning_library.lesson_one', 'lesson') : t('dash.learning_library.lessons')}
+                        <span style={{
+                          display: 'inline-flex', transition: 'transform 0.15s',
+                          transform: openModules.has(mi) ? 'rotate(90deg)' : 'none',
+                        }}>
+                          <Icon.collapse size={13} />
+                        </span>
+                      </span>
+                    </button>
+                    <div style={{ display: openModules.has(mi) ? 'flex' : 'none', flexDirection: 'column', gap: 2, marginTop: 10 }}>
                       {(mod.lessons || []).map((lesson, li) => (
                         <div
                           key={li}
@@ -609,8 +671,9 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
           <p style={{ fontSize: 11, marginTop: 4 }}>{t('learning_library.no_paths_hint')}</p>
         </div>
       ) : (
+        <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-          {filtered.map(path => {
+          {visiblePaths.map(path => {
             const id = identityFor(path.subject, path.title, path.industry);
             return (
             <button
@@ -706,8 +769,54 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
             );
           })}
         </div>
+        {/* Only shown when there IS more than one page. A pager under a
+            single screen of results is furniture that says nothing. */}
+        {pageCount > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 20 }}>
+            <PagerButton
+              disabled={safePage === 0}
+              onClick={() => setPage(safePage - 1)}
+              label={tt('dash.learning_library.prev_page', 'Previous')}
+            />
+            {/* The count, not a row of numbered buttons: at 32 a page a
+                large library would run to a dozen of them, and nobody
+                browsing courses wants to aim for page 9. */}
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {safePage + 1} / {pageCount}
+              <span style={{ marginLeft: 8, opacity: 0.7 }}>
+                ({filtered.length} {t('dash.learning_library.courses_count')})
+              </span>
+            </span>
+            <PagerButton
+              disabled={safePage >= pageCount - 1}
+              onClick={() => setPage(safePage + 1)}
+              label={tt('dash.learning_library.next_page', 'Next')}
+            />
+          </div>
+        )}
+        </>
       )}
     </div>
+  );
+}
+
+// One page-turn control. Disabled rather than hidden at the ends, so the
+// pager does not change width as you move through it.
+function PagerButton({ disabled, onClick, label }: { disabled: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      style={{
+        padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+        border: '1px solid var(--border-card)', background: 'var(--bg-input)',
+        color: disabled ? 'var(--text-muted)' : 'var(--text-secondary)',
+        cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.45 : 1,
+      }}
+    >
+      {label}
+    </button>
   );
 }
 
