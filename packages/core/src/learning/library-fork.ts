@@ -86,7 +86,17 @@ function coerceDiff(d?: string): Lesson['difficulty'] {
  * `available`, the rest `locked` — progression unlocks them as lessons complete
  * (same shape the core learning tools and the dashboard player expect).
  */
-export function libraryPathToCurriculum(path: LibraryPathInput, nowIso?: string): Curriculum {
+/**
+ * @param intent — `'start'` opens the course now, `'save'` parks it for later.
+ *   Defaults to `'start'`, so every existing caller behaves exactly as it
+ *   did. The two differ ONLY in the status they land in; a saved course is
+ *   a whole, playable curriculum, not a stub to be filled in later.
+ */
+export function libraryPathToCurriculum(
+  path: LibraryPathInput,
+  nowIso?: string,
+  intent: 'start' | 'save' = 'start',
+): Curriculum {
   const now = nowIso ?? new Date().toISOString();
 
   const modules: Module[] = (path.content?.modules ?? []).map((m, mi) => ({
@@ -134,7 +144,7 @@ export function libraryPathToCurriculum(path: LibraryPathInput, nowIso?: string)
     level: path.level,
     goal: path.goal,
     estimated_hours: path.estimated_hours,
-    status: 'active',
+    status: intent === 'save' ? 'not_started' : 'active',
     progress_percent: 0,
     modules,
     tags: path.tags ?? [],

@@ -87,3 +87,34 @@ describe('libraryPathToCurriculum', () => {
     expect(libraryPathToCurriculum(p).modules[0].lessons[0].steps).toBeUndefined();
   });
 });
+
+describe('start now, or save for later', () => {
+  it('defaults to starting, so every existing caller is unchanged', () => {
+    expect(libraryPathToCurriculum(path).status).toBe('active');
+    expect(libraryPathToCurriculum(path, '2026-10-09T12:00:00.000Z').status).toBe('active');
+  });
+
+  it("'save' parks it without starting it", () => {
+    expect(libraryPathToCurriculum(path, undefined, 'save').status).toBe('not_started');
+  });
+
+  it("'start' is explicit and the same as the default", () => {
+    expect(libraryPathToCurriculum(path, undefined, 'start').status).toBe('active');
+  });
+
+  it('a saved course is the WHOLE course, not a stub', () => {
+    // The point of using a status rather than a separate saved-courses list.
+    // Someone who parks a course and opens it in a month must find all of it
+    // waiting, so saving has to build exactly what starting builds.
+    const started = libraryPathToCurriculum(path, '2026-10-09T12:00:00.000Z', 'start');
+    const saved = libraryPathToCurriculum(path, '2026-10-09T12:00:00.000Z', 'save');
+    const shape = (c: typeof started) => ({
+      modules: c.modules.length,
+      lessons: c.modules.map((m) => m.lessons.length),
+      steps: c.modules.flatMap((m) => m.lessons.map((l) => l.steps?.length ?? 0)),
+      progress: c.progress_percent,
+    });
+    expect(shape(saved)).toEqual(shape(started));
+    expect(saved.progress_percent).toBe(0);
+  });
+});

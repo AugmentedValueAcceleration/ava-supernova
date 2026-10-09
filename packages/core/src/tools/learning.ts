@@ -115,7 +115,20 @@ export interface Curriculum {
   level: string;
   goal: string | null;
   estimated_hours: number | null;
-  status: 'active' | 'completed' | 'paused';
+  /**
+   * Where the course sits for this learner.
+   *
+   * `not_started` is a course taken for LATER — someone saw it, wanted it,
+   * and has not opened a lesson yet. It is a real state rather than a
+   * separate saved-courses list because everything a saved course needs
+   * (its modules, its place in My Courses, Ava being able to see it) is
+   * what a curriculum already is. A second subsystem would duplicate all
+   * of it to store one bit.
+   *
+   * It flips to `active` the first time a lesson is opened, which is also
+   * what keeps "N learners" honest: saving is not learning.
+   */
+  status: 'not_started' | 'active' | 'completed' | 'paused';
   progress_percent: number;
   modules: Module[];
   tags: string[];
@@ -667,6 +680,9 @@ export class LearningCreateTool implements Tool {
 
     // Enforce single-active: a freshly created course becomes THE active one;
     // pause any previously-active course (its progress is kept).
+    //
+    // Only `active` is touched, so a course SAVED for later stays saved. It
+    // was never opened, and calling it paused would read as abandoned.
     for (const c of store.curriculums) {
       if (c.status === 'active') c.status = 'paused';
     }
@@ -854,6 +870,10 @@ export class LearningTeachTool implements Tool {
       if (!target) return { success: false, output: `Curriculum not found: ${currId}` };
       for (const c of store.curriculums) {
         if (c.status === 'completed') continue;
+        // A course saved for later is left alone unless it IS the target.
+        // Pausing something never opened would turn every saved course into
+        // an abandoned one the first time the learner switched courses.
+        if (c.status === 'not_started' && c.id !== currId) continue;
         c.status = c.id === currId ? 'active' : 'paused';
       }
       if (target.status === 'completed') target.status = 'active'; // re-activating a finished course to revisit

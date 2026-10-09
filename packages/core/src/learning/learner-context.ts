@@ -49,10 +49,17 @@ export function formatLearnerContext(
   if (earned.length) skillsBlock += `### Proven skills (earned — build on these, pitch above them)\n${earned.join('\n')}`;
   if (selfSkills.length) skillsBlock += `${earned.length ? '\n\n' : ''}### Self-listed (unverified — gut-check via assess before relying)\n${selfSkills.join(', ')}`;
 
-  // Full course list (active / paused / completed) so Ava can offer to switch
-  // when the learner asks — only one course is active at a time.
+  // Full course list so Ava can offer to switch when the learner asks —
+  // only one course is active at a time.
+  //
+  // `not_started` is spelled out rather than passed through raw. A learner
+  // who saved a course for later has not abandoned it, and the bare status
+  // reads like they did — which would have Ava chasing them about a course
+  // they deliberately parked.
+  const statusLabel = (status: string) =>
+    status === 'not_started' ? 'saved for later' : status;
   const allCourses = store.curriculums.length === 0 ? '' : store.curriculums
-    .map((c) => `- ${c.title} (${c.subject}) — ${Math.round(c.progress_percent)}% [${c.status}]`)
+    .map((c) => `- ${c.title} (${c.subject}) — ${Math.round(c.progress_percent)}% [${statusLabel(c.status)}]`)
     .join('\n');
 
   const blocks = [

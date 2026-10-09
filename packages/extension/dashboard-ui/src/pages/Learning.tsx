@@ -212,9 +212,15 @@ export function Learning({ curriculums, loaded, onSetActive, onGoToAva }: Props)
               <Icon.review size={13} />{tt('learning.courses.refresh', 'Refresh')}
             </button>
           </div>
+          {/* 'In progress' used to be "everything that is not active and not
+              completed", which swallowed any new state. A course SAVED for
+              later would have appeared there, reading as something the
+              learner started and gave up on. It gets its own group, and
+              'In progress' now names what it actually means: paused. */}
           {([
             { key: 'active', label: tt('learning.courses.active', 'Active'), items: curriculums.filter(c => c.status === 'active') },
-            { key: 'paused', label: tt('learning.courses.in_progress', 'In progress'), items: curriculums.filter(c => c.status !== 'active' && c.status !== 'completed') },
+            { key: 'paused', label: tt('learning.courses.in_progress', 'In progress'), items: curriculums.filter(c => c.status === 'paused') },
+            { key: 'not_started', label: tt('learning.courses.saved', 'Saved for later'), items: curriculums.filter(c => c.status === 'not_started') },
             { key: 'completed', label: tt('learning.courses.completed', 'Completed'), items: curriculums.filter(c => c.status === 'completed') },
           ] as const).filter(g => g.items.length > 0).map(group => (
             <div key={group.key}>

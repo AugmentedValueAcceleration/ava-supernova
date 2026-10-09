@@ -2560,6 +2560,11 @@ export const enStrings = {
   'learning.courses.active_tag': 'Active',
   'learning.courses.in_progress': 'In progress',
   'learning.courses.completed': 'Completed',
+  // A course taken for later and not yet opened. Its own group, because the
+  // 'In progress' bucket used to mean "anything not active or completed" and
+  // would have shown a saved course as one the learner gave up on.
+  'learning.courses.saved': 'Saved for later',
+  'learning.library.save_for_later': 'Save for later',
   'learning.courses.set_active': 'Set active',
   'learning.courses.continue': 'Continue with Ava',
   'learning.courses.revisit': 'Revisit',

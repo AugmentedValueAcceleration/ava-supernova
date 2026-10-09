@@ -169,9 +169,9 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
     post({ type: 'load_library_path_detail', id });
   }
 
-  function handleFork(id: string) {
+  function handleFork(id: string, intent: 'start' | 'save' = 'start') {
     setForking(true);
-    post({ type: 'fork_library_path', id });
+    post({ type: 'fork_library_path', id, intent });
     setTimeout(() => setForking(false), 3000);
   }
 
@@ -355,6 +355,25 @@ export function LearningLibrary({ paths, detail, courseRatings, loading }: Props
             }}
           >
             {forking ? t('dash.learning_library.starting') : t('dash.learning_library.start_learning')}
+          </button>
+          {/* Saving is the same fork into a different state, so someone who
+              finds a course they want in a month does not have to remember
+              where it was. It deliberately does NOT count as a learner. */}
+          <button
+            onClick={() => handleFork(selected.id, 'save')}
+            disabled={forking}
+            onMouseEnter={(e) => { if (!forking) e.currentTarget.style.color = 'var(--accent)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            style={{
+              marginLeft: 10,
+              padding: '11px 20px', borderRadius: 8, cursor: forking ? 'wait' : 'pointer',
+              border: '1px solid var(--border-card)',
+              background: 'transparent',
+              color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500,
+              opacity: forking ? 0.7 : 1, transition: 'color 0.15s, opacity 0.15s',
+            }}
+          >
+            {tt('dash.learning_library.save_for_later', 'Save for later')}
           </button>
           {/* Star rating. Shows YOUR score once given — the average is a
               number beside it, never the fill. Filling the stars from the

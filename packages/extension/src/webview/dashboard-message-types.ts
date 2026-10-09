@@ -2177,7 +2177,12 @@ export type DashboardToExtMessage =
   // Learning Library messages
   | { type: 'load_library_paths'; search?: string; subject?: string; level?: string; sort?: string }
   | { type: 'load_library_path_detail'; id: string }
-  | { type: 'fork_library_path'; id: string }
+  /**
+   * Take a course. `intent` defaults to starting it; 'save' parks it in My
+   * Courses for later. Both build the FULL curriculum — a saved course is
+   * not a stub, it is the whole thing waiting.
+   */
+  | { type: 'fork_library_path'; id: string; intent?: 'start' | 'save' }
   | { type: 'publish_to_library'; curriculumId: string }
   | { type: 'rate_library_path'; id: string; rating: number; reason?: string; note?: string }
   /** Rate any rateable thing. Supersedes rate_library_path, which was

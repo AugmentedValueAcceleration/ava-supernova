@@ -1030,18 +1030,25 @@ export class DashboardPanel {
             this.post({ type: 'error', message: 'Could not load this course to start it.' });
             break;
           }
-          const curriculum = libraryPathToCurriculum(detail);
+          const intent = msg.intent === 'save' ? 'save' : 'start';
+          const curriculum = libraryPathToCurriculum(detail, undefined, intent);
           const store = await this.readLearningStore();
           store.curriculums.unshift(curriculum);
           const fs = await import('node:fs/promises');
           await fs.mkdir(this.getUserDataDir(), { recursive: true }).catch(() => {});
           await fs.writeFile(path.join(this.getUserDataDir(), 'learning.json'), JSON.stringify(store, null, 2), 'utf-8');
-          // Best-effort: bump the public library's learner count when signed in.
+          // Best-effort: bump the public library's learner count when signed
+          // in. The intent goes with it so a SAVE does not count as a learner
+          // — "N learners" that includes bookmarks means neither.
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           if (platformKey) {
-            apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', platformKey }).catch(() => { /* analytics only */ });
+            apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', platformKey, body: { intent } }).catch(() => { /* analytics only */ });
           }
-          this.post({ type: 'library_path_forked', curriculumId: curriculum.id, title: 'Started!' });
+          this.post({
+            type: 'library_path_forked',
+            curriculumId: curriculum.id,
+            title: intent === 'save' ? 'Saved for later' : 'Started!',
+          });
         } catch (err: any) {
           this.post({ type: 'error', message: err?.message || 'Failed to start learning path' });
         }
