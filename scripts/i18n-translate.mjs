@@ -318,6 +318,27 @@ function replaceTsValue(text, key, newValue) {
   return text.replace(re, (_m, p1) => `${p1}'${escaped}'`);
 }
 
+/**
+ * Set a key's value whether or not the file already has it.
+ *
+ * replaceTsValue can only rewrite a line that exists. A locale file that
+ * has never seen the key needs it INSERTED, or the translation is fetched,
+ * paid for, and dropped on the floor.
+ */
+function upsertTsValue(text, key, newValue) {
+  const keyPat = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const present = new RegExp(`^\\s*['\"]${keyPat}['\"]\\s*:`, 'm').test(text);
+  if (present) return replaceTsValue(text, key, newValue);
+
+  // Append just inside the object's closing brace. Locale files end with
+  // `};` followed by nothing (or, in en.ts, the StringKey export), so the
+  // LAST `};` is the object close.
+  const close = text.lastIndexOf('};');
+  if (close === -1) return text;
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  return text.slice(0, close) + `  '${key}': '${escapeTs(newValue)}',` + eol + text.slice(close);
+}
+
 // ── Translation prompt ──────────────────────────────────────────────────────
 
 function buildSystemPrompt(targetLanguage, glossary) {
@@ -423,15 +444,27 @@ function collectUntranslated(surface) {
     const other = parse(filePath);
     /** @type {UntranslatedEntry[]} */
     const items = [];
-    for (const [k, v] of Object.entries(other)) {
-      if (!(k in en)) continue;
+    // Iterate the ENGLISH keys, not the locale file's.
+    //
+    // This used to walk `other` and collect anything whose value still
+    // equalled English — which can only ever find keys the locale file
+    // already HAS. A newly added English string is absent from all nineteen
+    // files, so it was invisible here: the script reported "nothing to
+    // translate" while i18n-check reported it missing, and the only way
+    // forward was to hand-edit nineteen files. That is the same
+    // silently-English failure the check exists to catch, one layer up in
+    // the tooling meant to fix it.
+    for (const k of Object.keys(en)) {
+      const v = other[k];
       if (keepEnglish.has(k)) continue;
       // Signed off as correct-as-English for THIS language. Dutch really does
       // say "Perfect". Translating it anyway silently reverses a reviewed
       // decision, and the audit stays green because the value is no longer
       // identical — so nothing ever reports it.
       if (isVerifiedIdentical(surface.name, locale, k, en[k])) continue;
-      if (v === en[k]) items.push({ key: k, enValue: en[k] });
+      // Absent, or present but still the English text. Both need a
+      // translation; only the write path differs.
+      if (v === undefined || v === en[k]) items.push({ key: k, enValue: en[k] });
     }
     if (items.length > 0) {
       perLocale[locale] = { file: f, filePath, entries: items };
@@ -500,7 +533,7 @@ async function processSurface(surface) {
     if (surface.kind === 'ts') {
       let text = fs.readFileSync(filePath, 'utf8');
       for (const [k, v] of Object.entries(translations)) {
-        text = replaceTsValue(text, k, v);
+        text = upsertTsValue(text, k, v);
       }
       fs.writeFileSync(filePath, text, 'utf8');
     } else {

@@ -1181,6 +1181,52 @@ ON CONFLICT (version, platform) DO UPDATE SET
 `;
 }
 
+// ── Per-locale cache ─────────────────────────────────────────────────────────
+//
+// A run translates all nineteen locales and writes nothing unless all
+// nineteen succeed. One call aborting on the 300s timeout therefore threw
+// away eighteen good translations, and the re-run that was supposed to
+// "fill" the gap started again from scratch and rolled the same dice —
+// observed on these notes: es failed, re-run, pt failed, re-run. It is a
+// random one-in-nineteen, so retrying the whole set converges slowly and
+// spends nineteen long calls each time.
+//
+// Successful locales are now kept, keyed by the English content they came
+// from. Change a word of the source and the key changes, so an edited
+// release can never be published with translations of the old text — the
+// cache can only save work, never stale it.
+//
+// It lives in the temp dir on purpose: this exists to make a re-run minutes
+// later cheap, not to be a durable artefact someone has to remember to
+// invalidate or commit.
+const CACHE_FILE = path.join(os.tmpdir(), 'ava-release-notes-i18n-cache.json');
+
+function loadCache() {
+  try {
+    return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveCache(cache) {
+  try {
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache), 'utf8');
+  } catch {
+    // A cache that cannot be written is a lost optimisation, never a
+    // reason to fail a release.
+  }
+}
+
+/** djb2 over the English fields. Dependency-free and plenty for deciding
+ *  whether the source text is the same one we translated before. */
+function contentKey(release, locale) {
+  const src = JSON.stringify([release.title, release.body, release.highlights]);
+  let h = 5381;
+  for (let i = 0; i < src.length; i++) h = ((h * 33) ^ src.charCodeAt(i)) >>> 0;
+  return `${release.platform}:${release.version}:${locale}:${h.toString(36)}`;
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 (async () => {
   console.log(`i18n-release-notes — model=${MODEL}, auth=${CRED.kind}${DRY_RUN ? ' (dry-run)' : ''}`);
@@ -1194,8 +1240,17 @@ ON CONFLICT (version, platform) DO UPDATE SET
     }
     console.log(`\n=== v${release.version} (${LOCALES.length} locales) ===`);
     const translations = {};
+    const cache = loadCache();
     let done = 0;
+    let reused = 0;
     await pool(LOCALES, CONCURRENCY, async (locale) => {
+      const key = contentKey(release, locale);
+      if (cache[key]) {
+        translations[locale] = cache[key];
+        reused++;
+        done++;
+        return;
+      }
       try {
         const t = await translateOne(locale, release);
         // A locale that comes back IDENTICAL to the English is not translated,
@@ -1234,11 +1289,16 @@ ON CONFLICT (version, platform) DO UPDATE SET
           throw new Error(`came back identical to English (${englishFields.join(', ')}) — treating as a failed translation`);
         }
         translations[locale] = t;
+        // Written per success, not at the end: the point is to survive the
+        // run that fails partway.
+        cache[key] = t;
+        saveCache(cache);
         console.log(`  ✓ ${locale} (${++done}/${LOCALES.length})`);
       } catch (err) {
         console.log(`  ✗ ${locale}: ${err.message}`);
       }
     });
+    if (reused) console.log(`  (${reused} reused from a previous run)`);
     const missing = LOCALES.filter((l) => !translations[l]);
     if (missing.length) {
       console.log(`  ⚠ missing locales: ${missing.join(', ')} — NOT writing migration ${release.migration}. Re-run to fill.`);
