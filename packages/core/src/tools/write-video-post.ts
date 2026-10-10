@@ -44,11 +44,11 @@ const TAGLINE_WORDS = TAGLINE.trim().split(/\s+/).length;
  * run(), the other place this is used.
  *
  * Module level rather than local to run() so the sign-off length below is
- * derived from it ONCE. Restating 2.41 in a second place is how the clip length
+ * derived from it ONCE. Restating the rate in a second place is how the clip length
  * and the spoken length drift apart, and a voice still talking after the last
  * still is the most obviously broken thing a short can do.
  */
-const SLOWEST_WORDS_PER_SECOND = 2.41;
+export const SLOWEST_WORDS_PER_SECOND = 2.08;
 
 /**
  * Seconds the spoken sign-off adds to a VOICED clip, on top of the script's own
@@ -60,6 +60,22 @@ const SLOWEST_WORDS_PER_SECOND = 2.41;
  * tagline moves the expectation with it instead of turning the suite red.
  */
 export const VOICED_OUTRO_SECONDS = Math.ceil(TAGLINE_WORDS / SLOWEST_WORDS_PER_SECOND);
+
+/**
+ * Air at each end of the read, in seconds, so the voice neither starts on
+ * frame one nor stops on the last.
+ *
+ * Exported with the rate so a test can work out the word band the way the
+ * tool does. The duration tests used to hard-code counts measured against
+ * one voice; when the brand voice changed they all failed at once, and
+ * every one of them had to be re-picked by hand.
+ */
+export const AIR_SECONDS = 1.5;
+
+/** The most words that fit a clip of `seconds`, the way run() computes it. */
+export function maxWordsFor(seconds: number): number {
+  return Math.floor(Math.max(1, seconds - AIR_SECONDS) * SLOWEST_WORDS_PER_SECOND);
+}
 
 /**
  * How long one still holds on screen.
@@ -142,7 +158,7 @@ export class WriteVideoPostTool implements Tool {
         },
         script: {
           type: 'string',
-          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 25-32 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 52-68 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 2.4 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
+          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 22-28 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 45-59 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 2.1 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
         },
         caption: {
           type: 'string',
@@ -306,7 +322,7 @@ export class WriteVideoPostTool implements Tool {
     // does the cutting: a voice still talking after the last still is the same
     // broken short either way, and now there is nobody to notice but them.
     // Budget: the duration minus a second of air at each end, at roughly two
-    // words a second. A 10s clip is therefore about 16 words, NOT the 20-25 the
+    // words a second. A 10s clip is therefore about 14 words, NOT the 20-25 the
     // guidance used to claim — that was 10-12 seconds of speech over a 10 second
     // clip, which is why the voice ran past the end.
     //
@@ -317,14 +333,25 @@ export class WriteVideoPostTool implements Tool {
     // to fit is too short to be worth hearing. A voiced piece is therefore
     // always 10s or more. Found the hard way, when a six-word line killed every
     // food video with a generic "generation failed".
-    // MEASURED through the real voice — qwen3-tts-flash, the 'Maia'
-    // brand voice, the shipped voice direction, timed off the returned WAV
-    // headers rather than derived from an assumed rate:
+    // MEASURED through the real voice — qwen3-tts-flash, the 'Katerina'
+    // brand voice, the shipped voice direction, timed off the audio actually
+    // returned rather than derived from an assumed rate:
     //
-    //     6w -> 2.16s   10w -> 3.76s   14w -> 5.52s   17w -> 7.04s   25w -> 10.00s
+    //     6w -> 1.92s   10w -> 4.32s   14w -> 6.72s   17w -> 6.48s   25w -> 10.00s
     //
-    // She runs 2.41-2.78 words a second, slowest on the longer lines. So a 10s
-    // clip holds about 22 words.
+    // She runs 2.08-3.12 words a second. The SLOWEST is the one that matters:
+    // the budget multiplies by it, so taking the average would let a slow read
+    // run past the last still.
+    //
+    // RE-MEASURED 10 Oct 2026 when the voice changed. Maia ran 2.41-2.78 and
+    // the old budget was built on 2.41 — carrying that over would have let
+    // every script overrun by about a sixth. Qwen retired
+    // qwen3-tts-instruct-flash, Maia came back sounding like a non-native
+    // speaker on the replacement, and Katerina is the operator's pick.
+    //
+    // Note the figures are NOT monotonic (17 words is quicker than 14):
+    // phrasing and the pauses it implies move this more than word count does,
+    // which is the other reason to budget from the floor.
     //
     // The floor used to be 12, set to clear Wan's 3s minimum and nothing else.
     // Twelve words is under five seconds — half a ten second clip — and a floor

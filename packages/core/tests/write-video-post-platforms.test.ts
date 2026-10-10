@@ -69,8 +69,10 @@ describe('one video, one generation, a caption per platform', () => {
 
   it('shares the storyboard and the script across all of them', async () => {
     await run({
-      // 29 words — inside the 25-32 band a 15-second clip is held to.
-      script: 'Ava runs in your terminal now. No editor, no window, just a prompt that answers and waits. Type ava in any project and ask it to find the bug.',
+      // 22 words — well inside the band a 15-second clip is held to, with
+      // room to stay there if the brand voice slows again. This test is
+      // about the script being SHARED, not about the length rule.
+      script: 'Ava runs in your terminal now. No editor, no window, just a prompt that answers and waits. Type ava in any project.',
       posts: [
         { platform: 'tiktok', caption: 'a' },
         { platform: 'facebook', caption: 'b' },
