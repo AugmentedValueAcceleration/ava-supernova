@@ -72,6 +72,44 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 470,
+    version: '0.106.1',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-10 03:30:00+00',
+    title: `The tidy-up at the end of a build is gone from the chat`,
+    body: `A small one, and only about what you see.
+
+**After a build I was printing a block of markup at the end of my answer** \u2014 angle brackets, a list of every file touched, categories and notes. That was never meant for you. It is how I tell the verification step which files to check, and nothing was removing it before the message reached the screen, so the inside of the machine was being published into the conversation.
+
+It is gone from the chat. Nothing else changed: the block is still there in the message I keep, and verification still reads it from exactly the same place, so what gets checked after a build is unchanged.`,
+    highlights: [
+      'No more block of raw markup at the end of a build reply.',
+      'It was the note that tells my verification step which files to check \u2014 useful to me, noise to you.',
+      'Verification is untouched: the note still exists, it is just no longer printed at you.',
+      'Nothing to do on your side.',
+    ],
+  },
+  {
+    migration: 471,
+    version: '0.50.1',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-10 03:30:00+00',
+    title: `The tidy-up at the end of a build is gone from the chat`,
+    body: `A small one, and only about what you see.
+
+**After a build I was printing a block of markup at the end of my answer** \u2014 angle brackets, a list of every file touched, categories and notes. That was never meant for you. It is how I tell the verification step which files to check, and nothing was removing it before the message reached the screen, so the inside of the machine was being published into the conversation.
+
+It is gone from the chat. Nothing else changed: the block is still there in the message I keep, and verification still reads it from exactly the same place, so what gets checked after a build is unchanged.`,
+    highlights: [
+      'No more block of raw markup at the end of a build reply.',
+      'It was the note that tells my verification step which files to check \u2014 useful to me, noise to you.',
+      'Verification is untouched: the note still exists, it is just no longer printed at you.',
+      'Nothing to do on your side.',
+    ],
+  },
+  {
     migration: 468,
     version: '0.106.0',
     platform: 'extension',
