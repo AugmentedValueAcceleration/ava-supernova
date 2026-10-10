@@ -56,7 +56,7 @@ export { findPhantomIngredients, checkRecipeShoppingList } from './recipes/index
 // (write_post, propose_hooks) write through, plus the shared char-limit map.
 export type {
   SocialPostInput, SocialPostWritten, PostStore,
-  VideoPostInput, VideoPostWritten, VideoPostStore,
+  VideoPostInput, VideoPostVariant, VideoPostWritten, VideoPostStore,
   VoiceoverInput, VoiceoverWritten, VoiceoverStore,
   PostImageInput, PostImageWritten, PostImageStore,
   HookOption, HookProposal, HookStore,

@@ -63,9 +63,35 @@ export interface PostStore {
  * operator cuts them together, which is why `shots` is a SEQUENCE laid end to
  * end rather than a set of alternatives.
  */
-export interface VideoPostInput {
+/**
+ * One platform's WORDS for a video. The pictures and the read are shared.
+ *
+ * A clip goes to TikTok, Instagram, Shorts and Facebook as the same footage,
+ * because the operator cuts it once — but the caption and the tags are a
+ * different job in each room, and the tag policies barely overlap (TikTok
+ * wants one or two, Instagram eight to twelve, Facebook none or two).
+ *
+ * Splitting them this way is what stops four platforms costing four
+ * generations: the stills and the voiceover are made ONCE and every variant
+ * points at the same files.
+ */
+export interface VideoPostVariant {
   /** tiktok | instagram | youtube | facebook — all vertical short-form. */
   platform: string;
+  /** The caption — the post itself, written for THIS room. */
+  caption: string;
+  title?: string;
+  hashtags?: string[];
+  tagNote?: string;
+}
+
+export interface VideoPostInput {
+  /**
+   * One entry per platform, each with its own caption and tags. The
+   * storyboard, the script and the duration below are SHARED by all of
+   * them — same video, different words.
+   */
+  variants: VideoPostVariant[];
   /**
    * The STORYBOARD — one still per five seconds, in order. Three for fifteen
    * seconds, six for thirty; the count is checked against `duration` rather
@@ -75,13 +101,8 @@ export interface VideoPostInput {
   shots: string[];
   /** What she SAYS over it. Empty for a silent piece carried by on-screen text. */
   script?: string;
-  /** The caption — the post itself. */
-  caption: string;
   /** Clip length in seconds. */
   duration?: number;
-  title?: string;
-  hashtags?: string[];
-  tagNote?: string;
   /**
    * A dish we already have a photograph of. Naming one puts OUR hero shot in
    * the storyboard as the opening frame, instead of generating a plausible

@@ -102,14 +102,38 @@ export class WriteVideoPostTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'write_video_post',
     description:
-      'Emit a finished SHORT-FORM VIDEO POST as the PARTS a person assembles: the voiceover in your own voice, a storyboard of stills (one per five seconds), and the caption. We do not generate video — the operator cuts these together in Canva, which is why the shots must work as a SEQUENCE laid end to end rather than as alternatives. Use when the idea wants to be a video rather than text (Shorts, Reels, TikTok). Call it ONCE PER VIDEO. Do not write the script or caption in your narration — only call this tool. The stills and the voice are generated after your turn, so say what you made and why that angle; never claim you have seen them.',
+      'Emit a finished SHORT-FORM VIDEO POST as the PARTS a person assembles: the voiceover in your own voice, a storyboard of stills (one per five seconds), and the caption. We do not generate video — the operator cuts these together in Canva, which is why the shots must work as a SEQUENCE laid end to end rather than as alternatives. Use when the idea wants to be a video rather than text (Shorts, Reels, TikTok). Call it ONCE PER VIDEO and list EVERY platform it is going to in `posts` — the stills and the voiceover are generated once and shared, and each platform gets its own caption and tags. Calling it four times for one clip pays for four identical storyboards and four identical reads. Do not write the script or caption in your narration — only call this tool. The stills and the voice are generated after your turn, so say what you made and why that angle; never claim you have seen them.',
     parameters: {
       type: 'object',
       properties: {
-        platform: {
-          type: 'string',
-          enum: ['tiktok', 'instagram', 'youtube', 'facebook'],
-          description: 'Where this is going. All four are vertical short-form (9:16); "youtube" means Shorts, "instagram" means Reels, "facebook" means Reels on our Page.',
+        posts: {
+          type: 'array',
+          description: 'One entry per platform this video is going to. The STORYBOARD, the SCRIPT and the DURATION are shared by all of them — same footage, cut once — so list every destination here rather than calling the tool again. What differs is the words: each entry carries its own caption and its own tags, because the tag policies barely overlap. TikTok wants ONE OR TWO tags and reads a stack of five as low-effort; Instagram wants eight to twelve; Facebook wants none or two, because a stack there reads as spam; YouTube Shorts wants #Shorts FIRST and only the top three show above the title. One set of tags carried across all four is wrong on three of them.',
+          items: {
+            type: 'object',
+            properties: {
+              platform: {
+                type: 'string',
+                enum: ['tiktok', 'instagram', 'youtube', 'facebook'],
+                description: 'All four are vertical short-form (9:16); "youtube" means Shorts, "instagram" means Reels, "facebook" means Reels on our Page.',
+              },
+              caption: {
+                type: 'string',
+                description: 'The post copy for THIS platform, ready to paste. The first line is the hook that decides whether anyone watches. It must NOT restate the voiceover — the script is heard and the caption is read, so saying the same thing twice wastes one of them. Write it to be SEARCHED: caption keywords now do more for discovery than hashtags. Genuinely rewritten per room, not the same words with the tags swapped — Facebook is a mixed crowd who want plain language and a story, TikTok is watched muted in two seconds. The tagline and the link to avasupernova.com are appended automatically — never write either yourself, and never write "link in bio".',
+              },
+              hashtags: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'The tags you chose for THIS platform, so the UI shows an editable chip row. Count and character both follow that platform\'s policy. They must be about THIS video, not the category we are in: #devtools #aitools #OpenSource would fit any post we have ever written, which is the definition of a tag that earns nothing.',
+              },
+              tag_note: {
+                type: 'string',
+                description: 'One line on why these tags, for this platform — which are reach and which are niche.',
+              },
+              title: { type: 'string', description: 'Optional title, where the platform shows one.' },
+            },
+            required: ['platform', 'caption'],
+          },
         },
         shots: {
           type: 'array',
@@ -140,7 +164,7 @@ export class WriteVideoPostTool implements Tool {
           description: 'For a FOOD video: the name of a dish we already have a photograph of. CHECK FIRST with find_recipe — naming a dish we do not have is REFUSED, not generated, because a plausible stranger plate filed among our own photographs is one careless caption away from being posted as ours. Naming a real one puts OUR hero photograph in as the OPENING SHOT, so the first frame is genuinely the food and cannot misrepresent it. Use this for anything about a recipe. Your first entry in `shots` is then a description of that photograph rather than a request — it is not generated, so write the rest of the storyboard to follow on from it.',
         },
       },
-      required: ['platform', 'shots', 'caption'],
+      required: ['posts', 'shots'],
     },
   };
 
@@ -158,20 +182,70 @@ export class WriteVideoPostTool implements Tool {
     // platform decides the aspect, the tag policy and the whole register of the
     // caption. Guessing it is not a small convenience, it is picking the
     // audience on their behalf. Missing means ASK, not assume.
-    const platform = ((args.platform as string | undefined) || '').trim();
-    if (!platform) {
+    // ONE call, one video, as many platforms as it is going to.
+    //
+    // The footage is identical everywhere — all four short-form platforms are
+    // 1080x1920 and the operator cuts the clip once — so the stills and the
+    // read are generated ONCE and every platform points at the same files.
+    // Calling this four times instead would pay for four identical
+    // storyboards and four identical voiceovers, and quadruple the exposure
+    // to a rate limit that already drops a still now and then.
+    //
+    // What DOES differ is the words. The tag policies barely overlap: TikTok
+    // wants one or two tags, Instagram eight to twelve, Facebook none or two,
+    // Shorts wants #Shorts first. One caption carried across all four is
+    // wrong in three rooms.
+    //
+    // The legacy single-platform shape still works, so a call already in
+    // flight does not fail on the way through.
+    type RawVariant = { platform?: unknown; caption?: unknown; title?: unknown; hashtags?: unknown; tag_note?: unknown };
+    const rawVariants: RawVariant[] = Array.isArray(args.posts) && (args.posts as unknown[]).length > 0
+      ? (args.posts as RawVariant[])
+      : [{ platform: args.platform, caption: args.caption, title: args.title, hashtags: args.hashtags, tag_note: args.tag_note }];
+
+    const known = ['tiktok', 'instagram', 'youtube', 'facebook'];
+    const parsed = rawVariants.map((v) => ({
+      platform: String(v?.platform ?? '').trim().toLowerCase(),
+      caption: String(v?.caption ?? '').trim(),
+      title: (typeof v?.title === 'string' && v.title.trim()) ? v.title.trim() : undefined,
+      hashtags: Array.isArray(v?.hashtags)
+        ? (v.hashtags as unknown[]).map((h) => String(h).trim().replace(/^#/, '')).filter(Boolean)
+        : [],
+      tagNote: (typeof v?.tag_note === 'string' && v.tag_note.trim()) ? v.tag_note.trim() : undefined,
+    }));
+
+    // NO silent default. This used to fall back to 'tiktok', so a video the
+    // operator never chose a home for quietly became a TikTok post. Guessing
+    // is not a small convenience, it is picking the audience on their behalf.
+    const missingPlatform = parsed.some((v) => !v.platform);
+    if (missingPlatform) {
       return {
         success: false,
         output:
-          'write_video_post needs a platform and there is no default — the platform decides the tag policy, '
-          + 'the caption register and where this lands. If the operator has not said, ASK which one (or which '
-          + 'ones) before calling this again: tiktok, instagram, youtube or facebook.',
+          'write_video_post needs a platform on every entry and there is no default — the platform decides '
+          + 'the tag policy, the caption register and where this lands. If the operator has not said, ASK which '
+          + 'ones before calling this again: tiktok, instagram, youtube or facebook.',
       };
     }
+    const unknown = parsed.map((v) => v.platform).filter((pf) => !known.includes(pf));
+    if (unknown.length > 0) {
+      return {
+        success: false,
+        output: `write_video_post does not know ${unknown.join(', ')}. Short-form video goes to tiktok, instagram, youtube or facebook.`,
+      };
+    }
+    const dupes = parsed.map((v) => v.platform).filter((pf, i, a) => a.indexOf(pf) !== i);
+    if (dupes.length > 0) {
+      return {
+        success: false,
+        output: `Two entries for ${[...new Set(dupes)].join(', ')} — one caption per platform. Merge them and call again.`,
+      };
+    }
+    // Named for the messages below; the picture size is the same for all four.
+    const platform = parsed[0].platform;
     const shots = Array.isArray(args.shots)
       ? (args.shots as unknown[]).map(x => String(x ?? '').trim()).filter(Boolean)
       : [];
-    const caption = ((args.caption as string | undefined) || '').trim();
     const script = ((args.script as string | undefined) || '').trim();
 
     if (shots.length === 0) {
@@ -182,8 +256,12 @@ export class WriteVideoPostTool implements Tool {
           + 'A 15-second post takes 3.',
       };
     }
-    if (!caption) {
-      return { success: false, output: 'write_video_post requires a caption — the clip is only half the post.' };
+    const captionless = parsed.filter((v) => !v.caption).map((v) => v.platform);
+    if (captionless.length > 0) {
+      return {
+        success: false,
+        output: `write_video_post requires a caption for every platform — missing for ${captionless.join(', ')}. The clip is only half the post.`,
+      };
     }
 
     // Same deterministic enforcement as write_post: count by code point and
@@ -194,26 +272,31 @@ export class WriteVideoPostTool implements Tool {
     // did nothing. Idempotent: if she already wrote it, it is not doubled.
     // The tagline goes on first, then the link — so a reader hits the claim
     // and then the place to check it, which is the order that persuades.
-    const withTagline = caption.includes(TAGLINE) ? caption : `${caption}\n\n${TAGLINE}`;
-    const withLink = withTagline.toLowerCase().includes(AVA_URL)
-      ? withTagline
-      : `${withTagline}\n\n${AVA_URL}`;
-
-    // Enforced AFTER the link, because the link is not optional — if adding it
-    // breaks the cap then the caption is what gives, not the link.
-    const hardLimit = VIDEO_CAPTION_LIMITS[platform];
-    if (hardLimit) {
-      const len = Array.from(withLink).length;
-      if (len > hardLimit) {
-        const over = len - hardLimit;
-        return {
-          success: false,
-          output:
-            `This ${platform} caption is ${len} characters with the tagline and ${AVA_URL} appended — ` +
-            `${over} over the ${hardLimit} limit. Trim ${over}+ characters from the caption and ` +
-            `call write_video_post again. The link is not optional; the words are what give.`,
-        };
-      }
+    // Per platform, because the caps differ by orders of magnitude — 2,200
+    // on Instagram against 63,206 on Facebook. Enforced AFTER the link,
+    // because the link is not optional: if adding it breaks the cap then the
+    // caption is what gives.
+    const finished = parsed.map((v) => {
+      const withTagline = v.caption.includes(TAGLINE) ? v.caption : `${v.caption}\n\n${TAGLINE}`;
+      const withLink = withTagline.toLowerCase().includes(AVA_URL)
+        ? withTagline
+        : `${withTagline}\n\n${AVA_URL}`;
+      return { ...v, caption: withLink };
+    });
+    const tooLong = finished
+      .map((v) => ({ v, limit: VIDEO_CAPTION_LIMITS[v.platform], len: Array.from(v.caption).length }))
+      .filter((x) => x.limit && x.len > x.limit);
+    if (tooLong.length > 0) {
+      return {
+        success: false,
+        output:
+          tooLong
+            .map((x) =>
+              `The ${x.v.platform} caption is ${x.len} characters with the tagline and ${AVA_URL} appended — ` +
+              `${x.len - x.limit} over the ${x.limit} limit.`)
+            .join(' ')
+          + ' Trim those captions and call write_video_post again. The link is not optional; the words are what give.',
+      };
     }
 
     // ── The voiceover has to FIT ─────────────────────────────────────────
@@ -425,19 +508,21 @@ export class WriteVideoPostTool implements Tool {
     const clipDuration = plannedDuration + outroSeconds;
 
     const post: VideoPostInput = {
-      platform,
+      // One entry per platform. The store generates the stills and the read
+      // once and files a card for each of these against the same assets.
+      variants: finished.map((v) => ({
+        platform: v.platform,
+        caption: v.caption,
+        title: v.title,
+        hashtags: v.hashtags,
+        tagNote: v.tagNote,
+      })),
       shots,
       script: voicedScript || undefined,
-      caption: withLink,
       // Covers the WHOLE read — the script the model wrote plus the sign-off
       // appended above. If this diverges from the audio the voice overruns the
       // picture, which is the most obviously broken thing a short can do.
       duration: clipDuration,
-      title: ((args.title as string | undefined)?.trim()) || undefined,
-      hashtags: Array.isArray(args.hashtags)
-        ? (args.hashtags as unknown[]).map(h => String(h).trim().replace(/^#/, '')).filter(Boolean)
-        : [],
-      tagNote: ((args.tag_note as string | undefined)?.trim()) || undefined,
       recipe: ((args.recipe as string | undefined)?.trim()) || undefined,
     };
 
