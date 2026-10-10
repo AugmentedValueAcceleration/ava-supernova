@@ -317,7 +317,7 @@ export class WriteVideoPostTool implements Tool {
     // to fit is too short to be worth hearing. A voiced piece is therefore
     // always 10s or more. Found the hard way, when a six-word line killed every
     // food video with a generic "generation failed".
-    // MEASURED through the real voice — qwen3-tts-instruct-flash, the 'Maia'
+    // MEASURED through the real voice — qwen3-tts-flash, the 'Maia'
     // brand voice, the shipped voice direction, timed off the returned WAV
     // headers rather than derived from an assumed rate:
     //
