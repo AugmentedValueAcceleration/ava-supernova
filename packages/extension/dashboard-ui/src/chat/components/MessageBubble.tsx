@@ -3,6 +3,7 @@ import type { UIMessage, MessageEvent, ToolCallDisplay } from '../../types/messa
 import { getMessageText } from '../../types/messages';
 import { t, useLocale } from '../../i18n';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { stripChangesSummary } from '@ava/core/changes-summary';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallBlock } from './ToolCallBlock';
 import { LookupStrip, LOOKUP_TOOLS } from './LookupStrip';
@@ -274,8 +275,12 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
   const [secretsRevealed, setSecretsRevealed] = useState(false);
   const redactedFullText = fullText ? redact(fullText) : '';
   const hasSecrets = fullText !== redactedFullText;
+  // The <changes-summary> block is plumbing for verify_change, not part of
+  // the answer. Stripped here rather than inside redactTextEvent because
+  // that one respects the reveal-secrets toggle, and this block should
+  // never be revealable — it is not hidden, it is simply not content.
   const redactTextEvent = (content: string): string =>
-    secretsRevealed ? content : redact(content);
+    stripChangesSummary(secretsRevealed ? content : redact(content));
 
   // ── Segment events for top-level tool-block rendering ──────────────────
   // See webview-ui/MessageBubble.tsx for the full rationale. Tool events

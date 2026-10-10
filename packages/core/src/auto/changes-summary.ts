@@ -41,3 +41,29 @@ export function extractChangesSummary(
   const notes = parseLine('notes');
   return { files, categories, notes };
 }
+
+/**
+ * Remove the `<changes-summary>` block from text that a person is going to read.
+ *
+ * The block is PLUMBING: the Builder emits it so verify_change knows which
+ * files to check. Nothing ever stripped it before showing the message, so it
+ * rendered in the chat as raw angle-bracketed markup at the end of an
+ * otherwise readable answer — the internals of the verification step, leaking
+ * into the conversation.
+ *
+ * Also removes an UNTERMINATED block. The reply is streamed, so a tag that is
+ * only closed at the very end would otherwise appear character by character
+ * and then vanish; cutting from the opening tag to the end of the text means
+ * it is never shown at all rather than shown and then retracted.
+ *
+ * Strictly a display concern. extractChangesSummary still reads the block off
+ * the original message, so verification is untouched.
+ */
+export function stripChangesSummary(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/<changes-summary>[\s\S]*?<\/changes-summary>/gi, '')
+    .replace(/<changes-summary>[\s\S]*$/i, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
+}

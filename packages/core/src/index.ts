@@ -14,6 +14,7 @@ export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker, resolveCoor
 export type { RoutingMode } from './auto/index.js';
 export { ROUTING_MODES, isRoutingMode, AURORA_ENABLED, VISIBLE_ROUTING_MODES, isVisibleRoutingMode } from './auto/index.js';
 export type { TaskCategory as AutoTaskCategory, ClassificationResult, RouteResult, UserRoutePreferences, TaskBrief, AutoEvent, CoordinatorModelResult } from './auto/index.js';
+export { stripChangesSummary } from './auto/changes-summary.js';
 
 // Memory Agent
 export { MemoryAgent } from './memory/memory-agent.js';

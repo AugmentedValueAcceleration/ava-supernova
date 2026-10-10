@@ -30,6 +30,15 @@ export default defineConfig({
         __dirname,
         '../src/webview/locales',
       ),
+      // The <changes-summary> stripper, aliased to core's SOURCE rather
+      // than copied here. That module has no imports of its own, so this
+      // pulls in one function and nothing else — the sidebar bundle does
+      // not gain a dependency on core, and there is still only one
+      // definition of what the block looks like.
+      '@ava-core/changes-summary': path.resolve(
+        __dirname,
+        '../../core/src/auto/changes-summary.ts',
+      ),
     },
   },
   build: {

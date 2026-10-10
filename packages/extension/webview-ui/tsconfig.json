@@ -16,7 +16,8 @@
     "paths": {
       "@ava-extension/messages": ["../src/webview/message-types.ts"],
       "@ava-extension/fleet-copy": ["../src/webview/fleet-copy.ts"],
-      "@ava-extension/locales/*": ["../src/webview/locales/*"]
+      "@ava-extension/locales/*": ["../src/webview/locales/*"],
+      "@ava-core/changes-summary": ["../../core/src/auto/changes-summary.ts"]
     }
   },
   "include": ["src", "../src/webview/message-types.ts", "../src/webview/fleet-copy.ts", "../src/webview/locales"]
