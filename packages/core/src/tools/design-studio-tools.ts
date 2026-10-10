@@ -752,7 +752,8 @@ export class DesignGenerateVoiceTool implements Tool {
       'Generate a spoken voiceover on the canvas. YOU author the script (the exact words to speak, verbatim) AND the ' +
       'delivery instructions (tone, pace, emotion) — drawn from what you gauged the user wants. Pick a voice from the ' +
       'roster. To voice a TRANSLATED read, translate the script YOURSELF into the target language and set `language` — ' +
-      'the same voice speaks it. There is no numeric speed/pitch; you shape the read in words. It renders ' +
+      'the same voice speaks it. Pace cannot be directed in this lane yet, so choose the voice for its ' +
+      'natural speed. It renders ' +
       'synchronously and appears as a scrubable waveform. Uses credits — state that and get a yes before calling. ' +
       '',
     parameters: {
@@ -782,8 +783,10 @@ export class DesignGenerateVoiceTool implements Tool {
         instructions: {
           type: 'string',
           description:
-            'YOU author this — the delivery direction: tone, pace, emotion, energy, e.g. "warm, unhurried, reassuring" ' +
-            'or "bright and punchy, trailer energy". This is how you shape pace — there is no numeric speed knob.',
+            'YOU author this — the delivery direction: tone, emotion, energy, e.g. "warm, reassuring" ' +
+            'or "bright and punchy, trailer energy". Treat it as a HINT, not a control: the current speech ' +
+            'model accepts it and largely ignores it, so pick the voice that already sounds the way you want ' +
+            'rather than trying to talk a voice into it. Do not promise the user a pace here.',
         },
       },
       required: ['script'],

@@ -198,7 +198,7 @@ describe('one still per five seconds, and the count is checked', () => {
     // A default she never saw decides the count. Measuring against the raw
     // request would refuse a correct three-frame storyboard for a 15s post
     // that never named a duration at all.
-    expect((await attempt({ script: words(28) }, 3)).success).toBe(true);
+    expect((await attempt({ script: words(fits(15)) }, 3)).success).toBe(true);
   });
 });
 

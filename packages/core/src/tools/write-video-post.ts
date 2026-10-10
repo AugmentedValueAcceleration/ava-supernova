@@ -39,16 +39,16 @@ const TAGLINE_WORDS = TAGLINE.trim().split(/\s+/).length;
 /**
  * Measured read rate for the brand voice, in words per second — the SLOWEST
  * of the measured range, so the budget stays safe on the long lines. The
- * measurements themselves, and the caveat that they belong to Maia and must be
- * re-measured if the brand voice changes, sit with the word-budget block in
- * run(), the other place this is used.
+ * measurements themselves, and the caveat that they belong to ONE voice at ONE
+ * pace and must be re-measured if either changes, sit with the word-budget
+ * block in run(), the other place this is used.
  *
  * Module level rather than local to run() so the sign-off length below is
  * derived from it ONCE. Restating the rate in a second place is how the clip length
  * and the spoken length drift apart, and a voice still talking after the last
  * still is the most obviously broken thing a short can do.
  */
-export const SLOWEST_WORDS_PER_SECOND = 2.08;
+export const SLOWEST_WORDS_PER_SECOND = 1.96;
 
 /**
  * Seconds the spoken sign-off adds to a VOICED clip, on top of the script's own
@@ -158,7 +158,7 @@ export class WriteVideoPostTool implements Tool {
         },
         script: {
           type: 'string',
-          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 22-28 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 45-59 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 2.1 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
+          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 20-26 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 42-55 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 2.0 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
         },
         caption: {
           type: 'string',
@@ -333,25 +333,35 @@ export class WriteVideoPostTool implements Tool {
     // to fit is too short to be worth hearing. A voiced piece is therefore
     // always 10s or more. Found the hard way, when a six-word line killed every
     // food video with a generic "generation failed".
-    // MEASURED through the real voice — qwen3-tts-flash, the 'Katerina'
-    // brand voice, the shipped voice direction, timed off the audio actually
-    // returned rather than derived from an assumed rate:
+    // MEASURED through the real voice — qwen3-tts-flash, Katerina, at
+    // speech_rate 0.95, no written direction, timed off the audio actually
+    // returned. Eight lengths, THREE takes each, slowest take shown:
     //
-    //     6w -> 1.92s   10w -> 4.32s   14w -> 6.72s   17w -> 6.48s   25w -> 10.00s
+    //      6w -> 2.23s    10w -> 5.09s   14w -> 6.44s   17w -> 7.79s
+    //     25w -> 11.66s   34w -> 15.79s  45w -> 17.39s  71w -> 28.16s
     //
-    // She runs 2.08-3.12 words a second. The SLOWEST is the one that matters:
-    // the budget multiplies by it, so taking the average would let a slow read
-    // run past the last still.
+    // Floor 1.96 w/s, and the middle lengths cluster tightly at 2.14-2.19.
+    // The SLOWEST is the one that matters: the budget multiplies by it, so
+    // taking the average would let a slow read run past the last still.
     //
-    // RE-MEASURED 10 Oct 2026 when the voice changed. Maia ran 2.41-2.78 and
-    // the old budget was built on 2.41 — carrying that over would have let
-    // every script overrun by about a sixth. Qwen retired
-    // qwen3-tts-instruct-flash, Maia came back sounding like a non-native
-    // speaker on the replacement, and Katerina is the operator's pick.
+    // THREE takes each, not one, because this model's timing is not
+    // deterministic — the same fourteen words came back 5.51s and 6.44s. A
+    // single take per length is how you measure a rate that is not there.
     //
-    // Note the figures are NOT monotonic (17 words is quicker than 14):
-    // phrasing and the pauses it implies move this more than word count does,
-    // which is the other reason to budget from the floor.
+    // RE-MEASURED 10 Oct 2026, twice in one day, and the history is the
+    // warning. Qwen retired qwen3-tts-instruct-flash. Maia, the previous brand
+    // voice, came back sounding like a non-native speaker on the replacement,
+    // so the voice changed to Katerina; her rate was 2.08 against Maia's 2.41,
+    // and carrying 2.41 over would have overrun every script by a sixth. Then
+    // the written direction came out (it no longer does anything and it made
+    // the timing swing 31% — see ava-voice.ts) and the pace moved to an
+    // explicit 0.95, which moved the rate again. Each of those three changes
+    // invalidated the number, and only one of them was about the voice.
+    //
+    // So: if AVA_BRAND_VOICE, AVA_VOICE_RATE or what gets sent alongside them
+    // changes, re-measure. Do not scale this — it is not linear in the pace
+    // multiplier, and the roster spread is enormous (the same 34 words run
+    // 11.8s through Jennifer and 24.2s through Seren).
     //
     // The floor used to be 12, set to clear Wan's 3s minimum and nothing else.
     // Twelve words is under five seconds — half a ten second clip — and a floor
@@ -359,10 +369,6 @@ export class WriteVideoPostTool implements Tool {
     // every voiced clip came back half silent. The floor now exists to FILL the
     // clip rather than merely to be accepted.
     //
-    // NOTE: this rate belongs to Maia. The brand voice is not yet ratified, and
-    // the roster varies a lot — the same lines through 'Cherry' run 1.92-2.42
-    // w/s, which would put the ceiling at 18 rather than 22. If AVA_BRAND_VOICE
-    // changes, re-measure; do not carry these numbers over.
     const MIN_SPEECH_SECONDS = 3.0;
     // SLOWEST_WORDS_PER_SECOND is module-level now: the sign-off length is
     // derived from the same number, and it has to BE the same number.

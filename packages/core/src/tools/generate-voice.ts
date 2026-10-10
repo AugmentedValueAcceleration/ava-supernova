@@ -53,7 +53,12 @@ export class GenerateVoiceTool implements Tool {
         instructions: {
           type: 'string',
           description:
-            'Delivery direction: tone, pace, emotion, energy (e.g. "warm, unhurried, reassuring"). There is no numeric speed knob — shape the read here.',
+            'Delivery direction: tone, emotion, energy (e.g. "warm, reassuring"). Honoured by some voices and ignored by others, so treat it as a hint, not a control — and do NOT ask for pace here, use speech_rate.',
+        },
+        speech_rate: {
+          type: 'number',
+          description:
+            'How fast it is read, as a multiplier on the natural pace of the voice. 1.0 is the voice as-is, 0.5 is half speed, 2.0 is double; anything outside 0.5-2.0 is refused. This is the ONE delivery control that reliably works, so reach for it rather than writing "slowly" in instructions. The brand reads under her own name use 0.95. Leave it out to take the voice at its own pace.',
         },
       },
       required: ['text', 'filename'],
@@ -66,6 +71,9 @@ export class GenerateVoiceTool implements Tool {
     const voice = (args.voice as string) || 'Cherry';
     const language = (args.language as string) || 'English';
     const instructions = (args.instructions as string) || undefined;
+    // Undefined rather than a default, so "no rate asked for" stays distinct
+    // from "asked for 1.0" and the platform leaves the parameter off entirely.
+    const speechRate = typeof args.speech_rate === 'number' ? args.speech_rate : undefined;
     const targetPath = args.target_path as string | undefined;
 
     const genManager = (context.sharedState as Record<string, unknown>)?.generationManager as
@@ -101,7 +109,7 @@ export class GenerateVoiceTool implements Tool {
           'Authorization': `Bearer ${resolved.key}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text, voice, language_type: language, instructions }),
+        body: JSON.stringify({ text, voice, language_type: language, instructions, speech_rate: speechRate }),
       });
 
       if (!res.ok) {

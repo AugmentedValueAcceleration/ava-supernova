@@ -42,7 +42,7 @@ export class WriteVoiceoverTool implements Tool {
         direction: {
           type: 'string',
           description:
-            'How it should be delivered — tone, pace, where to land. One or two sentences in your own words (e.g. "unhurried, quieter on the last line, no advert lilt"). The brand voice is already applied; this is the direction on top of it.',
+            'How you INTENDED it to be delivered — tone, where to land. One or two sentences (e.g. "quieter on the last line, no advert lilt"). Your voice and your pace are already fixed and this does NOT change them: the speech model ignores written direction. It is kept as a note on the card for whoever cuts the audio, so write it for them, and do not ask here for a delivery you are not going to get.',
         },
         title: {
           type: 'string',
