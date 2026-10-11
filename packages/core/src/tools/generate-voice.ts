@@ -6,6 +6,7 @@ import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
 import type { GenerationTracker } from '../dataset/generation-emit.js';
 import { chargeCredits } from '../billing/meter.js';
+import { TTS_VOICES, TTS_VOICE_CATALOGUE } from '../creative/index.js';
 
 /**
  * Generate AI voice/speech from text via Qwen3-TTS.
@@ -42,8 +43,11 @@ export class GenerateVoiceTool implements Tool {
         },
         voice: {
           type: 'string',
-          enum: ['Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona', 'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai'],
-          description: 'Voice from the Qwen3-TTS roster. Default: Cherry.',
+          enum: [...TTS_VOICES],
+          description:
+            'Which voice reads it. EVERY voice the model has, each verified against the API: ' +
+            TTS_VOICE_CATALOGUE.map((v) => `${v.id} (${v.gender === 'female' ? 'F' : 'M'}, ${v.style})`).join(', ') +
+            '. The model ignores written delivery direction, so the voice IS the tone. Default: Cherry.',
         },
         language: {
           type: 'string',
@@ -54,6 +58,12 @@ export class GenerateVoiceTool implements Tool {
           type: 'string',
           description:
             'Delivery direction: tone, emotion, energy (e.g. "warm, reassuring"). Honoured by some voices and ignored by others, so treat it as a hint, not a control — and do NOT ask for pace here, use speech_rate.',
+        },
+        volume: {
+          type: 'number',
+          description:
+            'How loud, 0-100. MEASURED as linear, and the DEFAULT is 75 — so sending 50 makes it quieter, ' +
+            'not neutral. 100 does not clip. Leave it out unless the user asked for a change.',
         },
         speech_rate: {
           type: 'number',
@@ -74,6 +84,7 @@ export class GenerateVoiceTool implements Tool {
     // Undefined rather than a default, so "no rate asked for" stays distinct
     // from "asked for 1.0" and the platform leaves the parameter off entirely.
     const speechRate = typeof args.speech_rate === 'number' ? args.speech_rate : undefined;
+    const volume = typeof args.volume === 'number' ? args.volume : undefined;
     const targetPath = args.target_path as string | undefined;
 
     const genManager = (context.sharedState as Record<string, unknown>)?.generationManager as
@@ -109,7 +120,7 @@ export class GenerateVoiceTool implements Tool {
           'Authorization': `Bearer ${resolved.key}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text, voice, language_type: language, instructions, speech_rate: speechRate }),
+        body: JSON.stringify({ text, voice, language_type: language, instructions, speech_rate: speechRate, volume }),
       });
 
       if (!res.ok) {

@@ -1,6 +1,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { chargeCredits } from '../billing/meter.js';
+import { TTS_VOICES, TTS_VOICE_CATALOGUE } from '../creative/index.js';
 
 /**
  * Design Studio tools — Ava the Design Architect's kit. Same shape-as-dial
@@ -752,8 +753,8 @@ export class DesignGenerateVoiceTool implements Tool {
       'Generate a spoken voiceover on the canvas. YOU author the script (the exact words to speak, verbatim) AND the ' +
       'delivery instructions (tone, pace, emotion) — drawn from what you gauged the user wants. Pick a voice from the ' +
       'roster. To voice a TRANSLATED read, translate the script YOURSELF into the target language and set `language` — ' +
-      'the same voice speaks it. Pace cannot be directed in this lane yet, so choose the voice for its ' +
-      'natural speed. It renders ' +
+      'the same voice speaks it. Pace and volume are real numeric controls; tone is not, so choose the ' +
+      'voice for the tone you want. It renders ' +
       'synchronously and appears as a scrubable waveform. Uses credits — state that and get a yes before calling. ' +
       '',
     parameters: {
@@ -767,12 +768,13 @@ export class DesignGenerateVoiceTool implements Tool {
         },
         voice: {
           type: 'string',
-          enum: ['Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona', 'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai'],
+          enum: [...TTS_VOICES],
           description:
-            'The voice from the curated roster (all work on qwen3-tts-flash). Cherry (F, sunny, friendly — ' +
-            'DEFAULT), Serena (F, gentle, warm), Vivian (F, confident, feisty), Maia (F, intellect + gentleness), ' +
-            'Bellona (F, powerful, heroic), Ethan (M, warm, energetic), Moon (M, bold, handsome), Vincent (M, raspy, ' +
-            'cinematic), Neil (M, news-anchor precision), Kai (M, soothing). Default Cherry.',
+            'Which voice reads it. EVERY voice the model has, each verified against the API: ' +
+            TTS_VOICE_CATALOGUE.map((v) => `${v.id} (${v.gender === 'female' ? 'F' : 'M'}, ${v.style})`).join(', ') +
+            '. This is the MOST important choice you make, because the model ignores written delivery direction ' +
+            'entirely — tone comes from the voice and nothing else. The ones marked with a place or a language ' +
+            'carry that accent audibly, so pick one only when the read wants it. Default Cherry.',
         },
         language: {
           type: 'string',
@@ -780,13 +782,18 @@ export class DesignGenerateVoiceTool implements Tool {
             'The SPOKEN language (e.g. "English", "French", "Japanese"). Default "English". When the user wants a ' +
             'translated voiceover, translate the script YOURSELF into that language and set this — the SAME voice speaks it.',
         },
-        instructions: {
-          type: 'string',
+        speech_rate: {
+          type: 'number',
           description:
-            'YOU author this — the delivery direction: tone, emotion, energy, e.g. "warm, reassuring" ' +
-            'or "bright and punchy, trailer energy". Treat it as a HINT, not a control: the current speech ' +
-            'model accepts it and largely ignores it, so pick the voice that already sounds the way you want ' +
-            'rather than trying to talk a voice into it. Do not promise the user a pace here.',
+            'How fast it is read, as a multiplier on the natural pace of the voice. 1.0 is the voice as-is, ' +
+            '0.5 half speed, 2.0 double; outside 0.5-2.0 is refused. MEASURED, and one of only two delivery ' +
+            'controls this model honours. Omit it to leave the voice at its own pace.',
+        },
+        volume: {
+          type: 'number',
+          description:
+            'How loud, 0-100. MEASURED as linear, and the DEFAULT is 75 — so sending 50 makes it quieter, ' +
+            'not neutral. 100 does not clip. Omit it unless the user asked for a change.',
         },
       },
       required: ['script'],
@@ -803,7 +810,8 @@ export class DesignGenerateVoiceTool implements Tool {
         script,
         voice: args.voice,
         language: args.language,
-        instructions: args.instructions,
+        speech_rate: args.speech_rate,
+        volume: args.volume,
       });
       if (!res.ok) return { success: false, output: res.error || 'Voice generation failed.' };
       const d = res.data as { voice?: string; credits?: number } | undefined;

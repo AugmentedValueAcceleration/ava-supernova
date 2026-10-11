@@ -42,7 +42,8 @@
         "dash.studio.voice.emotion": "Emotion",
         "dash.studio.voice.emotion_neutral": "Neutral",
         "dash.studio.voice.emotion_warm": "Warm",
-        "dash.studio.voice.pace_normal": "Normal"
+        "dash.studio.voice.pace_normal": "Normal",
+        "dash.studio.voice.vol_normal": "Normal"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -64,7 +65,8 @@
         "memory.category.general": "General",
         "health.browse.cardio": "Cardio",
         "dash.studio.voice.emotion_neutral": "Neutral",
-        "dash.studio.voice.pace_normal": "Normal"
+        "dash.studio.voice.pace_normal": "Normal",
+        "dash.studio.voice.vol_normal": "Normal"
       },
       "fr": {
         "health.plans.n_cook": "{n} min",
@@ -103,7 +105,9 @@
         "library.formats": "Formats",
         "dash.nav.studio_jobs": "Studio",
         "dash.studio.voice.script": "Script",
-        "dash.studio.voice.pace_normal": "Normal"
+        "dash.studio.voice.pace_normal": "Normal",
+        "dash.studio.voice.vol_normal": "Normal",
+        "dash.studio.voice.volume": "Volume"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
@@ -128,7 +132,8 @@
         "dash.studio.asset.avatar": "Avatar",
         "ide.papers.primer_url": "URL: {url}",
         "dash.nav.studio_jobs": "Studio",
-        "dash.studio.voice.pace_normal": "Normal"
+        "dash.studio.voice.pace_normal": "Normal",
+        "dash.studio.voice.volume": "Volume"
       },
       "it": {
         "health.plans.n_cook": "{n} min",
@@ -159,7 +164,8 @@
         "dash.model.sub.byok_mistral": "BYOK · Mistral",
         "ide.papers.primer_url": "URL: {url}",
         "health.browse.cardio": "Cardio",
-        "dash.nav.studio_jobs": "Studio"
+        "dash.nav.studio_jobs": "Studio",
+        "dash.studio.voice.volume": "Volume"
       },
       "ja": {
         "learning.room.tab.ava": "Ava",
@@ -214,7 +220,8 @@
         "health.starters.when": "Start",
         "doc.recent": "Recent",
         "dash.nav.studio_jobs": "Studio",
-        "dash.studio.voice.emotion_warm": "Warm"
+        "dash.studio.voice.emotion_warm": "Warm",
+        "dash.studio.voice.volume": "Volume"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -250,7 +257,9 @@
         "dash.history.tab.design": "Design",
         "dash.history.tab.social": "Social",
         "health.browse.cardio": "Cardio",
-        "dash.studio.voice.pace_normal": "Normal"
+        "dash.studio.voice.pace_normal": "Normal",
+        "dash.studio.voice.vol_normal": "Normal",
+        "dash.studio.voice.volume": "Volume"
       },
       "ru": {
         "learning.room.tab.ava": "Ava",
@@ -279,7 +288,8 @@
         "dash.studio.asset.logo": "Logo",
         "dash.studio.asset.avatar": "Avatar",
         "dash.docs.type.md": "Markdown",
-        "dash.studio.voice.pace_normal": "Normal"
+        "dash.studio.voice.pace_normal": "Normal",
+        "dash.studio.voice.vol_normal": "Normal"
       },
       "uk": {
         "learning.room.tab.ava": "Ava",

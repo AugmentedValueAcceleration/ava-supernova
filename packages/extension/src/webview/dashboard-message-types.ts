@@ -2313,7 +2313,7 @@ export type DashboardToExtMessage =
   // Design Studio video lane (submit to Wan 2.5 + poll status, host-proxied).
   | { type: 'asset_forge_video'; body: { prompt: string; duration?: number | string; resolution?: string } }
   // Design Studio voice lane (Qwen3-TTS synchronous synth, host-proxied).
-  | { type: 'asset_forge_voice'; body: { text: string; voice?: string; language_type?: string; instructions?: string } }
+  | { type: 'asset_forge_voice'; body: { text: string; voice?: string; language_type?: string; speech_rate?: number; volume?: number } }
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────

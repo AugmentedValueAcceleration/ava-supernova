@@ -6212,7 +6212,7 @@ export class DashboardPanel {
    * lanes (platform key + data-mode header).
    */
   private async handleAssetForgeVoice(
-    body: { text: string; voice?: string; language_type?: string; instructions?: string },
+    body: { text: string; voice?: string; language_type?: string; speech_rate?: number; volume?: number },
     // As for video: the design tool waiting on this read is answered from HERE,
     // and the Library save happens here too. TTS is synchronous so the window is
     // seconds rather than minutes — but it is the same bug that lost a clip
@@ -6233,7 +6233,11 @@ export class DashboardPanel {
     try {
       const res = await fetch('https://avasupernova.com/api/generate-voice', {
         method: 'POST', headers,
-        body: JSON.stringify({ text: body.text, voice: body.voice, language_type: body.language_type, instructions: body.instructions }),
+        // speech_rate and volume, not `instructions`: this speech model
+        // ignores written direction entirely. Undefined fields drop out of
+        // the JSON, which is what we want — the platform route only sends a
+        // parameter it was actually given.
+        body: JSON.stringify({ text: body.text, voice: body.voice, language_type: body.language_type, speech_rate: body.speech_rate, volume: body.volume }),
       });
       if (!res.ok) {
         const e = (await res.json().catch(() => ({}))) as { error?: string };

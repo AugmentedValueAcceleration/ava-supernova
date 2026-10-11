@@ -4528,20 +4528,23 @@ export const enStrings = {
   'dash.studio.voice.language': 'Language',
   'dash.studio.voice.spoken_in': 'Spoken in',
   'dash.studio.voice.script': 'Script',
+  'dash.studio.voice.script_empty': 'Nothing voiced yet.',
   // Delivery is directed in WORDS — the API takes `instructions` in plain
   // language and has no numeric speed or pitch parameter. These dials are a
   // shortcut to those words; Ava's own direction wins when she writes one.
   'dash.studio.voice.delivery': 'Delivery',
-  'dash.studio.voice.emotion': 'Emotion',
   'dash.studio.voice.pace': 'Pace',
-  'dash.studio.voice.emotion_neutral': 'Neutral',
-  'dash.studio.voice.emotion_warm': 'Warm',
-  'dash.studio.voice.emotion_bright': 'Bright',
-  'dash.studio.voice.emotion_calm': 'Calm',
-  'dash.studio.voice.emotion_excited': 'Excited',
+  // The Emotion dial and its five labels are GONE: this speech model
+  // ignores written tone direction, so the control did nothing at all.
+  // Tone comes from WHICH VOICE is chosen now. Volume took its place —
+  // that one is a measured numeric parameter and genuinely works.
   'dash.studio.voice.pace_slower': 'Slower',
   'dash.studio.voice.pace_normal': 'Normal',
   'dash.studio.voice.pace_brisk': 'Brisk',
+  'dash.studio.voice.volume': 'Volume',
+  'dash.studio.voice.vol_quiet': 'Quiet',
+  'dash.studio.voice.vol_normal': 'Normal',
+  'dash.studio.voice.vol_loud': 'Loud',
   // Was 'Pace and emotion are directed in words — Ava has no speed knob',
   // which stopped being true of the panel the moment the dials were wired.
   'dash.studio.voice.hint': 'Qwen3-TTS voices. Ava can translate a read and voice it in any of these.',

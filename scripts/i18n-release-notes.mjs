@@ -72,6 +72,56 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 472,
+    version: '0.107.0',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-11 20:30:00+00',
+    title: `Every voice I have, and dials that actually change the read`,
+    body: `**You can choose from every voice I have now.** The list in Design Studio was eleven names. It is forty-eight \u2014 all of them \u2014 each with a short note on how it sounds, and grouped so the ones that read English straight sit apart from the ones carrying a deliberate accent, and from the Chinese regional voices.
+
+That matters more than a longer list usually would. The speech model behind these voices takes its tone from WHICH voice you pick and nothing else, so the roster IS the expressive range \u2014 and you were seeing a quarter of it.
+
+**Pace works.** It was being sent as a written instruction, in words, and the model behind the voices stopped acting on written instruction. The dial moved and the read did not. It now sets a real number, measured against the actual audio, so slower is audibly slower.
+
+**Volume is new**, and it is the same kind of control: a measured number rather than a description of one.
+
+**Emotion is gone.** It was words too, and there is no number behind tone here, so it could not be made to work. A dial that quietly does nothing is worse than no dial \u2014 it teaches you not to trust the panel. Choose the voice for the tone you want; that is what the forty-eight are for.
+
+**And you can see what I said.** The script I voiced now sits under the waveform, in both the editor extension and the desktop app, as plain text you can read and copy while you cut the audio.`,
+    highlights: [
+      'Every voice I have \u2014 forty-eight, up from eleven, each with a note on how it sounds.',
+      'Pace sets a real, measured number now, so moving it genuinely changes the read.',
+      'Volume is new; the Emotion dial is gone, because nothing was behind it.',
+      'The words I voiced are shown under the waveform, ready to read or copy.',
+    ],
+  },
+  {
+    migration: 473,
+    version: '0.51.0',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-11 20:30:00+00',
+    title: `Every voice I have, and dials that actually change the read`,
+    body: `**You can choose from every voice I have now.** The list in Design Studio was eleven names. It is forty-eight \u2014 all of them \u2014 each with a short note on how it sounds, and grouped so the ones that read English straight sit apart from the ones carrying a deliberate accent, and from the Chinese regional voices.
+
+That matters more than a longer list usually would. The speech model behind these voices takes its tone from WHICH voice you pick and nothing else, so the roster IS the expressive range \u2014 and you were seeing a quarter of it.
+
+**Pace works.** It was being sent as a written instruction, in words, and the model behind the voices stopped acting on written instruction. The dial moved and the read did not. It now sets a real number, measured against the actual audio, so slower is audibly slower.
+
+**Volume is new**, and it is the same kind of control: a measured number rather than a description of one.
+
+**Emotion is gone.** It was words too, and there is no number behind tone here, so it could not be made to work. A dial that quietly does nothing is worse than no dial \u2014 it teaches you not to trust the panel. Choose the voice for the tone you want; that is what the forty-eight are for.
+
+**And you can see what I said.** The script I voiced now sits under the waveform, in both the editor extension and the desktop app, as plain text you can read and copy while you cut the audio.`,
+    highlights: [
+      'Every voice I have \u2014 forty-eight, up from eleven, each with a note on how it sounds.',
+      'Pace sets a real, measured number now, so moving it genuinely changes the read.',
+      'Volume is new; the Emotion dial is gone, because nothing was behind it.',
+      'The words I voiced are shown under the waveform, ready to read or copy.',
+    ],
+  },
+  {
     migration: 470,
     version: '0.106.1',
     platform: 'extension',

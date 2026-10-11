@@ -177,55 +177,161 @@ export const SUGGESTIONS: Record<CreativeMode, string[]> = {
 };
 
 
-/* ── Voice: the list, and the dials ───────────────────────────────── */
+/* ── Voice: the roster, and the dials that actually do something ── */
 
 /**
- * The voices Qwen3-TTS actually has.
+ * Every voice qwen3-tts-flash has, with what it is.
  *
- * VERIFIED name by name against the API on 2026-08-28, not copied. This exists
- * because the two surfaces had drifted onto different lists that shared exactly
- * one name, and seven of the IDE's nine did not exist at all — including its
- * default — so picking almost any voice there failed outright.
+ * VERIFIED id by id against the API — all 48 on 2026-10-11, the eleven before
+ * them on 2026-08-28. This list exists because the two surfaces once drifted
+ * onto different rosters that shared exactly one name, and seven of the IDE's
+ * nine did not exist at all, including its default, so picking almost any
+ * voice there failed outright. A bogus id returns 400, so verification is one
+ * call. Adding a name without making that call is how the drift happened.
  *
- * Adding a name here without calling the API first is how that happened. Don't.
+ * It was ELEVEN until 2026-10-11 — a shortlist inherited from the retired
+ * qwen3-tts-instruct-flash. Operator: *"we want to include every voice that is
+ * offered as every user will have a different need"*. He is right, and it
+ * matters more than it looks: this model IGNORES written delivery direction
+ * (see voiceSpeechRate below), so the VOICE is the tone. Offering a quarter of
+ * the roster was offering a quarter of the expressive range.
+ *
+ * `group` exists so a 48-item picker stays usable:
+ *   neutral — intended to read English straight
+ *   accent  — a character accent by design (Spanish, Korean, French and so
+ *             on); they speak English, but audibly as that character
+ *   dialect — Chinese regional voices; right for a localised read, wrong for
+ *             an English brand read
+ *
+ * `gender` and `style` come from Alibaba's published roster rather than from
+ * listening, so treat them as labels and not as the decision. The roster calls
+ * Vivian "cute, slightly temperamental", and on hearing her the operator said
+ * she was the voice this project had spent months failing to find. Listen
+ * first, always.
  */
-export const TTS_VOICES = [
-  'Cherry', 'Serena', 'Vivian', 'Maia', 'Bellona',
-  'Ethan', 'Moon', 'Vincent', 'Neil', 'Kai', 'Nofish',
-] as const;
-export type TtsVoice = (typeof TTS_VOICES)[number];
+export interface TtsVoiceInfo {
+  id: string;
+  gender: 'female' | 'male';
+  style: string;
+  group: 'neutral' | 'accent' | 'dialect';
+}
 
-// Named TTS_* to sit beside TTS_VOICES and stay clear of the MiniMax-era
-// VOICES / VOICE_EMOTIONS above, which are dead but not mine to remove here.
-export const TTS_VOICE_EMOTIONS = ['neutral', 'warm', 'bright', 'calm', 'excited'] as const;
+export const TTS_VOICE_CATALOGUE: readonly TtsVoiceInfo[] = [
+  // ── Reads English straight ──
+  { id: 'Cherry',      gender: 'female', style: 'sunny, friendly',             group: 'neutral' },
+  { id: 'Serena',      gender: 'female', style: 'gentle, warm',                group: 'neutral' },
+  { id: 'Vivian',      gender: 'female', style: 'bright, characterful',        group: 'neutral' },
+  { id: 'Maia',        gender: 'female', style: 'intellect and gentleness',    group: 'neutral' },
+  { id: 'Bellona',     gender: 'female', style: 'clear, carrying, articulate', group: 'neutral' },
+  { id: 'Katerina',    gender: 'female', style: 'mature, resonant',            group: 'neutral' },
+  { id: 'Jennifer',    gender: 'female', style: 'cinematic American',          group: 'neutral' },
+  { id: 'Bella',       gender: 'female', style: 'youthful, lively',            group: 'neutral' },
+  { id: 'Mia',         gender: 'female', style: 'soft, even',                  group: 'neutral' },
+  { id: 'Stella',      gender: 'female', style: 'playful, spirited',           group: 'neutral' },
+  { id: 'Seren',       gender: 'female', style: 'soothing, slow',              group: 'neutral' },
+  { id: 'Nini',        gender: 'female', style: 'sweet, close',                group: 'neutral' },
+  { id: 'Chelsie',     gender: 'female', style: 'animated, companionable',     group: 'neutral' },
+  { id: 'Momo',        gender: 'female', style: 'playful, humorous',           group: 'neutral' },
+  { id: 'Bunny',       gender: 'female', style: 'very cute, childlike',        group: 'neutral' },
+  { id: 'Elias',       gender: 'female', style: 'instructional, explanatory',  group: 'neutral' },
+  { id: 'Ethan',       gender: 'male',   style: 'warm, energetic',             group: 'neutral' },
+  { id: 'Moon',        gender: 'male',   style: 'bold, confident',             group: 'neutral' },
+  { id: 'Kai',         gender: 'male',   style: 'soothing',                    group: 'neutral' },
+  { id: 'Neil',        gender: 'male',   style: 'news-anchor precision',       group: 'neutral' },
+  { id: 'Vincent',     gender: 'male',   style: 'raspy, cinematic',            group: 'neutral' },
+  { id: 'Nofish',      gender: 'male',   style: 'casual, offhand',             group: 'neutral' },
+  { id: 'Ryan',        gender: 'male',   style: 'theatrical, high energy',     group: 'neutral' },
+  { id: 'Aiden',       gender: 'male',   style: 'friendly American',           group: 'neutral' },
+  { id: 'Andre',       gender: 'male',   style: 'magnetic, composed',          group: 'neutral' },
+  { id: 'Arthur',      gender: 'male',   style: 'elderly storyteller',         group: 'neutral' },
+  { id: 'Eldric Sage', gender: 'male',   style: 'wise elder',                  group: 'neutral' },
+  { id: 'Mochi',       gender: 'male',   style: 'bright, precocious child',    group: 'neutral' },
+  { id: 'Pip',         gender: 'male',   style: 'mischievous child',           group: 'neutral' },
+
+  // ── A character accent by design ──
+  { id: 'Sonrisa',     gender: 'female', style: 'warm Latin American',         group: 'accent' },
+  { id: 'Sohee',       gender: 'female', style: 'warm, expressive Korean',     group: 'accent' },
+  { id: 'Ono Anna',    gender: 'female', style: 'playful Japanese',            group: 'accent' },
+  { id: 'Bodega',      gender: 'male',   style: 'enthusiastic Spanish',        group: 'accent' },
+  { id: 'Alek',        gender: 'male',   style: 'Russian, cool then warm',     group: 'accent' },
+  { id: 'Dolce',       gender: 'male',   style: 'languid Italian',             group: 'accent' },
+  { id: 'Lenn',        gender: 'male',   style: 'rational German',             group: 'accent' },
+  { id: 'Emilien',     gender: 'male',   style: 'romantic French',             group: 'accent' },
+  { id: 'Radio Gol',   gender: 'male',   style: 'football commentator',        group: 'accent' },
+
+  // ── Chinese regional ──
+  { id: 'Jada',        gender: 'female', style: 'Shanghai, spirited',          group: 'dialect' },
+  { id: 'Sunny',       gender: 'female', style: 'Sichuan, sweet',              group: 'dialect' },
+  { id: 'Kiki',        gender: 'female', style: 'Cantonese, sweet',            group: 'dialect' },
+  { id: 'Dylan',       gender: 'male',   style: 'Beijing, youthful',           group: 'dialect' },
+  { id: 'Li',          gender: 'male',   style: 'Nanjing, patient',            group: 'dialect' },
+  { id: 'Marcus',      gender: 'male',   style: 'Shaanxi, earthy',             group: 'dialect' },
+  { id: 'Roy',         gender: 'male',   style: 'Minnan, witty',               group: 'dialect' },
+  { id: 'Peter',       gender: 'male',   style: 'Tianjin, comic',              group: 'dialect' },
+  { id: 'Eric',        gender: 'male',   style: 'Sichuan, modern',             group: 'dialect' },
+  { id: 'Rocky',       gender: 'male',   style: 'Cantonese, humorous',         group: 'dialect' },
+];
+
+/** Just the ids — the shape the tool schemas and the pickers want. */
+export const TTS_VOICES: readonly string[] = TTS_VOICE_CATALOGUE.map((v) => v.id);
+export type TtsVoice = string;
+
+/**
+ * Pace and loudness: the only two delivery controls this model honours.
+ *
+ * There used to be an Emotion dial here too, and a voiceDeliveryInstruction()
+ * that turned both dials into an English sentence sent as `instructions`. That
+ * was right for qwen3-tts-instruct-flash, which shaped delivery from plain
+ * language and had no numeric parameters at all. Qwen retired it on
+ * 2026-10-10. The replacement still ACCEPTS `instructions` and no longer acts
+ * on them: the same line directed "slowly" and directed "manic" came back
+ * 7.12s and 7.04s, which is the same read twice.
+ *
+ * So both dials silently did nothing, and a panel whose controls do nothing
+ * teaches people the panel is decorative. Emotion is GONE rather than
+ * relabelled, because tone has no numeric equivalent here — it now comes from
+ * WHICH VOICE you pick, which is why the roster above matters more than it
+ * used to.
+ *
+ * Everything below was MEASURED rather than read from a doc, because this API
+ * accepts unknown parameters silently: an invented `bogus_param` returned 200.
+ * "It did not error" proves nothing; only changed audio does.
+ */
 export const TTS_VOICE_SPEEDS = ['slower', 'normal', 'brisk'] as const;
 
 /**
- * Turn the delivery dials into an instruction the model can actually follow.
+ * Pace, as the numeric `speech_rate` the API actually reads.
  *
- * Qwen3-TTS takes `instructions` as PLAIN LANGUAGE — there is no numeric speed
- * or pitch parameter — so a "1.25×" dropdown could never have been sent as a
- * number. It has to become words, and those words live here rather than in each
- * surface, because a dial that means something different in the IDE than in the
- * extension is not a shared control.
+ * MEASURED on one fixed line: 13.52s at 0.5, 7.04s at 1.0, 5.14s at 1.5.
+ * DashScope accepts 0.5-2.0 and returns InvalidParameter outside it (verified
+ * at 0.3, 0.4, 2.5 and 3.0).
  *
- * Returns undefined for the neutral default: silence is a better instruction
- * than "read this neutrally at normal speed", which spends the model's
- * attention telling it to do nothing.
+ * `normal` returns undefined so the parameter is omitted entirely, leaving the
+ * voice at its own natural pace rather than asserting a 1.0 that a later model
+ * might not read the same way.
  */
-export function voiceDeliveryInstruction(emotion?: string, speed?: string): string | undefined {
-  const tone: Record<string, string> = {
-    warm: 'Warm and close, as if speaking to one person.',
-    bright: 'Bright and lifted, with an easy smile in it.',
-    calm: 'Calm and unhurried, settled at the end of each line.',
-    excited: 'Genuinely excited, leaning forward, without shouting.',
-  };
-  const pace: Record<string, string> = {
-    slower: 'Noticeably slower and more deliberate, with room between the sentences.',
-    brisk: 'Brisker than normal, keeping the pace up without rushing the words.',
-  };
-  const parts = [tone[emotion ?? ''], pace[speed ?? '']].filter(Boolean);
-  return parts.length ? parts.join(' ') : undefined;
+export function voiceSpeechRate(speed?: string): number | undefined {
+  const rate: Record<string, number> = { slower: 0.8, brisk: 1.25 };
+  return rate[speed ?? ''];
+}
+
+export const TTS_VOICE_VOLUMES = ['quiet', 'normal', 'loud'] as const;
+
+/**
+ * Loudness, as the numeric `volume` the API reads. 0-100; 200 is rejected.
+ *
+ * MEASURED by peak sample on an identical line: 0 is silence (peak 1), 10 is
+ * 1631, 25 is 5695, 50 is 11392, 75 is 19775, 100 is 27647. Linear, and 100
+ * does not clip (27647 of a possible 32767).
+ *
+ * The DEFAULT measured 19199, which is 75. So `normal` omits the parameter
+ * rather than sending a number, and `loud` is a real step above it instead of
+ * a no-op. Sending a plausible-looking 50 as "normal" would have made every
+ * read quieter than before while appearing to change nothing.
+ */
+export function voiceVolume(volume?: string): number | undefined {
+  const level: Record<string, number> = { quiet: 40, loud: 100 };
+  return level[volume ?? ''];
 }
 
 /** Sample N items without repeats — for rotating empty-state suggestions. */
