@@ -48,7 +48,7 @@ const TAGLINE_WORDS = TAGLINE.trim().split(/\s+/).length;
  * and the spoken length drift apart, and a voice still talking after the last
  * still is the most obviously broken thing a short can do.
  */
-export const SLOWEST_WORDS_PER_SECOND = 2.18;
+export const SLOWEST_WORDS_PER_SECOND = 1.90;
 
 /**
  * Seconds the spoken sign-off adds to a VOICED clip, on top of the script's own
@@ -158,7 +158,7 @@ export class WriteVideoPostTool implements Tool {
         },
         script: {
           type: 'string',
-          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 22-29 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 48-62 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 2.2 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
+          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 19-25 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 42-54 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 1.9 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
         },
         caption: {
           type: 'string',
@@ -333,14 +333,18 @@ export class WriteVideoPostTool implements Tool {
     // to fit is too short to be worth hearing. A voiced piece is therefore
     // always 10s or more. Found the hard way, when a six-word line killed every
     // food video with a generic "generation failed".
-    // MEASURED through the real voice — qwen3-tts-flash, Vivian, at
+    // MEASURED through the real voice — qwen3-tts-flash, Bellona, at
     // speech_rate 0.95, no written direction, timed off the audio actually
     // returned. Eight lengths, THREE takes each, slowest take shown:
     //
-    //      6w -> 2.06s    10w -> 4.59s   14w -> 5.68s   17w -> 6.52s
-    //     25w -> 10.48s   34w -> 14.10s  45w -> 18.40s  71w -> 28.16s
+    //      6w -> 2.06s    10w -> 4.50s   14w -> 7.37s   17w -> 8.54s
+    //     25w -> 11.83s   34w -> 15.70s  45w -> 19.07s  71w -> 35.24s
     //
-    // Floor 2.18 w/s, and the rest of the range sits at 2.39-2.61.
+    // Floor 1.90 w/s. Note she is the LEAST consistent of the voices measured
+    // on the long reads — 71 words came back 24.04s, 25.30s and 35.24s, a 47%
+    // spread on identical input, against 32% at 45 words and under 20% for
+    // everything shorter. Budgeting from the floor is what absorbs that, which
+    // is the whole reason the floor and not the average is used.
     // The SLOWEST is the one that matters: the budget multiplies by it, so
     // taking the average would let a slow read run past the last still.
     //
@@ -356,11 +360,14 @@ export class WriteVideoPostTool implements Tool {
     // direction came out (it no longer does anything and it made the timing
     // swing 31% — see ava-voice.ts), which moved the floor to 1.99. Then the
     // pace became an explicit 0.95, taking it to 1.96. Then the operator heard
-    // the nine voices nobody had sampled yet, and Vivian turned out to sound
-    // like the Maia we lost, which moved it to 2.18.
+    // the nine voices nobody had sampled yet and moved to Vivian, 2.18. Then he
+    // listened to all seventeen properly across an evening and settled on
+    // Bellona, 1.90.
     //
-    // Four numbers in a day, and only ONE of the four changes was a change of
-    // voice. The rate is not a property of the voice alone.
+    // FIVE numbers in a day, and only three of the five changes were a change
+    // of voice. The rate is not a property of the voice alone, and it is not
+    // guessable from one: Maia 2.41, Katerina 1.96, Vivian 2.18, Bellona 1.90,
+    // all at the same pace through the same model.
     //
     // So: if AVA_BRAND_VOICE, AVA_VOICE_RATE or what gets sent alongside them
     // changes, re-measure. Do not scale this — it is not linear in the pace
