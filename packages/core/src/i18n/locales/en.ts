@@ -1674,6 +1674,8 @@ export const enStrings = {
   // ── Status Bar ──────────────────────────────────────────────────────────
   'dash.status.check_updates': 'Click to check for updates',
   'dash.status.cycle_mode': 'Current: {mode} — click to cycle modes',
+  'dash.status.repo_branch': '{repo} — on branch {branch}',
+  'dash.status.errors': '{count} errors — click to open Problems',
 
   // ── Bottom Panel ────────────────────────────────────────────────────────
   'dash.panel.terminal': 'Terminal',

@@ -4305,4 +4305,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': '正常',
   'dash.studio.voice.vol_loud': '大聲',
   'dash.studio.voice.script_empty': '暫無配音內容。',
+  'dash.status.repo_branch': '{repo} — 分支 {branch}',
+  'dash.status.errors': '{count} 個錯誤 — 點擊開啟問題',
 };

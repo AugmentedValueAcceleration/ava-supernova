@@ -4305,4 +4305,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': '보통',
   'dash.studio.voice.vol_loud': '크게',
   'dash.studio.voice.script_empty': '아직 녹음된 것이 없습니다.',
+  'dash.status.repo_branch': '{repo} — {branch} 브랜치',
+  'dash.status.errors': '{count}개 오류 — 문제를 보려면 클릭',
 };

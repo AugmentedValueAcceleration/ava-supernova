@@ -4277,4 +4277,6 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_quiet': 'Bajo',
   'dash.studio.voice.vol_loud': 'Alto',
   'dash.studio.voice.script_empty': 'Nada grabado aún.',
+  'dash.status.repo_branch': '{repo} — en la rama {branch}',
+  'dash.status.errors': '{count} errores — haz clic para abrir Problemas',
 };

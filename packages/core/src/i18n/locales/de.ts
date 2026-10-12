@@ -4285,4 +4285,6 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_quiet': 'Leise',
   'dash.studio.voice.vol_loud': 'Laut',
   'dash.studio.voice.script_empty': 'Noch nichts gesprochen.',
+  'dash.status.repo_branch': '{repo} — im Zweig {branch}',
+  'dash.status.errors': '{count} Fehler — Klicken zum Öffnen der Probleme',
 };

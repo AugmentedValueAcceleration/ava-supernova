@@ -4305,4 +4305,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'Нормально',
   'dash.studio.voice.vol_loud': 'Громко',
   'dash.studio.voice.script_empty': 'Ничего ещё не озвучено.',
+  'dash.status.repo_branch': '{repo} — на ветке {branch}',
+  'dash.status.errors': '{count} ошибок — нажмите чтобы открыть Проблемы',
 };

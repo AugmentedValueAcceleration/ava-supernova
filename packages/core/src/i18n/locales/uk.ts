@@ -4285,4 +4285,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'Звичайно',
   'dash.studio.voice.vol_loud': 'Гучно',
   'dash.studio.voice.script_empty': 'Ще нічого не озвучено.',
+  'dash.status.repo_branch': '{repo} — на гілці {branch}',
+  'dash.status.errors': '{count} помилки — натисніть, щоб відкрити Проблеми',
 };

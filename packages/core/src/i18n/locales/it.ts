@@ -4305,4 +4305,6 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'Normale',
   'dash.studio.voice.vol_loud': 'Alto',
   'dash.studio.voice.script_empty': 'Nessuna voce registrata ancora.',
+  'dash.status.repo_branch': '{repo} — sul ramo {branch}',
+  'dash.status.errors': '{count} errori — clicca per aprire Problemi',
 };

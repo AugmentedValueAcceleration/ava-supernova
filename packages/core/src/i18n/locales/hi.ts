@@ -4305,4 +4305,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'सामान्य',
   'dash.studio.voice.vol_loud': 'तेज',
   'dash.studio.voice.script_empty': 'अभी तक कुछ नहीं बोला गया।',
+  'dash.status.repo_branch': '{repo} — {branch} शाखा पर',
+  'dash.status.errors': '{count} त्रुटियाँ — समस्याएं खोलने के लिए क्लिक करें',
 };

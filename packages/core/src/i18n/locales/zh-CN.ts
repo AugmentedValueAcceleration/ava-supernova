@@ -4285,4 +4285,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': '正常',
   'dash.studio.voice.vol_loud': '大',
   'dash.studio.voice.script_empty': '暂无语音。',
+  'dash.status.repo_branch': '{repo} — 当前分支 {branch}',
+  'dash.status.errors': '{count} 个错误 — 点击打开问题',
 };

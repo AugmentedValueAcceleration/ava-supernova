@@ -4301,4 +4301,6 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_quiet': 'Faible',
   'dash.studio.voice.vol_loud': 'Fort',
   'dash.studio.voice.script_empty': 'Aucun enregistrement vocal pour le moment.',
+  'dash.status.repo_branch': '{repo} — sur la branche {branch}',
+  'dash.status.errors': '{count} erreurs — cliquez pour ouvrir Problèmes',
 };

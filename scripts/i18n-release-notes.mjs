@@ -72,6 +72,29 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 474,
+    version: '0.52.0',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-12 01:30:00+00',
+    title: `The status bar tells you the truth now`,
+    body: `**It said \`main\`.** Always, whatever branch you were actually on. It was a hardcoded word rather than a reading \u2014 the status bar had never looked at git at all. A tool that states the wrong branch with total confidence is worse than one that states nothing, because you believe it right up until you commit somewhere you did not mean to.
+
+**Now it reads your repository.** The name, then the branch you are really on. It refreshes when you change folder and again whenever you come back to the window \u2014 because the usual way you change branch is in a terminal, and then you tab back here.
+
+**The error count is real too**, and it is the same list the Problems panel shows, so clicking it opens them.
+
+**The language is read from the file you have open**, rather than always claiming TypeScript, and it steps aside along with the encoding when nothing is open.
+
+**And two things are gone rather than faked.** There was a warning counter with nothing behind it, and a cursor position on an editor you cannot type into \u2014 permanently zero and permanently "Ln 1, Col 1". They come back when there is something true to put in them, and not before.`,
+    highlights: [
+      'Your repository and the branch you are really on, instead of a hardcoded "main".',
+      'It refreshes when you switch folders and when you return to the window.',
+      'The error count is live, and clicking it opens the Problems panel.',
+      'The fake warning count and cursor position are gone until they can be real.',
+    ],
+  },
+  {
     migration: 472,
     version: '0.107.0',
     platform: 'extension',

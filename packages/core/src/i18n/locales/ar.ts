@@ -4305,4 +4305,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'عادي',
   'dash.studio.voice.vol_loud': 'عالي',
   'dash.studio.voice.script_empty': 'لا يوجد صوت مسجل حتى الآن.',
+  'dash.status.repo_branch': '{repo} — على الفرع {branch}',
+  'dash.status.errors': '{count} أخطاء — انقر لفتح المشاكل',
 };

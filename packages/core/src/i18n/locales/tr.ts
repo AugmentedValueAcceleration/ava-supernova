@@ -4305,4 +4305,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_quiet': 'Sessiz',
   'dash.studio.voice.vol_loud': 'Yüksek',
   'dash.studio.voice.script_empty': 'Henüz hiçbir şey seslendirilmedi.',
+  'dash.status.repo_branch': '{repo} — {branch} dalında',
+  'dash.status.errors': '{count} hata — Sorunlar\'ı açmak için tıklayın',
 };

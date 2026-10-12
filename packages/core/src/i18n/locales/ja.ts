@@ -4307,4 +4307,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': '中',
   'dash.studio.voice.vol_loud': '大',
   'dash.studio.voice.script_empty': 'まだ音声がありません。',
+  'dash.status.repo_branch': '{repo} — {branch} ブランチ',
+  'dash.status.errors': '{count} エラー — クリックして問題を開く',
 };

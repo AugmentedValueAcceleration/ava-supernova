@@ -4305,4 +4305,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'ปกติ',
   'dash.studio.voice.vol_loud': 'ดัง',
   'dash.studio.voice.script_empty': 'ยังไม่มีเสียงบันทึก.',
+  'dash.status.repo_branch': '{repo} — บนสาขา {branch}',
+  'dash.status.errors': '{count} ข้อผิดพลาด — คลิกเพื่อเปิดปัญหา',
 };

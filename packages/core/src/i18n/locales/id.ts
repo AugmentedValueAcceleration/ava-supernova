@@ -4303,4 +4303,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'Sedang',
   'dash.studio.voice.vol_loud': 'Keras',
   'dash.studio.voice.script_empty': 'Belum ada suara.',
+  'dash.status.repo_branch': '{repo} — pada cabang {branch}',
+  'dash.status.errors': '{count} kesalahan — klik untuk membuka Masalah',
 };

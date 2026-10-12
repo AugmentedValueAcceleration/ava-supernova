@@ -4305,4 +4305,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'Normaal',
   'dash.studio.voice.vol_loud': 'Hard',
   'dash.studio.voice.script_empty': 'Nog niets ingesproken.',
+  'dash.status.repo_branch': '{repo} — op tak {branch}',
+  'dash.status.errors': '{count} fouten — klik om Problemen te openen',
 };

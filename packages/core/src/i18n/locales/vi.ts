@@ -4305,4 +4305,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.vol_normal': 'Bình thường',
   'dash.studio.voice.vol_loud': 'To',
   'dash.studio.voice.script_empty': 'Chưa có giọng nói nào.',
+  'dash.status.repo_branch': '{repo} — trên nhánh {branch}',
+  'dash.status.errors': '{count} lỗi — nhấp để mở Vấn đề',
 };
