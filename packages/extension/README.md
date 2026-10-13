@@ -84,9 +84,9 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 
 ---
 
-## Two fleets, two jobs
+## Two fleets — or any single model you like
 
-You don't pick a model. You pick the work, and the right fleet falls out of it.
+**Fleets** are for when you would rather describe the work than choose the tool. You pick the work, and the right fleet falls out of it.
 
 | Fleet | Status | Coordinator | Specialists | Residency |
 |---|---|---|---|---|
@@ -98,7 +98,13 @@ Both are live on every plan. With your own keys, each unlocks from the keys it n
 - **Maestro** — a **Qwen** key.
 - **Supernova** — **DeepSeek + Qwen** keys.
 
-BYOK users also get the raw individual models (Kimi, GLM, DeepSeek, Qwen, and more) per the keys they've added.
+**Or skip the orchestration entirely and pick one model.** Single models sit in the same picker as the fleets, and nothing is gated by tier:
+
+- **On an account** — the managed models, metered in credits: Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, DeepSeek V4.1 Flash.
+- **With your own key** — whatever that provider offers: Kimi, GLM, Mistral, MiniMax, MiMo, Hunyuan, Nemotron, Qwen, DeepSeek.
+- **On your own machine** — Ollama, LM Studio, vLLM, or any standard API endpoint.
+
+The full list is under [Models](#models) below.
 
 ---
 
