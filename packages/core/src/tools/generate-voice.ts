@@ -1,5 +1,4 @@
 import { writeFile, mkdir } from 'node:fs/promises';
-import { persistCreativeAsset } from './creative-asset-sync.js';
 import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
@@ -158,14 +157,9 @@ export class GenerateVoiceTool implements Tool {
       genManager?.complete(jobId, meta);
       tracker?.complete({ fileSizeBytes: audioBuffer.length });
 
-      persistCreativeAsset(context, {
-        assetType: 'voice',
-        filename: relativePath.split(/[\\/]/).pop() || 'voice.mp3',
-        contentType: 'audio/mpeg',
-        bytes: audioBuffer,
-        title: text.slice(0, 100),
-        prompt: text,
-      });
+      // No cloud upload. The product is local only: the file on disk is the
+      // whole story. An uploader lived here long after the toggle that
+      // controlled it was removed — see the removal commit.
 
       chargeCredits('voice_gen');
       return {

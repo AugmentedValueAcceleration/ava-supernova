@@ -2379,8 +2379,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       || syncPrefs.learning === false
       || !cloudAllowed;
 
-    // generationLocalOnly gates the creative-asset-sync helper inside the
-    // generator tools (generate_image / _music / _video / _voice). Same
+    // generationLocalOnly no longer gates any uploader — the creative-asset
+    // sync helper it named was removed when the product went local only.
+    // It survives because the IDE sends it as the X-Ava-Data-Mode header.
+    // Same
     // formula as learning / memory / tasks / journal: the config-level
     // pref OR the per-category sync pref OR the global Data Mode toggle
     // resolving to local. Any one tips the scale to localOnly.
@@ -2392,7 +2394,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // ReferenceError at runtime with the same "chat is dead" symptom
     // as the earlier syncPrefs scope bug. Do not remove without
     // removing the reference too.
-    const generationLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.generationLocalOnly') ?? false)
+    // Defaults to TRUE, like taskLocalOnly and learningLocalOnly beside it.
+    // It was the only one of the three defaulting to `false`, which is how
+    // generated media kept uploading after the product went local only.
+    // Still read because the IDE sends it as the X-Ava-Data-Mode header.
+    const generationLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.generationLocalOnly') ?? true)
       || syncPrefs.generations === false
       || !cloudAllowed;
 

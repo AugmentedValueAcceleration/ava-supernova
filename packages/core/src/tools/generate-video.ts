@@ -1,5 +1,4 @@
 import { writeFile, mkdir } from 'node:fs/promises';
-import { persistCreativeAsset } from './creative-asset-sync.js';
 import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
@@ -175,14 +174,9 @@ export class GenerateVideoTool implements Tool {
       genManager?.complete(jobId, meta);
       tracker?.complete({ fileSizeBytes: videoBuffer.length });
 
-      persistCreativeAsset(context, {
-        assetType: 'video',
-        filename: relativePath.split(/[\\/]/).pop() || 'video.mp4',
-        contentType: 'video/mp4',
-        bytes: videoBuffer,
-        title: prompt.slice(0, 100),
-        prompt,
-      });
+      // No cloud upload. The product is local only: the file on disk is the
+      // whole story. An uploader lived here long after the toggle that
+      // controlled it was removed — see the removal commit.
 
       chargeCredits('video_gen');
       return {

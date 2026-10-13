@@ -3,7 +3,6 @@ import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
-import { persistCreativeAsset } from './creative-asset-sync.js';
 import { chargeCredits } from '../billing/meter.js';
 
 /**
@@ -222,14 +221,9 @@ export class GenerateImageTool implements Tool {
         // across the web dashboard / companion when Data Mode is Cloud or
         // Both. Local write is the source of truth; a failed sync never
         // rolls back the on-disk copy.
-        persistCreativeAsset(context, {
-          assetType: 'image',
-          filename,
-          contentType: 'image/png',
-          bytes: imageBuffer,
-          title: `${purpose}: ${rawPrompt.slice(0, 80)}`,
-          prompt: enhancedPrompt,
-        });
+        // No cloud upload. The product is local only: the file on disk is the
+        // whole story. An uploader lived here long after the toggle that
+        // controlled it was removed — see the removal commit.
 
         chargeCredits('image_gen');
         return {
