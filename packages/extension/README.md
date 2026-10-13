@@ -1,10 +1,36 @@
-# Ava Supernova
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AugmentedValueAcceleration/ava-supernova/d607425f697ffb06293054bf14293e8a9db7c0ae/packages/extension/media/AvaSupernovaIcon.png" width="120" alt="Ava Supernova" />
+</p>
 
-**One AI partner. Every part of building.**
+<h1 align="center">Ava Supernova</h1>
+
+<p align="center"><strong>One AI partner. Every part of building.</strong></p>
+
+<p align="center">
+  <a href="https://avasupernova.com">Website</a> &nbsp;&middot;&nbsp;
+  <a href="https://avasupernova.com/en/documentation">Docs</a> &nbsp;&middot;&nbsp;
+  <a href="https://github.com/AugmentedValueAcceleration/ava-supernova">Source</a> &nbsp;&middot;&nbsp;
+  <a href="https://avasupernova.com/en/pricing">Pricing</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/visual-studio-marketplace/v/augmentedvalueacceleration.ava-supernova?style=flat-square&label=version&color=7c3aed" alt="Version" />
+  <img src="https://img.shields.io/visual-studio-marketplace/i/augmentedvalueacceleration.ava-supernova?style=flat-square&label=installs&color=7c3aed" alt="Installs" />
+  <img src="https://img.shields.io/badge/licence-Apache--2.0-7c3aed?style=flat-square" alt="Licence" />
+  <img src="https://img.shields.io/badge/local--first-yes-7c3aed?style=flat-square" alt="Local first" />
+</p>
+
+---
 
 Ava is the AI coding agent that does everything between the idea and the ship — and remembers it all so the next time gets easier. Engineer your features. Design your assets. Teach you what you don't know. Audit your security. Plan your strategy. Brainstorm what's next. All from inside VS Code.
 
 > **Install, open, go.** No account. No credit card. No trial. Bring your own API key, or sign up for **300 free credits a month**.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AugmentedValueAcceleration/ava-supernova/d607425f697ffb06293054bf14293e8a9db7c0ae/packages/extension/media/screenshots/chat-building.png" width="900" alt="Ava planning an item system against a real codebase" />
+</p>
+
+<p align="center"><em>Ava reading a real project before she answers — not guessing at it.</em></p>
 
 ---
 
@@ -70,7 +96,12 @@ Switch with the dropdown or `Ctrl+Shift+1` through `Ctrl+Shift+7`.
 
 ---
 
-## As Your Engineer
+## What she actually does
+
+Eight roles, one brain, one memory. Open whichever is relevant to you.
+
+<details>
+<summary><strong>As Your Engineer</strong></summary>
 
 Ava approaches your features the way a real engineer would, not the way a fast autocomplete does.
 
@@ -86,9 +117,10 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 
 Pick the fleet that fits the job: **Maestro** (a tier-differentiated Qwen ensemble — the predictable daily driver, with Qwen 3.8 Flash coordinating and building) or **Supernova** (the polyglot — DeepSeek V4.1 Flash coordinates and takes the chat and mid-tier seats, Qwen 3.7 Plus builds, Qwen 3.8 Flash handles vision).
 
----
+</details>
 
-## As Your Designer
+<details>
+<summary><strong>As Your Designer</strong></summary>
 
 Ava ships with a **Creative Studio** that generates real assets and integrates them into your projects.
 
@@ -109,9 +141,10 @@ Ava ships with a **Creative Studio** that generates real assets and integrates t
 
 Every asset is tracked in the **Library** tab — grid or list view, filter by type, preview, copy paths, and reuse across projects. A full logo system saves as one grouped card, so all its variants stay together.
 
----
+</details>
 
-## As Your Tutor
+<details>
+<summary><strong>As Your Tutor</strong></summary>
 
 Tell Ava what you want to learn and she becomes a real teacher. Teach runs on the same credits as every other mode — so the 300 free each month gets the Free tier learning at no cost.
 
@@ -123,9 +156,10 @@ Tell Ava what you want to learn and she becomes a real teacher. Teach runs on th
 
 **She remembers your learning.** Build a feature later that uses something she taught you, and she references it: *"remember when we covered dependency injection? Same pattern here."*
 
----
+</details>
 
-## As Your Strategist
+<details>
+<summary><strong>As Your Strategist</strong></summary>
 
 Two modes for thinking work, no code touched until you approve.
 
@@ -133,9 +167,10 @@ Two modes for thinking work, no code touched until you approve.
 
 **Brainstorm mode** — for ideation and decision-making. The Explorer mines your context. The Researcher checks the market. The Ideator generates options. The Challenger cuts the weak ones. The Refiner turns survivors into "here's what you do Monday morning" plans.
 
----
+</details>
 
-## As Your Security Auditor
+<details>
+<summary><strong>As Your Security Auditor</strong></summary>
 
 Security mode runs a full OWASP-aligned scan with five specialist personas:
 
@@ -147,9 +182,10 @@ Security mode runs a full OWASP-aligned scan with five specialist personas:
 
 Every finding references real code in your repo. Every CVE is matched to your actual versions. False positives get killed before you see them.
 
----
+</details>
 
-## As Your Assistant
+<details>
+<summary><strong>As Your Assistant</strong></summary>
 
 The work that isn't code, but still has to happen:
 
@@ -162,9 +198,10 @@ The work that isn't code, but still has to happen:
 - **Journal** — your entry and Ava's, side by side, with mood tracking and streaks
 - **Daily briefing** — a proactive morning check-in: today's tasks, overdue items, journal streak, learning progress
 
----
+</details>
 
-## As Your Writer
+<details>
+<summary><strong>As Your Writer</strong></summary>
 
 A dedicated **Write** mode for anyone who writes — reports, proposals, letters, articles — with no coding required.
 
@@ -174,9 +211,10 @@ A dedicated **Write** mode for anyone who writes — reports, proposals, letters
 
 **It's yours.** Save a document you love as a reusable template, and pin your brand — fonts and colours — so every new document inherits it. The source is plain Markdown, so nothing's ever locked in.
 
----
+</details>
 
-## As Your Health & Fitness Coach
+<details>
+<summary><strong>As Your Health & Fitness Coach</strong></summary>
 
 Ava's care goes past the codebase. Health mode adds a full fitness and nutrition arm — same free-for-everyone posture as the rest of Ava.
 
@@ -198,9 +236,17 @@ Ava's care goes past the codebase. Health mode adds a full fitness and nutrition
 
 **Same memory, same Ava.** What you log writes to the same memory as your code decisions, so the version of her helping in your kitchen knows what your shoulder did on Tuesday.
 
+</details>
+
 ---
 
 ## What Ties It All Together — Memory
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AugmentedValueAcceleration/ava-supernova/d607425f697ffb06293054bf14293e8a9db7c0ae/packages/extension/media/screenshots/memory.png" width="900" alt="The Memory view: everything Ava remembers, stored on your machine" />
+</p>
+
+<p align="center"><em>Everything she remembers, in the open — and stored on your machine, not ours.</em></p>
 
 Every role above uses the same memory. That's why Ava gets better at helping *you specifically* over time.
 
