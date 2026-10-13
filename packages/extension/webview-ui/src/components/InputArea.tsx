@@ -121,15 +121,61 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const wasStreamingRef = useRef(false);
 
-  // Auto-focus textarea when streaming ends
+  // Auto-focus the textarea when streaming ends.
+  //
+  // Deferred to the next frame rather than called straight out of the effect.
+  // The turn ending is the busiest render in the app — the last message
+  // finalises, cards mount, the transcript scrolls — and a focus() issued
+  // mid-commit can be undone by what renders immediately after it.
   useEffect(() => {
     if (isStreaming) {
       wasStreamingRef.current = true;
     } else if (wasStreamingRef.current) {
       wasStreamingRef.current = false;
-      textareaRef.current?.focus();
+      requestAnimationFrame(() => textareaRef.current?.focus());
     }
   }, [isStreaming]);
+
+  // TYPE-TO-FOCUS — a typed message must never land on the floor.
+  //
+  // Operator, after losing a long reply: *"if i think im in there ava
+  // finishes and i type to reply thinking im in there only to see after a
+  // long message i was not"*. He is right that this is the worst kind of
+  // bug: silent, and it costs you the thing you just wrote.
+  //
+  // The auto-focus above already existed, and focus still got lost — a long
+  // turn gives you every chance to click elsewhere, and in a VS Code webview
+  // focus can leave the panel entirely. Rather than keep hunting for which
+  // render steals it, this makes the loss harmless: press a printable key
+  // with the caret nowhere useful and it lands in the composer, character
+  // included. Slack, Gmail and GitHub all behave this way.
+  //
+  // Deliberately narrow, so it never fights a real control:
+  //   - modifier combos are shortcuts, not typing
+  //   - anything already in a field, or a contenteditable, is left alone
+  //   - a disabled composer is not a place to put a keystroke
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (disabled) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length !== 1) return;            // printable characters only
+
+      const el = document.activeElement as HTMLElement | null;
+      if (el) {
+        const tag = el.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (el.isContentEditable) return;
+      }
+
+      const ta = textareaRef.current;
+      if (!ta || ta === el) return;
+      // Focus during keydown, so the browser delivers this very character
+      // into the composer rather than dropping it.
+      ta.focus();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [disabled]);
 
   // Prefill from starter chips on the empty-state helper. Replaces the
   // textarea contents (rather than appending) so a chip click always

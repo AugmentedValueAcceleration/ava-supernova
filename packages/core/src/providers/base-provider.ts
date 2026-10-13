@@ -4,6 +4,55 @@ import { ProviderError } from '../core/errors.js';
 import { logger } from '../core/logger.js';
 import { shapeOpenAICompatBody } from './request-shaping/index.js';
 
+/**
+ * Turn a provider's error body into one line a person can read.
+ *
+ * This used to be `errorBody.slice(0, 500)`, which is fine for a JSON error
+ * and dreadful for anything else. When Render restarted mid-turn the platform
+ * returned a Cloudflare 520 page, and five hundred characters of `<!DOCTYPE
+ * html>`, IE conditional comments and `<meta charset>` went into the chat as
+ * Ava's explanation of what went wrong. The information was correct and the
+ * presentation was indefensible.
+ *
+ * The FULL body is still attached to ProviderError.responseBody, so nothing is
+ * lost for debugging — this only decides what a human is shown.
+ */
+export function summariseErrorBody(status: number, body: string): string {
+  const trimmed = (body || '').trim();
+  if (!trimmed) return 'no response body';
+
+  // An HTML error page. Its <title> is usually the only useful line in it
+  // ("onrender.com | 520: Web server is returning an unknown error"), so take
+  // that and throw the markup away.
+  if (/^\s*(<!doctype html|<html|<\?xml)/i.test(trimmed) || /<head[\s>]/i.test(trimmed.slice(0, 400))) {
+    const title = /<title[^>]*>([^<]{1,160})<\/title>/i.exec(trimmed)?.[1]?.trim();
+    const gateway = status >= 520 || status === 502 || status === 503 || status === 504;
+    const what = title ? `"${title}"` : 'an HTML error page';
+    return gateway
+      ? `the gateway returned ${what} instead of an API response — this is the host, not your request`
+      : `the server returned ${what} instead of an API response`;
+  }
+
+  // JSON, hopefully with a message in it somewhere worth repeating.
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const j = JSON.parse(trimmed) as Record<string, unknown>;
+      const err = j.error as Record<string, unknown> | string | undefined;
+      const msg =
+        (typeof err === 'object' && err && typeof err.message === 'string' && err.message) ||
+        (typeof err === 'string' && err) ||
+        (typeof j.message === 'string' && j.message) ||
+        (typeof j.detail === 'string' && j.detail) ||
+        null;
+      if (msg) return msg.slice(0, 300);
+    } catch { /* not valid JSON after all — fall through */ }
+  }
+
+  // Plain text, or JSON we could not read. One line, not a wall.
+  const oneLine = trimmed.replace(/\s+/g, ' ');
+  return oneLine.length > 300 ? oneLine.slice(0, 300) + '…' : oneLine;
+}
+
 export abstract class BaseProvider implements Provider {
   abstract readonly name: string;
   abstract readonly displayName: string;
@@ -251,8 +300,13 @@ export abstract class BaseProvider implements Provider {
 
       logger.debug(`[${this.name}] API error (attempt ${attempt + 1}/${maxRetries + 1}): ${response.status} ${response.statusText} — ${errorBody.slice(0, 500)}`);
 
+      // The log keeps the raw body above; the MESSAGE gets a readable
+      // summary, because this string ends up in the chat when a turn dies.
+      // statusText is often empty on gateway errors — printing the gap is
+      // worse than leaving it out.
+      const statusLabel = [response.status, response.statusText].filter(Boolean).join(' ');
       lastError = new ProviderError(
-        `${this.displayName} API error: ${response.status} ${response.statusText} — ${errorBody.slice(0, 500)}`,
+        `${this.displayName} API error: ${statusLabel} — ${summariseErrorBody(response.status, errorBody)}`,
         this.name,
         response.status,
         errorBody,

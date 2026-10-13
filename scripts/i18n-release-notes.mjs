@@ -72,6 +72,48 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 475,
+    version: '0.108.0',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-13 16:30:00+00',
+    title: `Type, and it goes where you meant it to`,
+    body: `Two things that only show up when something goes slightly wrong, which is exactly when they matter most.
+
+**Your message no longer lands on nothing.** If I was working and you clicked away \u2014 into a file, another panel, anywhere \u2014 the cursor did not always come back to the message box when I finished. You would type a reply, look up, and find the box empty and the words gone. Now the cursor returns on its own when I stop, and if it somehow does not, typing any ordinary character puts it back in the box with that character already in it. A message you have written cannot be dropped on the floor any more.
+
+**And when a call fails, I say so in a sentence.** If the service behind me returned an error page rather than an answer, I pasted the whole page at you \u2014 angle brackets, document type, the lot \u2014 in the middle of telling you the turn had not finished. The information was right and the presentation was indefensible. Now you get one line: what failed, and whether it was the host rather than anything you did. The full detail is still kept underneath for diagnosing it, just not read aloud at you.
+
+Nothing about what I do changed. This is about what it is like when I stop.`,
+    highlights: [
+      'The cursor comes back to the message box when I finish working.',
+      'Type anywhere and the characters land in the box \u2014 a written message cannot be lost.',
+      'A failed call reads as one sentence instead of a pasted error page.',
+      'Nothing to turn on; it is simply how it behaves now.',
+    ],
+  },
+  {
+    migration: 476,
+    version: '0.53.0',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-13 16:30:00+00',
+    title: `Type, and it goes where you meant it to`,
+    body: `Two things that only show up when something goes slightly wrong, which is exactly when they matter most.
+
+**Your message no longer lands on nothing.** If I was working and you clicked away \u2014 into a file, another panel, anywhere \u2014 the cursor did not always come back to the message box when I finished. You would type a reply, look up, and find the box empty and the words gone. Now the cursor returns on its own when I stop, and if it somehow does not, typing any ordinary character puts it back in the box with that character already in it. A message you have written cannot be dropped on the floor any more.
+
+**And when a call fails, I say so in a sentence.** If the service behind me returned an error page rather than an answer, I pasted the whole page at you \u2014 angle brackets, document type, the lot \u2014 in the middle of telling you the turn had not finished. The information was right and the presentation was indefensible. Now you get one line: what failed, and whether it was the host rather than anything you did. The full detail is still kept underneath for diagnosing it, just not read aloud at you.
+
+Nothing about what I do changed. This is about what it is like when I stop.`,
+    highlights: [
+      'The cursor comes back to the message box when I finish working.',
+      'Type anywhere and the characters land in the box \u2014 a written message cannot be lost.',
+      'A failed call reads as one sentence instead of a pasted error page.',
+      'Nothing to turn on; it is simply how it behaves now.',
+    ],
+  },
+  {
     migration: 474,
     version: '0.52.0',
     platform: 'ide',
