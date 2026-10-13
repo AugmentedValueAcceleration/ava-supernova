@@ -98,13 +98,25 @@ Both are live on every plan. With your own keys, each unlocks from the keys it n
 - **Maestro** — a **Qwen** key.
 - **Supernova** — **DeepSeek + Qwen** keys.
 
-**Or skip the orchestration entirely and pick one model.** Single models sit in the same picker as the fleets, and nothing is gated by tier:
+**Or skip the orchestration entirely and pick one model.** Single models sit in the same picker as the fleets, and nothing is gated by tier — every plan reaches every managed model, and your own key reaches whatever that provider offers.
 
-- **On an account** — the managed models, metered in credits: Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, DeepSeek V4.1 Flash.
-- **With your own key** — whatever that provider offers: Kimi, GLM, Mistral, MiniMax, MiMo, Hunyuan, Nemotron, Qwen, DeepSeek.
-- **On your own machine** — Ollama, LM Studio, vLLM, or any standard API endpoint.
+### Every model, and where it runs
 
-The full list is under [Models](#models) below.
+| Source | Models |
+|---|---|
+| **Ava Managed** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, DeepSeek V4.1 Flash |
+| **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
+| **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
+| **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
+| **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
+| **BYOK — Mistral** | Medium 3.5, Small 4, Large 3 |
+| **BYOK — MiniMax** | M3, M2.7, M2.7 HighSpeed |
+| **BYOK — Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
+| **BYOK — Tencent** | Hunyuan Hy3 *(open-weight MoE, 262K context)* |
+| **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning *(open-weight, 1M context)* |
+| **BYOK — Custom** | Ollama, LM Studio, vLLM, any standard API endpoint |
+
+---
 
 ---
 
@@ -333,26 +345,6 @@ Counted from the registry as this extension builds it, not estimated: 119 regist
 | **System** | `get_datetime`, `detect_language`, `support_request`, `propose_tool` |
 | **Health & nutrition** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room`, `find_recipe`, `read_recipe`, `write_recipe`, `check_recipe`, `add_ingredient`, `find_exercise`, `read_exercise`, `write_exercise`, `check_exercise`, `propose_exercises`, `set_muscles`, `set_nutrition`, `add_equipment`, `add_contraindication`, `day_plan_read`, `day_plan_write`, `day_plan_item_status`, `record_machine_rule` |
 | **Newsroom & social** | `discover_news`, `research_story`, `suggest_stories`, `suggest_beats`, `scan_industry`, `fact_check`, `write_article`, `revise_section`, `research_post`, `write_post`, `write_post_image`, `write_video_post`, `write_voiceover`, `propose_seeds`, `propose_hooks`, `post_performance` |
-
----
-
-## Models
-
-Every plan gets every managed model. Tiers differ only on monthly credit allowance — never on which models are available. Bring your own key for any provider, including a local endpoint for a fully free, fully offline agent.
-
-| Source | Models |
-|---|---|
-| **Ava Managed** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, DeepSeek V4.1 Flash |
-| **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
-| **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
-| **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
-| **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
-| **BYOK — Mistral** | Medium 3.5, Small 4, Large 3 |
-| **BYOK — MiniMax** | M3, M2.7, M2.7 HighSpeed |
-| **BYOK — Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
-| **BYOK — Tencent** | Hunyuan Hy3 *(open-weight MoE, 262K context)* |
-| **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning *(open-weight, 1M context)* |
-| **BYOK — Custom** | Ollama, LM Studio, vLLM, any standard API endpoint |
 
 ---
 
