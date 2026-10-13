@@ -34,6 +34,30 @@ Ava is the AI coding agent that does everything between the idea and the ship �
 
 ---
 
+## Three ways to run it
+
+**1 — Your own key. No account.**
+Install, paste a provider key, start working. There is nothing to sign up for and nothing for us to meter — you pay your provider directly. Qwen, DeepSeek, Moonshot, Zhipu, Mistral, MiniMax, Xiaomi, Tencent and NVIDIA are all supported.
+
+**2 — Your own machine. No key, no account, no bill.**
+Point Ava at **Ollama**, **LM Studio**, **vLLM** or any standard API endpoint and she runs entirely on your hardware. No network, nothing leaving the machine, no spend.
+
+**3 — An Ava account**, if you would rather not manage keys at all.
+Managed models, one bill, and credits that meter everything in one place.
+
+| Plan | Monthly | Credits | Storage |
+|---|---|---|---|
+| **Free** | $0 | 300 | 2 GB |
+| **Pro** | $19 | 5,000 | 25 GB |
+| **Ultra** | $39 | 10,000 | 100 GB |
+| **Enterprise** | $79 | 20,000 | 500 GB |
+
+**Every plan is the whole product.** Tiers change your credit allowance and storage — never which models you can reach, and never what Ava can do. There is no feature behind a higher tier.
+
+And they mix. Bring your own key *with* an account, use managed models for some work and your own key for the rest, or keep a local model for anything that must never leave your machine.
+
+---
+
 ## The full picture
 
 Ava isn't a single tool. She's a partner who plays multiple roles depending on what you need:
