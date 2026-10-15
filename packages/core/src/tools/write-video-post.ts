@@ -146,7 +146,18 @@ export class WriteVideoPostTool implements Tool {
                 type: 'string',
                 description: 'One line on why these tags, for this platform — which are reach and which are niche.',
               },
-              title: { type: 'string', description: 'Optional title, where the platform shows one.' },
+              title: {
+                type: 'string',
+                description:
+                  'The title, where the platform shows one. REQUIRED for youtube and refused without it. ' +
+                  'On Shorts the description is collapsed on mobile, so this is the only thing most people read ' +
+                  'before deciding — it is the discovery surface, not a label. Write what someone would TYPE to ' +
+                  'find this: the plain claim with the searchable words in it ("A coding agent that runs offline"), ' +
+                  'not the hook from the script repeated ("Wifi off Still Coding"), which reads well only to ' +
+                  'someone already watching. Front-load it; it truncates around 40-50 characters on a phone. ' +
+                  'NO hashtags in here — they belong in the description, and in a title they eat the space the ' +
+                  'claim needed.',
+              },
             },
             required: ['platform', 'caption'],
           },
@@ -154,11 +165,11 @@ export class WriteVideoPostTool implements Tool {
         shots: {
           type: 'array',
           items: { type: 'string' },
-          description: 'The STORYBOARD — one still per five seconds of the finished piece, in order. A 15-second post takes exactly 3, a 30-second one takes 6; the count must match duration ÷ 5 and is refused with the arithmetic if it does not. Each entry describes ONE FRAME: subject, setting, framing, light, mood. Not camera movement — these are photographs, and asking for a slow push in describes something a still cannot do. They run END TO END, so they must carry the script forward rather than restate it: the hand reaching, the pan at heat, the plate finished. Three angles on the same moment is not a storyboard, it is one shot photographed three times, and it makes a video that does not move. Be concrete — a model cannot render "the feeling of trust", but it can render a hand stopping halfway to a pan.',
+          description: 'The STORYBOARD — one still per five seconds of the finished piece, in order. THE FIRST FRAME carries the subject in words, because these platforms read on-screen text and most people watch with the sound off — Facebook especially. Describe that first still so the claim can sit on it legibly. A 15-second post takes exactly 3, a 30-second one takes 6; the count must match duration ÷ 5 and is refused with the arithmetic if it does not. Each entry describes ONE FRAME: subject, setting, framing, light, mood. Not camera movement — these are photographs, and asking for a slow push in describes something a still cannot do. They run END TO END, so they must carry the script forward rather than restate it: the hand reaching, the pan at heat, the plate finished. Three angles on the same moment is not a storyboard, it is one shot photographed three times, and it makes a video that does not move. Be concrete — a model cannot render "the feeling of trust", but it can render a hand stopping halfway to a pan.',
         },
         script: {
           type: 'string',
-          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 19-25 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 42-54 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 1.9 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
+          description: 'What YOU SAY over the clip, spoken in your own voice. Written to be heard, not read — short sentences, no hashtags, no emoji, no "link in bio". THE OPENING LINE IS A DISCOVERY SURFACE, not just a hook: TikTok and Instagram both index the spoken words and the on-screen text of a short, so the plain term a person would SEARCH for belongs in the first sentence, said out loud. "A coding agent that runs offline" is findable; "wifi off, still coding" is only clever to someone already watching. Say the thing, then be clever. THE LENGTH IS DECIDED FIRST and you write to fill it. A video is 15 SECONDS — write 19-25 words. Both bounds are enforced, so a one-line hook is REFUSED rather than quietly becoming a shorter clip, and an essay is refused rather than overrunning the picture. Fifteen seconds is one clear thought said properly: a claim and its turn, not a list. If an idea genuinely needs longer, set `duration` yourself and write to THAT length — the band moves with it (30s is 42-54 words). Reach for it because the idea earns the room, not out of habit. There is air at each end so your voice does not start on the first frame or stop on the last. Timed against the real voice at about 1.9 words a second. The ceiling keeps the voice inside the picture: a voice still talking after the clip stops is the most obviously broken thing a short can do. The floor keeps the picture from running on alone, and under 3 seconds Wan refuses the audio outright so nothing renders. A voiced clip is never 5 seconds — ask for 10 or more. Thirty seconds is a different KIND of writing, not a longer version of the same one: it is a walkthrough or a demonstration, and padding fifteen seconds of idea to fill it is worse than keeping it short. Omit the script entirely for a silent clip — the model scores its own audio, and a picture carried by that soundtrack is a real choice rather than a fallback.',
         },
         caption: {
           type: 'string',
@@ -299,6 +310,54 @@ export class WriteVideoPostTool implements Tool {
         : `${withTagline}\n\n${AVA_URL}`;
       return { ...v, caption: withLink };
     });
+    // YouTube without a title is a Short nobody can find. The field was
+    // optional for months and was skipped every single time, so it is checked
+    // rather than described. Hashtags are refused in it for the same reason
+    // the policy now says to keep them out: on Shorts the title IS the
+    // discovery surface and tags were consuming it.
+    const ytMissingTitle = finished.filter((v) => v.platform === 'youtube' && !(v.title || '').trim());
+    if (ytMissingTitle.length > 0) {
+      return {
+        success: false,
+        output:
+          'The youtube entry has no `title`. On Shorts the description is collapsed on mobile, so the title is ' +
+          'the only thing most people read before they decide — without one the post goes up unfindable. Write ' +
+          'the plain searchable claim, the words someone would actually type, front-loaded and under about 50 ' +
+          'characters. Then call write_video_post again.',
+      };
+    }
+    const ytTaggedTitle = finished.filter((v) => v.platform === 'youtube' && (v.title || '').includes('#'));
+    if (ytTaggedTitle.length > 0) {
+      return {
+        success: false,
+        output:
+          `The youtube title contains hashtags: "${ytTaggedTitle[0].title}". They belong in the description. ` +
+          'In the title they eat the space the claim needed, and the title is the one thing a viewer reads on a ' +
+          'phone. Take them out, put them in the caption, and call write_video_post again.',
+      };
+    }
+
+    // Instagram caps posts and Reels at FIVE hashtags — rolled out December
+    // 2025, and anything beyond it is rejected. Every Instagram post written
+    // here carried ten, because the policy still said 8-12. Checked rather
+    // than described: refusing above five is safe even if the true cap turns
+    // out higher, because 3-5 is the recommendation either way.
+    const IG_TAG_CAP = 5;
+    const igTooManyTags = finished.filter(
+      (v) => v.platform === 'instagram' && (v.hashtags?.length ?? 0) > IG_TAG_CAP,
+    );
+    if (igTooManyTags.length > 0) {
+      const n = igTooManyTags[0].hashtags?.length ?? 0;
+      return {
+        success: false,
+        output:
+          `The instagram entry has ${n} hashtags. Instagram caps posts and Reels at ${IG_TAG_CAP} and rejects ` +
+          'anything over it, so this would not publish as written. Keep the ' + IG_TAG_CAP + ' that are genuinely ' +
+          'closest to the subject and drop the rest — they categorise and feed search, they do not add reach. ' +
+          'Then call write_video_post again.',
+      };
+    }
+
     const tooLong = finished
       .map((v) => ({ v, limit: VIDEO_CAPTION_LIMITS[v.platform], len: Array.from(v.caption).length }))
       .filter((x) => x.limit && x.len > x.limit);

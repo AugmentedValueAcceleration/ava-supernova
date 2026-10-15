@@ -43,7 +43,9 @@ describe('one video, one generation, a caption per platform', () => {
       posts: [
         { platform: 'tiktok', caption: 'short and muted', hashtags: ['terminalsetup'] },
         { platform: 'instagram', caption: 'the reel version', hashtags: ['cli', 'devsetup', 'terminal'] },
-        { platform: 'youtube', caption: 'the shorts version', hashtags: ['Shorts', 'cli'] },
+        // youtube REQUIRES a title — on Shorts the description is collapsed
+        // on mobile, so a Short without one goes up unfindable.
+        { platform: 'youtube', caption: 'the shorts version', hashtags: ['cli'], title: 'Run a coding agent offline' },
         { platform: 'facebook', caption: 'the plain-language version', hashtags: [] },
       ],
     });
