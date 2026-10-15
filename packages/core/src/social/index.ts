@@ -87,18 +87,22 @@ export interface VideoPostVariant {
 
 export interface VideoPostInput {
   /**
-   * One entry per platform, each with its own caption and tags. The
-   * storyboard, the script and the duration below are SHARED by all of
-   * them — same video, different words.
+   * One entry per platform, each with its own caption and tags. The clip, the
+   * script and the duration below are SHARED by all of them — same video,
+   * different words. All four destinations are 9:16, so one piece of footage
+   * genuinely serves every one of them.
    */
   variants: VideoPostVariant[];
   /**
-   * The STORYBOARD — one still per five seconds, in order. Three for fifteen
-   * seconds, six for thirty; the count is checked against `duration` rather
-   * than asked for separately, because two numbers that must agree are two
-   * numbers that can disagree.
+   * THE SHOT — one continuous clip, described as a single moving image.
+   *
+   * Was `shots: string[]`, a storyboard of stills at one per five seconds,
+   * until 15 Oct 2026. TikTok flagged a post built that way as low-quality
+   * STATIC IMAGES and made it ineligible for recommendation, which is to say
+   * invisible. A strip of stills cannot earn a view there, so the strip
+   * became a clip.
    */
-  shots: string[];
+  shot: string;
   /** What she SAYS over it. Empty for a silent piece carried by on-screen text. */
   script?: string;
   /** Clip length in seconds. */
@@ -118,12 +122,16 @@ export interface VideoPostInput {
 
 /** What the surface reports back — the finished parts, not a job to poll. */
 export interface VideoPostWritten {
-  /** The stills, IN ORDER. Permanent URLs, already in the Library. */
-  shots: Array<{ url: string; prompt: string }>;
-  /** Shots that did not render, in her words. Reported rather than hidden:
-   *  a storyboard with a hole in it is not a storyboard, and she has to know
-   *  before she tells the operator it is ready. */
-  shotErrors: string[];
+  /** The finished clip. Permanent URL, already in the Library. Null when the
+   *  render failed — there is no still to fall back on now, so a null here
+   *  means the post has no picture at all. */
+  clipUrl: string | null;
+  /** Why the clip did not render, in her words. Reported rather than hidden:
+   *  she is about to tell the operator it is ready, and a post with no
+   *  picture is the one thing they cannot work around without knowing. */
+  clipError?: string;
+  /** Measured length of the clip in seconds, when the store knows it. */
+  clipSeconds?: number | null;
   /** The voiceover, when there was a script. Permanent URL. */
   voiceUrl?: string | null;
   /** Measured off the WAV header. The one fact about a read nobody can check

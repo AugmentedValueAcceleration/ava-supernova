@@ -598,3 +598,15 @@ export type {
   ArxivSearchOptions,
   FetchPaperInput,
 } from './papers/index.js';
+
+// The video-post word budget, exported so the surfaces that PRICE or
+// DESCRIBE a post compute it from the same numbers the tool enforces.
+// web's generation-approval quotes a credit cost before the operator
+// approves it, and a quote derived from its own copy of the sign-off
+// length would under-bill the moment the tagline changed.
+export {
+  SLOWEST_WORDS_PER_SECOND,
+  VOICED_OUTRO_SECONDS,
+  AIR_SECONDS,
+  maxWordsFor,
+} from './tools/write-video-post.js';

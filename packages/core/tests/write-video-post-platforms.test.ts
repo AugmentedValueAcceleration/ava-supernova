@@ -21,20 +21,19 @@ const store = {
     written = post;
     writeCalls++;
     return {
-      shots: (post.shots ?? []).map((p) => ({ url: 'https://x/1.jpg', prompt: p })),
-      shotErrors: [],
+      clipUrl: 'https://x/clip.mp4',
       voiced: true,
     };
   },
 };
 const ctx = { cwd: '.', sharedState: { videoPostStore: store } } as never;
 
-const SHOTS = ['frame 1: a hand reaches', 'frame 2: the pan at heat', 'frame 3: the plate'];
+const SHOT = 'a hand reaches into frame and lifts the pan, steam rising as the light shifts across it';
 
 async function run(args: Record<string, unknown>) {
   written = null;
   writeCalls = 0;
-  return tool.execute({ shots: SHOTS, ...args }, ctx);
+  return tool.execute({ shot: SHOT, ...args }, ctx);
 }
 
 describe('one video, one generation, a caption per platform', () => {
@@ -69,12 +68,14 @@ describe('one video, one generation, a caption per platform', () => {
     expect(instagram.hashtags).toEqual(['cli', 'devtools', 'terminal']);
   });
 
-  it('shares the storyboard and the script across all of them', async () => {
+  it('shares the clip and the script across all of them', async () => {
     await run({
-      // 22 words — well inside the band a 15-second clip is held to, with
-      // room to stay there if the brand voice slows again. This test is
+      // 17 words, inside the 16-20 a 15-second clip is now held to. It was
+      // 22 and the comment here said it had room 'if the brand voice slows
+      // again' — it did: re-measuring on 15 Oct found takes down to 1.5 words
+      // a second, so the band tightened and 22 stopped fitting. This test is
       // about the script being SHARED, not about the length rule.
-      script: 'Ava runs in your terminal now. No editor, no window, just a prompt that answers and waits. Type ava in any project.',
+      script: 'Ava runs in your terminal now. No editor, no window, just a prompt that answers and waits.',
       posts: [
         { platform: 'tiktok', caption: 'a' },
         { platform: 'facebook', caption: 'b' },
@@ -82,7 +83,7 @@ describe('one video, one generation, a caption per platform', () => {
     });
     // The footage lives once on the input, not per variant — which is what
     // lets the store generate it a single time.
-    expect(written!.shots).toEqual(SHOTS);
+    expect(written!.shot).toEqual(SHOT);
     expect(written!.script).toContain('Ava runs in your terminal now');
   });
 

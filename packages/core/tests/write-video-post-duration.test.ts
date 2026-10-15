@@ -40,36 +40,30 @@ function words(n: number): string {
 }
 
 const tool = new WriteVideoPostTool();
-let lastWritten: { duration?: number; shots?: string[] } | null = null;
+let lastWritten: { duration?: number; shot?: string } | null = null;
 const store = {
-  write: async (post: { duration?: number; shots?: string[] }) => {
+  write: async (post: { duration?: number; shot?: string }) => {
     lastWritten = post;
     return {
-      shots: (post.shots ?? []).map(p => ({ url: 'https://x/1.jpg', prompt: p })),
-      shotErrors: [],
+      clipUrl: 'https://x/clip.mp4',
       voiced: true,
     };
   },
 };
 const ctx = { cwd: '.', sharedState: { videoPostStore: store } } as never;
 
-/** A storyboard of `n` distinct frames — distinct because a real one is. */
-function storyboard(n: number): string[] {
-  return Array.from({ length: n }, (_, i) => `frame ${i + 1}: something happens`);
-}
+/** One continuous moving shot, which is all a video post carries now. The
+ *  second parameter used to be `shotCount`, because the storyboard length had
+ *  to track a duration the tool might change under the request. One clip has
+ *  no count to keep in step, so it is gone. */
+const SHOT = 'a hand reaches in and lifts the pan, steam rising as the light shifts';
 
-/**
- * `shotCount` overrides the derived one. Needed wherever the tool changes the
- * duration under the request — a voiced 5s becomes 10s and needs two frames,
- * 45s clamps to 30 and needs six — which is exactly what those cases assert.
- */
-async function attempt(args: Record<string, unknown>, shotCount?: number) {
+async function attempt(args: Record<string, unknown>) {
   lastWritten = null;
-  const seconds = typeof args.duration === 'number' ? args.duration : 15;
   const r = await tool.execute(
     {
       platform: 'tiktok',
-      shots: storyboard(shotCount ?? Math.max(1, Math.ceil(seconds / 5))),
+      shot: SHOT,
       caption: 'a caption',
       ...args,
     },
@@ -160,45 +154,8 @@ describe('the ceilings are the models’ own', () => {
 
   it('everything else reaches 30', async () => {
     // Six frames for the thirty it clamps to, not nine for the forty-five asked.
-    expect((await attempt({ duration: 45, script: words(fits(30)) }, 6)).success).toBe(true);
+    expect((await attempt({ duration: 45, script: words(fits(30)) })).success).toBe(true);
     expect(lastWritten!.duration).toBe(30 + VOICED_OUTRO_SECONDS);
-  });
-});
-
-describe('one still per five seconds, and the count is checked', () => {
-  // Derived from the duration rather than asked for separately: two numbers
-  // that must agree are two numbers that can disagree, and the one that would
-  // have lost is the picture — silently, leaving a thirty-second piece with
-  // three frames and ten seconds of nothing to cut to.
-  it('a 15s post takes exactly three', async () => {
-    await attempt({ script: words(fits(15)) });
-    expect(lastWritten!.shots).toHaveLength(3);
-  });
-
-  it('too few is refused, with the arithmetic', async () => {
-    const r = await attempt({ script: words(fits(15)) }, 2);
-    expect(r.success).toBe(false);
-    expect(r.output).toContain('needs 3 shots');
-    expect(r.output).toContain('you wrote 2');
-  });
-
-  it('too many is refused, and offers the longer duration instead', async () => {
-    const r = await attempt({ script: words(fits(15)) }, 5);
-    expect(r.success).toBe(false);
-    expect(r.output).toContain('set duration to 25');
-  });
-
-  it('a length that is not a multiple of five rounds up', async () => {
-    // The last still simply holds a beat longer — better than refusing a
-    // perfectly good storyboard over arithmetic nobody asked her to do.
-    expect((await attempt({ duration: 12, script: words(fits(12)) }, 3)).success).toBe(true);
-  });
-
-  it('the shot count is measured against the duration she GETS, not the one she asked for', async () => {
-    // A default she never saw decides the count. Measuring against the raw
-    // request would refuse a correct three-frame storyboard for a 15s post
-    // that never named a duration at all.
-    expect((await attempt({ script: words(fits(15)) }, 3)).success).toBe(true);
   });
 });
 
@@ -206,7 +163,7 @@ describe('a voiced clip is never five seconds', () => {
   it('asking for 5 with a script is raised to 10', async () => {
     // Two frames, not one: the clip it actually becomes is ten seconds long.
     // Raised to the ten-second floor, so the band is the one for TEN.
-    const r = await attempt({ duration: 5, script: words(fits(10)) }, 2);
+    const r = await attempt({ duration: 5, script: words(fits(10)) });
     expect(r.success).toBe(true);
     // Raised to the ten-second floor, then the sign-off on top of that. The
     // frame count is measured against the floor, not against the finished
@@ -218,6 +175,6 @@ describe('a voiced clip is never five seconds', () => {
     // One frame, and it stays five seconds because nothing raises it.
     expect((await attempt({ duration: 5 })).success).toBe(true);
     expect(lastWritten!.duration).toBe(5);
-    expect(lastWritten!.shots).toHaveLength(1);
+    expect(lastWritten!.shot).toBe(SHOT);
   });
 });
