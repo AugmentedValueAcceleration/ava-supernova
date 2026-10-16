@@ -76,7 +76,7 @@ describe('messagesHaveImages', () => {
 });
 
 describe('stripReasoningContent', () => {
-  it('removes reasoning_content from every message regardless of provider', () => {
+  it('removes reasoning_content by default, for every message', () => {
     const out = stripReasoningContent([
       { role: 'assistant', content: 'hi', reasoning_content: 'thinking...' },
       { role: 'user', content: 'yo' },
@@ -84,6 +84,74 @@ describe('stripReasoningContent', () => {
     expect(out[0]).not.toHaveProperty('reasoning_content');
     expect(out[0].content).toBe('hi');
     expect(out[1]).toEqual({ role: 'user', content: 'yo' });
+  });
+
+  // DeepSeek thinking mode inverts the rule: an assistant turn that made tool
+  // calls must carry its reasoning back or the API answers 400. agent.ts keeps
+  // it for exactly that reason and the shaper used to throw it away again.
+  it('keeps it on an assistant TOOL-CALL turn when asked to', () => {
+    const out = stripReasoningContent([
+      {
+        role: 'assistant',
+        content: '',
+        reasoning_content: 'why I called it',
+        tool_calls: [{ id: 'c1', type: 'function', function: { name: 'read_file', arguments: '{}' } }],
+      },
+    ], true);
+    expect(out[0].reasoning_content).toBe('why I called it');
+  });
+
+  it('still strips it from a PLAIN assistant turn, even when keeping', () => {
+    const out = stripReasoningContent([
+      { role: 'assistant', content: 'just talking', reasoning_content: 'noise' },
+    ], true);
+    expect(out[0]).not.toHaveProperty('reasoning_content');
+  });
+
+  it('strips an empty or nulled reasoning_content rather than sending it back', () => {
+    const out = stripReasoningContent([
+      {
+        role: 'assistant',
+        content: '',
+        reasoning_content: null,
+        tool_calls: [{ id: 'c1', type: 'function', function: { name: 'x', arguments: '{}' } }],
+      },
+    ], true);
+    expect(out[0]).not.toHaveProperty('reasoning_content');
+  });
+});
+
+describe('shapeMessages — DeepSeek thinking mode', () => {
+  const toolTurn = {
+    role: 'assistant',
+    content: '',
+    reasoning_content: 'the plan',
+    tool_calls: [{ id: 'c1', type: 'function', function: { name: 'read_file', arguments: '{}' } }],
+  };
+
+  it('keeps reasoning on a tool-call turn for the deepseek provider', () => {
+    const out = shapeMessages('deepseek', [toolTurn]);
+    expect(out[0].reasoning_content).toBe('the plan');
+  });
+
+  // The bug was first reported through a CUSTOM provider, where the provider
+  // key is not 'deepseek' at all — the error said "Custom Provider API error".
+  // The model id is what gives it away.
+  it('keeps it for a CUSTOM provider pointed at a deepseek model', () => {
+    const out = shapeMessages('generic', [toolTurn], 'deepseek-flash-platform');
+    expect(out[0].reasoning_content).toBe('the plan');
+  });
+
+  it('still strips for qwen and mistral, which reject the field', () => {
+    for (const p of ['qwen', 'mistral']) {
+      const out = shapeMessages(p, [toolTurn]);
+      expect(out[0]).not.toHaveProperty('reasoning_content');
+    }
+  });
+
+  it('strips for a custom provider on a NON-deepseek model', () => {
+    const out = shapeMessages('generic', [toolTurn], 'qwen3.5-flash');
+    expect(out[0]).not.toHaveProperty('reasoning_content');
   });
 });
 

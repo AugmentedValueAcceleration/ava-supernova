@@ -51,7 +51,9 @@ export function shapeOpenAICompatBody(input: ShapeOpenAICompatInput): Record<str
   const hasImages = messagesHaveImages(messages);
   return {
     model: resolveApiModel(model, hasImages),
-    messages: shapeMessages(provider, messages),
+    // The model goes with it: a custom provider pointed at DeepSeek is not
+    // called 'deepseek', and it is the model that decides who serves this.
+    messages: shapeMessages(provider, messages, model),
     ...shapeParams(provider, model, params),
   };
 }

@@ -21,19 +21,61 @@ import { logger } from '../../core/logger.js';
 type LooseMessage = Record<string, unknown>;
 
 /**
- * reasoning_content is an OUTPUT-only field that reasoning models EMIT — they
- * reject it as INPUT (Qwen + Mistral 422 `extra_forbidden`, DeepSeek 400). No
- * provider needs its own prior thinking replayed. Strip it for every provider.
+ * reasoning_content is an OUTPUT-only field that reasoning models EMIT, and
+ * most of them reject it as INPUT: Qwen and Mistral 422 `extra_forbidden`.
+ * So it is stripped by default.
+ *
+ * DEEPSEEK IN THINKING MODE IS THE EXACT OPPOSITE, and that is what this
+ * parameter exists for. An assistant turn that produced tool_calls must carry
+ * its reasoning_content back on every later request or the API answers 400:
+ * "The `reasoning_content` in the thinking mode must be passed back to the
+ * API."
+ *
+ * Both halves of that were already known and written down — in two files that
+ * never met. trimOldToolResults in agent.ts deliberately PRESERVES the field
+ * on tool-calling turns, quoting that very 400, and then this function threw
+ * it away again on the way out of the door. The agent's care was undone on
+ * every single request, on the BYOK path through base-provider and on the
+ * platform path through /api/chat alike.
+ *
+ * Narrow on purpose. Only assistant turns, only with tool_calls, only with
+ * something actually in the field — which is precisely the set DeepSeek
+ * demands and no wider, so nothing extra is replayed and no other provider
+ * sees a field it would refuse.
  */
-export function stripReasoningContent<T extends LooseMessage>(messages: ReadonlyArray<T>): T[] {
+export function stripReasoningContent<T extends LooseMessage>(
+  messages: ReadonlyArray<T>,
+  keepOnToolCalls = false,
+): T[] {
   return messages.map((m) => {
-    if ('reasoning_content' in m) {
-      const { reasoning_content: _rc, ...rest } = m;
-      void _rc;
-      return rest as T;
-    }
-    return m;
+    if (!('reasoning_content' in m)) return m;
+    if (keepOnToolCalls && keepsReasoning(m)) return m;
+    const { reasoning_content: _rc, ...rest } = m;
+    void _rc;
+    return rest as T;
   });
+}
+
+/** An assistant tool-call turn whose reasoning DeepSeek requires back. */
+function keepsReasoning(m: LooseMessage): boolean {
+  if (m.role !== 'assistant') return false;
+  if (!Array.isArray(m.tool_calls) || m.tool_calls.length === 0) return false;
+  const rc = m.reasoning_content;
+  return typeof rc === 'string' && rc.length > 0;
+}
+
+/**
+ * Is this request bound for a DeepSeek model?
+ *
+ * The provider key alone is not enough. A CUSTOM provider pointed at
+ * DeepSeek's endpoint arrives here as 'generic' (or whatever the user named
+ * it), and that is the configuration the 400 was first reported from — the
+ * error read "Custom Provider API error", not "deepseek". So the model id is
+ * checked too, which is the thing that actually decides who serves the call.
+ */
+function isDeepSeekTarget(provider: string, model?: string): boolean {
+  if (provider.toLowerCase() === 'deepseek') return true;
+  return typeof model === 'string' && /deepseek/i.test(model);
 }
 
 /**
@@ -112,15 +154,20 @@ export function markTrailingAssistantPrefix<T extends LooseMessage>(
 }
 
 /**
- * The shared OpenAI-compatible message pipeline: always strip reasoning_content,
- * reorder system messages for Qwen, and mark a trailing assistant as a Mistral
- * prefix continuation. Provider-aware.
+ * The shared OpenAI-compatible message pipeline: strip reasoning_content
+ * (except where DeepSeek requires it back), reorder system messages for Qwen,
+ * and mark a trailing assistant as a Mistral prefix continuation.
+ *
+ * `model` is optional only so existing callers keep compiling. Pass it —
+ * without it a custom provider pointed at DeepSeek cannot be recognised, and
+ * that is the case this was written for.
  */
 export function shapeMessages<T extends LooseMessage>(
   provider: string,
   messages: ReadonlyArray<T>,
+  model?: string,
 ): T[] {
-  const stripped = stripReasoningContent(messages);
+  const stripped = stripReasoningContent(messages, isDeepSeekTarget(provider, model));
   const ordered = provider === 'qwen' ? reorderSystemForQwen(stripped) : stripped;
   return markTrailingAssistantPrefix(provider, ordered);
 }
