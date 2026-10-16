@@ -72,6 +72,52 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 477,
+    version: '0.108.1',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-16 17:30:00+00',
+    title: `DeepSeek can think and reach for a tool in the same breath`,
+    body: `A narrow fault, but a total stop if you met it.
+
+**If you ran me on DeepSeek with thinking turned on, the conversation ended the first time I used a tool.** Not degraded — ended. The next message came back as a flat refusal from DeepSeek and nothing after it worked either. Switching to another model cleared it instantly, which made it look like DeepSeek was having an outage when it was not.
+
+**The cause was mine, and it is a tidy illustration of how this happens.** DeepSeek asks that when I reason through something and then call a tool, I hand that reasoning back with the next request, so it can see why I reached for what I reached for. One part of me kept it for exactly that reason, with a note explaining the rule. Another part removed it again on the way out, with its own note saying no provider ever needs its old thinking returned — which is true of every other model I run on, and precisely the opposite of true here. Both notes were right about their own half. Neither knew the other existed.
+
+It needed all three at once: DeepSeek, thinking on, and a tool already used. Ordinary conversation never touched it, which is why it hid for so long.
+
+Nothing to change at your end.`,
+    highlights: [
+      'DeepSeek with thinking mode no longer breaks the moment I use a tool.',
+      'Only DeepSeek was ever affected — every other model was fine throughout.',
+      'It needed thinking mode AND a tool call together, which is why it stayed hidden.',
+      'Nothing to enable or change; it is in how I talk to the provider.',
+    ],
+  },
+  {
+    migration: 478,
+    version: '0.53.1',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-16 17:30:00+00',
+    title: `DeepSeek can think and reach for a tool in the same breath`,
+    body: `A narrow fault, but a total stop if you met it.
+
+**If you ran me on DeepSeek with thinking turned on, the conversation ended the first time I used a tool.** Not degraded — ended. The next message came back as a flat refusal from DeepSeek and nothing after it worked either. Switching to another model cleared it instantly, which made it look like DeepSeek was having an outage when it was not.
+
+**The cause was mine, and it is a tidy illustration of how this happens.** DeepSeek asks that when I reason through something and then call a tool, I hand that reasoning back with the next request, so it can see why I reached for what I reached for. One part of me kept it for exactly that reason, with a note explaining the rule. Another part removed it again on the way out, with its own note saying no provider ever needs its old thinking returned — which is true of every other model I run on, and precisely the opposite of true here. Both notes were right about their own half. Neither knew the other existed.
+
+It needed all three at once: DeepSeek, thinking on, and a tool already used. Ordinary conversation never touched it, which is why it hid for so long.
+
+Nothing to change at your end.`,
+    highlights: [
+      'DeepSeek with thinking mode no longer breaks the moment I use a tool.',
+      'Only DeepSeek was ever affected — every other model was fine throughout.',
+      'It needed thinking mode AND a tool call together, which is why it stayed hidden.',
+      'Nothing to enable or change; it is in how I talk to the provider.',
+    ],
+  },
+  {
     migration: 475,
     version: '0.108.0',
     platform: 'extension',
@@ -1383,7 +1429,16 @@ function contentKey(release, locale) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 (async () => {
   console.log(`i18n-release-notes — model=${MODEL}, auth=${CRED.kind}${DRY_RUN ? ' (dry-run)' : ''}`);
-  for (const release of RELEASES) {
+  // RELEASES keeps every past release, so an unfiltered run re-translates
+  // dozens of migrations that shipped months ago. --only=477,478 keeps a
+  // patch release to the two notes it actually needs.
+  const only = args.only ? new Set(String(args.only).split(',').map((x) => x.trim())) : null;
+  const selected = only ? RELEASES.filter((r) => only.has(String(r.migration))) : RELEASES;
+  if (only && selected.length === 0) {
+    console.error(`--only=${args.only} matched no release in RELEASES`);
+    process.exit(1);
+  }
+  for (const release of selected) {
     // Don't re-translate / clobber migrations that already exist (they may be
     // applied + committed). Only generate new entries. Use --force to override.
     const existing = path.join(MIGRATIONS_DIR, `${release.migration}_release_notes_v${release.version.replace(/\./g, '_')}.sql`);
