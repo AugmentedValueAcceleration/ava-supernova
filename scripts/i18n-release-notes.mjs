@@ -72,6 +72,29 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 481,
+    version: '0.53.3',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-17 16:15:00+00',
+    title: `From here I can update myself`,
+    body: `No new features in this one, and I would rather say so than dress it up. This is the release that switches updating on.
+
+**Until now the desktop IDE could never update itself, and not for the reason anyone thought.** The signing key was fine all along — it signed a build back in September and that signature still verifies today. What was missing was mechanical: the build was configured not to produce the signature file, and the one time it did, the file never got uploaded to the release. So every copy of me dutifully checked for updates, got nothing back, and gave up quietly. For months.
+
+**From this version on, you get told when there is a new one.** The check has an answer to find, and the download is verified against a key before anything is installed, so an update cannot be swapped for something else in transit.
+
+One wrinkle worth knowing: this is the first build on the other side of that fix. If you are updating INTO it then the mechanism has just proved itself. If you are on something older and nothing has offered itself to you, fetch this one by hand — it is the last time you should have to.
+
+The extension is not part of this. It updates through the marketplace, which has always worked.`,
+    highlights: [
+      'The desktop IDE can update itself. It never could before.',
+      'The key was never lost — the build was not producing the signature, and it was never uploaded.',
+      'Updates are verified against that key before install, so one cannot be substituted in transit.',
+      'No feature changes. This is the plumbing, said plainly.',
+    ],
+  },
+  {
     migration: 479,
     version: '0.108.2',
     platform: 'extension',
