@@ -22,6 +22,71 @@ import type { ProjectBrain, MemoryNode, ProceduralPattern } from './types.js';
 const BRAIN_FILENAME = 'brain.json';
 const MAX_BRIEF_CHARS = 800; // ~200 tokens at 4 chars/token
 
+/** A line of the brief, with how readily it is sacrificed when the brief
+ *  will not fit. Higher `drop` goes first. Reading order is separate: it is
+ *  the order these are pushed, which does not change. */
+interface BriefSection {
+  text: string;
+  drop: number;
+}
+
+/**
+ * Fit the brief to MAX_BRIEF_CHARS by dropping WHOLE sections, least
+ * important first, and saying so when it happens.
+ *
+ * This replaced `brief.slice(0, MAX_BRIEF_CHARS)`, which cut at a byte offset
+ * under a comment claiming it dropped the least critical material. Those are
+ * only the same thing while the least important text happens to sit last, and
+ * nothing enforced that: a long Decisions block took Patterns, Issues and the
+ * stats with it and then ended mid-sentence, leaving a brief that reads as
+ * complete. Add a section or reorder the array and it would have silently
+ * eaten something that mattered.
+ *
+ * Silent truncation is the worst failure mode for memory in particular,
+ * because the symptom is ABSENCE \u2014 and absence is indistinguishable from
+ * never having known. You cannot notice, let alone debug, a fact that is not
+ * there. So when sections go, the brief says how many, and the log says it
+ * louder.
+ *
+ * Last resort: if even the highest-priority section alone overflows, it is cut
+ * \u2014 but it is cut KNOWINGLY, with the same marker, rather than quietly.
+ */
+function fitBrief(parts: BriefSection[], projectRoot: string): string {
+  const join = (list: BriefSection[]) => list.map(p => p.text).join('\n');
+
+  let kept = [...parts];
+  if (join(kept).length <= MAX_BRIEF_CHARS) return join(kept);
+
+  // Drop whole sections, least important first, until it fits.
+  const order = [...parts].sort((a, b) => b.drop - a.drop);
+  const dropped: string[] = [];
+  for (const victim of order) {
+    if (kept.length <= 1) break;
+    kept = kept.filter(p => p !== victim);
+    dropped.push(victim.text.split(':')[0]);
+    if (join(kept).length <= MAX_BRIEF_CHARS) break;
+  }
+
+  let brief = join(kept);
+  let note = dropped.length > 0
+    ? ` (${dropped.length} section${dropped.length === 1 ? '' : 's'} trimmed to fit: ${dropped.join(', ')})`
+    : '';
+
+  // Even one section can overflow. Cut it, but never pretend it is whole.
+  if (brief.length + note.length > MAX_BRIEF_CHARS) {
+    const room = Math.max(0, MAX_BRIEF_CHARS - note.length - 1);
+    brief = brief.slice(0, room).trimEnd() + '\u2026';
+  }
+
+  if (dropped.length > 0) {
+    logger.warn(
+      `[project-brain] brief for ${projectRoot} exceeded ${MAX_BRIEF_CHARS} chars; `
+      + `dropped ${dropped.length} section(s): ${dropped.join(', ')}`,
+    );
+  }
+  return brief + note;
+}
+
 /**
  * Compute a project brain from a graph and optional procedural patterns.
  */
@@ -90,30 +155,41 @@ export function synthesiseProjectBrain(
     .slice(0, 3);
 
   // ── Build the brief ─────────────────────────────────────────────────
-  const parts: string[] = [];
-  parts.push(`[Project: ${projectName}]`);
+  const parts: BriefSection[] = [];
+  // drop 0: the identity line. Never sacrificed — a brief that does not say
+  // which project it describes is worse than no brief.
+  parts.push({ text: `[Project: ${projectName}]`, drop: 0 });
 
+  // Each section carries a DROP RANK. Reading order below is unchanged, so a
+  // brief looks exactly as it always did; the rank only decides what goes
+  // first when it will not fit. Higher rank = sacrificed sooner.
+  //
+  // The ranks encode the original author's intent, which the old positional
+  // cut only achieved by accident: "patterns and issues are least critical",
+  // with the node stats below both since they are diagnostics rather than
+  // knowledge. Stack and Decisions are what the project IS and why it is that
+  // way, so they are last to go.
   if (uniqueStack.length > 0) {
-    parts.push(`Stack: ${uniqueStack.join(', ')}`);
+    parts.push({ text: `Stack: ${uniqueStack.join(', ')}`, drop: 1 });
   }
 
   if (keyDecisions.length > 0) {
-    parts.push(`Decisions: ${keyDecisions.join(' | ')}`);
+    parts.push({ text: `Decisions: ${keyDecisions.join(' | ')}`, drop: 2 });
   }
 
   if (activeWork.length > 0) {
-    parts.push(`Recent: ${activeWork.join(' | ')}`);
+    parts.push({ text: `Recent: ${activeWork.join(' | ')}`, drop: 3 });
   }
 
   if (knownPatterns.length > 0) {
-    parts.push(`Patterns: ${knownPatterns.join(' | ')}`);
+    parts.push({ text: `Patterns: ${knownPatterns.join(' | ')}`, drop: 5 });
   }
 
   if (bugNodes.length > 0) {
-    parts.push(`Open issues: ${bugNodes.map(n => truncate(n.content, 60)).join(' | ')}`);
+    parts.push({ text: `Open issues: ${bugNodes.map(n => truncate(n.content, 60)).join(' | ')}`, drop: 4 });
   }
 
-  parts.push(`Nodes: ${stats.activeNodes} active, confidence avg ${stats.avgConfidence}`);
+  parts.push({ text: `Nodes: ${stats.activeNodes} active, confidence avg ${stats.avgConfidence}`, drop: 6 });
 
   // Find last session date from most recent node.
   //
@@ -126,11 +202,7 @@ export function synthesiseProjectBrain(
     ? localYmd(new Date(nodes.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0].updatedAt))
     : todayLocal();
 
-  let brief = parts.join('\n');
-  if (brief.length > MAX_BRIEF_CHARS) {
-    // Trim from the bottom (patterns and issues are least critical)
-    brief = brief.slice(0, MAX_BRIEF_CHARS).trimEnd() + '…';
-  }
+  const brief = fitBrief(parts, projectRoot);
 
   return {
     projectRoot,
