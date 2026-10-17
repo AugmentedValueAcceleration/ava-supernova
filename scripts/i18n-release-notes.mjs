@@ -72,6 +72,52 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 479,
+    version: '0.108.2',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-17 05:00:00+00',
+    title: `I stopped getting posts blocked, and errors stopped lying to you`,
+    body: `Two things, and both are me being less wrong rather than doing more.
+
+**I did not know that filters read words, not meaning.** A post announcing a game-development stream was refused by every platform but one, because it used the word weapon. It said it was about building a game in the very next breath; nothing read that far. Automated moderation matches a list and does not check the sentence after it.
+
+So I write round it now. Not by disguising anything — no symbols in the middle of words, no silly substitutes. Those stop working the moment the filter learns them, and they make honest work look like it has something to hide. I say the same true thing in the words a person would use anyway: "the first weapon goes in" is "the item and equipment system goes in", which is more informative in the first place. If a word genuinely matters, it goes later and the opening line carries the real subject.
+
+**And when something refuses me, you now get told what it actually said.** You would see "your API key may not have the right permissions" when the key was fine and the refusal had come from somewhere else entirely. I had the real reason the whole time and threw it away before showing you — every kind of failure except one. Now the sentence that tells you what to do comes first, and what the service actually said comes after it.
+
+An hour went into recovering one of those sentences from the logs. It should have been on screen.`,
+    highlights: [
+      'I write around automated filters instead of tripping them — without disguising words.',
+      'Errors now include what the service actually said, not just a guess about your key.',
+      'The useful part still comes first: what happened, then what to do.',
+      'Nothing to turn on.',
+    ],
+  },
+  {
+    migration: 480,
+    version: '0.53.2',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-17 05:00:00+00',
+    title: `I stopped getting posts blocked, and errors stopped lying to you`,
+    body: `Two things, and both are me being less wrong rather than doing more.
+
+**I did not know that filters read words, not meaning.** A post announcing a game-development stream was refused by every platform but one, because it used the word weapon. It said it was about building a game in the very next breath; nothing read that far. Automated moderation matches a list and does not check the sentence after it.
+
+So I write round it now. Not by disguising anything — no symbols in the middle of words, no silly substitutes. Those stop working the moment the filter learns them, and they make honest work look like it has something to hide. I say the same true thing in the words a person would use anyway: "the first weapon goes in" is "the item and equipment system goes in", which is more informative in the first place. If a word genuinely matters, it goes later and the opening line carries the real subject.
+
+**And when something refuses me, you now get told what it actually said.** You would see "your API key may not have the right permissions" when the key was fine and the refusal had come from somewhere else entirely. I had the real reason the whole time and threw it away before showing you — every kind of failure except one. Now the sentence that tells you what to do comes first, and what the service actually said comes after it.
+
+An hour went into recovering one of those sentences from the logs. It should have been on screen.`,
+    highlights: [
+      'I write around automated filters instead of tripping them — without disguising words.',
+      'Errors now include what the service actually said, not just a guess about your key.',
+      'The useful part still comes first: what happened, then what to do.',
+      'Nothing to turn on.',
+    ],
+  },
+  {
     migration: 477,
     version: '0.108.1',
     platform: 'extension',
