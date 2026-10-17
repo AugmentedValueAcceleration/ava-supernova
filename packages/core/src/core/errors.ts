@@ -85,6 +85,34 @@ function explainBadRequest(detail: string): string | null {
   return null;
 }
 
+/**
+ * Append what the server actually said, when it said anything.
+ *
+ * Every status but 400 used to drop `responseBody` on the floor and show only
+ * a canned sentence. That is how a 403 reached the operator as "your API key
+ * may not have the right permissions" when the key was fine and the rejection
+ * had come from our own auth layer — the server's real words existed the
+ * whole time and were discarded one function from the screen.
+ *
+ * The canned line stays in front because it is the part that says what to DO.
+ * This adds the part that says what HAPPENED.
+ *
+ * Quiet when there is nothing useful: no body, or a detail already contained
+ * in the friendly line, adds nothing and would just look like stutter. Capped,
+ * because an upstream HTML error page is not an explanation \u2014 the full body
+ * is still on ProviderError.responseBody for anyone debugging.
+ */
+function withServerDetail(friendly: string, body: unknown): string {
+  const detail = deepestProviderMessage(body).trim();
+  if (!detail) return friendly;
+  // An HTML error page says nothing a person can act on.
+  if (/^\s*<(?:!doctype|html)/i.test(detail)) return friendly;
+  const normalise = (t: string) => t.toLowerCase().replace(/\s+/g, ' ');
+  if (normalise(friendly).includes(normalise(detail))) return friendly;
+  const trimmed = detail.length > 300 ? `${detail.slice(0, 300).trimEnd()}\u2026` : detail;
+  return `${friendly} The server said: ${trimmed}`;
+}
+
 export class ProviderError extends AvaError {
   constructor(
     message: string,
@@ -111,15 +139,15 @@ export class ProviderError extends AvaError {
           : t('error.msg.bad_request', { provider: this.provider });
       }
       case 401:
-        return t('error.msg.auth', { provider: this.provider });
+        return withServerDetail(t('error.msg.auth', { provider: this.provider }), this.responseBody);
       case 402:
-        return t('error.msg.credits', { provider: this.provider });
+        return withServerDetail(t('error.msg.credits', { provider: this.provider }), this.responseBody);
       case 403:
-        return t('error.msg.forbidden', { provider: this.provider });
+        return withServerDetail(t('error.msg.forbidden', { provider: this.provider }), this.responseBody);
       case 404:
-        return t('error.msg.model_not_found', { provider: this.provider });
+        return withServerDetail(t('error.msg.model_not_found', { provider: this.provider }), this.responseBody);
       case 429:
-        return t('error.msg.rate_limit', { provider: this.provider });
+        return withServerDetail(t('error.msg.rate_limit', { provider: this.provider }), this.responseBody);
       case 500:
       case 502:
       case 503: {

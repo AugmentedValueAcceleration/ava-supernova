@@ -101,3 +101,66 @@ describe('the other conditions people actually hit', () => {
     expect(m).toMatch(/start a new chat|compress/i);
   });
 });
+
+// ── What the server actually said ────────────────────────────────────────
+//
+// 2026-10-16, mid-stream, in the extension:
+//
+//   platform blocked this request. Your API key may not have the right
+//   permissions.
+//
+// Both halves misleading. The rejection came from our own auth layer, and the
+// key was valid and in use a minute either side. The server HAD said what was
+// wrong; `humanMessage` discarded it, because only the 400 branch ever read
+// `responseBody`. An hour of log archaeology went into recovering a sentence
+// that had been one function away from the screen.
+describe('the server gets to say what happened, not just 400s', () => {
+  const codes: Array<[number, string, RegExp]> = [
+    [401, 'Invalid API key', /server said: Invalid API key/i],
+    [402, 'Credit balance exhausted', /server said: Credit balance exhausted/i],
+    [403, 'Admin access required', /server said: Admin access required/i],
+    [404, 'Unknown model qwen9', /server said: Unknown model qwen9/i],
+    [429, 'Rate limit exceeded, retry in 30s', /server said: Rate limit exceeded/i],
+  ];
+
+  for (const [status, detail, expected] of codes) {
+    it(`${status} surfaces the real reason`, () => {
+      const m = new ProviderError('x', 'platform', status, { error: detail }).humanMessage;
+      expect(m).toMatch(expected);
+    });
+
+    it(`${status} still leads with what to DO`, () => {
+      const m = new ProviderError('x', 'platform', status, { error: detail }).humanMessage;
+      // The actionable sentence comes first; the detail is appended to it.
+      expect(m.indexOf('server said')).toBeGreaterThan(20);
+    });
+  }
+
+  it('digs the message out of a nested body, as 400 already did', () => {
+    const m = new ProviderError('x', 'platform', 403, { error: { message: 'Workspace access denied.' } }).humanMessage;
+    expect(m).toMatch(/Workspace access denied/);
+  });
+
+  it('stays quiet when there is no body', () => {
+    const m = new ProviderError('x', 'platform', 403, undefined).humanMessage;
+    expect(m).not.toMatch(/server said/i);
+  });
+
+  // An upstream HTML error page is not an explanation. This is the same fault
+  // that used to paste a whole document into the chat.
+  it('refuses to read out an HTML error page', () => {
+    const m = new ProviderError('x', 'platform', 403, '<!DOCTYPE html><html><body>Forbidden</body></html>').humanMessage;
+    expect(m).not.toMatch(/doctype|<html/i);
+    expect(m).not.toMatch(/server said/i);
+  });
+
+  it('does not stutter when the detail is already in the friendly line', () => {
+    const friendlyish = new ProviderError('x', 'platform', 429, { error: 'too many were sent too quickly' }).humanMessage;
+    expect((friendlyish.match(/too many were sent too quickly/gi) || []).length).toBe(1);
+  });
+
+  it('caps a runaway body rather than pasting it', () => {
+    const m = new ProviderError('x', 'platform', 403, { error: 'z'.repeat(2000) }).humanMessage;
+    expect(m.length).toBeLessThan(500);
+  });
+});
