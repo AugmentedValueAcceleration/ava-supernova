@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput } from '../social/index.js';
+import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput, MODERATION_GUIDANCE } from '../social/index.js';
 
 /** Every video carries the link. Lower-case for the idempotency check; the
  *  appended form is the same string, so it reads as written. */
@@ -142,7 +142,7 @@ export class WriteVideoPostTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'write_video_post',
     description:
-      'Emit a finished SHORT-FORM VIDEO POST as the PARTS a person assembles: the voiceover in your own voice, a storyboard of stills (one per five seconds), and the caption. We do not generate video — the operator cuts these together in Canva, which is why the shots must work as a SEQUENCE laid end to end rather than as alternatives. Use when the idea wants to be a video rather than text (Shorts, Reels, TikTok). Call it ONCE PER VIDEO and list EVERY platform it is going to in `posts` — the stills and the voiceover are generated once and shared, and each platform gets its own caption and tags. Calling it four times for one clip pays for four identical storyboards and four identical reads. Do not write the script or caption in your narration — only call this tool. The stills and the voice are generated after your turn, so say what you made and why that angle; never claim you have seen them.',
+      MODERATION_GUIDANCE + ' Emit a finished SHORT-FORM VIDEO POST as the PARTS a person assembles: ONE CLIP that actually moves, the voiceover in your own voice, and the caption. We generate video again as of 2026-10-15 — a strip of stills was ruled low-quality STATIC IMAGES by TikTok and made ineligible for the feed entirely, which is zero views however well it is written. The clip arrives with its own soundtrack; the operator mutes it in Canva, lays your voiceover over the top and overlays the text by hand. Use it when the idea wants to be a video rather than text (Shorts, Reels, TikTok). Call it ONCE PER VIDEO and list EVERY platform it is going to in `posts` — the clip and the voiceover are generated once and shared, and each platform gets its own caption and tags. Calling it four times for one video pays for four identical renders and four identical reads. Do not write the script or the caption in your narration — only call this tool. The clip and the voice are made after your turn, so say what you made and why that shot; never claim you have seen it.',
     parameters: {
       type: 'object',
       properties: {

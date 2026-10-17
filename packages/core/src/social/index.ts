@@ -212,6 +212,17 @@ export interface VoiceoverStore {
 
 /** Caption caps for the short-form platforms. Same deterministic enforcement as
  *  POST_HARD_LIMITS — models cannot count characters, so we count for them. */
+/**
+ * What a keyword filter does to a legitimate post, and how to write so it
+ * does not happen. Cross-platform on purpose: this is not a tag policy, it
+ * is the thing that decides whether the post is carried at all.
+ */
+export const MODERATION_GUIDANCE =
+  'AUTOMATED MODERATION READS WORDS, NOT MEANING. Every platform runs a keyword filter before a human sees anything, and it does not read the sentence after the one that tripped it. A stream announcement that opened "the first weapon goes into Project Dawn" was blocked on every platform except Facebook — it was plainly about building a game, and nothing read far enough to notice. '
+  + 'DO NOT DISGUISE THE WORD. Not "w3apon", not "unalive", not a symbol in the middle. That is algospeak: it stops working the moment the filter learns the substitute, it reads as someone with something to hide, and on honest content it buys a worse impression than the block did. '
+  + 'SAY THE SAME TRUE THING IN THE WORDS A PERSON WOULD USE ANYWAY. "The first weapon goes in" is "the item and equipment system goes in" — equally true, more informative, and it leads with the subject instead of the trigger. If the exact word genuinely matters, put it later and make the opening line unambiguous about what this is. '
+  + 'The categories that trip filters even in obviously technical or creative context: weapons and combat, killing and death (including "kill the process"), drugs, gambling and money-making language, medical or health claims, and anything shaped like an offer that sounds too good. Game development, security work and health content all walk into these honestly, which is exactly why the opening line has to carry the real subject.';
+
 export const VIDEO_CAPTION_LIMITS: Readonly<Record<string, number>> = {
   tiktok: 4000,
   instagram: 2200,

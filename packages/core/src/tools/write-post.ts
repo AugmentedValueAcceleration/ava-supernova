@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput } from '../social/index.js';
+import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput, MODERATION_GUIDANCE } from '../social/index.js';
 
 /**
  * Emit a finished social post to the Social Studio canvas — one call per post.
@@ -21,7 +21,7 @@ export class WritePostTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'write_post',
     description:
-      'Emit a finalized social media post to the Social Studio canvas. Call this ONCE PER POST. When you generate 4 post variants, call write_post 4 times. Never write post content in your narration — only call this tool. Your text reply should be brief narration ("Wrote 3 Monday tweets — see canvas").',
+      MODERATION_GUIDANCE + ' Emit a finalized social media post to the Social Studio canvas. Call this ONCE PER POST. When you generate 4 post variants, call write_post 4 times. Never write post content in your narration — only call this tool. Your text reply should be brief narration ("Wrote 3 Monday tweets — see canvas").',
     parameters: {
       type: 'object',
       properties: {
