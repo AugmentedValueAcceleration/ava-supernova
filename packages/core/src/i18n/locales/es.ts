@@ -170,6 +170,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Nada que comprimir.',
   'compression.failed': 'La compresi\u00f3n fall\u00f3.',
   'compression.busy': 'No se puede comprimir mientras Ava est\u00e1 trabajando.',
+  'conversation.repaired': 'El modelo rechazó esta conversación, así que la restauré y continué.',
   'compression.context_truncated': 'Contexto truncado: {count} mensajes descartados.',
 
   // \u2500\u2500 Continue \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500

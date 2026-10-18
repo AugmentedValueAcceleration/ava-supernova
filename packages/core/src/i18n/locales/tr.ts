@@ -170,6 +170,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Sıkıştırılacak bir şey yok.',
   'compression.failed': 'Sıkıştırma başarısız.',
   'compression.busy': 'Ava çalışırken sıkıştırılamaz.',
+  'conversation.repaired': 'Model bu sohbeti reddetti, ancak düzeltildi ve devam edildi.',
   'compression.context_truncated': 'Bağlam kırpıldı: {count} mesaj silindi.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

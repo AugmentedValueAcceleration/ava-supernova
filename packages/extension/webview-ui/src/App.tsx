@@ -931,6 +931,18 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // A long unexplained pause is exactly where the user assumes a hang.
       return { ...state, isCompressing: true, thinkingLabel: t('thinking.compressing') };
 
+    case 'history_repaired': {
+      // A notice, never an error. The conversation survived; that is the news.
+      const repaired: UIMessage = {
+        id: nextId(),
+        role: 'system',
+        content: t('conversation.repaired'),
+        toolCalls: [],
+        isStreaming: false,
+      };
+      return { ...state, messages: [...state.messages, repaired] };
+    }
+
     case 'context_truncated': {
       const sysMsg: UIMessage = {
         id: nextId(),

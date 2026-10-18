@@ -170,6 +170,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': '沒有可壓縮的內容。',
   'compression.failed': '壓縮失敗。',
   'compression.busy': 'Ava 工作時無法壓縮。',
+  'conversation.repaired': '模型拒絕了此對話，已修復並繼續。',
   'compression.context_truncated': '上下文已截斷：已捨棄 {count} 則訊息。',
 
   // ── Continue ──────────────────────────────────────────────────────────────

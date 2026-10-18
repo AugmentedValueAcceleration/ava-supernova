@@ -140,6 +140,10 @@ export type ExtToWebviewMessage =
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
   /** The summary could not be made and older messages were dropped from the model's view — a notice, never an error. */
   | { type: 'context_truncated'; droppedCount: number }
+  /** The provider refused the conversation and it was repaired rather than
+   *  the turn ending. No payload: the detail is English and lives in the log,
+   *  while the transcript shows a localised line. */
+  | { type: 'history_repaired' }
   | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] }
   | { type: 'system_message'; content: string }
   | { type: 'ping' }

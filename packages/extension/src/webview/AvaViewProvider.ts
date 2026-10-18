@@ -4536,6 +4536,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             compressedTokens: event.compressedTokens,
           });
           break;
+        case 'history_repaired':
+          // The DETAIL stays in the log, in English, where it is greppable.
+          // The transcript gets a localised line and nothing more — the summary
+          // is generated in English, so splicing it into a translated sentence
+          // would hand somebody half a sentence in their own language.
+          this.log(`History repaired (${event.kind}): ${event.summary}`);
+          this.postMessage({ type: 'history_repaired' });
+          break;
         case 'context_truncated':
           this.log(`Context truncated: ${event.droppedCount} messages dropped from the model's view (summary failed — see [agent] compression FAILED)`);
           this.postMessage({ type: 'context_truncated', droppedCount: event.droppedCount });

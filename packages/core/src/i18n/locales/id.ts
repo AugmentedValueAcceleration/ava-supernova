@@ -170,6 +170,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Tidak ada yang perlu dikompresi.',
   'compression.failed': 'Kompresi gagal.',
   'compression.busy': 'Tidak dapat mengompresi saat Ava sedang bekerja.',
+  'conversation.repaired': 'Model menolak percakapan ini, jadi saya memperbaikinya dan melanjutkan.',
   'compression.context_truncated': 'Konteks terpotong: {count} pesan dihapus.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

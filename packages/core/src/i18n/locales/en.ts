@@ -177,6 +177,7 @@ export const enStrings = {
   'compression.nothing': 'Nothing to compress.',
   'compression.failed': 'Compression failed.',
   'compression.busy': 'Cannot compress while Ava is working.',
+  'conversation.repaired': 'The model refused this conversation, so I repaired it and carried on.',
   'compression.context_truncated': 'Context truncated: {count} messages dropped.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

@@ -170,6 +170,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': '압축할 내용이 없습니다.',
   'compression.failed': '압축에 실패했습니다.',
   'compression.busy': 'Ava 실행 중에는 압축할 수 없습니다.',
+  'conversation.repaired': '모델이 이 대화를 거절했으나, 자동으로 복구하여 계속 이어갔습니다.',
   'compression.context_truncated': '컨텍스트 잘림: {count}개 메시지가 삭제되었습니다.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

@@ -170,6 +170,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'لا يوجد شيء لضغطه.',
   'compression.failed': 'فشل الضغط.',
   'compression.busy': 'لا يمكن الضغط أثناء عمل Ava.',
+  'conversation.repaired': 'رفض النموذج هذه المحادثة، لذا أصلحتها وواصلت.',
   'compression.context_truncated': 'تم اقتطاع السياق: تم حذف {count} رسائل.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

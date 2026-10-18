@@ -170,6 +170,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Nie ma czego kompresować.',
   'compression.failed': 'Kompresja nie powiodła się.',
   'compression.busy': 'Nie można kompresować, gdy Ava pracuje.',
+  'conversation.repaired': 'Model odrzucił tę rozmowę, więc naprawiłem ją i kontynuowałem.',
   'compression.context_truncated': 'Kontekst obcięty: pominięto {count} wiadomości.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

@@ -170,6 +170,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': '没有可压缩的内容。',
   'compression.failed': '压缩失败。',
   'compression.busy': 'Ava 工作时无法压缩。',
+  'conversation.repaired': '模型曾拒绝此对话，现已修复并继续。',
   'compression.context_truncated': '上下文已截断：已丢弃 {count} 条消息。',
 
   // ── Continue ──────────────────────────────────────────────────────────────

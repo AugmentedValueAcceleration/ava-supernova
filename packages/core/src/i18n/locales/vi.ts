@@ -170,6 +170,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Không có gì để nén.',
   'compression.failed': 'Nén thất bại.',
   'compression.busy': 'Không thể nén khi Ava đang hoạt động.',
+  'conversation.repaired': 'Mô hình đã từ chối cuộc trò chuyện này, nên tôi đã khôi phục và tiếp tục.',
   'compression.context_truncated': 'Ngữ cảnh bị cắt: {count} tin nhắn đã bị loại bỏ.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

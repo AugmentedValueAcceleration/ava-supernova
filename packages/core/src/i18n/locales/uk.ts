@@ -170,6 +170,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Нема чого стискати.',
   'compression.failed': 'Стиснення не вдалось.',
   'compression.busy': 'Неможливо стиснути, поки Ava працює.',
+  'conversation.repaired': 'Модель відмовилася від цієї розмови, тому я її відновив і продовжив.',
   'compression.context_truncated': 'Контекст обрізано: відкинуто {count} повідомлень.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

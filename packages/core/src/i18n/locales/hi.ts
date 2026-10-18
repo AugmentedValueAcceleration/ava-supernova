@@ -170,6 +170,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'संपीड़ित करने के लिए कुछ नहीं।',
   'compression.failed': 'संपीड़न विफल।',
   'compression.busy': 'Ava काम कर रही है, अभी संपीड़ित नहीं किया जा सकता।',
+  'conversation.repaired': 'मॉडल ने इस बातचीत को अस्वीकार कर दिया था, इसलिए इसे सुधारा गया और बातचीत जारी रखी गई।',
   'compression.context_truncated': 'कॉन्टेक्स्ट काटा गया: {count} संदेश हटाए गए।',
 
   // ── Continue ──────────────────────────────────────────────────────────────

@@ -170,6 +170,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': '圧縮するものがありません。',
   'compression.failed': '圧縮に失敗しました。',
   'compression.busy': 'Ava の実行中は圧縮できません。',
+  'conversation.repaired': 'モデルはこの会話を拒否しましたが、修復して続行しました。',
   'compression.context_truncated': 'コンテキストを切り詰めました：{count} 件のメッセージを削除しました。',
 
   // ── Continue ──────────────────────────────────────────────────────────────

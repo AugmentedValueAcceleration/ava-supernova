@@ -170,6 +170,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Niets om te comprimeren.',
   'compression.failed': 'Compressie mislukt.',
   'compression.busy': 'Kan niet comprimeren terwijl Ava werkt.',
+  'conversation.repaired': 'Het model heeft dit gesprek geweigerd, dus ik heb het hersteld en voortgezet.',
   'compression.context_truncated': 'Context afgekapt: {count} berichten verwijderd.',
 
   // ── Continue ──────────────────────────────────────────────────────────────

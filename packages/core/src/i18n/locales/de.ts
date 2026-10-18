@@ -170,6 +170,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Nichts zu komprimieren.',
   'compression.failed': 'Komprimierung fehlgeschlagen.',
   'compression.busy': 'Komprimierung nicht m\u00f6glich, w\u00e4hrend Ava arbeitet.',
+  'conversation.repaired': 'Das Modell hat dieses Gespräch abgelehnt, daher wurde es repariert und fortgesetzt.',
   'compression.context_truncated': 'Kontext gek\u00fcrzt: {count} Nachrichten verworfen.',
 
   // \u2500\u2500 Continue \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500

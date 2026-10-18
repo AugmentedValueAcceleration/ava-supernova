@@ -170,6 +170,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Nulla da comprimere.',
   'compression.failed': 'Compressione fallita.',
   'compression.busy': 'Impossibile comprimere mentre Ava sta lavorando.',
+  'conversation.repaired': 'Il modello ha rifiutato questa conversazione, quindi l\'ho corretta e proseguita.',
   'compression.context_truncated': 'Contesto troncato: {count} messaggi scartati.',
 
   // \u2500\u2500 Continue \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500

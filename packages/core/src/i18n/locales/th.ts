@@ -170,6 +170,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'ไม่มีอะไรให้บีบอัด',
   'compression.failed': 'การบีบอัดล้มเหลว',
   'compression.busy': 'ไม่สามารถบีบอัดขณะที่ Ava กำลังทำงาน',
+  'conversation.repaired': 'โมเดลปฏิเสธบทสนทนานี้ จึงได้รับการแก้ไขและดำเนินการต่อ',
   'compression.context_truncated': 'บริบทถูกตัด: ลบ {count} ข้อความ',
 
   // ── Continue ──────────────────────────────────────────────────────────────

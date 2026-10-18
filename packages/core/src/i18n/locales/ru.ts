@@ -170,6 +170,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'compression.nothing': 'Нечего сжимать.',
   'compression.failed': 'Сжатие не удалось.',
   'compression.busy': 'Невозможно сжать, пока Ava работает.',
+  'conversation.repaired': 'Модель отказалась от этого разговора, поэтому я восстановил его и продолжил.',
   'compression.context_truncated': 'Контекст обрезан: {count} сообщений удалено.',
 
   // ── Continue ──────────────────────────────────────────────────────────────
