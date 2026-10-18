@@ -27,8 +27,8 @@ export class MemoryRecallTool implements Tool {
         },
         scope: {
           type: 'string',
-          enum: ['global', 'project', 'all', 'all_projects'],
-          description: 'Where to search: "global", "project", "all" (global+current project, default), or "all_projects" (searches every project you\'ve worked in — use when looking for patterns or solutions from other projects).',
+          enum: ['global', 'project', 'all', 'related', 'all_projects'],
+          description: 'Where to search. "all" (global + this project) is the default and right most of the time. "related" also searches the projects this one is DECLARED related to — reach for it when the question crosses a boundary you know exists: a change here that affects something there, or why the other side does it that way. "all_projects" is the wide net across everything ever opened; use it to hunt a half-remembered solution, not as a habit. Hits from elsewhere rank below local ones rather than being hidden, so a much better match next door can still win.',
         },
         category: {
           type: 'string',
@@ -50,7 +50,7 @@ export class MemoryRecallTool implements Tool {
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const query = (args.query as string)?.trim();
-    const scope = (args.scope as 'global' | 'project' | 'all' | 'all_projects') ?? 'all';
+    const scope = (args.scope as 'global' | 'project' | 'all' | 'related' | 'all_projects') ?? 'all';
     const category = args.category as MemoryCategory | undefined;
     const limit = (args.limit as number) ?? 10;
     const includeArchived = (args.include_archived as boolean) ?? false;

@@ -1,6 +1,6 @@
 import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, basename } from 'node:path';
+import { join, basename, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { TfIdfIndex, cosineDense } from './tfidf.js';
 import type { PlatformMemorySync, SemanticMatch } from './platform-sync.js';
@@ -41,10 +41,33 @@ const EMBED_BACKFILL_BATCH = 50;
  *  requests; keeps a 29k backfill to minutes, not tens of minutes). */
 const EMBED_BACKFILL_CONCURRENCY = 6;
 
+/**
+ * How far a hit from another project is marked down.
+ *
+ * Weights, not filters. A sibling's memory can still win if it is a much
+ * better match than anything here, which is the only reason to look there at
+ * all; it simply has to earn it. A declared relation is worth more than a
+ * project that merely exists.
+ */
+const RELATED_PROJECT_WEIGHT = 0.75;
+const UNRELATED_PROJECT_WEIGHT = 0.4;
+
 interface ProjectRegistryEntry {
   path: string;
   name: string;
   lastUsed: string;
+  /**
+   * Absolute paths of projects this one is RELATED to.
+   *
+   * The scope was `global | project` and nothing in between, so a fact that
+   * mattered to two projects had nowhere correct to live: keep it local and
+   * the sibling cannot see it, promote it to global and it follows every
+   * unrelated project forever. This is the middle.
+   *
+   * Declared, never inferred silently. A monorepo workspace or a dependency
+   * is a good REASON to suggest a link; it is not permission to create one.
+   */
+  relatedProjects?: string[];
 }
 
 import {
@@ -789,32 +812,80 @@ export class MemoryManager {
       searchStore(globalStore, 'global', this.globalIndex);
     }
 
-    if (opts.scope === 'all_projects') {
-      // Search every known project (including current)
-      const projects = await this.loadProjectRegistry();
-      for (const proj of projects) {
-        const projAvaDir = join(proj.path, '.ava');
-        // Skip the current project — it's searched via 'project' scope below
-        if (this.projectDir && projAvaDir === this.projectDir) continue;
-        // Only search projects that still exist on disk
-        if (!existsSync(join(projAvaDir, MEMORY_FILENAME_V2))) continue;
-
-        try {
-          const storeData = await readFile(join(projAvaDir, MEMORY_FILENAME_V2), 'utf-8');
-          const store = JSON.parse(storeData) as MemoryStore;
-          const tempIndex = new TfIdfIndex();
-          this.rebuildIndex(store, tempIndex);
-          searchStore(store, `project:${proj.name}`, tempIndex);
-        } catch {
-          // Skip unreadable project stores
-        }
-      }
-    }
-
     if (opts.scope !== 'global') {
       const projectStore = await this.loadProjectStore();
       if (projectStore) searchStore(projectStore, 'project', this.projectIndex);
     }
+
+    // Home first, then outward. The local store must be loaded before the
+    // cross-project walk below, or a cold manager answers a 'related' query
+    // with the sibling's hits and none of its own — which reads as this
+    // project having nothing to say on its own subject.
+    // ── Other projects ──────────────────────────────────────────────────
+    //
+    // Two scopes reach outside the current project, and the difference is the
+    // point. 'all_projects' is the net: everything ever opened, which is right
+    // when hunting for a half-remembered solution. 'related' is the line: only
+    // what this project was DECLARED to be connected to.
+    //
+    // Related hits are weighted DOWN rather than filtered, so a strong match
+    // in a sibling can still beat a weak one at home — which is the whole
+    // reason to look next door. Unrelated projects under 'all_projects' are
+    // weighted down harder still: useful, but it should take a good match to
+    // outrank the project you are actually in.
+    if (opts.scope === 'all_projects' || opts.scope === 'related') {
+      const registry = await this.loadProjectRegistry();
+      const currentRoot = this.projectDir ? dirname(this.projectDir) : null;
+      const related = currentRoot
+        ? new Set(registry.find(p => p.path === currentRoot)?.relatedProjects ?? [])
+        : new Set<string>();
+
+      const candidates = opts.scope === 'related'
+        ? registry.filter(p => related.has(p.path))
+        : registry;
+
+      const skipped: string[] = [];
+      for (const proj of candidates) {
+        const projAvaDir = join(proj.path, '.ava');
+        // The current project is searched by the 'project' branch below.
+        if (this.projectDir && projAvaDir === this.projectDir) continue;
+
+        const storePath = join(projAvaDir, MEMORY_FILENAME_V2);
+        if (!existsSync(storePath)) {
+          // A registered project with no store is usually one that was moved
+          // or deleted. Noted rather than passed over in silence: a search
+          // that quietly covers less ground than it claims is the worst kind,
+          // because finding nothing is indistinguishable from there being
+          // nothing to find.
+          skipped.push(proj.name);
+          continue;
+        }
+
+        try {
+          const storeData = await readFile(storePath, 'utf-8');
+          const store = JSON.parse(storeData) as MemoryStore;
+          const tempIndex = new TfIdfIndex();
+          this.rebuildIndex(store, tempIndex);
+
+          const before = results.length;
+          searchStore(store, `project:${proj.name}`, tempIndex);
+          const weight = related.has(proj.path)
+            ? RELATED_PROJECT_WEIGHT
+            : UNRELATED_PROJECT_WEIGHT;
+          for (let i = before; i < results.length; i++) {
+            results[i].relevance *= weight;
+          }
+        } catch (err) {
+          skipped.push(proj.name);
+          logger.debug(`[memory] could not read store for ${proj.name}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+
+      if (skipped.length > 0) {
+        logger.debug(`[memory] cross-project recall skipped ${skipped.length} project(s): ${skipped.join(', ')}`);
+      }
+    }
+
 
     // Sort by composite relevance score
     results.sort((a, b) => b.relevance - a.relevance);
@@ -1770,6 +1841,12 @@ export class MemoryManager {
       path: projectRoot,
       name: basename(projectRoot),
       lastUsed: new Date().toISOString(),
+      // Opening a project must not forget who it is related to. This rebuilds
+      // the entry wholesale on every load, so the links have to be carried
+      // across explicitly or they would last exactly one session.
+      ...(existing >= 0 && registry[existing].relatedProjects?.length
+        ? { relatedProjects: registry[existing].relatedProjects }
+        : {}),
     };
 
     if (existing >= 0) {
@@ -1780,6 +1857,58 @@ export class MemoryManager {
 
     await mkdir(this.globalDir, { recursive: true });
     await this.writeSafe(registryPath, JSON.stringify(registry, null, 2));
+  }
+
+  /**
+   * Link two projects, so a search in one can reach the other.
+   *
+   * Symmetric on purpose. "web depends on core" is the fact a person states,
+   * but the useful question runs both ways: working in core, you want to know
+   * what breaks in web. A one-way edge would answer half of it and look
+   * broken for the other half.
+   *
+   * Idempotent, and it refuses to link a project to itself.
+   */
+  async linkProjects(a: string, b: string): Promise<void> {
+    if (a === b) return;
+    const registry = await this.loadProjectRegistry();
+
+    const ensure = (path: string): ProjectRegistryEntry => {
+      let entry = registry.find(p => p.path === path);
+      if (!entry) {
+        entry = { path, name: basename(path), lastUsed: new Date().toISOString() };
+        registry.push(entry);
+      }
+      return entry;
+    };
+
+    const ea = ensure(a);
+    const eb = ensure(b);
+    ea.relatedProjects = [...new Set([...(ea.relatedProjects ?? []), b])];
+    eb.relatedProjects = [...new Set([...(eb.relatedProjects ?? []), a])];
+
+    await mkdir(this.globalDir, { recursive: true });
+    await this.writeSafe(join(this.globalDir, PROJECTS_REGISTRY), JSON.stringify(registry, null, 2));
+    logger.debug(`[memory] linked projects: ${basename(a)} <-> ${basename(b)}`);
+  }
+
+  /** Remove the link both ways. Silent when there was none. */
+  async unlinkProjects(a: string, b: string): Promise<void> {
+    const registry = await this.loadProjectRegistry();
+    for (const [x, y] of [[a, b], [b, a]]) {
+      const entry = registry.find(p => p.path === x);
+      if (entry?.relatedProjects) {
+        entry.relatedProjects = entry.relatedProjects.filter(p => p !== y);
+        if (entry.relatedProjects.length === 0) delete entry.relatedProjects;
+      }
+    }
+    await this.writeSafe(join(this.globalDir, PROJECTS_REGISTRY), JSON.stringify(registry, null, 2));
+  }
+
+  /** The projects this one is linked to, as absolute paths. */
+  async getRelatedProjects(projectRoot: string): Promise<string[]> {
+    const registry = await this.loadProjectRegistry();
+    return registry.find(p => p.path === projectRoot)?.relatedProjects ?? [];
   }
 
   /** Load the project registry — all known project paths. */

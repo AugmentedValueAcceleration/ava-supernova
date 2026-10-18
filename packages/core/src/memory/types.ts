@@ -109,7 +109,10 @@ export interface MemorySaveOptions {
 export interface MemoryRecallOptions {
   query: string;
   /** Where to search: "global", "project", "all" (global+current), or "all_projects" (global+every known project). */
-  scope?: 'global' | 'project' | 'all' | 'all_projects';
+  /** "related" searches the projects THIS one is declared related to.
+   *  Related and unrelated hits are weighted down rather than filtered,
+   *  so a strong match elsewhere can still win. */
+  scope?: 'global' | 'project' | 'all' | 'related' | 'all_projects';
   category?: MemoryCategory;
   /** Filter to a specific layer. */
   layer?: MemoryLayer;
@@ -411,7 +414,7 @@ export interface GraphRecallOptions {
   /** Search query text. */
   query: string;
   /** Where to search. */
-  scope: 'global' | 'project' | 'all' | 'all_projects';
+  scope: 'global' | 'project' | 'all' | 'related' | 'all_projects';
   /** Current mode for category weighting. */
   mode?: AvaMode;
   /** Maximum results to return. */
