@@ -49,7 +49,9 @@ export class MemorySaveTool implements Tool {
             'Options: pattern (coding patterns), preference (user preferences), ' +
             'architecture (project structure), bug-fix (issues/fixes), ' +
             'convention (naming/style rules), tool-config (environment setup), ' +
-            'decision (key decisions), person (people/roles), general (catch-all). ' +
+            'decision (key decisions), person (people/roles), ' +
+            'SEAM (a fact about the JOIN between two projects, not about either one — "changing X here does nothing until Y runs over there". These are the expensive ones, invisible from inside either project, and they surface in BOTH when the projects are linked), ' +
+            'general (catch-all). ' +
             'If omitted, category is inferred from content.',
         },
         tags: {

@@ -149,3 +149,70 @@ describe('recall across the link', () => {
     expect(home!.relevance).toBeGreaterThan(sibling!.relevance);
   });
 });
+
+// ── Seam facts ───────────────────────────────────────────────────────────
+//
+// The expensive facts in a multi-project setup are the ones invisible from
+// inside either project. "Editing a guide does nothing until the extractor
+// runs in the other package" cost an hour to rediscover; it is not a fact
+// about guides or about the extractor, it is a fact about the gap. Filed
+// under either side it reads as a stray detail, and the person standing in
+// the other project never meets it.
+//
+// Recall already crosses a link, but recall needs someone to ask — and the
+// defining property of a seam fact is that you do not know it exists until it
+// has already cost you the hour. So they are pulled at session start.
+describe('seam facts cross the link on their own', () => {
+  it('surfaces a seam fact recorded in the linked project', async () => {
+    const a = await makeProject('core', 'core holds the contract');
+    const b = await makeProject('web', 'web pins a published core');
+    const mb = new MemoryManager({ globalDir, projectRoot: b });
+    await mb.saveEntry({
+      scope: 'project',
+      category: 'seam',
+      content: 'Editing a guide does nothing until the extractor runs in core.',
+    });
+
+    const ma = new MemoryManager({ globalDir, projectRoot: a });
+    await ma.linkProjects(a, b);
+
+    const facts = await ma.getRelatedSeamFacts();
+    expect(facts).toHaveLength(1);
+    expect(facts[0].project).toBe('web');
+    expect(facts[0].content).toMatch(/extractor/);
+  });
+
+  it('ignores ordinary memories in the linked project', async () => {
+    const a = await makeProject('core', 'x');
+    const b = await makeProject('web', 'an ordinary decision nobody needs next door');
+    const ma = new MemoryManager({ globalDir, projectRoot: a });
+    await ma.linkProjects(a, b);
+
+    expect(await ma.getRelatedSeamFacts()).toHaveLength(0);
+  });
+
+  it('says nothing when no project is linked', async () => {
+    const a = await makeProject('core', 'x');
+    const b = await makeProject('web', 'y');
+    const mb = new MemoryManager({ globalDir, projectRoot: b });
+    await mb.saveEntry({ scope: 'project', category: 'seam', content: 'a seam nobody declared' });
+
+    const ma = new MemoryManager({ globalDir, projectRoot: a });
+    expect(await ma.getRelatedSeamFacts()).toHaveLength(0);
+  });
+
+  // It rides in front of every session in a linked project. A brief nobody
+  // reads because it is long is the same as no brief.
+  it('stays small', async () => {
+    const a = await makeProject('core', 'x');
+    const b = await makeProject('web', 'y');
+    const mb = new MemoryManager({ globalDir, projectRoot: b });
+    for (let i = 0; i < 8; i++) {
+      await mb.saveEntry({ scope: 'project', category: 'seam', content: `seam fact number ${i}` });
+    }
+    const ma = new MemoryManager({ globalDir, projectRoot: a });
+    await ma.linkProjects(a, b);
+
+    expect((await ma.getRelatedSeamFacts()).length).toBeLessThanOrEqual(3);
+  });
+});

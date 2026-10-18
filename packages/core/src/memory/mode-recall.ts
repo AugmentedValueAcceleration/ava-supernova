@@ -20,6 +20,7 @@ import type { MemoryCategory, AvaMode } from './types.js';
  */
 export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, number>> = {
   work: {
+    seam: 1.4,   // the mode where a change here breaks something there
     health: 0.2,   // coding; how somebody trains is noise here
     architecture: 1.5,
     pattern: 1.5,
@@ -32,6 +33,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     general: 1.0,
   },
   chat: {
+    seam: 0.4,   // rarely what a conversation is about
     health: 1.6,   // the room most likely to be asked "how am I doing"
     person: 2.0,
     preference: 1.5,
@@ -44,6 +46,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     'tool-config': 0.2,
   },
   write: {
+    seam: 0.3,   // prose does not usually span repositories
     health: 0.6,   // may be writing about themselves
     preference: 1.8,   // house style, voice, tone
     general: 1.4,
@@ -56,6 +59,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     'tool-config': 0.3,
   },
   teach: {
+    seam: 0.9,   // how two parts of a system meet is often the lesson
     health: 0.5,   // relevant only when the subject is their own body
     pattern: 1.5,
     general: 1.3,
@@ -68,6 +72,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     'tool-config': 0.5,
   },
   security: {
+    seam: 1.3,   // trust boundaries live exactly at the joins
     health: 0.1,   // never relevant, and the most sensitive data we hold
     'bug-fix': 2.0,
     architecture: 1.5,
@@ -80,6 +85,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     person: 0.2,
   },
   plan: {
+    seam: 1.6,   // sequencing work across projects IS the seam
     health: 1.2,   // planning a week is exactly when this matters
     decision: 2.0,
     architecture: 1.5,
@@ -92,6 +98,7 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     'tool-config': 0.5,
   },
   brainstorm: {
+    seam: 0.6,   // occasionally the constraint worth knowing
     health: 0.8,   // occasionally the subject
     person: 1.5,
     preference: 1.5,

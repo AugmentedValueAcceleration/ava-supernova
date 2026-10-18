@@ -37,6 +37,23 @@ export type MemoryCategory =
    * written.
    */
   | 'health'
+  /**
+   * A fact about the JOIN between two projects, not about either one.
+   *
+   * These are the expensive ones. "Editing a guide changes nothing until the
+   * extractor runs in the other package" took an hour to rediscover, and it
+   * is not a fact about guides or about the extractor — it is a fact about
+   * the gap. Filed under either side it reads as a stray detail, and the
+   * person standing in the other project never meets it.
+   *
+   * Written in whichever project you are standing in and surfaced from both,
+   * because a seam only exists from both sides. Pair it with a declared link
+   * (see relatedProjects) so the other side can actually reach it.
+   *
+   * Same shape of problem `health` solved: a fact the code-shaped drawers had
+   * nowhere to put.
+   */
+  | 'seam'
   | 'general';      // Catch-all for anything that doesn't fit
 
 /** A single structured memory entry. */
@@ -163,7 +180,7 @@ export interface MemoryStoreSummary {
 /** All valid categories as an array (for validation). */
 export const MEMORY_CATEGORIES: MemoryCategory[] = [
   'pattern', 'preference', 'architecture', 'bug-fix',
-  'convention', 'tool-config', 'decision', 'person', 'health', 'general',
+  'convention', 'tool-config', 'decision', 'person', 'health', 'seam', 'general',
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -521,7 +538,7 @@ export const MEMORY_LAYERS: MemoryLayer[] = ['person', 'workflow', 'project'];
 export const LAYER_CATEGORY_MAP: Record<MemoryLayer, MemoryCategory[]> = {
   person: ['person', 'general'],
   workflow: ['preference', 'convention', 'tool-config', 'pattern'],
-  project: ['architecture', 'bug-fix', 'decision', 'general'],
+  project: ['architecture', 'bug-fix', 'decision', 'seam', 'general'],
 };
 
 /**

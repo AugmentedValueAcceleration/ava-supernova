@@ -231,6 +231,48 @@ export class MemoryManager {
 
   // ── v3 Public API — Graph-specific operations ─────────────────────────────
 
+  /**
+   * Seam facts recorded in the projects this one is linked to.
+   *
+   * A fact about a join is only worth writing if the person on the OTHER side
+   * meets it. Recall reaches across a link already, but recall needs someone
+   * to ask — and the defining property of a seam fact is that you do not know
+   * it exists until it has cost you an hour. So these are pulled at session
+   * start, where they are read before anyone asks anything.
+   *
+   * Deliberately small: a handful, newest first, each one short. This rides in
+   * front of every session in a linked project, and a brief nobody reads
+   * because it is long is the same as no brief.
+   */
+  async getRelatedSeamFacts(limit = 3): Promise<Array<{ project: string; content: string }>> {
+    if (!this.projectDir) return [];
+    const currentRoot = dirname(this.projectDir);
+    const related = await this.getRelatedProjects(currentRoot);
+    if (related.length === 0) return [];
+
+    const out: Array<{ project: string; content: string; at: string }> = [];
+    for (const path of related) {
+      const storePath = join(path, '.ava', MEMORY_FILENAME_V2);
+      if (!existsSync(storePath)) continue;
+      try {
+        const store = JSON.parse(await readFile(storePath, 'utf-8')) as MemoryStore;
+        for (const entry of store.entries) {
+          if (entry.archived || entry.category !== 'seam') continue;
+          out.push({
+            project: basename(path),
+            content: entry.content,
+            at: entry.updatedAt ?? entry.createdAt,
+          });
+        }
+      } catch {
+        // A linked project we cannot read is not worth failing a session over.
+      }
+    }
+
+    out.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    return out.slice(0, limit).map(({ project, content }) => ({ project, content }));
+  }
+
   /** Get the project brain brief for session-start injection. */
   getProjectBrain(): ProjectBrain | null {
     return this.projectBrainCache;
