@@ -20,6 +20,7 @@ import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-p
 import { bridgeImagesForTextModel } from './vision-bridge.js';
 import { auditClaims, type ClaimAuditResult } from './claims-auditor.js';
 import { parseJsonForgivingly } from '../utils/json-repair.js';
+import { repairHistory, logRepair } from './repair-history.js';
 import { autoExtractAndSave } from '../memory/auto-extract.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import { maybeBuildDesignReinjection, isUIFilePath as isUIFilePathLocal } from './design-reinjection.js';
@@ -837,6 +838,11 @@ export type AgentEvent =
   | { type: 'context_compression_start' }
   | { type: 'context_compression_end'; originalTokens: number; compressedTokens: number }
   | { type: 'context_truncated'; droppedCount: number }
+  /** The provider refused the conversation and we repaired it rather than
+   *  ending the turn. NEVER silent: a quiet repair hides the bug that made
+   *  it necessary, and the whole reason this exists is a fault that would
+   *  otherwise have been absorbed invisibly. */
+  | { type: 'history_repaired'; kind: string; summary: string }
   /** The model was cut off at its output limit mid-reply. Never silent: a
    *  truncated tool call simply never arrives, and the turn used to end as
    *  though she had chosen to stop. */
@@ -1774,6 +1780,10 @@ export class Agent {
     const runContext = { ...this.toolContext, signal };
 
     let iterations = 0;
+    // One repair per turn. If a repaired history fails again the repair did
+    // not take, and retrying becomes a loop that spends an allowance going
+    // nowhere. See repair-history.ts.
+    let repairAttempted = false;
     this.pauseRequested = false; // clear any stale pause from a prior run
     this._inThinkTag = false;
     let warningInjected = false;
@@ -2229,6 +2239,38 @@ export class Agent {
         logger.debug(`[agent] streamResponse returned: content=${assistantMessage.content?.length ?? 0} chars, tool_calls=${assistantMessage.tool_calls?.length ?? 0}, promptTokens=${promptTokens}${streamInterrupted ? ' (INTERRUPTED by injection)' : ''}`);
       } catch (error) {
         logger.error(`[agent] streamResponse THREW: ${error instanceof Error ? error.message : String(error)}`);
+
+        // ── Repair a refused conversation, once ───────────────────────────
+        //
+        // A 400 is usually a complaint about the HISTORY, not about what was
+        // just typed. Before this, the error surfaced and the turn ended; the
+        // next message replayed the same malformed history and failed the
+        // same way, forever, and a new chat was the only escape. A DeepSeek
+        // thinking-mode conversation died exactly like that on 16 Oct, under
+        // an error message that said "that's ours to fix — try again".
+        //
+        // So when the provider names a structural fault we fix that fault and
+        // send once more. Only once, and only if the repair actually changed
+        // something: see repair-history.ts for why those two rules carry more
+        // weight than the repairs do.
+        const provErr = error as { statusCode?: number; responseBody?: unknown };
+        if (!repairAttempted && provErr?.statusCode === 400) {
+          const detail = typeof provErr.responseBody === 'string'
+            ? provErr.responseBody
+            : JSON.stringify(provErr.responseBody ?? '');
+          const repair = repairHistory(detail, messages);
+          if (repair && repair.messages.length !== messages.length) {
+            repairAttempted = true;
+            logRepair(repair, 1);
+            messages = repair.messages;
+            // Said out loud on purpose. A silent repair hides the bug that
+            // caused it — this very fault would have been absorbed invisibly
+            // and the two files that disagreed would still disagree.
+            onEvent({ type: 'history_repaired', kind: repair.kind, summary: repair.summary });
+            continue;
+          }
+        }
+
         // Surface the error through the event system so CLI/extension handle it consistently
         onEvent({ type: 'error', error: error instanceof Error ? error : new Error(String(error)) });
         // Always emit done so UI clears isStreaming/isThinking
