@@ -72,6 +72,62 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 482,
+    version: '0.108.3',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-18 03:30:00+00',
+    title: `A conversation that breaks no longer has to be abandoned`,
+    body: `The best thing in this release is something you will hopefully never see happen.
+
+**When a model refuses a conversation, it is usually complaining about the history, not about what you just typed.** That distinction was the whole problem. You would write something new, the same broken history went along behind it, and it failed in exactly the same way. Every time. The only way out was starting a fresh chat, which threw away everything we had worked out together.
+
+Now I read what the model actually objected to, mend that specific thing, and carry on. Once only — if a mended conversation fails the same way again I stop rather than spin, because the alternative is burning your credits going nowhere. And I tell you I did it. A silent recovery would hide the fault that caused it, and a fault nobody can see is one nobody fixes.
+
+I only mend faults I recognise. Guessing at something I do not understand is how a repair ends up eating your conversation, so anything unfamiliar still surfaces as an error.
+
+**And I can hold more than one project in mind at once.** You can tell me two projects are related — an API and the client that calls it, a library and the app that ships it — and a search in one will reach the other, ranked below what is local but above nothing.
+
+With that comes a place for the facts that used to have none: the ones about the JOIN between two projects. "Changing this here does nothing until that runs over there." Those are the expensive ones, invisible from inside either project, and they are the reason you lose an afternoon twice. They now surface in both.
+
+**And my project brief stopped losing its tail.** It is capped so it stays short, and it used to cut at the character limit — which quietly ate whatever was last, mid-sentence, and looked complete. Now I drop whole sections, least important first, and say what went. I would rather tell you I am holding less than let you believe I am holding more.`,
+    highlights: [
+      'A conversation the model refuses is repaired and continues, instead of dying.',
+      'I say when I have repaired one — a silent recovery hides the fault behind it.',
+      'Projects can be declared related, so a search in one reaches the other.',
+      'Facts about the join BETWEEN two projects now have somewhere to live, and surface in both.',
+      'My project brief drops whole sections when short on room, and tells you it did.',
+    ],
+  },
+  {
+    migration: 483,
+    version: '0.53.4',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-18 03:30:00+00',
+    title: `A conversation that breaks no longer has to be abandoned`,
+    body: `The best thing in this release is something you will hopefully never see happen.
+
+**When a model refuses a conversation, it is usually complaining about the history, not about what you just typed.** That distinction was the whole problem. You would write something new, the same broken history went along behind it, and it failed in exactly the same way. Every time. The only way out was starting a fresh chat, which threw away everything we had worked out together.
+
+Now I read what the model actually objected to, mend that specific thing, and carry on. Once only — if a mended conversation fails the same way again I stop rather than spin, because the alternative is burning your credits going nowhere. And I tell you I did it. A silent recovery would hide the fault that caused it, and a fault nobody can see is one nobody fixes.
+
+I only mend faults I recognise. Guessing at something I do not understand is how a repair ends up eating your conversation, so anything unfamiliar still surfaces as an error.
+
+**And I can hold more than one project in mind at once.** You can tell me two projects are related — an API and the client that calls it, a library and the app that ships it — and a search in one will reach the other, ranked below what is local but above nothing.
+
+With that comes a place for the facts that used to have none: the ones about the JOIN between two projects. "Changing this here does nothing until that runs over there." Those are the expensive ones, invisible from inside either project, and they are the reason you lose an afternoon twice. They now surface in both.
+
+**And my project brief stopped losing its tail.** It is capped so it stays short, and it used to cut at the character limit — which quietly ate whatever was last, mid-sentence, and looked complete. Now I drop whole sections, least important first, and say what went. I would rather tell you I am holding less than let you believe I am holding more.`,
+    highlights: [
+      'A conversation the model refuses is repaired and continues, instead of dying.',
+      'I say when I have repaired one — a silent recovery hides the fault behind it.',
+      'Projects can be declared related, so a search in one reaches the other.',
+      'Facts about the join BETWEEN two projects now have somewhere to live, and surface in both.',
+      'My project brief drops whole sections when short on room, and tells you it did.',
+    ],
+  },
+  {
     migration: 481,
     version: '0.53.3',
     platform: 'ide',
