@@ -58,11 +58,17 @@ const ctx = { cwd: '.', sharedState: { videoPostStore: store } } as never;
  *  no count to keep in step, so it is gone. */
 const SHOT = 'a hand reaches in and lifts the pan, steam rising as the light shifts';
 
+/** What the video is about. Added 19 Oct 2026 when the tool began refusing a
+ *  shot that shares no content word with its subject — these fixtures are
+ *  about duration, so the subject only has to agree with SHOT to get past it. */
+const SUBJECT = 'lifting the pan while the steam rises';
+
 async function attempt(args: Record<string, unknown>) {
   lastWritten = null;
   const r = await tool.execute(
     {
       platform: 'tiktok',
+      subject: SUBJECT,
       shot: SHOT,
       caption: 'a caption',
       ...args,

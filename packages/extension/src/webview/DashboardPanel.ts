@@ -35,6 +35,9 @@ import {
   loadPersonality, savePersonality, resetPersonality,
   loadDatasetConfig, saveDatasetConfig, configPathFor,
   exportEncryptedBackup, importEncryptedBackup, gatherBundle,
+  // Factory reset — the engine is in core so the IDE runs the same one.
+  scanCategories, executeReset, resetCategories,
+  type ResetHost, type ResetReport,
   // Per-type export/import is shared with the IDE — one implementation, in core.
   exportDataType, importDataType, isCoreDataType, NotImportableError,
   type DatasetConfig,
@@ -399,6 +402,14 @@ export class DashboardPanel {
 
       case 'connect_account':
         await this.connectAccount(msg.key);
+        break;
+
+      case 'factory_reset_scan':
+        await this.handleFactoryResetScan();
+        break;
+
+      case 'factory_reset_execute':
+        await this.handleFactoryResetExecute(msg.categories);
         break;
 
       case 'disconnect_account':
@@ -3759,6 +3770,95 @@ export class DashboardPanel {
    *  that ordering race made loadSyncStatus read the un-scoped `~/.ava` and
    *  report 0 local items even though the data was safe under `users/<id>/`. */
   private accountScopedDir: string | null = null;
+
+  /**
+   * Measure what a factory reset would remove, so the dialog can say what it
+   * costs BEFORE it costs it. Sizes come back per-category; an enormous tree
+   * (projects was 19GB on the author's machine) reports `approximate` rather
+   * than holding the dialog open while it finishes counting.
+   */
+  private async handleFactoryResetScan(): Promise<void> {
+    try {
+      const sizes = await scanCategories(AVA_HOME, this.getUserDataDir());
+      this.post({
+        type: 'factory_reset_scanned',
+        sizes,
+        categories: resetCategories().map(c => ({
+          id: c.id,
+          severity: c.severity,
+          defaultSelected: c.defaultSelected,
+        })),
+      } as any);
+    } catch (e) {
+      this.post({
+        type: 'factory_reset_scanned',
+        sizes: [],
+        categories: [],
+        error: e instanceof Error ? e.message : String(e),
+      } as any);
+    }
+  }
+
+  /**
+   * Do it.
+   *
+   * The engine refuses anything outside ~/.ava and disables cloud sync before
+   * the first deletion, so this method's whole job is to hand it the host's
+   * three capabilities and then tell the user the truth about what happened.
+   * A window reload follows a successful reset that cleared settings, because
+   * onboarding and the consent screen are what make day one look like day one.
+   */
+  private async handleFactoryResetExecute(categories: string[]): Promise<void> {
+    const host: ResetHost = {
+      deleteSecret: async (key) => { await this.secrets.delete(key); },
+      clearStateKey: async (key) => { await this.context.globalState.update(key, undefined); },
+      disableSyncFirst: async () => {
+        // Rule 3: a reset the next sync undoes is worse than none. Master
+        // toggle off AND every per-category pref, so nothing re-enables it
+        // from a half-cleared map.
+        await this.context.globalState.update('ava.cloudSyncEnabled', false);
+        await this.context.globalState.update('ava.syncPrefs', {});
+      },
+      log: (m) => this.log(m),
+    };
+
+    let report: ResetReport;
+    try {
+      report = await executeReset(categories, host, AVA_HOME, this.getUserDataDir());
+    } catch (e) {
+      this.post({
+        type: 'factory_reset_done',
+        ok: false,
+        error: e instanceof Error ? e.message : String(e),
+      } as any);
+      return;
+    }
+
+    // Drop every cached handle that points at data which no longer exists,
+    // or the panel keeps serving the deleted account's content from memory —
+    // the same stale-handle trap disconnect_account already guards against.
+    this.accountScopedDir = null;
+    this.taskManager = undefined;
+    this.journalManager = undefined;
+
+    this.post({
+      type: 'factory_reset_done',
+      ok: report.failed.length === 0,
+      removed: report.removed.length,
+      failed: report.failed,
+      bytesFreed: report.bytesFreed,
+      secretsCleared: report.secretsCleared,
+      stateKeysCleared: report.stateKeysCleared,
+    } as any);
+
+    if (categories.includes('settings')) {
+      // Give the webview a moment to render the report before the reload
+      // takes the window away from under it.
+      setTimeout(() => {
+        void vscode.commands.executeCommand('workbench.action.reloadWindow');
+      }, 2500);
+    }
+  }
 
   private getUserDataDir(): string {
     return this.accountScopedDir ?? this.viewProvider?.getAccountScopedDir() ?? AVA_HOME;

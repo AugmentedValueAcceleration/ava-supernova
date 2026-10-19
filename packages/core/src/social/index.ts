@@ -475,6 +475,23 @@ export interface Beat {
    * either and should leave this alone.
    */
   format?: string;
+
+  /**
+   * Is this beat anchored to something currently IN THE NEWS?
+   *
+   * At least one of the day's beats must be, and the day refuses without it
+   * (19 Oct 2026, operator's call). The reason is reach rather than variety:
+   * a post about our own release only reaches people already looking at us,
+   * while a post about a thing the whole field is discussing today reaches
+   * people who have never heard of us — and that is the only kind of post
+   * that grows anything.
+   *
+   * It means a REAL story from today or the last day or two, found with
+   * web_search or the news desk and named specifically. "AI is moving fast"
+   * is not news; a named model release, a named outage, a named policy change
+   * is. An invented one is far worse than none.
+   */
+  is_news?: boolean;
 }
 
 /**

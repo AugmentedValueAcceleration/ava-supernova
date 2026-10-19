@@ -1612,7 +1612,7 @@ export class Agent {
     // short/conversational, the intent gate will disable tools too.
     // Combined effect: user presses Stop → types something → Ava responds
     // on the user's actual terms, not the prior task's terms.
-    messages = this.maybeRestrictPostStopContext(messages);
+    messages = this.applyPostStopDirective(messages);
 
     // ─── Classify this task for directness discipline ─────────────────────
     // Find the latest non-meta user message and run the lightweight
@@ -4267,33 +4267,38 @@ ${transcript}`;
   }
 
   /**
-   * Detect the "first turn after Stop" pattern and strip prior conversation.
+   * Detect the "first turn after Stop" and tell Ava not to resume — WITHOUT
+   * taking the conversation away from her.
    *
-   * When cancelRun() fires in the extension, a marker is pushed into the
-   * conversation: `[User pressed Stop — previous task terminated...]`.
-   * After the user's next real message, the conversation looks like:
+   * When cancelRun() fires, a marker goes into the conversation:
+   * `[User pressed Stop — previous task terminated...]`. After the user's
+   * next real message the history looks like:
    *
-   *   [... prior task, maybe 150K tokens ...]
+   *   [... prior task ...]
    *   [User pressed Stop — ...]   (meta user message)
    *   Actual new user message
    *
-   * The prior 150K tokens are dead weight. Sending them back means the
-   * model re-draws on the task the user told us to abandon. The fix is
-   * to detect this pattern and return a restricted message array:
+   * THIS USED TO DELETE EVERYTHING ABOVE THE MARKER. The reasoning was that
+   * the prior tokens were dead weight and re-sending them made the model drift
+   * back into the abandoned task. The cost was far worse than the saving: the
+   * operator pressed Stop meaning "that is going wrong, let me redirect you",
+   * and Ava answered as though the conversation had never happened — then
+   * remembered it again the turn after, which is more baffling still. He
+   * described it as "losing massive chunks", and he was right to.
    *
-   *   [system prompt + stop directive]
-   *   [new user message]
+   * Stop means stop generating. It does not mean forget. Every other tool he
+   * uses works that way, and the marker below already carries the "do not
+   * resume" instruction — enforcing it with amnesia was never necessary.
    *
-   * Detection: find the most recent stop marker. If it exists AND there
-   * is exactly one non-meta user message after it (and the assistant
-   * hasn't yet responded to that message), we're in the first post-stop
-   * turn — restrict.
+   * So this now injects the directive into the system prompt and returns the
+   * history intact. Compression still applies downstream, which is the right
+   * place to deal with size.
    *
-   * If more messages exist after that point (assistant replies, tool
-   * results), we've already handled the first post-stop turn normally;
-   * further turns see full context and operate as normal.
+   * Detection: the most recent stop marker, with exactly one non-meta user
+   * message after it and no real assistant reply yet. Later turns need no
+   * directive — the task is well and truly abandoned by then.
    */
-  private maybeRestrictPostStopContext(messages: Message[]): Message[] {
+  private applyPostStopDirective(messages: Message[]): Message[] {
     // Find the most recent stop marker (a user-role message starting with the marker prefix).
     let markerIdx = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -4334,21 +4339,29 @@ ${transcript}`;
       return messages;
     }
 
-    const newUserMessage = nonMetaUsers[0];
+    // (The new user message itself needs no special handling now that the
+    // history stays — it is already in `messages` where it belongs.)
     const systemMsg = messages.find(m => m.role === 'system');
 
     // Merge the stop directive into the system prompt so the model sees
     // it at the highest-authority layer, not as a floating user message
     // (which some providers reject when followed by another user msg).
-    const stopDirective = `\n\n[Post-stop context] The previous task was terminated by the user. Do not resume it. Treat the user's message below as a fresh request on its own terms. If they reference prior work ambiguously (e.g. "fix that", "continue"), ask them to be specific — you do not have the prior context and should not assume.`;
+    // The directive used to end with "you do not have the prior context",
+    // which was true only because this function had just deleted it. Both
+    // halves are gone now: the history stays, and Ava is told plainly that
+    // she still has it.
+    const stopDirective = `\n\n[Post-stop] The user stopped the previous task. Do NOT resume it or pick it back up on your own — answer the message below on its own terms.\n\nThe conversation above is still yours to use. If their message leans on it ("fix that instead", "same thing but…", "carry on from the bit that worked"), use it. Stopping a task does not undo the discussion that led to it.`;
 
-    const restrictedSystem: Message | null = systemMsg
+    const withDirective: Message | null = systemMsg
       ? { ...systemMsg, content: (typeof systemMsg.content === 'string' ? systemMsg.content : '') + stopDirective }
       : { role: 'system' as const, content: stopDirective.trimStart() };
 
-    logger.debug(`[agent] Post-stop context restriction: dropped ${messages.length - 2} prior messages, keeping system + new user message`);
+    logger.debug('[agent] Post-stop directive applied; history kept intact');
 
-    return restrictedSystem ? [restrictedSystem, newUserMessage] : [newUserMessage];
+    // History intact — only the system message is swapped for its annotated
+    // copy. Size is compression's job, not this function's.
+    if (!withDirective) return messages;
+    return messages.map(m => (m === systemMsg ? withDirective : m));
   }
 
   /**

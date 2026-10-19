@@ -5,6 +5,7 @@ import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
 import { Icon } from '../components/Icon';
 import { DataPortability } from '../components/DataPortability';
+import { FactoryResetDialog } from '../components/FactoryResetDialog';
 import type { DashboardSettings, ProviderKeyStatus } from '../types/messages';
 
 interface SettingsProps {
@@ -86,6 +87,7 @@ export function Settings({
   account,
 }: SettingsProps) {
   useLocale();
+  const [resetOpen, setResetOpen] = useState(false);
   const [local, setLocal] = useState<DashboardSettings>(settings);
   const [providerInputs, setProviderInputs] = useState<Record<string, string>>({});
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
@@ -921,6 +923,35 @@ export function Settings({
       </div>
 
       </>}
+
+      {/* Factory reset — deliberately NOT gated on an account, unlike the
+          Danger Zone below it. A BYOK user who never signed in still needs a
+          way back to day one. */}
+      {tab === 'privacy' && (
+        <>
+          <SectionLabel>{tt('dash.settings.section.reset', 'Start over')}</SectionLabel>
+          <div className="mb-4 rounded-xl border border-red-500/30 bg-[var(--bg-card)] p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-red-400">
+                  {tt('dash.settings.factory_reset', 'Factory reset')}
+                </p>
+                <p className="text-xs text-red-400/70">
+                  {tt('dash.settings.factory_reset_desc',
+                    'Choose what to erase and put Ava back to day one. You pick what goes — nothing is assumed.')}
+                </p>
+              </div>
+              <button
+                onClick={() => setResetOpen(true)}
+                className="shrink-0 rounded-lg border border-red-500/40 px-4 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+              >
+                {tt('dash.settings.factory_reset_open', 'Choose what to erase')}
+              </button>
+            </div>
+          </div>
+          <FactoryResetDialog open={resetOpen} onClose={() => setResetOpen(false)} />
+        </>
+      )}
 
       {/* Danger Zone lives under Privacy, mirroring the IDE. */}
       {tab === 'privacy' && account && (

@@ -33,7 +33,10 @@ const SHOT = 'a hand reaches into frame and lifts the pan, steam rising as the l
 async function run(args: Record<string, unknown>) {
   written = null;
   writeCalls = 0;
-  return tool.execute({ shot: SHOT, ...args }, ctx);
+  // `subject` added 19 Oct 2026: the tool now refuses a shot that shares no
+  // content word with what the video is about. These fixtures are about
+  // per-platform captions, so the subject only has to agree with SHOT.
+  return tool.execute({ subject: 'lifting the pan as the steam rises', shot: SHOT, ...args }, ctx);
 }
 
 describe('one video, one generation, a caption per platform', () => {

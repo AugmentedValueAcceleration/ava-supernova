@@ -1980,6 +1980,8 @@ export type ExtToDashboardMessage =
   | { type: 'announcement_loaded'; messages: string[] }
   // Encrypted backup / restore results (data sovereignty).
   | { type: 'backup_done'; ok: boolean; message?: string }
+  | { type: 'factory_reset_scanned'; sizes: { id: string; bytes: number; approximate: boolean; empty: boolean }[]; categories: { id: string; severity: 'ordinary' | 'permanent' | 'irreversible'; defaultSelected: boolean }[]; error?: string }
+  | { type: 'factory_reset_done'; ok: boolean; removed?: number; failed?: { path: string; reason: string }[]; bytesFreed?: number; secretsCleared?: number; stateKeysCleared?: number; error?: string }
   | { type: 'backup_imported'; ok: boolean; written?: number; skipped?: number; message?: string }
   // Chat streaming — partial tool output chunks during execution
   | { type: 'tool_call_partial'; toolCallId: string; data: string }
@@ -2031,6 +2033,8 @@ export type DashboardToExtMessage =
   | { type: 'set_welcome_on_startup'; enabled: boolean }
   | { type: 'connect_account'; key: string }
   | { type: 'disconnect_account' }
+  | { type: 'factory_reset_scan' }
+  | { type: 'factory_reset_execute'; categories: string[] }
   | { type: 'skip_account' }
   // OAuth sign-in flow (v0.37.0) — dashboard-side versions of the same
   // messages the chat webview uses. Routed through DashboardPanel.handleMessage

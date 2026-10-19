@@ -1402,6 +1402,27 @@ export function App() {
     postMessage({ type: 'cancel' });
   }, [postMessage]);
 
+  // ── Esc stops Ava ────────────────────────────────────────────────────
+  //
+  // Reaching for the mouse to stop something that is already going wrong is
+  // the wrong shape of interaction, and every other tool the operator uses
+  // stops on Esc. It fires ONLY while streaming, so Esc keeps its ordinary
+  // meaning (close this panel, cancel this edit) the rest of the time.
+  //
+  // Bubble phase on purpose: a modal or an inline editor that handles Esc
+  // and calls stopPropagation gets it first, which is correct — closing the
+  // thing in front of you beats stopping something in the background.
+  useEffect(() => {
+    if (!state.isStreaming) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      e.preventDefault();
+      handleCancel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [state.isStreaming, handleCancel]);
+
   const handleOpenDashboard = useCallback(() => {
     // The heaviest click in the extension: the host builds a webview panel and
     // loads a ~10MB bundle, which takes seconds. Nothing here can make that

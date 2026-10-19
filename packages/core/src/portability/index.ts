@@ -31,6 +31,12 @@ export {
   type ExportedFile,
   type DataRoots,
 } from './data-types.js';
+// Factory reset — the other end of portability: take it all away.
+export {
+  resetCategories, categoryPaths, allKnownDataPaths, scanCategories, executeReset,
+  formatBytes, PROVIDER_SECRETS, DAY_ONE_STATE_KEYS,
+  type ResetCategory, type ResetSeverity, type CategorySize, type ResetReport, type ResetHost,
+} from './factory-reset.js';
 
 import { seal, open } from './crypto.js';
 import { gatherBundle, restoreBundle, type DataBundle, type RestoreResult } from './bundle.js';

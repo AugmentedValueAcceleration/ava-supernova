@@ -230,6 +230,12 @@ export {
   type CoreDataType, type ExportedFile, type DataRoots,
 } from './portability/index.js';
 
+export {
+  resetCategories, categoryPaths, allKnownDataPaths, scanCategories, executeReset,
+  formatBytes, PROVIDER_SECRETS, DAY_ONE_STATE_KEYS,
+  type ResetCategory, type ResetSeverity, type CategorySize, type ResetReport, type ResetHost,
+} from './portability/index.js';
+
 export { exportTrainingData, toJsonlSft, toJsonlWithReasoning } from './memory/training-export.js';
 export type { TrainingExample } from './memory/training-export.js';
 export { MODE_CATEGORY_WEIGHTS } from './memory/mode-recall.js';

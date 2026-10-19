@@ -186,9 +186,24 @@ export class WriteVideoPostTool implements Tool {
             required: ['platform', 'caption'],
           },
         },
+        subject: {
+          type: 'string',
+          description:
+            'WHAT THIS VIDEO IS ABOUT, in a few plain words — the thing a viewer should come away knowing '
+            + '("Ava runs offline with no API key", "the pantry turns what you have into a recipe"). '
+            + 'This is not a title and nobody sees it: it is the anchor the shot and the script are both '
+            + 'held against. Write it FIRST, then write a shot that shows it.',
+        },
         shot: {
           type: 'string',
-          description: 'THE SHOT — one continuous video clip, described as a single moving image. This is GENERATED AS VIDEO now, not a still, so say what MOVES: the subject, the setting, the framing, the light, the mood, and then the movement itself — what changes across the clip, and the one camera move if there is one. NAME THINGS THAT HAPPEN, NEVER THINGS THAT DO NOT. This model reads an instruction to hold still as an instruction to render nothing: "nothing moves, nothing changes" came back as a black clip, while the same shot described positively (steam, shifting light, a slow push in) held perfectly. If you want a near-static shot, say which small things still move in it. The subject must be legible in the FIRST SECOND, because most people watch these with the sound off and decide in that second. Be concrete — a model cannot render "the feeling of trust", but it can render a hand stopping halfway to a pan. One idea, one shot: this is a single continuous take, so do not describe a sequence of moments or ask for a cut. The clip arrives with its own generated soundtrack, which the operator mutes before laying your voiceover over it — so write the PICTURE and never the sound.',
+          description: 'THE SHOT — one continuous video clip, described as a single moving image. '
+            + 'IT MUST SHOW THE SUBJECT. A beautiful clip of something else is a failed clip, however '
+            + 'well it renders: the picture is the argument, and a viewer who watches a sunset while '
+            + 'hearing about offline coding has been shown nothing. Before writing it, ask what this '
+            + 'idea LOOKS like — then shoot that. Stock-feeling filler (abstract light, generic city, '
+            + 'anonymous hands on a keyboard) is the failure mode to avoid: it would fit any post we '
+            + 'have ever written, which is the same fault as a tag that fits any post. '
+            + 'This is GENERATED AS VIDEO now, not a still, so say what MOVES: the subject, the setting, the framing, the light, the mood, and then the movement itself — what changes across the clip, and the one camera move if there is one. NAME THINGS THAT HAPPEN, NEVER THINGS THAT DO NOT. This model reads an instruction to hold still as an instruction to render nothing: "nothing moves, nothing changes" came back as a black clip, while the same shot described positively (steam, shifting light, a slow push in) held perfectly. If you want a near-static shot, say which small things still move in it. The subject must be legible in the FIRST SECOND, because most people watch these with the sound off and decide in that second. Be concrete — a model cannot render "the feeling of trust", but it can render a hand stopping halfway to a pan. One idea, one shot: this is a single continuous take, so do not describe a sequence of moments or ask for a cut. The clip arrives with its own generated soundtrack, which the operator mutes before laying your voiceover over it — so write the PICTURE and never the sound.',
         },
         script: {
           type: 'string',
@@ -214,7 +229,7 @@ export class WriteVideoPostTool implements Tool {
           description: 'For a FOOD video: the name of a dish we already have a photograph of. CHECK FIRST with find_recipe — naming a dish we do not have is REFUSED, not generated, because a plausible stranger plate filed among our own photographs is one careless caption away from being posted as ours. Naming a real one puts OUR hero photograph in as the OPENING SHOT, so the first frame is genuinely the food and cannot misrepresent it. Use this for anything about a recipe. Your first entry in `shots` is then a description of that photograph rather than a request — it is not generated, so write the rest of the storyboard to follow on from it.',
         },
       },
-      required: ['posts', 'shot'],
+      required: ['posts', 'subject', 'shot'],
     },
   };
 
@@ -305,6 +320,53 @@ export class WriteVideoPostTool implements Tool {
           + 'still as nothing at all.',
       };
     }
+    // ── The clip has to be ABOUT the thing ──────────────────────────────
+    //
+    // Asked for 19 Oct 2026: videos were coming back well-made and off-topic.
+    // Guidance alone does not hold this — "show the subject" reads as advice,
+    // and a model that has just written a vivid shot will not go back and
+    // check it. So the overlap is measured, and a shot that shares no content
+    // word with what the video is about is refused rather than rendered.
+    //
+    // Deliberately crude: it catches total drift (a sunset for a post about
+    // offline coding) and nothing subtler, because a stricter rule would
+    // start refusing good metaphors. One shared word is enough to pass.
+    const subject = ((args.subject as string | undefined) || '').trim();
+    if (!subject) {
+      return {
+        success: false,
+        output:
+          'write_video_post requires `subject` — what this video is ABOUT, in a few plain words. '
+          + 'It is the anchor the shot is held against, so the clip shows the idea rather than '
+          + 'something attractive beside it.',
+      };
+    }
+    const STOP = new Set([
+      'the', 'a', 'an', 'and', 'or', 'but', 'of', 'to', 'in', 'on', 'at', 'for', 'with', 'from',
+      'is', 'are', 'was', 'it', 'its', 'this', 'that', 'as', 'by', 'into', 'over', 'then', 'while',
+      'slow', 'close', 'shot', 'clip', 'camera', 'light', 'frame', 'push', 'pull', 'moves', 'move',
+      'across', 'through', 'one', 'single', 'continuous', 'soft', 'warm', 'dark', 'bright',
+    ]);
+    const words = (s: string) => new Set(
+      s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
+        .filter((w) => w.length > 3 && !STOP.has(w))
+        .map((w) => w.replace(/(ing|ed|es|s)$/, '')),
+    );
+    const subjectWords = words(subject);
+    const shotWords = words(shot);
+    const shared = [...subjectWords].filter((w) => shotWords.has(w));
+    if (subjectWords.size > 0 && shared.length === 0) {
+      return {
+        success: false,
+        output:
+          `The shot does not show the subject. This video is about "${subject}", but the clip `
+          + 'describes something with no part of that in it — so a viewer watches one thing and '
+          + 'hears about another, and the picture argues for nothing.\n\n'
+          + 'Rewrite `shot` so the subject is what is ON SCREEN, legible in the first second. '
+          + 'Ask what this idea LOOKS like, then shoot that — not something attractive beside it.',
+      };
+    }
+
     const captionless = parsed.filter((v) => !v.caption).map((v) => v.platform);
     if (captionless.length > 0) {
       return {
