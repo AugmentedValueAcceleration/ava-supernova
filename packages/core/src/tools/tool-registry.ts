@@ -47,12 +47,13 @@ import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateTool } from './health-plan-update.js';
 import { HealthPlanListTool } from './health-plan-list.js';
 import { HealthPlanDeleteTool } from './health-plan-delete.js';
-import { DayPlanReadTool, DayPlanWriteTool, DayPlanItemStatusTool } from './day-plan.js';
+import { DayPlanReadTool, DayPlanWriteTool, DayPlanItemStatusTool, DayPlanReviewTool } from './day-plan.js';
 import { WritePostTool } from './write-post.js';
 import { WriteVideoPostTool } from './write-video-post.js';
 import { WriteVoiceoverTool } from './write-voiceover.js';
 import { WritePostImageTool } from './write-post-image.js';
 import { ProposeHooksTool } from './propose-hooks.js';
+import { ProposeBriefTool } from './propose-brief.js';
 import { ResearchPostTool } from './research-post.js';
 // Newsroom — Ava as Correspondent. She writes her OWN account and cites the
 // outlets she read; she is not an aggregator. write_article REFUSES an article
@@ -480,11 +481,13 @@ export class ToolRegistry {
       new DayPlanReadTool(),
       new DayPlanWriteTool(),
       new DayPlanItemStatusTool(),
+      new DayPlanReviewTool(),
       new WritePostTool(),
       new WriteVideoPostTool(),
       new WriteVoiceoverTool(),
       new WritePostImageTool(),
       new ProposeHooksTool(),
+      new ProposeBriefTool(),
       new ResearchPostTool(),
       new DiscoverNewsTool(),
       new SuggestStoriesTool(),

@@ -22,6 +22,20 @@ import type { DayPlanStore, NewDayPlanItem } from '../social/day-plan.js';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Today as a local YYYY-MM-DD — never a UTC slice, which is tomorrow after
+ *  midnight UTC for anyone east of it and yesterday for anyone west. */
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Shift a YYYY-MM-DD by whole days, as calendar arithmetic (no timezone). */
+function shiftDay(day: string, by: number): string {
+  const [y, m, d] = day.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + by));
+  return t.toISOString().slice(0, 10);
+}
+
 function store(context: ToolExecutionContext): DayPlanStore | null {
   return (context.sharedState?.dayPlanStore as DayPlanStore | undefined) ?? null;
 }
@@ -51,10 +65,14 @@ function describe(items: Awaited<ReturnType<DayPlanStore['list']>>): string {
         const state = r.status === 'done'
           ? `done${r.done_by ? ` (${r.done_by})` : ''}`
           : r.status;
-        return `${where}: ${state}`;
+        // His mark, said plainly, and only when he has made one.
+        const landed = r.landed === true ? ', LANDED' : r.landed === false ? ', did not land' : '';
+        return `${where}: ${state}${landed}`;
       })
       .join(', ');
     lines.push(`- ${when} — ${head.title} [${outputs}]${head.notes ? ` — ${head.notes}` : ''}`);
+    const verdicts = [...new Set(rows.map(r => r.ava_verdict).filter((v): v is string => !!v))];
+    for (const v of verdicts) lines.push(`  your verdict: ${v}`);
     if (rows[0].id) lines.push(`  ids: ${rows.map(r => r.id).join(' ')}`);
   }
   return lines.join('\n');
@@ -79,6 +97,10 @@ export class DayPlanReadTool implements Tool {
           type: 'string',
           description: 'YYYY-MM-DD, the operator\'s LOCAL day. Omit for today. Call get_datetime rather than assuming what today is.',
         },
+        days_back: {
+          type: 'number',
+          description: 'Also read this many days BEFORE the date (up to 14) — the fortnight view: what went out, what he marked as landed, and your own verdicts. Use 14 when planning a day, so today is shaped by what actually worked.',
+        },
       },
       required: [],
     },
@@ -93,7 +115,37 @@ export class DayPlanReadTool implements Tool {
       return { success: false, output: `Invalid date "${String(args.date)}" — must be YYYY-MM-DD. Call get_datetime and use the local day.` };
     }
 
+    const raw = args.days_back;
+    const back = typeof raw === 'number' && Number.isFinite(raw) ? Math.min(14, Math.max(0, Math.floor(raw))) : 0;
+
     try {
+      if (back > 0) {
+        // A host that cannot read the past must SAY so — an empty fortnight
+        // would read as "nothing has worked", which is a claim, not a gap.
+        if (typeof s.listRange !== 'function') {
+          return { success: false, output: 'This surface cannot read past days, so I cannot see what landed. Do not guess at it.' };
+        }
+        const end = date ?? localToday();
+        const start = shiftDay(end, -back);
+        const items = await s.listRange(start, end);
+        const byDay = new Map<string, typeof items>();
+        for (const it of items) {
+          const list = byDay.get(it.plan_date);
+          if (list) list.push(it);
+          else byDay.set(it.plan_date, [it]);
+        }
+        const days = [...byDay.keys()].sort();
+        const judged = items.filter(i => i.landed === true || i.landed === false);
+        const landed = items.filter(i => i.landed === true).length;
+        const header = judged.length
+          ? `${start} to ${end}: he has marked ${judged.length} output${judged.length === 1 ? '' : 's'} — ${landed} landed, ${judged.length - landed} did not.`
+          : `${start} to ${end}: he has not marked anything as landed or not yet, so there is no verdict of his to learn from — do not invent one.`;
+        return {
+          success: true,
+          output: [header, ...days.map(d => `\n${d}\n${describe(byDay.get(d) || [])}`)].join('\n'),
+          metadata: { count: items.length, from: start, to: end, judged: judged.length, landed },
+        };
+      }
       const items = await s.list(date ?? '');
       return {
         success: true,
@@ -223,6 +275,66 @@ export class DayPlanItemStatusTool implements Tool {
       return { success: true, output: `Item ${id} is now ${status}.`, metadata: { id, status } };
     } catch (err) {
       return { success: false, output: `Could not update the item: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  }
+}
+
+/**
+ * Her own verdict on her own work (20 Oct 2026).
+ *
+ * The operator: "i want ava to always have her say and judge her own work — it
+ * is what will help her improve as she has her memory too." He marks what
+ * landed; she says what she thinks of what she made. Neither replaces the
+ * other, and the disagreements between them are the most useful thing in the
+ * record.
+ */
+export class DayPlanReviewTool implements Tool {
+  readonly name = 'day_plan_review';
+  readonly description =
+    'Record your own honest verdict on your own work for a story that went out — what worked, what did not, what you would do differently.';
+
+  readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'day_plan_review',
+    description:
+      'Record YOUR verdict on YOUR OWN work for a story that went out: what worked, what did not, and what you would change. '
+      + 'Always give one, honestly — a weak post called weak is worth more than a flattering record. '
+      + 'Give it on your own judgement of the work, not by echoing his mark: where you and he disagree, that is the thing to learn from. '
+      + 'If a verdict teaches you something that should change how you work, save it with memory_save as well.',
+    parameters: {
+      type: 'object',
+      properties: {
+        ids: { type: 'array', items: { type: 'string' }, description: 'The item ids this verdict is about, from day_plan_read — one platform, or every platform of the story.' },
+        verdict: { type: 'string', description: 'One to three plain sentences. Specific: name the line that worked or the choice that did not.' },
+      },
+      required: ['ids', 'verdict'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const s = store(context);
+    if (!s) return { success: false, output: 'The day plan is not available in this context.' };
+    if (typeof s.setVerdict !== 'function') {
+      return { success: false, output: 'This surface cannot record a verdict. Say it to him in the chat instead, and save the lesson with memory_save.' };
+    }
+
+    const ids = Array.isArray(args.ids) ? (args.ids as unknown[]).map(String).map(x => x.trim()).filter(Boolean) : [];
+    const verdict = typeof args.verdict === 'string' ? args.verdict.trim() : '';
+    if (!ids.length) return { success: false, output: 'Missing `ids` — read the plan first to get them.' };
+    if (!verdict) return { success: false, output: 'An empty verdict is not a verdict. Say what you actually think of the work.' };
+
+    try {
+      const n = await s.setVerdict(ids, verdict);
+      if (n === 0) return { success: false, output: 'None of those ids are on the plan — read it again for the right ones.' };
+      return {
+        success: true,
+        output: `Verdict recorded on ${n} item${n === 1 ? '' : 's'}. If it changes how you will work, save the lesson with memory_save.`,
+        metadata: { updated: n },
+      };
+    } catch (err) {
+      return { success: false, output: `Could not record the verdict: ${err instanceof Error ? err.message : String(err)}` };
     }
   }
 }

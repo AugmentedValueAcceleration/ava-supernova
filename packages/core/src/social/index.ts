@@ -393,6 +393,42 @@ export interface HookStore {
 }
 
 /**
+ * The brief for ONE post — what she and the operator agree before it is
+ * written (20 Oct 2026).
+ *
+ * The agreed vision used to evaporate the moment writing started: the day was
+ * discussed, then the post was generated from a one-line angle. The brief is
+ * the thing that carries the discussion INTO the writing — the surface hands
+ * the agreed brief to the writing turn, and offers no way to write a planned
+ * story without one.
+ *
+ * She opens with a point of view, not a questionnaire: "what would you like
+ * this to be?" hands the marketing thinking back to the person who does not do
+ * marketing. He learns by arguing with a position.
+ */
+export interface PostBrief {
+  /** The story, as it stands on the plan. */
+  subject: string;
+  /** What this post argues — its point, in one sentence. */
+  argues: string;
+  /** Who it is for, specifically. "Developers" is a category, not a reader. */
+  audience: string;
+  /** The way in: what makes THIS reader stop and care. */
+  angle: string;
+  /** The shape: text, thread, clip, piece to camera… and why that form. */
+  form: string;
+  /** The one line it has to land. Everything else in the post serves this. */
+  mustLand: string;
+  /** Her reasoning for the brief as a whole — what she weighed and rejected. */
+  reasoning: string;
+}
+
+/** Surface-injected sink for a proposed brief → `brief` SSE, rendered as a card. */
+export interface BriefStore {
+  propose(brief: PostBrief): Promise<void>;
+}
+
+/**
  * Per-platform hard character caps (by code point — emoji count as 1). Single-
  * post platforms with a real cap only; threads are per-tweet and long-form caps
  * are rarely hit. The single source of truth shared by the core write_post tool

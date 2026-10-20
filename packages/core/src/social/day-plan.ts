@@ -33,6 +33,18 @@ export interface DayPlanItem {
   done_by: 'ava' | 'operator' | 'system' | null;
   /** Rows sharing this are one story. */
   group_id: string | null;
+  /**
+   * HIS mark: did this output land? true / false, null = not judged yet.
+   * Never hers to set — the whole value of it is that it is not her opinion.
+   */
+  landed?: boolean | null;
+  /**
+   * HER honest verdict on her own work for this output (20 Oct 2026). Always
+   * given, including when it is bad. The gap between this and `landed` is
+   * what she learns from: a verdict that keeps calling posts strong that he
+   * marks as flat is a judgement that needs correcting.
+   */
+  ava_verdict?: string | null;
 }
 
 export interface NewDayPlanItem {
@@ -55,4 +67,13 @@ export interface DayPlanStore {
     status: 'planned' | 'done' | 'dropped' | 'carried',
     doneBy?: 'ava' | 'operator' | 'system' | null,
   ): Promise<boolean>;
+  /**
+   * Every item from `from` to `to` inclusive (local days), oldest first — the
+   * fortnight view. With memory loss he cannot hold what landed two weeks
+   * ago; she can, but only if she can read it. Optional: a host without it
+   * says so rather than pretending the past is empty.
+   */
+  listRange?(from: string, to: string): Promise<DayPlanItem[]>;
+  /** Record her verdict on these items. Returns how many were updated. */
+  setVerdict?(ids: string[], verdict: string): Promise<number>;
 }
