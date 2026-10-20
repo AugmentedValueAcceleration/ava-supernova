@@ -601,17 +601,17 @@ export type BeatKind = 'our_work' | 'news' | 'conversation';
 /**
  * The day being planned, as the surface knows it (20 Oct 2026).
  *
- * Planning at 17:50 for today is not planning a day: most of it has gone. The
- * surface knows the date he is looking at and the posting slots still ahead,
- * so it says so, and the briefing is sized to what is left rather than to a
- * full day that no longer exists.
+ * Social media runs round the clock — when it is night here, people elsewhere
+ * are waking up or at work (the operator's point, 20 Oct) — so a late start is
+ * not a smaller day, it is the same day spread over fewer hours. The surface
+ * says which day and how many hours are left so she can space the posts.
  */
 export interface PlanningDay {
   /** Local YYYY-MM-DD. */
   date: string;
   isToday: boolean;
-  /** Posting slots still ahead today, from his own posting hours. Null for a future day. */
-  slotsLeft: number | null;
+  /** Hours left before midnight, for today. Null for a future day. */
+  hoursLeft: number | null;
 }
 
 /**
