@@ -740,6 +740,12 @@ export function detectModeFromMessages(messages: Message[]): string | null {
     if (msg.role !== 'user') continue;
     const text = getTextContent(msg.content);
     if (text.startsWith('[Internal Planning')) continue;
+    // A system note appended after the operator's message is not where the
+    // room is named. On 20 Oct the Posts room started appending "[What
+    // exists]" as the last user message, this loop read THAT, found no tag,
+    // and every Posts turn ran with no room at all — no write_post, no day
+    // plan — while she correctly told him those tools were not in her hands.
+    if (isMetaPrefix(text)) continue;
     // One list, in agent/mode-tags.ts. This used to be eleven hand-written
     // startsWith calls, and the other eight copies of the same list around
     // the codebase each disagreed with it in a different way.

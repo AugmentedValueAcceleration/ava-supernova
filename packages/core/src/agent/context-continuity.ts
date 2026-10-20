@@ -48,6 +48,8 @@ const META_PREFIXES = [
   '[Earlier user messages',
   '[What exists',
   '[Talking]',
+  // The phantom-claim retry's note, appended after the turn.
+  '[System note',
 ];
 
 export function isMetaPrefix(content: string): boolean {
