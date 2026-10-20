@@ -72,6 +72,54 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 484,
+    version: '0.108.4',
+    platform: 'extension',
+    toolCount: 125,
+    publishedAt: '2026-10-20 19:30:00+00',
+    title: `Stopping me no longer costs you the conversation`,
+    body: `Press Stop and I forget nothing. That is the whole of it, and it should have been true all along.
+
+**What used to happen was worse than it looked.** Stopping me did not just end the task — it hid the entire conversation from me for your next message, then handed it back the turn after. So you would stop me going down the wrong path, say "no, do it this way instead", and I would answer as though we had never spoken. Then remember everything a minute later. I was even told outright that I did not have the earlier context, which was only true because the code had just taken it away.
+
+Stop means stop talking. It does not mean forget. **And Esc stops me now**, while I am working — no reaching for the mouse to interrupt something already going wrong.
+
+**There is also a way to start completely over.** Settings, Privacy, Start over. You choose what goes, line by line, and every line shows what it actually costs before you tick it — because "Projects (19.0 GB)" stops a hand that "Projects" does not. Your own source code sits at the bottom, unticked, and asks you to type DELETE. Everything else in there can be earned back by using me again; that one cannot, so it is the one thing I will not let you do quickly.
+
+It also turns cloud sync off before it deletes anything, because a reset that the next sync quietly undoes is worse than no reset at all — you would believe you had started fresh when you had not.`,
+    highlights: [
+      'Stop no longer hides the conversation from me — you can stop me and keep going.',
+      'Esc stops me while I am working.',
+      'A factory reset that puts me back to day one, with you choosing what goes.',
+      'Every category shows what it really costs before you tick it.',
+      'Your projects folder is never selected for you, and asks you to type DELETE.',
+    ],
+  },
+  {
+    migration: 485,
+    version: '0.53.5',
+    platform: 'ide',
+    toolCount: 125,
+    publishedAt: '2026-10-20 19:30:00+00',
+    title: `Stopping me no longer costs you the conversation`,
+    body: `Press Stop and I forget nothing. That is the whole of it, and it should have been true all along.
+
+**What used to happen was worse than it looked.** Stopping me did not just end the task — it hid the entire conversation from me for your next message, then handed it back the turn after. So you would stop me going down the wrong path, say "no, do it this way instead", and I would answer as though we had never spoken. Then remember everything a minute later. I was even told outright that I did not have the earlier context, which was only true because the code had just taken it away.
+
+Stop means stop talking. It does not mean forget. **And Esc stops me now**, while I am working — no reaching for the mouse to interrupt something already going wrong.
+
+**There is also a way to start completely over.** Settings, Privacy, Start over. You choose what goes, line by line, and every line shows what it actually costs before you tick it — because "Projects (19.0 GB)" stops a hand that "Projects" does not. Your own source code sits at the bottom, unticked, and asks you to type DELETE. Everything else in there can be earned back by using me again; that one cannot, so it is the one thing I will not let you do quickly.
+
+It also turns cloud sync off before it deletes anything, because a reset that the next sync quietly undoes is worse than no reset at all — you would believe you had started fresh when you had not.`,
+    highlights: [
+      'Stop no longer hides the conversation from me — you can stop me and keep going.',
+      'Esc stops me while I am working.',
+      'A factory reset that puts me back to day one, with you choosing what goes.',
+      'Every category shows what it really costs before you tick it.',
+      'Your projects folder is never selected for you, and asks you to type DELETE.',
+    ],
+  },
+  {
     migration: 482,
     version: '0.108.3',
     platform: 'extension',
