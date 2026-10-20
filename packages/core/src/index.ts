@@ -62,7 +62,7 @@ export type {
   HookOption, HookProposal, HookStore,
   WebSearchResult, WebSearchFn,
   PostMetric, PostMetricsReader,
-  Beat, BeatStore,
+  Beat, BeatKind, BeatStore,
   // The day plan the Posts floor and Ava share.
   DayPlanRow, NewDayPlanItem, DayPlanStore,
 } from './social/index.js';

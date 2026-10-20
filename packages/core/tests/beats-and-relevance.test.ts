@@ -73,64 +73,107 @@ describe('the clip has to be about the thing', () => {
   });
 });
 
-describe('the day is four or five beats, one of them news', () => {
+describe('the day is four or five beats, split equally three ways', () => {
+  // 20 Oct 2026, the operator: "talking about yourself is the wrong message —
+  // people at times want a break from the whole look-at-me posts."
   const tool = new SuggestBeatsTool();
-  const ctx = { cwd: '.', sharedState: { beatStore: { suggest: async () => {} } } } as never;
+  let got: Array<Record<string, unknown>> = [];
+  const ctx = { cwd: '.', sharedState: { beatStore: { suggest: async (b: never[]) => { got = b; } } } } as never;
 
-  const beat = (angle: string, is_news = false) => ({ angle, why: 'because', is_news });
+  const work = (angle: string) => ({ angle, why: 'because', kind: 'our_work' });
+  const news = (angle: string) => ({ angle, why: 'because', kind: 'news' });
+  const talk = (angle: string, extra: Record<string, string> = { venue: 'r/ExperiencedDevs thread on agents', position: 'we ship one, and here is what broke' }) =>
+    ({ angle, why: 'because', kind: 'conversation', ...extra });
 
   it('refuses a thin day', async () => {
-    const r = await tool.execute({
-      beats: [beat('one'), beat('two', true)],
-    }, ctx);
+    const r = await tool.execute({ beats: [work('one'), news('two')] }, ctx);
     expect(r.success).toBe(false);
     expect(r.output).toMatch(/FOUR OR FIVE/);
-    // Tells her where to look rather than just refusing.
-    expect(r.output).toMatch(/news desk|what shipped/i);
   });
 
-  it('refuses four beats with no news among them', async () => {
-    const r = await tool.execute({
-      beats: [beat('one'), beat('two'), beat('three'), beat('four')],
-    }, ctx);
+  it('accepts 2/1/1 and 2/2/1', async () => {
+    expect((await tool.execute({ beats: [work('a'), work('b'), news('c'), talk('d')] }, ctx)).success).toBe(true);
+    expect((await tool.execute({ beats: [work('a'), news('b'), news('c'), talk('d'), talk('e')] }, ctx)).success).toBe(true);
+  });
+
+  it('refuses a day with no news, and says never invent one', async () => {
+    const r = await tool.execute({ beats: [work('a'), work('b'), talk('c'), talk('d')] }, ctx);
     expect(r.success).toBe(false);
     expect(r.output).toMatch(/No news beat/);
     expect(r.output).toMatch(/Never invent one/);
   });
 
-  it('accepts four with a news beat', async () => {
-    const r = await tool.execute({
-      beats: [beat('one'), beat('two'), beat('three'), beat('DeepSeek shipped V4.1-Flash-1017', true)],
-    }, ctx);
-    expect(r.success).toBe(true);
+  it('refuses a day with no conversation, and says where to look', async () => {
+    const r = await tool.execute({ beats: [work('a'), work('b'), news('c'), news('d')] }, ctx);
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/No conversation beat/);
+    expect(r.output).toMatch(/Reddit and Hacker News/);
   });
 
-  it('accepts five', async () => {
-    const r = await tool.execute({
-      beats: [beat('a', true), beat('b'), beat('c'), beat('d'), beat('e')],
-    }, ctx);
+  it('refuses three about ourselves out of five', async () => {
+    const r = await tool.execute({ beats: [work('a'), work('b'), work('c'), news('d'), talk('e')] }, ctx);
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/Too many our work/);
+  });
+
+  it('refuses a beat with no kind', async () => {
+    const r = await tool.execute({ beats: [work('a'), { angle: 'x', why: 'w' }, news('c'), talk('d')] }, ctx);
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/needs a `kind`/);
+  });
+
+  // An older caller that only knows is_news is read as news, not refused.
+  it('reads is_news as kind news', async () => {
+    const r = await tool.execute({ beats: [work('a'), work('b'), { angle: 'c', why: 'w', is_news: true }, talk('d')] }, ctx);
     expect(r.success).toBe(true);
+    expect(got[2]).toMatchObject({ kind: 'news', is_news: true });
+  });
+
+  // A neutral take in a live argument gets scrolled past.
+  it('refuses a conversation beat without a venue or a side', async () => {
+    const noSide = await tool.execute({ beats: [work('a'), work('b'), news('c'), talk('d', { venue: 'HN thread' })] }, ctx);
+    expect(noSide.success).toBe(false);
+    expect(noSide.output).toMatch(/needs BOTH/);
+    const noVenue = await tool.execute({ beats: [work('a'), work('b'), news('c'), talk('d', { position: 'we disagree' })] }, ctx);
+    expect(noVenue.success).toBe(false);
   });
 });
 
 describe('what she says about a beat reaches the operator', () => {
   // `format` was in the schema and dropped in execute, so "the form IS the
   // idea" never arrived however clearly she had said it.
-  it('keeps format, needs_video and is_news', async () => {
+  it('keeps format, needs_video, kind, venue and position', async () => {
     let got: Array<Record<string, unknown>> = [];
     const ctx = { cwd: '.', sharedState: { beatStore: { suggest: async (b: never[]) => { got = b; } } } } as never;
     const r = await new SuggestBeatsTool().execute({
       beats: [
-        { angle: 'a', why: 'w', is_news: true },
-        { angle: 'b', why: 'w', needs_video: true, format: '30s piece to camera' },
-        { angle: 'c', why: 'w', format: '   ' },
-        { angle: 'd', why: 'w' },
+        { angle: 'a', why: 'w', kind: 'news' },
+        { angle: 'b', why: 'w', kind: 'our_work', needs_video: true, format: '30s piece to camera' },
+        { angle: 'c', why: 'w', kind: 'our_work', format: '   ' },
+        { angle: 'd', why: 'w', kind: 'conversation', venue: 'HN thread on V4 pricing', position: 'cheap is not the point' },
       ],
     }, ctx);
     expect(r.success).toBe(true);
-    expect(got[0].is_news).toBe(true);
+    expect(got[0]).toMatchObject({ kind: 'news', is_news: true });
     expect(got[1]).toMatchObject({ needs_video: true, format: '30s piece to camera' });
     // Blank is absent, not an empty form.
     expect('format' in got[2]).toBe(false);
+    expect(got[3]).toMatchObject({ venue: 'HN thread on V4 pricing', position: 'cheap is not the point' });
+  });
+
+  // Venue and position belong to conversation beats; elsewhere they are noise.
+  it('drops venue and position from other kinds', async () => {
+    let got: Array<Record<string, unknown>> = [];
+    const ctx = { cwd: '.', sharedState: { beatStore: { suggest: async (b: never[]) => { got = b; } } } } as never;
+    await new SuggestBeatsTool().execute({
+      beats: [
+        { angle: 'a', why: 'w', kind: 'news', venue: 'x', position: 'y' },
+        { angle: 'b', why: 'w', kind: 'our_work' },
+        { angle: 'c', why: 'w', kind: 'our_work' },
+        { angle: 'd', why: 'w', kind: 'conversation', venue: 'v', position: 'p' },
+      ],
+    }, ctx);
+    expect('venue' in got[0]).toBe(false);
+    expect('position' in got[0]).toBe(false);
   });
 });

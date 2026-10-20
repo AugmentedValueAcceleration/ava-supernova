@@ -523,9 +523,44 @@ export interface Beat {
    * web_search or the news desk and named specifically. "AI is moving fast"
    * is not news; a named model release, a named outage, a named policy change
    * is. An invented one is far worse than none.
+   *
+   * Kept for older callers; `kind: 'news'` is the field that counts now, and
+   * the tool sets this from it.
    */
   is_news?: boolean;
+
+  /**
+   * Which of the day's three moves this is (20 Oct 2026).
+   *
+   * - `our_work` — what we built or shipped. Show the thing.
+   * - `news` — something happened. Report and react.
+   * - `conversation` — people are ARGUING about something, in a thread, right
+   *   now. Take a position in it.
+   *
+   * News and conversation are different moves with different sources: a
+   * debate does not appear in a news index, and a headline is not an
+   * argument. The day is an EQUAL SPLIT across the three — the operator's
+   * call: "talking about yourself is the wrong message, people at times want
+   * a break from the whole look-at-me posts."
+   */
+  kind?: BeatKind;
+
+  /**
+   * Conversation beats only: WHERE the argument is happening, named — a
+   * specific Reddit or Hacker News thread, not "Reddit".
+   */
+  venue?: string;
+
+  /**
+   * Conversation beats only: the position we take in it, in one sentence.
+   * Showing up in a live argument with a neutral observation gets scrolled
+   * past, and a shallow take among people who know the subject costs more
+   * than silence — so a conversation beat without one is refused.
+   */
+  position?: string;
 }
+
+export type BeatKind = 'our_work' | 'news' | 'conversation';
 
 /**
  * Surface-injected sink for the day's suggested beats. The web/hub
