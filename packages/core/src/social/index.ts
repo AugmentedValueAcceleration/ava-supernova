@@ -51,8 +51,41 @@ export interface SocialPostWritten {
  * auto-saves to the Library (creative_assets) and collects the card for the
  * post-run drain → canvas_update SSE. Core only calls write().
  */
+/** A post that ALREADY EXISTS — what a read gives back. */
+export interface ExistingPost {
+  id: string;
+  platform: string;
+  title?: string;
+  /** What it was about, as recorded at write time. */
+  subject?: string;
+  /** ISO timestamp. */
+  createdAt: string;
+  /** 'draft' until the operator approves it. */
+  status?: string;
+  /** Text post or video post — the two come from different sinks. */
+  kind: 'text' | 'video';
+}
+
 export interface PostStore {
   write(post: SocialPostInput): Promise<SocialPostWritten>;
+
+  /**
+   * WHAT ACTUALLY EXISTS. The read this interface went without until
+   * 2026-10-20, and the reason she could not be honest.
+   *
+   * On that day she reported four posts written when only the videos had been
+   * made. It read as lying and it was not: with `write` as the only method,
+   * "did you make it?" can only ever be answered from her own INTENT, and her
+   * intent was to make it. **You cannot ask something to be honest about what
+   * it cannot observe.** Every prompt instructing her to be accurate was
+   * asking her to report on a room she was standing outside of, which is why
+   * months of them changed nothing.
+   *
+   * Optional so a host that has no durable store still type-checks; a tool
+   * that finds it missing says so rather than guessing, which is the same
+   * principle one level up.
+   */
+  list?(opts?: { sinceDays?: number }): Promise<ExistingPost[]>;
 }
 
 /**

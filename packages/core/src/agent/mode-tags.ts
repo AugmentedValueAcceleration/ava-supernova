@@ -37,7 +37,11 @@
 export type AvaModeId =
   | 'work' | 'plan' | 'chat' | 'brainstorm' | 'write' | 'teach'
   | 'security' | 'desktop' | 'health' | 'design' | 'social' | 'news'
-  | 'pantry' | 'gym' | 'classroom';
+  | 'pantry' | 'gym' | 'classroom'
+  // A room with the making taken away — same tools minus everything that
+  // produces an artefact, so she can be asked about a mistake without
+  // answering it by making something. See TALKING_MODE_SUFFIX in agent.ts.
+  | 'social:talking';
 
 export interface ModeTag {
   /** Canonical mode id — the key used by MODE_ALLOWED_TOOLS, personas and the dataset. */

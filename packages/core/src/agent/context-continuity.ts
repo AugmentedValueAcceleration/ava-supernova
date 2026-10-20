@@ -46,6 +46,8 @@ const META_PREFIXES = [
   '[Interjection]',
   '[User pressed Stop',
   '[Earlier user messages',
+  '[What exists',
+  '[Talking]',
 ];
 
 export function isMetaPrefix(content: string): boolean {

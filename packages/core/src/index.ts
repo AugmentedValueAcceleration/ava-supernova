@@ -55,7 +55,7 @@ export { findPhantomIngredients, checkRecipeShoppingList } from './recipes/index
 // Social Studio contracts — the surface-injected stores the Posts-floor tools
 // (write_post, propose_hooks) write through, plus the shared char-limit map.
 export type {
-  SocialPostInput, SocialPostWritten, PostStore,
+  SocialPostInput, SocialPostWritten, PostStore, ExistingPost,
   VideoPostInput, VideoPostVariant, VideoPostWritten, VideoPostStore,
   VoiceoverInput, VoiceoverWritten, VoiceoverStore,
   PostImageInput, PostImageWritten, PostImageStore,

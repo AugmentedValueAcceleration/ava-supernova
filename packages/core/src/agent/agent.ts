@@ -586,6 +586,12 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // it here would have registered a tool that answers "no canvas" every time.
     // write_voiceover carries its own store, the way write_video_post does.
     'write_voiceover',
+    // WHAT ACTUALLY EXISTS. Without this she can only answer "did that go
+    // out?" from her own intent, which is how she came to tell the operator
+    // four posts were written when only the videos were made. Registering it
+    // in the builtins was not enough — this Set is the real gate, the same
+    // way write_video_post sat unusable above.
+    'check_posts',
     // Research to make the angle current
     'web_search',
     // Memory carries the mission voice; journal her read on the brand
@@ -763,6 +769,17 @@ export function detectModeFromMessages(messages: Message[]): string | null {
  * second is not a decision, it is an absence - and treating an absence as a
  * refusal is how a registered tool disappears with no error anywhere.
  */
+/**
+ * Tools that PRODUCE an artefact.
+ *
+ * Named as a set because there is now a state in which none of them may run:
+ * see `TALKING_MODE_SUFFIX` below.
+ */
+export const PRODUCING_TOOLS: Set<string> = new Set([
+  'write_post', 'write_video_post', 'write_post_image', 'write_voiceover',
+  'write_article', 'write_recipe', 'write_exercise',
+]);
+
 const MODE_CLASSIFIED_TOOLS: Set<string> = new Set(
   Object.values(MODE_ALLOWED_TOOLS).flatMap((set) => [...set]),
 );
@@ -776,6 +793,43 @@ const MODE_CLASSIFIED_TOOLS: Set<string> = new Set(
  * all (an unknown tool is somebody's extension, not a policy decision) -
  * except desktop tools, which stay out however they are classified.
  */
+/**
+ * A mode name ending in this is the same room, with the making taken away.
+ *
+ * ── Why a state and not an instruction ────────────────────────────────────
+ *
+ * 20 Oct 2026: the operator tried to talk to her about a mistake and she made
+ * something instead. Every time. He had been raising it for months.
+ *
+ * The cause was not wilfulness. The only gate she had (`intent-gate`) chooses
+ * `needs_team` and creation-vs-continuation — how MUCH machinery to spin up.
+ * There was no branch for *don't act*. Add that a complaint is grammatically
+ * identical to a request ("the text post wasn't made" reads exactly like "make
+ * the text post"), that the room's prefix is a working prefix, and that the
+ * tools are always on the table, and producing is the only move the shape of
+ * the system affords.
+ *
+ * "Please discuss rather than act" is a suggestion competing against all of
+ * that. Removing the tools is not a suggestion.
+ *
+ * It matters here more than elsewhere because the operator is LEARNING
+ * marketing in this room. "Why did you tag it that way?" is the most valuable
+ * turn he can take, and it is worth nothing if the answer is four more cards.
+ */
+export const TALKING_MODE_SUFFIX = ':talking';
+
+/**
+ * The room's tools with everything that makes an artefact removed.
+ *
+ * Reading, searching and checking all stay: a discussion in which she cannot
+ * look anything up is not a discussion, it is a guess. `check_posts`
+ * especially — the likeliest reason to be talking at all is that something
+ * did not get made.
+ */
+export function talkingToolsFor(modeAllowed: Set<string>): Set<string> {
+  return new Set([...modeAllowed].filter(t => !PRODUCING_TOOLS.has(t)));
+}
+
 export function toolPassesModeGate(name: string, modeAllowed: Set<string>): boolean {
   if (modeAllowed.has(name) || ALWAYS_ALLOWED_TOOLS.has(name)) return true;
   return !MODE_CLASSIFIED_TOOLS.has(name) && !DESKTOP_ONLY_TOOLS.has(name);
@@ -1715,14 +1769,28 @@ export class Agent {
     // Desktop tools stay out on both branches. That was the one restriction
     // the old fallback did apply, and it is load-bearing.
     const effectiveMode = detectedMode ?? 'work';
-    const modeAllowed: Set<string> | null = MODE_ALLOWED_TOOLS[effectiveMode] ?? null;
+    // `social:talking` is the social room with the making taken away. Resolve
+    // the base room first, then subtract — so a talking variant can never
+    // drift from the room it belongs to, and a tool added to `social` is
+    // available for discussion on the same day it is added for work.
+    const talkingMode = effectiveMode.endsWith(TALKING_MODE_SUFFIX);
+    const baseMode = talkingMode
+      ? effectiveMode.slice(0, -TALKING_MODE_SUFFIX.length)
+      : effectiveMode;
+    const baseAllowed: Set<string> | null = MODE_ALLOWED_TOOLS[baseMode] ?? null;
+    const modeAllowed: Set<string> | null = baseAllowed && talkingMode
+      ? talkingToolsFor(baseAllowed)
+      : baseAllowed;
+    if (talkingMode) {
+      logger.debug(`[agent] ${baseMode} in talking mode — ${PRODUCING_TOOLS.size} producing tool(s) withheld`);
+    }
     // Keyed on the MODE, not on whether a tag was present. Keying it on tag
     // presence works today only because code mode is the untagged one — the
     // moment a `[Work Mode]` tag exists, that spelling would silently flip
     // the gate to enforce and the whole staged rollout would vanish.
     // Every other mode has been enforcing for months and continues to.
     const applyModeGate = modeAllowed !== null
-      && (effectiveMode !== 'work' || WORK_TOOL_GATE === 'enforce');
+      && (baseMode !== 'work' || WORK_TOOL_GATE === 'enforce' || talkingMode);
 
     let filteredSchemas: ToolSchema[];
     if (modeAllowed && applyModeGate) {

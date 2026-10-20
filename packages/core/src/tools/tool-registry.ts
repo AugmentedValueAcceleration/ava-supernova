@@ -27,6 +27,7 @@ import { BrowserTool } from './browser.js';
 import { MemorySaveTool } from './memory-save.js';
 import { MemoryRecallTool } from './memory-recall.js';
 import { ConversationRecallTool } from './conversation-recall.js';
+import { CheckPostsTool } from './check-posts.js';
 import { MemoryUpdateTool } from './memory-update.js';
 import { MemoryDeleteTool } from './memory-delete.js';
 import { RollbackTool } from './rollback.js';
@@ -440,6 +441,7 @@ export class ToolRegistry {
       new MemorySaveTool(),
       new MemoryRecallTool(),
       new ConversationRecallTool(),
+      new CheckPostsTool(),
       new MemoryUpdateTool(),
       new MemoryDeleteTool(),
       new RollbackTool(),
