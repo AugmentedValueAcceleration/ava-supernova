@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import type { BeatStore, Beat, BeatKind } from '../social/index.js';
+import type { BeatStore, Beat, BeatKind, PlanningDay } from '../social/index.js';
 
 const KINDS: BeatKind[] = ['our_work', 'news', 'conversation'];
 const KIND_LABEL: Record<BeatKind, string> = { our_work: 'our work', news: 'news', conversation: 'conversation' };
@@ -23,13 +23,13 @@ export class SuggestBeatsTool implements Tool {
 
   readonly schema: FunctionSchema = {
     name: 'suggest_beats',
-    description: 'Propose the things worth posting about TODAY — FOUR OR FIVE, split EQUALLY across three kinds: OUR WORK (what we built or shipped), NEWS (a real, named story from the last day or two) and CONVERSATION (an argument people are having in a named thread right now, where we take a position). Every kind at least once, none more than twice. The studio\'s briefing. Call this when the operator asks "what should I post today" / "today\'s beats" / opens a planning request. First ground yourself: release_notes for anything just shipped, research_post or web_search for what\'s currently landing in our space, memory_recall to avoid repeating recent angles. Then return STORIES that fit the mission — each a concrete angle, one line on why it lands now, and what FORM it wants. Form is part of the idea, not a flag bolted onto it: some beats only exist as a film, some only work written down. Offer a mix rather than a list of text posts with the occasional video attached. Do NOT name platforms: a story goes to every crowd in the same slot, adapted to each, and where it goes is a planning decision the operator makes, not a property of the idea. Do NOT write the posts either: this is your PROPOSAL for the day, and nothing is written until the operator has agreed it. When the discussion changes the plan, call this again with the FULL set — untouched beats reproduced exactly — because the latest call replaces what is on the table.',
+    description: 'Propose the things worth posting about TODAY — FOUR TO SIX for a full day (fewer when planning what is left of today), split EQUALLY across three kinds: OUR WORK (what we built or shipped), NEWS (a real, named story from the last day or two) and CONVERSATION (an argument people are having in a named thread right now, where we take a position). Every kind at least once, none more than twice. The studio\'s briefing. Call this when the operator asks "what should I post today" / "today\'s beats" / opens a planning request. First ground yourself: release_notes for anything just shipped, research_post or web_search for what\'s currently landing in our space, memory_recall to avoid repeating recent angles. Then return STORIES that fit the mission — each a concrete angle, one line on why it lands now, and what FORM it wants. Form is part of the idea, not a flag bolted onto it: some beats only exist as a film, some only work written down. Offer a mix rather than a list of text posts with the occasional video attached. Do NOT name platforms: a story goes to every crowd in the same slot, adapted to each, and where it goes is a planning decision the operator makes, not a property of the idea. Do NOT write the posts either: this is your PROPOSAL for the day, and nothing is written until the operator has agreed it. When the discussion changes the plan, call this again with the FULL set — untouched beats reproduced exactly — because the latest call replaces what is on the table.',
     parameters: {
       type: 'object',
       properties: {
         beats: {
           type: 'array',
-          description: 'The post ideas the day actually has — FOUR OR FIVE, no fewer, with every `kind` present and none more than twice (so 2/2/1 or 2/1/1). A thin day is not a reason to return two: it is a reason to go and FIND the fourth, which is what the news beat is for — the field always has something happening, and a day with nothing of our own still has something worth saying about today. What is forbidden is padding the list with the same evergreen angle in new words.',
+          description: 'The post ideas the day actually has — FOUR TO SIX for a full day, with every `kind` present and none more than twice (2/1/1, 2/2/1 or 2/2/2). When planning what is left of today, one per posting slot still ahead, as evenly spread across the kinds as that allows. A thin day is not a reason to return two: it is a reason to go and FIND the fourth, which is what the news beat is for — the field always has something happening, and a day with nothing of our own still has something worth saying about today. What is forbidden is padding the list with the same evergreen angle in new words.',
           items: {
             type: 'object',
             properties: {
@@ -89,26 +89,45 @@ export class SuggestBeatsTool implements Tool {
         };
       })
       .filter(b => b.angle)
-      .slice(0, 5);
+      .slice(0, 6);
 
     if (beats.length === 0) {
       return { success: false, output: 'suggest_beats requires at least one beat.' };
     }
 
-    // Four to five, with a news beat among them (19 Oct 2026, operator's call).
-    // Both were guidance before and neither held: the briefing kept arriving as
-    // two safe evergreen angles about ourselves, which reaches only the people
-    // already looking at us.
-    if (beats.length < 4) {
+    // How big the day is. A full day is four to six (the operator's call, 20
+    // Oct). What is left of TODAY is smaller: one per posting slot still
+    // ahead, because a day that is mostly gone does not need six posts, and
+    // asking for them is how a 17:50 plan ends up stacking four on one hour.
+    const day = context.sharedState?.planningDay as PlanningDay | undefined;
+    const partial = !!day?.isToday && typeof day.slotsLeft === 'number' && day.slotsLeft < 4;
+    if (day?.isToday && day.slotsLeft === 0) {
+      return {
+        success: false,
+        output: 'There are no posting slots left today. Say so plainly and suggest planning tomorrow instead — he can move the day plan to tomorrow with the arrow.',
+      };
+    }
+    const most = partial ? Math.max(1, day!.slotsLeft as number) : 6;
+    const least = partial ? 1 : 4;
+    if (beats.length < least) {
       return {
         success: false,
         output:
-          `Only ${beats.length} beat${beats.length === 1 ? '' : 's'} — the day needs FOUR OR FIVE. `
+          `Only ${beats.length} beat${beats.length === 1 ? '' : 's'} — a full day needs FOUR TO SIX. `
           + 'A thin day is not a reason to return fewer, it is a reason to go and find the rest: search '
           + 'what is landing in the field today, check the news desk, look at what shipped. Do not pad '
           + 'with the same evergreen angle reworded — find a different one.',
       };
     }
+    if (beats.length > most) {
+      return {
+        success: false,
+        output: partial
+          ? `There ${most === 1 ? 'is one posting slot' : `are ${most} posting slots`} left today, so plan ${most === 1 ? 'one topic' : `at most ${most}`} — not ${beats.length}. Keep the strongest, spread across the kinds.`
+          : `${beats.length} is too many — a full day is four to six.`,
+      };
+    }
+
     // An equal split across the three kinds (20 Oct 2026, operator's call).
     // With four or five beats that means every kind at least once and none
     // more than twice. The news beat was already required; this adds the
@@ -123,8 +142,14 @@ export class SuggestBeatsTool implements Tool {
       };
     }
     const count = (k: BeatKind) => beats.filter(b => b.kind === k).length;
-    const missing = KINDS.filter(k => count(k) === 0);
     const heavy = KINDS.filter(k => count(k) > 2);
+    // A partial day cannot hold all three kinds once it has fewer than three
+    // slots; it still may not spend two slots on the same kind.
+    const distinctNeeded = Math.min(beats.length, KINDS.length);
+    const distinctHave = KINDS.filter(k => count(k) > 0).length;
+    const missing = partial
+      ? (distinctHave < distinctNeeded ? KINDS.filter(k => count(k) === 0) : [])
+      : KINDS.filter(k => count(k) === 0);
     if (missing.length || heavy.length) {
       const have = KINDS.map(k => `${count(k)} ${KIND_LABEL[k]}`).join(', ');
       const needs: string[] = [];
@@ -143,7 +168,9 @@ export class SuggestBeatsTool implements Tool {
       return {
         success: false,
         output:
-          'The day is an EQUAL SPLIT across our work, news and conversation — every kind at least once, none more than twice. '
+          (partial
+            ? `What is left of today has room for ${beats.length}, so spread them across different kinds — no two of the same. `
+            : 'The day is an EQUAL SPLIT across our work, news and conversation — every kind at least once, none more than twice. ')
           + `You have ${have}.\n\n${needs.join('\n\n')}\n\n`
           + 'Why: posts about ourselves only reach people already looking at us, and people want a break from look-at-me posts.',
       };
@@ -168,7 +195,7 @@ export class SuggestBeatsTool implements Tool {
       await store.suggest(beats);
       return {
         success: true,
-        output: `Proposed ${beats.length} beats for today (${KINDS.map(k => `${beats.filter(b => b.kind === k).length} ${KIND_LABEL[k]}`).join(', ')}). The operator questions and agrees the plan before anything is written.`,
+        output: `Proposed ${beats.length} beat${beats.length === 1 ? '' : 's'} for ${day?.date ?? 'today'}${partial ? ' (what is left of today)' : ''} (${KINDS.map(k => `${beats.filter(b => b.kind === k).length} ${KIND_LABEL[k]}`).join(', ')}). The operator questions and agrees the plan before anything is written.`,
         metadata: { count: beats.length },
       };
     } catch (err) {

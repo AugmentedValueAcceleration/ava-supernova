@@ -599,6 +599,22 @@ export interface Beat {
 export type BeatKind = 'our_work' | 'news' | 'conversation';
 
 /**
+ * The day being planned, as the surface knows it (20 Oct 2026).
+ *
+ * Planning at 17:50 for today is not planning a day: most of it has gone. The
+ * surface knows the date he is looking at and the posting slots still ahead,
+ * so it says so, and the briefing is sized to what is left rather than to a
+ * full day that no longer exists.
+ */
+export interface PlanningDay {
+  /** Local YYYY-MM-DD. */
+  date: string;
+  isToday: boolean;
+  /** Posting slots still ahead today, from his own posting hours. Null for a future day. */
+  slotsLeft: number | null;
+}
+
+/**
  * Surface-injected sink for the day's suggested beats. The web/hub
  * implementation collects them for the post-run drain → `beats` SSE the client
  * renders as the briefing (a menu the operator picks from).

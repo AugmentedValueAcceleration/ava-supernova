@@ -88,7 +88,15 @@ describe('the day is four or five beats, split equally three ways', () => {
   it('refuses a thin day', async () => {
     const r = await tool.execute({ beats: [work('one'), news('two')] }, ctx);
     expect(r.success).toBe(false);
-    expect(r.output).toMatch(/FOUR OR FIVE/);
+    expect(r.output).toMatch(/FOUR TO SIX/);
+  });
+
+  it('accepts six as 2/2/2 and refuses seven', async () => {
+    const six = [work('a'), work('b'), news('c'), news('d'), talk('e'), talk('f')];
+    expect((await tool.execute({ beats: six }, ctx)).success).toBe(true);
+    // Anything past six is cut, so a seventh never reaches the check.
+    await tool.execute({ beats: [...six, work('g')] }, ctx);
+    expect(got.length).toBe(6);
   });
 
   it('accepts 2/1/1 and 2/2/1', async () => {
@@ -175,5 +183,44 @@ describe('what she says about a beat reaches the operator', () => {
     }, ctx);
     expect('venue' in got[0]).toBe(false);
     expect('position' in got[0]).toBe(false);
+  });
+});
+
+describe('planning what is left of today', () => {
+  // 20 Oct 2026, the operator: at nearly 6pm "she would know ... so won't
+  // need a full day's worth of posts".
+  const tool = new SuggestBeatsTool();
+  const at = (slotsLeft: number | null, isToday = true) =>
+    ({ cwd: '.', sharedState: { beatStore: { suggest: async () => {} }, planningDay: { date: '2026-10-20', isToday, slotsLeft } } }) as never;
+  const work = (angle: string) => ({ angle, why: 'w', kind: 'our_work' });
+  const news = (angle: string) => ({ angle, why: 'w', kind: 'news' });
+
+  it('accepts one topic when one slot is left', async () => {
+    expect((await tool.execute({ beats: [news('a')] }, at(1))).success).toBe(true);
+  });
+
+  it('refuses more topics than slots left', async () => {
+    const r = await tool.execute({ beats: [news('a'), work('b'), work('c')] }, at(2));
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/2 posting slots left today/);
+  });
+
+  it('does not spend two of a few slots on the same kind', async () => {
+    const r = await tool.execute({ beats: [work('a'), work('b')] }, at(2));
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/no two of the same/);
+    expect((await tool.execute({ beats: [work('a'), news('b')] }, at(2))).success).toBe(true);
+  });
+
+  it('says to plan tomorrow when no slots are left', async () => {
+    const r = await tool.execute({ beats: [news('a')] }, at(0));
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/planning tomorrow/);
+  });
+
+  it('holds a future day to the full four to six', async () => {
+    const r = await tool.execute({ beats: [news('a'), work('b')] }, at(null, false));
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/FOUR TO SIX/);
   });
 });
