@@ -3,21 +3,24 @@ import type { FunctionSchema } from '../providers/types.js';
 import type { BeatStore, Beat } from '../social/index.js';
 
 /**
- * Propose 3–5 things worth posting about TODAY — the studio's briefing. Side-
- * effect-free: validate + hand the beats to the surface-injected `beatStore`,
- * which the surface renders as the menu. Ava grounds herself first (release_notes
- * / research_post / memory_recall) then calls this; she does NOT write the posts.
+ * Propose four or five things worth posting about TODAY — her PROPOSAL for the
+ * day, which the operator then argues with until they agree it. Side-effect-
+ * free: validate + hand the beats to the surface-injected `beatStore`. Ava
+ * grounds herself first, then calls this; she does NOT write the posts.
+ *
+ * Called again, with the FULL set, whenever the discussion changes the plan —
+ * the surface replaces what is on the table with the latest call.
  */
 export class SuggestBeatsTool implements Tool {
   readonly name = 'suggest_beats';
   readonly description =
-    'Propose 3-5 things worth posting about today — the studio briefing. Ground yourself first (release_notes / research_post / memory_recall), then offer concrete angles. Do NOT write the posts; this is the menu.';
+    'Propose four or five things worth posting about today — your proposal for the day, which the operator argues with before anything is written. Ground yourself first, then offer concrete angles. Do NOT write the posts.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'suggest_beats',
-    description: 'Propose the things worth posting about TODAY — FOUR OR FIVE, and AT LEAST ONE MUST BE ANCHORED TO A REAL NEWS STORY — the studio\'s briefing. Call this when the operator asks "what should I post today" / "today\'s beats" / opens a planning request. First ground yourself: release_notes for anything just shipped, research_post or web_search for what\'s currently landing in our space, memory_recall to avoid repeating recent angles. Then return STORIES that fit the mission — each a concrete angle, one line on why it lands now, and what FORM it wants. Form is part of the idea, not a flag bolted onto it: some beats only exist as a film, some only work written down. Offer a mix rather than a list of text posts with the occasional video attached. Do NOT name platforms: a story goes to every crowd in the same slot, adapted to each, and where it goes is a planning decision the operator makes, not a property of the idea. Do NOT write the posts either; this is the menu, the operator picks one to draft.',
+    description: 'Propose the things worth posting about TODAY — FOUR OR FIVE, and AT LEAST ONE MUST BE ANCHORED TO A REAL NEWS STORY — the studio\'s briefing. Call this when the operator asks "what should I post today" / "today\'s beats" / opens a planning request. First ground yourself: release_notes for anything just shipped, research_post or web_search for what\'s currently landing in our space, memory_recall to avoid repeating recent angles. Then return STORIES that fit the mission — each a concrete angle, one line on why it lands now, and what FORM it wants. Form is part of the idea, not a flag bolted onto it: some beats only exist as a film, some only work written down. Offer a mix rather than a list of text posts with the occasional video attached. Do NOT name platforms: a story goes to every crowd in the same slot, adapted to each, and where it goes is a planning decision the operator makes, not a property of the idea. Do NOT write the posts either: this is your PROPOSAL for the day, and nothing is written until the operator has agreed it. When the discussion changes the plan, call this again with the FULL set — untouched beats reproduced exactly — because the latest call replaces what is on the table.',
     parameters: {
       type: 'object',
       properties: {
@@ -59,6 +62,10 @@ export class SuggestBeatsTool implements Tool {
           why: String(o.why || '').trim(),
           needs_video: o.needs_video === true,
           is_news: o.is_news === true,
+          // The schema asks for it, so it has to survive the trip. It was
+          // dropped here, which meant "the form IS the idea" never reached
+          // the operator however clearly she had said it.
+          ...(typeof o.format === 'string' && o.format.trim() ? { format: o.format.trim() } : {}),
         };
       })
       .filter(b => b.angle)

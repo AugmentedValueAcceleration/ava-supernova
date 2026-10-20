@@ -112,3 +112,25 @@ describe('the day is four or five beats, one of them news', () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe('what she says about a beat reaches the operator', () => {
+  // `format` was in the schema and dropped in execute, so "the form IS the
+  // idea" never arrived however clearly she had said it.
+  it('keeps format, needs_video and is_news', async () => {
+    let got: Array<Record<string, unknown>> = [];
+    const ctx = { cwd: '.', sharedState: { beatStore: { suggest: async (b: never[]) => { got = b; } } } } as never;
+    const r = await new SuggestBeatsTool().execute({
+      beats: [
+        { angle: 'a', why: 'w', is_news: true },
+        { angle: 'b', why: 'w', needs_video: true, format: '30s piece to camera' },
+        { angle: 'c', why: 'w', format: '   ' },
+        { angle: 'd', why: 'w' },
+      ],
+    }, ctx);
+    expect(r.success).toBe(true);
+    expect(got[0].is_news).toBe(true);
+    expect(got[1]).toMatchObject({ needs_video: true, format: '30s piece to camera' });
+    // Blank is absent, not an empty form.
+    expect('format' in got[2]).toBe(false);
+  });
+});
