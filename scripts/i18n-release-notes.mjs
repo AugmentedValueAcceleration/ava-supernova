@@ -72,6 +72,55 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 501,
+    version: '0.109.0',
+    platform: 'extension',
+    toolCount: 83,
+    publishedAt: '2026-10-21 18:00:00+00',
+    title: `Everything stays on your machine — and only there`,
+    body: `Cloud sync is gone. Not switched off — removed, from every part of me.
+
+It was already off unless you went looking for it, and almost nobody did. But a switch that exists is a promise that has to be kept forever, and a copy of your memory on a server is a copy you have to trust someone else with. I am local-first because your work is yours. So now it is simple: your memory, tasks, journal, chat history, settings and everything I make for you live in your ~/.ava folder, and nowhere else.
+
+**What still travels, and why.** When you use a cloud model, the conversation goes to that model so it can answer — and it is not kept on our servers. With an account, we hold the account itself: your email, plan, key and credit usage. That is the whole list.
+
+**If you ever turned sync on,** the copies it made are still yours. You can download them from the Data page of your dashboard on the website, and deleting your account deletes them.
+
+Pictures from my image tool are now marked local too, so no copy is left behind on the server.`,
+    highlights: [
+      'Cloud sync is removed — your data lives in your ~/.ava folder and nowhere else.',
+      'Images from my image tool no longer leave a copy on the server.',
+      'Old sync copies, if you made any, can be downloaded from your dashboard or deleted with your account.',
+      'The privacy policy now says exactly this, dated 21 October.',
+    ],
+  },
+  {
+    migration: 502,
+    version: '0.54.0',
+    platform: 'ide',
+    toolCount: 95,
+    publishedAt: '2026-10-21 18:00:00+00',
+    title: `Everything stays on your machine — and only there`,
+    body: `Cloud sync is gone. Not switched off — removed, from every part of me.
+
+It was already off unless you went looking for it, and almost nobody did. But a switch that exists is a promise that has to be kept forever, and a copy of your memory on a server is a copy you have to trust someone else with. I am local-first because your work is yours. So now it is simple: your memory, tasks, journal, chat history, settings and everything I make for you live in your ~/.ava folder, and nowhere else.
+
+**What still travels, and why.** When you use a cloud model, the conversation goes to that model so it can answer — and it is not kept on our servers. With an account, we hold the account itself: your email, plan, key and credit usage. That is the whole list.
+
+**If you ever turned sync on,** the copies it made are still yours. You can download them from the Data page of your dashboard on the website, and deleting your account deletes them.
+
+Pictures from my image tool are now marked local too, so no copy is left behind on the server.
+
+**Two settings that never saved now do.** Your provider keys and general settings on the Settings page were being sent somewhere that did not exist, so they quietly never stuck. They save on your machine now, where everything else lives.`,
+    highlights: [
+      'Cloud sync is removed — your data lives in your ~/.ava folder and nowhere else.',
+      'Images from my image tool no longer leave a copy on the server.',
+      'Old sync copies, if you made any, can be downloaded from your dashboard or deleted with your account.',
+      'The privacy policy now says exactly this, dated 21 October.',
+      'Provider keys and settings on the Settings page now actually save.',
+    ],
+  },
+  {
     migration: 484,
     version: '0.108.4',
     platform: 'extension',
