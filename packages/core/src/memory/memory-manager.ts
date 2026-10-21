@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { join, basename, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { TfIdfIndex, cosineDense } from './tfidf.js';
-import type { PlatformMemorySync, SemanticMatch } from './platform-sync.js';
 import type { EmbeddingService } from './embedding-service.js';
 import { EmbeddingStore } from './embedding-store.js';
 import type {
@@ -81,7 +80,6 @@ import {
 export class MemoryManager {
   private readonly globalDir: string;
   private readonly projectDir: string | null;
-  private sync?: PlatformMemorySync;
 
   // In-memory caches — loaded lazily, written through on save
   private globalStore: MemoryStore | null = null;
@@ -91,14 +89,11 @@ export class MemoryManager {
   private globalIndex: TfIdfIndex = new TfIdfIndex();
   private projectIndex: TfIdfIndex = new TfIdfIndex();
 
-  /** When true, skip all platform sync — memories stay on disk only. Default: true (local-first). */
-  private localOnly = true;
-
   // ── v3 Graph layer ────────────────────────────────────────────────────────
   // Runs alongside the v2 flat stores during the transition. New operations
   // (recall, project brain, procedural learning, ambient capture) use the
   // graph; existing operations (saveEntry, getEntries) write to both so
-  // backwards compat is preserved for dashboard and sync callers.
+  // backwards compat is preserved for dashboard callers.
   private graphGlobal: MemoryGraph | null = null;
   private graphProject: MemoryGraph | null = null;
   private graphInitialized = false;
@@ -119,25 +114,11 @@ export class MemoryManager {
   private embeddingStoreGlobal: EmbeddingStore | null = null;
   private embeddingStoreProject: EmbeddingStore | null = null;
 
-  // ── Sync coalescing — debounce + in-flight guard ──────────────────────────
-  // syncEntries() used to fire every store mutation, with each call doing a
-  // full pull + per-entry POST/PATCH against the platform. With the Memory
-  // Agent extracting 5+ memories at once, that meant dozens of parallel
-  // racing syncs from a single turn — flooding the client's connection pool
-  // and starving the LLM stream until the 30s stall watchdog tripped.
-  //
-  // The fix: debounce sync calls per scope (collect rapid mutations into one
-  // sync), and guard against concurrent runs (in-flight + dirty flag pattern).
-  private readonly SYNC_DEBOUNCE_MS = 2000;
-  private readonly syncTimers = new Map<'global' | 'project', NodeJS.Timeout>();
-  private readonly syncInFlight = new Set<'global' | 'project'>();
-  private readonly syncDirty = new Set<'global' | 'project'>();
-
-  constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync; localOnly?: boolean; embeddingService?: EmbeddingService }) {
+  // Memories are local only — they live on disk under ~/.ava (global) and
+  // <project>/.ava (project) and never leave the machine.
+  constructor(opts: { globalDir: string; projectRoot?: string; embeddingService?: EmbeddingService }) {
     this.globalDir = opts.globalDir;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
-    this.sync = opts.sync;
-    this.localOnly = opts.localOnly ?? true;
     this.embeddingService = opts.embeddingService ?? null;
 
     // Auto-register this project in the global registry (fire-and-forget)
@@ -409,10 +390,10 @@ export class MemoryManager {
 
   /** Load both stores and format for system prompt injection. */
   async loadAll(context?: string, branch?: string): Promise<string> {
-    const [globalStore, projectStore, episodic] = await Promise.all([
+    void context;
+    const [globalStore, projectStore] = await Promise.all([
       this.loadGlobalStore(),
       this.loadProjectStore(),
-      context ? this.loadRelevantMemories(context) : Promise.resolve([]),
     ]);
 
     const sections: string[] = [];
@@ -426,12 +407,6 @@ export class MemoryManager {
     }
     if (projectEntries.length > 0) {
       sections.push(`### Project Memory\n${this.formatEntriesForPrompt(projectEntries)}`);
-    }
-    if (episodic.length > 0) {
-      const items = episodic
-        .map((m) => `- **${m.key}** (${m.scope}, ${Math.round(m.similarity * 100)}% match): ${m.content}`)
-        .join('\n');
-      sections.push(`### Relevant Memories\n${items}`);
     }
 
     return sections.join('\n\n');
@@ -461,7 +436,6 @@ export class MemoryManager {
     this.globalStore = store;
     this.rebuildIndex(store, this.globalIndex);
     await this.persistStore(this.globalDir, store);
-    this.syncEntries('global', store.entries);
   }
 
   /** Overwrite project memory with raw markdown (v1 compat — used by dashboard). */
@@ -474,7 +448,6 @@ export class MemoryManager {
     this.projectStore = store;
     this.rebuildIndex(store, this.projectIndex);
     await this.persistStore(this.projectDir, store);
-    this.syncEntries('project', store.entries);
   }
 
   /** Append raw markdown entry (v1 compat). */
@@ -581,7 +554,6 @@ export class MemoryManager {
       if (this.projectDir) await this.persistStore(this.projectDir, store);
     }
 
-    this.syncEntries(effectiveScope, store.entries);
 
     // ── v3 graph write ──────────────────────────────────────────────────
     // The v2 store above is the legacy layer; getEntries() and the dashboard
@@ -678,7 +650,6 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
-    this.syncEntries(scope, store.entries);
 
     // ── Dataset event ──────────────────────────────────────────────────
     // what_changed reports the first explicit change; covers the common
@@ -724,7 +695,6 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
-    this.syncEntries(scope, store.entries);
     return true;
   }
 
@@ -751,7 +721,6 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
-    this.syncEntries(scope, []);
   }
 
   /**
@@ -759,10 +728,6 @@ export class MemoryManager {
    * Reads the project registry to find every project memory file.
    */
   async clearEverything(): Promise<void> {
-    // Disable sync to prevent re-upload of cached entries
-    this.sync = undefined;
-    this.localOnly = true;
-
     // Reset in-memory caches
     this.globalStore = null as unknown as MemoryStore;
     this.projectStore = null;
@@ -800,7 +765,7 @@ export class MemoryManager {
 
   /**
    * Search memories with TF-IDF ranking + temporal relevance scoring.
-   * Falls back to substring for exact matches, then semantic via platform.
+   * Falls back to substring for exact matches (plus local semantic recall when an embedding service is set).
    */
   async recall(opts: MemoryRecallOptions): Promise<MemoryRecallResult[]> {
     const results: MemoryRecallResult[] = [];
@@ -967,37 +932,12 @@ export class MemoryManager {
       }
     }
 
-    // If no local matches, try semantic search via platform
-    if (results.length === 0 && this.sync) {
-      const semantic = opts.scope === 'all_projects'
-        ? await this.sync.semanticSearch(opts.query, { allProjects: true, threshold: 0.65, limit }).catch(() => [] as SemanticMatch[])
-        : await this.loadRelevantMemories(opts.query, limit);
-      for (const m of semantic) {
-        results.push({
-          entry: {
-            id: m.id,
-            category: 'general',
-            content: m.content,
-            createdAt: '',
-            updatedAt: '',
-            lastRecalledAt: new Date().toISOString(),
-            recallCount: 0,
-          },
-          scope: m.scope,
-          relevance: m.similarity,
-          matchType: 'semantic',
-        });
-      }
-    }
-
-    // Persist updated recall stats and sync
+    // Persist updated recall stats
     if (results.some(r => r.matchType === 'substring' || r.matchType === 'tfidf')) {
       await Promise.all([
         this.globalStore ? this.persistStore(this.globalDir, this.globalStore) : Promise.resolve(),
         this.projectStore && this.projectDir ? this.persistStore(this.projectDir, this.projectStore) : Promise.resolve(),
       ]);
-      // Don't sync on recall — only sync when explicitly saving/updating
-      // Recall just updates lastRecalledAt counters, not content
     }
 
     const final = results.slice(0, limit);
@@ -1053,7 +993,6 @@ export class MemoryManager {
       } else if (this.projectDir) {
         await this.persistStore(this.projectDir, store);
       }
-      this.syncEntries(scope, store.entries);
     }
 
     return count;
@@ -1082,7 +1021,6 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
-    this.syncEntries(scope, store.entries);
     return true;
   }
 
@@ -1109,7 +1047,6 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
-    this.syncEntries(scope, store.entries);
     return true;
   }
 
@@ -1326,81 +1263,12 @@ export class MemoryManager {
     return this.projectDir ? join(this.projectDir, MEMORY_FILENAME_V2) : null;
   }
 
-  /**
-   * Pull latest memories from the platform and merge into local store.
-   * Remote entries win conflicts (by updatedAt). Returns count of new/updated entries.
-   */
-  async pullLatest(scope: 'global' | 'project'): Promise<number> {
-    if (!this.sync || this.localOnly) return 0;
-
-    try {
-      const remote = await this.sync.pull(scope);
-      if (remote.length === 0) return 0;
-
-      const store = scope === 'global'
-        ? await this.loadGlobalStore()
-        : await this.loadProjectStore() ?? { version: 2 as const, lastModified: new Date().toISOString(), entries: [] };
-
-      let updated = 0;
-      for (const r of remote) {
-        if (r.key === 'memory.json') continue; // Skip legacy blob records
-        const existing = store.entries.find(e => e.id === r.key);
-        if (existing) {
-          // Remote wins if newer
-          if (r.updated_at > existing.updatedAt) {
-            existing.content = r.content;
-            existing.updatedAt = r.updated_at;
-            existing.category = this.inferCategory(r.content);
-            updated++;
-          }
-        } else {
-          // New entry from remote
-          store.entries.push({
-            id: r.key,
-            category: this.inferCategory(r.content),
-            content: r.content,
-            createdAt: r.updated_at,
-            updatedAt: r.updated_at,
-            lastRecalledAt: null,
-            recallCount: 0,
-            archived: false,
-          });
-          updated++;
-        }
-      }
-
-      if (updated > 0) {
-        store.lastModified = new Date().toISOString();
-        const dir = scope === 'global' ? this.globalDir : this.projectDir;
-        if (dir) {
-          await this.persistStore(dir, store);
-          this.clearCache();
-        }
-      }
-
-      return updated;
-    } catch {
-      return 0;
-    }
-  }
-
   /** Invalidate cached stores and TF-IDF indexes. */
   clearCache(): void {
     this.globalStore = null;
     this.projectStore = null;
     this.globalIndex.clear();
     this.projectIndex.clear();
-  }
-
-  // ── Semantic search (platform) ─────────────────────────────────────────────
-
-  async loadRelevantMemories(context: string, limit = 5): Promise<SemanticMatch[]> {
-    if (!this.sync) return [];
-    try {
-      return await this.sync.semanticSearch(context, { threshold: 0.65, limit });
-    } catch {
-      return [];
-    }
   }
 
   // ── Private — Storage ──────────────────────────────────────────────────────
@@ -1454,48 +1322,6 @@ export class MemoryManager {
         return store;
       }
     } catch { /* v1 doesn't exist either */ }
-
-    // Try bootstrapping from platform
-    if (this.sync) {
-      try {
-        const remote = await this.sync.pull(scope);
-        if (remote.length > 0) {
-          // Build store from individual remote entries
-          const entries: MemoryEntry[] = remote
-            .filter((m) => m.key !== 'memory.json') // Skip legacy blob records
-            .map((m) => ({
-              id: m.key, // Local entry ID was used as the key
-              category: this.inferCategory(m.content),
-              content: m.content,
-              createdAt: m.updated_at,
-              updatedAt: m.updated_at,
-              lastRecalledAt: null,
-              recallCount: 0,
-              archived: false,
-            }));
-
-          if (entries.length > 0) {
-            const store: MemoryStore = {
-              version: 2,
-              lastModified: new Date().toISOString(),
-              entries,
-            };
-            await mkdir(dir, { recursive: true });
-            await this.persistStore(dir, store);
-            return store;
-          }
-
-          // Fallback: if only legacy blob records exist, migrate them
-          const legacyContent = remote.map((m) => m.content).join('\n\n');
-          if (legacyContent.trim()) {
-            const store = this.migrateFromV1(legacyContent);
-            await mkdir(dir, { recursive: true });
-            await this.persistStore(dir, store);
-            return store;
-          }
-        }
-      } catch { /* platform unavailable */ }
-    }
 
     return createEmptyStore();
   }
@@ -1773,95 +1599,6 @@ export class MemoryManager {
         throw err;
       }
     });
-  }
-
-  /** Set the localOnly flag at runtime (e.g. when user toggles the setting). */
-  setLocalOnly(value: boolean): void {
-    this.localOnly = value;
-  }
-
-  /**
-   * Fire-and-forget sync entries to platform. Never throws.
-   *
-   * Schedules a debounced sync — multiple calls in quick succession (e.g.
-   * the Memory Agent saving 5 entries in a loop) coalesce into a single
-   * sync 2 seconds after the last mutation. This eliminates the 5x parallel
-   * racing-syncs flood that was saturating the client's HTTP connection
-   * pool and stalling the LLM stream.
-   *
-   * The `entries` parameter is intentionally ignored — the actual sync
-   * reads the latest store at execution time so we always push current
-   * state, never stale snapshots.
-   */
-  private syncEntries(scope: 'global' | 'project', _entries: MemoryEntry[]): void {
-    if (!this.sync || this.localOnly) return;
-    this.scheduleSync(scope);
-  }
-
-  /** Coalesce sync calls into a debounced execution per scope. */
-  private scheduleSync(scope: 'global' | 'project'): void {
-    const existing = this.syncTimers.get(scope);
-    if (existing) clearTimeout(existing);
-
-    const timer = setTimeout(() => {
-      this.syncTimers.delete(scope);
-      void this.runSync(scope);
-    }, this.SYNC_DEBOUNCE_MS);
-
-    this.syncTimers.set(scope, timer);
-  }
-
-  /**
-   * Execute one sync for a scope. If a sync is already in flight, mark the
-   * scope dirty so the running sync schedules another pass when it finishes.
-   * Reads the latest store at execution time so we always push current state.
-   */
-  private async runSync(scope: 'global' | 'project'): Promise<void> {
-    if (!this.sync) return;
-
-    // In-flight guard — coalesce with any sync already running
-    if (this.syncInFlight.has(scope)) {
-      this.syncDirty.add(scope);
-      return;
-    }
-
-    this.syncInFlight.add(scope);
-    this.syncDirty.delete(scope);
-
-    try {
-      const store = scope === 'global'
-        ? await this.loadGlobalStore()
-        : await this.loadProjectStore();
-      if (!store) return;
-
-      const entries = store.entries;
-      console.info(`[memory] Syncing ${entries.length} ${scope} entries to platform`);
-
-      await this.sync.pushEntries(
-        scope,
-        entries.map((e) => ({
-          id: e.id,
-          content: e.content,
-          category: e.category,
-          tags: e.tags,
-          archived: e.archived,
-        })),
-      );
-
-      console.info(`[memory] Platform sync complete for ${scope} (${entries.length} entries)`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[memory] Platform sync failed for ${scope}: ${msg}`);
-    } finally {
-      this.syncInFlight.delete(scope);
-
-      // If anything got marked dirty during the sync, schedule another pass
-      // through the debounce so we coalesce subsequent dirty marks too.
-      if (this.syncDirty.has(scope)) {
-        this.syncDirty.delete(scope);
-        this.scheduleSync(scope);
-      }
-    }
   }
 
   // ── Project Registry ────────────────────────────────────────────────────────

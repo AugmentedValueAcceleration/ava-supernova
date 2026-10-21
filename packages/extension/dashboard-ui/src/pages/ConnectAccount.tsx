@@ -80,7 +80,7 @@ export function ConnectAccount({
           Ava Supernova
         </h1>
         <p className="text-sm text-[var(--text-secondary)]">
-          Sign in to sync memory, tasks, and settings across every device
+          Sign in to use Ava's hosted models with your credits
         </p>
       </div>
 

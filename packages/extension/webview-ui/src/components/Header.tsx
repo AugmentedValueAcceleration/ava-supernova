@@ -59,9 +59,6 @@ export function Header({
 }: HeaderProps) {
   useLocale();
 
-  // Cloud-sync toggle removed — Ava is local-first; nothing syncs to the
-  // cloud (storage sunsets 1 Jul 2026). Managers default to local-only.
-
   return (
     <div
       className="flex items-center gap-2 px-3 py-2 border-b"
@@ -107,9 +104,6 @@ export function Header({
       )}
 
       <div className="flex-1" />
-
-      {/* Cloud-sync toggle removed — Ava is local-first; everything stays on
-          this machine. Cloud storage is sunsetting (1 Jul 2026). */}
 
       {/* Tasks toggle removed — the always-visible Tasks spine on the right
           edge is the single control now (its grip expands/collapses). */}

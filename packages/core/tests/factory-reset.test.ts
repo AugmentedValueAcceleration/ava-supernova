@@ -24,15 +24,12 @@ const ACCOUNT = 'users/acct-123';
 
 const exists = async (p: string) => access(p).then(() => true, () => false);
 
-function host(): ResetHost & { secrets: string[]; keys: string[]; syncOffFirst: boolean } {
+function host(): ResetHost & { secrets: string[]; keys: string[] } {
   const h = {
     secrets: [] as string[],
     keys: [] as string[],
-    syncOffFirst: false,
-    _deleted: false,
-    async deleteSecret(k: string) { h.secrets.push(k); h._deleted = true; },
-    async clearStateKey(k: string) { h.keys.push(k); h._deleted = true; },
-    async disableSyncFirst() { h.syncOffFirst = !h._deleted; },
+    async deleteSecret(k: string) { h.secrets.push(k); },
+    async clearStateKey(k: string) { h.keys.push(k); },
     log() { /* quiet in tests */ },
   };
   return h;
@@ -148,13 +145,13 @@ describe('nothing escapes the Ava folder', () => {
   });
 });
 
-describe('sync is disabled before anything is deleted', () => {
-  // Rule 3. A reset that lets the next sync restore what it deleted is worse
-  // than no reset: the user believes they started fresh and did not.
-  it('calls disableSyncFirst before the first removal', async () => {
+describe('nothing can bring the data back', () => {
+  // Rule 3. Ava is local only, but installs from the cloud-sync era still
+  // carry the legacy sync preferences — a settings reset clears them.
+  it('clears the legacy sync preferences key', async () => {
     const h = host();
-    await executeReset(['credentials', 'memory'], h, home, join(home, ACCOUNT));
-    expect(h.syncOffFirst).toBe(true);
+    await executeReset(['settings'], h, home, join(home, ACCOUNT));
+    expect(h.keys).toContain('ava.syncPrefs');
   });
 });
 
@@ -178,7 +175,8 @@ describe('the report tells the truth', () => {
     const h = host();
     const report = await executeReset([], h, home, join(home, ACCOUNT));
     expect(report.removed).toHaveLength(0);
-    expect(h.syncOffFirst).toBe(false);   // not even the sync toggle
+    expect(h.keys).toHaveLength(0);
+    expect(h.secrets).toHaveLength(0);
     expect(await exists(join(home, ACCOUNT, 'memory'))).toBe(true);
   });
 });

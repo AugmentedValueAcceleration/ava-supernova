@@ -9,16 +9,12 @@ import { deriveConversationTitle, isJunkTitle } from './conversation-title.js';
  * the most privacy-sensitive content in the product — the user's code,
  * their prompts, tool output, file paths, debugging context — and
  * none of that goes to any server. There is no save path to the
- * cloud, no list path, no pull, no per-id delete to the cloud. The
- * dashboard ships a one-shot "Wipe legacy cloud history" button that
- * hits `/conversations/all` for users who synced under earlier
- * versions and want to scrub the residue.
+ * cloud, no list path, no pull, no per-id delete to the cloud.
  *
- * The 5-layer memory pipeline already extracts the durable facts
- * (preferences, decisions, project architecture, patterns) from
- * conversations and persists those separately — that's what syncs
- * cross-device via MemoryManager. The raw transcript stays on the
- * machine where it was recorded.
+ * The 5-layer memory pipeline extracts the durable facts (preferences,
+ * decisions, project architecture, patterns) from conversations and keeps
+ * them in MemoryManager — also local only. Nothing about a conversation
+ * leaves the machine where it was recorded.
  *
  * If you're tempted to re-add a cloud branch here, don't. The decision
  * is privacy-load-bearing, not an implementation oversight.

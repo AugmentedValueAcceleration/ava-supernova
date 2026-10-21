@@ -134,7 +134,6 @@ export type ExtToWebviewMessage =
     }
   | { type: 'chat_cleared' }
   | { type: 'focus_input' }
-  | { type: 'cloud_sync_changed'; enabled: boolean }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
@@ -176,19 +175,12 @@ export type ExtToWebviewMessage =
     }
   | { type: 'sign_in_failed'; error: string }
   | { type: 'sign_in_cancelled' }
-  // Cloud-sync refresh responses — carry the number of entries that
-  // were merged into the local store. `error` is set when the pull
-  // threw (network, auth, etc); UIs should surface it distinctly
-  // from a zero-count success.
-  | { type: 'memories_refreshed'; global: number; project: number; error?: string }
-  | { type: 'tasks_refreshed'; count: number; error?: string }
   | { type: 'plan_records'; records: PlanRecordUI[] }
   | { type: 'document_list'; documents: DocumentCandidateUI[] }
   // Answer to browse_document. `doc` is null when the dialog was cancelled.
   | { type: 'document_picked'; doc: DocumentCandidateUI | null }
   | { type: 'document_body'; path: string; content: string; ok: boolean }
   | { type: 'document_saved'; path: string; ok: boolean }
-  | { type: 'journal_refreshed'; count: number; error?: string }
   | { type: 'history_refreshed'; count: number; error?: string }
   // Partial tool output chunks streamed during tool execution (bash stdout,
   // file edit diff previews, etc). Consumer appends to the matching
@@ -352,19 +344,12 @@ export type WebviewToExtMessage =
   | { type: 'webview_ready' }
   | { type: 'compress_context' }
   | { type: 'set_provider_source'; source: ProviderSource }
-  | { type: 'set_cloud_sync'; enabled: boolean }
   | { type: 'request_memory' }
   | { type: 'save_memory'; scope: 'global' | 'project'; content: string }
   | { type: 'clear_memory'; scope: 'global' | 'project' }
   | { type: 'archive_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'restore_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
-  // Manual cloud sync pulls — user-initiated refresh from the Sync
-  // page (or a panel refresh button). Extension responds with
-  // 'memories_refreshed' / 'tasks_refreshed' / 'journal_refreshed'
-  // carrying the merge count.
-  | { type: 'refresh_memories' }
-  | { type: 'refresh_tasks' }
   // The project's decision records for the Plans tab. Pulled on demand —
   // the Decisions folder is the user's to edit by hand, so a cached list
   // goes stale the moment they touch a file.
@@ -377,7 +362,6 @@ export type WebviewToExtMessage =
   | { type: 'set_open_document'; path: string | null }
   | { type: 'read_document'; path: string }
   | { type: 'write_document'; path: string; content: string }
-  | { type: 'refresh_journal' }
   | { type: 'refresh_history' }
   | { type: 'pong' }
   | { type: 'request_today_tasks' }

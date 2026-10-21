@@ -59,6 +59,5 @@
   "setting.section.preferences": "環境設定",
   "setting.section.help": "ヘルプとドキュメント",
   "setting.help.docs": "**[ドキュメントを開く](command:ava-supernova.openDocs)** — モデル、ツール、コマンド、設定の完全リファレンスガイド。",
-  "setting.help.gettingStarted": "**[はじめにを開く](command:ava-supernova.gettingStarted)** — 新規ユーザー向けのステップバイステップセットアップガイド。",
-  "setting.memoryLocalOnly.description": "すべてのメモリをローカルにのみ保存します。有効にすると、アカウントが接続されていてもメモリはAvaプラットフォームと同期されません。"
+  "setting.help.gettingStarted": "**[はじめにを開く](command:ava-supernova.gettingStarted)** — 新規ユーザー向けのステップバイステップセットアップガイド。"
 }

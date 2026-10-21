@@ -236,7 +236,7 @@ The work that isn't code, but still has to happen:
   - **Reports** (`.docx`) — board briefs, sprint reviews, weekly status pulled from your tasks, journal, memory, and git history
   - **Documents & spreadsheets** (`.docx`, `.xlsx`, `.pdf`, `.csv`, `.md`)
 - **Browser automation** — drives a headless Chromium via Playwright when a task needs real-world interaction: navigate, click, fill forms, screenshot, extract text, run JavaScript. Fully opt-in, approved on first use. Desktop-level automation (app control, screen capture) lives in the dedicated Ava IDE, not this extension.
-- **Tasks** — track work across global and project scopes, synced to the dashboard
+- **Tasks** — track work across global and project scopes, shown on the dashboard
 - **Journal** — your entry and Ava's, side by side, with mood tracking and streaks
 - **Daily briefing** — a proactive morning check-in: today's tasks, overdue items, journal streak, learning progress
 
@@ -302,7 +302,7 @@ Every role above uses the same memory. That's why Ava gets better at helping *yo
 
 A dedicated **Memory Agent** curates a short brief of what's relevant to your current message instead of dumping raw memories into the conversation. Context stays lean. Recall stays sharp.
 
-> **Local-first by default.** Nothing leaves your machine unless you explicitly turn on cloud sync.
+> **Local only.** Your memory stays on your machine — there is no cloud copy.
 
 ---
 
@@ -318,7 +318,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 **20 languages** — the whole interface translates, not just the chat, and switches **live the moment you change it** — no restart. Pick your language right from the welcome tour or in Settings; auto-detected from your locale or set manually. Each language is shown in both your current language and its own, so yours is easy to find. Code stays English; conversation matches you.
 
-**Local-first storage** — memory, tasks, journal, learning, history, settings, personality all stored on your machine. Cloud sync is opt-in, with full delta tracking so you see exactly what's about to be pushed.
+**Local-only storage** — memory, tasks, journal, learning, history, settings, personality all stored on your machine. None of it is copied to the cloud.
 
 **API keys encrypted** in your OS keychain. Credentials blocked from memory at runtime. No analytics, no telemetry, no screen captures. Prompt-injection resistance built in.
 
@@ -369,7 +369,7 @@ Counted from the registry as this extension builds it, not estimated: 119 regist
 - Capability-based secret access — Ava receives opaque handles instead of raw values, scoped to the current chat session
 - Prompt-injection resistance built in
 - No analytics, no telemetry, no screen captures
-- You control what syncs and when
+- Your data stays on your machine — nothing is synced to the cloud
 
 ### Shared Learning (opt-in)
 
@@ -379,7 +379,7 @@ An optional **Contribute Shared Learning** setting (off by default). When enable
 
 ## Terms
 
-Code context is sent only to your chosen AI provider for processing. All memory and conversation data is stored locally on your machine. Cloud sync is opt-in only.
+Code context is sent only to your chosen AI provider for processing. All memory and conversation data is stored locally on your machine and is never uploaded.
 
 Built by **Augmented Value Acceleration Ltd**, registered in England and Wales. UK GDPR compliant.
 

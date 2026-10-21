@@ -23,9 +23,9 @@ import { exportOptionsFor, originalExt, transcodeImage, withExt, type ExportForm
  *
  * Top-level tabs:
  *   - Courses    — learning paths (delegates to LearningLibrary)
- *   - Assets     — cloud-synced creative assets + local project files,
+ *   - Assets     — Creative Studio makes + local project files,
  *                  filterable by type (image / music / video / voice)
- *   - Documents  — office docs (cloud + local)
+ *   - Documents  — office docs on disk
  *
  * The tab bar is intentionally flat. Previous surfaces buried the library
  * two clicks deep inside Creative Studio; this exposes everything at one
@@ -50,25 +50,16 @@ interface Props {
   paperDetailLoading: boolean;
   onLoadPaperDetail: (id: string) => void;
   onClearPaperDetail: () => void;
-  // `cloudAssets` used to sit here. Removed 2026-08-21: the Assets tab reads
-  // the local creative gallery and the Documents tab reads disk, so nothing on
-  // this page ever read it.
-  /** Local-first creative gallery (~/.ava/users/<id>/creative) — the source the
-   *  Assets tab reads. No cloud; everything Creative Studio makes is saved here. */
+  /** Creative gallery (~/.ava/users/<id>/creative) — the source the Assets
+   *  tab reads. Everything Creative Studio makes is saved here. */
   localCreative: CreativeAsset[];
   /** Whole-footprint storage scan (~/.ava by category) — powers the storage bar. */
-  /** True while the host is fetching the cloud asset list. Drives a
-   *  non-blocking "Pulling cloud assets…" pill above the grid so the
-   *  user understands incomplete-looking thumbnails are still in
-   *  flight rather than missing. The grid keeps rendering whatever
-   *  it has — never a full-page block. */
-  cloudAssetsLoading?: boolean;
-  /** Request a fresh cloud-asset pull. Library calls this when the
-   *  user switches tabs (assets ↔ documents) so the loading pill stays
-   *  in sync with the parent's state — without it, Library's own
-   *  fetch fired but the parent didn't know to flip the gate, leaving
-   *  the spinner invisible during legitimate refetches. */
-  onReloadCloudAssets?: () => void;
+  /** True while the host is reading the creative gallery. Drives a
+   *  non-blocking loading pill above the grid — never a full-page block. */
+  assetsLoading?: boolean;
+  /** Re-read the creative gallery. Library calls this when the user
+   *  switches into the Assets tab so the parent's loading flag stays in step. */
+  onReloadAssets?: () => void;
   /** Local project files from the workspace scan. */
   images: LibraryImage[];
   projectRoot: string;
@@ -109,7 +100,7 @@ function localFileKind(img: LibraryImage): 'image' | 'document' | 'spreadsheet' 
 /** Items unified for the Assets / Documents grid. */
 interface UnifiedItem {
   id: string;
-  source: 'cloud' | 'local';
+  source: 'local';
   kind: string;
   // Fine-grained Design Studio type ('icon'|'logo'|'game-sprite'…), when the
   // asset carries one. Undefined for workspace files and legacy assets.
@@ -127,7 +118,7 @@ interface UnifiedItem {
 const LOGO_VARIANT_ORDER = ['primary', 'stacked', 'symbol', 'wordmark', 'mono-dark', 'mono-light', 'favicon'];
 const LOGO_ID_RE = /^(logo_\d+)_(primary|stacked|symbol|wordmark|mono-dark|mono-light|favicon)$/;
 
-function cloudAssetKind(a: CreativeAsset): string {
+function creativeAssetKind(a: CreativeAsset): string {
   return (a.asset_type || a.type || 'image').toLowerCase();
 }
 
@@ -137,11 +128,11 @@ function effectiveType(i: UnifiedItem): string {
   return i.designType || coarseKindToType(i.kind);
 }
 
-function unifyCloudAsset(a: CreativeAsset): UnifiedItem {
-  const kind = cloudAssetKind(a);
+function unifyCreativeAsset(a: CreativeAsset): UnifiedItem {
+  const kind = creativeAssetKind(a);
   return {
-    id: `cloud:${a.id}`,
-    source: 'cloud',
+    id: `creative:${a.id}`,
+    source: 'local',
     kind,
     designType: a.design_type || undefined,
     title: a.title || 'Untitled',
@@ -185,8 +176,8 @@ export function Library({
   onLoadPaperDetail,
   onClearPaperDetail,
   localCreative,
-  cloudAssetsLoading,
-  onReloadCloudAssets,
+  assetsLoading,
+  onReloadAssets,
   images,
   projectRoot,
   hasImagesFolder = true,
@@ -225,14 +216,12 @@ export function Library({
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [selected, setSelected] = useState<UnifiedItem | null>(null);
 
-  // Refresh cloud assets when the user switches into the Assets tab.
-  // Documents is deliberately NOT in this list: documents are local, so
-  // fetching cloud assets for that tab was work whose result nothing showed.
+  // Re-read the creative gallery when the user switches into the Assets tab.
   useEffect(() => {
     if (tab === 'assets') {
-      onReloadCloudAssets?.();
+      onReloadAssets?.();
     }
-  }, [tab, onReloadCloudAssets]);
+  }, [tab, onReloadAssets]);
 
   // Full unified list for the Assets tab (before the group/type filter) —
   // excludes office documents, which live on the Documents tab.
@@ -244,7 +233,7 @@ export function Library({
     // Logo variants (design_type 'logo', shared-prefix id) collapse into ONE card.
     const logoGroups = new Map<string, { primary?: CreativeAsset; variants: { id: string; url: string; label: string; variant: string; raw: CreativeAsset }[] }>();
     for (const a of localCreative) {
-      const k = cloudAssetKind(a);
+      const k = creativeAssetKind(a);
       const m = a.design_type === 'logo' && typeof a.id === 'string' ? a.id.match(LOGO_ID_RE) : null;
       if (m) {
         const [, key, variant] = m;
@@ -255,7 +244,7 @@ export function Library({
         continue;
       }
       if (['image', 'video', 'graphic', 'voice', 'music', 'sfx'].includes(k)) {
-        list.push({ ...unifyCloudAsset(a), source: 'local' });
+        list.push(unifyCreativeAsset(a));
       }
     }
     for (const [key, g] of logoGroups) {
@@ -312,9 +301,7 @@ export function Library({
   }), [allAssetItems, assetGroup, assetType]);
 
   // Documents tab — local office docs, filtered by kind
-  // (document/spreadsheet). There is no source filter: documents live on
-  // disk, and offering "cloud" implied a place they could be that does not
-  // exist.
+  // (document/spreadsheet). Documents live on disk.
   const documentItems = useMemo(() => {
     const list: UnifiedItem[] = [];
     // Local only — see the note where the source filter used to be.
@@ -466,14 +453,14 @@ export function Library({
 
 
           {/* Inline loading pill — non-blocking. Stays visible while
-              the host is still pulling cloud assets so the user knows
-              an incomplete-looking grid is mid-fetch, not broken.
+              the host is still reading the gallery so the user knows
+              an incomplete-looking grid is mid-load, not broken.
               Disappears when the response arrives or after the 15s
               safety timeout in App.tsx. */}
-          {cloudAssetsLoading && (
+          {assetsLoading && (
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-1.5 text-[11px] text-[var(--text-secondary)]">
               <span className="ava-library-spinner" aria-hidden />
-              {t('library.pulling_cloud_assets')}
+              {tt('library.loading_assets', 'Loading your assets…')}
               <style>{`
                 .ava-library-spinner {
                   width: 11px; height: 11px; border-radius: 50%;
@@ -491,7 +478,7 @@ export function Library({
               nothing is in flight. While loading, the pill above carries
               the visual weight; we don't want to flash "No assets yet"
               for a fraction of a second before thumbnails appear. */}
-          {assetItems.length === 0 && !cloudAssetsLoading && (
+          {assetItems.length === 0 && !assetsLoading && (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{hasImagesFolder ? '\u{1F3A8}' : '\u{1F4C1}'}</div>
               <p className="text-sm font-medium text-[var(--text-primary)]">{t('library.no_assets')}</p>
@@ -501,10 +488,10 @@ export function Library({
             </div>
           )}
 
-          {/* Skeleton grid while the first cloud-asset fetch is in
+          {/* Skeleton grid while the first gallery read is in
               flight and nothing has arrived yet — keeps the page's
               shape instead of an empty void under the pill. */}
-          {assetItems.length === 0 && cloudAssetsLoading && (
+          {assetItems.length === 0 && assetsLoading && (
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
               {Array.from({ length: 10 }).map((_, i) => (
                 <Skeleton key={i} height={120} radius={12} />
@@ -539,14 +526,6 @@ export function Library({
               the card layout. */}
           <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-[var(--border-card)]">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              {/* Source filter removed 2026-08-20 — documents are local.
-                  The cloud side filtered creative_assets down to asset_type
-                  'document' or 'spreadsheet', and there has never been a row of
-                  either: the store holds content, video, image and two UI kinds
-                  and nothing else. So it was a control over an empty set, and
-                  offering "cloud" implied a place documents could live that
-                  they never lived in. The Assets tab keeps its cloud source,
-                  where the data is real. */}
               <div className="flex items-center gap-1">
                 <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">{t('library.filter.type')}</span>
                 {(['all', 'document', 'spreadsheet'] as DocTypeFilter[]).map(dt => (
@@ -587,9 +566,6 @@ export function Library({
             </div>
           </div>
 
-          {/* No "pulling cloud documents" pill any more — this tab reads local
-              files only, so there is nothing to wait for and the spinner was
-              promising an arrival that never comes. */}
           {documentItems.length === 0 ? (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{'\u{1F4C4}'}</div>
@@ -664,12 +640,11 @@ export function Library({
 //
 //   Local images         → Open (viewer) · Reveal · Download · Delete
 //   Local docs/sheets    → Open (LibreOffice preferred) · Reveal · Download · Delete
-//   Cloud any            → Open URL · Copy URL
 //
 // All local actions route through the existing dashboard-message-types
 // handlers (open_library_image / open_external / reveal_in_explorer /
 // download_asset / delete_library_image) so we don't duplicate the file
-// plumbing. Cloud items use open_url for the public storage URL.
+// plumbing.
 function PreviewModal({
   item,
   siblings,
@@ -687,7 +662,6 @@ function PreviewModal({
   onClose: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [copied, setCopied] = useState(false);
   // Which format is being written right now, and how the last attempt went.
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportNote, setExportNote] = useState<{ ok: boolean; text: string } | null>(null);
@@ -733,10 +707,7 @@ function PreviewModal({
     const ext = splitPath((sib.raw as Partial<LibraryImage>).path ?? sib.title).ext;
     return !SOURCE_EXTENSIONS.has(ext);
   });
-  const cloudUrl = !isLocal ? (item.raw as CreativeAsset).url ?? undefined : undefined;
-
-  // Playback source — cloud assets use their public URL; local files
-  // prefer the host's webviewUri (vscode-webview-resource://) which
+  // Playback source — local files prefer the host's webviewUri (vscode-webview-resource://) which
   // streams from disk so video plays at any size. Falls back to the
   // legacy dataUri for in-flight messages from older hosts. Webview CSP
   // allows vscode-webview-resource:, data:, https:, blob: for media-src.
@@ -744,13 +715,9 @@ function PreviewModal({
   // Local-creative items stream from disk via their webview `url`; workspace
   // files use webviewUri/dataUri. Fall through so both play inline.
   const localPlaybackUrl = localRaw?.webviewUri || localRaw?.dataUri || (isLocalCreative ? rawCreative.url ?? undefined : undefined);
-  const mediaSrc: string | undefined = isLocal ? localPlaybackUrl : cloudUrl ?? undefined;
+  const mediaSrc: string | undefined = localPlaybackUrl;
 
   const handleOpen = () => {
-    // Local-only path. Cloud items don't expose a browser-open action —
-    // previewing in-modal and Download are the user-facing flows; the
-    // raw Supabase storage URL is infrastructure the user should never
-    // see unless they explicitly choose Copy URL.
     if (!isLocal || !localPath) return;
     if (isOfficeDoc) post({ type: 'open_external', path: localPath });
     else if (isImage) post({ type: 'open_library_image', path: localPath });
@@ -784,11 +751,9 @@ function PreviewModal({
   // handleReveal removed with the top-level button: each row under Formats
   // reveals its own file, which is the one the user actually pointed at.
 
-  // Download. Three sources, three routes to the bytes — and a fourth case
-  // that had none: a Studio make is local but has no workspace path, so it
-  // matched neither the path route nor the cloud route and the button simply
-  // did not render for the very things made in the Studio.
-  const canDownload = Boolean((isLocal && localPath) || isLocalCreative || cloudUrl);
+  // Download. Two routes to the bytes: a workspace file has a path, and a
+  // Studio make is known by its id in the creative gallery.
+  const canDownload = Boolean((isLocal && localPath) || isLocalCreative);
 
   // The formats on offer. Images can be re-encoded here in the webview (see
   // image-export.ts for why SVG is offered only when the source IS vector);
@@ -804,10 +769,10 @@ function PreviewModal({
 
   const baseFilename = () => {
     let filename = item.title || 'download';
-    const src = cloudUrl ?? localPath;
+    const src = localPath;
     if (src) {
       try {
-        const last = (cloudUrl ? new URL(cloudUrl).pathname : src).split('/').pop();
+        const last = src.split(/[\\/]/).pop();
         if (last && last.includes('.')) filename = last;
       } catch { /* fall back to title */ }
     }
@@ -825,8 +790,6 @@ function PreviewModal({
           post({ type: 'download_creative_asset', id: rawCreative.id, filename: withExt(baseFilename(), opt.ext) });
         } else if (isLocal && localPath) {
           post({ type: 'download_asset', path: localPath });
-        } else if (cloudUrl) {
-          post({ type: 'download_cloud_asset', url: cloudUrl, filename: baseFilename() });
         }
         onClose();
         return;
@@ -895,24 +858,7 @@ function PreviewModal({
       }
       post({ type: 'delete_library_image', path: localPath });
       onClose();
-      return;
     }
-    if (!isLocal) {
-      const cloudId = (item.raw as CreativeAsset).id;
-      if (cloudId) {
-        post({ type: 'delete_cloud_asset', id: cloudId });
-        onClose();
-      }
-    }
-  };
-
-  const handleCopyUrl = async () => {
-    if (!cloudUrl) return;
-    try {
-      await navigator.clipboard.writeText(cloudUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch { /* webview may block clipboard; fall through silently */ }
   };
 
   return (
@@ -954,7 +900,7 @@ function PreviewModal({
           <LibraryWaveform src={mediaSrc} />
         ) : isVideo || isAudio ? (
           // Media item without an inline source — local video (skipped by
-          // the scan for size) or a cloud asset whose URL didn't come back.
+          // the scan for size).
           // Show the icon + a hint to use the Open button.
           <div className="flex flex-col items-center justify-center gap-2 py-14 bg-[var(--bg-input)]">
             <span className="text-6xl opacity-40">{ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}</span>
@@ -972,12 +918,8 @@ function PreviewModal({
         <div className="p-5">
           {/* No title here — the drawer header carries it. */}
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            <span className={`rounded px-1.5 py-0.5 font-medium ${
-              isLocal
-                ? 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
-                : 'bg-[var(--accent)]/10 text-[var(--accent)]'
-            }`}>
-              {isLocal ? <span className="inline-flex items-center gap-1"><Icon.local size={10} />local</span> : <span className="inline-flex items-center gap-1"><Icon.cloud size={10} />cloud</span>}
+            <span className="rounded px-1.5 py-0.5 font-medium bg-[var(--text-muted)]/10 text-[var(--text-muted)]">
+              <span className="inline-flex items-center gap-1"><Icon.local size={10} />local</span>
             </span>
             <span className="rounded px-1.5 py-0.5 font-medium bg-[var(--border)] text-[var(--text-secondary)]">
               {item.kind}
@@ -997,11 +939,7 @@ function PreviewModal({
           {/* Actions
               Local: Open (LibreOffice for office docs / default viewer
                 otherwise) · Reveal · Download · Delete
-              Cloud: Download · Copy URL
-                — no "Open in browser" — users get inline playback in
-                the modal above for all media, and Download for keeping
-                a copy. Raw Supabase URLs are only exposed via Copy URL
-                when the user explicitly asks for them. */}
+              */}
           {/* Rename — inline, so the name the user gave an asset is editable
               without leaving the modal. Only the metadata title changes; the
               file keeps its name so paths already in use stay valid. */}
@@ -1072,14 +1010,6 @@ function PreviewModal({
             {/* Reveal is not here any more: every row in Formats below has
                 its own, and a top-level one acted on whichever file happened
                 to be selected — which is not a thing the user picked. */}
-            {!isLocal && cloudUrl && (
-              <button
-                onClick={handleCopyUrl}
-                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
-              >
-                {copied ? t('library.copied') : t('library.copy_url')}
-              </button>
-            )}
           </div>
 
           {/* Every file this document exists as. A grouped card says "also a
@@ -1807,12 +1737,8 @@ function AssetCard({
       <div className="p-2.5">
         <p className="truncate text-[11px] font-medium text-[var(--text-primary)]">{item.title}</p>
         <div className="mt-1 flex items-center justify-between gap-1">
-          <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${
-            item.source === 'cloud'
-              ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-              : 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
-          }`}>
-            {item.source === 'cloud' ? <span className="inline-flex items-center gap-1"><Icon.cloud size={10} />cloud</span> : <span className="inline-flex items-center gap-1"><Icon.local size={10} />local</span>}
+          <span className="rounded px-1.5 py-0.5 text-[9px] font-medium bg-[var(--text-muted)]/10 text-[var(--text-muted)]">
+            <span className="inline-flex items-center gap-1"><Icon.local size={10} />local</span>
           </span>
           <span className="text-[9px] text-[var(--text-muted)]">
             {/* The kind is on the tile for documents, so show when it was made
@@ -1941,12 +1867,8 @@ function AssetRow({
         </div>
       )}
       <p className="min-w-0 flex-1 truncate text-[12px] font-medium text-[var(--text-primary)]">{item.title}</p>
-      <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
-        item.source === 'cloud'
-          ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-          : 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
-      }`}>
-        {item.source === 'cloud' ? '☁ cloud' : '\u{1F4BE} local'}
+      <span className="flex-shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium bg-[var(--text-muted)]/10 text-[var(--text-muted)]">
+        {'\u{1F4BE} local'}
       </span>
       <span className="flex-shrink-0 text-[9px] text-[var(--text-muted)]">{item.kind}</span>
     </button>

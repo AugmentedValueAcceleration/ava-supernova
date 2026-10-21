@@ -59,6 +59,5 @@
   "setting.section.preferences": "Preferencje",
   "setting.section.help": "Pomoc i dokumentacja",
   "setting.help.docs": "**[Otwórz dokumentację](command:ava-supernova.openDocs)** — Pełny przewodnik referencyjny po modelach, narzędziach, poleceniach i konfiguracji.",
-  "setting.help.gettingStarted": "**[Otwórz pierwsze kroki](command:ava-supernova.gettingStarted)** — Przewodnik konfiguracji krok po kroku dla nowych użytkowników.",
-  "setting.memoryLocalOnly.description": "Przechowuj wszystkie wspomnienia tylko lokalnie. Po włączeniu wspomnienia nie będą synchronizowane z platformą Ava nawet przy połączonym koncie."
+  "setting.help.gettingStarted": "**[Otwórz pierwsze kroki](command:ava-supernova.gettingStarted)** — Przewodnik konfiguracji krok po kroku dla nowych użytkowników."
 }

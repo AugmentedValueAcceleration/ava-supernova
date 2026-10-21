@@ -464,6 +464,8 @@ export class GenerateImageTool implements Tool {
       headers: {
         'Authorization': `Bearer ${platformKey}`,
         'Content-Type': 'application/json',
+        // Local only: the platform returns the image and keeps no copy.
+        'X-Ava-Data-Mode': 'local',
       },
       body: JSON.stringify({ prompt, size, model }),
     });

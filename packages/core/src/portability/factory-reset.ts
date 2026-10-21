@@ -22,9 +22,10 @@
  * 2. SAY WHAT IT COSTS BEFORE IT COSTS IT. Each category reports its real
  *    size first. "Projects (19.0 GB)" stops a hand that "Projects" would not.
  *
- * 3. A RESET THAT UN-RESETS ITSELF IS WORSE THAN NONE. Cloud sync is disabled
- *    BEFORE anything local goes; otherwise the next sync pulls the history
- *    back down and the user believes they started fresh when they did not.
+ * 3. A RESET THAT UN-RESETS ITSELF IS WORSE THAN NONE. Nothing may pull the
+ *    deleted data back. Ava is local only — there is no cloud copy to come
+ *    back down — and the legacy `ava.syncPrefs` key is still cleared so an
+ *    install from the cloud-sync era resets clean.
  *
  * THE TRAP THIS MODULE EXISTS TO AVOID: account data is NOT at the Ava home.
  * It is under `users/<account-id>/`, which is why bundle.ts carries two roots.
@@ -326,8 +327,6 @@ export interface ResetReport {
 export interface ResetHost {
   deleteSecret(key: string): Promise<void>;
   clearStateKey(key: string): Promise<void>;
-  /** Turn cloud sync off BEFORE anything is deleted. See rule 3. */
-  disableSyncFirst(): Promise<void>;
   log(msg: string): void;
 }
 
@@ -350,13 +349,6 @@ export async function executeReset(
   };
   const cats = resetCategories().filter(c => selectedIds.includes(c.id));
   if (cats.length === 0) return report;
-
-  // Rule 3, and it must happen first.
-  try {
-    await host.disableSyncFirst();
-  } catch (e) {
-    host.log(`[factory-reset] could not disable sync first: ${e instanceof Error ? e.message : String(e)}`);
-  }
 
   const root = resolve(avaHome);
   for (const c of cats) {

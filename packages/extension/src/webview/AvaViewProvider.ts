@@ -14,7 +14,6 @@ import {
   MemoryManager,
   TaskManager,
   migrateGlobalTasksToSubfolder,
-  PlatformTaskSyncImpl,
   JournalManager,
   ProviderHealthTracker,
   ResilientProvider,
@@ -126,7 +125,6 @@ import {
 import { StatusBar, type StatusBarState } from './status-bar.js';
 import { buildCurrentSystemPrompt as buildCurrentSystemPromptFn } from './system-prompt-builder.js';
 import { HistoryCoordinator } from './history-coordinator.js';
-import { setCloudSync, cloudSyncEnabled } from './data-mode.js';
 
 // ── Profile-fill value helpers (health_profile_ask) ──────────────────────────
 // Shared between buildProfileFieldPayload (read current) and applyProfileField
@@ -419,7 +417,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * When no account is connected (BYOK or fresh install): `AVA_HOME`.
    *
    * All data reads/writes that touch user memory, tasks, journal, learning,
-   * history, personality, sync-state, or config must go through this getter
+   * history, personality, or config must go through this getter
    * rather than using AVA_HOME directly.
    */
   public getAccountScopedDir(): string {
@@ -545,10 +543,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   /** Local-conversation list used by the dashboard's History tab.
    *  Mirror of what `request_history` returns to the chat webview, but
-   *  callable directly so DashboardPanel.loadConversations can merge
-   *  local + cloud instead of bailing to empty when there's no
-   *  platformKey. Local-first by design — conversations are saved to
-   *  ~/.ava/ on every turn regardless of cloud sync status. */
+   *  callable directly so DashboardPanel.loadConversations reads the
+   *  same list. Conversations are saved to ~/.ava/ on every turn. */
   public async listLocalConversations(): Promise<unknown[]> {
     try {
       return await this.historyManager.listConversations(false);
@@ -558,9 +554,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   /** Delete a conversation from local ~/.ava/ storage. Used by the
-   *  Dashboard's History page so deletes survive a reload — the
-   *  cloud-only delete path used to leave the local file in place
-   *  and the conversation reappeared on next list. Routes through
+   *  Dashboard's History page so deletes survive a reload. Routes through
    *  the same history-coordinator the chat-panel uses, so active-
    *  conversation reset and chat_cleared signalling still fire. */
   public async deleteLocalConversation(conversationId: string): Promise<void> {
@@ -664,11 +658,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             this.postMessage({ type: 'chat_cleared' });
             await this.refreshProjectContext();
             await this.initializeSession();
-            // Pull latest memories from cloud after sign-in
-            if (this.memoryManager) {
-              this.memoryManager.pullLatest('global').catch(() => {});
-              this.memoryManager.pullLatest('project').catch(() => {});
-            }
           }
           // Refresh model list when any BYOK key changes
           if (e.key.startsWith('ava-supernova.provider.')) {
@@ -685,9 +674,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
     this.projectRoot = detectProjectRoot(cwd) ?? undefined;
 
-    // Set up memory — LOCAL-ONLY, always. Memory is never wired to the cloud
-    // (no PlatformMemorySync, no push, no pull): local-first is sacred here and
-    // cloud storage of user data is being sunset. Matches the IDE.
+    // Everything below is local only — user data never goes to the cloud.
+    // Matches the IDE.
     const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
 
     // No account: point at the last account's folder if it is still on disk,
@@ -701,9 +689,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.accountScopedDir = this.resolveSignedOutScope();
     }
 
-    // History is local-only, always. No sync, no pull, no cloud knob.
-    // Cloud residue from earlier-version syncs is wiped via the
-    // dashboard's "Wipe legacy cloud history" button.
+    // History is local only.
     // Account-scoped like memory/tasks/journal: transcripts live under the
     // scoped dir so they're isolated per account AND land where the scoped
     // export reads them. Signed out, accountScopedDir was resolved just above
@@ -733,11 +719,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       emitContextUsage: () => this.emitContextUsageFromCurrent(),
     });
 
-    const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    const cloudAllowed = cloudSyncEnabled(this.context);
-    // No sync object is wired in, and localOnly is forced true — so even a
-    // Data-Mode flip can never push or pull memories. Memory stays on-device.
-    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, localOnly: true, embeddingService: this.resolveEmbeddingService() });
+    // Memory is local only — there is no cloud copy.
+    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, embeddingService: this.resolveEmbeddingService() });
 
     // ── One-time memory reset for v0.37.0 ─────────────────────────────────
     // The memory extraction system was fundamentally improved: broadened
@@ -785,32 +768,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // Set up tasks with optional platform sync (same pattern as memory).
-    // TaskManager and JournalManager default localOnly to true, so we
-    // have to explicitly opt in to sync here — matching how memory is
-    // wired via a preferences toggle and defaulting to on when the
-    // user has a platformKey present.
-    let taskSync: PlatformTaskSyncImpl | undefined;
-    if (platformKey) {
-      taskSync = new PlatformTaskSyncImpl('https://avasupernova.com/api', platformKey);
-    }
-    // Tasks are LOCAL-FIRST by default (cloud is sunsetting). Tasks live
-    // on-device; cloud sync only if the user explicitly opts in. Default →
-    // local. Gates both push (on save) and the pull below.
-    const taskLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskLocalOnly') ?? true)
-      || syncPrefs.tasks === false
-      || !cloudAllowed;
+    // Tasks are local only — there is no cloud copy.
     migrateGlobalTasksToSubfolder(AVA_HOME);
-    this.taskManager = new TaskManager({ globalDir: join(AVA_HOME, 'tasks'), projectRoot: this.projectRoot, sync: taskSync, localOnly: taskLocalOnly });
-    if (taskSync && !taskLocalOnly) {
-      // Pull on session start so tasks made on device A show up on B.
-      this.taskManager.pullLatest().catch(() => {});
-    }
+    this.taskManager = new TaskManager({ globalDir: join(AVA_HOME, 'tasks'), projectRoot: this.projectRoot });
     // Reminders fire host-side, independent of the panel being open.
     this.startReminderScheduler();
 
-    // Journal is fully local — entries live on-device only and never sync to
-    // the cloud. Download/transfer is handled by the local export system.
+    // Journal is local only. Download/transfer is handled by the local export system.
     this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot });
 
     // Generation manager — persists across page navigation, tracks creative jobs
@@ -1217,12 +1181,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'delete_chat_memory_entry':
         mapped = { type: 'delete_memory_entry', scope: msg.scope as 'global' | 'project', id: msg.id as string };
         break;
-      case 'refresh_memories':
-        mapped = { type: 'refresh_memories' };
-        break;
-      case 'refresh_tasks':
-        mapped = { type: 'refresh_tasks' };
-        break;
       case 'list_plan_records':
         mapped = { type: 'list_plan_records' };
         break;
@@ -1243,9 +1201,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       case 'write_document':
         mapped = { type: 'write_document', path: msg.path as string, content: msg.content as string };
-        break;
-      case 'refresh_journal':
-        mapped = { type: 'refresh_journal' };
         break;
       case 'refresh_history':
         mapped = { type: 'refresh_history' };
@@ -1501,7 +1456,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   async newChat(): Promise<void> {
     // Persist the outgoing conversation, but never let a save failure
-    // (e.g. a cloud-sync hiccup) block the reset — the user asked for a
+    // (e.g. a disk error) block the reset — the user asked for a
     // new chat and must get one. A throw here used to abort the whole
     // method before chat_cleared was posted, so the button "did nothing".
     if (this.conversation) {
@@ -1850,12 +1805,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 // Re-create managers with the account-scoped directory. Memory is
                 // the exception: it stays FLAT (~/.ava/memory/) — local-only, one
                 // store per machine, shared with the IDE + CLI. Account-scoping
-                // memory split it off from those and bought nothing once cloud
-                // sync was removed.
-                this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, localOnly: true, embeddingService: this.resolveEmbeddingService() });
-                const taskSync = new PlatformTaskSyncImpl('https://avasupernova.com/api', platformKey);
+                // memory split it off from those and bought nothing.
+                this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, embeddingService: this.resolveEmbeddingService() });
                 migrateGlobalTasksToSubfolder(newScopedDir);
-                this.taskManager = new TaskManager({ globalDir: join(newScopedDir, 'tasks'), projectRoot: this.projectRoot, sync: taskSync });
+                this.taskManager = new TaskManager({ globalDir: join(newScopedDir, 'tasks'), projectRoot: this.projectRoot });
                 this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot });
                 // History: scope it too. Migrate any legacy transcripts from the
                 // old unscoped ~/.ava/history into the scoped dir (one-time),
@@ -2359,49 +2312,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
     };
 
-    // Learning tool writes to ~/.ava/learning.json on every call and (when
-    // this flag is false) also pushes the full store to the platform's
-    // /api/learning/sync endpoint. Same formula as memory / tasks / journal
-    // — per-category user pref OR the global Data Mode toggle resolved to
-    // local. Picks up syncPrefs.learning too, so users can keep a cloud
-    // account but decide curriculums stay on-device.
-    //
-    // syncPrefs + cloudAllowed are scoped to this function; the
-    // matching names in refreshProjectContext() are separate scopes. A
-    // prior refactor dropped these declarations here and caused every
-    // setupAgent() call to throw ReferenceError, which stranded users
-    // with a disabled chat input and zero token display in v0.48.x.
-    const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    const cloudAllowed = cloudSyncEnabled(this.context);
-    // Learning is LOCAL-FIRST by default (cloud is sunsetting). Curriculums +
-    // progress live on-device; cloud sync only if explicitly opted in.
-    const learningLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.learningLocalOnly') ?? true)
-      || syncPrefs.learning === false
-      || !cloudAllowed;
-
-    // generationLocalOnly no longer gates any uploader — the creative-asset
-    // sync helper it named was removed when the product went local only.
-    // It survives because the IDE sends it as the X-Ava-Data-Mode header.
-    // Same
-    // formula as learning / memory / tasks / journal: the config-level
-    // pref OR the per-category sync pref OR the global Data Mode toggle
-    // resolving to local. Any one tips the scale to localOnly.
-    //
-    // This declaration is load-bearing — the cloud-sync commit that added
-    // it referenced the variable in sharedState below but the
-    // declaration went missing somewhere between commits, and since
-    // esbuild doesn't type-check, every setupAgent() call threw
-    // ReferenceError at runtime with the same "chat is dead" symptom
-    // as the earlier syncPrefs scope bug. Do not remove without
-    // removing the reference too.
-    // Defaults to TRUE, like taskLocalOnly and learningLocalOnly beside it.
-    // It was the only one of the three defaulting to `false`, which is how
-    // generated media kept uploading after the product went local only.
-    // Still read because the IDE sends it as the X-Ava-Data-Mode header.
-    const generationLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.generationLocalOnly') ?? true)
-      || syncPrefs.generations === false
-      || !cloudAllowed;
-
     // One-time: move any health data still in VS Code globalState into the
     // scoped health/ files where the store + export now read it. Idempotent —
     // a no-op once globalState holds no health keys.
@@ -2525,8 +2435,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return panel.requestFromDesign(command, cargs);
       },
       platformKey,
-      learningLocalOnly,
-      generationLocalOnly,
       clientSurface: 'extension',
       getProviderKey,
       activeModelId: model.id,
@@ -3272,74 +3180,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  /** Reset the memory manager — called after Delete All to prevent re-sync of cached entries. */
-  /**
-   * Apply a sync preference change live to the relevant manager so the user
-   * doesn't have to reload the window. Only memory/tasks/journal/history have
-   * background push paths driven by manager state — the rest are gated at the
-   * DashboardPanel push site.
-   */
-  public applySyncPref(
-    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'generations' | 'health_profile',
-    enabled: boolean,
-  ): void {
-    // Combine with Data Mode — pref can only narrow, not broaden. If Data
-    // Mode is Local the manager stays localOnly regardless of the pref.
-    const cloudAllowed = cloudSyncEnabled(this.context);
-    const localOnly = !(enabled && cloudAllowed);
-    switch (dataType) {
-      case 'memory': this.memoryManager?.setLocalOnly(localOnly); break;
-      case 'tasks':  this.taskManager?.setLocalOnly(localOnly); break;
-      case 'journal': this.journalManager?.setLocalOnly(localOnly); break;
-      case 'history':
-        // History is local-only unconditionally — no toggle to flip.
-        break;
-      case 'generations':
-        // No background manager to flip — the flag is read out of sharedState
-        // at tool-call time. Persisted pref change will take effect on the
-        // next setupAgent() run. Nothing to do here beyond that.
-        break;
-      // learning/settings/personality/learnings have no background push — the
-      // DashboardPanel checks the pref directly before each push site.
-    }
-  }
-
-  /** Apply a cloud-sync change to every background-sync manager so the
-   *  toggle in the chat header takes effect immediately without a reload.
-   *  Hard gate: when cloud sync is off every manager goes localOnly.
-   *  Per-category sync prefs can narrow further but can't override. */
-  public applyCloudSync(enabled: boolean): void {
-    const cloudAllowed = enabled;
-    const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    // Default to enabled (true) when the pref hasn't been explicitly set —
-    // matches the "enabled by default" shape used at init time.
-    const resolve = (type: string) => !(cloudAllowed && (syncPrefs[type] !== false));
-    this.memoryManager?.setLocalOnly(resolve('memory'));
-    this.taskManager?.setLocalOnly(resolve('tasks'));
-    this.journalManager?.setLocalOnly(resolve('journal'));
-    // History is local-only unconditionally — Data Mode can't widen it.
-    // Creative generations (image / music / video / voice) read
-    // generationLocalOnly out of sharedState, which is rebuilt on the
-    // next setupAgent() run — typically triggered by a model switch or a
-    // webview reload. In-session toggling is rare enough that we don't
-    // force-rebuild here; the flag flips on the next natural agent
-    // refresh. The pref itself is already persisted above, so nothing
-    // is lost.
-
-    // Broadcast to every webview so the panel pill and dashboard pill
-    // stay in sync — without this, flipping the panel pill leaves the
-    // dashboard pill showing the stale value until it next reloads
-    // (different localStorage origins). postMessage already forwards to
-    // the dashboard webview when externalPostMessage is wired.
-    this.postMessage({ type: 'cloud_sync_changed', enabled } as never);
-  }
-
+  /** Reset the memory manager — called after Delete All. */
   public async resetMemoryManager(): Promise<void> {
     if (this.memoryManager) {
       await this.memoryManager.clearEverything();
     }
-    // Recreate with sync disabled until next session
-    this.memoryManager = new MemoryManager({ globalDir: this.accountScopedDir, projectRoot: this.projectRoot, localOnly: true, embeddingService: this.resolveEmbeddingService() });
+    this.memoryManager = new MemoryManager({ globalDir: this.accountScopedDir, projectRoot: this.projectRoot, embeddingService: this.resolveEmbeddingService() });
   }
 
   private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {
@@ -3667,45 +3513,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         await this.initializeSession();
         break;
 
-      case 'set_cloud_sync': {
-        // Panel webview sent the toggle. Persist host-side and apply to
-        // every manager (memory, tasks, journal, learning, history,
-        // creative-assets) so the next save in the in-flight turn lands
-        // on the right side. Mirrors the dashboard handler in
-        // DashboardPanel.ts so both webviews drive the same path.
-        await setCloudSync(this.context, message.enabled);
-        this.applyCloudSync(message.enabled);
-        this.log(`Cloud sync ${message.enabled ? 'enabled' : 'disabled'}`);
-        break;
-      }
-
       case 'request_memory':
         await this.sendMemoryContent();
         break;
 
       case 'save_memory':
         await this.saveMemory(message.scope, message.content);
-        break;
-
-      case 'refresh_memories':
-        // Manual pull from cloud — user-initiated sync refresh from the
-        // dashboard Sync page or a Memory panel refresh button. Runs
-        // both scopes, reloads the local store, and echoes the counts
-        // back so the UI can show "Pulled N new entries".
-        if (this.memoryManager) {
-          try {
-            const [g, p] = await Promise.all([
-              this.memoryManager.pullLatest('global'),
-              this.memoryManager.pullLatest('project'),
-            ]);
-            this.postMessage({ type: 'memories_refreshed', global: g, project: p });
-            // Re-emit the memory views so the UI updates without a reload
-            await this.sendMemoryContent();
-          } catch (err) {
-            this.log(`[memory] refresh failed: ${err}`);
-            this.postMessage({ type: 'memories_refreshed', global: 0, project: 0, error: String(err) });
-          }
-        }
         break;
 
       // The Plans tab. Read on demand rather than pushed: the Decisions
@@ -3784,38 +3597,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         } catch (err) {
           this.log(`[document] write failed for ${message.path}: ${err}`);
           this.postMessage({ type: 'document_saved', path: message.path, ok: false });
-        }
-        break;
-
-      case 'refresh_tasks':
-        // Manual pull for tasks. Splits remote by project field —
-        // 'global' tasks into the global store, workspace-tagged tasks
-        // into the project store. Returns total merged count.
-        if (this.taskManager) {
-          try {
-            const count = await this.taskManager.pullLatest();
-            this.postMessage({ type: 'tasks_refreshed', count });
-            await this.sendAllTasks();
-          } catch (err) {
-            this.log(`[tasks] refresh failed: ${err}`);
-            this.postMessage({ type: 'tasks_refreshed', count: 0, error: String(err) });
-          }
-        }
-        break;
-
-      case 'refresh_journal':
-        // Manual pull for journal. Merges remote days into the global
-        // store entry-by-entry (userEntry + avaEntry compared
-        // independently against updatedAt). Returns count of changed
-        // days.
-        if (this.journalManager) {
-          try {
-            const count = await this.journalManager.pullLatest();
-            this.postMessage({ type: 'journal_refreshed', count });
-          } catch (err) {
-            this.log(`[journal] refresh failed: ${err}`);
-            this.postMessage({ type: 'journal_refreshed', count: 0, error: String(err) });
-          }
         }
         break;
 

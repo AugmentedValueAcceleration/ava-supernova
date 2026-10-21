@@ -59,6 +59,5 @@
   "setting.section.preferences": "การตั้งค่า",
   "setting.section.help": "ความช่วยเหลือและเอกสาร",
   "setting.help.docs": "**[เปิดเอกสาร](command:ava-supernova.openDocs)** — คู่มืออ้างอิงฉบับสมบูรณ์สำหรับโมเดล เครื่องมือ คำสั่ง และการกำหนดค่า",
-  "setting.help.gettingStarted": "**[เปิดคู่มือเริ่มต้นใช้งาน](command:ava-supernova.gettingStarted)** — คำแนะนำการตั้งค่าทีละขั้นตอนสำหรับผู้ใช้ใหม่",
-  "setting.memoryLocalOnly.description": "เก็บหน่วยความจำทั้งหมดไว้เฉพาะในเครื่องเท่านั้น เมื่อเปิดใช้งาน หน่วยความจำจะไม่ซิงค์กับแพลตฟอร์ม Ava แม้ว่าจะเชื่อมต่อบัญชีแล้วก็ตาม"
+  "setting.help.gettingStarted": "**[เปิดคู่มือเริ่มต้นใช้งาน](command:ava-supernova.gettingStarted)** — คำแนะนำการตั้งค่าทีละขั้นตอนสำหรับผู้ใช้ใหม่"
 }

@@ -200,33 +200,16 @@ async function saveStore(globalDir: string, store: LearningStore): Promise<void>
 }
 
 /**
- * Save the learning store locally, then (if Data Mode allows and the user
- * is signed in to the platform) fire an idempotent sync to the cloud so
- * the same curriculums appear on other devices and in the web dashboard.
- *
- * Local-first is sacred: the local write always happens first and its
- * errors surface. The cloud push is fire-and-forget — a failed sync
- * never rolls back the on-disk copy.
- *
- * Gated on two pieces of sharedState wired by the extension host:
- *   - platformKey        — user is signed in
- *   - learningLocalOnly  — Data Mode toggle resolved to local (or the
- *                          user turned off learning sync specifically)
- *
- * When either is missing or localOnly is truthy, we skip cloud entirely
- * — matches how Memory / Tasks / Journal behave.
+ * Save the learning store to disk. Learning is local only — curriculums and
+ * progress live in ~/.ava/learning.json and never leave the machine.
  */
 async function persist(
   globalDir: string,
   store: LearningStore,
   _context: ToolExecutionContext,
 ): Promise<void> {
-  // Learning is LOCAL-ONLY by design — the user's curriculums + progress live
-  // only in ~/.ava/learning.json and never leave the device. No cloud push:
-  // local-first is sacred here, and cloud storage of user data is being sunset.
-  // (Previously this POSTed the full store to /api/learning/sync for signed-in
-  // users — removed; that contradicted "local only" and left orphaned cloud
-  // copies that re-appeared after a local delete.)
+  // (Previously this POSTed the store to /api/learning/sync for signed-in
+  // users — removed with the rest of cloud sync.)
   await saveStore(globalDir, store);
 }
 
@@ -1097,7 +1080,7 @@ export class LearningTeachTool implements Tool {
         return {
           success: true,
           output: `Persisted ${questions.length} quiz question${questions.length === 1 ? '' : 's'} on "${lesson.title}". ` +
-            `They now survive restarts and sync to the cloud when Data Mode allows.`,
+            `They are saved on this machine and survive restarts.`,
         };
       }
 

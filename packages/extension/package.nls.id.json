@@ -59,6 +59,5 @@
   "setting.section.preferences": "Preferensi",
   "setting.section.help": "Bantuan & Dokumentasi",
   "setting.help.docs": "**[Buka Dokumentasi](command:ava-supernova.openDocs)** — Panduan referensi lengkap untuk model, alat, perintah, dan konfigurasi.",
-  "setting.help.gettingStarted": "**[Buka Panduan Memulai](command:ava-supernova.gettingStarted)** — Panduan pengaturan langkah demi langkah untuk pengguna baru.",
-  "setting.memoryLocalOnly.description": "Simpan semua memori hanya secara lokal. Saat diaktifkan, memori tidak akan disinkronkan ke platform Ava bahkan dengan akun yang terhubung."
+  "setting.help.gettingStarted": "**[Buka Panduan Memulai](command:ava-supernova.gettingStarted)** — Panduan pengaturan langkah demi langkah untuk pengguna baru."
 }

@@ -118,6 +118,8 @@ export class GenerateVoiceTool implements Tool {
         headers: {
           'Authorization': `Bearer ${resolved.key}`,
           'Content-Type': 'application/json',
+          // Local only: the platform returns the audio and keeps no copy.
+          'X-Ava-Data-Mode': 'local',
         },
         body: JSON.stringify({ text, voice, language_type: language, instructions, speech_rate: speechRate, volume }),
       });

@@ -126,6 +126,8 @@ export class GenerateVideoTool implements Tool {
         headers: {
           'Authorization': `Bearer ${resolved.key}`,
           'Content-Type': 'application/json',
+          // Local only: the platform returns the video and keeps no copy.
+          'X-Ava-Data-Mode': 'local',
         },
         body: JSON.stringify({ prompt, duration, resolution }),
       });

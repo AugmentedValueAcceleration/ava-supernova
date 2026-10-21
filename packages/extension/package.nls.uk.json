@@ -59,6 +59,5 @@
   "setting.section.preferences": "Налаштування",
   "setting.section.help": "Довідка та документація",
   "setting.help.docs": "**[Відкрити документацію](command:ava-supernova.openDocs)** — Повний довідковий посібник з моделей, інструментів, команд та конфігурації.",
-  "setting.help.gettingStarted": "**[Відкрити початок роботи](command:ava-supernova.gettingStarted)** — Покрокове керівництво з налаштування для нових користувачів.",
-  "setting.memoryLocalOnly.description": "Зберігайте всі спогади лише локально. Коли увімкнено, спогади не синхронізуватимуться з платформою Ava навіть з підключеним обліковим записом."
+  "setting.help.gettingStarted": "**[Відкрити початок роботи](command:ava-supernova.gettingStarted)** — Покрокове керівництво з налаштування для нових користувачів."
 }

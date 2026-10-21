@@ -10,10 +10,10 @@ Ava Supernova is an open-source AI coding agent. This policy explains what data 
 When you interact with Ava, the extension sends **portions of your code** (open files, selected text, terminal output) to AI model providers for processing. This is the core functionality — Ava needs to see your code to help you.
 
 ### Conversation History
-Messages you send to Ava and her responses are stored **locally on your machine** in VS Code's workspace storage. They are not uploaded to any server unless you explicitly connect a platform account for cross-device sync.
+Messages you send to Ava and her responses are stored **locally on your machine** in VS Code's workspace storage. They are not uploaded to any server.
 
 ### Memory
-Ava's memory system stores your preferences, project context, and workflow patterns **locally** in `~/.ava/memory/`. If you connect a platform account, memories can optionally sync to the platform for cross-device access. You can delete all memories at any time from Settings.
+Ava's memory system stores your preferences, project context, and workflow patterns **locally** in `~/.ava/memory/`. Memories are never uploaded, including when you connect a platform account. You can delete all memories at any time from Settings.
 
 ### Usage Metrics
 If you connect a platform account (optional), basic usage metrics are recorded: token counts, model usage, and message counts. This is used for billing and rate limiting. No code content is stored in usage logs.
@@ -44,11 +44,11 @@ We do not use Google Analytics, Mixpanel, Segment, or any third-party analytics 
 
 ## Data Storage
 
-| Data | Location | Sync |
+| Data | Location | Uploaded |
 |------|----------|------|
 | Conversations | Local (VS Code storage) | Never uploaded |
-| Memory | Local (`~/.ava/memory/`) | Optional platform sync |
-| Settings | Local (VS Code settings) | Optional platform sync |
+| Memory | Local (`~/.ava/memory/`) | Never uploaded |
+| Settings | Local (VS Code settings) | Never uploaded |
 | API keys | Local (VS Code secure storage) | Never uploaded |
 | Usage metrics | Platform (if connected) | Automatic |
 | Feedback ratings | Local (`~/.ava/feedback.json`) | Opt-in via Shared Learning |

@@ -49,7 +49,6 @@ import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, Journa
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch, getDeviceId } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
-import { setCloudSync, cloudSyncEnabled, dataModeHeader } from './data-mode.js';
 import type { AvaViewProvider } from './AvaViewProvider.js';
 import type {
   ExtToDashboardMessage,
@@ -485,24 +484,8 @@ export class DashboardPanel {
         await this.loadMoreMemories();
         break;
 
-      case 'delete_memory':
-        await this.deleteMemory(msg.id);
-        break;
-
       case 'delete_all_memories':
         await this.deleteAllMemories();
-        break;
-
-      case 'upsert_memory':
-        await this.upsertMemory(msg);
-        break;
-
-      case 'archive_memory':
-        await this.archiveMemory(msg.id, true);
-        break;
-
-      case 'restore_memory':
-        await this.archiveMemory(msg.id, false);
         break;
 
       case 'save_connection':
@@ -530,7 +513,7 @@ export class DashboardPanel {
         break;
 
       case 'save_settings':
-        // Local-first: write to VS Code config only. No cloud push.
+        // Write to VS Code config only.
         this.saveSettings(msg.settings);
         break;
 
@@ -724,34 +707,6 @@ export class DashboardPanel {
         await this.refreshStorage();
         break;
 
-      case 'set_cloud_sync': {
-        await setCloudSync(this.context, msg.enabled);
-        // Flip each manager's localOnly state immediately so the toggle
-        // takes effect without a reload. AvaViewProvider owns the
-        // managers, so route through it.
-        this.viewProvider?.applyCloudSync(msg.enabled);
-        // Re-emit sync status so the dashboard Sync tab activates /
-        // deactivates in step with the toggle.
-        this.loadSyncStatus().catch(() => { /* non-fatal */ });
-        break;
-      }
-
-      case 'delete_all_cloud_conversations':
-        await this.wipeCloudCategory('/conversations/all', 'chat history');
-        break;
-
-      case 'delete_all_cloud_tasks':
-        await this.wipeCloudCategory('/tasks/all', 'tasks');
-        break;
-
-      case 'delete_all_cloud_journal':
-        await this.wipeCloudCategory('/journal/all', 'journal entries');
-        break;
-
-      case 'delete_all_cloud_creative':
-        await this.wipeCloudCategory('/creative-assets', 'creative assets');
-        break;
-
       case 'load_conversations':
         await this.loadConversations();
         break;
@@ -762,10 +717,6 @@ export class DashboardPanel {
 
       case 'delete_conversation':
         await this.deleteConversation(msg.id);
-        break;
-
-      case 'toggle_pin_conversation':
-        await this.togglePinConversation(msg.id);
         break;
 
       case 'load_tickets':
@@ -2106,20 +2057,6 @@ export class DashboardPanel {
         break;
       }
 
-      // ─── Sync messages ──────────────────────────────────────────────────
-
-      case 'load_sync_status':
-        await this.loadSyncStatus();
-        break;
-
-      case 'load_sync_prefs':
-        this.post({ type: 'sync_prefs_loaded', prefs: this.getSyncPrefs() });
-        break;
-
-      case 'set_sync_pref':
-        await this.setSyncPref(msg.dataType, msg.enabled);
-        break;
-
       case 'load_releases':
         await this.loadReleases();
         break;
@@ -2129,16 +2066,8 @@ export class DashboardPanel {
         this.context.globalState.update('ava.workingHours', { start: msg.start, end: msg.end });
         break;
 
-      case 'push_to_cloud':
-        await this.pushToCloud(msg.dataType);
-        break;
-
       case 'load_library':
         await this.loadLibraryFiles();
-        break;
-
-      case 'load_cloud_assets':
-        await this.loadCloudAssets();
         break;
 
       case 'load_local_creative':
@@ -2248,15 +2177,10 @@ export class DashboardPanel {
         break;
       }
 
-      case 'download_cloud_asset':
-        await this.downloadCloudAsset(msg.url, msg.filename);
-        break;
-
       case 'download_creative_asset': {
-        // The Library's Download for a Studio make. This was the button that
-        // never appeared: the modal only offered Download for workspace files
-        // (a path) or cloud assets (a URL), and a Studio make is neither —
-        // it is a file in the account's creative gallery, known by id.
+        // The Library's Download for a Studio make. A Studio make has no
+        // workspace path — it is a file in the account's creative gallery,
+        // known by id.
         try {
           const items = await readLocalCreative(this.getUserDataDir());
           const item = items.find((i) => i.id === msg.id);
@@ -2285,10 +2209,6 @@ export class DashboardPanel {
 
       case 'save_asset_copy':
         await this.saveAssetCopy(msg.url, msg.filename);
-        break;
-
-      case 'delete_cloud_asset':
-        await this.deleteCloudAsset(msg.id);
         break;
 
       case 'delete_library_image':
@@ -2427,10 +2347,6 @@ export class DashboardPanel {
               },
             } as any);
             await this.loadLibraryFiles();
-            // Cloud side — if Data Mode includes cloud and user is signed
-            // in, upload the file so it shows on the cloud Library tab too.
-            // Fire-and-forget so we don't hold up the UI.
-            void this.uploadDocumentToCloud(filePath, filename, msg.format, assetType, '');
           } catch (err: any) {
             this.post({ type: 'error', message: `Failed to create document: ${err.message}` });
           }
@@ -2489,9 +2405,6 @@ export class DashboardPanel {
               },
             } as any);
             await this.loadLibraryFiles();
-            // Cloud side — same fire-and-forget upload as blank docs. Template
-            // output is always .docx so format/assetType are fixed.
-            void this.uploadDocumentToCloud(absPath, filename, 'docx', 'document', msg.template);
           }
         } catch (err: any) {
           this.post({ type: 'error', message: `Failed to create from template: ${err.message}` });
@@ -2737,11 +2650,10 @@ export class DashboardPanel {
     const connections = await this.getConnectionStatus();
 
     // Read settings + provider keys from local storage first so the
-    // dashboard can render immediately. Account fetch + cloud syncs
-    // race independently and post update messages when they return.
-    // Previously we awaited fetchAccount + pullSettingsFromCloud in-line
-    // which made the dashboard hang for 2-3 minutes on slow networks
-    // because the platform request had no timeout.
+    // dashboard can render immediately. The account fetch races
+    // independently and posts an update message when it returns.
+    // Awaiting it in-line made the dashboard hang for 2-3 minutes on slow
+    // networks because the platform request had no timeout.
     const settings = this.readSettings();
     const providerKeys = await this.getProviderKeyStatus();
     const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
@@ -2782,8 +2694,8 @@ export class DashboardPanel {
           if (account) {
             // Own the account-scoped data dir the moment the account
             // resolves — don't depend on the chat view having scoped
-            // first. Without this, sync status read the un-scoped dir
-            // and reported 0 local items for signed-in users.
+            // first. Without this, reads hit the un-scoped dir and
+            // reported 0 local items for signed-in users.
             this.accountScopedDir = path.join(AVA_HOME, 'users', account.id);
             // The panel can resolve the account before the chat view does, so
             // it records the last-account pointer too.
@@ -2807,9 +2719,6 @@ export class DashboardPanel {
             this.loadTasks().catch(() => { /* non-fatal */ });
             // Memory load gated on account success — fire-and-forget too.
             this.loadMemories().catch(() => { /* non-fatal */ });
-            // Re-emit sync status now the scoped path is known, so a
-            // Sync page opened before this resolved corrects its counts.
-            this.loadSyncStatus().catch(() => { /* non-fatal */ });
             // Re-emit health data too. It loaded on dashboard mount against the
             // un-scoped fallback dir (~/.ava — empty for signed-in users whose
             // data lives under ~/.ava/users/<id>), so the Command Center, Plans
@@ -2833,9 +2742,6 @@ export class DashboardPanel {
       this.loadLocalMemories().catch(() => { /* non-fatal */ });
       this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
     }
-
-    // Settings are LOCAL-FIRST — no cloud pull. They live in your VS Code
-    // config and stay on-device (cloud is sunsetting).
   }
 
   // ─── Account ───────────────────────────────────────────────────────────────
@@ -2894,34 +2800,6 @@ export class DashboardPanel {
     await this.refreshAccount();
   }
 
-  /** Shared helper for the Cloud Management "Clear all X from cloud"
-   *  buttons. DELETE the given path on the platform, surface the result
-   *  to the webview as a clear_result message, then recalculate storage
-   *  and push a fresh account snapshot so totals drop immediately.
-   *
-   *  Intentionally does NOT touch local data — these buttons wipe the
-   *  cloud copy only. Users re-upload by re-enabling sync. */
-  private async wipeCloudCategory(path: string, humanName: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'error', message: `Sign in to clear ${humanName} from the cloud.` });
-      return;
-    }
-    try {
-      const res = await apiFetch(path, { method: 'DELETE', platformKey });
-      if (!res.ok) {
-        this.post({ type: 'error', message: `Failed to clear ${humanName} (${res.status})` });
-        return;
-      }
-      this.post({ type: 'info', message: `Cleared all ${humanName} from the cloud.` });
-    } catch (err) {
-      this.post({ type: 'error', message: `Failed to clear ${humanName}: ${err instanceof Error ? err.message : String(err)}` });
-      return;
-    }
-    // Refresh the storage snapshot so the UI reflects the drop.
-    await this.refreshStorage();
-  }
-
   private async updateName(name: string): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) return;
@@ -2944,7 +2822,7 @@ export class DashboardPanel {
   // ─── Memories ──────────────────────────────────────────────────────────────
 
   private memoryOffset = 0;
-  // Full local+cloud memory list, sorted, built once per load. The panel pages
+  // Full memory list, sorted, built once per load. The panel pages
   // through it (a 2,500+ memory store froze the webview when posted at once).
   private memoryCache: MemoryEntry[] = [];
   private static readonly MEMORY_PAGE_SIZE = 100;
@@ -2953,10 +2831,8 @@ export class DashboardPanel {
     this.memoryOffset = 0;
     const byId = new Map<string, MemoryEntry>();
 
-    // LOCAL-FIRST. Read the on-device memory (the v3 graph, via getEntries)
-    // so memories show even when the user is local-only — the cloud is opt-in
-    // and empty for them, so reading only /memories showed 0 while the local
-    // graph held hundreds. Use the AGENT's memory manager when available: it's
+    // Read the on-device memory (the v3 graph, via getEntries). Memory is
+    // local only. Use the AGENT's memory manager when available: it's
     // scoped to the signed-in account dir (~/.ava/users/<id>) where saves land,
     // whereas this panel's own manager defaults to ~/.ava and would miss them.
     try {
@@ -2972,21 +2848,6 @@ export class DashboardPanel {
       console.error('[Ava] loadMemories local read error:', err);
     }
 
-    // Cloud on top — for signed-in users who DO sync. Local id wins on clash.
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (platformKey) {
-      try {
-        const res = await apiFetch('/memories?limit=100&offset=0', { platformKey });
-        if (res.ok) {
-          const body = res.data as { memories?: MemoryEntry[] } | MemoryEntry[];
-          const cloud = Array.isArray(body) ? body : (body.memories || []);
-          for (const m of cloud) if (m?.id && !byId.has(m.id)) byId.set(m.id, m);
-        }
-      } catch (err) {
-        console.error('[Ava] loadMemories cloud error:', err);
-      }
-    }
-
     // Sort newest-first and cache; post only the first page so a large store
     // doesn't freeze the webview. Subsequent pages come via loadMoreMemories.
     const all = [...byId.values()].sort((a, b) =>
@@ -2994,7 +2855,7 @@ export class DashboardPanel {
     this.memoryCache = all;
     const page = all.slice(0, DashboardPanel.MEMORY_PAGE_SIZE);
     this.memoryOffset = page.length;
-    console.log(`[Ava] loadMemories: ${all.length} memories (local-first), showing first ${page.length}`);
+    console.log(`[Ava] loadMemories: ${all.length} memories, showing first ${page.length}`);
     this.post({ type: 'memories_loaded', memories: page, total: all.length, hasMore: all.length > page.length });
   }
 
@@ -3050,7 +2911,7 @@ export class DashboardPanel {
   }
 
   private loadMoreMemories(): void {
-    // Page through the cached local+cloud list built in loadMemories — no
+    // Page through the cached list built in loadMemories — no
     // round-trip, no re-read of the whole graph.
     const page = this.memoryCache.slice(this.memoryOffset, this.memoryOffset + DashboardPanel.MEMORY_PAGE_SIZE);
     this.memoryOffset += page.length;
@@ -3062,52 +2923,14 @@ export class DashboardPanel {
     });
   }
 
-  private async deleteMemory(id: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/memories/${id}`, { method: 'DELETE', platformKey });
-      if (res.ok) {
-        this.post({ type: 'memory_deleted', id });
-      } else {
-        this.post({ type: 'error', message: 'Failed to delete memory.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to delete memory.' });
-    }
-  }
-
   private async deleteAllMemories(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-
-    // Step 1: Delete ALL platform memories FIRST — loop until remaining is 0
-    if (platformKey) {
-      let totalDeleted = 0;
-      try {
-        for (let i = 0; i < 100; i++) {
-          const res = await apiFetch('/memories', { method: 'DELETE', platformKey });
-          if (!res.ok) {
-            this.post({ type: 'error', message: `Delete failed: ${res.status}` });
-            break;
-          }
-          const data = res.data as { remaining?: number; deleted?: number };
-          totalDeleted += data?.deleted ?? 0;
-          console.log(`[Ava] Delete batch ${i + 1}: deleted=${data?.deleted}, remaining=${data?.remaining}, total=${totalDeleted}`);
-          if (data?.remaining === 0 || data?.deleted === 0) break;
-        }
-      } catch (err) {
-        this.post({ type: 'error', message: `Failed: ${err instanceof Error ? err.message : String(err)}` });
-      }
-    }
-
-    // Step 2: THEN clear all local files — so sync can't re-upload
+    // Step 1: clear all local files.
     try {
       const mgr = this.getMemoryManager();
       await mgr.clearEverything();
     } catch { /* best-effort */ }
 
-    // Step 3: Reset the AvaViewProvider's memory manager so it doesn't re-sync cached entries
+    // Step 2: Reset the AvaViewProvider's memory manager so it drops cached entries
     if (this.viewProvider) {
       try {
         console.log('[Ava] Resetting AvaViewProvider memory manager...');
@@ -3120,48 +2943,10 @@ export class DashboardPanel {
       console.log('[Ava] No viewProvider reference — cannot reset AvaViewProvider memory manager');
     }
 
-    // Clear both UI lists — the Memory page may render either the cloud or the
-    // local list depending on account state, so empty both to be sure.
+    // Clear both UI lists — the Memory page renders one or the other
+    // depending on account state, so empty both.
     this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
     this.post({ type: 'local_memories_loaded', memories: [] });
-  }
-
-  private async upsertMemory(msg: Extract<DashboardToExtMessage, { type: 'upsert_memory' }>): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const path = msg.id ? `/memories/${msg.id}` : '/memories';
-      const method = msg.id ? 'PATCH' : 'POST';
-      const body = msg.id
-        ? { content: msg.content }
-        : { scope: msg.scope ?? 'global', key: msg.key ?? '', content: msg.content, category: msg.category ?? null };
-
-      const res = await apiFetch(path, { method, body, platformKey });
-      if (res.ok) {
-        this.post({ type: 'memory_upserted', memory: res.data as any });
-      } else {
-        this.post({ type: 'error', message: 'Failed to save memory.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to save memory.' });
-    }
-  }
-
-  private async archiveMemory(id: string, archived: boolean): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/memories/${id}`, { method: 'PATCH', body: { archived }, platformKey });
-      if (res.ok) {
-        this.post({ type: 'memory_upserted', memory: res.data as any });
-      } else {
-        this.post({ type: 'error', message: `Failed to ${archived ? 'archive' : 'restore'} memory.` });
-      }
-    } catch {
-      this.post({ type: 'error', message: `Failed to ${archived ? 'archive' : 'restore'} memory.` });
-    }
   }
 
   // ─── Connections ───────────────────────────────────────────────────────────
@@ -3495,13 +3280,7 @@ export class DashboardPanel {
   // ─── Conversations (History) ────────────────────────────────────────────────
 
   private async loadConversations(): Promise<void> {
-    // Local-only. Chat history is E2E + local by design — conversations
-    // are written to ~/.ava/ on every turn and the cloud is never
-    // queried. The legacy cloud-merge path was removed: it pulled stale
-    // residue from earlier-version syncs back into the list and made
-    // deletions appear to "come back" because cloud rows survived a
-    // local unlink. Use the "Wipe legacy cloud history" button on the
-    // Conversations tab to one-shot-clean any old cloud rows.
+    // Local only — conversations are written to ~/.ava/ on every turn.
     const conversations = this.viewProvider
       ? await this.viewProvider.listLocalConversations()
       : [];
@@ -3531,10 +3310,8 @@ export class DashboardPanel {
   }
 
   private async deleteConversation(id: string): Promise<void> {
-    // Local-only delete. Chat history is local by design — the row the
-    // user clicks is a local file (`~/.ava/<id>.json`); unlink and
-    // signal the UI. Any cloud residue from earlier-version syncs is
-    // cleaned with the "Wipe legacy cloud history" button.
+    // Local-only delete — the row the user clicks is a local file
+    // (`~/.ava/<id>.json`); unlink and signal the UI.
     if (!this.viewProvider) {
       this.post({ type: 'error', message: 'Failed to delete conversation.' });
       return;
@@ -3544,21 +3321,6 @@ export class DashboardPanel {
       this.post({ type: 'conversation_deleted', id });
     } catch {
       this.post({ type: 'error', message: 'Failed to delete conversation.' });
-    }
-  }
-
-  private async togglePinConversation(id: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/conversations/${id}/pin`, { method: 'POST', platformKey });
-      if (res.ok) {
-        const data = res.data as { pinned: boolean };
-        this.post({ type: 'conversation_pinned', id, pinned: data.pinned });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to update conversation.' });
     }
   }
 
@@ -3759,16 +3521,16 @@ export class DashboardPanel {
   // account is connected, and falls back to `AVA_HOME` for BYOK/no-account users.
   //
   // This used to be hardcoded to `AVA_HOME` in 15 different places, which meant
-  // account-connected users saw the wrong data everywhere in the dashboard — the
-  // sync tab showed zero memories while the memory page correctly showed the real
+  // account-connected users saw the wrong data everywhere in the dashboard — one
+  // page showed zero memories while the memory page correctly showed the real
   // (account-scoped) count. The fix is to route everything through this single
   // getter.
 
   /** Account-scoped dir resolved from this panel's OWN account fetch — set
    *  the moment fetchAccount returns in initializeData. Preferred over the
    *  chat view provider's copy: the chat view may not have scoped yet, and
-   *  that ordering race made loadSyncStatus read the un-scoped `~/.ava` and
-   *  report 0 local items even though the data was safe under `users/<id>/`. */
+   *  that ordering race made reads hit the un-scoped `~/.ava` and report 0
+   *  local items even though the data was safe under `users/<id>/`. */
   private accountScopedDir: string | null = null;
 
   /**
@@ -3802,9 +3564,9 @@ export class DashboardPanel {
   /**
    * Do it.
    *
-   * The engine refuses anything outside ~/.ava and disables cloud sync before
-   * the first deletion, so this method's whole job is to hand it the host's
-   * three capabilities and then tell the user the truth about what happened.
+   * The engine refuses anything outside ~/.ava, so this method's whole job is
+   * to hand it the host's capabilities and then tell the user the truth about
+   * what happened.
    * A window reload follows a successful reset that cleared settings, because
    * onboarding and the consent screen are what make day one look like day one.
    */
@@ -3812,13 +3574,6 @@ export class DashboardPanel {
     const host: ResetHost = {
       deleteSecret: async (key) => { await this.secrets.delete(key); },
       clearStateKey: async (key) => { await this.context.globalState.update(key, undefined); },
-      disableSyncFirst: async () => {
-        // Rule 3: a reset the next sync undoes is worse than none. Master
-        // toggle off AND every per-category pref, so nothing re-enables it
-        // from a half-cleared map.
-        await this.context.globalState.update('ava.cloudSyncEnabled', false);
-        await this.context.globalState.update('ava.syncPrefs', {});
-      },
       log: (m) => this.log(m),
     };
 
@@ -4635,7 +4390,7 @@ export class DashboardPanel {
     }
   }
 
-  // ─── Cloud Sync (user-initiated push) ──────────────────────────────────────
+  // ─── Releases ──────────────────────────────────────────────────────────────
 
   private async loadReleases(): Promise<void> {
     try {
@@ -4657,72 +4412,6 @@ export class DashboardPanel {
       this.post({ type: 'releases_loaded', releases });
     } catch {
       this.post({ type: 'releases_loaded', releases: [] });
-    }
-  }
-
-  /**
-   * Upload a locally-created document to the cloud Creative Studio library
-   * when Data Mode is Cloud or Both. Fire-and-forget from the caller's POV
-   * — failures surface as a toast but never roll back the local file.
-   *
-   * Mirrors the behaviour the generate_* tools get for free from the
-   * platform's generation API; for blank/templated docs we do the upload
-   * client-side because there's no generation round-trip.
-   */
-  private async uploadDocumentToCloud(
-    filePath: string,
-    filename: string,
-    format: 'docx' | 'xlsx' | 'csv' | 'md' | 'pdf',
-    assetType: 'document' | 'spreadsheet',
-    prompt: string,
-  ): Promise<void> {
-    if (!cloudSyncEnabled(this.context)) return;
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return; // not signed in — cloud is opt-in, silently skip
-
-    const CONTENT_TYPES: Record<string, string> = {
-      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      csv: 'text/csv',
-      md: 'text/markdown',
-      pdf: 'application/pdf',
-    };
-
-    try {
-      const fs = await import('node:fs/promises');
-      const buffer = await fs.readFile(filePath);
-      if (buffer.length === 0) {
-        // Almost always means the office binary dep (docx/exceljs/pdfkit)
-        // failed to load and the local writer fell through to an empty
-        // placeholder. No point uploading garbage — tell the user loudly so
-        // they notice, instead of silently putting 0-byte files in cloud.
-        this.post({
-          type: 'error',
-          message: `Local file was written empty — ${path.basename(filePath)} has 0 bytes. Office deps (docx/exceljs/pdfkit) may not be loading. Check the Extension Host console for details.`,
-        });
-        return;
-      }
-      const contentBase64 = buffer.toString('base64');
-      const res = await apiFetch('/creative-assets', {
-        method: 'POST',
-        platformKey,
-        body: {
-          filename,
-          contentType: CONTENT_TYPES[format],
-          contentBase64,
-          assetType,
-          title: filename,
-          prompt,
-        },
-      });
-      if (!res.ok) {
-        const d = res.data as { error?: string; details?: string };
-        const msg = d?.error || `HTTP ${res.status}`;
-        const details = d?.details ? ` — ${d.details}` : '';
-        this.post({ type: 'error', message: `Cloud upload failed (${msg}${details}). Local file saved.` });
-      }
-    } catch (err: any) {
-      this.post({ type: 'error', message: `Cloud upload failed: ${err?.message || err}. Local file saved.` });
     }
   }
 
@@ -4967,121 +4656,7 @@ export class DashboardPanel {
   }
 
   /**
-   * Fetch the user's cloud-synced creative assets from the platform and
-   * post them to the dashboard. Powers the unified Library's Assets and
-   * Documents tabs.
-   *
-   * Returns an empty list (not an error) when the user isn't signed in —
-   * the Library handles the empty state gracefully and we don't want a
-   * missing platform key to surface as a red error banner.
-   */
-  private async loadCloudAssets(): Promise<void> {
-    try {
-      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-      if (!platformKey) {
-        this.post({ type: 'cloud_assets_loaded', assets: [] });
-        return;
-      }
-      const res = await apiFetch('/creative-assets', { platformKey });
-      if (!res.ok) {
-        this.post({ type: 'cloud_assets_error', message: `HTTP ${res.status}` });
-        return;
-      }
-      const data = res.data as { assets?: unknown[] } | undefined;
-      const assets = Array.isArray(data?.assets) ? data.assets : [];
-      this.post({ type: 'cloud_assets_loaded', assets: assets as never });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.post({ type: 'cloud_assets_error', message });
-    }
-  }
-
-  /**
-   * Silently fetch a cloud creative asset and write it to the user's
-   * Downloads folder. Powers the Library's cloud Download button —
-   * bypasses the browser entirely so:
-   *
-   *   1. VS Code never prompts "Do you want Code to open the external
-   *      website?" with the raw Supabase URL visible
-   *   2. The file lands in Downloads without the user having to click
-   *      through a picker or wait for a browser tab to open
-   *   3. The bucket stays behind our extension — users see infrastructure
-   *      URLs only if they explicitly choose Copy URL in the preview
-   *
-   * Host-side fetch means we can also show a native toast on completion
-   * with a Reveal action.
-   *
-   * Defence in depth: only allows hostnames that look like Supabase
-   * storage or our own domain, so a compromised webview can't coerce
-   * the host into fetching arbitrary URLs (SSRF).
-   */
-  private async downloadCloudAsset(url: string, filename: string): Promise<void> {
-    try {
-      // Validate hostname — must be Supabase storage or avasupernova.com.
-      let parsed: URL;
-      try { parsed = new URL(url); }
-      catch { this.post({ type: 'error', message: 'Invalid URL' }); return; }
-      const host = parsed.hostname.toLowerCase();
-      const allowed = /\.supabase\.co$/.test(host) || host === 'avasupernova.com';
-      if (!allowed) {
-        this.post({ type: 'error', message: 'Download blocked: URL not on an allowed host.' });
-        return;
-      }
-
-      // Sanitise filename — strip path components, restrict character set,
-      // fall back to a generic name if empty after cleaning.
-      const safeName = filename
-        .replace(/[\\/]/g, '_')
-        .replace(/[^a-zA-Z0-9._ -]/g, '_')
-        .slice(0, 200) || 'download';
-
-      const fs = await import('node:fs/promises');
-      const os = await import('node:os');
-      const downloadsDir = path.join(os.homedir(), 'Downloads');
-      await fs.mkdir(downloadsDir, { recursive: true });
-
-      // Avoid overwriting existing files by suffixing " (N)" before the
-      // extension. Same convention browsers use.
-      const extIdx = safeName.lastIndexOf('.');
-      const baseName = extIdx > 0 ? safeName.slice(0, extIdx) : safeName;
-      const ext = extIdx > 0 ? safeName.slice(extIdx) : '';
-      let savePath = path.join(downloadsDir, safeName);
-      let counter = 1;
-      while (true) {
-        const exists = await fs.access(savePath).then(() => true).catch(() => false);
-        if (!exists) break;
-        savePath = path.join(downloadsDir, `${baseName} (${counter})${ext}`);
-        counter++;
-        if (counter > 100) break; // sanity stop
-      }
-
-      // Fetch the file.
-      const res = await fetch(url);
-      if (!res.ok) {
-        this.post({ type: 'error', message: `Download failed: HTTP ${res.status}` });
-        return;
-      }
-      const arrayBuffer = await res.arrayBuffer();
-      await fs.writeFile(savePath, Buffer.from(arrayBuffer));
-
-      // Friendly toast with Reveal — revealFileInOS is the same command
-      // used elsewhere for the Reveal button on local files.
-      const action = await vscode.window.showInformationMessage(
-        `Downloaded: ${path.basename(savePath)}`,
-        'Reveal',
-      );
-      if (action === 'Reveal') {
-        await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(savePath));
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.post({ type: 'error', message: `Download failed: ${message}` });
-    }
-  }
-
-  /**
-   * "Download a copy" for a freshly-generated asset. Unlike downloadCloudAsset
-   * (hostname-locked to our storage), this exports the user's OWN generated
+   * "Download a copy" for a freshly-generated asset. This exports the user's OWN generated
    * output — a data: URL (image bytes we already hold) or a remote provider URL
    * (video/voice clip) — to a location they pick via the native Save dialog.
    */
@@ -5125,38 +4700,6 @@ export class DashboardPanel {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.post({ type: 'error', message: `Download failed: ${message}` });
-    }
-  }
-
-  /**
-   * Remove a cloud creative asset — deletes both the row in
-   * creative_assets and the backing blob in the creative-media bucket
-   * (the DELETE /api/creative-assets/[id] route now handles both).
-   * Ownership is enforced server-side via the auth.userId filter, so
-   * one user can't wipe another's assets even if they guess an ID.
-   *
-   * On success, echoes a cloud_asset_deleted event so the dashboard
-   * can prune its local list without a full refetch.
-   */
-  private async deleteCloudAsset(id: string): Promise<void> {
-    try {
-      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-      if (!platformKey) {
-        this.post({ type: 'error', message: 'Sign in to manage cloud assets.' });
-        return;
-      }
-      const res = await apiFetch(`/creative-assets/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        platformKey,
-      });
-      if (!res.ok) {
-        this.post({ type: 'error', message: `Delete failed: HTTP ${res.status}` });
-        return;
-      }
-      this.post({ type: 'cloud_asset_deleted', id });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.post({ type: 'error', message: `Delete failed: ${message}` });
     }
   }
 
@@ -5208,8 +4751,7 @@ export class DashboardPanel {
 
   private async handleLoadPersonality(): Promise<void> {
     try {
-      // Local-first: read the account-scoped personality.json. No cloud pull —
-      // Ava's personality lives on-device (cloud is sunsetting).
+      // Read the account-scoped personality.json — it lives on-device.
       const personality = await loadPersonality(this.getUserDataDir());
 
       this.post({
@@ -5230,7 +4772,7 @@ export class DashboardPanel {
 
   private async handleSavePersonality(data: Personality): Promise<void> {
     try {
-      // Local-first: write the account-scoped personality.json, no cloud push.
+      // Write the account-scoped personality.json.
       await savePersonality(this.getUserDataDir(), data);
       this.post({ type: 'personality_saved' });
     } catch {
@@ -5294,296 +4836,6 @@ export class DashboardPanel {
     }
   }
 
-  private async loadSyncState(): Promise<Record<string, { syncedCount: number; syncedAt: string }>> {
-    const fs = await import('node:fs/promises');
-    try {
-      const raw = await fs.readFile(path.join(this.getUserDataDir(), 'sync-state.json'), 'utf-8');
-      return JSON.parse(raw);
-    } catch { return {}; }
-  }
-
-
-  private async saveSyncState(dataType: string, count: number): Promise<void> {
-    const fs = await import('node:fs/promises');
-    const state = await this.loadSyncState();
-    state[dataType] = { syncedCount: count, syncedAt: new Date().toISOString() };
-    await fs.writeFile(path.join(this.getUserDataDir(), 'sync-state.json'), JSON.stringify(state, null, 2));
-  }
-
-  private async loadSyncStatus(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    const fs = await import('node:fs/promises');
-    const syncState = await this.loadSyncState();
-    const data: Record<string, { available: boolean; lastSynced: string | null; localCount: number; syncedCount: number; newCount: number }> = {};
-
-    const dataDir = this.getUserDataDir();
-    const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
-    for (const t of types) {
-      let localCount = 0;
-      try {
-        const filePath = t === 'memory' ? path.join(dataDir, 'memory.json')
-          : t === 'tasks' ? path.join(dataDir, 'tasks', 'tasks.json')
-          : t === 'journal' ? path.join(dataDir, 'journal')
-          : t === 'learning' ? path.join(dataDir, 'learning.json')
-          : t === 'history' ? path.join(dataDir, 'history')
-          : t === 'personality' ? path.join(dataDir, 'personality.json')
-          : path.join(dataDir, 'config.json');
-
-        if (t === 'journal' || t === 'history') {
-          const entries = await fs.readdir(filePath).catch(() => []);
-          localCount = entries.filter((f: string) => f.endsWith('.json')).length;
-        } else {
-          const raw = await fs.readFile(filePath, 'utf-8');
-          const parsed = JSON.parse(raw);
-          if (t === 'memory') localCount = parsed.entries?.length ?? 0;
-          // TaskManager writes { version, lastModified, entries } — reading
-          // `.tasks` here always yielded 0, so the count read empty even when it wasn't.
-          else if (t === 'tasks') localCount = (parsed.entries ?? parsed.tasks)?.length ?? 0;
-          else if (t === 'learning') localCount = parsed.curriculums?.length ?? 0;
-          else localCount = 1;
-        }
-      } catch { /* file doesn't exist yet */ }
-
-      const synced = syncState[t];
-      const syncedCount = synced?.syncedCount ?? 0;
-      const newCount = Math.max(0, localCount - syncedCount);
-
-      data[t] = {
-        available: !!platformKey,
-        lastSynced: synced?.syncedAt ?? null,
-        localCount,
-        syncedCount,
-        newCount,
-      };
-    }
-
-    // Health profile is its own JSONB row server-side, so it sits outside the
-    // file-path loop above. Counts 1 once a profile with real data has been
-    // saved, else 0 (the Sync UI disables the push button on a 0 count).
-    {
-      const stored = healthStore.readProfile(this.healthDir());
-      const general = readGeneralProfile(this.getUserDataDir());
-      const hasData = (
-        (!!stored && stored.schema_version === 1 && (
-          stored.goals.primary != null ||
-          stored.constraints.allergens.length > 0 || stored.constraints.dietary.length > 0 ||
-          stored.constraints.injuries.length > 0 || stored.constraints.equipment_available.length > 0
-        )) ||
-        (!!general && (
-          general.height_cm != null || general.weight_kg != null ||
-          general.sex != null || general.date_of_birth != null
-        ))
-      );
-      const localCount = hasData ? 1 : 0;
-      const synced = syncState['health_profile'];
-      const syncedCount = synced?.syncedCount ?? 0;
-      data['health_profile'] = {
-        available: !!platformKey,
-        lastSynced: synced?.syncedAt ?? null,
-        localCount,
-        syncedCount,
-        newCount: Math.max(0, localCount - syncedCount),
-      };
-    }
-
-    this.post({ type: 'sync_status', data });
-  }
-
-  /** Turn an apiFetch result into a human reason. apiFetch reports
-   *  status 0 for a timeout / network error (data carries the detail);
-   *  any other non-2xx is a real HTTP status, with the server's error
-   *  body when it sent one. Without this every sync failure collapsed
-   *  to a blind "Failed to sync X" — undiagnosable. */
-  private syncFailReason(res: { status: number; data: unknown }): string {
-    if (res.status === 0) {
-      return typeof res.data === 'string' ? res.data : 'network error';
-    }
-    const detail = typeof res.data === 'string'
-      ? res.data
-      : (res.data as { error?: string } | null)?.error ?? '';
-    return `HTTP ${res.status}${detail ? ` — ${detail}` : ''}`;
-  }
-
-  private async pushToCloud(dataType: string): Promise<void> {
-    // Defence in depth: the UI already gates this on Data Mode before
-    // firing push_to_cloud, but any future caller (internal retries,
-    // scheduled sync, a tool that wants to force-push) needs the
-    // gate here too so Local mode stays truly local no matter what.
-    if (!cloudSyncEnabled(this.context)) {
-      this.post({ type: 'sync_error', dataType, message: 'Data Mode is Local — cloud sync is disabled. Switch to Cloud or Both in the chat header.' });
-      return;
-    }
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'sync_error', dataType, message: 'No platform account connected. Connect an account first.' });
-      return;
-    }
-    if (!this.isSyncEnabled(dataType)) {
-      this.post({ type: 'sync_error', dataType, message: 'Sync is disabled for this data type. Enable it in the Sync page.' });
-      return;
-    }
-
-    this.post({ type: 'sync_started', dataType });
-    const fs = await import('node:fs/promises');
-
-    try {
-      switch (dataType) {
-        case 'memory': {
-          const { PlatformMemorySync } = await import('@ava/core');
-          const sync = new PlatformMemorySync('https://avasupernova.com/api', platformKey);
-          const store = await fs.readFile(path.join(this.getUserDataDir(), 'memory.json'), 'utf-8')
-            .then(JSON.parse).catch(() => ({ entries: [] }));
-          const entries = store.entries || [];
-          await sync.pushEntries('global', entries);
-          await this.saveSyncState('memory', entries.length);
-          this.post({ type: 'sync_completed', dataType, count: entries.length });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        case 'tasks': {
-          const store = await fs.readFile(path.join(this.getUserDataDir(), 'tasks', 'tasks.json'), 'utf-8')
-            .then(JSON.parse).catch(() => ({ tasks: [] }));
-          const tasks = store.tasks || [];
-          const res = await apiFetch('/tasks/sync', {
-            platformKey,
-            method: 'POST',
-            body: { tasks },
-          });
-          if (!res.ok) throw new Error(`Failed to sync tasks — ${this.syncFailReason(res)}`);
-          await this.saveSyncState('tasks', tasks.length);
-          this.post({ type: 'sync_completed', dataType, count: tasks.length });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        case 'journal': {
-          const journalDir = path.join(this.getUserDataDir(), 'journal');
-          const files = await fs.readdir(journalDir).catch(() => []);
-          let count = 0;
-          for (const file of files) {
-            if (!file.endsWith('.json')) continue;
-            try {
-              const raw = await fs.readFile(path.join(journalDir, file), 'utf-8');
-              const day = JSON.parse(raw);
-              await apiFetch('/journal', {
-                platformKey,
-                method: 'POST',
-                body: {
-                  date: day.date,
-                  user_content: day.userEntry?.content ?? null,
-                  user_mood: day.userEntry?.mood ?? null,
-                  user_tags: day.userEntry?.tags ?? [],
-                  ava_content: day.avaEntry?.content ?? null,
-                  ava_tags: day.avaEntry?.tags ?? [],
-                },
-              });
-              count++;
-            } catch { /* skip malformed */ }
-          }
-          await this.saveSyncState('journal', count);
-          this.post({ type: 'sync_completed', dataType, count });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        case 'learning': {
-          const store = await fs.readFile(path.join(this.getUserDataDir(), 'learning.json'), 'utf-8')
-            .then(JSON.parse).catch(() => ({ curriculums: [] }));
-          const curriculums = store.curriculums || [];
-          const res = await apiFetch('/learning/sync', {
-            platformKey,
-            method: 'POST',
-            body: { curriculums },
-          });
-          if (!res.ok) throw new Error(`Failed to sync learning data — ${this.syncFailReason(res)}`);
-          await this.saveSyncState('learning', curriculums.length);
-          this.post({ type: 'sync_completed', dataType, count: curriculums.length });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        case 'history': {
-          const historyDir = path.join(this.getUserDataDir(), 'history');
-          const files = await fs.readdir(historyDir).catch(() => []);
-          let synced = 0;
-          // Sync one conversation at a time to avoid payload size limits
-          for (const file of files) {
-            if (!file.endsWith('.json')) continue;
-            try {
-              const raw = await fs.readFile(path.join(historyDir, file), 'utf-8');
-              const conv = JSON.parse(raw);
-              // Truncate messages to last 50 to keep payload manageable
-              if (conv.messages && conv.messages.length > 50) {
-                conv.messages = conv.messages.slice(-50);
-              }
-              const res = await apiFetch('/history/sync', {
-                platformKey,
-                method: 'POST',
-                body: { conversations: [conv] },
-              });
-              if (res.ok) synced++;
-            } catch { /* skip malformed */ }
-          }
-          await this.saveSyncState('history', synced);
-          this.post({ type: 'sync_completed', dataType, count: synced });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        case 'settings': {
-          const settings = this.readSettings();
-          const res = await apiFetch('/settings/sync', {
-            platformKey,
-            method: 'POST',
-            body: { settings },
-          });
-          if (!res.ok) throw new Error(`Failed to sync settings — ${this.syncFailReason(res)}`);
-          await this.saveSyncState('settings', 1);
-          this.post({ type: 'sync_completed', dataType, count: 1 });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        case 'personality': {
-          const avaDir = path.join(os.homedir(), '.ava');
-          const personality = await loadPersonality(avaDir);
-          const res = await apiFetch('/settings', {
-            platformKey,
-            method: 'POST',
-            body: { personality },
-          });
-          if (!res.ok) throw new Error(`Failed to sync personality — ${this.syncFailReason(res)}`);
-          await this.saveSyncState('personality', 1);
-          this.post({ type: 'sync_completed', dataType, count: 1 });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        case 'health_profile': {
-          // Single-doc push, mirroring `settings` — the whole profile
-          // is one JSONB row per user on the platform.
-          const profile = this.getHealthProfile();
-          const res = await apiFetch('/health/profile/sync', {
-            platformKey,
-            method: 'POST',
-            body: { profile },
-          });
-          if (!res.ok) throw new Error(`Failed to sync health profile — ${this.syncFailReason(res)}`);
-          await this.saveSyncState('health_profile', 1);
-          this.post({ type: 'sync_completed', dataType, count: 1 });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        default:
-          this.post({ type: 'sync_error', dataType, message: `Unknown data type: ${dataType}` });
-      }
-    } catch (err) {
-      this.post({ type: 'sync_error', dataType, message: err instanceof Error ? err.message : String(err) });
-    }
-  }
-
   // ─── Settings ──────────────────────────────────────────────────────────────
 
   private readSettings(): DashboardSettings {
@@ -5595,7 +4847,6 @@ export class DashboardPanel {
       maxTokens: cfg.get<number>('preferences.maxTokens') ?? 8192,
       activeModel: cfg.get<string>('activeModel') ?? '',
       autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
-      memoryLocalOnly: cfg.get<boolean>('preferences.memoryLocalOnly') ?? false,
       contributeSharedLearning: cfg.get<boolean>('contributeSharedLearning') ?? false,
       streamResponses: cfg.get<boolean>('preferences.streamResponses') ?? true,
       loopPreventionEnabled: cfg.get<boolean>('loopPrevention.enabled') ?? true,
@@ -5619,7 +4870,6 @@ export class DashboardPanel {
       cfg.update('activeModel', settings.activeModel, vscode.ConfigurationTarget.Global);
     }
     cfg.update('preferences.autoMemory', settings.autoMemory, vscode.ConfigurationTarget.Global);
-    cfg.update('preferences.memoryLocalOnly', settings.memoryLocalOnly, vscode.ConfigurationTarget.Global);
     cfg.update('contributeSharedLearning', settings.contributeSharedLearning, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);
     cfg.update('loopPrevention.enabled', settings.loopPreventionEnabled, vscode.ConfigurationTarget.Global);
@@ -5758,45 +5008,6 @@ export class DashboardPanel {
     await healthStore.deletePlan(this.healthDir(), id);
     return this.getHealthPlanIndex();
   }
-
-  // ─── Sync preferences ──────────────────────────────────────────────────────
-
-  /** Read all sync prefs from globalState. Defaults: everything ON except `learnings`. */
-  private getSyncPrefs(): Record<string, boolean> {
-    const stored = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    const keys = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'learnings', 'generations', 'health_profile'] as const;
-    // Default ON, except the two opt-in categories: `learnings` (shares
-    // to a global pool) and `health_profile` (the most sensitive data
-    // in the product — cloud backup is an explicit choice, never a
-    // default).
-    const optInOnly = new Set(['learnings', 'health_profile']);
-    const out: Record<string, boolean> = {};
-    for (const k of keys) {
-      out[k] = stored[k] ?? !optInOnly.has(k);
-    }
-    return out;
-  }
-
-  private isSyncEnabled(dataType: string): boolean {
-    return this.getSyncPrefs()[dataType] ?? true;
-  }
-
-  /** Persist a sync pref + apply it live to the manager (where applicable). */
-  private async setSyncPref(
-    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'generations' | 'health_profile',
-    enabled: boolean,
-  ): Promise<void> {
-    const stored = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    stored[dataType] = enabled;
-    await this.context.globalState.update('ava.syncPrefs', stored);
-    // Apply live to the manager so existing instances respect the change without restart.
-    this.viewProvider?.applySyncPref(dataType, enabled);
-    this.post({ type: 'sync_prefs_loaded', prefs: this.getSyncPrefs() });
-  }
-
-  // Settings are local-first — VS Code config only. The cloud push/pull
-  // (pushSettingsToCloud / pullSettingsFromCloud) was removed with the rest of
-  // the cloud-sync surface (cloud sunsets 1 Jul 2026).
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -6076,7 +5287,7 @@ export class DashboardPanel {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${platformKey}`,
-      'X-Ava-Data-Mode': dataModeHeader(this.context),
+      'X-Ava-Data-Mode': 'local',
     };
     try {
       // 1) Generate — the reference image (the shape silhouette) guides the material.
@@ -6150,7 +5361,7 @@ export class DashboardPanel {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${platformKey}`,
-          'X-Ava-Data-Mode': dataModeHeader(this.context),
+          'X-Ava-Data-Mode': 'local',
         },
         body: JSON.stringify({ imageUrl, mode: mode || 'bw' }),
       });
@@ -6226,7 +5437,7 @@ export class DashboardPanel {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${platformKey}`,
-      'X-Ava-Data-Mode': dataModeHeader(this.context),
+      'X-Ava-Data-Mode': 'local',
     };
     // Register with the GenerationManager so the job survives navigation as
     // something the UI can SEE. The host already kept polling when the webview
@@ -6328,7 +5539,7 @@ export class DashboardPanel {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${platformKey}`,
-      'X-Ava-Data-Mode': dataModeHeader(this.context),
+      'X-Ava-Data-Mode': 'local',
     };
     try {
       const res = await fetch('https://avasupernova.com/api/generate-voice', {

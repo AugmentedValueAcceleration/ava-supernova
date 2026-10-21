@@ -379,12 +379,6 @@
             "order": 5,
             "description": "Show the Ava welcome tour each time the panel opens. Turn off to hide it; you can re-enable it here or replay it any time with the 'Ava: Show Welcome Tour' command."
           },
-          "ava-supernova.preferences.memoryLocalOnly": {
-            "type": "boolean",
-            "default": false,
-            "order": 6,
-            "description": "%setting.memoryLocalOnly.description%"
-          },
           "ava-supernova.preferences.taskReminders": {
             "type": "boolean",
             "default": true,

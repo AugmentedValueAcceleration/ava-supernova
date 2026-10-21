@@ -68,7 +68,7 @@ export const START_PAGES: DocPage[] = [
     order: 20,
     section: 'start',
     body: [
-      { type: 'paragraph', text: 'Pick the surface that matches how you work. You can use more than one — Ava syncs her memory across them when you sign in.' },
+      { type: 'paragraph', text: 'Pick the surface that matches how you work. You can use more than one — on the same machine they share one ~/.ava folder, so Ava’s memory follows you between them.' },
 
       { type: 'heading', level: 3, text: 'VS Code extension' },
       { type: 'list', ordered: true, items: [
@@ -141,8 +141,8 @@ export const START_PAGES: DocPage[] = [
     order: 40,
     section: 'start',
     body: [
-      { type: 'paragraph', text: 'Everything Ava does is local unless you explicitly opt in. Memory, tasks, journal, personality, settings — all stored on your machine in ~/.ava/ and .ava/ (per project). She talks to model providers over HTTPS to run your request, then returns home. She does not phone home. She does not collect telemetry. She does not train on your code.' },
-      { type: 'paragraph', text: 'If you sign in, you get 300 free credits a month across both fleets — Maestro on Qwen, and Supernova with a DeepSeek coordinator and optional cloud sync for memory and settings across machines. Sync is per-feature, revocable anytime. Bring your own API key and Ava works fully without an account.' },
+      { type: 'paragraph', text: 'Everything Ava keeps is local. Memory, tasks, journal, personality, settings — all stored on your machine in ~/.ava/ and .ava/ (per project). She talks to model providers over HTTPS to run your request, then returns home. She does not phone home. She does not collect telemetry. She does not train on your code.' },
+      { type: 'paragraph', text: 'If you sign in, you get 300 free credits a month across both fleets — Maestro on Qwen, and Supernova with a DeepSeek coordinator. Signing in never uploads your memory, tasks or settings — there is no cloud sync. Bring your own API key and Ava works fully without an account.' },
       { type: 'callout', variant: 'tip', text: 'The rule: local is sacred. Cloud is additive.' },
     ],
   },
@@ -193,7 +193,7 @@ export const START_PAGES: DocPage[] = [
         ['Credit', "Ava's simpler unit for what an action costs, so you are not doing token maths. Plans come with a monthly bundle."],
         ['API key', 'A private password that lets software use a paid service (like an AI model) on your account. You only need one if you want to bring your own.'],
         ['BYOK', "\"Bring Your Own Key.\" Using your own API key instead of Ava's managed access. Optional — for people who already pay a provider directly."],
-        ['Local-first', "Your data lives on your own computer by default. Nothing is uploaded unless you switch on sync. \"Local is sacred.\""],
+        ['Local-first', "Your data lives on your own computer. Nothing is uploaded — there is no cloud sync. \"Local is sacred.\""],
         ['Permission mode', 'How cautious Ava is before doing things — ask every time, ask for risky things only, or just go. You set the level.'],
         ['Context window', "How much text a model can hold in mind at once — its short-term memory. \"1M context\" means about a million words. Bigger = it can read more before forgetting."],
         ['Diff', 'A side-by-side view of exactly what will change in a file — old on one side, new on the other — shown before Ava changes anything so you can approve it.'],

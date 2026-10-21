@@ -157,7 +157,7 @@ export const FEATURE_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'Papers — scientific papers you have saved, fetched from arXiv, OpenAlex, and Crossref, with the full text to read inline.',
         'Assets — everything you have made in Creative Studio, sorted by the same design types you made them in (Open Canvas, Web / App, Game Dev). Filter by group, then by type; each type shows how many you have.',
-        'Documents — the Word, Excel, PDF, and other files Ava has written with you, filterable by where they live (local or synced) and what they are.',
+        'Documents — the Word, Excel, PDF, and other files Ava has written with you, filterable by what they are.',
       ]},
       { type: 'paragraph', text: 'A storage bar across the top shows how much space your local files use, and an "Open save folder" button drops you straight into the folder on disk. It is local-first — the Library reads what is on your own machine.' },
     ],

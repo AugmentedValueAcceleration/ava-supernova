@@ -67,12 +67,6 @@ export function reminderFireTimeMs(entry: TaskEntry): number | null {
   return dueMs - entry.reminderLead * 60_000;
 }
 
-/** Optional platform sync interface — mirrors PlatformMemorySync pattern. */
-export interface PlatformTaskSync {
-  pushTasks(tasks: TaskEntry[]): Promise<void>;
-  pullTasks(): Promise<TaskEntry[]>;
-}
-
 /** Options for creating a new task. */
 export interface TaskCreateOptions {
   title: string;
@@ -111,30 +105,18 @@ export interface TaskUpdateOptions {
 export class TaskManager {
   private readonly globalDir: string;
   private readonly projectDir: string | null;
-  private readonly projectRoot: string | null;
-  private readonly sync?: PlatformTaskSync;
 
   // In-memory caches
   private globalStore: TaskStore | null = null;
   private projectStore: TaskStore | null = null;
 
-  /** When true, skip all platform sync. Default: true (local-first). */
-  private localOnly = true;
-
   // Session tasks — in-memory only until flushed
   private sessionTasks: TaskEntry[] = [];
 
-  constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformTaskSync; localOnly?: boolean }) {
+  // Tasks are local only — stored on disk, never sent anywhere.
+  constructor(opts: { globalDir: string; projectRoot?: string }) {
     this.globalDir = opts.globalDir;
-    this.projectRoot = opts.projectRoot ?? null;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
-    this.sync = opts.sync;
-    this.localOnly = opts.localOnly ?? true;
-  }
-
-  /** Toggle cloud sync at runtime. */
-  setLocalOnly(value: boolean): void {
-    this.localOnly = value;
   }
 
   // ── Public API — Load ──────────────────────────────────────────────────────
@@ -194,8 +176,6 @@ export class TaskManager {
       this.projectStore = store;
       if (this.projectDir) await this.persistStore(this.projectDir, store);
     }
-
-    this.syncTasks(scope, store.entries);
     return entry;
   }
 
@@ -632,8 +612,6 @@ export class TaskManager {
       this.projectStore = store;
       await this.persistStore(this.projectDir, store);
     }
-
-    this.syncTasks(scope, store.entries);
     return entry;
   }
 
@@ -656,73 +634,6 @@ export class TaskManager {
       this.projectStore = store;
       await this.persistStore(this.projectDir, store);
     }
-
-    this.syncTasks(scope, store.entries);
     return true;
-  }
-
-  /** Fire-and-forget platform sync. */
-  private syncTasks(_scope: string, entries: TaskEntry[]): void {
-    if (this.localOnly || !this.sync) return;
-    this.sync.pushTasks(entries).catch(() => {});
-  }
-
-  /**
-   * Pull the latest tasks from the platform and merge into local
-   * stores. Tasks are split by their `project` field — 'global' goes
-   * to the global store; entries matching the current workspace's
-   * basename go to the project store; entries belonging to other
-   * workspaces are ignored (they'll sync when the user opens that
-   * workspace). Remote wins on newer updatedAt, consistent with push
-   * semantics. Returns the total count of new + updated tasks.
-   */
-  async pullLatest(): Promise<number> {
-    if (!this.sync || this.localOnly) return 0;
-    try {
-      const remote = await this.sync.pullTasks();
-      if (remote.length === 0) return 0;
-
-      const globalStore = await this.loadGlobalStore();
-      const projectStore = this.projectDir ? await this.loadProjectStore() : null;
-      // Local tasks tag their `project` field with basename(projectRoot)
-      // (see construction at line ~111). Match the same shape here.
-      const projectName = this.projectRoot ? basename(this.projectRoot) : null;
-
-      const mergeInto = (store: TaskStore, r: TaskEntry) => {
-        const existing = store.entries.find(e => e.id === r.id);
-        if (existing) {
-          if (r.updatedAt > existing.updatedAt) {
-            Object.assign(existing, r);
-            return 1;
-          }
-          return 0;
-        }
-        store.entries.push(r);
-        return 1;
-      };
-
-      let updatedGlobal = 0;
-      let updatedProject = 0;
-      for (const r of remote) {
-        if (r.project === 'global') {
-          updatedGlobal += mergeInto(globalStore, r);
-        } else if (projectStore && projectName && r.project === projectName) {
-          updatedProject += mergeInto(projectStore, r);
-        }
-      }
-
-      if (updatedGlobal > 0) {
-        globalStore.lastModified = new Date().toISOString();
-        await this.persistStore(this.globalDir, globalStore);
-      }
-      if (projectStore && updatedProject > 0 && this.projectDir) {
-        projectStore.lastModified = new Date().toISOString();
-        await this.persistStore(this.projectDir, projectStore);
-      }
-
-      return updatedGlobal + updatedProject;
-    } catch {
-      return 0;
-    }
   }
 }

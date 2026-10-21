@@ -137,7 +137,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     section: 'concepts',
     body: [
       { type: 'paragraph', text: "In plain terms: Ava remembers you. Tell her something once — what you like, a decision you made — and she keeps it, so you don't have to repeat yourself in the next chat or next week. That's the headline. The layers below just explain how she keeps that memory tidy over time." },
-      { type: 'paragraph', text: 'Ava has a persistent memory ("persistent" means it sticks around after you close the app) that survives across conversations, across projects, and across machines if you enable sync (sync copies your memory between your devices). It is not a chat log. It is a structured, searchable understanding of who you are, what you like, and what you have decided.' },
+      { type: 'paragraph', text: 'Ava has a persistent memory ("persistent" means it sticks around after you close the app) that survives across conversations and across projects, and lives only on your machine. It is not a chat log. It is a structured, searchable understanding of who you are, what you like, and what you have decided.' },
       { type: 'heading', level: 3, text: 'Five layers' },
       { type: 'list', ordered: true, items: [
         'Extract — key facts captured from every message in real time.',

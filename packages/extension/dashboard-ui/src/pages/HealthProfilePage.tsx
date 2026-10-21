@@ -11,10 +11,6 @@ import { Select } from '../components/Select';
  * VSCode globalState via the extension host. Works fully for BYOK /
  * no-account users.
  *
- * Per-category cloud sync (privacy.sync_*) layers on later; for now
- * the flags are saved but don't trigger any network activity. The
- * UI exposes them so the data model is in place.
- *
  * Aesthetic register matches the rest of the dashboard — calm,
  * generous spacing, sectioned. Health data is intimate; the form
  * should feel like a journal, not an admin panel.

@@ -41,8 +41,7 @@ interface AccountPageProps {
   onSaveGeneralProfile: (next: GeneralProfile) => void;
 }
 
-// Sync tab removed — Ava is local-first; nothing syncs to the cloud (storage
-// sunsets 1 Jul 2026). Connections shows always; Billing gates on platform.
+// Connections shows always; Billing gates on platform.
 function getAccountTabs(name?: string | null): { key: AccountTab; label: string; platformOnly?: boolean }[] {
   const firstName = name?.trim().split(/\s+/)[0];
   return [

@@ -120,7 +120,6 @@ export interface DashboardSettings {
   maxTokens: number;
   activeModel: string;
   autoMemory: boolean;
-  memoryLocalOnly: boolean;
   contributeSharedLearning: boolean;
   streamResponses: boolean;
   /**
@@ -170,7 +169,7 @@ export interface ConversationEntry {
   messages: { role: string; content: string }[];
   created_at: string;
   updated_at: string;
-  /** Absent on cloud rows; local rows carry it. Undefined is treated as 'main'. */
+  /** Undefined is treated as 'main'. */
   surface?: ConversationSurface;
 }
 
@@ -853,11 +852,7 @@ export interface HealthMySubmissionRecipe {
  * and schedule. Drives the Health Dashboard's morning brief,
  * today's plan, and Ava's plan-generation logic.
  *
- * Local-first by default — stored in VSCode globalState, works
- * fully for BYOK / no-account users. Cloud sync is managed from
- * the existing Sync tab as a single `health_profile` category,
- * not from this profile shape — keeps sync concerns in one place
- * across the dashboard.
+ * Stored locally — works fully for BYOK / no-account users.
  */
 export interface HealthProfile {
   schema_version: 1;
@@ -1324,18 +1319,6 @@ export interface ReleaseNote {
   published_at: string;
 }
 
-// ─── Sync Types ─────────────────────────────────────────────────────────────
-
-export interface SyncDataStatus {
-  available: boolean;
-  lastSynced: string | null;
-  localCount: number;
-  syncedCount: number;
-  newCount: number;
-}
-
-export type SyncStatus = Record<string, SyncDataStatus>;
-
 export interface PersonalityData {
   name: string;
   pronouns: string;
@@ -1358,7 +1341,7 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
@@ -1618,14 +1601,13 @@ export interface LibraryImage {
   webviewUri?: string;
 }
 
-/** Cloud-synced creative asset row returned by /api/creative-assets GET.
- *  Shape matches the select in packages/web/src/app/api/creative-assets/route.ts. */
 // Local-footprint storage scan (Command Center + Library storage bar). Whole
 // ~/.ava usage grouped into categories, plus safely-reclaimable backups.
 export interface StorageCategory { key: string; label: string; bytes: number }
 export interface StorageReclaim { label: string; bytes: number; paths: string[] }
 export interface StorageScan { totalBytes: number; categories: StorageCategory[]; reclaim: StorageReclaim[] }
 
+/** A Creative Studio asset in the local creative gallery. */
 export interface CreativeAsset {
   id: string;
   type?: string;            // legacy column, historical values ('image' | 'post' | etc.)
@@ -1693,18 +1675,14 @@ export type ExtToDashboardMessage =
   // bullets to indicate "configured" without exposing the value).
   | { type: 'local_model_loaded'; baseUrl: string; modelName: string; hasApiKey: boolean; modelLabel: string; models: string[] }
   | { type: 'local_models_detected'; models: string[]; error?: string }
-  | { type: 'sync_prefs_loaded'; prefs: Record<string, boolean> }
   | { type: 'memories_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memories_more_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
-  | { type: 'memory_deleted'; id: string }
-  | { type: 'memory_upserted'; memory: MemoryEntry }
   | { type: 'connection_tested'; service: string; success: boolean; message: string }
   | { type: 'connection_saved'; service: string }
   | { type: 'connection_removed'; service: string }
   | { type: 'usage_logs_loaded'; logs: UsageLogEntry[] }
   | { type: 'conversations_loaded'; conversations: ConversationEntry[] }
   | { type: 'conversation_deleted'; id: string }
-  | { type: 'conversation_pinned'; id: string; pinned: boolean }
   | { type: 'tickets_loaded'; tickets: SupportTicket[] }
   | { type: 'ticket_created'; ticket: SupportTicket }
   | { type: 'ticket_reply_sent'; ticketId: string }
@@ -1852,23 +1830,15 @@ export type ExtToDashboardMessage =
   | { type: 'avatar_loaded'; dataUrl: string }
   | { type: 'avatar_saved'; dataUrl: string }
   | { type: 'avatar_removed' }
-  // Sync messages
-  | { type: 'sync_status'; data: SyncStatus }
-  | { type: 'sync_started'; dataType: string }
-  | { type: 'sync_completed'; dataType: string; count: number }
-  | { type: 'sync_error'; dataType: string; message: string }
   // Release notes
   | { type: 'releases_loaded'; releases: ReleaseNote[] }
   // Library
   | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string; hasFolder?: boolean }
   | { type: 'library_image_deleted'; path: string }
-  | { type: 'cloud_assets_loaded'; assets: CreativeAsset[] }
   | { type: 'local_creative_loaded'; assets: CreativeAsset[] }
   | { type: 'storage_scan_loaded'; scan: StorageScan }
   /** What the projects folder costs, with the age of the figure. */
   | { type: 'projects_usage_loaded'; usage: ProjectsUsage | null }
-  | { type: 'cloud_assets_error'; message: string }
-  | { type: 'cloud_asset_deleted'; id: string }
   // Personality
   | { type: 'personality_loaded'; personality: PersonalityData }
   | { type: 'personality_saved' }
@@ -1950,7 +1920,6 @@ export type ExtToDashboardMessage =
       }>;
     }
   | { type: 'chat_cleared' }
-  | { type: 'cloud_sync_changed'; enabled: boolean }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
@@ -2052,10 +2021,6 @@ export type DashboardToExtMessage =
   | { type: 'detect_local_models'; baseUrl: string; apiKey?: string }
   | { type: 'load_memories' }
   | { type: 'load_more_memories' }
-  | { type: 'delete_memory'; id: string }
-  | { type: 'upsert_memory'; id?: string; scope?: 'global' | 'project'; key?: string; content: string; category?: string | null }
-  | { type: 'archive_memory'; id: string }
-  | { type: 'restore_memory'; id: string }
   | { type: 'save_connection'; service: 'github' | 'email' | 'slack' | 'discord'; credentials: Record<string, string> }
   | { type: 'remove_connection'; service: string }
   | { type: 'test_connection'; service: string }
@@ -2079,18 +2044,6 @@ export type DashboardToExtMessage =
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }
   | { type: 'refresh_storage' }
-  // User toggled Cloud sync in the chat header. Data is always saved
-  // locally; this only controls whether a copy also goes to the cloud.
-  // Host persists the boolean and every cloud-write path checks
-  // cloudSyncEnabled() before pushing.
-  | { type: 'set_cloud_sync'; enabled: boolean }
-  // Cloud-data wipes. Each posts to the corresponding /api/<category>/all
-  // DELETE endpoint on the platform, then pushes a refreshed account
-  // snapshot so storage totals reflect the drop.
-  | { type: 'delete_all_cloud_conversations' }
-  | { type: 'delete_all_cloud_tasks' }
-  | { type: 'delete_all_cloud_journal' }
-  | { type: 'delete_all_cloud_creative' }
   | { type: 'load_conversations' }
   /** Load a saved chat conversation into the chat panel. Sent from the
    *  dashboard's History → Conversations tab. The host forwards to the
@@ -2098,7 +2051,6 @@ export type DashboardToExtMessage =
    *  ava-ide-load-conversation localStorage signal at DashboardPages.tsx:6002. */
   | { type: 'load_conversation'; id: string }
   | { type: 'delete_conversation'; id: string }
-  | { type: 'toggle_pin_conversation'; id: string }
   | { type: 'load_tickets' }
   | { type: 'create_support_ticket'; subject: string; message: string; category?: string }
   | { type: 'reply_support_ticket'; ticketId: string; message: string }
@@ -2268,11 +2220,6 @@ export type DashboardToExtMessage =
   | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }
   | { type: 'load_roadmap' }
   | { type: 'load_task_dates' }
-  // Sync messages
-  | { type: 'load_sync_status' }
-  | { type: 'load_sync_prefs' }
-  | { type: 'set_sync_pref'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'health_profile'; enabled: boolean }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'health_profile' }
   | { type: 'save_avatar'; data: string; mimeType: string }
   | { type: 'remove_avatar' }
   | { type: 'load_avatar' }
@@ -2280,14 +2227,11 @@ export type DashboardToExtMessage =
   | { type: 'load_releases' }
   // Library
   | { type: 'load_library' }
-  | { type: 'load_cloud_assets' }
-  | { type: 'download_cloud_asset'; url: string; filename: string }
   // Save a Studio-made asset's ORIGINAL bytes. It lives in the account-scoped
   // creative gallery (~/.ava/users/<id>/creative), outside any workspace, so
   // download_asset — which resolves against the open folder — could never
   // reach it. Found by id through the store, the way use_creative_in_project is.
   | { type: 'download_creative_asset'; id: string; filename: string }
-  | { type: 'delete_cloud_asset'; id: string }
   | { type: 'delete_library_image'; path: string }
   | { type: 'open_library_image'; path: string }
   | { type: 'open_external'; path: string }
@@ -2394,8 +2338,7 @@ export type DashboardToExtMessage =
   // user's project root. Host downloads the URL and writes the bytes.
   | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; designType?: string; prompt?: string; id?: string }
   // Creative Studio — "Download a copy": export a generated asset (data: URL or
-  // remote) to a location the user picks via the native Save dialog. Separate
-  // from download_cloud_asset (which is hostname-locked to our storage).
+  // remote) to a location the user picks via the native Save dialog.
   | { type: 'save_asset_copy'; url: string; filename: string }
   | { type: 'load_local_creative' }
   | { type: 'delete_local_creative'; id: string }

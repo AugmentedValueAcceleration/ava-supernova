@@ -66,9 +66,6 @@ export function Header({
   // Knowledge-pack dropdown removed in v0.59.2. Stale localStorage key
   // 'ava-knowledge-packs' is harmless if it survives from a prior install.
 
-  // Cloud-sync toggle removed — Ava is local-first; nothing syncs to the
-  // cloud (storage sunsets 1 Jul 2026). Managers default to local-only.
-
   return (
     <div className="border-b" style={{ borderColor: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
     <div className="flex items-center gap-2 px-3 py-2" role="toolbar" aria-label={tt('ext.header.chat_controls', 'Chat controls')}>
@@ -112,9 +109,6 @@ export function Header({
 
       {/* Right side: tokens + context ring + tasks */}
       <div className="flex items-center gap-3">
-        {/* Cloud-sync toggle removed — Ava is local-first; nothing syncs to
-            the cloud (storage sunsets 1 Jul 2026). */}
-
         {/* Credit balance display — matches IDE chat header at
             DashboardPages.tsx:4210-4225. Shows total platform balance
             remaining when signed in (with red/amber/green colour ramp at

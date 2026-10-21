@@ -22,15 +22,6 @@ import {
 const JOURNAL_DIR = 'journal';
 const KINDS_FILE = 'kinds.json';
 
-/**
- * Optional platform sync interface. Journal is now local-only — this is kept
- * inert so existing wiring compiles; nothing is pushed to the cloud.
- */
-export interface PlatformJournalSync {
-  pushEntry(day: JournalDay): Promise<void>;
-  pullEntries(from?: string, to?: string): Promise<JournalDay[]>;
-}
-
 /** Input for adding a new entry. */
 export interface NewEntryInput {
   author: JournalAuthor;
@@ -83,16 +74,9 @@ export class JournalManager {
   private cache = new Map<string, JournalDay>();
   private static readonly CACHE_MAX = 30;
 
-  // `sync` / `localOnly` are accepted for caller compatibility but ignored —
-  // the journal is always local-only now (cloud sync retired).
-  constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformJournalSync; localOnly?: boolean }) {
+  constructor(opts: { globalDir: string; projectRoot?: string }) {
     this.globalDir = join(opts.globalDir, JOURNAL_DIR);
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava', JOURNAL_DIR) : null;
-  }
-
-  /** No-op — journal is local-only regardless. Retained for caller compatibility. */
-  setLocalOnly(_value: boolean): void {
-    /* journal never syncs to the cloud */
   }
 
   /**
@@ -369,11 +353,6 @@ export class JournalManager {
       d.entries = d.entries.filter((e) => e.author !== 'ava');
     });
     return day;
-  }
-
-  /** Journal is local-only — cloud pull is retired. Kept for caller compatibility. */
-  async pullLatest(_from?: string, _to?: string): Promise<number> {
-    return 0;
   }
 
   // ── Private — summaries ────────────────────────────────────────────────────

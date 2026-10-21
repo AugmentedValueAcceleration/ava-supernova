@@ -30,7 +30,7 @@ Agentic coding shouldn't be a luxury. Ava Supernova is a full AI coding agent �
 She's open-source, **local-first**, and free to start:
 
 - **No account, no credit card, no trial.** Install, open, go. Bring your own API key and run fully local — or sign up for **300 free credits a month** and start with zero setup.
-- **Your data stays on your machine.** Memory, history, journal, tasks — all local by default. Cloud sync is opt-in.
+- **Your data stays on your machine.** Memory, history, journal, tasks — all stored locally. There is no cloud sync.
 - **No gatekeeping.** Every capability — including the security toolkit and the teaching engine — is available to everyone. The free tier is a floor, not a free trial.
 
 > Ask Ava `what can you do?` and she'll read her own source code and tell you herself.
@@ -183,11 +183,11 @@ Ava designs whole brand identities and wires them straight into your project —
 Your data stays yours:
 
 - **API keys** encrypted in your OS keychain (VS Code SecretStorage). Never logged, never sent to Ava servers.
-- **Conversations & memory** stored locally (`~/.ava/`). Local-first by default.
+- **Conversations & memory** stored locally (`~/.ava/`), and only there.
 - **Credential safety** — runtime detection blocks API keys, tokens, and private keys from being saved to memory; high-confidence key patterns are redacted from chat output before they hit the screen.
 - **Capability-based secrets** — Ava receives opaque handles for vault secrets, not raw values, scoped to the current session.
 - **Prompt-injection resistance** built in. **No telemetry** — we don't track your usage, code, or conversations.
-- **Cloud sync is opt-in**, with delta tracking so you see exactly what's about to be pushed.
+- **No cloud sync** — your memory, tasks, journal and history are never uploaded.
 
 ## Plans
 
@@ -223,7 +223,7 @@ packages/
 - **Self-contained tools** — each tool carries its own schema and handler; adding one is a single file plus one registry line.
 - **No provider SDKs** — all provider communication uses native `fetch`.
 - **Permission matrix** — risk levels (`safe`, `write`, `dangerous`) combine with your permission mode to decide what needs approval. Plans and user questions always require approval.
-- **Local-first** — everything works offline; cloud sync is opt-in.
+- **Local-first** — everything works offline, and nothing is synced to the cloud.
 
 ## Contributing
 

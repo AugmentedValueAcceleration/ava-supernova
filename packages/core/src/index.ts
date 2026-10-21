@@ -183,8 +183,6 @@ export type { CreditAction } from './billing/credits.js';
 // Memory
 export { MemoryManager } from './memory/memory-manager.js';
 export { EmbeddingService, createEmbeddingServiceFromConfig } from './memory/embedding-service.js';
-export { PlatformMemorySync } from './memory/platform-sync.js';
-export type { PlatformMemory, SemanticMatch } from './memory/platform-sync.js';
 export type {
   MemoryEntry,
   MemoryCategory,
@@ -250,7 +248,7 @@ export type { SelfImprovement, SelfImprovementStore } from './memory/self-improv
 
 // Tasks
 export { TaskManager, migrateGlobalTasksToSubfolder, reminderFireTimeMs } from './tasks/task-manager.js';
-export type { PlatformTaskSync, TaskCreateOptions, TaskUpdateOptions } from './tasks/task-manager.js';
+export type { TaskCreateOptions, TaskUpdateOptions } from './tasks/task-manager.js';
 export type {
   TaskEntry,
   TaskStore,
@@ -265,12 +263,10 @@ export type {
   TaskListOptions,
 } from './tasks/types.js';
 export { TASK_PRIORITIES, TASK_CATEGORIES, createEmptyTaskStore } from './tasks/types.js';
-export { PlatformTaskSyncImpl } from './tasks/platform-sync.js';
 
 // Journal
 export { JournalManager } from './journal/journal-manager.js';
 export type {
-  PlatformJournalSync,
   NewEntryInput,
   EntryPatch,
   SearchFilters,
@@ -294,7 +290,6 @@ export {
   DEFAULT_USER_KIND,
   DEFAULT_AVA_KIND,
 } from './journal/types.js';
-export { PlatformJournalSyncImpl } from './journal/platform-sync.js';
 
 // Briefing
 export { BriefingEngine } from './briefing/index.js';

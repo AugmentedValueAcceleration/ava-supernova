@@ -5,7 +5,6 @@ import { SectionGroup } from '../components/SectionGroup';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
 import { Skeleton } from '../components/Skeleton';
 import type { MemoryEntry, MemoryCategory, GraphStats, ContradictionPair, ProceduralPatternUI } from '../types/messages';
-import { postData, postLoad, cloudSyncEnabled } from '../lib/data-mode';
 
 const CATEGORY_COLORS: Record<string, string> = {
   pattern: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
@@ -250,10 +249,6 @@ interface MemoryProps {
 
 export function Memory({ memories, serverTotal, serverHasMore, graphStats, contradictions, patterns, projectBrain, loaded }: MemoryProps) {
   useLocale();
-  // Display always shows local memories — cloud sync only affects
-  // whether cloud-side actions (delete cloud copy, server pagination)
-  // are offered, never what the list renders.
-  const cloudSync = cloudSyncEnabled();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -264,10 +259,9 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
   const [viewMode, setViewMode] = useState<ViewMode>('active');
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Refresh memories from host when page mounts — always from the
-  // local store; the display is local-first.
+  // Refresh memories from the local store when the page mounts.
   useEffect(() => {
-    postLoad({ type: 'load_local_memories' });
+    post({ type: 'load_local_memories' });
   }, []);
 
   // Partition entries
@@ -331,7 +325,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
   }, [viewEntries, search, categoryFilter]);
 
   function loadMore() {
-    if (cloudSync && serverHasMore) {
+    if (serverHasMore) {
       setLoadingMore(true);
       post({ type: 'load_more_memories' });
       // loadingMore will be cleared when new memories arrive
@@ -351,29 +345,19 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
 
   function saveEdit(m: MemoryEntry) {
     if (editText.trim() && editText !== m.content) {
-      postData(
-        { type: 'upsert_local_memory', id: m.id, content: editText.trim() },
-        { type: 'upsert_memory', id: m.id, content: editText.trim() },
-      );
+      post({ type: 'upsert_local_memory', id: m.id, content: editText.trim() });
     }
     setEditingId(null);
   }
 
   function confirmDelete(id: string) {
-    postData(
-      { type: 'delete_local_memory', id },
-      { type: 'delete_memory', id },
-    );
+    post({ type: 'delete_local_memory', id });
     setConfirmDeleteId(null);
   }
 
   function deleteAllMemories() {
     setDeletingAll(true);
-    // One full wipe. The host handler deletes the cloud copy (when there's an
-    // account) AND clears every local store, then empties both UI lists. The
-    // cloud delete is gated host-side on the platform key — never on the
-    // cloud-sync toggle. Gating on the toggle was the bug: account memories
-    // load from the server regardless of it, so they reloaded on refresh.
+    // One full wipe. The host clears every local store, then empties both UI lists.
     post({ type: 'delete_all_memories' });
     setConfirmDeleteAll(false);
     setTimeout(() => setDeletingAll(false), 30000);
@@ -392,17 +376,11 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
   }, [deletingAll]);
 
   function archiveEntry(id: string) {
-    postData(
-      { type: 'archive_local_memory', id },
-      { type: 'archive_memory', id },
-    );
+    post({ type: 'archive_local_memory', id });
   }
 
   function restoreEntry(id: string) {
-    postData(
-      { type: 'restore_local_memory', id },
-      { type: 'restore_memory', id },
-    );
+    post({ type: 'restore_local_memory', id });
   }
 
   return (
@@ -418,7 +396,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => postLoad({ type: 'load_local_memories' })}
+            onClick={() => post({ type: 'load_local_memories' })}
             className="rounded-lg border border-[var(--accent)]/20 bg-transparent px-3 py-1.5 text-xs text-[#9ca3af] transition hover:text-white"
             title={t('memory.refresh_title')}
           >
@@ -471,11 +449,9 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         </div>
       )}
 
-      {!cloudSync && (
-        <div className="mb-6 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)]">
-          {t('memory.local_only_notice')}
-        </div>
-      )}
+      <div className="mb-6 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)]">
+        {t('memory.local_only_notice')}
+      </div>
 
       {/* Stats Bar */}
       {memories.length > 0 && (
@@ -825,8 +801,8 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
               </div>
             ))}
 
-            {/* Load more from server */}
-            {cloudSync &&serverHasMore && (
+            {/* Load the next page */}
+            {serverHasMore && (
               <button
                 onClick={loadMore}
                 disabled={loadingMore}

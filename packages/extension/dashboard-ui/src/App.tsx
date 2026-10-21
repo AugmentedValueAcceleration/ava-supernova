@@ -253,7 +253,6 @@ export function App() {
     maxTokens: 8192,
     activeModel: '',
     autoMemory: true,
-    memoryLocalOnly: false,
     contributeSharedLearning: false,
     streamResponses: true,
     loopPreventionEnabled: true,
@@ -660,11 +659,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
   const [libraryHasFolder, setLibraryHasFolder] = useState(true);
-  // `libraryCloudAssets` used to live here. Removed 2026-08-21 with the
-  // Library prop it fed: the Assets tab reads the local creative gallery and
-  // the Documents tab reads disk, so no surface displayed it.
-  // Local-first creative gallery (~/.ava/users/<id>/creative) — what the Assets
-  // tab shows now. Cloud assets are kept only for the Documents tab.
+  // Creative gallery (~/.ava/users/<id>/creative) — what the Assets tab shows.
   const [libraryLocalCreative, setLibraryLocalCreative] = useState<CreativeAsset[]>([]);
   // Whole-footprint storage scan (~/.ava by category) — powers the storage bar
   // in the Command Center header and the Library. Refreshed on those pages.
@@ -674,18 +669,18 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   const [projectsUsage, setProjectsUsage] = useState<ProjectsUsage | null>(null);
   const [announcement, setAnnouncement] = useState<string[]>([]);
   // Non-blocking loading indicator. The Library grid renders whatever
-  // it has immediately and shows an inline "Pulling cloud assets…" pill
-  // alongside while the fetch is in flight. Hard 15s safety timeout
+  // it has immediately and shows an inline loading pill alongside while
+  // the gallery read is in flight. Hard 15s safety timeout
   // makes sure the indicator can't get stuck if a response is missed —
   // 15s is comfortably above apiFetch's 10s network timeout, so any
   // legitimate fetch will resolve via the response handler first.
-  const [libraryCloudAssetsLoading, setLibraryCloudAssetsLoading] = useState(false);
+  const [libraryAssetsLoading, setLibraryAssetsLoading] = useState(false);
   const libraryLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const beginLibraryLoad = useCallback(() => {
-    setLibraryCloudAssetsLoading(true);
+    setLibraryAssetsLoading(true);
     if (libraryLoadingTimeoutRef.current) clearTimeout(libraryLoadingTimeoutRef.current);
     libraryLoadingTimeoutRef.current = setTimeout(() => {
-      setLibraryCloudAssetsLoading(false);
+      setLibraryAssetsLoading(false);
       libraryLoadingTimeoutRef.current = null;
     }, 15_000);
   }, []);
@@ -694,13 +689,12 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   // arrow at the JSX call site would refire that effect every render
   // and cause the loading pill to flicker. Declared here, after
   // beginLibraryLoad, so the dep reference is in scope.
-  const handleReloadCloudAssets = useCallback(() => {
+  const handleReloadAssets = useCallback(() => {
     beginLibraryLoad();
-    post({ type: 'load_cloud_assets' });   // Documents tab
-    post({ type: 'load_local_creative' });  // Assets tab (local-first)
+    post({ type: 'load_local_creative' });  // Assets tab
   }, [beginLibraryLoad]);
   const finishLibraryLoad = useCallback(() => {
-    setLibraryCloudAssetsLoading(false);
+    setLibraryAssetsLoading(false);
     if (libraryLoadingTimeoutRef.current) {
       clearTimeout(libraryLoadingTimeoutRef.current);
       libraryLoadingTimeoutRef.current = null;
@@ -773,8 +767,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     // and a spinner that depends on them would run to its cap on every visit
     // for anyone without a connection.
     overview: ['tasks_loaded'],
-    // load_library, load_cloud_assets, load_local_creative, load_library_paths.
-    // cloud_assets is remote and excluded for the same reason as weather.
+    // load_library, load_local_creative, load_library_paths.
     library: ['library_loaded', 'library_paths_loaded'],
     // load_active_health_plans + load_health_plans.
     health: ['active_health_plans_loaded', 'health_plans_loaded'],
@@ -1047,20 +1040,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         setMemoryTotal(msg.total ?? 0);
         setMemoryHasMore(msg.hasMore ?? false);
         break;
-      case 'memory_deleted':
-        setMemories((prev) => prev.filter((m) => m.id !== msg.id));
-        break;
-      case 'memory_upserted':
-        setMemories((prev) => {
-          const idx = prev.findIndex((m) => m.id === msg.memory.id);
-          if (idx >= 0) {
-            const updated = [...prev];
-            updated[idx] = msg.memory;
-            return updated;
-          }
-          return [msg.memory, ...prev];
-        });
-        break;
       case 'connection_saved':
         setConnections((prev) => ({ ...prev, [msg.service]: true }));
         break;
@@ -1076,9 +1055,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         break;
       case 'conversation_deleted':
         setConversations((prev) => prev.filter((c) => c.id !== msg.id));
-        break;
-      case 'conversation_pinned':
-        setConversations((prev) => prev.map((c) => c.id === msg.id ? { ...c, pinned: msg.pinned } : c));
         break;
       case 'tickets_loaded':
         setTickets(msg.tickets);
@@ -1096,10 +1072,12 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         setLocalMemories(msg.memories);
         break;
       case 'local_memory_deleted':
+        // Both lists: signed in, the Memory page renders `memories`.
         setLocalMemories((prev) => prev.filter((m) => m.id !== msg.id));
+        setMemories((prev) => prev.filter((m) => m.id !== msg.id));
         break;
-      case 'local_memory_upserted':
-        setLocalMemories((prev) => {
+      case 'local_memory_upserted': {
+        const upsert = (prev: typeof localMemories) => {
           const idx = prev.findIndex((m) => m.id === msg.memory.id);
           if (idx >= 0) {
             const updated = [...prev];
@@ -1107,8 +1085,11 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             return updated;
           }
           return [msg.memory, ...prev];
-        });
+        };
+        setLocalMemories(upsert);
+        setMemories((prev) => (prev.some((m) => m.id === msg.memory.id) ? upsert(prev) : prev));
         break;
+      }
       case 'session_stats_loaded':
         setSessionStatsData(msg.stats);
         if ((msg as any).allTime) setLocalAllTimeData((msg as any).allTime);
@@ -1446,7 +1427,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'task_dates_loaded':
         setTaskDates(msg.dates);
         break;
-      // Sync messages removed — Ava is local-first, nothing syncs to cloud.
       case 'releases_loaded':
         setReleases(msg.releases);
         break;
@@ -1454,11 +1434,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         setLibraryImages(msg.images);
         setLibraryProjectRoot(msg.projectRoot);
         setLibraryHasFolder(msg.hasFolder ?? true);
-        break;
-      case 'cloud_assets_loaded':
-        // Nothing renders these any more; the message still ends the load so
-        // the pill does not hang.
-        finishLibraryLoad();
         break;
       case 'local_creative_loaded':
         setLibraryLocalCreative(msg.assets);
@@ -1472,14 +1447,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         break;
       case 'announcement_loaded':
         setAnnouncement(Array.isArray(msg.messages) ? msg.messages : []);
-        break;
-      case 'cloud_assets_error':
-        // Logged on the host side; UI keeps whatever it had and the
-        // pill goes away.
-        finishLibraryLoad();
-        break;
-      case 'cloud_asset_deleted':
-        // No cloud list on screen to remove it from.
         break;
       case 'library_image_deleted':
         setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
@@ -1780,12 +1747,11 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       post({ type: 'load_session_stats' });
     }
     // Unified Library — load all three data sources when the page opens.
-    // Cloud assets and local images power the Assets / Documents tabs;
+    // The creative gallery and local files power the Assets / Documents tabs;
     // courses power the Courses tab.
     if (page === 'library') {
       post({ type: 'load_library' });
       beginLibraryLoad();
-      post({ type: 'load_cloud_assets' });
       post({ type: 'load_local_creative' });
       setLibraryLoading(true);
       post({ type: 'load_library_paths' });
@@ -1943,7 +1909,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'billing':
       case 'connections':
       case 'personality':
-      case 'sync':
       case 'keys':
         return (
           <AccountPage
@@ -2020,8 +1985,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             onLoadPaperDetail={handleLoadPaperDetail}
             onClearPaperDetail={handleClearPaperDetail}
             localCreative={libraryLocalCreative}
-            cloudAssetsLoading={libraryCloudAssetsLoading}
-            onReloadCloudAssets={handleReloadCloudAssets}
+            assetsLoading={libraryAssetsLoading}
+            onReloadAssets={handleReloadAssets}
             images={libraryImages}
             projectRoot={libraryProjectRoot}
             hasImagesFolder={libraryHasFolder}

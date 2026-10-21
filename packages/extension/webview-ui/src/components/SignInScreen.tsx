@@ -99,7 +99,7 @@ export function SignInScreen({
           {t('signin.welcome_title') || 'Sign in to Ava Supernova'}
         </h2>
         <p className="text-sm opacity-60">
-          {t('signin.welcome_subtitle') || 'Connect your account to sync memory, tasks, and settings across every device.'}
+          {t('signin.welcome_subtitle') || 'Connect your account to use Ava\'s hosted models with your credits.'}
         </p>
       </div>
 
@@ -193,7 +193,7 @@ export function SignInScreen({
 
       <div className="mt-6 text-center">
         <p className="text-[10px] opacity-30 leading-relaxed max-w-xs mx-auto">
-          {t('signin.local_first_note') || 'Local-first always. Your data stays on your machine unless you explicitly sync it.'}
+          {t('signin.local_first_note') || 'Local only, always. Your data stays on your machine.'}
         </p>
       </div>
     </div>

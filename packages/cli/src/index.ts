@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { platform } from 'node:os';
-import { createHash } from 'node:crypto';
 import {
   ConfigManager,
   ProviderRegistry,
@@ -14,7 +13,6 @@ import {
   createEmbeddingServiceFromConfig,
   TaskManager,
   JournalManager,
-  PlatformMemorySync,
   ProviderHealthTracker,
   ResilientProvider,
   Conductor,
@@ -69,12 +67,6 @@ async function main(): Promise<void> {
   // Load config and register providers
   const appConfig = await config.load();
 
-  // Set up memory with optional platform sync
-  let sync: PlatformMemorySync | undefined;
-  if (appConfig.platformKey) {
-    const projectId = projectRoot ? createHash('sha256').update(projectRoot).digest('hex').slice(0, 16) : undefined;
-    sync = new PlatformMemorySync('https://avasupernova.com/api', appConfig.platformKey, projectId);
-  }
   // Scope data directory per account — prevents memory leakage between accounts
   let globalDir = AVA_HOME;
   if (appConfig.platformKey) {
@@ -94,7 +86,7 @@ async function main(): Promise<void> {
     } catch { /* fall back to default AVA_HOME */ }
   }
   const embeddingService = createEmbeddingServiceFromConfig(appConfig.preferences);
-  const memoryManager = new MemoryManager({ globalDir, projectRoot, sync, embeddingService });
+  const memoryManager = new MemoryManager({ globalDir, projectRoot, embeddingService });
   const configToRegistry: Record<string, string> = { glm: 'zhipu' };
   for (const [name, providerConfig] of Object.entries(appConfig.providers)) {
     if (name === 'generic' || !providerConfig) continue;
