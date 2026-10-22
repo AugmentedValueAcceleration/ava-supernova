@@ -6,6 +6,17 @@ import type { SecretEntry } from './SecretVault';
 import { useSecrets } from '../hooks/useSecrets';
 import { useVSCodeApi } from '../hooks/useVSCodeApi';
 
+/** Another field has the caret — the composer must not take it.
+ *  Ava's question card, a confirmation's reason box, any input: if the
+ *  user is typing there, an automatic focus would pull them out mid-word.
+ *  (22 Oct 2026: "when she asks us something … we get kicked out of that
+ *  text box" — the end-of-turn refocus fired while they were answering.) */
+function anotherFieldHasFocus(composer: HTMLElement | null): boolean {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el || el === document.body || el === composer) return false;
+  return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable;
+}
+
 export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
 export interface ImageAttachment {
@@ -132,7 +143,10 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
       wasStreamingRef.current = true;
     } else if (wasStreamingRef.current) {
       wasStreamingRef.current = false;
-      requestAnimationFrame(() => textareaRef.current?.focus());
+      requestAnimationFrame(() => {
+        const ta = textareaRef.current;
+        if (ta && !anotherFieldHasFocus(ta)) ta.focus();
+      });
     }
   }, [isStreaming]);
 
