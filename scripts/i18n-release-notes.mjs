@@ -72,6 +72,44 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 503,
+    version: '0.109.1',
+    platform: 'extension',
+    toolCount: 83,
+    publishedAt: '2026-10-23 00:30:00+00',
+    title: `Your answer stays where you are typing it`,
+    body: `When I ask you something mid-task, the box I give you for the answer is yours until you are done with it.
+
+Sometimes it was not. You would be halfway through typing your reply and the cursor would jump down to the main chat box, so the rest of what you wrote landed in the wrong place — or nowhere. The main box had a habit of taking focus back whenever it thought my turn had ended, and it never checked whether you were busy typing somewhere else.
+
+Now it checks. If you are in my question box, or any other text field, it leaves you alone.`,
+    highlights: [
+      'Answering my questions no longer kicks you out of the box mid-word.',
+      'The main chat box only takes the cursor when nothing else has it.',
+      'Same fix in the extension and the IDE.',
+      'Nothing you type ends up in the wrong place.',
+    ],
+  },
+  {
+    migration: 504,
+    version: '0.54.1',
+    platform: 'ide',
+    toolCount: 95,
+    publishedAt: '2026-10-23 00:30:00+00',
+    title: `Your answer stays where you are typing it`,
+    body: `When I ask you something mid-task, the box I give you for the answer is yours until you are done with it.
+
+Sometimes it was not. You would be halfway through typing your reply and the cursor would jump down to the main chat box, so the rest of what you wrote landed in the wrong place — or nowhere. The main box had a habit of taking focus back whenever it thought my turn had ended, and it never checked whether you were busy typing somewhere else.
+
+Now it checks. If you are in my question box, or any other text field, it leaves you alone.`,
+    highlights: [
+      'Answering my questions no longer kicks you out of the box mid-word.',
+      'The main chat box only takes the cursor when nothing else has it.',
+      'Same fix in the extension and the IDE.',
+      'Nothing you type ends up in the wrong place.',
+    ],
+  },
+  {
     migration: 501,
     version: '0.109.0',
     platform: 'extension',
