@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { t, useLocale } from '../../i18n';
@@ -53,124 +53,143 @@ class MarkdownErrorBoundary extends React.Component<{ children: React.ReactNode;
   }
 }
 
+/**
+ * The element renderers, defined ONCE at module level.
+ *
+ * They used to be an object literal inside the render, so every re-render
+ * handed ReactMarkdown brand-new component functions — and React treats a new
+ * function as a new component type, so it threw away and rebuilt every
+ * paragraph, heading and quote of every message on ANY state change. A
+ * highlighted selection lives in those DOM nodes, so it vanished: Ctrl+C or a
+ * right-click briefly moves focus to VS Code, the panel refreshes the account,
+ * the page re-renders, and the text you selected is gone before the copy runs
+ * (23 Oct 2026, "highlight, Ctrl+C, right-click copy — it clears the
+ * highlight"). Stable identities mean an unrelated update leaves the text
+ * alone. The IDE's EditorArea already did it this way (MD_COMPONENTS).
+ */
+const MD_COMPONENTS: Components = {
+  // ── Headings ────────────────────────────────────────────────────
+  h1: ({ children }) => (
+    <h1 className="text-base font-bold mt-4 mb-1.5 pb-1 border-b border-[var(--vscode-panel-border)]">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }) => {
+    const text = String(children ?? '');
+    const isPlan = text.startsWith('Plan:');
+    return (
+      <h2 className={`text-sm font-bold mt-3.5 mb-1.5 ${isPlan ? 'text-[var(--vscode-textLink-foreground)] border-l-2 border-[var(--vscode-textLink-foreground)] pl-2' : 'pb-0.5 border-b border-[var(--vscode-panel-border)]'}`}>
+        {children}
+      </h2>
+    );
+  },
+  h3: ({ children }) => (
+    <h3 className="text-[13px] font-semibold mt-3 mb-1">
+      {children}
+    </h3>
+  ),
+  h4: ({ children }) => (
+    <h4 className="text-xs font-semibold mt-2.5 mb-1 opacity-80">
+      {children}
+    </h4>
+  ),
+
+  // ── Paragraphs ──────────────────────────────────────────────────
+  p: ({ children }) => (
+    <p className="my-1.5 leading-relaxed">{children}</p>
+  ),
+
+  // ── Lists ───────────────────────────────────────────────────────
+  ul: ({ children }) => (
+    <ul className="my-1.5 pl-5 space-y-1 list-disc marker:opacity-40">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="my-1.5 pl-5 space-y-1 list-decimal marker:opacity-50">
+      {children}
+    </ol>
+  ),
+  li: ({ children }) => (
+    <li className="leading-relaxed">{children}</li>
+  ),
+
+  // ── Blockquotes ─────────────────────────────────────────────────
+  blockquote: ({ children }) => (
+    <blockquote className="my-2 pl-3 border-l-2 border-[var(--vscode-textLink-foreground)] opacity-80 italic">
+      {children}
+    </blockquote>
+  ),
+
+  // ── Horizontal rules (section dividers) ─────────────────────────
+  hr: () => (
+    <hr className="my-3 border-none border-t border-[var(--vscode-panel-border)] opacity-30" />
+  ),
+
+  // ── Bold / emphasis ─────────────────────────────────────────────
+  strong: ({ children }) => (
+    <strong className="font-semibold">{children}</strong>
+  ),
+
+  // ── Code ────────────────────────────────────────────────────────
+  pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
+  code: ({ children, className }) => {
+    const isInline = !className;
+    if (isInline) {
+      return (
+        <code className="px-1 py-0.5 rounded text-xs bg-[var(--vscode-textCodeBlock-background,rgba(0,0,0,0.1))]">
+          {children}
+        </code>
+      );
+    }
+    return <code className={className}>{children}</code>;
+  },
+
+  // ── Links ───────────────────────────────────────────────────────
+  a: ({ children, href }) => (
+    <a
+      href={href}
+      className="text-[var(--vscode-textLink-foreground)] hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+
+  // ── Tables ──────────────────────────────────────────────────────
+  table: ({ children }) => (
+    <div className="my-2 overflow-x-auto">
+      <table className="border-collapse text-xs w-full">
+        {children}
+      </table>
+    </div>
+  ),
+  th: ({ children }) => (
+    <th className="border border-[var(--vscode-panel-border)] px-2 py-1.5 text-left font-semibold
+                   bg-[var(--vscode-textCodeBlock-background,rgba(0,0,0,0.05))]">
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td className="border border-[var(--vscode-panel-border)] px-2 py-1.5">
+      {children}
+    </td>
+  ),
+};
+
+const REMARK_PLUGINS = [remarkGfm];
+const REHYPE_PLUGINS = [rehypeHighlight];
+
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   useLocale();
   return (
     <MarkdownErrorBoundary fallback={content}>
     <div className="markdown-body space-y-2.5">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
-        components={{
-          // ── Headings ────────────────────────────────────────────────────
-          h1: ({ children }) => (
-            <h1 className="text-base font-bold mt-4 mb-1.5 pb-1 border-b border-[var(--vscode-panel-border)]">
-              {children}
-            </h1>
-          ),
-          h2: ({ children }) => {
-            const text = String(children ?? '');
-            const isPlan = text.startsWith('Plan:');
-            return (
-              <h2 className={`text-sm font-bold mt-3.5 mb-1.5 ${isPlan ? 'text-[var(--vscode-textLink-foreground)] border-l-2 border-[var(--vscode-textLink-foreground)] pl-2' : 'pb-0.5 border-b border-[var(--vscode-panel-border)]'}`}>
-                {children}
-              </h2>
-            );
-          },
-          h3: ({ children }) => (
-            <h3 className="text-[13px] font-semibold mt-3 mb-1">
-              {children}
-            </h3>
-          ),
-          h4: ({ children }) => (
-            <h4 className="text-xs font-semibold mt-2.5 mb-1 opacity-80">
-              {children}
-            </h4>
-          ),
-
-          // ── Paragraphs ──────────────────────────────────────────────────
-          p: ({ children }) => (
-            <p className="my-1.5 leading-relaxed">{children}</p>
-          ),
-
-          // ── Lists ───────────────────────────────────────────────────────
-          ul: ({ children }) => (
-            <ul className="my-1.5 pl-5 space-y-1 list-disc marker:opacity-40">
-              {children}
-            </ul>
-          ),
-          ol: ({ children }) => (
-            <ol className="my-1.5 pl-5 space-y-1 list-decimal marker:opacity-50">
-              {children}
-            </ol>
-          ),
-          li: ({ children }) => (
-            <li className="leading-relaxed">{children}</li>
-          ),
-
-          // ── Blockquotes ─────────────────────────────────────────────────
-          blockquote: ({ children }) => (
-            <blockquote className="my-2 pl-3 border-l-2 border-[var(--vscode-textLink-foreground)] opacity-80 italic">
-              {children}
-            </blockquote>
-          ),
-
-          // ── Horizontal rules (section dividers) ─────────────────────────
-          hr: () => (
-            <hr className="my-3 border-none border-t border-[var(--vscode-panel-border)] opacity-30" />
-          ),
-
-          // ── Bold / emphasis ─────────────────────────────────────────────
-          strong: ({ children }) => (
-            <strong className="font-semibold">{children}</strong>
-          ),
-
-          // ── Code ────────────────────────────────────────────────────────
-          pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
-          code: ({ children, className }) => {
-            const isInline = !className;
-            if (isInline) {
-              return (
-                <code className="px-1 py-0.5 rounded text-xs bg-[var(--vscode-textCodeBlock-background,rgba(0,0,0,0.1))]">
-                  {children}
-                </code>
-              );
-            }
-            return <code className={className}>{children}</code>;
-          },
-
-          // ── Links ───────────────────────────────────────────────────────
-          a: ({ children, href }) => (
-            <a
-              href={href}
-              className="text-[var(--vscode-textLink-foreground)] hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {children}
-            </a>
-          ),
-
-          // ── Tables ──────────────────────────────────────────────────────
-          table: ({ children }) => (
-            <div className="my-2 overflow-x-auto">
-              <table className="border-collapse text-xs w-full">
-                {children}
-              </table>
-            </div>
-          ),
-          th: ({ children }) => (
-            <th className="border border-[var(--vscode-panel-border)] px-2 py-1.5 text-left font-semibold
-                           bg-[var(--vscode-textCodeBlock-background,rgba(0,0,0,0.05))]">
-              {children}
-            </th>
-          ),
-          td: ({ children }) => (
-            <td className="border border-[var(--vscode-panel-border)] px-2 py-1.5">
-              {children}
-            </td>
-          ),
-        }}
+        remarkPlugins={REMARK_PLUGINS}
+        rehypePlugins={REHYPE_PLUGINS}
+        components={MD_COMPONENTS}
       >
         {content}
       </ReactMarkdown>

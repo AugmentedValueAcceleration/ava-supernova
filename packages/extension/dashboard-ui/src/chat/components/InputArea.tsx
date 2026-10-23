@@ -8,6 +8,18 @@ import type { PaletteTool, PaletteAction } from './CommandPalette';
 import { useSecrets } from '../hooks/useSecrets';
 import { post } from '../../App';
 
+
+/** Another field has the caret — the composer must not take it.
+ *  Ava's question card, a confirmation's reason box, any input: if the
+ *  user is typing there, an automatic focus would pull them out mid-word.
+ *  The side-panel chat got this on 22 Oct 2026; this dashboard chat — the
+ *  one actually in use — was missed until 23 Oct. */
+function anotherFieldHasFocus(composer: HTMLElement | null): boolean {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el || el === document.body || el === composer) return false;
+  return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable;
+}
+
 export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
 export interface ImageAttachment {
@@ -143,7 +155,8 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
       wasStreamingRef.current = true;
     } else if (wasStreamingRef.current) {
       wasStreamingRef.current = false;
-      if (!suppressAutoFocus) textareaRef.current?.focus();
+      const ta = textareaRef.current;
+      if (!suppressAutoFocus && ta && !anotherFieldHasFocus(ta)) ta.focus();
     }
   }, [isStreaming, suppressAutoFocus]);
 
