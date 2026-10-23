@@ -26,11 +26,14 @@ const POSTS = [{ platform: 'tiktok', caption: 'a caption' }];
 describe('the clip has to be about the thing', () => {
   const tool = new WriteVideoPostTool();
 
-  it('refuses a shot that shares nothing with the subject', async () => {
+  // Since 23 Oct 2026 every clip is a space scene by design, so the check
+  // holds only where the picture IS the subject: a recipe clip, which opens
+  // on our photograph of the dish.
+  it('refuses a recipe shot that shares nothing with the subject', async () => {
     const r = await tool.execute({
       posts: POSTS,
-      subject: 'Ava runs offline with no API key',
-      // Beautiful. Entirely unrelated. This is the exact failure reported.
+      subject: 'miso aubergine glazed and grilled',
+      recipe: 'miso aubergine',
       shot: 'a sunset over calm water, gulls drifting, the horizon glowing orange',
     }, videoCtx);
     expect(r.success).toBe(false);
@@ -39,11 +42,15 @@ describe('the clip has to be about the thing', () => {
     expect(r.output).toMatch(/what this idea LOOKS like/i);
   });
 
-  it('accepts a shot that actually depicts the subject', async () => {
+  it('accepts a space clip that shares no word with the subject', async () => {
     const r = await tool.execute({
       posts: POSTS,
       subject: 'Ava runs offline with no API key',
-      shot: 'a laptop offline, the wifi icon crossed out, code completing on screen as a hand lifts away from the keyboard',
+      shot: 'drifting through a violet nebula as a supernova blooms gold in the distance, stars streaming past',
+      on_screen_captions: [
+        { start: 0, end: 4, text: 'No wifi. No API key.' },
+        { start: 4, end: 9, text: 'Still working on your machine.' },
+      ],
       // 15-20 words, because the duration rule enforces its own band and a
       // short script is refused before the relevance check is ever reached.
       script: 'No wifi. No API key. The agent keeps working right there on your own machine, offline, exactly as before.',
@@ -211,5 +218,60 @@ describe('more when he asks, and round the clock', () => {
     const many = Array.from({ length: 15 }, (_, i) => [work, news, talk][i % 3](`t${i}`));
     await tool.execute({ beats: many }, at(false, null));
     expect(got.length).toBe(12);
+  });
+});
+
+
+describe('on-screen captions — for everyone watching muted', () => {
+  const tool = new WriteVideoPostTool();
+  const SPACE = 'a comet crossing a deep blue starfield, its tail glowing as the stars wheel slowly past';
+  const SCRIPT = 'No wifi. No API key. The agent keeps working right there on your own machine, offline, exactly as before.';
+
+  it('refuses a voiced video with no captions', async () => {
+    const r = await tool.execute({ posts: POSTS, subject: 'offline agent', shot: SPACE, script: SCRIPT }, videoCtx);
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/on_screen_captions/);
+  });
+
+  it('refuses a caption line too long to read in a glance', async () => {
+    const r = await tool.execute({
+      posts: POSTS, subject: 'offline agent', shot: SPACE, script: SCRIPT,
+      on_screen_captions: [
+        { start: 0, end: 4, text: 'No wifi and no API key and it still keeps on working for you' },
+        { start: 4, end: 9, text: 'Right on your machine.' },
+      ],
+    }, videoCtx);
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/3-8/);
+  });
+
+  it('refuses lines out of order or past the end of the piece', async () => {
+    const r = await tool.execute({
+      posts: POSTS, subject: 'offline agent', shot: SPACE, script: SCRIPT,
+      on_screen_captions: [
+        { start: 6, end: 9, text: 'Right on your machine.' },
+        { start: 0, end: 90, text: 'No wifi. No API key.' },
+      ],
+    }, videoCtx);
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/starts before line 1/);
+    expect(r.output).toMatch(/finished piece is about/);
+  });
+
+  it('accepts well-timed captions and says they are on the card', async () => {
+    const r = await tool.execute({
+      posts: POSTS, subject: 'offline agent', shot: SPACE, script: SCRIPT,
+      on_screen_captions: [
+        { start: 0, end: 4, text: 'No wifi. No API key.' },
+        { start: 4, end: 9, text: 'Still working on your machine.' },
+      ],
+    }, videoCtx);
+    expect(r.success).toBe(true);
+    expect(r.output).toMatch(/on-screen captions are on the card/);
+  });
+
+  it('needs no captions for a silent clip', async () => {
+    const r = await tool.execute({ posts: POSTS, subject: 'offline agent', shot: SPACE }, videoCtx);
+    expect(r.success).toBe(true);
   });
 });

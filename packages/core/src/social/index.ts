@@ -118,6 +118,13 @@ export interface VideoPostVariant {
   tagNote?: string;
 }
 
+/** One on-screen caption: the words, and the seconds they appear and go. */
+export interface OnScreenCaption {
+  start: number;
+  end: number;
+  text: string;
+}
+
 export interface VideoPostInput {
   /**
    * One entry per platform, each with its own caption and tags. The clip, the
@@ -136,6 +143,12 @@ export interface VideoPostInput {
    * became a clip.
    */
   shot: string;
+  /**
+   * Timed lines the operator lays over the clip in Canva — the message for
+   * everyone watching muted. Since 23 Oct 2026; required whenever there is a
+   * script, checked by write_video_post.
+   */
+  onScreenCaptions?: OnScreenCaption[];
   /** What she SAYS over it. Empty for a silent piece carried by on-screen text. */
   script?: string;
   /** Clip length in seconds. */

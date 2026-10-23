@@ -196,14 +196,25 @@ export class WriteVideoPostTool implements Tool {
         },
         shot: {
           type: 'string',
-          description: 'THE SHOT — one continuous video clip, described as a single moving image. '
-            + 'IT MUST SHOW THE SUBJECT. A beautiful clip of something else is a failed clip, however '
-            + 'well it renders: the picture is the argument, and a viewer who watches a sunset while '
-            + 'hearing about offline coding has been shown nothing. Before writing it, ask what this '
-            + 'idea LOOKS like — then shoot that. Stock-feeling filler (abstract light, generic city, '
-            + 'anonymous hands on a keyboard) is the failure mode to avoid: it would fit any post we '
-            + 'have ever written, which is the same fault as a tag that fits any post. '
-            + 'This is GENERATED AS VIDEO now, not a still, so say what MOVES: the subject, the setting, the framing, the light, the mood, and then the movement itself — what changes across the clip, and the one camera move if there is one. NAME THINGS THAT HAPPEN, NEVER THINGS THAT DO NOT. This model reads an instruction to hold still as an instruction to render nothing: "nothing moves, nothing changes" came back as a black clip, while the same shot described positively (steam, shifting light, a slow push in) held perfectly. If you want a near-static shot, say which small things still move in it. The subject must be legible in the FIRST SECOND, because most people watch these with the sound off and decide in that second. Be concrete — a model cannot render "the feeling of trust", but it can render a hand stopping halfway to a pan. One idea, one shot: this is a single continuous take, so do not describe a sequence of moments or ask for a cut. The clip arrives with its own generated soundtrack, which the operator mutes before laying your voiceover over it — so write the PICTURE and never the sound.',
+          description: 'THE SHOT — one continuous video clip, and it is ALWAYS A SPACE SCENE (decided 23 Oct 2026). '
+            + 'The voice carries the message; the picture is the backdrop that keeps eyes on it. So every clip is '
+            + 'cosmic: a supernova blooming, a drift through a nebula, a comet trail crossing a starfield, a slow '
+            + 'galaxy turning, aurora over the edge of a planet, light racing past as you travel between stars. '
+            + 'WHY: anything with words, numbers, logos, screens or interface in it came back garbled about three '
+            + 'times in four — the video model cannot render text — and space has nothing in it that can go wrong '
+            + 'that way. Keep the frame to stars, glowing gas, light and motion; never ask for a screen, a sign, '
+            + 'a person at a laptop or anything written. '
+            + 'VARY IT. The same starfield on every post goes stale in a week — pick a different corner of space '
+            + 'each time, and match it to the MOOD of what you are saying: cool blues and a slow drift for a '
+            + 'reflective point, warm golds and faster travel for good news, deep reds and a gathering storm of gas '
+            + 'for something serious. '
+            + 'Say what MOVES — the travel, the swirl, the bloom, the light — because this model reads an '
+            + 'instruction to hold still as an instruction to render nothing ("nothing moves" came back as a '
+            + 'black clip). Name things that happen, never things that do not. One continuous take: no cuts, no '
+            + 'sequence of moments. The clip arrives with its own soundtrack, which the operator mutes, so write '
+            + 'the PICTURE and never the sound. '
+            + 'THE ONE EXCEPTION is a recipe video (`recipe` set): it opens on our own photograph of the dish, '
+            + 'so the shot describes that food moving (steam, a spoon, a pour) instead of space.',
         },
         script: {
           type: 'string',
@@ -216,6 +227,25 @@ export class WriteVideoPostTool implements Tool {
         duration: {
           type: 'number',
           description: 'Finished length in seconds, 2-30. LEAVE IT OUT and you get 15s, whatever the subject — that is the format, and it holds one clear thought. It decides TWO things: how many words the voiceover can carry, and HOW MANY SHOTS you must write (one per five seconds — 15s takes 3, 30s takes 6). Set it ONLY when the material genuinely needs otherwise. 10 is a hook. 15 is the default: a full coaching line, a dish, a single point made properly. 30 is for something that truly needs showing — a walkthrough, a before-and-after, a process — and it is six separate frames to think of, so it should earn them. A padded piece loses the viewer, and padding gets easier the more room you have.',
+        },
+        on_screen_captions: {
+          type: 'array',
+          description: 'The words the operator lays over the clip in Canva — REQUIRED whenever there is a script. '
+            + 'Most of the feed watches muted, and the message is in the voice, so these carry it for anyone '
+            + 'without sound. One entry per beat of the voiceover, in order, each with the second it appears and '
+            + 'the second it goes. 3-8 words a line — read in a glance on a phone. The KEY LINE of that beat, not '
+            + 'a transcript: they back the voice up rather than repeat it word for word. Same tone as everything '
+            + 'else: firm and fair, no shouting in capitals. Timed inside the finished length (the sign-off adds '
+            + 'a couple of seconds at the end).',
+          items: {
+            type: 'object',
+            properties: {
+              start: { type: 'number', description: 'Second the line appears.' },
+              end: { type: 'number', description: 'Second it goes.' },
+              text: { type: 'string', description: 'The line, 3-8 words.' },
+            },
+            required: ['start', 'end', 'text'],
+          },
         },
         title: { type: 'string', description: 'Optional short title for the library.' },
         hashtags: {
@@ -355,7 +385,11 @@ export class WriteVideoPostTool implements Tool {
     const subjectWords = words(subject);
     const shotWords = words(shot);
     const shared = [...subjectWords].filter((w) => shotWords.has(w));
-    if (subjectWords.size > 0 && shared.length === 0) {
+    // Recipe clips only, since 23 Oct 2026: every other clip is a space scene
+    // by design (the voice carries the subject), so it would fail this every
+    // time. A recipe clip opens on our photograph and must show that food.
+    const isRecipe = !!((args.recipe as string | undefined)?.trim());
+    if (isRecipe && subjectWords.size > 0 && shared.length === 0) {
       return {
         success: false,
         output:
@@ -664,6 +698,40 @@ export class WriteVideoPostTool implements Tool {
     const outroSeconds = script ? VOICED_OUTRO_SECONDS : 0;
     const clipDuration = plannedDuration + outroSeconds;
 
+    // ── On-screen captions — checked, not hoped for ──────────────────────
+    // The operator lays these over the clip in Canva. Required with a voice,
+    // because the voice is where the message is and most people watch muted.
+    const rawCaptions = Array.isArray(args.on_screen_captions) ? args.on_screen_captions as unknown[] : [];
+    const onScreenCaptions = rawCaptions
+      .map((c) => c as { start?: unknown; end?: unknown; text?: unknown })
+      .map((c) => ({ start: Number(c.start), end: Number(c.end), text: String(c.text ?? '').trim() }));
+    if (voicedScript && onScreenCaptions.length < 2) {
+      return {
+        success: false,
+        output: 'write_video_post needs `on_screen_captions` — at least two timed lines — whenever there is a script. '
+          + 'Most viewers have the sound off, and the message is in the voice, so the captions carry it for them. '
+          + 'One line per beat of the voiceover, 3-8 words each, with the second it appears and goes.',
+      };
+    }
+    const captionProblems: string[] = [];
+    onScreenCaptions.forEach((c, i) => {
+      const n = c.text.split(/\s+/).filter(Boolean).length;
+      if (!c.text) captionProblems.push(`line ${i + 1} is empty`);
+      else if (n > 10) captionProblems.push(`line ${i + 1} is ${n} words — keep it to 3-8, it has to be read in a glance`);
+      if (!Number.isFinite(c.start) || !Number.isFinite(c.end) || c.start < 0 || c.end <= c.start) {
+        captionProblems.push(`line ${i + 1} needs a start before its end, both in seconds`);
+      } else if (c.end > clipDuration + 1) {
+        captionProblems.push(`line ${i + 1} ends at ${c.end}s but the finished piece is about ${clipDuration}s`);
+      }
+      if (i > 0 && c.start < onScreenCaptions[i - 1].start) captionProblems.push(`line ${i + 1} starts before line ${i}`);
+    });
+    if (captionProblems.length > 0) {
+      return {
+        success: false,
+        output: `The on-screen captions need fixing: ${captionProblems.join('; ')}. Correct them and call again.`,
+      };
+    }
+
     const post: VideoPostInput = {
       // One entry per platform. The store generates the stills and the read
       // once and files a card for each of these against the same assets.
@@ -681,6 +749,7 @@ export class WriteVideoPostTool implements Tool {
       // picture, which is the most obviously broken thing a short can do.
       duration: clipDuration,
       recipe: ((args.recipe as string | undefined)?.trim()) || undefined,
+      ...(onScreenCaptions.length ? { onScreenCaptions } : {}),
     };
 
     try {
@@ -718,6 +787,9 @@ export class WriteVideoPostTool implements Tool {
           (outroSeconds > 0
             ? `The voiceover ends with the sign-off, which runs about ${outroSeconds}s past the ${plannedDuration}s of ` +
               `picture — so the finished piece is roughly ${clipDuration}s and the last frame has to hold through it. `
+            : '') +
+          (onScreenCaptions.length
+            ? `The ${onScreenCaptions.length} on-screen captions are on the card, timed for Canva. `
             : '') +
           `You have not seen the clip: say what you made and why that shot, never how it looks.` +
           `${recipeLine}${voiceLine}${shotLine}`,

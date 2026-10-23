@@ -71,6 +71,8 @@ async function attempt(args: Record<string, unknown>) {
       subject: SUBJECT,
       shot: SHOT,
       caption: 'a caption',
+      // Required with a script since 23 Oct 2026; these tests are about length.
+      on_screen_captions: [{ start: 0, end: 3, text: 'the first beat here' }, { start: 3, end: 6, text: 'and the second one' }],
       ...args,
     },
     ctx,

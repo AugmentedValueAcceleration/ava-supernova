@@ -36,7 +36,7 @@ async function run(args: Record<string, unknown>) {
   // `subject` added 19 Oct 2026: the tool now refuses a shot that shares no
   // content word with what the video is about. These fixtures are about
   // per-platform captions, so the subject only has to agree with SHOT.
-  return tool.execute({ subject: 'lifting the pan as the steam rises', shot: SHOT, ...args }, ctx);
+  return tool.execute({ subject: 'lifting the pan as the steam rises', shot: SHOT, on_screen_captions: [{ start: 0, end: 3, text: 'the first beat here' }, { start: 3, end: 6, text: 'and the second one' }], ...args }, ctx);
 }
 
 describe('one video, one generation, a caption per platform', () => {
