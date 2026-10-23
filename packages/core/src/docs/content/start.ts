@@ -12,7 +12,7 @@ export const START_PAGES: DocPage[] = [
     section: 'start',
     body: [
       { type: 'paragraph', text: 'Ava is an AI that actually does things — not just talks. She\'ll build you an app, write you a document, teach you something from scratch, design you a logo, or take care of the admin you keep putting off. And she remembers you: what you\'re working on, how you like things, what you asked for last week.' },
-      { type: 'paragraph', text: 'There\'s one Ava, and she works wherever you do — in your code editor, as a desktop app, on your phone, or in a terminal. Same memory, same personality, everywhere.' },
+      { type: 'paragraph', text: 'There\'s one Ava, and she works wherever you do — in your code editor, as a desktop app, or in a terminal. Same memory, same personality, everywhere.' },
       { type: 'heading', level: 3, text: 'What makes her different' },
       { type: 'list', ordered: false, items: [
         'Yours by default. Your work stays on your own machine. No tracking, no telemetry — ever.',

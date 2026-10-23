@@ -267,7 +267,7 @@ export const FEATURE_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'In plain terms: Ava can take over your mouse and keyboard to do tasks for you — open an app, click buttons, fill in a form — while you watch and approve anything important.' },
       { type: 'paragraph', text: 'A new mode for Ava, prefix @@. She observes the desktop, decides what to do, and drives UI automation (controlling the apps on your screen for you) to get it done. Runs on your actual machine with your actual credentials — not a cloud browser. Available on every tier once shipped.' },
       { type: 'heading', level: 3, text: 'Why another one' },
-      { type: 'paragraph', text: 'Every other desktop-automation product is something you start when you\'re at your desk. Ava is the one that\'s still there when your error tracker fires at 2am — IDE keeps running, your phone pairs over a secure channel, you approve irreversibles with a tap.' },
+      { type: 'paragraph', text: 'Most desktop-automation products are a clicker that does what it is told. Ava plans first: she shows you the steps, waits for your go, and asks again before anything irreversible — every time, never cached.' },
       { type: 'paragraph', text: 'She also remembers how to navigate your apps across sessions. Every other agent relearns them every time. The memory differentiator compounds with use.' },
       { type: 'heading', level: 3, text: 'How it works' },
       { type: 'paragraph', text: 'Each step runs a five-persona wave: Scout observes, Planner picks the next action, Actor executes, Verifier checks, Narrator tells you what happened. The sidecar chooses the cheapest reliable grounding — UIA for native apps, Playwright for browsers, OmniParser vision when nothing else has a useful tree.' },
