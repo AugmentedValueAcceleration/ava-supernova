@@ -72,6 +72,44 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 505,
+    version: '0.109.2',
+    platform: 'extension',
+    toolCount: 83,
+    publishedAt: '2026-10-23 15:45:00+00',
+    title: `You can copy what I write again`,
+    body: `You can copy what I write again.
+
+Highlighting part of my reply and pressing Ctrl+C — or right-clicking and choosing Copy — was clearing the highlight and copying nothing. Every time the panel refreshed anything in the background, it quietly rebuilt all the text in our chat, and the words you had selected went with it. Now an update leaves the text alone, so whatever you highlight stays highlighted until you copy it.
+
+**The copy button on my replies is easier to see.** It sat at the top-right of each reply so faintly you could miss it entirely. It is clearly visible now.
+
+**Two smaller fixes in the same place.** Dragging the edge of the Tasks panel or the course path could leave text unselectable everywhere if you let go outside the panel; it always comes back now. And when I ask you a question in the dashboard chat, the main chat box no longer pulls you out of my answer box while you type.`,
+    highlights: [
+      'Highlight and copy works again — Ctrl+C and right-click Copy both keep your selection.',
+      'The copy button on my replies is clearly visible.',
+      'Dragging a panel edge never leaves text unselectable.',
+      'The main chat box no longer interrupts your answer to my questions.',
+    ],
+  },
+  {
+    migration: 506,
+    version: '0.54.2',
+    platform: 'ide',
+    toolCount: 95,
+    publishedAt: '2026-10-23 15:45:00+00',
+    title: `Text stays selectable after dragging a panel`,
+    body: `Dragging the edge of the Tasks panel or the course path could leave text unselectable if you let go of the mouse outside the window, or clicked away mid-drag. It always comes back now — whatever you were doing when you let go.
+
+It is a small one, but not being able to highlight and copy text is the kind of thing that makes everything else feel broken, so it went out on its own.`,
+    highlights: [
+      'Dragging a panel edge never leaves text unselectable.',
+      'Letting go outside the window ends the drag properly.',
+      'Switching away mid-drag gives selection back.',
+      'Copying text works wherever you left off.',
+    ],
+  },
+  {
     migration: 503,
     version: '0.109.1',
     platform: 'extension',
