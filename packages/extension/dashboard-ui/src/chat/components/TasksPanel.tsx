@@ -140,6 +140,11 @@ export function TasksPanel({
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
+      // A release OUTSIDE the panel never reaches this document, and the
+      // drag (with selection switched off page-wide) used to outlive it — so
+      // text could not be selected or copied anywhere until a reload (23 Oct
+      // 2026). Back over the panel with no button held means it was let go.
+      if (e.buttons === 0) { onMouseUp(); return; }
       if (rafRef.current !== null) return; // throttle to 1 rAF
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
@@ -166,9 +171,18 @@ export function TasksPanel({
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+    // Focus leaving the window ends the drag too.
+    window.addEventListener('blur', onMouseUp);
     return () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('blur', onMouseUp);
+      // Unmounted mid-drag (e.g. switching pages): give selection back.
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
   }, [onWidthChange]);

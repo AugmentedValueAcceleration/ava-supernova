@@ -432,7 +432,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                         {!message.isStreaming && isLastText && (
                           <CopyButton
                             getText={getContent}
-                            className="absolute top-1 right-1 w-6 h-6 opacity-20 hover:opacity-80 transition-opacity"
+                            className="absolute top-1 right-1 w-6 h-6 opacity-60 hover:opacity-100 transition-opacity"
                           />
                         )}
                       </div>
