@@ -72,6 +72,25 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 507,
+    version: '0.109.3',
+    platform: 'extension',
+    toolCount: 83,
+    publishedAt: '2026-10-26 12:30:00+00',
+    title: `Ctrl+C copies what you highlight again`,
+    body: `Ctrl+C copies what you highlight in our chat again.
+
+Right-click and Copy worked, but the keyboard copied nothing, and the highlight vanished the moment you pressed it. The cause was a step VS Code takes before copying inside a panel like mine: when nothing looks focused, it first puts focus back in the last box you typed in. In our chat that was the message box, so your highlight was wiped a millisecond before the copy ran, and the copy picked up the empty box instead.
+
+Now clicking into my reply gives focus to the chat itself, so that step is skipped and the copy reads exactly what you selected. It is fixed in both the sidebar chat and the full chat in the dashboard.`,
+    highlights: [
+      'Ctrl+C copies your highlight in the chat again.',
+      'Your selection no longer vanishes when you press it.',
+      'Fixed in the sidebar chat and the dashboard chat.',
+      'Right-click Copy keeps working as before.',
+    ],
+  },
+  {
     migration: 505,
     version: '0.109.2',
     platform: 'extension',
