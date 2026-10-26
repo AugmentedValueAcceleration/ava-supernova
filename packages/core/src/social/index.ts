@@ -178,6 +178,11 @@ export interface VideoPostWritten {
   clipError?: string;
   /** Measured length of the clip in seconds, when the store knows it. */
   clipSeconds?: number | null;
+  /** True when the clip could NOT be copied into our storage, so the Library
+   *  holds the provider's link — and that link dies after 24 hours. Said out
+   *  loud, because for two weeks it happened silently and twenty clips
+   *  vanished from the Library (26 Oct 2026). */
+  clipTemporary?: boolean;
   /** The voiceover, when there was a script. Permanent URL. */
   voiceUrl?: string | null;
   /** Measured off the WAV header. The one fact about a read nobody can check
@@ -206,7 +211,10 @@ export interface VideoPostWritten {
  * when it lands and there is nothing left to poll.
  */
 export interface VideoPostStore {
-  write(post: VideoPostInput): Promise<VideoPostWritten>;
+  /** `signal` is the turn's stop. A render not yet started is cancelled; one
+   *  already rendering cannot be recalled, so it finishes and is saved rather
+   *  than paid for and thrown away. */
+  write(post: VideoPostInput, opts?: { signal?: AbortSignal }): Promise<VideoPostWritten>;
 }
 
 /**

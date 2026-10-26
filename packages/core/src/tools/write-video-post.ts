@@ -753,7 +753,7 @@ export class WriteVideoPostTool implements Tool {
     };
 
     try {
-      const written = await store.write(post);
+      const written = await store.write(post, { signal: context.signal });
       // Say plainly whether the opening frame is our own photograph or a
       // generated dish. She must not claim it shows our food if it does not.
       const recipeLine = post.recipe
@@ -772,9 +772,12 @@ export class WriteVideoPostTool implements Tool {
       // A hole in the storyboard is reported, never hidden: she is about to
       // tell the operator it is ready, and a missing frame is the one thing
       // they cannot work around in Canva without knowing.
-      const shotLine = written.clipError
+      const shotLine = (written.clipError
         ? ` The CLIP FAILED to render (${written.clipError}) — there is no picture, only the voiceover and the caption. Say so plainly rather than describing a video that does not exist.`
-        : '';
+        : '')
+        + (written.clipTemporary
+          ? ' The clip could NOT be saved into our storage, so the Library only has a temporary link that EXPIRES IN 24 HOURS. Tell him plainly to download it today.'
+          : '');
       return {
         success: true,
         output:
