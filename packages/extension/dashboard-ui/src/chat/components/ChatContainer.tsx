@@ -92,8 +92,13 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
       timestamp: Date.now(),
     } as unknown as typeof messages[number];
 
+    // tabIndex -1 on both transcripts: clicking into one must focus SOMETHING.
+    // With nothing focused, VS Code's webview Ctrl+C handler refocuses the last
+    // focused element (our composer) before copying, which wipes the highlight
+    // and copies the empty textarea. Right-click Copy skips that step, which is
+    // why only the keyboard failed.
     return (
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div tabIndex={-1} className="flex-1 overflow-y-auto px-4 py-6 outline-none">
         <div className="w-full space-y-3">
           {/* Setup banner removed 2026-04-29. Model picker now carries
               the unlock guidance ("Add Qwen key", "Connect or add
@@ -123,7 +128,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
     <div className="flex-1 flex flex-col min-h-0">
       {/* ContextBar moved out — Chat.tsx renders it between the message
           list and the composer so the gauge is right where typing happens. */}
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('dash.chat.messages_log')} aria-live="polite">
+      <div ref={scrollRef} onScroll={onScroll} tabIndex={-1} className="flex-1 overflow-y-auto px-3 py-2 space-y-3 outline-none" role="log" aria-label={t('dash.chat.messages_log')} aria-live="polite">
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}

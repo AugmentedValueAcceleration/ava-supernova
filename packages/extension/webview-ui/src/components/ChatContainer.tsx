@@ -246,7 +246,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
     } as unknown as typeof messages[number];
 
     return (
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div tabIndex={-1} className="flex-1 overflow-y-auto px-4 py-6 outline-none">
         <div className="w-full space-y-3">
           <MessageBubble message={seededWelcome} onConfirmation={onConfirmation} />
           {messages.map((msg, i) => (
@@ -275,7 +275,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
           composer so the bar sits next to where the user is typing, not at
           the far top of the message list where it was easy to forget. */}
 
-      <div ref={scrollRef} onScroll={onScroll} onWheel={onWheel} onPointerDown={onPointerDown} onKeyDown={onKeyDown} className="flex-1 overflow-y-auto" role="log" aria-label={t('chat.messages_aria')} aria-live="polite">
+      <div ref={scrollRef} onScroll={onScroll} onWheel={onWheel} onPointerDown={onPointerDown} onKeyDown={onKeyDown} tabIndex={-1} className="flex-1 overflow-y-auto outline-none" role="log" aria-label={t('chat.messages_aria')} aria-live="polite">
       <div ref={contentRef} className="min-h-full px-3 py-2 space-y-3">
         {messages.map((msg, i) => (
           <MessageBubble
