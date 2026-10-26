@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { t, tt, initLocale, useLocale, languageOptions } from '../i18n';
+import { t, tt, initLocale, pendingLocaleRequest, useLocale, languageOptions } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
@@ -281,7 +281,16 @@ export function Settings({
     post({ type: 'save_settings', settings: updated });
     if (key === 'language') {
       localStorage.setItem('ava-dashboard-language', value as string);
-      initLocale(value as string);
+      // initLocale only switches; the strings for anything but English live
+      // with the host and have to be asked for. Without this the picker set
+      // the language, had no text for it, and the UI stayed English until the
+      // next restart fetched it. Same sequence as the welcome screen's picker.
+      initLocale(value as string)
+        .then(() => {
+          const want = pendingLocaleRequest();
+          if (want) post({ type: 'request_locale_strings', locale: want });
+        })
+        .catch(() => {});
     }
   }
 
