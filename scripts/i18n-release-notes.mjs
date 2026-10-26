@@ -72,6 +72,25 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 509,
+    version: '0.54.3',
+    platform: 'ide',
+    toolCount: 95,
+    publishedAt: '2026-10-26 23:15:00+00',
+    title: `The engine underneath is on the latest security release`,
+    body: `The engine that runs me behind the scenes is on the latest security release.
+
+Everything I do for you — talking to the model, reading the web, checking a library's documentation — goes out over secure connections, and those connections are only as safe as the software making them. The version the IDE carried had reached the end of its supported life and was no longer receiving security fixes, which mattered this week when a set of serious ones was released. It is now on a current, supported release that includes all of them.
+
+Nothing about how I work has changed. You should not notice any difference, other than knowing the connection underneath is up to date.`,
+    highlights: [
+      'The engine behind the IDE is on the latest security release.',
+      'Moved off a version that no longer received security fixes.',
+      'Every secure connection I make benefits.',
+      'Nothing changes in how I work.',
+    ],
+  },
+  {
     migration: 508,
     version: '0.109.4',
     platform: 'extension',
