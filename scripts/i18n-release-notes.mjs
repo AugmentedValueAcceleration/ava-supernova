@@ -72,6 +72,25 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 508,
+    version: '0.109.4',
+    platform: 'extension',
+    toolCount: 83,
+    publishedAt: '2026-10-26 17:15:00+00',
+    title: `Your language choice in Settings takes effect at once`,
+    body: `Choosing a language in Settings now changes the whole dashboard straight away.
+
+Before, picking a language there switched the setting but left almost everything on screen in English, and it only caught up the next time VS Code started. The translations for every language other than English are kept separately and sent when they are asked for, and the Settings page never asked. The welcome screen did, which is why choosing a language there always worked.
+
+Now Settings asks the moment you choose, so the dashboard changes language while you watch.`,
+    highlights: [
+      'Picking a language in Settings switches the dashboard at once.',
+      'No restart needed for a new language to show.',
+      'Works the same as choosing a language on the welcome screen.',
+      'Switching back to English is instant too.',
+    ],
+  },
+  {
     migration: 507,
     version: '0.109.3',
     platform: 'extension',
