@@ -4309,4 +4309,5 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'لا يوجد صوت مسجل حتى الآن.',
   'dash.status.repo_branch': '{repo} — على الفرع {branch}',
   'dash.status.errors': '{count} أخطاء — انقر لفتح المشاكل',
+  'error.msg.edge_blocked': 'رفض جدار حماية أمام {provider} هذا الطلب قبل وصوله — غالبًا لأن شيئًا في محادثتنا، مثل أمر shell، يبدو له كأنه هجوم. مفتاحك سليم. بدء محادثة جديدة يمسح ذلك.',
 };

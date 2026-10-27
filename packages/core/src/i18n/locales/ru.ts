@@ -4309,4 +4309,5 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Ничего ещё не озвучено.',
   'dash.status.repo_branch': '{repo} — на ветке {branch}',
   'dash.status.errors': '{count} ошибок — нажмите чтобы открыть Проблемы',
+  'error.msg.edge_blocked': 'Файрвол перед {provider} отклонил этот запрос до его получения — обычно потому, что что-то в нашем разговоре, например команда оболочки, выглядит для него как атака. Ваш ключ в порядке. Начало нового чата сбрасывает это.',
 };

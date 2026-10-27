@@ -143,6 +143,12 @@ export class ProviderError extends AvaError {
       case 402:
         return withServerDetail(t('error.msg.credits', { provider: this.provider }), this.responseBody);
       case 403:
+        // An HTML page, not JSON, means the request never reached the
+        // provider: a firewall in front of it refused the content. Blaming the
+        // API key sent the operator after a key that was fine (27 Oct 2026).
+        if (typeof this.responseBody === 'string' && /^\s*<(?:!doctype|html)/i.test(this.responseBody)) {
+          return t('error.msg.edge_blocked', { provider: this.provider });
+        }
         return withServerDetail(t('error.msg.forbidden', { provider: this.provider }), this.responseBody);
       case 404:
         return withServerDetail(t('error.msg.model_not_found', { provider: this.provider }), this.responseBody);

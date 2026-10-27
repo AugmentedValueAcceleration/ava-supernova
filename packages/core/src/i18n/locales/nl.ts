@@ -4309,4 +4309,5 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Nog niets ingesproken.',
   'dash.status.repo_branch': '{repo} — op tak {branch}',
   'dash.status.errors': '{count} fouten — klik om Problemen te openen',
+  'error.msg.edge_blocked': 'Een firewall voor {provider} heeft deze aanvraag geweigerd voordat deze binnenkwam — meestal omdat iets in ons gesprek, zoals een shell-opdracht, voor de firewall als een aanval lijkt. Uw sleutel is in orde. Een nieuwe chat starten lost het op.',
 };

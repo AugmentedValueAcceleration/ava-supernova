@@ -4289,4 +4289,5 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Ще нічого не озвучено.',
   'dash.status.repo_branch': '{repo} — на гілці {branch}',
   'dash.status.errors': '{count} помилки — натисніть, щоб відкрити Проблеми',
+  'error.msg.edge_blocked': 'Брандмауер перед {provider} відхилив цей запит до його надходження — зазвичай тому, що щось у нашій розмові, наприклад команда оболонки, виглядає для нього як атака. Ваш ключ у порядку. Новий чат скине це.',
 };

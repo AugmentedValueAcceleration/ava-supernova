@@ -4305,4 +4305,5 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Aucun enregistrement vocal pour le moment.',
   'dash.status.repo_branch': '{repo} — sur la branche {branch}',
   'dash.status.errors': '{count} erreurs — cliquez pour ouvrir Problèmes',
+  'error.msg.edge_blocked': 'Un pare-feu placé devant {provider} a refusé cette demande avant qu’elle n’arrive — généralement parce que quelque chose dans notre conversation, comme une commande shell, lui semble être une attaque. Votre clé est valide. Démarrer une nouvelle conversation réinitialise l’état.',
 };

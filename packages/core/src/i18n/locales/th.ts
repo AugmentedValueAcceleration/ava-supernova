@@ -4309,4 +4309,5 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'ยังไม่มีเสียงบันทึก.',
   'dash.status.repo_branch': '{repo} — บนสาขา {branch}',
   'dash.status.errors': '{count} ข้อผิดพลาด — คลิกเพื่อเปิดปัญหา',
+  'error.msg.edge_blocked': 'ไฟร์วอลล์ด้านหน้า {provider} ปฏิเสธคำขอนี้ก่อนจะไปถึง — มักเป็นเพราะมีบางอย่างในการสนทนา เช่น คำสั่ง shell ที่ดูเหมือนเป็นการโจมตี คีย์ของคุณไม่มีปัญหา การเริ่มแชทใหม่จะล้างสถานะนี้',
 };

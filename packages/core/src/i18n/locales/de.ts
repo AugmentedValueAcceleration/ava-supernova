@@ -4289,4 +4289,5 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Noch nichts gesprochen.',
   'dash.status.repo_branch': '{repo} — im Zweig {branch}',
   'dash.status.errors': '{count} Fehler — Klicken zum Öffnen der Probleme',
+  'error.msg.edge_blocked': 'Eine Firewall vor {provider} hat diese Anfrage abgelehnt, bevor sie eintraf — normalerweise, weil etwas in unserer Unterhaltung, wie ein Shell-Befehl, für sie wie ein Angriff aussieht. Dein Schlüssel ist in Ordnung. Ein neuer Chat behebt das.',
 };

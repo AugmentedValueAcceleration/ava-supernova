@@ -4309,4 +4309,5 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'अभी तक कुछ नहीं बोला गया।',
   'dash.status.repo_branch': '{repo} — {branch} शाखा पर',
   'dash.status.errors': '{count} त्रुटियाँ — समस्याएं खोलने के लिए क्लिक करें',
+  'error.msg.edge_blocked': '{provider} के सामने मौजूद फ़ायरवॉल ने अनुरोध पहुँचने से पहले ही इसे अस्वीकार कर दिया — आमतौर पर इसलिए क्योंकि हमारी बातचीत में कुछ, जैसे शेल कमांड, उसके लिए हमले जैसा लगता है। आपकी कुंजी ठीक है। नई चैट शुरू करने पर यह समस्या दूर हो जाती है।',
 };

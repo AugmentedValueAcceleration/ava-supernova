@@ -4309,4 +4309,5 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Henüz hiçbir şey seslendirilmedi.',
   'dash.status.repo_branch': '{repo} — {branch} dalında',
   'dash.status.errors': '{count} hata — Sorunlar\'ı açmak için tıklayın',
+  'error.msg.edge_blocked': '{provider} önündeki bir güvenlik duvarı, istek ulaşmadan önce bu isteği reddetti — genellikle sohbetteki bir kabuk komutu gibi bir şeyin saldırı gibi görünmesinden kaynaklanır. Anahtarınız sorunsuz. Yeni bir sohbet başlatmak bu engeli temizler.',
 };

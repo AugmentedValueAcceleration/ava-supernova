@@ -4311,4 +4311,5 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'まだ音声がありません。',
   'dash.status.repo_branch': '{repo} — {branch} ブランチ',
   'dash.status.errors': '{count} エラー — クリックして問題を開く',
+  'error.msg.edge_blocked': '{provider} 手前のファイアウォールがこのリクエストを届く前に拒否しました — 通常、会話内のシェルコマンドなどが攻撃と判断されるためです。キーは正常です。新しいチャットを開始すると解消されます。',
 };

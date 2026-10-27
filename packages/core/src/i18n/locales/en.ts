@@ -85,6 +85,7 @@ export const enStrings = {
   'error.msg.auth': 'Your API key for {provider} isn\'t working. It may be expired or incorrect.',
   'error.msg.credits': 'Your {provider} account has run out of credits.',
   'error.msg.forbidden': '{provider} blocked this request. Your API key may not have the right permissions.',
+  'error.msg.edge_blocked': 'A firewall in front of {provider} refused this request before it arrived — usually because something in our conversation, like a shell command, looks like an attack to it. Your key is fine. Starting a new chat clears it.',
   'error.msg.model_not_found': 'This model isn\'t available on {provider}. It may have been renamed or removed.',
   'error.msg.rate_limit': '{provider} is limiting requests because too many were sent too quickly.',
   'error.msg.server_error': '{provider} is having technical difficulties (error {code}).',

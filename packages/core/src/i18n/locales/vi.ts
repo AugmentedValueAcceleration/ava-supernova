@@ -4309,4 +4309,5 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Chưa có giọng nói nào.',
   'dash.status.repo_branch': '{repo} — trên nhánh {branch}',
   'dash.status.errors': '{count} lỗi — nhấp để mở Vấn đề',
+  'error.msg.edge_blocked': 'Tường lửa phía trước {provider} đã từ chối yêu cầu này trước khi nó đến nơi — thường do một nội dung trong cuộc trò chuyện, chẳng hạn như lệnh shell, bị coi là tấn công. Khóa của bạn vẫn hợp lệ. Bắt đầu cuộc trò chuyện mới sẽ xóa lỗi này.',
 };

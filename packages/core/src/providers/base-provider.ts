@@ -335,6 +335,12 @@ export abstract class BaseProvider implements Provider {
 
   // ── Shared HTTP logic ────────────────────────────────────────────────────
 
+  /** How a completion body goes on the wire. Plain JSON for every provider;
+   *  our own platform overrides it (see PlatformProvider). */
+  protected serializeBody(body: unknown): string {
+    return JSON.stringify(body);
+  }
+
   async createCompletion(request: ChatCompletionRequest, signal?: AbortSignal): Promise<CompletionResponse> {
     const body = this.transformRequest({ ...request, stream: false });
     const url = this.getCompletionUrl();
@@ -350,7 +356,7 @@ export abstract class BaseProvider implements Provider {
     const response = await this.fetchWithRetry(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body),
+      body: this.serializeBody(body),
       signal,
     });
 
@@ -409,7 +415,7 @@ export abstract class BaseProvider implements Provider {
     const response = await this.fetchWithRetry(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body),
+      body: this.serializeBody(body),
       signal,
     });
 

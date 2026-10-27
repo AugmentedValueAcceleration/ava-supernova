@@ -4307,4 +4307,5 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Nada gravado ainda.',
   'dash.status.repo_branch': '{repo} — no ramo {branch}',
   'dash.status.errors': '{count} erros — clique para abrir Problemas',
+  'error.msg.edge_blocked': 'Um firewall à frente de {provider} recusou esta solicitação antes que ela chegasse — geralmente porque algo na nossa conversa, como um comando de shell, parece um ataque para ele. Sua chave está correta. Iniciar um novo chat resolve isso.',
 };

@@ -4309,4 +4309,5 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': '아직 녹음된 것이 없습니다.',
   'dash.status.repo_branch': '{repo} — {branch} 브랜치',
   'dash.status.errors': '{count}개 오류 — 문제를 보려면 클릭',
+  'error.msg.edge_blocked': '{provider} 앞의 방화벽이 요청이 도착하기 전에 거부했습니다 — 보통 대화에서 셸 명령어처럼 공격으로 인식될 수 있는 내용 때문입니다. 키에는 문제가 없습니다. 새 채팅을 시작하면 해제됩니다.',
 };

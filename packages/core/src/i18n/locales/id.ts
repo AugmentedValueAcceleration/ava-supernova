@@ -4307,4 +4307,5 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Belum ada suara.',
   'dash.status.repo_branch': '{repo} — pada cabang {branch}',
   'dash.status.errors': '{count} kesalahan — klik untuk membuka Masalah',
+  'error.msg.edge_blocked': 'Firewall di depan {provider} menolak permintaan ini sebelum permintaan tersebut tiba — biasanya karena sesuatu dalam percakapan kita, seperti perintah shell, terlihat seperti serangan bagi firewall itu. Kunci Anda aman. Memulai chat baru akan menghapusnya.',
 };

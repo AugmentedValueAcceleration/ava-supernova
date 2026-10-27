@@ -4289,4 +4289,5 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': '暂无语音。',
   'dash.status.repo_branch': '{repo} — 当前分支 {branch}',
   'dash.status.errors': '{count} 个错误 — 点击打开问题',
+  'error.msg.edge_blocked': '位于 {provider} 前面的防火墙在请求到达前拒绝了它——通常是因为对话中的某些内容（例如 shell 命令）被它判定为攻击。你的密钥没有问题。开始新对话即可清除该限制。',
 };

@@ -4310,4 +4310,5 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': '暫無配音內容。',
   'dash.status.repo_branch': '{repo} — 分支 {branch}',
   'dash.status.errors': '{count} 個錯誤 — 點擊開啟問題',
+  'error.msg.edge_blocked': '{provider} 前方的防火牆在請求抵達前拒絕了此請求 — 通常是因為我們對話中的某些內容，例如 shell 指令，被它視為攻擊。您的金鑰沒有問題。開始新的對話即可清除。',
 };

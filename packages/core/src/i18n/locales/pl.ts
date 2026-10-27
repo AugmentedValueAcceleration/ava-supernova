@@ -4289,4 +4289,5 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.studio.voice.script_empty': 'Nic jeszcze nie nagrano.',
   'dash.status.repo_branch': '{repo} — na gałęzi {branch}',
   'dash.status.errors': '{count} błędów — kliknij, aby otworzyć Problemy',
+  'error.msg.edge_blocked': 'Zapora sieciowa przed {provider} odrzuciła to żądanie, zanim dotarło — zwykle dlatego, że coś w naszej rozmowie, np. polecenie powłoki, wygląda dla niej jak atak. Twój klucz jest w porządku. Rozpoczęcie nowego czatu usunie ten problem.',
 };
