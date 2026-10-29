@@ -11,9 +11,11 @@ export class SupportRequestTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'support_request',
     description:
-      'Submit a support ticket to the Ava team. Use this when the user needs help with something ' +
-      'you cannot resolve — bugs, account issues, feature requests, billing questions, or any problem ' +
-      'that requires human support. You MUST confirm the details with the user before sending. ' +
+      'Submit a PRIVATE support ticket to the Ava team. For public questions, bugs and ideas, point ' +
+      'the user to the Ava Supernova Discord first (https://discord.gg/bbtnKMW4rf — #help, #bug-reports, ' +
+      '#feature-requests), where answers stay searchable. Use this ticket for anything private — account, ' +
+      'billing, personal details — or when the user would rather not post publicly. ' +
+      'You MUST confirm the details with the user before sending. ' +
       'Always categorise the ticket based on the issue type. ' +
       'The user\'s email is required so the team can reply. If the user has a platform account, ' +
       'their email may already be available in shared state.',
