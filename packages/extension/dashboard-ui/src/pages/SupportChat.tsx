@@ -352,7 +352,7 @@ function ByokChat() {
         </button>
 
         <button
-          onClick={() => post({ type: 'open_url', url: 'https://discord.gg/tuHZzUGxA6' })}
+          onClick={() => post({ type: 'open_url', url: 'https://discord.gg/bbtnKMW4rf' })}
           className="flex flex-col items-start gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition"
         >
           <span className="text-[var(--accent)] leading-none"><Icon.chat size={22} /></span>
