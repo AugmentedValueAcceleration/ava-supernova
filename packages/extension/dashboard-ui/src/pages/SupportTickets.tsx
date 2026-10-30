@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { Icon } from '../components/Icon';
+import { Select } from '../components/Select';
 import type { SupportTicket, SupportTicketMessage, SupportTicketCategory } from '../types/messages';
 
 // Support is ONE private ticket system, always answered by a person on the
@@ -296,20 +297,20 @@ function NewTicketForm({ onCancel }: { onCancel: () => void }) {
     <section className="flex flex-col gap-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
       <h2 className="text-[15px] font-semibold text-white">{tt('support.ticket.new_title', 'New private ticket')}</h2>
 
-      <label className="flex flex-col gap-1.5">
+      {/* The themed Select, not a native <select>: the browser draws a native
+          dropdown's open list in its own colours, ignoring ours. A div, not a
+          label, because the Select is a button and a menu, not an input. */}
+      <div className="flex flex-col gap-1.5">
         <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">{tt('support.ticket.category', 'Category')}</span>
-        <select
+        <Select
           value={category}
-          onChange={e => setCategory(e.target.value as SupportTicketCategory | '')}
-          disabled={submitting}
-          className={`${fieldClass} cursor-pointer`}
-        >
-          <option value="" disabled>{tt('support.ticket.category_pick', 'Choose a category…')}</option>
-          {CATEGORIES.map(c => (
-            <option key={c.id} value={c.id}>{tt(c.key, c.label)}</option>
-          ))}
-        </select>
-      </label>
+          onChange={v => { if (!submitting) setCategory(v as SupportTicketCategory | ''); }}
+          options={[
+            { value: '', label: tt('support.ticket.category_pick', 'Choose a category…') },
+            ...CATEGORIES.map(c => ({ value: c.id, label: tt(c.key, c.label) })),
+          ]}
+        />
+      </div>
 
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">{tt('support.ticket.subject', 'Subject')}</span>
