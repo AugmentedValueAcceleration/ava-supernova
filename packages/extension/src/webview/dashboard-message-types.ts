@@ -173,56 +173,35 @@ export interface ConversationEntry {
   surface?: ConversationSurface;
 }
 
+// ── Support tickets ───────────────────────────────────────────────────────
+// ONE private ticket system on /api/tickets, always answered by the team.
+// Same shape the web, IDE and hub read.
+
+export type SupportTicketCategory =
+  | 'question' | 'bug' | 'feature' | 'account' | 'billing' | 'privacy' | 'security' | 'other';
+
+export type SupportTicketStatus = 'waiting_on_us' | 'waiting_on_you' | 'resolved' | 'closed';
+
 export interface SupportTicket {
-  id: string;
-  email: string;
-  name: string | null;
+  id: string | number;
+  ref: string | number;
+  /** Human reference, e.g. "AVA-1042" — what the API paths take. */
+  ref_label: string;
+  category: SupportTicketCategory | string;
   subject: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  category: 'bug' | 'feature' | 'question' | 'account' | 'feedback' | 'teach' | 'other';
-  source: 'tool' | 'dashboard' | 'website';
-  created_at: string;
-  updated_at: string;
-  support_messages: {
-    id: string;
-    sender_type: 'user' | 'admin';
-    sender_name: string;
-    body: string;
-    created_at: string;
-  }[];
-}
-
-// ── Live Support Conversation (new system) ────────────────────────────────
-export interface SupportConversation {
-  id: string;
-  user_id: string;
-  platform: string;
-  status: 'active' | 'resolved' | 'closed';
+  status: SupportTicketStatus | string;
+  source: string;
   unread_user: number;
-  unread_admin: number;
-  needs_human: boolean;
-  summary: string | null;
   created_at: string;
-  updated_at: string;
   last_message_at: string;
-  user: { email: string; name: string | null; tier: string } | null;
-  messageCount: number;
-  lastMessage: {
-    preview: string;
-    senderType: 'user' | 'admin' | 'ava';
-    isAva: boolean;
-    timestamp: string;
-  } | null;
 }
 
-export interface SupportConversationMessage {
-  id: string;
-  sender_type: 'user' | 'admin' | 'ava';
-  sender_name: string;
+export interface SupportTicketMessage {
+  id: string | number;
+  /** 'ava' only appears in old history (the retired auto-reply). */
+  sender: 'user' | 'team' | 'ava';
+  sender_name: string | null;
   body: string;
-  is_ava: boolean;
-  read_at: string | null;
   created_at: string;
 }
 
@@ -1683,9 +1662,6 @@ export type ExtToDashboardMessage =
   | { type: 'usage_logs_loaded'; logs: UsageLogEntry[] }
   | { type: 'conversations_loaded'; conversations: ConversationEntry[] }
   | { type: 'conversation_deleted'; id: string }
-  | { type: 'tickets_loaded'; tickets: SupportTicket[] }
-  | { type: 'ticket_created'; ticket: SupportTicket }
-  | { type: 'ticket_reply_sent'; ticketId: string }
   // BYOK messages
   | { type: 'local_memories_loaded'; memories: MemoryEntry[] }
   | { type: 'local_memory_deleted'; id: string }
@@ -1695,14 +1671,12 @@ export type ExtToDashboardMessage =
   // all-time figures are credits, which a BYOK user does not have.
   | { type: 'session_stats_loaded'; stats: SessionStats; allTime?: SessionStats }
   | { type: 'usage_history_loaded'; data: UsageHistoryData | null }
-  | { type: 'byok_support_sent'; success: boolean; message: string }
-  // Live chat support responses
-  | { type: 'support_conversations_loaded'; conversations: any[] }
-  | { type: 'support_messages_loaded'; conversationId: string; messages: any[] }
-  | { type: 'support_conversation_started'; conversation: any }
-  | { type: 'support_message_sent'; conversationId: string; message: any }
-  | { type: 'support_chat_cleared' }
-  | { type: 'support_unread_count'; count: number }
+  // Support tickets. `signedIn: false` = no platform key, so no calls were made.
+  | { type: 'support_tickets_loaded'; tickets: SupportTicket[]; unread: number; signedIn: boolean; error?: string }
+  | { type: 'support_ticket_loaded'; ticket: SupportTicket; messages: SupportTicketMessage[] }
+  | { type: 'support_ticket_submitted'; ticket: SupportTicket }
+  | { type: 'support_ticket_reply_sent'; ref: string }
+  | { type: 'support_ticket_failed'; action: 'open' | 'create' | 'reply' | 'close' | 'reopen'; error: string }
   // Task messages
   | { type: 'tasks_loaded'; tasks: DashboardTaskEntry[] }
   | { type: 'task_upserted'; task: DashboardTaskEntry }
@@ -2051,16 +2025,13 @@ export type DashboardToExtMessage =
    *  ava-ide-load-conversation localStorage signal at DashboardPages.tsx:6002. */
   | { type: 'load_conversation'; id: string }
   | { type: 'delete_conversation'; id: string }
-  | { type: 'load_tickets' }
-  | { type: 'create_support_ticket'; subject: string; message: string; category?: string }
-  | { type: 'reply_support_ticket'; ticketId: string; message: string }
-  // Live chat support
-  | { type: 'start_support_conversation'; message: string; category?: string | null }
-  | { type: 'send_support_message'; conversationId: string; message: string }
-  | { type: 'load_support_conversations' }
-  | { type: 'load_support_messages'; conversationId: string }
-  | { type: 'mark_support_read'; conversationId: string }
-  | { type: 'clear_support_chat' }
+  // Support tickets — `ref` is the ref label, e.g. "AVA-1042".
+  | { type: 'load_support_tickets' }
+  | { type: 'open_support_ticket'; ref: string }
+  | { type: 'leave_support_ticket' }
+  | { type: 'submit_support_ticket'; category: SupportTicketCategory; subject: string; message: string }
+  | { type: 'send_support_ticket_reply'; ref: string; message: string }
+  | { type: 'set_support_ticket_status'; ref: string; action: 'close' | 'reopen' }
   // BYOK messages
   | { type: 'load_local_memories' }
   | { type: 'delete_local_memory'; id: string }
@@ -2069,7 +2040,6 @@ export type DashboardToExtMessage =
   | { type: 'restore_local_memory'; id: string }
   | { type: 'load_session_stats' }
   | { type: 'load_usage_history' }
-  | { type: 'send_byok_support'; email: string; subject: string; message: string; category?: string }
   | { type: 'set_working_hours'; start: number; end: number }
   | { type: 'download_asset'; path: string }
   | { type: 'delete_all_memories' }

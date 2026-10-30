@@ -1,23 +1,25 @@
 import { useState } from 'react';
 import { post } from '../App';
 import { t, useLocale } from '../i18n';
-import { SupportChat } from './SupportChat';
+import { SupportTickets } from './SupportTickets';
 import { Releases } from './Releases';
 import { Roadmap } from './Roadmap';
 import { DocumentationPageLazy } from './DocumentationPage.lazy';
 import { LazyPage } from '../components/LazyPage';
-import type { ReleaseNote, RoadmapTheme } from '../types/messages';
+import type { ReleaseNote, RoadmapTheme, SupportTicket, SupportTicketMessage } from '../types/messages';
 
 type HelpTab = 'support' | 'docs' | 'releases' | 'roadmap';
 
 interface HelpPageProps {
   releases: ReleaseNote[];
-  mode: 'platform' | 'byok';
-  supportConversations: any[];
-  supportMessages: any[];
-  activeConversationId: string | null;
+  supportTickets: SupportTicket[];
   supportLoading: boolean;
   supportUnread: number;
+  supportSignedIn: boolean | null;
+  supportListError: string | null;
+  activeTicket: SupportTicket | null;
+  activeTicketMessages: SupportTicketMessage[];
+  onCloseTicket: () => void;
   roadmapThemes: RoadmapTheme[];
   roadmapLoading: boolean;
 }
@@ -31,7 +33,7 @@ function getHelpTabs(): { key: HelpTab; label: string }[] {
   ];
 }
 
-export function HelpPage({ releases, mode, supportConversations, supportMessages, activeConversationId, supportLoading, supportUnread, roadmapThemes, roadmapLoading }: HelpPageProps) {
+export function HelpPage({ releases, supportTickets, supportLoading, supportUnread, supportSignedIn, supportListError, activeTicket, activeTicketMessages, onCloseTicket, roadmapThemes, roadmapLoading }: HelpPageProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<HelpTab>('support');
 
@@ -67,12 +69,14 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
 
       {/* Tab content */}
       {activeTab === 'support' && (
-        <SupportChat
-          conversations={supportConversations}
-          activeMessages={supportMessages}
-          activeConversationId={activeConversationId}
+        <SupportTickets
+          tickets={supportTickets}
           loading={supportLoading}
-          mode={mode}
+          signedIn={supportSignedIn}
+          listError={supportListError}
+          activeTicket={activeTicket}
+          activeMessages={activeTicketMessages}
+          onCloseTicket={onCloseTicket}
         />
       )}
 

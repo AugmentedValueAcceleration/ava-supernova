@@ -40,6 +40,7 @@ import type {
   SessionStats,
   UsageHistoryData,
   SupportTicket,
+  SupportTicketMessage,
   DashboardSettings,
   MemoryEntry,
   ProviderKeyStatus,
@@ -266,8 +267,6 @@ export function App() {
   const [usageLogs, setUsageLogs] = useState<UsageLogEntry[]>([]);
   const [conversations, setConversations] = useState<ConversationEntry[]>([]);
   const [, setConversationsLoading] = useState(false);
-  const [, setTickets] = useState<SupportTicket[]>([]);
-  const [, setTicketsLoading] = useState(false);
   const [byokMode, setByokMode] = useState(false);
   // Sign-in is a page you CHOOSE — opened by the sidebar's Connect button —
   // not a gate you are held behind. Declared here with the rest of the state:
@@ -647,12 +646,16 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     setPagePersist('chat');
   }, []);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  // Live chat support state
-  const [supportConversations, setSupportConversations] = useState<any[]>([]);
-  const [supportMessages, setSupportMessages] = useState<any[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  // Support tickets (private, answered by the team). `supportSignedIn` is the
+  // host's answer — null until the first list arrives — so a signed-out user
+  // sees the sign-in line rather than a list that can never load.
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportUnread, setSupportUnread] = useState(0);
+  const [supportSignedIn, setSupportSignedIn] = useState<boolean | null>(null);
+  const [supportListError, setSupportListError] = useState<string | null>(null);
+  const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
+  const [activeTicketMessages, setActiveTicketMessages] = useState<SupportTicketMessage[]>([]);
   // Release notes state
   const [releases, setReleases] = useState<ReleaseNote[]>([]);
   // Library state
@@ -773,9 +776,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     health: ['active_health_plans_loaded', 'health_plans_loaded'],
     // load_conversations + load_session_stats.
     history: ['conversations_loaded', 'session_stats_loaded'],
-    // load_support_conversations + load_roadmap. Only the first: roadmap comes
+    // load_support_tickets + load_roadmap. Only the first: roadmap comes
     // from the platform over the network and can fail silently.
-    help: ['support_conversations_loaded'],
+    help: ['support_tickets_loaded'],
     //
     // Deliberately absent: chat is live; account renders from state already in
     // hand; planner and memory request nothing on arrival — their data is loaded
@@ -994,6 +997,10 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         if (!msg.account && Object.values(providerKeys).some(Boolean)) {
           setByokMode(true);
         }
+        // Support tickets follow the account: the nav badge shows a team reply
+        // without opening Help first, and signing in or out flips the Support
+        // tab between the ticket list and the sign-in line.
+        post({ type: 'load_support_tickets' });
         break;
 
       // ── OAuth sign-in events (v0.37.0) ──────────────────────────────
@@ -1055,17 +1062,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         break;
       case 'conversation_deleted':
         setConversations((prev) => prev.filter((c) => c.id !== msg.id));
-        break;
-      case 'tickets_loaded':
-        setTickets(msg.tickets);
-        setTicketsLoading(false);
-        break;
-      case 'ticket_created':
-        setTickets((prev) => [msg.ticket, ...prev]);
-        break;
-      case 'ticket_reply_sent':
-        // Reload tickets to get updated messages
-        post({ type: 'load_tickets' });
         break;
       // BYOK messages
       case 'local_memories_loaded':
@@ -1154,30 +1150,26 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         post({ type: 'load_journal_summaries', from, to });
         break;
       }
-      case 'byok_support_sent':
-        // Handled by Support page directly
-        break;
-      // Live chat support
-      case 'support_conversations_loaded':
-        setSupportConversations(msg.conversations);
+      // Support tickets. Busy/error state for the forms lives in the Support
+      // tab itself (support_ticket_submitted / _reply_sent / _failed).
+      case 'support_tickets_loaded':
+        // A failed refresh keeps the list already on screen and says so,
+        // rather than blanking it to "no tickets".
+        if (!msg.error || !msg.signedIn) {
+          setSupportTickets(msg.tickets);
+          setSupportUnread(msg.unread);
+        }
+        setSupportSignedIn(msg.signedIn);
+        setSupportListError(msg.error ?? null);
         setSupportLoading(false);
+        if (!msg.signedIn) {
+          setActiveTicket(null);
+          setActiveTicketMessages([]);
+        }
         break;
-      case 'support_messages_loaded':
-        setSupportMessages(msg.messages);
-        setActiveConversationId(msg.conversationId);
-        break;
-      case 'support_conversation_started':
-        setActiveConversationId(msg.conversation.id);
-        break;
-      case 'support_message_sent':
-        // Message sent — will be refreshed via loadSupportMessages
-        break;
-      case 'support_chat_cleared':
-        setSupportMessages([]);
-        setActiveConversationId(null);
-        break;
-      case 'support_unread_count':
-        setSupportUnread(msg.count);
+      case 'support_ticket_loaded':
+        setActiveTicket(msg.ticket);
+        setActiveTicketMessages(msg.messages);
         break;
       case 'learning_loaded':
         // The host reads the LOCAL learning.json (the single source of truth —
@@ -1698,9 +1690,11 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       }, 15_000);
       return () => clearInterval(interval);
     }
-    if ((page === 'support' || page === 'help') && supportConversations.length === 0 && !supportLoading) {
-      setSupportLoading(true);
-      post({ type: 'load_support_conversations' });
+    // Refetched on every visit — one cheap GET, and it is how a team reply
+    // reaches the list. The spinner only shows before the first answer.
+    if (page === 'support' || page === 'help') {
+      if (supportSignedIn === null) setSupportLoading(true);
+      post({ type: 'load_support_tickets' });
     }
     // Load learning when navigating to learning page
     if (page === 'learning') {
@@ -1933,12 +1927,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         return (
           <HelpPage
             releases={releases}
-            mode={mode}
-            supportConversations={supportConversations}
-            supportMessages={supportMessages}
-            activeConversationId={activeConversationId}
+            supportTickets={supportTickets}
             supportLoading={supportLoading}
             supportUnread={supportUnread}
+            supportSignedIn={supportSignedIn}
+            supportListError={supportListError}
+            activeTicket={activeTicket}
+            activeTicketMessages={activeTicketMessages}
+            onCloseTicket={() => { setActiveTicket(null); setActiveTicketMessages([]); }}
             roadmapThemes={roadmapThemes}
             roadmapLoading={roadmapLoading}
           />

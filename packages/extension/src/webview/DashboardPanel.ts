@@ -84,6 +84,8 @@ import type {
   HealthRecipeDraft,
   ReleaseNote,
   RoadmapTheme,
+  SupportTicket,
+  SupportTicketMessage,
 } from './dashboard-message-types.js';
 import * as healthStore from './health-file-store.js';
 import type { GymSession } from '@ava/core/health';
@@ -172,7 +174,8 @@ export class DashboardPanel {
   private readonly secrets: vscode.SecretStorage;
   private disposables: vscode.Disposable[] = [];
   private supportPollInterval?: ReturnType<typeof setInterval>;
-  private activeSupportConvId?: string;
+  /** Ref label ("AVA-1042") of the ticket the Support tab has open, if any. */
+  private activeSupportTicketRef?: string;
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
@@ -719,44 +722,31 @@ export class DashboardPanel {
         await this.deleteConversation(msg.id);
         break;
 
-      case 'load_tickets':
-        await this.loadTickets();
+      // ─── Support tickets (private, answered by the team) ───────────────────
+
+      case 'load_support_tickets':
+        await this.loadSupportTickets();
         break;
 
-      case 'create_support_ticket':
-        await this.createSupportTicket(msg.subject, msg.message);
+      case 'open_support_ticket':
+        await this.openSupportTicket(msg.ref);
         break;
 
-      case 'reply_support_ticket':
-        await this.replySupportTicket(msg.ticketId, msg.message);
-        break;
-
-      // ─── Live chat support ─────────────────────────────────────────────────
-
-      case 'start_support_conversation':
-        await this.startSupportConversation(msg.message, msg.category);
-        break;
-
-      case 'send_support_message':
-        await this.sendSupportMessage(msg.conversationId, msg.message);
-        break;
-
-      case 'load_support_conversations':
-        await this.loadSupportConversations();
-        break;
-
-      case 'load_support_messages':
-        await this.loadSupportMessages(msg.conversationId);
-        break;
-
-      case 'mark_support_read':
-        await this.markSupportRead(msg.conversationId);
-        break;
-
-      case 'clear_support_chat':
+      case 'leave_support_ticket':
         this.stopSupportPolling();
-        this.activeSupportConvId = undefined;
-        this.post({ type: 'support_chat_cleared' } as any);
+        this.activeSupportTicketRef = undefined;
+        break;
+
+      case 'submit_support_ticket':
+        await this.submitSupportTicket(msg.category, msg.subject, msg.message);
+        break;
+
+      case 'send_support_ticket_reply':
+        await this.sendSupportTicketReply(msg.ref, msg.message);
+        break;
+
+      case 'set_support_ticket_status':
+        await this.setSupportTicketStatus(msg.ref, msg.action);
         break;
 
       // ─── BYOK messages ──────────────────────────────────────────────────────
@@ -796,13 +786,6 @@ export class DashboardPanel {
       case 'load_usage_history':
         await this.loadUsageHistory();
         break;
-
-      case 'send_byok_support': {
-        const mailto = `mailto:support@ava-supernova.com?subject=${encodeURIComponent(msg.subject)}&body=${encodeURIComponent(msg.message + '\n\nFrom: ' + msg.email)}`;
-        await vscode.env.openExternal(vscode.Uri.parse(mailto));
-        this.post({ type: 'byok_support_sent', success: true, message: 'Opening your email client...' });
-        break;
-      }
 
       // ─── Task messages ──────────────────────────────────────────────────────
 
@@ -3325,192 +3308,154 @@ export class DashboardPanel {
   }
 
   // ─── Support Tickets ──────────────────────────────────────────────────────
+  //
+  // ONE private ticket system, always answered by a person on the team — no AI
+  // first reply. Discord is the public place for questions; a ticket is for
+  // anything personal, or for people who would rather not ask in public.
+  //
+  // Every call needs the platform key. Without one (signed out, BYOK-only) the
+  // list comes back with `signedIn: false` and the webview shows the sign-in
+  // line instead of making calls that could only fail.
 
-  private async loadTickets(): Promise<void> {
+  /** Ticket refs travel as "AVA-1042". Encoded anyway — it is going in a path. */
+  private ticketPath(ref: string): string {
+    return `/tickets/${encodeURIComponent(ref)}`;
+  }
+
+  /** The server's own `{ error }` text when it sent one (it is written for the
+   *  user, e.g. "Choose a category"), otherwise the fallback. */
+  private ticketError(data: unknown, fallback: string): string {
+    const err = (data as { error?: unknown } | null)?.error;
+    return typeof err === 'string' && err.trim() ? err : fallback;
+  }
+
+  private async loadSupportTickets(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) {
-      this.post({ type: 'tickets_loaded', tickets: [] });
+      this.post({ type: 'support_tickets_loaded', tickets: [], unread: 0, signedIn: false });
       return;
     }
 
     try {
-      const res = await apiFetch('/support', { platformKey });
-      this.post({ type: 'tickets_loaded', tickets: res.ok ? (res.data as any[]) : [] });
-    } catch {
-      this.post({ type: 'tickets_loaded', tickets: [] });
-    }
-  }
-
-  private async createSupportTicket(subject: string, message: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch('/support', {
-        method: 'POST',
-        body: { subject, message, source: 'dashboard' },
-        platformKey,
-      });
+      const res = await apiFetch('/tickets', { platformKey });
       if (res.ok) {
-        this.post({ type: 'ticket_created', ticket: res.data as any });
+        const data = res.data as { tickets?: SupportTicket[]; unread?: number } | null;
+        const tickets = Array.isArray(data?.tickets) ? data.tickets : [];
+        // The server sends the total; summing is the fallback if it ever doesn't.
+        const unread = typeof data?.unread === 'number'
+          ? data.unread
+          : tickets.reduce((sum, t) => sum + (t.unread_user || 0), 0);
+        this.post({ type: 'support_tickets_loaded', tickets, unread, signedIn: true });
       } else {
-        this.post({ type: 'error', message: 'Failed to create ticket.' });
+        this.post({ type: 'support_tickets_loaded', tickets: [], unread: 0, signedIn: true, error: this.ticketError(res.data, 'Could not load your tickets.') });
       }
     } catch {
-      this.post({ type: 'error', message: 'Failed to create ticket.' });
+      this.post({ type: 'support_tickets_loaded', tickets: [], unread: 0, signedIn: true, error: 'Could not load your tickets.' });
     }
   }
 
-  private async replySupportTicket(ticketId: string, message: string): Promise<void> {
+  /** Open one ticket's thread. The GET marks it read server-side, so the list
+   *  is refreshed after it to clear the unread dot and the nav badge. While a
+   *  ticket stays open it is re-read every 30s so a team reply shows up without
+   *  a reload — a person answers, so polling faster buys nothing. `quiet` is
+   *  the re-read: no error banner, and the poll is left as it is. */
+  private async openSupportTicket(ref: string, quiet = false): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) return;
 
     try {
-      const res = await apiFetch(`/support/${ticketId}/reply`, {
-        method: 'POST',
-        body: { message },
-        platformKey,
-      });
+      const res = await apiFetch(this.ticketPath(ref), { platformKey });
       if (res.ok) {
-        this.post({ type: 'ticket_reply_sent', ticketId });
-      } else {
-        this.post({ type: 'error', message: 'Failed to send reply.' });
+        const data = res.data as { ticket: SupportTicket; messages?: SupportTicketMessage[] };
+        this.post({ type: 'support_ticket_loaded', ticket: data.ticket, messages: Array.isArray(data.messages) ? data.messages : [] });
+      } else if (!quiet) {
+        this.post({ type: 'support_ticket_failed', action: 'open', error: this.ticketError(res.data, 'Could not open that ticket.') });
       }
     } catch {
-      this.post({ type: 'error', message: 'Failed to send reply.' });
+      if (!quiet) this.post({ type: 'support_ticket_failed', action: 'open', error: 'Could not open that ticket.' });
     }
-  }
+    void this.loadSupportTickets();
 
-  // ─── Live Chat Support ───────────────────────────────────────────────────
-
-  private async startSupportConversation(message: string, category?: string | null): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch('/support/conversations', {
-        method: 'POST',
-        body: { message, platform: 'extension', category: category ?? null },
-        platformKey,
-      });
-      if (res.ok) {
-        const data = res.data as { conversation: any };
-        this.post({ type: 'support_conversation_started', conversation: data.conversation } as any);
-        // Load messages for the new conversation (includes Ava's response)
-        setTimeout(() => this.loadSupportMessages(data.conversation.id), 1500);
-        // Refresh conversation list
-        this.loadSupportConversations();
-      } else {
-        this.post({ type: 'error', message: 'Failed to start conversation.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to start conversation.' });
-    }
-  }
-
-  private async sendSupportMessage(conversationId: string, message: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/support/conversations/${conversationId}/messages`, {
-        method: 'POST',
-        body: { message },
-        platformKey,
-      });
-      if (res.ok) {
-        const data = res.data as { message: any };
-        this.post({ type: 'support_message_sent', conversationId, message: data.message } as any);
-        // Reload messages to get Ava's response
-        setTimeout(() => this.loadSupportMessages(conversationId), 1500);
-      } else {
-        this.post({ type: 'error', message: 'Failed to send message.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to send message.' });
-    }
-  }
-
-  private async loadSupportConversations(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'support_conversations_loaded', conversations: [] } as any);
-      return;
-    }
-
-    try {
-      const res = await apiFetch('/support/conversations', { platformKey });
-      if (res.ok) {
-        const data = res.data as { conversations: any[] };
-        this.post({ type: 'support_conversations_loaded', conversations: data.conversations } as any);
-
-        // Calculate total unread for badge
-        const totalUnread = data.conversations.reduce((sum: number, c: any) => sum + (c.unread_user || 0), 0);
-        this.post({ type: 'support_unread_count', count: totalUnread } as any);
-      }
-    } catch {
-      this.post({ type: 'support_conversations_loaded', conversations: [] } as any);
-    }
-  }
-
-  private async loadSupportMessages(conversationId: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/support/conversations/${conversationId}/messages`, { platformKey });
-      if (res.ok) {
-        const data = res.data as { messages: any[] };
-        this.post({ type: 'support_messages_loaded', conversationId, messages: data.messages } as any);
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to load messages.' });
-    }
-
-    // Start polling for this conversation
-    this.activeSupportConvId = conversationId;
+    if (quiet) return;
+    this.activeSupportTicketRef = ref;
     this.stopSupportPolling();
     this.supportPollInterval = setInterval(() => {
-      if (this.activeSupportConvId) {
-        this.loadSupportMessagesQuiet(this.activeSupportConvId);
-      }
-    }, 10_000);
+      if (this.activeSupportTicketRef) void this.openSupportTicket(this.activeSupportTicketRef, true);
+    }, 30_000);
   }
 
-  private async loadSupportMessagesQuiet(conversationId: string): Promise<void> {
+  private async submitSupportTicket(category: string, subject: string, message: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'support_ticket_failed', action: 'create', error: 'Sign in to your Ava Supernova account to open a private ticket.' });
+      return;
+    }
+
+    try {
+      const res = await apiFetch('/tickets', {
+        method: 'POST',
+        body: { category, subject, message, source: 'extension' },
+        platformKey,
+      });
+      const ticket = (res.data as { ticket?: SupportTicket } | null)?.ticket;
+      if (res.ok && ticket) {
+        this.post({ type: 'support_ticket_submitted', ticket });
+        // Land the user in the thread they just opened.
+        await this.openSupportTicket(ticket.ref_label);
+      } else {
+        this.post({ type: 'support_ticket_failed', action: 'create', error: this.ticketError(res.data, 'Could not open the ticket. Please try again.') });
+      }
+    } catch {
+      this.post({ type: 'support_ticket_failed', action: 'create', error: 'Could not open the ticket. Please try again.' });
+    }
+  }
+
+  private async sendSupportTicketReply(ref: string, message: string): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) return;
+
     try {
-      const res = await apiFetch(`/support/conversations/${conversationId}/messages`, { platformKey });
+      const res = await apiFetch(`${this.ticketPath(ref)}/messages`, {
+        method: 'POST',
+        body: { message },
+        platformKey,
+      });
       if (res.ok) {
-        const data = res.data as { messages: any[] };
-        this.post({ type: 'support_messages_loaded', conversationId, messages: data.messages } as any);
+        this.post({ type: 'support_ticket_reply_sent', ref });
+        await this.openSupportTicket(ref, true);
+      } else {
+        this.post({ type: 'support_ticket_failed', action: 'reply', error: this.ticketError(res.data, 'Could not send your reply. Please try again.') });
       }
-    } catch { /* silent */ }
-    // Also refresh conversation list for unread counts
-    this.loadSupportConversations();
+    } catch {
+      this.post({ type: 'support_ticket_failed', action: 'reply', error: 'Could not send your reply. Please try again.' });
+    }
+  }
+
+  private async setSupportTicketStatus(ref: string, action: 'close' | 'reopen'): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+    const fallback = action === 'close' ? 'Could not close the ticket.' : 'Could not reopen the ticket.';
+
+    try {
+      const res = await apiFetch(this.ticketPath(ref), {
+        method: 'PATCH',
+        body: { action },
+        platformKey,
+      });
+      if (res.ok) {
+        await this.openSupportTicket(ref, true);
+      } else {
+        this.post({ type: 'support_ticket_failed', action, error: this.ticketError(res.data, fallback) });
+      }
+    } catch {
+      this.post({ type: 'support_ticket_failed', action, error: fallback });
+    }
   }
 
   private stopSupportPolling(): void {
     if (this.supportPollInterval) {
       clearInterval(this.supportPollInterval);
       this.supportPollInterval = undefined;
-    }
-  }
-
-  private async markSupportRead(conversationId: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      await apiFetch(`/support/conversations/${conversationId}/read`, {
-        method: 'POST',
-        platformKey,
-      });
-      // Refresh conversations to update unread counts
-      this.loadSupportConversations();
-    } catch {
-      // Non-critical
     }
   }
 
@@ -5665,6 +5610,7 @@ export class DashboardPanel {
     DashboardPanel.currentPanel = undefined;
     DashboardPanel.onDisposeCallback?.();
     if (this.announcementTimer) { clearInterval(this.announcementTimer); this.announcementTimer = null; }
+    this.stopSupportPolling();
     this.panel.dispose();
     for (const d of this.disposables) d.dispose();
     this.disposables = [];

@@ -73,10 +73,12 @@ export function buildPaletteDirective(tool: PaletteTool, action: string): Palett
         label: 'Contact support',
         directive:
           '[Palette action] The user clicked "Contact support" in the command palette. ' +
-          'Their intent is confirmed. Use the support_request tool. Required fields are ' +
-          '`email`, `message` and `category`. If the user\'s email is already known, use it and ' +
-          'confirm it; otherwise ask for it. Help the user describe the issue clearly and ' +
-          'categorise it (bug, feature, question, account, feedback, teach, other). ' +
+          'If it is a public question, bug or idea, mention the Ava Supernova Discord first ' +
+          '(https://discord.gg/bbtnKMW4rf). For anything private, or if they prefer, use the ' +
+          'support_request tool to open a PRIVATE ticket: pick the category (question, bug, feature, ' +
+          'account, billing, privacy, security, other), write a short specific subject and the full ' +
+          'details. It needs no email — the ticket belongs to their account. A person on the team ' +
+          'answers it, not you. ' +
           CONFIRM,
       };
     case 'learning.create':
