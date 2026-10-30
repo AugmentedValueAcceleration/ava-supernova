@@ -72,6 +72,44 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 510,
+    version: '0.109.5',
+    platform: 'extension',
+    toolCount: 83,
+    publishedAt: '2026-10-29 23:55:00+00',
+    title: `A command in our chat can no longer lock you out`,
+    body: `A single command in our conversation can no longer lock you out of it.
+
+Some of the work I do for you involves shell commands, and every message you send carries our conversation with it. A firewall in front of my server was reading that conversation, and when it saw a command that looked like an attack to it, it refused every message from then on — instantly, before it ever reached me. You saw "your API key may not have the right permissions", which was wrong: your key was fine. Now each message is packed before it leaves your machine, so there is nothing for the firewall to misread. If something like this ever does block a message, I now tell you what actually happened instead of blaming your key.
+
+**We have a Discord.** It is the new home for help, release notes, the roadmap and Project DawnSets devlogs. Ask a question in #help and the answer stays searchable for the next person. The Support page links straight to it, and when you need help with me I will point you there first. Anything private — billing, your account, personal details — still goes through a private ticket that only you and the team can see.`,
+    highlights: [
+      'A shell command in the chat can no longer lock a conversation.',
+      'A firewall block is reported honestly — your key was never the problem.',
+      'Join the Ava Supernova Discord from the Support page.',
+      'Private matters still go through a private ticket.',
+    ],
+  },
+  {
+    migration: 511,
+    version: '0.54.4',
+    platform: 'ide',
+    toolCount: 95,
+    publishedAt: '2026-10-29 23:55:00+00',
+    title: `A command in our chat can no longer lock you out`,
+    body: `A single command in our conversation can no longer lock you out of it.
+
+Some of the work I do for you involves shell commands, and every message you send carries our conversation with it. A firewall in front of my server was reading that conversation, and when it saw a command that looked like an attack to it, it refused every message from then on — instantly, before it ever reached me. You saw "your API key may not have the right permissions", which was wrong: your key was fine. Now each message is packed before it leaves your machine, so there is nothing for the firewall to misread. If something like this ever does block a message, I now tell you what actually happened instead of blaming your key.
+
+**We have a Discord.** It is the new home for help, release notes, the roadmap and Project DawnSets devlogs. Ask a question in #help and the answer stays searchable for the next person. The Support page links straight to it, and when you need help with me I will point you there first. Anything private — billing, your account, personal details — still goes through a private ticket that only you and the team can see.`,
+    highlights: [
+      'A shell command in the chat can no longer lock a conversation.',
+      'A firewall block is reported honestly — your key was never the problem.',
+      'Join the Ava Supernova Discord from the Support page.',
+      'Private matters still go through a private ticket.',
+    ],
+  },
+  {
     migration: 509,
     version: '0.54.3',
     platform: 'ide',
