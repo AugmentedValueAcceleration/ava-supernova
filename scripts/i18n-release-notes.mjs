@@ -72,6 +72,52 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 514,
+    version: '0.109.6',
+    platform: 'extension',
+    toolCount: 83,
+    publishedAt: '2026-10-30 03:40:00+00',
+    title: `Support is now private tickets, answered by a person`,
+    body: `Support is now private tickets, and a person answers every one.
+
+Open Help → Support and you will find your tickets in one list: each has a reference like AVA-1042, a category, and a status that tells you whose turn it is — "Waiting on us" or "Waiting on you". Open one to read the whole conversation, reply, or close it when you are sorted. When the team replies you get an email too, so you never have to keep checking.
+
+**A person answers, not me.** Before, I would jump in with a first reply. Now every ticket goes straight to the people who build me. If you ask me for help with something private, I can still write the ticket with you — I just show you exactly what will be sent before it goes.
+
+**Private means private.** Only you and the team can see a ticket. For billing, your account, your data or a security issue, this is the place. For public questions, bugs and ideas, our Discord is still the quickest way to get an answer — and the answers stay there for the next person.
+
+**One more thing behind the scenes.** We found that messages sent through our website's support form since April had not been reaching us. That is fixed, every one of them has now been answered, and every route — the website, the extension, the IDE and me — now arrives in the same place.`,
+    highlights: [
+      'Support is now private tickets — a person answers every one.',
+      'See whose turn it is, reply, and close tickets from Help → Support.',
+      'An email arrives whenever the team replies.',
+      'Public questions still go fastest in our Discord.',
+    ],
+  },
+  {
+    migration: 515,
+    version: '0.54.5',
+    platform: 'ide',
+    toolCount: 95,
+    publishedAt: '2026-10-30 03:40:00+00',
+    title: `Support is now private tickets, answered by a person`,
+    body: `Support is now private tickets, and a person answers every one.
+
+Open Help → Support and you will find your tickets in one list: each has a reference like AVA-1042, a category, and a status that tells you whose turn it is — "Waiting on us" or "Waiting on you". Open one to read the whole conversation, reply, or close it when you are sorted. When the team replies you get an email too, so you never have to keep checking.
+
+**A person answers, not me.** Before, I would jump in with a first reply. Now every ticket goes straight to the people who build me. If you ask me for help with something private, I can still write the ticket with you — I just show you exactly what will be sent before it goes.
+
+**Private means private.** Only you and the team can see a ticket. For billing, your account, your data or a security issue, this is the place. For public questions, bugs and ideas, our Discord is still the quickest way to get an answer — and the answers stay there for the next person.
+
+**One more thing behind the scenes.** We found that messages sent through our website's support form since April had not been reaching us. That is fixed, every one of them has now been answered, and every route — the website, the extension, the IDE and me — now arrives in the same place.`,
+    highlights: [
+      'Support is now private tickets — a person answers every one.',
+      'See whose turn it is, reply, and close tickets from Help → Support.',
+      'An email arrives whenever the team replies.',
+      'Public questions still go fastest in our Discord.',
+    ],
+  },
+  {
     migration: 510,
     version: '0.109.5',
     platform: 'extension',
