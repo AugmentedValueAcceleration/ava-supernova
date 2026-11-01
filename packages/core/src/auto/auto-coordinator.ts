@@ -270,7 +270,12 @@ export class AutoCoordinator {
     const hasPlatform = !!opts.platformKey || opts.availableProviders.has('platform');
     let coordinator: ReturnType<typeof resolveCoordinatorModel> = null;
 
-    if (opts.preferredCoordinatorId) {
+    // An explicit pin wins — but only when it can actually be reached. The
+    // extension and IDE pin Supernova to a PLATFORM model; with no account
+    // (fully BYOK, 1 Nov 2026) that never resolves, and treating it as the
+    // override anyway skipped the Supernova branch below, so an own-key user
+    // silently got the generic ladder instead of their DeepSeek coordinator.
+    if (opts.preferredCoordinatorId && opts.providerRegistry.resolveModel(opts.preferredCoordinatorId)) {
       // Explicit operator override wins for any mode.
       coordinator = resolveCoordinatorModel(
         opts.providerRegistry, opts.availableProviders, hasPlatform, opts.preferredCoordinatorId,

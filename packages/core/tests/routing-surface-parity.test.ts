@@ -271,3 +271,54 @@ describe('Coordinator pinning per mode', () => {
     expect(coordinatorFor('auto', byok('qwen', 'mistral'))).toBe('qwen3.7-plus');
   });
 });
+
+describe('a pinned coordinator that cannot be reached (fully BYOK, 1 Nov 2026)', () => {
+  // The extension and IDE pin Supernova to a PLATFORM model. With no account
+  // that pin never resolves; it used to be treated as the override anyway,
+  // skipping the Supernova branch, so an own-key user got the generic ladder.
+  const pinned = (setup: Setup, preferredCoordinatorId: string) => {
+    const reg = new ProviderRegistry();
+    const avail = new Set<string>();
+    setup(reg, avail);
+    const ac = AutoCoordinator.create({
+      providerRegistry: reg, availableProviders: avail, toolRegistry: new ToolRegistry(),
+      cwd: '.', sharedState: {}, mode: 'supernova', preferredCoordinatorId,
+    });
+    return ac ? ac.coordinatorModel.id : null;
+  };
+
+  it('falls back to Supernova\'s own DeepSeek coordinator on the user\'s key', () => {
+    // With a Kimi key as well, the generic ladder ranks Kimi first — so the
+    // old code ran Supernova on Kimi. With only DeepSeek and Qwen the ladder
+    // happened to pick DeepSeek anyway, which is why the bug hid.
+    expect(pinned(byok('deepseek', 'qwen', 'kimi'), 'platform:deepseek-flash-platform')).toBe('deepseek-flash');
+  });
+
+  it('still honours a pin that CAN be reached', () => {
+    expect(pinned(byok('deepseek', 'qwen'), 'qwen:qwen3.5-flash')).toBe('qwen3.5-flash');
+  });
+});
+
+describe('a platform: model id with no account (fully BYOK, 1 Nov 2026)', () => {
+  // Saved choices and older surfaces still name `platform:` models. With no
+  // platform registered they used to resolve to nothing — "no provider".
+  it('resolves on the user\'s own key, bridging the -platform suffix', () => {
+    const reg = new ProviderRegistry();
+    byok('qwen', 'deepseek')(reg, new Set());
+    expect(reg.resolveModel('platform:qwen3.7-plus')?.model.id).toBe('qwen3.7-plus');
+    expect(reg.resolveModel('platform:deepseek-flash-platform')?.model.id).toBe('deepseek-flash');
+  });
+
+  it('leaves an account holder\'s platform routing exactly as it was', () => {
+    const reg = new ProviderRegistry();
+    platform(reg, new Set());
+    byok('qwen')(reg, new Set());
+    expect(reg.resolveModel('platform:qwen3.7-plus')?.provider.name).toBe('platform');
+  });
+
+  it('does not invent a provider that is not there', () => {
+    const reg = new ProviderRegistry();
+    byok('qwen')(reg, new Set());
+    expect(reg.resolveModel('mistral:mistral-large-3')).toBeUndefined();
+  });
+});

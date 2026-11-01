@@ -77,10 +77,16 @@ export class ProviderRegistry {
 
     if (providerName) {
       const provider = this.providers.get(providerName);
-      if (!provider) return undefined;
-      const model = this.findModel(provider, modelId);
-      if (!model) return undefined;
-      return { provider, model };
+      if (provider) {
+        const model = this.findModel(provider, modelId);
+        return model ? { provider, model } : undefined;
+      }
+      // A `platform:` id with no platform registered — no account, which is
+      // everyone once Ava is fully BYOK (1 Nov 2026). Saved choices and older
+      // surfaces still say `platform:qwen3.7-plus`; rather than "no provider
+      // available", resolve the same model on the user's own keys. Only when
+      // there IS no platform, so an account holder's routing is untouched.
+      if (providerName !== 'platform') return undefined;
     }
 
     for (const [, provider] of this.providers) {

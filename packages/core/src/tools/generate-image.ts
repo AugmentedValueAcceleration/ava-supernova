@@ -187,11 +187,14 @@ export class GenerateImageTool implements Tool {
         await writeFile(absoluteSavePath, imageBuffer);
         genManager?.update(jobId, { progress: 85 });
 
-        // Vision verification (only if we have retries left)
-        if (attempt < MAX_VISION_RETRIES) {
+        // Vision verification (only if we have retries left), and only with the
+        // user's own Qwen key — the check calls DashScope directly. It used to
+        // fall back to the PLATFORM key, sending our `sk-ava` key to Alibaba,
+        // which refused it, so the check silently failed and a key went to a
+        // company it was never for (found 1 Nov 2026).
+        if (attempt < MAX_VISION_RETRIES && apiKey) {
           context.onOutput?.('Verifying image quality with Qwen Vision...\n');
-          const visionKey = apiKey || platformKey || '';
-          const review = await this.verifyWithVision(absoluteSavePath, purpose, rawPrompt, visionKey);
+          const review = await this.verifyWithVision(absoluteSavePath, purpose, rawPrompt, apiKey);
 
           if (review.approved) {
             context.onOutput?.(`Vision check: approved ✓ — ${review.feedback}\n`);
