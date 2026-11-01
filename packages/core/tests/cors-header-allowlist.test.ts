@@ -25,7 +25,8 @@ const repoRoot = join(__dirname, '..', '..', '..');
 const MIDDLEWARE = join(repoRoot, 'packages', 'web', 'src', 'middleware.ts');
 const CLIENTS = [
   join(repoRoot, 'packages', 'extension', 'src', 'utils', 'platform-api.ts'),
-  join(repoRoot, 'packages', 'ide', 'src', 'lib', 'api.ts'),
+  // The IDE's api.ts sent X-Ava-* headers until accounts went (1 Nov 2026);
+  // it now only keeps local usage counters and calls no server.
 ];
 
 /** The X-Ava-* names in Access-Control-Allow-Headers, lowercased. */

@@ -515,11 +515,11 @@ export const enStrings = {
   'dash.chat.model_error': 'Model error',
   'dash.chat.model_idle': 'Model idle',
   'dash.chat.model_no_key': 'No model key',
-  'dash.chat.model_no_key_hint': 'Add an API key in the sidebar, or connect an account, to run a model.',
+  'dash.chat.model_no_key_hint': 'Add an API key in the sidebar, or set up a local model, to run a model.',
   'dash.chat.attach_file': 'Attach image or file',
   'dash.chat.send_enter': 'Send (Enter)',
-  'dash.chat.add_key_or_connect': 'Add a provider key or connect your account',
-  'dash.chat.inactive_no_keys': 'Add a provider key in the sidebar or connect your account to start chatting.',
+  'dash.chat.add_key_or_connect': 'Add a provider key',
+  'dash.chat.inactive_no_keys': 'Add a provider key in the sidebar, or point Ava at a local model, to start chatting.',
   'dash.chat.inactive_no_cloud': 'Connect your platform account to use Cloud mode.',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
@@ -1366,8 +1366,8 @@ export const enStrings = {
   'storage.remeasure': 'Re-measure',
   'storage.measuring': 'measuring…',
   // Page titles + subtitles.
-  'dash.page.account': 'Account',
-  'dash.page.account_sub': 'Settings, billing, connections, and personalisation',
+  'dash.page.account': 'Settings',
+  'dash.page.account_sub': 'Settings, keys, and personalisation',
   'dash.page.help': 'Help',
   'dash.page.help_sub': 'Support, documentation, release notes, and roadmap',
   'dash.settings.tab.general': 'General',
@@ -2082,9 +2082,9 @@ export const enStrings = {
   'dash.model.sub.byok_mistral': 'BYOK · Mistral',
   'dash.model.sub.add_deepseek': 'Add DeepSeek key',
   'dash.model.sub.add_qwen': 'Add Qwen key',
-  'dash.model.sub.connect_ds_qwen': 'Connect or add DeepSeek + Qwen keys',
-  'dash.model.sub.connect_mistral': 'Connect or add Mistral key',
-  'dash.model.sub.connect_qwen': 'Connect or add Qwen key',
+  'dash.model.sub.connect_ds_qwen': 'Add DeepSeek + Qwen keys',
+  'dash.model.sub.connect_mistral': 'Add Mistral key',
+  'dash.model.sub.connect_qwen': 'Add Qwen key',
   // Docs "deeper" expander. Was hardcoded English in BOTH the IDE
   // (DocumentationPage) and the companion (CompanionDocs), so it stayed
   // English inside otherwise fully translated documentation.
@@ -2095,13 +2095,13 @@ export const enStrings = {
   'dash.model.sub.longxiang_open': 'Kimi K3 + Qwen + DeepSeek',
   'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
   'dash.model.sub.add_moonshot': 'Add Moonshot key',
-  'dash.model.sub.connect_longxiang': 'Connect or add 3 keys',
+  'dash.model.sub.connect_longxiang': 'Add Moonshot + Qwen + DeepSeek keys',
   'dash.model.aurora_title': 'Aurora — Mistral-only EU stack. Three-tier fleet: Mistral Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Mistral Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Mistral Large 3 is the heavy reserve. EU-only data residency, GDPR-strict, open weights.',
   'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash coordinating and specialising, with Qwen builders. Heavy multi-step work.',
   'dash.model.maestro_title': 'Maestro — single Qwen 3.7 Plus conductor. Daily work, predictable cost.',
   // Careful with this string: it must NOT claim "open weights end to end"
   // until Qwen 3.7 Plus weights are actually public. See longxiang-router.ts.
-  'dash.model.longxiang_title': 'Longxiang (龙翔) — the Chinese-model fleet. Kimi K3 leads as coordinator and Builder, Qwen 3.7 Plus carries mid-tier builds and vision, DeepSeek V4.1 Flash handles volume. Available on a plan, or with your own Moonshot + Qwen + DeepSeek keys. K3 is the priciest model we serve, so it uses more credits per turn than the other fleets.',
+  'dash.model.longxiang_title': 'Longxiang (龙翔) — the Chinese-model fleet. Kimi K3 leads as coordinator and Builder, Qwen 3.7 Plus carries mid-tier builds and vision, DeepSeek V4.1 Flash handles volume. Runs on your own Moonshot + Qwen + DeepSeek keys. K3 is the priciest of these models, so a turn costs more on your Moonshot account than on the other fleets.',
 
   // ── Command Centre chrome ────────────────────────────────────────────────
   'dash.cc.call_you_ph': 'What should Ava call you?',
@@ -3020,7 +3020,7 @@ export const enStrings = {
   'health.assist.placeholder': 'What would you like changed about this day?',
   'health.assist.ask': 'Ask',
   'health.assist.working': 'Ava is working on it. This takes about a minute.',
-  'health.assist.needs_account': 'Ava generation needs a platform account or your own provider key in Settings.',
+  'health.assist.needs_account': 'Ava generation needs your Qwen key — add it in Settings.',
   'health.assist.failed': 'That did not work.',
   'health.assist.current': 'This day now',
   'health.assist.proposed': "Ava's suggestion",
@@ -4210,7 +4210,7 @@ export const enStrings = {
   'dash.secrets.empty_yet': 'No secrets stored yet',
   'dash.secrets.add_hint': 'Add an API key, password, or token below.',
   'dash.article.min_read': '{n} min read',
-  'dash.history.subtitle_short': 'Credits, sessions, models',
+  'dash.history.subtitle_short': 'Tokens, sessions, models',
   'dash.usage.admin': 'Admin',
   'dash.usage.credits_remaining': 'Credits Remaining',
   'dash.usage.n_used': '{n} used',
@@ -4606,6 +4606,9 @@ export const enStrings = {
   'onb.welcome.agree': 'I agree to the',
   'onb.welcome.and': 'and',
   'onb.welcome.tagline': 'Free and open source. Your keys. Your machine. Your work. Everything stays on this computer, and you pay your AI provider directly.',
+  // ── IDE without accounts (1 Nov 2026) ──
+  'ide.cli.not_running': "Ava isn't running — add a provider key in the sidebar, or point her at a local model in Settings.",
+  'onb.key.subtitle_ide': 'Ava runs on your own AI provider key. It is tested here, then kept in your system keychain on this machine — it never comes to us.',
 };
 
 export type StringKey = keyof typeof enStrings;

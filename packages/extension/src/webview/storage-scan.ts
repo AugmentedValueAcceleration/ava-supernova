@@ -105,9 +105,7 @@ async function sizeOf(full: string, isDir: boolean): Promise<number> {
 }
 
 /**
- * Scan AVA_HOME into categories + reclaimable items. Descends one level into
- * `users/<id>/` so account-scoped data (creative, memory, journal…) rolls up
- * into the same categories as the shared root.
+ * Scan AVA_HOME into categories + reclaimable items.
  */
 export async function scanStorage(home: string): Promise<StorageScan> {
   const bytesByCat = new Map<string, number>();
@@ -130,18 +128,8 @@ export async function scanStorage(home: string): Promise<StorageScan> {
     // reports it as THEIR half of the bar; walking it here would count it
     // twice and file their source under Ava's footprint.
     if (SKIP_IN_AVA_SCAN.includes(e.name.toLowerCase()) && e.isDirectory()) continue;
-    if (e.name === 'users' && e.isDirectory()) {
-      // Roll each account-scoped dir's children into the shared categories.
-      let users: string[] = [];
-      try { users = (await readdir(full, { withFileTypes: true })).filter(u => u.isDirectory()).map(u => u.name); } catch { /* none */ }
-      for (const u of users) {
-        const udir = join(full, u);
-        let children: Dirent[];
-        try { children = await readdir(udir, { withFileTypes: true }); } catch { continue; }
-        for (const c of children) await add(c.name, join(udir, c.name), c.isDirectory());
-      }
-      continue;
-    }
+    // `users/` (the account era) is a kept copy of data already in ~/.ava —
+    // categoryOf files it whole under 'accounts', never into the categories.
     await add(e.name, full, e.isDirectory());
   }
 

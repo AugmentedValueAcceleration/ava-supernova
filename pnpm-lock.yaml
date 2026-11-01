@@ -365,9 +365,6 @@ importers:
       '@tauri-apps/api':
         specifier: ^2
         version: 2.10.1
-      '@tauri-apps/plugin-deep-link':
-        specifier: ^2
-        version: 2.4.8
       '@tauri-apps/plugin-dialog':
         specifier: ^2.7.0
         version: 2.7.0
@@ -497,8 +494,8 @@ importers:
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@project-ava-supernova/core':
-        specifier: 0.2.169
-        version: 0.2.169(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
+        specifier: 0.2.171
+        version: 0.2.171(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@supabase/ssr':
         specifier: ^0.6.0
         version: 0.6.1(@supabase/supabase-js@2.97.0)
@@ -2028,8 +2025,8 @@ packages:
       react: '>= 16.8'
       react-dom: '>= 16.8'
 
-  '@project-ava-supernova/core@0.2.169':
-    resolution: {integrity: sha512-vq0PuHQPEl14MgQk4GUX4ccXuVpb4b2IzAEulGI3ic921DvWgU+mPvx5U+umYOoFtfwgwtG8KsOIlVgcSW6CQw==}
+  '@project-ava-supernova/core@0.2.171':
+    resolution: {integrity: sha512-Iy9lRibEo8rcNU05LZU8fNa/pP0tKM0CtBXt3IdyB6nvnm3K/sjhjsG3/EQKP6Mcqe7gXFRKQe9CubmZWgmMyA==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -2773,9 +2770,6 @@ packages:
     resolution: {integrity: sha512-jQNGF/5quwORdZSSLtTluyKQ+o6SMa/AUICfhf4egCGFdMHqWssApVgYSbg+jmrZoc8e1DscNvjTnXtlHLS11g==}
     engines: {node: '>= 10'}
     hasBin: true
-
-  '@tauri-apps/plugin-deep-link@2.4.8':
-    resolution: {integrity: sha512-Cd2Cs960MGuGONeIwxOPx9wqwedetAHOGlwK5boJ/SMTfAtAyfErpfVPEn+EJzgXsJun8EKzsEumHjr+64V4fw==}
 
   '@tauri-apps/plugin-dialog@2.7.0':
     resolution: {integrity: sha512-4nS/hfGMGCXiAS3LtVjH9AgsSAPJeG/7R+q8agTFqytjnMa4Zq95Bq8WzVDkckpanX+yyRHXnRtrKXkANKDHvw==}
@@ -7431,9 +7425,11 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  '@project-ava-supernova/core@0.2.169(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+  '@project-ava-supernova/core@0.2.171(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
     dependencies:
+      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
       glob: 13.0.6
+      jpeg-js: 0.4.4
       marked: 17.0.3
       pngjs: 7.0.0
       zod: 4.3.6
@@ -7448,6 +7444,9 @@ snapshots:
       pg: 8.20.0
       playwright: 1.58.2
       screenshot-desktop: 1.15.3
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
   '@protobufjs/aspromise@1.1.2': {}
 
@@ -7985,10 +7984,6 @@ snapshots:
       '@tauri-apps/cli-win32-arm64-msvc': 2.10.1
       '@tauri-apps/cli-win32-ia32-msvc': 2.10.1
       '@tauri-apps/cli-win32-x64-msvc': 2.10.1
-
-  '@tauri-apps/plugin-deep-link@2.4.8':
-    dependencies:
-      '@tauri-apps/api': 2.10.1
 
   '@tauri-apps/plugin-dialog@2.7.0':
     dependencies:

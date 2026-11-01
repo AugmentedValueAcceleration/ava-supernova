@@ -28,13 +28,18 @@ export const CATEGORY_LABEL: Record<string, string> = {
   // false about where their work lives.
   projects: 'Project data',
   backups: 'Old backups',
+  // ~/.ava/users/<id>/ from the account era. Its contents were copied up into
+  // ~/.ava on first launch after accounts went (1 Nov 2026) and the folder is
+  // kept until that is verified — so it is a copy, and counting it inside the
+  // categories above would count the same data twice.
+  accounts: 'Old account folders (copied)',
   other: 'Other',
 };
 
 /** Stable display order; largest-first is applied after, this breaks ties. */
 export const CATEGORY_ORDER = [
   'models', 'runtime', 'creative', 'memory', 'journal',
-  'datasets', 'projects', 'backups', 'other',
+  'datasets', 'projects', 'backups', 'accounts', 'other',
 ];
 
 /** Map a top-level entry name in `~/.ava` to a storage category. */
@@ -48,6 +53,7 @@ export function categoryOf(name: string): string {
   if (n === 'journal') return 'journal';
   if (n === 'datasets') return 'datasets';
   if (n === 'project-notes') return 'projects';
+  if (n === 'users') return 'accounts';
   // NOTE: 'projects' is deliberately absent. Since 2026-09-06 that folder is
   // the USER'S WORK, and it is measured separately as their half of the bar.
   // Categorising it here would count their source twice and file it under
