@@ -73,6 +73,62 @@ export async function qwenTts(apiKey: string, o: TtsOptions): Promise<{ url: str
   return { url, model: TTS_MODEL };
 }
 
+// ── Image (Qwen-Image) ───────────────────────────────────────────────────────
+
+const IMAGE_URL = TTS_URL; // the same multimodal-generation endpoint
+
+export interface QwenImageOptions {
+  prompt: string;
+  /** A guiding image (the Design Studio's shape armature) — switches to the edit model. */
+  referenceImage?: string;
+  /** DashScope's `W*H`. */
+  size?: string;
+  negativePrompt?: string;
+  seed?: number;
+  signal?: AbortSignal;
+}
+
+/** The image URL wherever the model put it: chat-style choices, results, or a bare url. */
+export function findDashscopeImageUrl(obj: unknown): string | null {
+  const o = obj as { output?: { choices?: Array<{ message?: { content?: Array<{ image?: string }> } }>; results?: Array<{ url?: string }>; url?: string } };
+  for (const c of o?.output?.choices ?? []) {
+    for (const item of c?.message?.content ?? []) {
+      if (item?.image) return item.image;
+    }
+  }
+  for (const r of o?.output?.results ?? []) {
+    if (r?.url) return r.url;
+  }
+  return o?.output?.url ?? null;
+}
+
+/**
+ * Generate one image — the request the website's asset-forge route makes, made
+ * with the user's key. With a reference the edit model restyles it (the
+ * "shape-as-dial" flow); the prompt rewriter stays OFF then, so it cannot drift
+ * the result off the armature.
+ */
+export async function qwenImage(apiKey: string, o: QwenImageOptions): Promise<{ url: string; model: string }> {
+  const model = o.referenceImage ? 'qwen-image-edit-max' : 'qwen-image-3.0-pro';
+  const content: Array<Record<string, unknown>> = [];
+  if (o.referenceImage) content.push({ image: o.referenceImage });
+  content.push({ text: o.prompt });
+  const parameters: Record<string, unknown> = { size: o.size || '1280*1280', n: 1, watermark: false, prompt_extend: !o.referenceImage };
+  if (o.negativePrompt) parameters.negative_prompt = o.negativePrompt.slice(0, 500);
+  if (typeof o.seed === 'number' && Number.isFinite(o.seed)) parameters.seed = o.seed;
+
+  const res = await fetch(IMAGE_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, input: { messages: [{ role: 'user', content }] }, parameters }),
+    signal: o.signal,
+  });
+  if (!res.ok) throw new Error(`${model} error (${res.status}): ${(await res.text()).slice(0, 400)}`);
+  const url = findDashscopeImageUrl(await res.json());
+  if (!url) throw new Error(`No image URL in ${model} response`);
+  return { url, model };
+}
+
 // ── Video (Wan) ──────────────────────────────────────────────────────────────
 
 /**

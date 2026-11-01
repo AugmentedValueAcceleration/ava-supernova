@@ -54,12 +54,10 @@ import type {
   ExtToDashboardMessage,
   DashboardToExtMessage,
   DashboardSettings,
-  AccountInfo,
   ConnectionStatus,
   ConversationEntry,
   ProviderKeyStatus,
   MemoryEntry,
-  UsageLogEntry,
   DashboardTaskEntry,
   DashboardJournalEntry,
   DashboardJournalDay,
@@ -84,8 +82,6 @@ import type {
   HealthRecipeDraft,
   ReleaseNote,
   RoadmapTheme,
-  SupportTicket,
-  SupportTicketMessage,
 } from './dashboard-message-types.js';
 import * as healthStore from './health-file-store.js';
 import type { GymSession } from '@ava/core/health';
@@ -97,6 +93,7 @@ import { exportDocument } from '@ava/core/authoring';
 import { readLocalCreative, readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
 import { scanStorage, reclaimStorage, measureProjects, readProjectsUsage } from './storage-scan.js';
 import { projectsHomeFrom } from '@ava/core/projects/home';
+import { qwenImage, qwenTts, wanSubmit, wanWait } from '@ava/core/creative/dashscope';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
@@ -127,7 +124,6 @@ const CHAT_MESSAGE_TYPES = new Set([
 
 // ─── Platform API ─────────────────────────────────────────────────────────────
 
-const PLATFORM_KEY_SECRET = 'ava-supernova.platformKey';
 
 // BYOK provider key secrets
 const PROVIDER_KEY_SECRETS: Record<string, string> = {
@@ -173,9 +169,6 @@ export class DashboardPanel {
   private readonly context: vscode.ExtensionContext;
   private readonly secrets: vscode.SecretStorage;
   private disposables: vscode.Disposable[] = [];
-  private supportPollInterval?: ReturnType<typeof setInterval>;
-  /** Ref label ("AVA-1042") of the ticket the Support tab has open, if any. */
-  private activeSupportTicketRef?: string;
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
@@ -321,17 +314,6 @@ export class DashboardPanel {
       });
     }
 
-    // Re-fetch account data when the panel becomes visible again
-    this.panel.onDidChangeViewState(
-      () => {
-        if (this.panel.visible) {
-          this.refreshAccount();
-        }
-      },
-      null,
-      this.disposables,
-    );
-
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
   }
 
@@ -454,22 +436,6 @@ export class DashboardPanel {
 
       case 'remove_connection':
         await this.removeConnection(msg.service);
-        break;
-
-      case 'load_usage_logs':
-        await this.loadUsageLogs(msg.period);
-        break;
-
-      case 'open_checkout':
-        await this.openCheckout(msg.plan);
-        break;
-
-      case 'open_topup':
-        await this.openTopup(msg.package);
-        break;
-
-      case 'open_portal':
-        await this.openPortal();
         break;
 
       case 'save_settings':
@@ -655,18 +621,6 @@ export class DashboardPanel {
         break;
       }
 
-      case 'update_name':
-        await this.updateName(msg.name);
-        break;
-
-      case 'refresh_account':
-        await this.refreshAccount();
-        break;
-
-      case 'refresh_storage':
-        await this.refreshStorage();
-        break;
-
       case 'load_conversations':
         await this.loadConversations();
         break;
@@ -677,33 +631,6 @@ export class DashboardPanel {
 
       case 'delete_conversation':
         await this.deleteConversation(msg.id);
-        break;
-
-      // ─── Support tickets (private, answered by the team) ───────────────────
-
-      case 'load_support_tickets':
-        await this.loadSupportTickets();
-        break;
-
-      case 'open_support_ticket':
-        await this.openSupportTicket(msg.ref);
-        break;
-
-      case 'leave_support_ticket':
-        this.stopSupportPolling();
-        this.activeSupportTicketRef = undefined;
-        break;
-
-      case 'submit_support_ticket':
-        await this.submitSupportTicket(msg.category, msg.subject, msg.message);
-        break;
-
-      case 'send_support_ticket_reply':
-        await this.sendSupportTicketReply(msg.ref, msg.message);
-        break;
-
-      case 'set_support_ticket_status':
-        await this.setSupportTicketStatus(msg.ref, msg.action);
         break;
 
       // ─── BYOK messages ──────────────────────────────────────────────────────
@@ -738,10 +665,6 @@ export class DashboardPanel {
 
       case 'load_session_tasks':
         this.post({ type: 'session_tasks_updated', tasks: this.getSessionTasks() });
-        break;
-
-      case 'load_usage_history':
-        await this.loadUsageHistory();
         break;
 
       // ─── Task messages ──────────────────────────────────────────────────────
@@ -891,18 +814,10 @@ export class DashboardPanel {
           // a browse UI that hides categories is worse than no browse UI.
           params.set('limit', '100');
           const url = `/learning/library?${params.toString()}`;
-          // Public endpoint — try with platform key if available, otherwise direct fetch
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          if (platformKey) {
-            const res = await apiFetch(url, { platformKey });
-            const body = (res.data && typeof res.data === 'object') ? res.data as Record<string, unknown> : {};
-            this.post({ type: 'library_paths_loaded', paths: ((body.paths as LibraryPath[] | undefined) ?? []), total: (body.total as number) || 0 });
-          } else {
-            // Direct public fetch for BYOK users
-            const res = await fetch(`https://avasupernova.com/api${url}`);
-            const data = (await res.json()) as { paths?: LibraryPath[]; total?: number };
-            this.post({ type: 'library_paths_loaded', paths: data.paths ?? [], total: data.total ?? 0 });
-          }
+          // Public endpoint — no account needed.
+          const res = await apiFetch(url, {});
+          const body = (res.data && typeof res.data === 'object') ? res.data as Record<string, unknown> : {};
+          this.post({ type: 'library_paths_loaded', paths: ((body.paths as LibraryPath[] | undefined) ?? []), total: (body.total as number) || 0 });
         } catch {
           this.post({ type: 'library_paths_loaded', paths: [], total: 0 });
         }
@@ -939,13 +854,10 @@ export class DashboardPanel {
           const fs = await import('node:fs/promises');
           await fs.mkdir(this.getUserDataDir(), { recursive: true }).catch(() => {});
           await fs.writeFile(path.join(this.getUserDataDir(), 'learning.json'), JSON.stringify(store, null, 2), 'utf-8');
-          // Best-effort: bump the public library's learner count when signed
-          // in. The intent goes with it so a SAVE does not count as a learner
-          // — "N learners" that includes bookmarks means neither.
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          if (platformKey) {
-            apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', platformKey, body: { intent } }).catch(() => { /* analytics only */ });
-          }
+          // Best-effort: bump the public library's learner count (anonymous,
+          // by device id). The intent goes with it so a SAVE does not count as
+          // a learner — "N learners" that includes bookmarks means neither.
+          apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', body: { intent } }).catch(() => { /* analytics only */ });
           this.post({
             type: 'library_path_forked',
             curriculumId: curriculum.id,
@@ -957,31 +869,13 @@ export class DashboardPanel {
         break;
       }
 
-      case 'publish_to_library': {
-        const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-        if (!platformKey) {
-          this.post({ type: 'error', message: 'Connect your Ava account to publish learning paths.' });
-          break;
-        }
-        try {
-          const res = await apiFetch('/learning/library', { method: 'POST', body: { curriculum_id: msg.curriculumId }, platformKey });
-          const pubData = (res.data ?? {}) as { id?: string; status?: string; message?: string };
-          this.post({ type: 'library_path_published', pathId: pubData.id ?? '', status: pubData.status ?? '', message: pubData.message ?? '' });
-        } catch (err: any) {
-          this.post({ type: 'error', message: err.message || 'Failed to publish' });
-        }
-        break;
-      }
-
       // Any rateable thing: course, recipe, exercise, workout. One handler,
       // because three near-identical ones is how the two star widgets that
       // already existed managed to drift apart before a third was added.
       case 'rate_content': {
-        const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
         try {
           const res = await apiFetch('/feedback/content', {
             method: 'POST',
-            platformKey,
             body: {
               subject_type: msg.subjectType,
               subject_id: msg.subjectId,
@@ -1017,16 +911,10 @@ export class DashboardPanel {
       }
 
       case 'rate_library_path': {
-        // NO EARLY RETURN ON A MISSING KEY. This used to be
-        // `if (!platformKey) break`, which silently discarded every rating
-        // from a user without an account — precisely the BYOK users whose
-        // opinion is worth having. The endpoint accepts anonymous ratings
-        // keyed on the device id.
-        const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+        // Anonymous, keyed on the device id — there are no accounts.
         try {
           const res = await apiFetch('/feedback/content', {
             method: 'POST',
-            platformKey,
             body: {
               subject_type: 'course',
               subject_id: msg.id,
@@ -1237,13 +1125,9 @@ export class DashboardPanel {
           // (always) flow automatically. The server's auth-aware list path
           // returns published + caller's own pending/rejected rows.
           this.log(`[health-perf] HOST recv load_health_exercises seq=${seq} at ${t0}`);
-          const tKey = Date.now();
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          this.log(`[health-perf] HOST secrets.get seq=${seq} took ${Date.now() - tKey}ms`);
           this.log(`[health] load exercises seq=${seq} ${params.toString()}`);
           const tFetch = Date.now();
           const res = await apiFetch(`/health/exercises?${params.toString()}`, {
-            platformKey,
             method: 'GET',
             timeoutMs: 8000,
           });
@@ -1290,13 +1174,9 @@ export class DashboardPanel {
         if (msg.locale && msg.locale !== 'en') params.set('locale', msg.locale);
         try {
           this.log(`[health-perf] HOST recv load_health_recipes seq=${seq} at ${t0}`);
-          const tKey = Date.now();
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          this.log(`[health-perf] HOST secrets.get seq=${seq} took ${Date.now() - tKey}ms`);
           this.log(`[health] load recipes seq=${seq} ${params.toString()}`);
           const tFetch = Date.now();
           const res = await apiFetch(`/health/recipes?${params.toString()}`, {
-            platformKey,
             method: 'GET',
             timeoutMs: 8000,
           });
@@ -1331,11 +1211,9 @@ export class DashboardPanel {
           // Bare fetch was hitting the anon path, which RLS-hides any
           // non-published row — the submitter could never view their
           // own pending submission.
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          this.log(`[health] load exercise detail slug=${msg.slug} (auth=${platformKey ? 'user' : 'anonymous'})`);
+          this.log(`[health] load exercise detail slug=${msg.slug} `);
           const exDetailQs = msg.locale && msg.locale !== 'en' ? `?locale=${encodeURIComponent(msg.locale)}` : '';
           const res = await apiFetch(`/health/exercises/${encodeURIComponent(msg.slug)}${exDetailQs}`, {
-            platformKey,
             method: 'GET',
             timeoutMs: 8000,
           });
@@ -1354,11 +1232,9 @@ export class DashboardPanel {
 
       case 'load_health_recipe_detail': {
         try {
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          this.log(`[health] load recipe detail slug=${msg.slug} (auth=${platformKey ? 'user' : 'anonymous'})`);
+          this.log(`[health] load recipe detail slug=${msg.slug} `);
           const recDetailQs = msg.locale && msg.locale !== 'en' ? `?locale=${encodeURIComponent(msg.locale)}` : '';
           const res = await apiFetch(`/health/recipes/${encodeURIComponent(msg.slug)}${recDetailQs}`, {
-            platformKey,
             method: 'GET',
             timeoutMs: 8000,
           });
@@ -1376,31 +1252,25 @@ export class DashboardPanel {
       }
 
       // ─── Health submission flow ────────────────────────────────────────
-      // Community contributions. Taxonomies + my-submissions are open
-      // public reads (no auth needed on GET /taxonomies; mine requires
-      // platformKey). Submission POSTs require platformKey since they
-      // write to the catalog as the authenticated user.
+      // Community contributions — anonymous, by device id (no accounts).
 
       // ── Ask Ava to change ONE day ────────────────────────────────────
-      // Same dual auth as the draft generators: a platform key spends credits,
-      // the caller's own provider key spends nothing. It PROPOSES — the reply
+      // Runs on the user's own Qwen key, like the draft generators. It PROPOSES — the reply
       // is a day the operator can accept or discard, never a write.
       case 'generate_health_day': {
         try {
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           const byokKey = await this.secrets.get('ava-supernova.provider.qwen.apiKey');
-          const extraHeaders: Record<string, string> = {};
-          if (!platformKey && byokKey) extraHeaders['X-BYOK-Key'] = byokKey;
-          if (!platformKey && !byokKey) {
+          if (!byokKey) {
             this.post({
               type: 'health_day_generated',
               ok: false,
-              error: 'Ava generation needs a platform account or your own provider key in Settings.',
+              error: 'Ava generation needs your Qwen key — add it in Settings.',
             });
             break;
           }
+          // Both headers: the route's door needs the provider as well as the key.
+          const extraHeaders: Record<string, string> = { 'X-BYOK-Provider': 'qwen', 'X-BYOK-Key': byokKey };
           const res = await apiFetch('/health/generate/day', {
-            platformKey,
             method: 'POST',
             body: {
               type: msg.planType,
@@ -1410,7 +1280,7 @@ export class DashboardPanel {
               week: msg.week,
               instruction: msg.instruction,
               date: msg.date,
-              ...(byokKey && !platformKey ? { providerApiKey: byokKey } : {}),
+              providerApiKey: byokKey,
             },
             extraHeaders,
             timeoutMs: 120000,
@@ -1578,10 +1448,8 @@ export class DashboardPanel {
           // Auth optional — BYOK / no-account users contribute anonymously
           // via the device-id pseudonym (X-Ava-Device, already attached by
           // apiFetch). Signed-in users get full attribution.
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          this.log(`[health] submit ${kind} (auth=${platformKey ? 'user' : 'anonymous'})`);
+          this.log(`[health] submit ${kind} `);
           const res = await apiFetch(`/health/submissions/${kind}`, {
-            platformKey,
             method: 'POST',
             body: msg.payload,
             timeoutMs: 15000,
@@ -1609,31 +1477,25 @@ export class DashboardPanel {
       case 'generate_health_recipe_draft': {
         const kind = msg.type === 'generate_health_exercise_draft' ? 'exercise' : 'recipe';
         try {
-          // Two auth paths:
-          //  - Platform user: send platformKey → server uses platform Qwen
-          //    key + deducts 2 credits.
-          //  - BYOK / no-account: send the user's BYOK provider + key via
-          //    X-BYOK-* headers → server proxies the LLM call using their
-          //    key, no credit deduction.
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          // The user's own Qwen key via X-BYOK-* headers — the server proxies
+          // the call on their key.
           const byokProvider = await this.secrets.get('ava-supernova.provider.qwen.apiKey').then(k => k ? 'qwen' : null);
           const byokKey = byokProvider ? await this.secrets.get(`ava-supernova.provider.${byokProvider}.apiKey`) : null;
           const extraHeaders: Record<string, string> = {};
-          if (!platformKey && byokProvider && byokKey) {
+          if (byokProvider && byokKey) {
             extraHeaders['X-BYOK-Provider'] = byokProvider;
             extraHeaders['X-BYOK-Key'] = byokKey;
           }
-          if (!platformKey && !byokKey) {
+          if (!byokKey) {
             this.post({
               type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
               ok: false,
-              error: 'Ava generation needs a platform account or a BYOK provider key in Settings.',
+              error: 'Ava generation needs your Qwen key — add it in Settings.',
             });
             break;
           }
-          this.log(`[health] generate ${kind} draft (auth=${platformKey ? 'user' : `byok:${byokProvider}`})`);
+          this.log(`[health] generate ${kind} draft (byok:${byokProvider})`);
           const res = await apiFetch(`/health/generate/${kind}`, {
-            platformKey,
             method: 'POST',
             body: msg.intake,
             extraHeaders,
@@ -1830,8 +1692,7 @@ export class DashboardPanel {
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         if (msg.workoutType) params.set('workout_type', msg.workoutType);
         try {
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          const res = await apiFetch(`/health/exercises?${params.toString()}`, { platformKey, method: 'GET', timeoutMs: 8000 });
+          const res = await apiFetch(`/health/exercises?${params.toString()}`, { method: 'GET', timeoutMs: 8000 });
           const data = (res.ok ? res.data : {}) as { exercises?: HealthExerciseSummary[]; total?: number };
           this.post({ type: 'plan_exercises_searched', exercises: data.exercises ?? [], total: data.total ?? 0, seq });
         } catch {
@@ -1846,8 +1707,7 @@ export class DashboardPanel {
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         if (msg.course) params.set('course', msg.course);
         try {
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          const res = await apiFetch(`/health/recipes?${params.toString()}`, { platformKey, method: 'GET', timeoutMs: 8000 });
+          const res = await apiFetch(`/health/recipes?${params.toString()}`, { method: 'GET', timeoutMs: 8000 });
           const data = (res.ok ? res.data : {}) as { recipes?: HealthRecipeSummary[]; total?: number };
           this.post({ type: 'plan_recipes_searched', recipes: data.recipes ?? [], total: data.total ?? 0, seq });
         } catch {
@@ -1859,8 +1719,7 @@ export class DashboardPanel {
       case 'load_plan_exercise_detail': {
         const slug = msg.slug;
         try {
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          const res = await apiFetch(`/health/exercises/${encodeURIComponent(slug)}`, { platformKey, method: 'GET', timeoutMs: 8000 });
+          const res = await apiFetch(`/health/exercises/${encodeURIComponent(slug)}`, { method: 'GET', timeoutMs: 8000 });
           const data = (res.ok ? res.data : {}) as { exercise?: HealthExerciseDetail | null };
           this.post({ type: 'plan_exercise_detail_loaded', slug, exercise: data.exercise ?? null });
         } catch {
@@ -1872,8 +1731,7 @@ export class DashboardPanel {
       case 'load_plan_recipe_detail': {
         const slug = msg.slug;
         try {
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          const res = await apiFetch(`/health/recipes/${encodeURIComponent(slug)}`, { platformKey, method: 'GET', timeoutMs: 8000 });
+          const res = await apiFetch(`/health/recipes/${encodeURIComponent(slug)}`, { method: 'GET', timeoutMs: 8000 });
           const data = (res.ok ? res.data : {}) as { recipe?: HealthRecipeDetail | null };
           this.post({ type: 'plan_recipe_detail_loaded', slug, recipe: data.recipe ?? null });
         } catch {
@@ -1932,22 +1790,20 @@ export class DashboardPanel {
             },
           };
 
-          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           const byokProvider = await this.secrets.get('ava-supernova.provider.qwen.apiKey').then(k => k ? 'qwen' : null);
           const byokKey = byokProvider ? await this.secrets.get(`ava-supernova.provider.${byokProvider}.apiKey`) : null;
           const extraHeaders: Record<string, string> = {};
-          if (!platformKey && byokProvider && byokKey) {
+          if (byokProvider && byokKey) {
             extraHeaders['X-BYOK-Provider'] = byokProvider;
             extraHeaders['X-BYOK-Key'] = byokKey;
           }
-          if (!platformKey && !byokKey) {
-            this.post({ type: 'health_morning_brief_generated', ok: false, error: 'Brief generation needs a platform account or a BYOK provider key in Settings.' });
+          if (!byokKey) {
+            this.post({ type: 'health_morning_brief_generated', ok: false, error: 'The morning brief needs your Qwen key — add it in Settings.' });
             break;
           }
 
-          this.log(`[health] generate morning brief (auth=${platformKey ? 'user' : `byok:${byokProvider}`})`);
+          this.log(`[health] generate morning brief (byok:${byokProvider})`);
           const res = await apiFetch('/health/morning-brief', {
-            platformKey,
             method: 'POST',
             body: { context },
             extraHeaders,
@@ -2493,47 +2349,6 @@ export class DashboardPanel {
         }
         break;
 
-      case 'export_full_account_data': {
-        // GDPR Article 20 — full cloud-stored data dump via the
-        // /api/export-my-data endpoint. Auth-gated server-side; the
-        // host just proxies (we have the platform key in SecretStorage)
-        // and hands the JSON back to the webview which triggers a
-        // browser download via Blob + a-tag click.
-        try {
-          // Read directly from VS Code SecretStorage — same key the
-          // rest of the host uses for authenticated platform calls.
-          const ctx = (this.viewProvider as unknown as { context: vscode.ExtensionContext }).context;
-          const platformKey = await ctx?.secrets.get('ava-supernova.platformKey');
-          if (!platformKey) {
-            this.post({ type: 'error', message: 'Connect a platform account first to export your cloud-stored data.' } as any);
-            break;
-          }
-          const res = await fetch('https://avasupernova.com/api/export-my-data', {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${platformKey}` },
-          });
-          if (!res.ok) {
-            const body = await res.text();
-            this.post({ type: 'error', message: `Export failed: ${res.status} ${res.statusText} — ${body.slice(0, 200)}` } as any);
-            break;
-          }
-          const content = await res.text();
-          const datePart = todayLocal();
-          const filename = `ava-supernova-data-export-${datePart}.json`;
-          const uri = await vscode.window.showSaveDialog({
-            defaultUri: vscode.Uri.file(filename),
-            filters: { JSON: ['json'] },
-          });
-          if (!uri) break;
-          const fs = await import('node:fs/promises');
-          await fs.writeFile(uri.fsPath, content, 'utf-8');
-          this.post({ type: 'info', message: `Exported your cloud-stored data to ${uri.fsPath}` } as any);
-        } catch (err) {
-          this.post({ type: 'error', message: `Export failed: ${err instanceof Error ? err.message : err}` } as any);
-        }
-        break;
-      }
-
       case 'export_encrypted_backup':
         await this.handleExportEncryptedBackup((msg as { passphrase?: string }).passphrase ?? '');
         break;
@@ -2586,29 +2401,15 @@ export class DashboardPanel {
   // ─── Init ──────────────────────────────────────────────────────────────────
 
   private async sendInit(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     const connections = await this.getConnectionStatus();
 
-    // Read settings + provider keys from local storage first so the
-    // dashboard can render immediately. The account fetch races
-    // independently and posts an update message when it returns.
-    // Awaiting it in-line made the dashboard hang for 2-3 minutes on slow
-    // networks because the platform request had no timeout.
+    // Settings + provider keys come from this machine only.
     const settings = this.readSettings();
     const providerKeys = await this.getProviderKeyStatus();
     const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
-    // Persisted Platform/API-Key choice so the NavSidebar toggle renders the
-    // host's ACTUAL routing source on load (not just a key-presence guess) —
-    // keeps the toggle honest and in sync with the chat-header switch.
-    const providerSource = this.context.workspaceState.get<'platform' | 'byok'>('providerSource');
-
-    // Post init with account=null. The webview reads `platformKey` to
-    // know the user is signed in but the account snapshot is still
-    // loading — surfaces (NavSidebar account block, Billing) show their
-    // own loading state until account_updated arrives.
     // Welcome overlay gate — shows on the dashboard on every startup while the
-    // "show welcome on startup" preference is on (default true), for everyone
-    // regardless of sign-in. The overlay's checkbox + the VS Code setting toggle it.
+    // "show welcome on startup" preference is on (default true), for everyone.
+    // The overlay's checkbox + the VS Code setting toggle it.
     const welcomeOnStartup = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.showWelcomeOnStartup') ?? true;
     // Avatar goes WITH init rather than via a separate load_avatar round trip.
     // The round trip is one more thing that can fail to complete, and when it
@@ -2621,125 +2422,12 @@ export class DashboardPanel {
       if (dataUrl.startsWith('data:image/')) userAvatar = dataUrl;
     } catch { /* no avatar set */ }
 
-    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, platformKey: platformKey || undefined, providerSource, showWelcome: welcomeOnStartup, welcomeOnStartup, userAvatar } as never);
+    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, providerSource: 'byok', showWelcome: welcomeOnStartup, welcomeOnStartup, userAvatar } as never);
 
-    // Background account fetch — fire-and-forget. Posts account_updated
-    // when the platform responds (or times out at 10s). The dashboard
-    // shows a loading skeleton in account-dependent surfaces while we
-    // wait, then drops it the moment the snapshot arrives.
-    if (platformKey) {
-      this.fetchAccount(platformKey)
-        .then((account) => {
-          this.post({ type: 'account_updated', account });
-          if (account) {
-            // Own the account-scoped data dir the moment the account
-            // resolves — don't depend on the chat view having scoped
-            // first. Without this, reads hit the un-scoped dir and
-            // reported 0 local items for signed-in users.
-            this.accountScopedDir = path.join(AVA_HOME, 'users', account.id);
-            // The panel can resolve the account before the chat view does, so
-            // it records the last-account pointer too.
-            void this.context.globalState.update('ava.lastAccountId', account.id);
-            // The journal manager may have been cached against the un-scoped
-            // fallback dir (~/.ava) on dashboard mount — drop it so it rebuilds
-            // against the scoped dir, or a signed-in user's Ava-written entries
-            // (which land under ~/.ava/users/<id>/journal) never appear. Then
-            // re-emit this month so a Planner journal opened before the account
-            // resolved corrects itself (same fix the health re-emit below does).
-            this.journalManager = undefined;
-            { const now = new Date(); this.loadJournalMonth(now.getFullYear(), now.getMonth() + 1).catch(() => { /* non-fatal */ }); }
-            // TASKS, for exactly the same reason — and this one was missed.
-            // getTaskManager() caches against getUserDataDir(), so a Planner
-            // opened before the account resolved built a TaskManager on the
-            // un-scoped ~/.ava/tasks (empty for a signed-in user, whose tasks
-            // live under ~/.ava/users/<id>/tasks) and KEPT it for the session.
-            // The chat sidebar has its own host and scopes correctly, so the
-            // same three tasks showed there and the Planner stayed empty.
-            this.taskManager = undefined;
-            this.loadTasks().catch(() => { /* non-fatal */ });
-            // Memory load gated on account success — fire-and-forget too.
-            this.loadMemories().catch(() => { /* non-fatal */ });
-            // Re-emit health data too. It loaded on dashboard mount against the
-            // un-scoped fallback dir (~/.ava — empty for signed-in users whose
-            // data lives under ~/.ava/users/<id>), so the Command Center, Plans
-            // and profile would otherwise show nothing until a manual reload.
-            try {
-              this.post({ type: 'active_health_plans_loaded', plans: this.getActiveHealthPlans() });
-              this.post({ type: 'health_plans_loaded', plans: this.getHealthPlanIndex() });
-              this.post({ type: 'health_profile_loaded', profile: this.getHealthProfile() });
-              this.post({ type: 'general_profile_loaded', profile: this.getGeneralProfile() });
-            } catch { /* non-fatal — surfaces refetch on next navigation */ }
-          }
-        })
-        .catch(() => {
-          // fetchAccount swallows errors → returns null. This catch is
-          // belt-and-braces for unexpected throws.
-          this.post({ type: 'account_updated', account: null });
-        });
-    } else {
-      // BYOK user — no account fetch needed. Load local memories +
-      // session stats so the Memory + Usage panels render with data.
-      this.loadLocalMemories().catch(() => { /* non-fatal */ });
-      this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
-    }
-  }
-
-  // ─── Account ───────────────────────────────────────────────────────────────
-
-  private async fetchAccount(platformKey: string): Promise<AccountInfo | null> {
-    try {
-      const res = await apiFetch('/account-info', { platformKey });
-      if (!res.ok) return null;
-      return res.data as AccountInfo;
-    } catch {
-      return null;
-    }
-  }
-
-  private async refreshAccount(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-    const account = await this.fetchAccount(platformKey);
-    if (account) {
-      this.post({ type: 'account_updated', account });
-    }
-  }
-
-  /** Triggers /api/usage/recalculate-storage so the server re-sums the
-   *  user's memories, conversations, tasks, journal, and creative assets
-   *  into usage.storage_gb_used before refreshing the account snapshot.
-   *  Without this call the storage bar only updates when the nightly
-   *  pg_cron fires, which makes the Billing tab look permanently at
-   *  0 MB for active users between cron runs. Best-effort — server
-   *  failures never surface to the user, they just see the cached value. */
-  private async refreshStorage(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-    try {
-      await apiFetch('/usage/recalculate-storage', { method: 'POST', platformKey });
-    } catch {
-      // Non-fatal — fall through to whatever the account-info endpoint returns.
-    }
-    await this.refreshAccount();
-  }
-
-  private async updateName(name: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-    try {
-      const res = await apiFetch('/account-info', { method: 'PATCH', body: { name }, platformKey });
-      if (res.ok) {
-        // Re-fetch account to get updated data and push to webview
-        const account = await this.fetchAccount(platformKey);
-        if (account) {
-          this.post({ type: 'account_updated', account });
-        }
-      } else {
-        this.post({ type: 'error', message: 'Failed to update name.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to update name.' });
-    }
+    // Memories + session stats are local, so the Memory and Usage panels
+    // render with data straight away.
+    this.loadLocalMemories().catch(() => { /* non-fatal */ });
+    this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
   }
 
   // ─── Memories ──────────────────────────────────────────────────────────────
@@ -2923,164 +2611,6 @@ export class DashboardPanel {
     this.post({ type: 'connection_removed', service });
   }
 
-  // ─── Usage Logs ──────────────────────────────────────────────────────────
-
-  private async loadUsageLogs(period: '7d' | '30d' | 'all'): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/usage-logs?period=${period}`, { platformKey });
-      if (res.ok && typeof res.data === 'object' && res.data && 'logs' in res.data) {
-        this.post({ type: 'usage_logs_loaded', logs: (res.data as { logs: UsageLogEntry[] }).logs });
-      } else {
-        this.post({ type: 'usage_logs_loaded', logs: [] });
-      }
-    } catch {
-      this.post({ type: 'usage_logs_loaded', logs: [] });
-    }
-  }
-
-  // ─── Usage History (All-Time Analytics) ──────────────────────────────────────
-
-  private async loadUsageHistory(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'usage_history_loaded', data: null });
-      return;
-    }
-
-    try {
-      // Use unified usage summary API — single source of truth
-      const res = await apiFetch('/usage/summary', { platformKey });
-      if (!res.ok || !res.data) {
-        this.post({ type: 'usage_history_loaded', data: null });
-        return;
-      }
-
-      const summary = res.data as {
-        period: { credits_used: number; credits_limit: number | null; free_credits_used: number; free_credits_limit: number; requests_count: number };
-        tier: string;
-        isUnlimited: boolean;
-        daily: Array<{ date: string; tokens: number }>;
-        models: Array<{ model: string; total_tokens: number; request_count: number }>;
-        totals: { tokens: number; requests: number; active_days: number };
-      };
-
-      // Unified balance — sum free pool + subscription pool so the All-Time
-      // Credit Balance card matches the single bar shown on Billing / Usage
-      // tabs. Backend still burns free first then overflows, but the UI
-      // presents one number.
-      const balance = {
-        used: summary.period.free_credits_used + summary.period.credits_used,
-        limit: summary.period.free_credits_limit + (summary.period.credits_limit ?? 0),
-        tier: summary.tier,
-      };
-
-      // Pad daily to 14 days
-      const daily: Array<{ date: string; tokens: number }> = [];
-      const dailyMap: Record<string, number> = {};
-      for (const d of summary.daily) dailyMap[d.date] = d.tokens;
-      const now = new Date();
-      for (let i = 13; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        // UTC on purpose, and left that way in the 2026-08-17 local-day sweep.
-        // These strings are LOOKUP KEYS into dailyMap, which is built from the
-        // server's usage summary — and the server groups by UTC day. Render
-        // them locally and the keys stop matching for anyone away from UTC, so
-        // the chart quietly draws fourteen days of zero. Making this local
-        // means changing how the server buckets usage, not this line.
-        const dateStr = d.toISOString().slice(0, 10);
-        daily.push({ date: dateStr, tokens: dailyMap[dateStr] ?? 0 });
-      }
-
-      const topModels = summary.models.map(m => ({ model: m.model, tokens: m.total_tokens }));
-      const monthTotal = summary.totals.tokens;
-
-      this.post({
-        type: 'usage_history_loaded',
-        data: {
-          balance,
-          daily,
-          sessions: [],
-          monthTotal,
-          lastMonthTotal: 0,
-          topModels,
-          avgPerSession: 0,
-          totalSessions: summary.totals.requests,
-        },
-      });
-    } catch {
-      this.post({ type: 'usage_history_loaded', data: null });
-    }
-  }
-
-  // ─── Billing ───────────────────────────────────────────────────────────────
-
-  private async openCheckout(plan: 'pro' | 'ultra'): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'error', message: 'Please connect your account first.' });
-      return;
-    }
-
-    try {
-      const res = await apiFetch('/billing/checkout', { method: 'POST', body: { plan }, platformKey });
-      if (res.ok && typeof res.data === 'object' && res.data && 'url' in res.data) {
-        const uri = vscode.Uri.parse((res.data as { url: string }).url);
-        if (uri.scheme !== 'https') { this.post({ type: 'error', message: 'Invalid checkout URL.' }); return; }
-        vscode.env.openExternal(uri);
-      } else {
-        this.post({ type: 'error', message: 'Failed to create checkout session.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to create checkout session.' });
-    }
-  }
-
-  private async openTopup(pkg: 'starter' | 'standard' | 'pro_pack'): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'error', message: 'Please connect your account first.' });
-      return;
-    }
-
-    try {
-      const res = await apiFetch('/billing/topup', { method: 'POST', body: { package: pkg }, platformKey });
-      if (res.ok && typeof res.data === 'object' && res.data && 'url' in res.data) {
-        const uri = vscode.Uri.parse((res.data as { url: string }).url);
-        if (uri.scheme !== 'https') { this.post({ type: 'error', message: 'Invalid top-up URL.' }); return; }
-        vscode.env.openExternal(uri);
-      } else {
-        this.post({ type: 'error', message: 'Failed to create top-up session.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to create top-up session.' });
-    }
-  }
-
-  private async openPortal(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'error', message: 'Please connect your account first.' });
-      return;
-    }
-
-    try {
-      const res = await apiFetch('/billing/portal', { method: 'POST', platformKey });
-      if (res.ok && typeof res.data === 'object' && res.data && 'url' in res.data) {
-        const uri = vscode.Uri.parse((res.data as { url: string }).url);
-        if (uri.scheme !== 'https') { this.post({ type: 'error', message: 'Invalid portal URL.' }); return; }
-        vscode.env.openExternal(uri);
-      } else {
-        this.post({ type: 'error', message: 'Failed to open billing portal.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to open billing portal.' });
-    }
-  }
-
   // ─── Provider Keys ────────────────────────────────────────────────────────
 
   private async getProviderKeyStatus(): Promise<ProviderKeyStatus> {
@@ -3247,176 +2777,11 @@ export class DashboardPanel {
     }
   }
 
-  // ─── Support Tickets ──────────────────────────────────────────────────────
-  //
-  // ONE private ticket system, always answered by a person on the team — no AI
-  // first reply. Discord is the public place for questions; a ticket is for
-  // anything personal, or for people who would rather not ask in public.
-  //
-  // Every call needs the platform key. Without one (signed out, BYOK-only) the
-  // list comes back with `signedIn: false` and the webview shows the sign-in
-  // line instead of making calls that could only fail.
-
-  /** Ticket refs travel as "AVA-1042". Encoded anyway — it is going in a path. */
-  private ticketPath(ref: string): string {
-    return `/tickets/${encodeURIComponent(ref)}`;
-  }
-
-  /** The server's own `{ error }` text when it sent one (it is written for the
-   *  user, e.g. "Choose a category"), otherwise the fallback. */
-  private ticketError(data: unknown, fallback: string): string {
-    const err = (data as { error?: unknown } | null)?.error;
-    return typeof err === 'string' && err.trim() ? err : fallback;
-  }
-
-  private async loadSupportTickets(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'support_tickets_loaded', tickets: [], unread: 0, signedIn: false });
-      return;
-    }
-
-    try {
-      const res = await apiFetch('/tickets', { platformKey });
-      if (res.ok) {
-        const data = res.data as { tickets?: SupportTicket[]; unread?: number } | null;
-        const tickets = Array.isArray(data?.tickets) ? data.tickets : [];
-        // The server sends the total; summing is the fallback if it ever doesn't.
-        const unread = typeof data?.unread === 'number'
-          ? data.unread
-          : tickets.reduce((sum, t) => sum + (t.unread_user || 0), 0);
-        this.post({ type: 'support_tickets_loaded', tickets, unread, signedIn: true });
-      } else {
-        this.post({ type: 'support_tickets_loaded', tickets: [], unread: 0, signedIn: true, error: this.ticketError(res.data, 'Could not load your tickets.') });
-      }
-    } catch {
-      this.post({ type: 'support_tickets_loaded', tickets: [], unread: 0, signedIn: true, error: 'Could not load your tickets.' });
-    }
-  }
-
-  /** Open one ticket's thread. The GET marks it read server-side, so the list
-   *  is refreshed after it to clear the unread dot and the nav badge. While a
-   *  ticket stays open it is re-read every 30s so a team reply shows up without
-   *  a reload — a person answers, so polling faster buys nothing. `quiet` is
-   *  the re-read: no error banner, and the poll is left as it is. */
-  private async openSupportTicket(ref: string, quiet = false): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(this.ticketPath(ref), { platformKey });
-      if (res.ok) {
-        const data = res.data as { ticket: SupportTicket; messages?: SupportTicketMessage[] };
-        this.post({ type: 'support_ticket_loaded', ticket: data.ticket, messages: Array.isArray(data.messages) ? data.messages : [] });
-      } else if (!quiet) {
-        this.post({ type: 'support_ticket_failed', action: 'open', error: this.ticketError(res.data, 'Could not open that ticket.') });
-      }
-    } catch {
-      if (!quiet) this.post({ type: 'support_ticket_failed', action: 'open', error: 'Could not open that ticket.' });
-    }
-    void this.loadSupportTickets();
-
-    if (quiet) return;
-    this.activeSupportTicketRef = ref;
-    this.stopSupportPolling();
-    this.supportPollInterval = setInterval(() => {
-      if (this.activeSupportTicketRef) void this.openSupportTicket(this.activeSupportTicketRef, true);
-    }, 30_000);
-  }
-
-  private async submitSupportTicket(category: string, subject: string, message: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'support_ticket_failed', action: 'create', error: 'Sign in to your Ava Supernova account to open a private ticket.' });
-      return;
-    }
-
-    try {
-      const res = await apiFetch('/tickets', {
-        method: 'POST',
-        body: { category, subject, message, source: 'extension' },
-        platformKey,
-      });
-      const ticket = (res.data as { ticket?: SupportTicket } | null)?.ticket;
-      if (res.ok && ticket) {
-        this.post({ type: 'support_ticket_submitted', ticket });
-        // Land the user in the thread they just opened.
-        await this.openSupportTicket(ticket.ref_label);
-      } else {
-        this.post({ type: 'support_ticket_failed', action: 'create', error: this.ticketError(res.data, 'Could not open the ticket. Please try again.') });
-      }
-    } catch {
-      this.post({ type: 'support_ticket_failed', action: 'create', error: 'Could not open the ticket. Please try again.' });
-    }
-  }
-
-  private async sendSupportTicketReply(ref: string, message: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`${this.ticketPath(ref)}/messages`, {
-        method: 'POST',
-        body: { message },
-        platformKey,
-      });
-      if (res.ok) {
-        this.post({ type: 'support_ticket_reply_sent', ref });
-        await this.openSupportTicket(ref, true);
-      } else {
-        this.post({ type: 'support_ticket_failed', action: 'reply', error: this.ticketError(res.data, 'Could not send your reply. Please try again.') });
-      }
-    } catch {
-      this.post({ type: 'support_ticket_failed', action: 'reply', error: 'Could not send your reply. Please try again.' });
-    }
-  }
-
-  private async setSupportTicketStatus(ref: string, action: 'close' | 'reopen'): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-    const fallback = action === 'close' ? 'Could not close the ticket.' : 'Could not reopen the ticket.';
-
-    try {
-      const res = await apiFetch(this.ticketPath(ref), {
-        method: 'PATCH',
-        body: { action },
-        platformKey,
-      });
-      if (res.ok) {
-        await this.openSupportTicket(ref, true);
-      } else {
-        this.post({ type: 'support_ticket_failed', action, error: this.ticketError(res.data, fallback) });
-      }
-    } catch {
-      this.post({ type: 'support_ticket_failed', action, error: fallback });
-    }
-  }
-
-  private stopSupportPolling(): void {
-    if (this.supportPollInterval) {
-      clearInterval(this.supportPollInterval);
-      this.supportPollInterval = undefined;
-    }
-  }
-
   // ─── User Data Directory ────────────────────────────────────────────────────
   //
-  // All DashboardPanel data reads/writes go through this helper. It resolves to
-  // the account-scoped directory (`AVA_HOME/users/<account-id>/`) when a platform
-  // account is connected, and falls back to `AVA_HOME` for BYOK/no-account users.
-  //
-  // This used to be hardcoded to `AVA_HOME` in 15 different places, which meant
-  // account-connected users saw the wrong data everywhere in the dashboard — one
-  // page showed zero memories while the memory page correctly showed the real
-  // (account-scoped) count. The fix is to route everything through this single
-  // getter.
-
-  /** Account-scoped dir resolved from this panel's OWN account fetch — set
-   *  the moment fetchAccount returns in initializeData. Preferred over the
-   *  chat view provider's copy: the chat view may not have scoped yet, and
-   *  that ordering race made reads hit the un-scoped `~/.ava` and report 0
-   *  local items even though the data was safe under `users/<id>/`. */
-  private accountScopedDir: string | null = null;
+  // All DashboardPanel data reads/writes go through getUserDataDir(). Since
+  // accounts went (1 Nov 2026) it is always ~/.ava — account-era folders are
+  // merged into it once at startup by the chat host (core mergeAccountFolders).
 
   /**
    * Measure what a factory reset would remove, so the dialog can say what it
@@ -3477,7 +2842,6 @@ export class DashboardPanel {
     // Drop every cached handle that points at data which no longer exists,
     // or the panel keeps serving the deleted account's content from memory —
     // the same stale-handle trap disconnect_account already guards against.
-    this.accountScopedDir = null;
     this.taskManager = undefined;
     this.journalManager = undefined;
 
@@ -3501,7 +2865,7 @@ export class DashboardPanel {
   }
 
   private getUserDataDir(): string {
-    return this.accountScopedDir ?? this.viewProvider?.getAccountScopedDir() ?? AVA_HOME;
+    return AVA_HOME;
   }
 
   /** Load the account-scoped LOCAL creative gallery (~/.ava/users/<id>/creative)
@@ -5163,65 +4527,52 @@ export class DashboardPanel {
     pending.resolve(result);
   }
 
+  /** The user's own Qwen key — every Design Studio lane runs on it (no accounts). */
+  private async qwenKey(): Promise<string | undefined> {
+    return (await this.secrets.get('ava-supernova.provider.qwen.apiKey')) || undefined;
+  }
+
+  /** Bytes of an image the canvas handed over: a data: URL or a remote one. */
+  private async imageBytes(url: string): Promise<Uint8Array> {
+    if (url.startsWith('data:')) {
+      const { bytesFromDataUrl } = await import('@ava/core/creative/image-local');
+      return bytesFromDataUrl(url);
+    }
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Could not download the image (${res.status})`);
+    return new Uint8Array(await res.arrayBuffer());
+  }
+
   private async handleAssetForgeGenerate(body: { prompt: string; referenceImage?: string; size?: string; negativePrompt?: string; matte?: boolean }): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'asset_forge_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
+    const apiKey = await this.qwenKey();
+    if (!apiKey) {
+      this.post({ type: 'asset_forge_result', success: false, error: 'Design Studio needs your Qwen key — add it in Settings.' } as any);
       return;
     }
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${platformKey}`,
-      'X-Ava-Data-Mode': 'local',
-    };
     try {
-      // 1) Generate — the reference image (the shape silhouette) guides the material.
-      const genRes = await fetch('https://avasupernova.com/api/asset-forge/image', {
-        method: 'POST', headers,
-        body: JSON.stringify({
-          engine: 'qwen', prompt: body.prompt, referenceImage: body.referenceImage,
-          size: body.size || '1024*1024', negativePrompt: body.negativePrompt,
-        }),
+      // 1) Generate on the user's key — the reference image (the shape
+      // silhouette) guides the material.
+      const gen = await qwenImage(apiKey, {
+        prompt: body.prompt, referenceImage: body.referenceImage,
+        size: body.size || '1024*1024', negativePrompt: body.negativePrompt,
       });
-      if (!genRes.ok) {
-        const e = (await genRes.json().catch(() => ({}))) as { error?: string };
-        this.post({ type: 'asset_forge_result', success: false, error: e.error || `Generation failed (${genRes.status})` } as any);
-        return;
-      }
-      const gen = await genRes.json() as { url?: string };
-      if (!gen.url) {
-        this.post({ type: 'asset_forge_result', success: false, error: 'No image returned' } as any);
-        return;
-      }
 
-      // 2) Matte on the server (white-threshold → transparent). Non-fatal: on
-      // failure we return the raw generated URL so the result is still usable.
-      // The free-form image lane sets matte:false — a photo/illustration/scene
-      // must stay full-frame, so we SKIP the matte and return the raw url.
+      // 2) Bring it home as a data URL: the canvas can WebP-compress it (canvas
+      // can't read a cross-origin url), it lands offline-clean, and the matte
+      // (white → transparent) runs ON THIS MACHINE. The free-form image lane
+      // sets matte:false — a photo/illustration/scene stays full-frame.
+      // Non-fatal: on failure the raw generated URL is still usable.
       let dataUrl = gen.url;
-      if (body.matte !== false) {
-        try {
-          const bgRes = await fetch('https://avasupernova.com/api/asset-forge/remove-bg', {
-            method: 'POST', headers, body: JSON.stringify({ imageUrl: gen.url }),
-          });
-          if (bgRes.ok) {
-            const bg = await bgRes.json() as { dataUrl?: string };
-            if (bg.dataUrl) dataUrl = bg.dataUrl;
-          }
-        } catch { /* keep the raw url */ }
-      } else {
-        // Free-form image (no matte): proxy the remote url to a data URL so the
-        // webview can WebP-compress it before saving (canvas can't read a
-        // cross-origin url) — and so it lands offline-clean. Non-fatal.
-        try {
-          const imgRes = await fetch(gen.url);
-          if (imgRes.ok) {
-            const buf = Buffer.from(await imgRes.arrayBuffer());
-            const mime = imgRes.headers.get('content-type') || 'image/png';
-            dataUrl = `data:${mime};base64,${buf.toString('base64')}`;
-          }
-        } catch { /* keep the raw url */ }
-      }
+      try {
+        const bytes = await this.imageBytes(gen.url);
+        if (body.matte !== false) {
+          const { removeWhiteBackground } = await import('@ava/core/creative/image-local');
+          const { png } = await removeWhiteBackground(bytes);
+          dataUrl = `data:image/png;base64,${png.toString('base64')}`;
+        } else {
+          dataUrl = `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`;
+        }
+      } catch { /* keep the raw url */ }
 
       this.post({ type: 'asset_forge_result', success: true, dataUrl, rawUrl: gen.url } as any);
     } catch (err) {
@@ -5230,50 +4581,23 @@ export class DashboardPanel {
   }
 
   /**
-   * Logo lane — proxy a symbol raster to the server vectorizer (vtracer) and
-   * hand back a clean SVG. Host-proxied because the webview has no platform key
-   * (same reason generation goes through the host).
+   * Logo lane — trace a symbol raster to a clean SVG ON THIS MACHINE (core's
+   * vendored vtracer). Needs no key and sends nothing anywhere.
    */
   private async handleAssetForgeVectorize(imageUrl: string, mode?: 'bw' | 'color'): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'asset_forge_vectorize_result', success: false, error: 'Not connected. Add your account in Settings.' });
-      return;
-    }
     try {
-      const res = await fetch('https://avasupernova.com/api/asset-forge/vectorize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${platformKey}`,
-          'X-Ava-Data-Mode': 'local',
-        },
-        body: JSON.stringify({ imageUrl, mode: mode || 'bw' }),
-      });
-      if (!res.ok) {
-        const e = (await res.json().catch(() => ({}))) as { error?: string };
-        this.post({ type: 'asset_forge_vectorize_result', success: false, error: e.error || `Vectorize failed (${res.status})` });
-        return;
-      }
-      const out = (await res.json()) as { svg?: string };
-      if (!out.svg) {
+      const { vectorizeLogo } = await import('@ava/core/creative/image-local');
+      const svg = await vectorizeLogo(await this.imageBytes(imageUrl), mode || 'bw');
+      if (!svg) {
         this.post({ type: 'asset_forge_vectorize_result', success: false, error: 'No SVG returned' });
         return;
       }
-      this.post({ type: 'asset_forge_vectorize_result', success: true, svg: out.svg });
+      this.post({ type: 'asset_forge_vectorize_result', success: true, svg });
     } catch (err) {
       this.post({ type: 'asset_forge_vectorize_result', success: false, error: err instanceof Error ? err.message : 'Vectorize failed' });
     }
   }
 
-  /**
-   * Design Studio video lane — mirror of handleAssetForgeGenerate for the async
-   * Wan 2.5 pipeline. Submit to POST /api/generate-video (returns a task_id),
-   * then poll the status route (reusing pollVideoStatus — the host has no
-   * serverless timeout) until the finished clip URL lands, and post it back to
-   * the canvas as `asset_forge_video_result`. Auth/headers match the generate
-   * lane (platform key + data-mode header).
-   */
   /**
    * Save a finished generation to the local creative gallery, host-side.
    *
@@ -5314,16 +4638,14 @@ export class DashboardPanel {
     // matches what the canvas would have called it.
     title?: string,
   ): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'asset_forge_video_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
+    // Design Studio video lane: Wan on the user's own Qwen key — submit (a task
+    // id back in ~1s), then poll from the host, which has no serverless timeout,
+    // until the clip lands; posted to the canvas as `asset_forge_video_result`.
+    const apiKey = await this.qwenKey();
+    if (!apiKey) {
+      this.post({ type: 'asset_forge_video_result', success: false, error: 'Design Studio needs your Qwen key — add it in Settings.' } as any);
       return;
     }
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${platformKey}`,
-      'X-Ava-Data-Mode': 'local',
-    };
     // Register with the GenerationManager so the job survives navigation as
     // something the UI can SEE. The host already kept polling when the webview
     // unmounted — the work was never lost, only the delivery was, because the
@@ -5338,37 +4660,19 @@ export class DashboardPanel {
       targetPath: '',
     });
     try {
-      // 1) Submit — the route accepts the job (X-DashScope-Async) and hands back a task_id.
-      const submitRes = await fetch('https://avasupernova.com/api/generate-video', {
-        method: 'POST', headers,
-        body: JSON.stringify({ prompt: body.prompt, duration: body.duration, resolution: body.resolution, aspect: body.aspect }),
+      // 1) Submit — DashScope accepts the job (X-DashScope-Async) and hands back a task id.
+      const { taskId } = await wanSubmit(apiKey, {
+        prompt: body.prompt, duration: body.duration, resolution: body.resolution, aspect: body.aspect,
       });
-      if (!submitRes.ok) {
-        const e = (await submitRes.json().catch(() => ({}))) as { error?: string };
-        const msg = e.error || `Video generation failed (${submitRes.status})`;
-        gm?.fail(jobId, msg);
-        this.post({ type: 'asset_forge_video_result', success: false, error: msg } as any);
-        return;
-      }
-      const data = await submitRes.json() as { task_id?: string; url?: string };
-      // A synchronous URL (some paths) short-circuits the poll.
-      if (data.url) {
-        gm?.complete(jobId, { url: data.url });
-        this.post({ type: 'asset_forge_video_result', success: true, url: data.url } as any);
-        return;
-      }
-      if (!data.task_id) {
-        gm?.fail(jobId, 'No task_id returned');
-        this.post({ type: 'asset_forge_video_result', success: false, error: 'No task_id returned' } as any);
-        return;
-      }
       // Accepted and queued at Wan. The bar advances on STAGE, never on a
       // guessed percentage — the status endpoint reports a state and no number.
       gm?.update(jobId, { status: 'generating', progress: 35 });
-      // 2) Poll until terminal (reuses the existing 5s-cadence / ~8-min-ceiling loop).
-      const final = await this.pollVideoStatus(String(data.task_id), platformKey);
+      // 2) Poll until terminal (5s, backing off to 15s; generous ceiling).
+      const final = await wanWait(apiKey, taskId, { ceilingMs: VIDEO_POLL_CEILING_MS })
+        .then((url) => ({ success: true as const, url, error: undefined }))
+        .catch((e: unknown) => ({ success: false as const, url: undefined, error: e instanceof Error ? e.message : String(e) }));
       if (final.success) {
-        const url = (final.data as { url?: string } | undefined)?.url;
+        const url = final.url;
         gm?.complete(jobId, { url });
         this.post({ type: 'asset_forge_video_result', success: true, url } as any);
         if (url) {
@@ -5404,8 +4708,7 @@ export class DashboardPanel {
    * Design Studio voice lane — mirror of handleAssetForgeVideo but SYNCHRONOUS.
    * Qwen3-TTS returns the finished audio URL in a single POST response (no
    * task_id / poll), so we make one request and post the clip straight back to
-   * the canvas as `asset_forge_voice_result`. Auth/headers match the other
-   * lanes (platform key + data-mode header).
+   * the canvas as `asset_forge_voice_result`. Runs on the user's own Qwen key.
    */
   private async handleAssetForgeVoice(
     body: { text: string; voice?: string; language_type?: string; speech_rate?: number; volume?: number },
@@ -5416,35 +4719,18 @@ export class DashboardPanel {
     designRequestId?: string,
     title?: string,
   ): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'asset_forge_voice_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
+    const apiKey = await this.qwenKey();
+    if (!apiKey) {
+      this.post({ type: 'asset_forge_voice_result', success: false, error: 'Design Studio needs your Qwen key — add it in Settings.' } as any);
       return;
     }
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${platformKey}`,
-      'X-Ava-Data-Mode': 'local',
-    };
     try {
-      const res = await fetch('https://avasupernova.com/api/generate-voice', {
-        method: 'POST', headers,
-        // speech_rate and volume, not `instructions`: this speech model
-        // ignores written direction entirely. Undefined fields drop out of
-        // the JSON, which is what we want — the platform route only sends a
-        // parameter it was actually given.
-        body: JSON.stringify({ text: body.text, voice: body.voice, language_type: body.language_type, speech_rate: body.speech_rate, volume: body.volume }),
+      // speech_rate and volume, not `instructions`: this speech model
+      // ignores written direction entirely. Unset fields are not sent.
+      const data = await qwenTts(apiKey, {
+        text: body.text, voice: body.voice, language: body.language_type,
+        speechRate: body.speech_rate, volume: body.volume,
       });
-      if (!res.ok) {
-        const e = (await res.json().catch(() => ({}))) as { error?: string };
-        this.post({ type: 'asset_forge_voice_result', success: false, error: e.error || `Voice generation failed (${res.status})` } as any);
-        return;
-      }
-      const data = await res.json() as { url?: string };
-      if (!data.url) {
-        this.post({ type: 'asset_forge_voice_result', success: false, error: 'No audio returned' } as any);
-        return;
-      }
       // Proxy the audio to a data: URL. The Qwen/DashScope url is cross-origin with
       // no CORS headers, which breaks the webview's Web Audio decode (the waveform)
       // and can block playback. A same-origin data: URL always plays + decodes —
@@ -5468,48 +4754,6 @@ export class DashboardPanel {
       this.post({ type: 'asset_forge_voice_result', success: false, error: msg } as any);
       if (designRequestId) this.handleDesignToolResult(designRequestId, { ok: false, error: msg });
     }
-  }
-
-  /**
-   * Poll the async video status route until the job finishes. Runs in the
-   * extension host (no Vercel 60s cap), on a 5s cadence with an ~8-minute
-   * ceiling. Transient poll failures are tolerated — only an explicit
-   * `failed` status or the timeout ends the loop. Returns the final status
-   * payload ({ url, asset }) so the webview's `data.url` read works
-   * unchanged.
-   */
-  private async pollVideoStatus(
-    taskId: string,
-    platformKey: string,
-  ): Promise<{ success: boolean; data?: unknown; error?: string }> {
-    const statusUrl = `https://avasupernova.com/api/generate-video/status/${encodeURIComponent(taskId)}`;
-    // Measured 28 August on wan3.0: two 30-second renders of the same shape took
-    // 8 minutes and 25 minutes — queue contention, not clip length, so a short
-    // clip is not reliably quick either. The old ceiling was 8 minutes, set when
-    // wan2.5 only made 5 and 10 second clips.
-    //
-    // A timeout is the most expensive failure available: the render succeeds, we
-    // are billed, and the user is told it failed. So the ceiling is generous and
-    // the cadence backs off — 5s while it might be about to land, 15s once we
-    // are plainly waiting, which is FEWER requests across a 25-minute render than
-    // the old loop made across an 8-minute one.
-    const CEILING_MS = VIDEO_POLL_CEILING_MS;
-    const FAST_WINDOW_MS = 2 * 60 * 1000;
-    const started = Date.now();
-    while (Date.now() - started < CEILING_MS) {
-      await new Promise(r => setTimeout(r, Date.now() - started < FAST_WINDOW_MS ? 5000 : 15000));
-      try {
-        const res = await fetch(statusUrl, { headers: { 'Authorization': `Bearer ${platformKey}` } });
-        if (!res.ok) continue; // transient — keep polling
-        const data = await res.json() as { status?: string; url?: string; error?: string };
-        if (data?.status === 'success' && data?.url) return { success: true, data };
-        if (data?.status === 'failed') return { success: false, error: data?.error || 'Video generation failed' };
-        // status === 'processing' — keep going
-      } catch {
-        // transient network blip — keep polling until the ceiling
-      }
-    }
-    return { success: false, error: 'Video generation timed out' };
   }
 
   private async handleLoadLatestRelease(): Promise<void> {
@@ -5550,7 +4794,6 @@ export class DashboardPanel {
     DashboardPanel.currentPanel = undefined;
     DashboardPanel.onDisposeCallback?.();
     if (this.announcementTimer) { clearInterval(this.announcementTimer); this.announcementTimer = null; }
-    this.stopSupportPolling();
     this.panel.dispose();
     for (const d of this.disposables) d.dispose();
     this.disposables = [];

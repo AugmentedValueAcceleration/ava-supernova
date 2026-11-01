@@ -2,7 +2,7 @@
 // plan, 1 Nov 2026). Before this, an own key was POSTed to OUR server, which
 // only accepts our platform keys — so own-key voice and video never worked.
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { buildWanRequest, qwenTts, wanStatus, wanSubmit, DASHSCOPE_BASE } from '../src/creative/dashscope.js';
+import { buildWanRequest, qwenImage, qwenTts, wanStatus, wanSubmit, DASHSCOPE_BASE } from '../src/creative/dashscope.js';
 import { GenerateVoiceTool } from '../src/tools/generate-voice.js';
 
 type Call = { url: string; init: RequestInit };
@@ -46,6 +46,19 @@ describe('direct calls', () => {
     const body = JSON.parse(String(calls[0].init.body));
     expect(body.input.voice).toBe('Bellona');
     expect(body.parameters).toEqual({ speech_rate: 2, volume: 0 });
+  });
+
+  it('image: a reference switches to the edit model and turns the prompt rewriter off', async () => {
+    const calls = mockFetch(() => ({ output: { choices: [{ message: { content: [{ image: 'https://oss/i.png' }] } }] } }));
+    const out = await qwenImage('sk-ws-user', { prompt: 'brass', referenceImage: 'data:image/png;base64,AA', negativePrompt: 'text' });
+    expect(out).toEqual({ url: 'https://oss/i.png', model: 'qwen-image-edit-max' });
+    expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer sk-ws-user');
+    const body = JSON.parse(String(calls[0].init.body));
+    expect(body.input.messages[0].content).toEqual([{ image: 'data:image/png;base64,AA' }, { text: 'brass' }]);
+    expect(body.parameters).toMatchObject({ prompt_extend: false, negative_prompt: 'text', watermark: false });
+    const plain = await qwenImage('k', { prompt: 'a comet' });
+    expect(plain.model).toBe('qwen-image-3.0-pro');
+    expect(JSON.parse(String(calls[1].init.body)).parameters.prompt_extend).toBe(true);
   });
 
   it('video: submits async and reads the job states', async () => {
