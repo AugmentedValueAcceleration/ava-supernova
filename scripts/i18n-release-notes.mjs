@@ -72,6 +72,52 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 516,
+    version: '0.109.7',
+    platform: 'extension',
+    toolCount: 83,
+    publishedAt: '2026-11-01 01:40:00+00',
+    title: `A Talk switch, so you choose when I build`,
+    body: `There is a new switch next to Send: **Talk | Build**.
+
+In Code mode I am a builder — ask me something and I will usually go and change things. That is not always what you want. Sometimes you want to think a problem through first, and you should not have to keep switching modes to do it.
+
+**Talk** keeps us in Code mode but takes my hands off the project. I can still read your files, search the code and look things up on the web — so my answers are about your actual code, not a guess — but I cannot edit, write, run commands, commit, or run tests or builds. I will describe the change I would make instead. **Build** puts everything back. Flip it whenever you like; nothing about the conversation resets, and it remembers your choice.
+
+It cannot be talked around, either: while Talk is on I cannot hand the work to a Builder, and if you ask for my planning team you get the read-only one.
+
+**My planning team works again.** When you asked for a full plan, my specialists — Scout, Architect, Challenger, Verifier — were each showing a red cross. They were failing for a reason on our side, not yours, and that is fixed: the team runs, and you get the plan. If one of them ever does fail now, the panel tells you why instead of just showing the cross.`,
+    highlights: [
+      'New Talk | Build switch next to Send in Code mode.',
+      'Talk: I read and research your code, but change nothing.',
+      'Build: I am free to edit files and run commands again.',
+      'My planning team works again, and says why if one fails.',
+    ],
+  },
+  {
+    migration: 517,
+    version: '0.54.6',
+    platform: 'ide',
+    toolCount: 95,
+    publishedAt: '2026-11-01 01:40:00+00',
+    title: `A Talk switch, so you choose when I build`,
+    body: `There is a new switch next to Send: **Talk | Build**.
+
+In Code mode I am a builder — ask me something and I will usually go and change things. That is not always what you want. Sometimes you want to think a problem through first, and you should not have to keep switching modes to do it.
+
+**Talk** keeps us in Code mode but takes my hands off the project. I can still read your files, search the code and look things up on the web — so my answers are about your actual code, not a guess — but I cannot edit, write, run commands, commit, or run tests or builds. I will describe the change I would make instead. **Build** puts everything back. Flip it whenever you like; nothing about the conversation resets, and it remembers your choice.
+
+It cannot be talked around, either: while Talk is on I cannot hand the work to a Builder, and if you ask for my planning team you get the read-only one.
+
+**My planning team works again.** When you asked for a full plan, my specialists — Scout, Architect, Challenger, Verifier — were each showing a red cross. They were failing for a reason on our side, not yours, and that is fixed: the team runs, and you get the plan. If one of them ever does fail now, the panel tells you why instead of just showing the cross.`,
+    highlights: [
+      'New Talk | Build switch next to Send in Code mode.',
+      'Talk: I read and research your code, but change nothing.',
+      'Build: I am free to edit files and run commands again.',
+      'My planning team works again, and says why if one fails.',
+    ],
+  },
+  {
     migration: 514,
     version: '0.109.6',
     platform: 'extension',
