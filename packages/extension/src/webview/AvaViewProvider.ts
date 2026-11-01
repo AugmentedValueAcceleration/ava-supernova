@@ -8,7 +8,6 @@ import {
   Conversation,
   ToolRegistry,
   ProviderRegistry,
-  PlatformProvider,
   GenericProvider,
   HistoryManager,
   MemoryManager,
@@ -18,6 +17,7 @@ import {
   ProviderHealthTracker,
   ResilientProvider,
   AVA_HOME,
+  mergeAccountFolders,
   getChatModePrefix,
   getTeachModePrefix,
   getSecurityModePrefix,
@@ -322,7 +322,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
   private projectInstructions?: string;
   private decisionsState?: import('@ava/core').DecisionsState;
-  private signInManager?: import('./sign-in-manager.js').SignInManager;
   /**
    * Ava's working set of granted secrets — populated by user grants from the
    * vault, scoped to the current chat session, wiped on new_chat. Used by
@@ -350,64 +349,34 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private accountScopedDir: string = AVA_HOME; // scoped per account when connected
 
   /** globalState key holding the LAST account this machine signed into.
-   *  Survives sign-out on purpose — see resolveSignedOutScope. */
+   *  Read once more, by bringAccountDataHome, to know which account folder
+   *  the user was looking at. Nothing writes it any more. */
   private static readonly LAST_ACCOUNT_KEY = 'ava.lastAccountId';
 
   /**
-   * Where a SIGNED-OUT user's data lives.
-   *
-   * Not AVA_HOME by default — signing out must not hide files you already
-   * have. We go and LOOK under ~/.ava/users rather than trusting a pointer we
-   * hoped to have written earlier: that pointer is only recorded while signed
-   * in, so for anyone already signed out it is absent and the fallback never
-   * fires. One folder means that is your data. Several, and the pointer breaks
-   * the tie, or the most recently touched one does. None, and the flat layout
-   * stands.
+   * Merge any account-era folder (~/.ava/users/<id>) into ~/.ava, once.
+   * The account the extension last signed into is preferred; without that
+   * pointer, core picks the folder with the most signs of use — the same one
+   * a signed-out user was being shown. A leftover platform key is removed so
+   * nothing can route back onto account-only paths.
    */
-  private resolveSignedOutScope(): string {
-    try {
-      const path = require('node:path');
-      const fs = require('node:fs');
-      const usersDir = path.join(AVA_HOME, 'users');
-      if (!fs.existsSync(usersDir)) return AVA_HOME;
-      const dirs: string[] = fs.readdirSync(usersDir, { withFileTypes: true })
-        .filter((e: any) => e.isDirectory())
-        .map((e: any) => e.name);
-      if (dirs.length === 0) return AVA_HOME;
-      if (dirs.length === 1) return path.join(usersDir, dirs[0]);
-
-      const last = this.context.globalState.get<string>(AvaViewProvider.LAST_ACCOUNT_KEY);
-      if (last && dirs.includes(last)) return path.join(usersDir, last);
-
-      // Several accounts, no pointer — pick by what is IN each folder. NOT by
-      // the folder's own mtime: that only moves when direct children are added
-      // or removed, so on a real machine the live 124 MB account read as OLDER
-      // than a near-empty one and mtime picked the empty one.
-      const MARKERS = [
-        'creative/metadata.json', 'journal', 'tasks', 'history',
-        'learning.json', 'health', 'memory.json', 'general.json',
-      ];
-      let best = dirs[0];
-      let bestHits = -1;
-      let bestAt = -1;
-      for (const d of dirs) {
-        let hits = 0;
-        let at = 0;
-        for (const marker of MARKERS) {
-          try {
-            const st = fs.statSync(path.join(usersDir, d, ...marker.split('/')));
-            hits++;
-            if (st.mtimeMs > at) at = st.mtimeMs;
-          } catch { /* marker absent — that is the signal */ }
+  private accountDataHomeRun?: Promise<void>;
+  private bringAccountDataHome(): Promise<void> {
+    if (!this.accountDataHomeRun) {
+      this.accountDataHomeRun = (async () => {
+        try {
+          const report = await mergeAccountFolders(AVA_HOME, {
+            preferredAccount: this.context.globalState.get<string>(AvaViewProvider.LAST_ACCOUNT_KEY),
+            log: (line) => this.log(line),
+          });
+          if (report.merged) this.log(`Account data brought home: ${report.copied} copied, ${report.listsMerged} merged, ${report.keptAside.length} kept aside`);
+        } catch (err) {
+          this.log(`Account data merge failed (data left where it was): ${err instanceof Error ? err.message : String(err)}`);
         }
-        if (hits > bestHits || (hits === bestHits && at > bestAt)) {
-          bestHits = hits; bestAt = at; best = d;
-        }
-      }
-      return path.join(usersDir, best);
-    } catch {
-      return AVA_HOME;
+        try { await this.context.secrets.delete('ava-supernova.platformKey'); } catch { /* none stored */ }
+      })();
     }
+    return this.accountDataHomeRun;
   }
 
   /**
@@ -423,123 +392,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    */
   public getAccountScopedDir(): string {
     return this.accountScopedDir;
-  }
-
-  /**
-   * One-time migration of legacy chat transcripts from the old unscoped
-   * `~/.ava/history` into the account-scoped `<scopedDir>/history`. History
-   * was the one data type that wasn't account-scoped, which meant (a) two
-   * accounts on one machine shared transcripts, and (b) the scoped export read
-   * an empty dir and exported zero conversations. Runs only when the legacy
-   * dir has transcripts and the scoped dir has none yet — idempotent.
-   */
-  /**
-   * One-time move of a single legacy file from the unscoped `~/.ava/<name>`
-   * into the account-scoped `<scopedDir>/<name>`. No-op if the legacy file is
-   * absent or the scoped one already exists. Used for personality.json, which
-   * was stored unscoped while everything else moved to per-account dirs.
-   */
-  private async migrateFileToScopedDir(name: string, scopedDir: string): Promise<void> {
-    if (scopedDir === AVA_HOME) return;
-    try {
-      const fs = await import('node:fs/promises');
-      const path = await import('node:path');
-      const legacy = path.join(AVA_HOME, name);
-      const scoped = path.join(scopedDir, name);
-      const fsSync = await import('node:fs');
-      if (!fsSync.existsSync(legacy) || fsSync.existsSync(scoped)) return;
-      await fs.mkdir(scopedDir, { recursive: true });
-      try {
-        await fs.rename(legacy, scoped);
-      } catch {
-        await fs.writeFile(scoped, await fs.readFile(legacy, 'utf-8'), 'utf-8');
-        await fs.unlink(legacy).catch(() => {});
-      }
-      this.log(`[migrate] moved ${name} into the account-scoped dir`);
-    } catch (err) {
-      this.log(`[migrate] ${name} failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  private async migrateHistoryToScopedDir(scopedDir: string): Promise<void> {
-    if (scopedDir === AVA_HOME) return;
-    try {
-      const fs = await import('node:fs/promises');
-      const path = await import('node:path');
-      const legacyDir = path.join(AVA_HOME, 'history');
-      const scopedHistory = path.join(scopedDir, 'history');
-      const legacyJson = (await fs.readdir(legacyDir).catch(() => [] as string[])).filter(f => f.endsWith('.json'));
-      if (legacyJson.length === 0) return;
-      const scopedJson = (await fs.readdir(scopedHistory).catch(() => [] as string[])).filter(f => f.endsWith('.json'));
-      if (scopedJson.length > 0) return; // already migrated
-      await fs.mkdir(scopedHistory, { recursive: true });
-      let moved = 0;
-      for (const f of legacyJson) {
-        const from = path.join(legacyDir, f);
-        const to = path.join(scopedHistory, f);
-        try {
-          await fs.rename(from, to);
-        } catch {
-          // Cross-device or locked — fall back to copy + unlink.
-          try {
-            await fs.writeFile(to, await fs.readFile(from, 'utf-8'), 'utf-8');
-            await fs.unlink(from).catch(() => {});
-          } catch { continue; }
-        }
-        moved++;
-      }
-      this.log(`[history-migrate] moved ${moved} conversation(s) into the account-scoped dir`);
-    } catch (err) {
-      this.log(`[history-migrate] failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  /**
-   * Handle a vscode://.../auth callback from the website, delegating to the
-   * SignInManager. Called by the UriHandler registered in extension.ts.
-   * Returns true if the URI was consumed by a pending sign-in, false if
-   * it was for a different or stale attempt.
-   */
-  public async handleSignInCallback(uri: vscode.Uri): Promise<boolean> {
-    if (!this.signInManager) {
-      // Manager hasn't finished async import yet — wait briefly then retry
-      await new Promise(r => setTimeout(r, 100));
-    }
-    if (!this.signInManager) return false;
-    return this.signInManager.handleCallback(uri);
-  }
-
-  /**
-   * Public entry points for DashboardPanel to delegate sign-in actions.
-   * The dashboard has its own ConnectAccount screen (separate webview
-   * from the chat panel), but both use the same underlying SignInManager
-   * instance so events flow through to both surfaces automatically via
-   * externalPostMessage.
-   */
-  public async startSignInFromDashboard(method: 'github' | 'email'): Promise<void> {
-    if (!this.signInManager) {
-      // Wait briefly for the async import to complete — guards the
-      // edge case where the dashboard opens before the manager is ready.
-      await new Promise(r => setTimeout(r, 100));
-    }
-    if (!this.signInManager) {
-      // Still not ready — report a failure event to keep the UI moving
-      this.postMessage({
-        type: 'sign_in_failed',
-        error: 'Sign-in manager not ready yet. Please try again.',
-      } as any);
-      return;
-    }
-    try {
-      await this.signInManager.startSignIn(method);
-    } catch (err) {
-      this.log(`startSignInFromDashboard failed: ${err instanceof Error ? err.message : String(err)}`);
-      // SignInManager already emitted sign_in_failed — no need to post again
-    }
-  }
-
-  public cancelSignInFromDashboard(): void {
-    this.signInManager?.cancelSignIn();
   }
 
   /** Local-conversation list used by the dashboard's History tab.
@@ -619,22 +471,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.outputChannel = vscode.window.createOutputChannel('Ava Supernova');
     this.statusBar = new StatusBar('ava-supernova.switchModel');
 
-    // Sign-in manager — owns the OAuth device authorization flow for the
-    // extension. Created eagerly so the URI handler in extension.ts can
-    // delegate to it as soon as VS Code routes a vscode://...auth callback.
-    void (async () => {
-      const { SignInManager } = await import('./sign-in-manager.js');
-      this.signInManager = new SignInManager(this.context);
-      // Forward sign-in events to the webview so the UI can update state.
-      this.signInManager.onEvent((event) => {
-        this.postMessage(event as any);
-      });
-      // Resume a sign-in that was in flight when the extension host last
-      // reloaded — restarts the polling loop so a browser authorization that
-      // happened (or happens) during the reload still completes.
-      this.signInManager.resumePendingSignIn();
-    })();
-
     // Detect project and load instructions (also creates historyManager)
     // Store the promise so initializeSession can await it before using managers
     this.projectContextReady = this.refreshProjectContext();
@@ -650,17 +486,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.disposables.push(
       this.context.secrets.onDidChange(async (e) => {
         try {
-          if (e.key === 'ava-supernova.platformKey') {
-            this.cachedAccount = null;
-            this.accountScopedDir = this.resolveSignedOutScope(); // keep reading the last account's files
-            // Clear chat, conversation, and last ID so stale data doesn't reload
-            this.conversation = new Conversation();
-            this.setLastConversationId(undefined);
-            this.postMessage({ type: 'chat_cleared' });
-            await this.refreshProjectContext();
-            await this.initializeSession();
-          }
-          // Refresh model list when any BYOK key changes
+          // Refresh the model list when any provider key changes
           if (e.key.startsWith('ava-supernova.provider.')) {
             await this.initializeSession();
           }
@@ -677,18 +503,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Everything below is local only — user data never goes to the cloud.
     // Matches the IDE.
-    const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
-
-    // No account: point at the last account's folder if it is still on disk,
-    // BEFORE the managers below are built from this value. Without it a window
-    // that starts signed out keeps the AVA_HOME initialiser and every section
-    // — history, health, creative, tasks, journal — reads a flat directory
-    // that holds none of the user's work. Signing out mid-session already did
-    // this; starting up signed out did not, which is the same fix wired to an
-    // event instead of to the state.
-    if (!platformKey) {
-      this.accountScopedDir = this.resolveSignedOutScope();
-    }
+    //
+    // No accounts (1 Nov 2026): data lives in ~/.ava. Anything left in an old
+    // per-account folder (~/.ava/users/<id>) is merged up into it ONCE, before
+    // the managers below read from it — copy-only, nothing lost, the account
+    // the extension was showing wins a clash (core mergeAccountFolders).
+    await this.bringAccountDataHome();
+    this.accountScopedDir = AVA_HOME;
 
     // History is local only.
     // Account-scoped like memory/tasks/journal: transcripts live under the
@@ -1766,135 +1587,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         }
       } catch (err) {
         this.log(`Local provider failed to register: ${err}`);
-      }
-
-      // ── Platform account provider ───────────────────────────────────────────
-      try {
-        const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
-        if (platformKey) {
-          // Track HOW verification failed: 401/403 = the server rejected the
-          // key (genuinely invalid); anything else (status 0 network error,
-          // timeout, 5xx during a deploy) = we simply couldn't verify — which
-          // must never be treated as an invalid key.
-          let verifyStatus: number | null = null;
-          if (!this.cachedAccount) {
-            const res = await apiFetch('/account-info', { platformKey });
-            verifyStatus = res.status;
-            this.cachedAccount = res.ok ? (res.data as AccountInfo) : null;
-            if (this.cachedAccount?.usage) {
-              this.log(`Account usage: free=${this.cachedAccount.usage.free_credits_used}/${this.cachedAccount.usage.free_credits_limit}`);
-            }
-          }
-          if (this.cachedAccount) {
-            const platform = new PlatformProvider({ apiKey: platformKey });
-            this.providerRegistry.registerCustom('platform', platform);
-            this.log(`Platform provider registered (tier: ${this.cachedAccount.tier})`);
-            this.transientNotified = false; // healthy again — a future outage should notify anew
-
-            // Scope data directory per account — prevents memory leakage between accounts
-            try {
-              const { join } = await import('node:path');
-              const { mkdir } = await import('node:fs/promises');
-              const newScopedDir = join(AVA_HOME, 'users', this.cachedAccount.id);
-              if (newScopedDir !== this.accountScopedDir) {
-                await mkdir(newScopedDir, { recursive: true });
-                this.accountScopedDir = newScopedDir;
-                // Remember it for signed-out reads (resolveSignedOutScope).
-                void this.context.globalState.update(AvaViewProvider.LAST_ACCOUNT_KEY, this.cachedAccount.id);
-                this.log(`Account-scoped data directory: ${newScopedDir}`);
-
-                // Re-create managers with the account-scoped directory. Memory is
-                // the exception: it stays FLAT (~/.ava/memory/) — local-only, one
-                // store per machine, shared with the IDE + CLI. Account-scoping
-                // memory split it off from those and bought nothing.
-                this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, embeddingService: this.resolveEmbeddingService() });
-                migrateGlobalTasksToSubfolder(newScopedDir);
-                this.taskManager = new TaskManager({ globalDir: join(newScopedDir, 'tasks'), projectRoot: this.projectRoot });
-                this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot });
-                // History: scope it too. Migrate any legacy transcripts from the
-                // old unscoped ~/.ava/history into the scoped dir (one-time),
-                // then re-point the SAME manager instance so the already-built
-                // HistoryCoordinator + sharedState keep working.
-                await this.migrateHistoryToScopedDir(newScopedDir);
-                this.historyManager.setBaseDir(newScopedDir);
-                // Re-point the live sharedState's creative dir for the same
-                // reason history is re-pointed rather than replaced: this block
-                // doesn't re-run initializeSession, so a stale string here would
-                // leave browse_library reading ~/.ava/creative for the rest of
-                // the session instead of the account's library.
-                if (this.sharedState) this.sharedState.creativeDir = join(newScopedDir, 'creative');
-                // Personality was stored unscoped at ~/.ava/personality.json —
-                // migrate it into the scoped dir so signed-in users keep their Ava.
-                await this.migrateFileToScopedDir('personality.json', newScopedDir);
-                void this.historyManager.init();
-                // Warm the memory stores in the background — do NOT await.
-                // Nothing on the chat-init path needs them: the system
-                // prompt build takes no memory input, and memory's
-                // consumers (recall tool, Memory page) load on demand.
-                // Awaiting here blocked chat_init for ~6.6s on a large
-                // memory store — measured via the session-init logs.
-                void this.memoryManager.loadAll(this.projectInstructions)
-                  .catch(() => { /* non-fatal — consumers load on demand */ });
-              }
-            } catch (scopeErr) {
-              this.log(`Account scoping failed, using default directory: ${scopeErr}`);
-            }
-          } else if (verifyStatus === 401 || verifyStatus === 403) {
-            // The server EXPLICITLY rejected the key — genuinely invalid or
-            // revoked. Only in this case do we clear it.
-            this.log(`Platform key rejected by the server (${verifyStatus}) — clearing it`);
-            this.postMessage({
-              type: 'system_message',
-              content: 'Platform account verification failed. Your API key may be invalid or expired.',
-            } as ExtToWebviewMessage);
-            // Show VS Code popup with action to open account page
-            const action = await vscode.window.showWarningMessage(
-              'Your Ava platform API key is no longer valid. Please reconnect your account.',
-              'Open Account'
-            );
-            if (action === 'Open Account') {
-              vscode.env.openExternal(vscode.Uri.parse('https://avasupernova.com/dashboard'));
-            }
-            // Clear the invalid key
-            await this.context.secrets.delete('ava-supernova.platformKey');
-          } else {
-            // Transient failure — network down, timeout, or a 5xx while the
-            // platform deploys. We could not VERIFY the key; that is NOT the
-            // same as the key being invalid. Keep the key, keep the user's
-            // stored model choice, and quietly retry once shortly. (The old
-            // behaviour deleted the key and popped "no longer valid" here —
-            // a paying user's session nuked by a server blip.)
-            //
-            // CRITICAL: register the platform provider from the stored key
-            // ANYWAY. Provider registration used to be gated on a successful
-            // verify (cachedAccount != null), so a blip on load left a signed-in
-            // user with NO platform provider → resolveCoordinatorModel returned
-            // null → "needs at least one configured provider. Add an API key or
-            // sign in." — locking a paying, signed-in user out of their own
-            // models over a momentary reachability miss. The key isn't rejected
-            // (that's the 401/403 branch above), so we trust it: the per-request
-            // platform calls validate, and Supernova's coordinator resolves
-            // offline-of-verify. Account scoping still waits for a real verify
-            // (it needs the account id/tier) — the default dir is used until then.
-            const platform = new PlatformProvider({ apiKey: platformKey });
-            this.providerRegistry.registerCustom('platform', platform);
-            this.log(`Platform account check unavailable (status ${verifyStatus ?? 'n/a'}) — registered platform provider from stored key; keeping settings, will retry`);
-            if (!this.transientNotified) {
-              this.transientNotified = true;
-              this.postMessage({
-                type: 'system_message',
-                content: 'Couldn\'t reach the Ava platform to verify your account — your settings are unchanged. Retrying shortly; if you\'re offline, everything reconnects next session.',
-              } as ExtToWebviewMessage);
-            }
-            this.scheduleTransientRetry();
-          }
-        }
-      } catch (err) {
-        this.log(`Platform account check failed: ${err}`);
-        this.postMessage({
-          type: 'system_message',
-          content: 'Could not reach the Ava platform. Platform features are unavailable. Your local API keys still work.',
-        } as ExtToWebviewMessage);
       }
 
       // ── Fetch enabled models from platform (non-blocking) ─────────────────
@@ -3738,33 +3430,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       }
 
-      case 'start_sign_in': {
-        // User clicked "Continue with GitHub" or "Sign in with email" in
-        // the sign-in UI. Delegate to SignInManager, which generates state,
-        // opens the browser, and tracks the pending attempt. Events flow
-        // back through the onEvent subscription wired in the constructor.
-        if (!this.signInManager) {
-          this.postMessage({ type: 'sign_in_failed', error: 'Sign-in manager not ready yet. Please try again.' });
-          break;
-        }
-        try {
-          await this.signInManager.startSignIn(message.method);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          this.log(`start_sign_in failed: ${msg}`);
-          // The SignInManager already emitted sign_in_failed — no need to
-          // post again here.
-        }
-        break;
-      }
-
-      case 'cancel_sign_in': {
-        // User clicked Cancel on the pending sign-in UI
-        if (this.signInManager) {
-          this.signInManager.cancelSignIn();
-        }
-        break;
-      }
     }
   }
 

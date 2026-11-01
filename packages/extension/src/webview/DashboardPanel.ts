@@ -402,55 +402,12 @@ export class DashboardPanel {
         break;
       }
 
-      case 'connect_account':
-        await this.connectAccount(msg.key);
-        break;
-
       case 'factory_reset_scan':
         await this.handleFactoryResetScan();
         break;
 
       case 'factory_reset_execute':
         await this.handleFactoryResetExecute(msg.categories);
-        break;
-
-      case 'disconnect_account':
-        await this.secrets.delete(PLATFORM_KEY_SECRET);
-        // Drop our own scoped-dir copy. It is first in getUserDataDir's ??
-        // chain, so leaving it set meant the panel kept reading the old
-        // account's folder after sign-out while the view provider had already
-        // reset — one fact with two answers. Falling through to the provider
-        // gives the last-account fallback a single home.
-        this.accountScopedDir = null;
-        // And the managers cached against it, or the panel keeps serving the
-        // signed-out account's data from a stale handle. Same reason the
-        // scoped dir is cleared above: one fact should not have two answers.
-        this.taskManager = undefined;
-        this.journalManager = undefined;
-        this.post({ type: 'account_updated', account: null });
-        break;
-
-      case 'skip_account':
-        // No-op on host — webview manages its own BYOK state
-        break;
-
-      case 'start_sign_in':
-        // Delegate to AvaViewProvider's SignInManager. The resulting
-        // sign_in_started / sign_in_complete / sign_in_failed events
-        // flow back through AvaViewProvider.postMessage, which already
-        // forwards to the dashboard via externalPostMessage.
-        if (this.viewProvider) {
-          await this.viewProvider.startSignInFromDashboard(msg.method);
-        } else {
-          this.post({
-            type: 'sign_in_failed',
-            error: 'Dashboard is not connected to an active view provider. Please reload VS Code.',
-          });
-        }
-        break;
-
-      case 'cancel_sign_in':
-        this.viewProvider?.cancelSignInFromDashboard();
         break;
 
       case 'save_provider_key':
@@ -2728,23 +2685,6 @@ export class DashboardPanel {
   }
 
   // ─── Account ───────────────────────────────────────────────────────────────
-
-  private async connectAccount(key: string): Promise<void> {
-    if (!key.startsWith('sk-ava-')) {
-      this.post({ type: 'error', message: 'Invalid platform key. Keys start with sk-ava-' });
-      return;
-    }
-
-    const account = await this.fetchAccount(key);
-    if (!account) {
-      this.post({ type: 'error', message: 'Could not verify key. Check it is correct and try again.' });
-      return;
-    }
-
-    await this.secrets.store(PLATFORM_KEY_SECRET, key);
-    this.post({ type: 'account_updated', account });
-    await this.loadMemories();
-  }
 
   private async fetchAccount(platformKey: string): Promise<AccountInfo | null> {
     try {
