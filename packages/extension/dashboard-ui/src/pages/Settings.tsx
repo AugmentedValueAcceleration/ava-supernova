@@ -17,62 +17,71 @@ interface SettingsProps {
 
 // ── Static Data ──────────────────────────────────────────────────────────────
 
+// Key pages checked against each provider's own docs, 1 Nov 2026 — the same
+// links onboarding uses (components/WelcomeOnboarding.tsx).
 const PROVIDERS = [
   {
     id: 'deepseek' as const,
     name: 'DeepSeek',
     placeholder: 'sk-...',
-    signupUrl: 'https://platform.deepseek.com',
+    signupUrl: 'https://platform.deepseek.com/api_keys',
     description: 'DeepSeek V4.1 Flash — 1M context, multimodal, MIT open-weight',
   },
   {
     id: 'kimi' as const,
     name: 'Kimi (Moonshot)',
     placeholder: 'sk-...',
-    signupUrl: 'https://platform.moonshot.ai',
+    signupUrl: 'https://platform.kimi.ai/console/api-keys',
     description: 'Kimi K2.7 Code — agentic coding leader',
   },
   {
     id: 'glm' as const,
     name: 'GLM (Zhipu AI)',
     placeholder: '...',
-    signupUrl: 'https://z.ai',
+    signupUrl: 'https://z.ai/manage-apikey/apikey-list',
     description: 'GLM-5.3 — open-weights, 1M context, top-tier coding',
   },
   {
     id: 'qwen' as const,
     name: 'Qwen (Alibaba)',
     placeholder: 'sk-...',
-    signupUrl: 'https://dashscope.console.aliyun.com',
-    description: 'Qwen 3.5 Plus and Qwen Turbo',
+    signupUrl: 'https://modelstudio.console.alibabacloud.com/ap-southeast-1/settings/api-key',
+    description: 'One key: chat, images, voice and video. Make it in the Singapore region.',
   },
   {
     id: 'mistral' as const,
     name: 'Mistral AI',
     placeholder: '...',
-    signupUrl: 'https://console.mistral.ai',
+    signupUrl: 'https://console.mistral.ai/api-keys',
     description: 'Mistral Large 3, Medium 3.5, Small 4 — European, vision',
   },
   {
     id: 'xiaomi' as const,
     name: 'Xiaomi (MiMo)',
     placeholder: '...',
-    signupUrl: 'https://platform.xiaomimimo.com',
+    signupUrl: 'https://platform.xiaomimimo.com/#/console/api-keys',
     description: 'MiMo V2.6 — Pro, Flash and Pro UltraSpeed; MIT open weights, 1M context, full modality',
   },
   {
     id: 'tencent' as const,
-    name: 'Tencent Hunyuan',
+    name: 'Tencent TokenHub (Hunyuan)',
     placeholder: '...',
-    signupUrl: 'https://tokenhub.tencentmaas.com',
+    signupUrl: 'https://console.tencentcloud.com/tokenhub/apikey',
     description: 'Hunyuan Hy3 — open-weight MoE, agentic, 262K context, very cheap',
   },
   {
     id: 'nvidia' as const,
     name: 'NVIDIA',
     placeholder: 'nvapi-...',
-    signupUrl: 'https://build.nvidia.com',
+    signupUrl: 'https://build.nvidia.com/settings/api-keys',
     description: 'Nemotron 3 Ultra — open-weight, 1M context, frontier reasoning (BYOK)',
+  },
+  {
+    id: 'brave' as const,
+    name: 'Brave Search (optional)',
+    placeholder: '...',
+    signupUrl: 'https://api-dashboard.search.brave.com/app/keys',
+    description: 'Better web search for Ava. Without it she searches with DuckDuckGo.',
   },
 ];
 
@@ -298,7 +307,7 @@ export function Settings({
     const key = providerInputs[provider]?.trim();
     if (!key) return;
     setSavingProvider(provider);
-    post({ type: 'save_provider_key', provider: provider as any, apiKey: key });
+    post({ type: 'test_provider_key', provider, apiKey: key });
     setProviderInputs(prev => ({ ...prev, [provider]: '' }));
     setEditingProvider(null);
     setTimeout(() => setSavingProvider(null), 1500);

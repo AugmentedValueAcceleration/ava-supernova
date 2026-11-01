@@ -43,6 +43,7 @@ import {
   type DatasetConfig,
   // Calendar days in the user's terms, not UTC's — core/src/core/dates.ts.
   todayLocal,
+  testProviderKey,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -135,6 +136,8 @@ const PROVIDER_KEY_SECRETS: Record<string, string> = {
   xiaomi: 'ava-supernova.provider.xiaomi.apiKey',
   tencent: 'ava-supernova.provider.tencent.apiKey',
   nvidia: 'ava-supernova.provider.nvidia.apiKey',
+  // Web search, optional — DuckDuckGo is used without it.
+  brave: 'ava-supernova.provider.brave.apiKey',
 };
 
 // Connection credential secret keys
@@ -394,6 +397,27 @@ export class DashboardPanel {
 
       case 'save_provider_key':
         await this.saveProviderKey(msg.provider, msg.apiKey);
+        break;
+
+      // Onboarding + Settings: TEST a pasted key, and save it unless the
+      // provider refused it. "Could not check" still saves — a provider being
+      // down for a minute is not a reason to lose what was pasted.
+      case 'test_provider_key': {
+        const result = await testProviderKey(msg.provider, msg.apiKey);
+        const save = result.status !== 'invalid' && !!PROVIDER_KEY_SECRETS[msg.provider];
+        if (save) await this.saveProviderKey(msg.provider, msg.apiKey.trim());
+        this.log(`[keys] tested ${msg.provider}: ${result.status}${save ? ' (saved)' : ''}`);
+        this.post({ type: 'provider_key_tested', provider: msg.provider, result, saved: save });
+        break;
+      }
+
+      // The onboarding's Welcome screen. Same flag the chat sidebar sets.
+      case 'accept_consent':
+        await this.context.globalState.update('ava.consentAccepted', new Date().toISOString());
+        break;
+
+      case 'finish_onboarding':
+        await this.context.globalState.update('ava.onboardedV2', true);
         break;
 
       case 'remove_provider_key':
@@ -2406,10 +2430,22 @@ export class DashboardPanel {
     const settings = this.readSettings();
     const providerKeys = await this.getProviderKeyStatus();
     const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
-    // Welcome overlay gate — shows on the dashboard on every startup while the
-    // "show welcome on startup" preference is on (default true), for everyone.
-    // The overlay's checkbox + the VS Code setting toggle it.
-    const welcomeOnStartup = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.showWelcomeOnStartup') ?? true;
+    // Onboarding (rebuilt key-first, 1 Nov 2026). A new install gets all four
+    // screens, once. Someone who used Ava before the rebuild and still has no
+    // key gets ONLY the key screen, once. Anyone already set up sees nothing.
+    // The old feature tour on every startup is gone (it is tips as you go now);
+    // "Ava: Show Welcome Tour" still opens the full onboarding on demand.
+    const consentAccepted = !!this.context.globalState.get('ava.consentAccepted');
+    const hasModel = Object.entries(providerKeys).some(([k, v]) => v && k !== 'brave')
+      || !!(await this.secrets.get('ava-supernova.provider.local.baseUrl'))
+      || !!(await this.secrets.get('ava-supernova.provider.minimax.apiKey'));
+    let onboarding: 'full' | 'key' | null = null;
+    if (!this.context.globalState.get('ava.onboardedV2')) {
+      const usedBefore = consentAccepted || hasModel || !!this.context.globalState.get('ava.onboardedV1');
+      if (!usedBefore) onboarding = 'full';
+      else if (!hasModel) onboarding = 'key';
+      else await this.context.globalState.update('ava.onboardedV2', true);
+    }
     // Avatar goes WITH init rather than via a separate load_avatar round trip.
     // The round trip is one more thing that can fail to complete, and when it
     // does the chat silently falls back to a generic icon while a perfectly
@@ -2421,7 +2457,7 @@ export class DashboardPanel {
       if (dataUrl.startsWith('data:image/')) userAvatar = dataUrl;
     } catch { /* no avatar set */ }
 
-    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, providerSource: 'byok', showWelcome: welcomeOnStartup, welcomeOnStartup, userAvatar } as never);
+    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, onboarding, consentAccepted, userAvatar });
 
     // Memories + session stats are local, so the Memory and Usage panels
     // render with data straight away. Memories through the PAGED loader over
@@ -2624,6 +2660,7 @@ export class DashboardPanel {
       xiaomi: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.xiaomi)),
       tencent: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.tencent)),
       nvidia: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.nvidia)),
+      brave: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.brave)),
     };
   }
 

@@ -341,6 +341,33 @@ export abstract class BaseProvider implements Provider {
     return JSON.stringify(body);
   }
 
+  /**
+   * Does this key work? Asked before a key is saved (onboarding, Settings), so
+   * a wrong key — or a Qwen key from the wrong region — is caught at the paste
+   * box rather than on the first message. The model list first: it is free and
+   * says nothing to the model. Where a provider does not serve one, the
+   * smallest possible turn instead (one token). No retries: a 401 is an answer.
+   *
+   * `ok: null` means the provider answered something other than yes or no
+   * (down, rate-limited, an endpoint it does not serve) — not a verdict.
+   */
+  async testKey(signal?: AbortSignal): Promise<{ ok: boolean | null; status: number; detail?: string }> {
+    const headers = this.getAuthHeaders();
+    const refused = (status: number) => status === 401 || status === 403;
+    const listed = await fetch(`${this.baseUrl}/models`, { headers, signal }).catch(() => null);
+    if (listed?.ok) return { ok: true, status: listed.status };
+    if (listed && refused(listed.status)) return { ok: false, status: listed.status, detail: (await listed.text().catch(() => '')).slice(0, 300) };
+
+    const model = this.listModels().find((m) => !m.hiddenFromPicker)?.id ?? this.listModels()[0]?.id;
+    if (!model) return { ok: null, status: listed?.status ?? 0 };
+    const body = this.transformRequest({ model, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1, stream: false });
+    const res = await fetch(this.getCompletionUrl(), { method: 'POST', headers, body: this.serializeBody(body), signal }).catch(() => null);
+    if (!res) return { ok: null, status: 0, detail: 'Could not reach the provider.' };
+    if (res.ok) return { ok: true, status: res.status };
+    const detail = (await res.text().catch(() => '')).slice(0, 300);
+    return { ok: refused(res.status) ? false : null, status: res.status, detail };
+  }
+
   async createCompletion(request: ChatCompletionRequest, signal?: AbortSignal): Promise<CompletionResponse> {
     const body = this.transformRequest({ ...request, stream: false });
     const url = this.getCompletionUrl();

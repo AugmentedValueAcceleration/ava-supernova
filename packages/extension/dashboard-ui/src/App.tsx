@@ -92,8 +92,12 @@ export function App() {
   const [page, setPage] = useState<Page>('overview');
   // First-run welcome overlay — shows over the dashboard on startup for everyone
   // (signed in or not) while the "show welcome on startup" preference is on.
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [welcomeOnStartup, setWelcomeOnStartup] = useState(true);
+  // Onboarding (key-first): which version is open, if any. The host decides on
+  // init; "Show Welcome Tour" / Settings → Advanced open the full one on demand.
+  const [onboarding, setOnboarding] = useState<'full' | 'key' | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const onboardingRef = useRef(onboarding);
+  useEffect(() => { onboardingRef.current = onboarding; }, [onboarding]);
 
   // Chat page dispatch — forwards extension messages to the Chat reducer.
   //
@@ -790,7 +794,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   useEffect(() => { if (journalDay) { try { localStorage.setItem(`ava-dash-journal-${selectedJournalDate}`, JSON.stringify(journalDay)); } catch {} } }, [journalDay, selectedJournalDate]);
   // Settings → Advanced can replay the welcome tour on demand.
   useEffect(() => {
-    const show = () => setShowWelcome(true);
+    const show = () => setOnboarding('full');
     window.addEventListener('ava-show-welcome', show);
     return () => window.removeEventListener('ava-show-welcome', show);
   }, []);
@@ -913,7 +917,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
 
     switch (msg.type) {
       case 'show_welcome':
-        setShowWelcome(true);
+        setOnboarding('full');
         break;
       case 'locale_strings':
         // null means the host looked and found no file — loadStrings leaves us
@@ -925,8 +929,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         setConnections(msg.connections);
         setSettings(msg.settings);
         setProviderKeys(msg.providerKeys);
-        setShowWelcome(Boolean((msg as { showWelcome?: boolean }).showWelcome));
-        setWelcomeOnStartup((msg as { welcomeOnStartup?: boolean }).welcomeOnStartup ?? true);
+        setOnboarding(msg.onboarding ?? null);
+        setConsentAccepted(!!msg.consentAccepted);
         localStorage.removeItem('ava-platform-key');
         setInitialized(true);
         // The avatar now arrives WITH init — one message, no round trip to
@@ -940,6 +944,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         break;
       case 'provider_keys_updated':
         setProviderKeys(msg.providerKeys);
+        break;
+      // Settings and the sidebar key block test keys too; onboarding shows its
+      // own verdict inline, these two surface a refusal here.
+      case 'provider_key_tested':
+        if (msg.result.status === 'invalid' && !onboardingRef.current) {
+          setErrorMsg(msg.result.message);
+          setTimeout(() => setErrorMsg(null), 8000);
+        }
         break;
       case 'memories_loaded':
         setMemories(msg.memories);
@@ -1631,7 +1643,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
 
   // The chat pane mounts once a model can run — any provider key, or a
   // local model (which the host reports as a model in chat_init).
-  const hasAccess = Object.values(providerKeys).some(Boolean) || designModel.models.some((m) => m.available);
+  // (A Brave key is web search, not a model, so it does not count.)
+  const hasAccess = Object.entries(providerKeys).some(([k, v]) => v && k !== 'brave') || designModel.models.some((m) => m.available);
 
   // If chat cannot run, show the overview rather than a blank pane.
   const effectivePage = (!hasAccess && page === 'chat') ? 'overview' : page;
@@ -1981,12 +1994,14 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
           </main>
         </div>
       )}
-      {showWelcome && (
+      {onboarding && (
         <WelcomeOnboarding
-          isConnected={false} /* the overlay is rebuilt key-first next */
-          welcomeOnStartup={welcomeOnStartup}
-          onSetWelcomeOnStartup={(enabled) => { setWelcomeOnStartup(enabled); post({ type: 'set_welcome_on_startup', enabled }); }}
-          onClose={() => setShowWelcome(false)}
+          mode={onboarding}
+          providerKeys={providerKeys}
+          consentAccepted={consentAccepted}
+          userName={generalProfile?.display_name ?? null}
+          onRenameUser={handleRenameUser}
+          onClose={() => { setOnboarding(null); setConsentAccepted(true); }}
           onNavigate={(p) => setPagePersist(p as Page)}
           onSetLanguage={(loc) => {
             localStorage.setItem('ava-dashboard-language', loc);

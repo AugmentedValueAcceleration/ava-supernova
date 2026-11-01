@@ -446,7 +446,7 @@ function SidebarApiKeys({ providerKeys }: { providerKeys?: ProviderKeyStatus }) 
   const saveKey = (id: string) => {
     const apiKey = drafts[id]?.trim();
     if (!apiKey) return;
-    post({ type: 'save_provider_key', provider: id as never, apiKey });
+    post({ type: 'test_provider_key', provider: id, apiKey });
     setDrafts(prev => ({ ...prev, [id]: '' }));
   };
 

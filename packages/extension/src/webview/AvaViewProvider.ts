@@ -1816,9 +1816,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // 2026 — it knew only Qwen and MiniMax, so core's own-key paths for
     // anything else came back empty).
     const savedKeys = new Map<string, string>();
-    for (const name of ['deepseek', 'kimi', 'mistral', 'zhipu', 'xiaomi', 'tencent', 'nvidia', 'brave']) {
+    for (const name of ['deepseek', 'kimi', 'mistral', 'glm', 'xiaomi', 'tencent', 'nvidia', 'brave']) {
       const k = await this.context.secrets.get(`ava-supernova.provider.${name}.apiKey`);
-      if (k) savedKeys.set(name, k);
+      // GLM's key is saved under its config name; core asks for its registry name.
+      if (k) savedKeys.set(name === 'glm' ? 'zhipu' : name, k);
     }
     const getProviderKey = (provider: string): string | undefined => {
       switch (provider) {

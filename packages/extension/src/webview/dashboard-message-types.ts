@@ -1510,13 +1510,17 @@ export type ExtToDashboardMessage =
       settings: DashboardSettings;
       providerKeys: ProviderKeyStatus;
       locale: string;
-      /** Render the welcome overlay on this init (gated by the "show welcome on
-       *  startup" preference). Shown for everyone, signed in or not. */
-      showWelcome?: boolean;
-      /** Current value of the "show welcome on startup" preference. */
-      welcomeOnStartup?: boolean;
+      /** Which onboarding to show: all four screens (a new install), only the
+       *  key screen (used Ava before, still no key), or none. */
+      onboarding?: 'full' | 'key' | null;
+      /** Terms + privacy already accepted (on any surface). */
+      consentAccepted?: boolean;
+      /** The picture you set on this machine, as a data URL. */
+      userAvatar?: string;
     }
   | { type: 'show_welcome' }
+  /** Answer to test_provider_key. `saved` is false only when the provider refused the key. */
+  | { type: 'provider_key_tested'; provider: string; result: { status: 'valid' } | { status: 'invalid' | 'unverified'; message: string }; saved: boolean }
   | { type: 'dataset:config'; config: {
       enabled: boolean;
       capture_modes: string[];
@@ -1832,6 +1836,10 @@ export type DashboardToExtMessage =
   | { type: 'factory_reset_scan' }
   | { type: 'factory_reset_execute'; categories: string[] }
   | { type: 'save_provider_key'; provider: string; apiKey: string }
+  /** Test a pasted key and save it unless the provider refuses it. */
+  | { type: 'test_provider_key'; provider: string; apiKey: string }
+  | { type: 'accept_consent' }
+  | { type: 'finish_onboarding' }
   | { type: 'remove_provider_key'; provider: string }
   // Local / custom OpenAI-compatible provider — Ollama, LM Studio, vLLM.
   // baseUrl + modelName are the required fields; apiKey + modelLabel

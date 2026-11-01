@@ -620,6 +620,9 @@ export { removeWhiteBackground, vectorizeLogo, matteWhite, decodeImage, encodePn
 export type { RawImage } from './creative/image-local.js';
 // Web search on a key the caller supplies — the user's own Brave key, or the server's (BYOK plan, 1 Nov 2026).
 export { braveSearch } from './search/brave.js';
+// Test a key before saving it — onboarding + Settings (BYOK plan, 1 Nov 2026).
+export { testProviderKey } from './providers/key-test.js';
+export type { KeyTestResult } from './providers/key-test.js';
 export type { BraveResult } from './search/brave.js';
 export { resolveWebSearch, duckDuckGoSearch } from './tools/web-search.js';
 // Bring account-era data (~/.ava/users/<id>) home into ~/.ava — copy-only, nothing lost (BYOK plan, 1 Nov 2026).
