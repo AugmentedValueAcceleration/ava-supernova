@@ -31,6 +31,11 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // than removed: a saved selection keeps working, and the person holding it
   // gets a better model for less money without being asked to do anything.
   'qwen3.7-max':       'qwen3.8-max',
+  // MiniMax M2.7 (+ Highspeed) retired upstream 2026-11-18 (closed to new
+  // users 2026-10-19). MiniMax routes them to M3.1 Flash on its plans; we do
+  // the same for own-key calls, so a saved choice survives the shutdown.
+  'MiniMax-M2.7':           'MiniMax-M3.1-Flash',
+  'MiniMax-M2.7-highspeed': 'MiniMax-M3.1-Flash',
   // Managed DeepSeek — strip the `-platform` disambiguator
   'deepseek-flash-platform':   'deepseek-flash',
   // Managed Kimi K3 (Longxiang's lead seat) — strip the disambiguator.

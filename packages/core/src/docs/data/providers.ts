@@ -86,11 +86,10 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'minimax',
     name: 'MiniMax',
     kind: 'byok',
-    notes: 'BYOK chat — bring your own MiniMax API key. M3 is the flagship (1M context, native multimodal); M2.7 is the cheaper 204K text tier, with a highspeed variant for latency-sensitive work. MiniMax does not document vision support for M2.7, so we treat it as text-only.',
+    notes: 'BYOK chat — bring your own MiniMax API key. M3 is the flagship (1M context, reads images); M3.1 Flash is the fast, cheap everyday model (1M context). M2.7 was retired by MiniMax in November 2026 — a saved M2.7 choice now runs on M3.1 Flash.',
     models: [
       { id: 'MiniMax-M3', displayName: 'MiniMax M3 — prices shown are the ≤512k tier; turns above 512k bill at double', inputPricePerM: 0.30, outputPricePerM: 1.20, contextWindow: 1_048_576, capabilities: ['tools', 'thinking', 'streaming', 'vision'] },
-      { id: 'MiniMax-M2.7', displayName: 'MiniMax M2.7', inputPricePerM: 0.30, outputPricePerM: 1.20, contextWindow: 204_800, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'MiniMax-M2.7-highspeed', displayName: 'MiniMax M2.7 Highspeed', inputPricePerM: 0.60, outputPricePerM: 2.40, contextWindow: 204_800, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'MiniMax-M3.1-Flash', displayName: 'MiniMax M3.1 Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_048_576, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
   {

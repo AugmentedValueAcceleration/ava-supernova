@@ -27,40 +27,55 @@ export const MINIMAX_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.30, outputPerMillion: 1.20 },
   },
-  // MiniMax M2.7 — still current upstream (MiniMax lists it in the live pricing
-  // table, not the Legacy section alongside M2.5/M2.1/M2), superseded as
-  // flagship by M3 rather than retired. 204,800 context.
+  // MiniMax M3.1 Flash (released 2026-10-19) — "ultra-efficient open-weight
+  // model for everyday work", 1M context, tunable thinking depth. $0.15/$0.60,
+  // no tiers (MiniMax pricing overview, read 2026-11-01). It is where MiniMax
+  // itself routes M2.5/M2.7 traffic, so it takes their place here too.
   //
-  // supportsVision is FALSE deliberately, not by omission: MiniMax documents
-  // neither vision nor its absence for M2.7, and the launch post describes only
-  // text tasks. An unverified `true` makes Ava offer to read an image she can't
-  // see; a wrong `false` only shows a struck camera we can lift once we know.
-  // Guessing wrong is asymmetric — take the recoverable side.
+  // supportsVision FALSE on the same asymmetric rule as M2.7 below: the pages
+  // call it "multimodal" without saying image input, and the release note says
+  // nothing of it. maxOutputTokens is not published for it; M3's figure is used.
+  {
+    id: 'MiniMax-M3.1-Flash',
+    name: 'MiniMax M3.1 Flash',
+    provider: 'minimax',
+    contextWindow: 1048576,
+    maxOutputTokens: 128000,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: false,
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
+  },
+  // MiniMax M2.7 and M2.7 Highspeed — RETIRED by MiniMax: closed to new users
+  // 2026-10-19, shut down 2026-11-18. Rolled forward, not removed (the
+  // qwen3.7-max precedent): request-shaping/model-ids sends both ids as
+  // MiniMax-M3.1-Flash, so a saved choice keeps working, on a better model for
+  // half the price. Hidden from the picker; priced as what is actually called.
   {
     id: 'MiniMax-M2.7',
-    name: 'MiniMax M2.7',
+    name: 'MiniMax M2.7 (now M3.1 Flash)',
     provider: 'minimax',
-    contextWindow: 204800,
+    contextWindow: 1048576,
     maxOutputTokens: 128000,
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: false,
-    pricing: { inputPerMillion: 0.30, outputPerMillion: 1.20 },
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
+    hiddenFromPicker: true, // retired upstream — routes to MiniMax-M3.1-Flash
   },
-  // The fast tier — same model and context, served hot at 2x the price. Same
-  // role Qwen/GLM Flash play for their providers: reach for it when latency
-  // matters more than cost.
   {
     id: 'MiniMax-M2.7-highspeed',
-    name: 'MiniMax M2.7 Highspeed',
+    name: 'MiniMax M2.7 Highspeed (now M3.1 Flash)',
     provider: 'minimax',
-    contextWindow: 204800,
+    contextWindow: 1048576,
     maxOutputTokens: 128000,
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: false,
-    pricing: { inputPerMillion: 0.60, outputPerMillion: 2.40 },
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
+    hiddenFromPicker: true, // retired upstream — routes to MiniMax-M3.1-Flash
   },
 ];

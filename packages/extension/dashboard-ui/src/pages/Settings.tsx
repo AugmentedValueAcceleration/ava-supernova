@@ -81,7 +81,7 @@ const PROVIDERS = [
     name: 'MiniMax',
     placeholder: '...',
     signupUrl: 'https://platform.minimax.io/console/keys',
-    description: 'MiniMax M3 — open weights, 1M context, reads images; M2.7 and M2.7 Highspeed',
+    description: 'MiniMax M3 — open weights, 1M context, reads images; M3.1 Flash, fast and cheap',
   },
   {
     id: 'brave' as const,

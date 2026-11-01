@@ -37,8 +37,11 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
   minimax: {
     // M3 ≤512k rate ("Permanent 50% off"); >512k turns bill at 2x this.
     'MiniMax-M3': { inputPerMillion: 0.30, outputPerMillion: 1.20 },
-    'MiniMax-M2.7': { inputPerMillion: 0.30, outputPerMillion: 1.20 },
-    'MiniMax-M2.7-highspeed': { inputPerMillion: 0.60, outputPerMillion: 2.40 },
+    'MiniMax-M3.1-Flash': { inputPerMillion: 0.15, outputPerMillion: 0.60 },
+    // Retired ids roll forward to M3.1 Flash (request-shaping/model-ids), so
+    // they cost what is actually called.
+    'MiniMax-M2.7': { inputPerMillion: 0.15, outputPerMillion: 0.60 },
+    'MiniMax-M2.7-highspeed': { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
   deepseek: {
     // ONE model since 2026-09-10: V4 Pro and V4 Flash both retired into

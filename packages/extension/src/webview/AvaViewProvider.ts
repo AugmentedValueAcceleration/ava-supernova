@@ -1504,8 +1504,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         let activeModelId = config.get<string>('activeModel') || '';
 
         // (A reset of any MiniMax model back to Auto lived here, from when
-        // MiniMax was reserved for Creative Studio. Since 1 Nov 2026 MiniMax M3 /
-        // M2.7 are chat models on the user's own key, so a chosen one is kept.)
+        // MiniMax was reserved for Creative Studio. Since 1 Nov 2026 MiniMax M3 and
+        // M3.1 Flash are chat models on the user's own key, so a chosen one is kept.)
 
         // Restore orchestrated modes (Auto / Supernova / Aurora) — these
         // are aliases, not real model ids in the registry, so resolveModel
