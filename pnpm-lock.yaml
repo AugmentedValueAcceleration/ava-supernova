@@ -166,9 +166,6 @@ importers:
       '@napi-rs/wasm-runtime':
         specifier: 1.2.6
         version: 1.2.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
-      '@neplex/vectorizer-wasm32-wasi':
-        specifier: 0.1.0
-        version: 0.1.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
       better-sqlite3:
         specifier: '>=9.0.0'
         version: 12.6.2
@@ -7280,6 +7277,7 @@ snapshots:
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
+    optional: true
 
   '@neplex/vectorizer-win32-arm64-msvc@0.1.0':
     optional: true

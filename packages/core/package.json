@@ -1,13 +1,14 @@
 {
   "name": "@ava/core",
-  "version": "0.2.169",
+  "version": "0.2.171",
   "description": "Core engine for Ava Supernova — agent, providers, tools, config",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "Apache-2.0",
   "files": [
-    "dist"
+    "dist",
+    "vendor"
   ],
   "publishConfig": {
     "access": "public"
@@ -233,7 +234,6 @@
   },
   "dependencies": {
     "@napi-rs/wasm-runtime": "1.2.6",
-    "@neplex/vectorizer-wasm32-wasi": "0.1.0",
     "glob": "^13.0.6",
     "jpeg-js": "0.4.4",
     "marked": "^17.0.3",

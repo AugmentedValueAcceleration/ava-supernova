@@ -122,7 +122,9 @@ let vectorizer: Vectorizer | null = null;
 function loadVectorizer(): Vectorizer {
   if (!vectorizer) {
     const require = createRequire(import.meta.url);
-    vectorizer = require('@neplex/vectorizer-wasm32-wasi/vectorizer.wasi.cjs') as Vectorizer;
+    // Vendored (see vendor/vectorizer/README.md): the npm package declares a
+    // wasm32 CPU, so npm refuses to install it on x64. Path is from dist/creative/.
+    vectorizer = require('../../vendor/vectorizer/vectorizer.wasi.cjs') as Vectorizer;
   }
   return vectorizer;
 }
