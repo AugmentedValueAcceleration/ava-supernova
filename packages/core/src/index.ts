@@ -31,7 +31,7 @@ export * from './learning/course-check.js';
 export * from './learning/course-store.js';
 export * from './learning/course-review.js';
 export * from './learning/grade-open-answer.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getWorkModePrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, SOCIAL_STUDIO_PERSONA, getNewsroomPrefix, getPantryPrefix, getGymPrefix, getClassroomPrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getWorkModePrefix, getWorkTalkPrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, SOCIAL_STUDIO_PERSONA, getNewsroomPrefix, getPantryPrefix, getGymPrefix, getClassroomPrefix } from './agent/system-prompt.js';
 
 // Newsroom contracts — the surface-injected news index + article store the
 // Correspondent's tools write through, plus the syndication clusterer that

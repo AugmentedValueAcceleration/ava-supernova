@@ -12,6 +12,7 @@ interface PersonaInfo {
   phase: 'active' | 'complete' | 'error';
   description?: string;
   output?: string;
+  error?: string;
   tools?: Array<{ name: string; done: boolean; success?: boolean }>;
 }
 

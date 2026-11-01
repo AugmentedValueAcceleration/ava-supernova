@@ -839,7 +839,36 @@ export const TALKING_MODE_SUFFIX = ':talking';
  * did not get made.
  */
 export function talkingToolsFor(modeAllowed: Set<string>): Set<string> {
-  return new Set([...modeAllowed].filter(t => !PRODUCING_TOOLS.has(t)));
+  return new Set([...modeAllowed].filter(t => !PRODUCING_TOOLS.has(t) && !CHANGING_TOOLS.has(t)));
+}
+
+/**
+ * Tools that CHANGE the project or run something — the code-mode counterpart
+ * of PRODUCING_TOOLS, withheld while the Talk switch is on.
+ *
+ * 1 Nov 2026: the operator asked for a switch next to Send, "as we know ai is
+ * so bad at reading the room". With Talk on, Code mode is verbal planning:
+ * she reads, searches and looks things up, and nothing is edited, written,
+ * committed or executed. Running tests and builds is execution too, so those
+ * go; memory, todos and presenting a plan stay — they are how planning is done.
+ */
+export const CHANGING_TOOLS: Set<string> = new Set([
+  'write', 'edit', 'bash', 'create_project',
+  'git_commit', 'git_create_pr', 'rollback',
+  'apply_plan', 'env_write', 'database_query', 'remove_background',
+  'test_run', 'test_generate', 'doc_generate', 'verify_change', 'benchmark',
+]);
+
+/** Whether a mode id is a talking variant (`social:talking`, `work:talking`). */
+export function isTalkingMode(mode: string | null | undefined): boolean {
+  return !!mode && mode.endsWith(TALKING_MODE_SUFFIX);
+}
+
+/** A mode's allowlist, with a talking variant resolved from its base room. */
+function allowedToolsForMode(mode: string): Set<string> | undefined {
+  if (!isTalkingMode(mode)) return MODE_ALLOWED_TOOLS[mode];
+  const base = MODE_ALLOWED_TOOLS[mode.slice(0, -TALKING_MODE_SUFFIX.length)];
+  return base ? talkingToolsFor(base) : undefined;
 }
 
 export function toolPassesModeGate(name: string, modeAllowed: Set<string>): boolean {
@@ -864,13 +893,16 @@ export function toolPassesModeGate(name: string, modeAllowed: Set<string>): bool
  */
 export function readOnlyModeToolCeiling(mode: string | null | undefined): ReadonlySet<string> | null {
   if (!mode || modeCanEditFiles(mode)) return null;
-  const allowed = MODE_ALLOWED_TOOLS[mode];
+  const allowed = allowedToolsForMode(mode);
   if (!allowed) return null;
   return new Set([...allowed, ...ALWAYS_ALLOWED_TOOLS]);
 }
 
 export function modeCanEditFiles(mode: string | null | undefined): boolean {
   if (!mode) return true;
+  // A talking variant never edits, whatever its base room can do — this is
+  // what stops a Builder hand-off or a persona team going round the switch.
+  if (isTalkingMode(mode)) return false;
   const allowed = MODE_ALLOWED_TOOLS[mode];
   if (!allowed) return true;
   return allowed.has('write') || allowed.has('edit');
@@ -2794,7 +2826,9 @@ export class Agent {
           for (const tc of blocked) {
             messages.push({
               role: 'tool' as const,
-              content: modeCanEditFiles(effectiveMode)
+              content: effectiveMode === 'work:talking'
+                ? `Tool "${tc.function.name}" is off: the Talk switch is on, so this turn is conversation only. Describe the change instead; the user flips the switch to Build when they want it made.`
+                : modeCanEditFiles(effectiveMode)
                 ? `Tool "${tc.function.name}" belongs to a different mode. Call switch_mode to reach it, then carry on.`
                 : `Tool "${tc.function.name}" is not available in ${effectiveMode} mode. This mode is read-only — use work mode (>>) to make changes.`,
               tool_call_id: tc.id,

@@ -276,7 +276,7 @@ export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainst
 export type PaletteTool = 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans';
 
 export type WebviewToExtMessage =
-  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' }
+  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   /**
    * Fired by a command-palette button. Carries the pre-classified intent
    * (tool + action) and the mode the input is currently in. The host turns

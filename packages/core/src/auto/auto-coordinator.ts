@@ -1135,11 +1135,17 @@ Should these tasks be executed as a plan? Output yes or no.`;
         sharedState: this.sharedState,
       });
 
-      if (taskConductor.needsOrchestration(taskText, mode)) {
+      // The category picks the team, but the USER's mode sets the ceiling. A
+      // Talk or Plan turn classed as "coding" would otherwise field the work
+      // team — Builder included — and build what was only being discussed.
+      // A read-only user mode gets the read-only planning team instead.
+      const userMode = detectModeFromMessages(taskConversation.getMessages());
+      const teamMode = !modeCanEditFiles(userMode) && modeCanEditFiles(mode) ? 'plan' : mode;
+      if (taskConductor.needsOrchestration(taskText, teamMode)) {
         try {
           const { synthesisPrompt } = await taskConductor.orchestrate(
             taskText,
-            mode,
+            teamMode,
             taskConversation.getMessages(),
             (conductorEvent) => {
               // Forward conductor events

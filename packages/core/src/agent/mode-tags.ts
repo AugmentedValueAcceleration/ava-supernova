@@ -41,7 +41,10 @@ export type AvaModeId =
   // A room with the making taken away — same tools minus everything that
   // produces an artefact, so she can be asked about a mistake without
   // answering it by making something. See TALKING_MODE_SUFFIX in agent.ts.
-  | 'social:talking';
+  | 'social:talking'
+  // Code mode with the Talk switch on — reading, searching and the web stay,
+  // nothing that changes the project runs. Verbal planning (1 Nov 2026).
+  | 'work:talking';
 
 export interface ModeTag {
   /** Canonical mode id — the key used by MODE_ALLOWED_TOOLS, personas and the dataset. */
@@ -61,6 +64,10 @@ export const MODE_TAGS: readonly ModeTag[] = [
   // ran. `[Work Mode]` was still sitting in the sidebar's strip list and in
   // SCAFFOLD_TAGS under "legacy" the whole time.
   { mode: 'work', tag: '[Work Mode]' },
+  // The Talk switch next to Send. Its own tag rather than a flag on the
+  // message, so everything that already reads tags — the tool gate, the
+  // Builder hand-off, the persona ceiling, the strip lists — reads this too.
+  { mode: 'work:talking', tag: '[Work Mode: Talk]' },
   { mode: 'plan', tag: '[Plan Mode]' },
   { mode: 'chat', tag: '[Chat Mode]' },
   { mode: 'brainstorm', tag: '[Brainstorm Mode]' },

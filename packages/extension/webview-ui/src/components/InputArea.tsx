@@ -26,7 +26,7 @@ export interface ImageAttachment {
 }
 
 interface InputAreaProps {
-  onSend: (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => void;
+  onSend: (text: string, mode: AvaMode, attachments?: ImageAttachment[], talk?: boolean) => void;
   onCancel: () => void;
   isStreaming: boolean;
   disabled: boolean;
@@ -119,6 +119,16 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
   useEffect(() => {
     try { localStorage.setItem('ava-ext-chat-mode', mode); } catch { /* quota / disabled */ }
   }, [mode]);
+  // Code mode's Talk switch. On, she reads and discusses and changes nothing;
+  // off (Build), she codes as normal. A switch rather than a trip to the mode
+  // menu, because the operator flips between the two constantly — and "ai is
+  // so bad at reading the room" (1 Nov 2026). Mirrors the IDE's 'ava-ide-talk'.
+  const [talk, setTalk] = useState<boolean>(() => {
+    try { return localStorage.getItem('ava-ext-talk') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('ava-ext-talk', talk ? '1' : '0'); } catch { /* quota / disabled */ }
+  }, [talk]);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [modesExpanded, setModesExpanded] = useState(false);
@@ -267,13 +277,13 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
         return `{{secret:${found.id}}}`;
       });
     }
-    onSend(trimmed || '(image)', mode, attachments.length > 0 ? attachments : undefined);
+    onSend(trimmed || '(image)', mode, attachments.length > 0 ? attachments : undefined, mode === 'code' && talk);
     setText('');
     setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [text, mode, attachments, onSend, secrets, postMessage]);
+  }, [text, mode, talk, attachments, onSend, secrets, postMessage]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -646,7 +656,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
             onPaste={handlePaste}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder={disabled ? t('input.placeholder.disabled') : isStreaming ? tt('input.placeholder.working', 'Add something — she picks it up at the next step') : t(PLACEHOLDER_KEYS[mode])}
+            placeholder={disabled ? t('input.placeholder.disabled') : isStreaming ? tt('input.placeholder.working', 'Add something — she picks it up at the next step') : mode === 'code' && talk ? tt('input.placeholder.talk', "Let's talk it through — I'll read, not change anything") : t(PLACEHOLDER_KEYS[mode])}
             disabled={disabled}
             rows={1}
             style={{
@@ -751,6 +761,38 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
                 </span>
               );
             })()}
+
+            {/* Talk | Build — Code mode only. Every other mode already decides
+                for itself whether it builds. */}
+            {mode === 'code' && (
+              <div
+                role="radiogroup"
+                aria-label={tt('input.talk_switch_aria', 'Talk or build')}
+                className="flex items-center h-9 rounded-lg p-0.5 shrink-0 border border-[rgba(168,85,247,0.2)]"
+                style={{ background: 'rgba(168, 85, 247, 0.05)' }}
+              >
+                {([
+                  { on: true, label: tt('input.talk', 'Talk'), hint: tt('input.talk_hint', 'Talk it through — Ava reads and searches, but changes nothing') },
+                  { on: false, label: tt('input.build', 'Build'), hint: tt('input.build_hint', 'Build — Ava is free to edit files and run commands') },
+                ] as const).map((opt) => {
+                  const selected = talk === opt.on;
+                  return (
+                    <button
+                      key={opt.label}
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setTalk(opt.on)}
+                      title={opt.hint}
+                      className={`h-full px-2.5 rounded-md text-[11px] font-semibold cursor-pointer transition-all duration-200
+                        ${selected ? 'text-white' : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90'}`}
+                      style={selected ? { background: 'linear-gradient(135deg, #A855F7, #7C3AED)' } : undefined}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Voice input button DROPPED — IDE doesn't have it. */}
 

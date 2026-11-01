@@ -827,8 +827,14 @@ export class Conductor {
         this.visionModel ?? undefined,
         this.visionDescriptionCache,
       );
-      messages.length = 0;
-      messages.push(...bridgedMessages);
+      // The bridge hands back the SAME array when the model can see images.
+      // Clearing `messages` first would empty that array too, and every
+      // persona sent the provider nothing — "400 Empty input messages" on
+      // every planning run with a vision model (found 1 Nov 2026).
+      if (bridgedMessages !== messages) {
+        messages.length = 0;
+        messages.push(...bridgedMessages);
+      }
 
       // Run the model with tool support
       let iterations = 0;

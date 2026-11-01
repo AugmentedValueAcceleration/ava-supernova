@@ -12,6 +12,7 @@ interface PersonaInfo {
   phase: 'active' | 'complete' | 'error';
   description?: string;
   output?: string;
+  error?: string;
   tools?: PersonaTool[];
 }
 
@@ -226,6 +227,15 @@ function PersonaRow({ persona }: { persona: PersonaInfo }) {
       {isComplete && persona.output && (
         <p className="mt-1 ml-6 text-[10px] text-[var(--vscode-descriptionForeground)] line-clamp-2 leading-relaxed">
           {persona.output}
+        </p>
+      )}
+
+      {/* Errored persona: show the actual failure reason. Without it the panel
+          was five red crosses and no way to tell why (1 Nov 2026). Mirrors
+          the sidebar's PersonaStatus. */}
+      {isError && persona.error && (
+        <p className="mt-1 ml-6 text-[10px] text-[var(--vscode-errorForeground)] leading-relaxed">
+          {persona.error}
         </p>
       )}
     </div>

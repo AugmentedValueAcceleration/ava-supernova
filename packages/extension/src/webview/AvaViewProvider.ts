@@ -25,6 +25,7 @@ import {
   getBrainstormModePrefix,
   getWriteModePrefix,
   getWorkModePrefix,
+  getWorkTalkPrefix,
   getHealthRoomPrefix,
   getDesignStudioPrefix,
   loadFreshDesignContext,
@@ -1097,7 +1098,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.activeDesignRoom = msg.designRoom;
         }
         this.activeDesignPanel = typeof msg.designPanel === 'string' && msg.designPanel.trim() ? msg.designPanel.trim() : undefined;
-        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined) };
+        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined), talk: msg.talk === true };
       }
         break;
       case 'tool_confirmation_response':
@@ -3359,7 +3360,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'send_message':
-        await this.handleUserMessage(message.text, message.mode, message.attachments, { surface: message.surface, courseId: message.courseId });
+        await this.handleUserMessage(message.text, message.mode, message.attachments, { surface: message.surface, courseId: message.courseId, talk: message.talk });
         break;
 
       case 'palette_intent':
@@ -3787,9 +3788,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     text: string,
     mode: AvaMode = 'code',
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
-    options?: { displayText?: string; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string },
+    options?: { displayText?: string; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; talk?: boolean },
   ): Promise<void> {
     this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}, providerSource=${this.providerSource}`);
+    // The Talk switch only means something in Code mode — every other mode
+    // already decides for itself whether it builds.
+    const talk = mode === 'code' && options?.talk === true;
 
     // Guard against empty / whitespace-only sends.
     //
@@ -3933,6 +3937,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const userText = await this.applyModePrefix(
       docContext ? `${docContext}` + '\n\n' + `${text}` : text,
       mode,
+      talk,
     );
     this.log(`User message (mode=${mode}): "${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"`);
 
@@ -4427,7 +4432,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     try {
       // ── Conductor: run persona team for complex tasks ──────────────────
       const modeMap: Record<string, string> = { code: 'work', plan: 'plan', chat: 'chat', teach: 'teach', security: 'security', brainstorm: 'brainstorm', write: 'write' };
-      const conductorMode = modeMap[mode] || 'work';
+      // Talk is read-only, so if the team is asked for it is the planning
+      // team — the work team carries a Builder.
+      const conductorMode = talk ? 'plan' : (modeMap[mode] || 'work');
 
       if (this.conductor && this.conductor.needsOrchestration(text, conductorMode)) {
         // Depth detection happens inside orchestrate() based on the user
@@ -4928,7 +4935,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Mode Handling ──────────────────────────────────────────────────────────
 
-  private async applyModePrefix(text: string, mode: AvaMode): Promise<string> {
+  private async applyModePrefix(text: string, mode: AvaMode, talk = false): Promise<string> {
     let prefixed: string;
     switch (mode) {
       case 'plan':
@@ -4952,7 +4959,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // spelling split is why this fell through to `default` and shipped
       // without a prompt while every other mode had one.
       case 'code':
-        prefixed = getWorkModePrefix(text); break;
+        prefixed = talk ? getWorkTalkPrefix(text) : getWorkModePrefix(text); break;
       case 'health':
         prefixed = getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary(), this.getTrainingLogSummary()); break;
       case 'design': {

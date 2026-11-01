@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ProviderHealthTracker } from '../src/providers/health-tracker.js';
+import { ProviderError } from '../src/core/errors.js';
 
 describe('ProviderHealthTracker', () => {
   let tracker: ProviderHealthTracker;
@@ -23,6 +24,22 @@ describe('ProviderHealthTracker', () => {
       expect(snap.successes).toBe(2);
       expect(snap.failures).toBe(0);
       expect(snap.avgLatencyMs).toBe(150);
+    });
+
+    it('does not count a bad request (400/422) against the provider', () => {
+      for (let i = 0; i < 5; i++) {
+        tracker.recordFailure('platform', new ProviderError('Empty input messages', 'platform', 400));
+      }
+      tracker.recordFailure('platform', new ProviderError('bad shape', 'platform', 422));
+      expect(tracker.isHealthy('platform')).toBe(true);
+      expect(tracker.getSnapshot('platform')?.failures ?? 0).toBe(0);
+    });
+
+    it('still counts server errors', () => {
+      for (let i = 0; i < 3; i++) {
+        tracker.recordFailure('platform', new ProviderError('down', 'platform', 503));
+      }
+      expect(tracker.isHealthy('platform')).toBe(false);
     });
 
     it('records failures', () => {

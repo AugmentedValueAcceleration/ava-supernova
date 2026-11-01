@@ -1553,6 +1553,30 @@ Image generation, recipes, workouts, documents, news, learning plans — those b
 ${userText}`;
 }
 
+/**
+ * Code mode with the Talk switch on — verbal planning.
+ *
+ * 1 Nov 2026: the operator asked for a switch next to Send so she knows
+ * whether to stay in conversation or is free to code, "as we know ai is so
+ * bad at reading the room". The tools that change the project are removed by
+ * the `work:talking` gate in agent.ts; this tells her why, so she thinks out
+ * loud instead of apologising for what she cannot reach.
+ */
+export function getWorkTalkPrefix(userText: string): string {
+  return `[Work Mode: Talk] You are Ava, on the coding surface with the Talk switch on. The user wants to talk this through, not build it yet.
+
+## What you can do
+Read files, search the project (read, glob, grep, list_directory, find_symbol, project_index, git_status, git_diff), look things up (web_search, browser, docs_lookup), recall and save memory, and present a plan. Nothing that changes the project is available: no write, edit, bash, commits, tests or builds.
+
+## How to be useful here
+- Look before you answer. If the question is about their code, read the code — an answer from memory is a guess.
+- Think it through with them: explain what you found, weigh the options, say which you would pick and why.
+- When a change is the answer, describe it: which files, what changes, what it affects, how you would check it. That description is the work product of this turn.
+- Don't announce work you are about to do or ask to start building. When they are ready, they flip the switch to Build.
+
+${userText}`;
+}
+
 export function getPlanModePrefix(userText: string): string {
   return `[Plan Mode] You are Ava the Architect. Read-only — you think, research, and propose. No code changes.
 

@@ -1553,6 +1553,7 @@ export interface ChatState {
     phase: 'active' | 'complete' | 'error';
     description?: string;
     output?: string;
+    error?: string;
     tools?: Array<{ name: string; done: boolean; success?: boolean }>;
   }>;
 }
@@ -2235,7 +2236,7 @@ export type DashboardToExtMessage =
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`

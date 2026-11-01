@@ -95,7 +95,7 @@ function stripModePrefix(content: string): string {
   // Design conversation showed the user the entire internal briefing in
   // place of their own message.
   const prefixes = [
-    '[Work Mode]', '[Plan Mode]', '[Chat Mode]', '[Brainstorm Mode]',
+    '[Work Mode]', '[Work Mode: Talk]', '[Plan Mode]', '[Chat Mode]', '[Brainstorm Mode]',
     '[Write Mode]', '[Teach Mode]', '[Security Audit Mode]',
     '[Desktop Automation Mode]', '[Health Room]', '[Design Studio]',
     '[Social Studio]', '[Newsroom]', '[Pantry]', '[Gym]', '[Classroom]',
@@ -1372,8 +1372,8 @@ export function App() {
   }, [state.messages, scrollToLatest]);
 
   const handleSend = useCallback(
-    (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => {
-      postMessage({ type: 'send_message', text, mode, attachments });
+    (text: string, mode: AvaMode, attachments?: ImageAttachment[], talk?: boolean) => {
+      postMessage({ type: 'send_message', text, mode, attachments, ...(talk ? { talk: true } : {}) });
     },
     [postMessage],
   );

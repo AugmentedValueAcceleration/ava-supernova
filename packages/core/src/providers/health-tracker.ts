@@ -8,6 +8,8 @@
  * Session-scoped — no persistence. One instance per CLI session or extension activation.
  */
 
+import { ProviderError } from '../core/errors.js';
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const CONSECUTIVE_FAILURE_THRESHOLD = 3;
@@ -58,7 +60,12 @@ export class ProviderHealthTracker {
   }
 
   /** Record a failed API call. May trip the circuit breaker. */
-  recordFailure(provider: string, _error?: Error): void {
+  recordFailure(provider: string, error?: Error): void {
+    // A 400 / 422 is a request WE built badly — it says nothing about whether
+    // the provider is up. Counting it tripped the platform after three
+    // persona requests went out empty, and the rest of the team was moved to
+    // whatever BYOK keys happened to be saved (1 Nov 2026).
+    if (error instanceof ProviderError && (error.statusCode === 400 || error.statusCode === 422)) return;
     const s = this.getOrCreate(provider);
     s.failures++;
     s.consecutiveFailures++;

@@ -561,6 +561,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           phase: action.phase,
           description: action.description || prev?.description,
           output: action.output || prev?.output,
+          error: action.error || prev?.error,
           tools: prev?.tools || [],
         }],
       };
