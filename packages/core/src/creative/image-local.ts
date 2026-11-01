@@ -18,6 +18,9 @@
  */
 
 import { createRequire } from 'node:module';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export interface RawImage { width: number; height: number; data: Uint8Array }
 
@@ -121,10 +124,21 @@ let vectorizer: Vectorizer | null = null;
  */
 function loadVectorizer(): Vectorizer {
   if (!vectorizer) {
-    const require = createRequire(import.meta.url);
     // Vendored (see vendor/vectorizer/README.md): the npm package declares a
-    // wasm32 CPU, so npm refuses to install it on x64. Path is from dist/creative/.
-    vectorizer = require('../../vendor/vectorizer/vectorizer.wasi.cjs') as Vectorizer;
+    // wasm32 CPU, so npm refuses to install it on x64. Two places it can be:
+    //   - bundled into an app (the extension, the IDE sidecar): the build puts
+    //     a self-contained copy in `vectorizer/` beside the bundle. A CommonJS
+    //     bundle has an empty import.meta, so __dirname is the only way there.
+    //   - core itself from npm or the workspace: relative to dist/creative/.
+    const candidates: string[] = [];
+    if (typeof __dirname !== 'undefined') candidates.push(join(__dirname, 'vectorizer', 'vectorizer.cjs'));
+    try {
+      candidates.push(fileURLToPath(new URL('../../vendor/vectorizer/vectorizer.wasi.cjs', import.meta.url)));
+    } catch { /* bundled: no import.meta */ }
+    const found = candidates.find((c) => existsSync(c));
+    if (!found) throw new Error('The logo vectoriser is missing from this install — please report it on Discord.');
+    const req = createRequire(typeof __filename !== 'undefined' ? __filename : import.meta.url);
+    vectorizer = req(found) as Vectorizer;
   }
   return vectorizer;
 }
