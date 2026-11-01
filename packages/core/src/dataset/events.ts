@@ -411,7 +411,9 @@ export interface VisionBridgePayload {
 
 /**
  * A metered action completed and credits were deducted from the user's
- * allowance. Emitted by `chargeCredits()` in billing/meter.ts. The server
+ * allowance. NO LONGER EMITTED (1 Nov 2026): Ava is going fully bring-your-
+ * own-key with no credits, and `chargeCredits()` / billing/meter.ts were
+ * removed. The type stays so older captured rows still parse. The server
  * sums these per user per billing period once Stage 3's billing switch
  * is live; during Stage 2 (dual-write) the server bills on raw tokens
  * while recording the `credits` field for parity auditing.

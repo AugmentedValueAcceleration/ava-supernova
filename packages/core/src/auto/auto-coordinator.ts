@@ -27,7 +27,6 @@ import { extractChangesSummary } from './changes-summary.js';
 import { logger } from '../core/logger.js';
 import { avaEvents, withTrajectory, withChildTrajectory, getTrajectory } from '../dataset/emitter.js';
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
-import { chargeCredits, extractUsage } from '../billing/meter.js';
 import { randomUUID } from 'node:crypto';
 import { resolveVisionDescriber } from '../agent/vision-bridge.js';
 
@@ -950,11 +949,6 @@ Should these tasks be executed as a plan? Output yes or no.`;
         stream: false,
       });
       const response = await Promise.race([callPromise, timeout]);
-      // Meter the call — Flash-based gate, same cost bracket as intent gate.
-      chargeCredits('light_call', {
-        model: model.id,
-        rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
-      });
       const resp = response as { choices?: Array<{ message?: { content?: string | unknown } }>; message?: { content?: string | unknown } };
       const content = resp.choices?.[0]?.message?.content ?? resp.message?.content ?? '';
       const raw = (typeof content === 'string' ? content : '').trim().toLowerCase();

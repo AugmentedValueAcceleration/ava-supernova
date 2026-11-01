@@ -3,7 +3,6 @@ import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
-import { chargeCredits } from '../billing/meter.js';
 
 /**
  * Generate an AI image and save it to the project.
@@ -45,8 +44,8 @@ export class GenerateImageTool implements Tool {
   readonly name = 'generate_image';
   readonly description = 'Generate an AI image from a text prompt and save it to the project';
   readonly riskLevel: ToolRiskLevel = 'write';
-  // Media generation costs credits — confirm before running so Ava never
-  // spends the user's balance without an explicit yes (palette click or
+  // Media generation is a real charge on the user's own Qwen account —
+  // confirm before running so Ava never spends their money without an explicit yes (palette click or
   // chat confirmation).
   readonly requiresConfirmation = true;
 
@@ -228,7 +227,6 @@ export class GenerateImageTool implements Tool {
         // whole story. An uploader lived here long after the toggle that
         // controlled it was removed — see the removal commit.
 
-        chargeCredits('image_gen');
         return {
           success: true,
           output: `Generated and saved ${purpose} image to ${relativePath} (${sizeKb} KB, ${size.replace('*', 'x')})\n\nPrompt: ${rawPrompt}${promptAddition ? `\nEnhanced: ${enhancedPrompt}` : ''}`,

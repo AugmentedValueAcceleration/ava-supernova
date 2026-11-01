@@ -30,7 +30,7 @@ export class WriteVoiceoverTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'write_voiceover',
     description:
-      'Render a VOICEOVER ON ITS OWN — your voice, no clip. Use when they ask for a read, narration, or audio without describing anything to SEE; if they describe a shot, that is write_video_post instead, which voices the clip itself — never make both for one idea. YOU author the exact words. Costs credits, so it runs only on a yes.',
+      'Render a VOICEOVER ON ITS OWN — your voice, no clip. Use when they ask for a read, narration, or audio without describing anything to SEE; if they describe a shot, that is write_video_post instead, which voices the clip itself — never make both for one idea. YOU author the exact words. It is a real charge on the provider account, so it runs only on a yes.',
     parameters: {
       type: 'object',
       properties: {

@@ -4,7 +4,6 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
 import type { GenerationTracker } from '../dataset/generation-emit.js';
-import { chargeCredits } from '../billing/meter.js';
 import { wanSubmit, wanWait } from '../creative/dashscope.js';
 
 /**
@@ -41,8 +40,8 @@ export class GenerateVideoTool implements Tool {
   readonly name = 'generate_video';
   readonly description = 'Generate a short AI video with synced audio from a text prompt using Wan 2.5.';
   readonly riskLevel: ToolRiskLevel = 'write';
-  // Media generation costs credits — confirm before running so Ava never
-  // spends the user's balance without an explicit yes (palette click or
+  // Media generation is a real charge on the user's own Qwen account —
+  // confirm before running so Ava never spends their money without an explicit yes (palette click or
   // chat confirmation).
   readonly requiresConfirmation = true;
 
@@ -50,7 +49,7 @@ export class GenerateVideoTool implements Tool {
     name: 'generate_video',
     description:
       'Generate a short AI video with synchronized audio (2-30s) from a prompt and save to project. '
-      + 'Charged by the second, and a longer clip takes proportionally longer to render — ask for what the shot needs.',
+      + 'Billed by the second on the user\'s own Qwen key, and a longer clip takes proportionally longer to render — ask for what the shot needs.',
     parameters: {
       type: 'object',
       properties: {
@@ -65,12 +64,12 @@ export class GenerateVideoTool implements Tool {
         duration: {
           type: 'number',
           enum: [5, 10],
-          description: 'Duration in seconds, 2-30, with synchronized audio. Default 5. Charged by the second, and a longer clip takes proportionally longer to render — ask for what the shot needs.',
+          description: 'Duration in seconds, 2-30, with synchronized audio. Default 5. Billed by the second on the user\'s own key, and a longer clip takes proportionally longer to render — ask for what the shot needs.',
         },
         resolution: {
           type: 'string',
           enum: ['720P', '1080P'],
-          description: 'Output resolution. 720P (default) or 1080P (~2× the credit cost).',
+          description: 'Output resolution. 720P (default) or 1080P (about twice the cost).',
         },
         target_path: {
           type: 'string',
@@ -202,7 +201,6 @@ export class GenerateVideoTool implements Tool {
       // whole story. An uploader lived here long after the toggle that
       // controlled it was removed — see the removal commit.
 
-      chargeCredits('video_gen');
       return {
         success: true,
         output: `Generated ${duration}s ${resolution} video and saved to ${relativePath}`,

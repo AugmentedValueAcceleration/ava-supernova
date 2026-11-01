@@ -1,6 +1,5 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { chargeCredits } from '../billing/meter.js';
 import { TTS_VOICES, TTS_VOICE_CATALOGUE } from '../creative/index.js';
 
 /**
@@ -87,11 +86,11 @@ export class DesignFindShapeTool implements Tool {
 // ── design_generate_icon ─────────────────────────────────────────────────────
 // The core move: render the shape to a white-silhouette armature and let
 // qwen-image-edit-max restyle it in the material + colour, then server-matte to
-// a transparent icon. 20 credits — quote before firing (the persona does this).
+// a transparent icon. A real charge on the user's Qwen key — the persona asks first.
 export class DesignGenerateIconTool implements Tool {
   readonly name = 'design_generate_icon';
   readonly description =
-    'Generate one on-brand icon from a shape armature: pick shape + material + colour, run shape-as-dial (Lucide → qwen-image-edit-max → matte). Costs 20 credits — confirm cost with the user first.';
+    'Generate one on-brand icon from a shape armature: pick shape + material + colour, run shape-as-dial (Lucide → qwen-image-edit-max → matte). Each one is a real charge on their own Qwen account — say what you will make and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
   // The persona quotes the cost and gets a yes in conversation, so no extra modal.
   readonly requiresConfirmation = false;
@@ -102,7 +101,7 @@ export class DesignGenerateIconTool implements Tool {
       'Generate a single icon on the canvas. YOU write the look (art_direction); the shape becomes a reference the ' +
       'model paints onto, then the result is matted to a clean transparent PNG. The system locks the matte-critical ' +
       'rules (silhouette, white background, isolation, no text) — you own the finish, material, lighting and mood. ' +
-      'Costs 20 credits — state that and get a yes before calling.',
+      'Each one is a real charge on their own Qwen account — say what you will make and get a yes first.',
     parameters: {
       type: 'object',
       properties: {
@@ -154,10 +153,9 @@ export class DesignGenerateIconTool implements Tool {
       if (!res.ok) return { success: false, output: res.error || 'Generation failed.' };
       const d = res.data as { label?: string; material?: string; credits?: number } | undefined;
       const label = d?.label || shape;
-      const credits = d?.credits ?? 20;
       return {
         success: true,
-        output: `Generated a ${d?.material || ''} "${label}" icon — it's on the canvas, matted clean. ${credits} credits. Ask if they want it saved or tweaked.`.replace(/\s+/g, ' ').trim(),
+        output: `Generated a ${d?.material || ''} "${label}" icon — it's on the canvas, matted clean. Ask if they want it saved or tweaked.`.replace(/\s+/g, ' ').trim(),
         metadata: d,
       };
     } catch (err) {
@@ -168,11 +166,11 @@ export class DesignGenerateIconTool implements Tool {
 
 // ── design_generate_set ──────────────────────────────────────────────────────
 // A matched family — same material/colour/lighting held constant, only the
-// subject varies. N × 20 credits; the persona quotes the total first.
+// subject varies. N images on the user's Qwen key; the persona says how many first.
 export class DesignGenerateSetTool implements Tool {
   readonly name = 'design_generate_set';
   readonly description =
-    'Generate a matched set of icons — same material, colour and lighting held constant so they sit together as a family. N × 20 credits; quote the total and get a yes first.';
+    'Generate a matched set of icons — same material, colour and lighting held constant so they sit together as a family. One image per icon on their own Qwen key — say how many and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
@@ -180,7 +178,7 @@ export class DesignGenerateSetTool implements Tool {
     name: 'design_generate_set',
     description:
       'Generate a consistent icon set (2–12). Hold material + colour constant across all so they read as a family — ' +
-      'only the subject varies. Costs 20 credits PER icon — say the total ("six icons, 120 credits") and get a yes ' +
+      'only the subject varies. Each icon is a real image on their own Qwen key — say how many ("six icons") and get a yes ' +
       'before calling. Each icon lands on the canvas in turn.',
     parameters: {
       type: 'object',
@@ -222,8 +220,7 @@ export class DesignGenerateSetTool implements Tool {
       if (!res.ok) return { success: false, output: res.error || 'Set generation failed.' };
       const d = res.data as { made?: number; failed?: string[]; credits?: number } | undefined;
       const made = d?.made ?? 0;
-      const credits = d?.credits ?? made * 20;
-      const parts = [`Made ${made} of ${shapes.length} icons as a matched set — ${credits} credits.`];
+      const parts = [`Made ${made} of ${shapes.length} icons as a matched set.`];
       if (d?.failed?.length) parts.push(`Couldn't place: ${d.failed.join(', ')}.`);
       parts.push('They\'re on the canvas; ask if they want the set saved.');
       return { success: true, output: parts.join(' '), metadata: d };
@@ -392,7 +389,7 @@ export class DesignSaveTool implements Tool {
 export class DesignGenerateVideoTool implements Tool {
   readonly name = 'design_generate_video';
   readonly description =
-    'Generate a short video on the Open Canvas from an authored prompt (shot / subject / motion / mood) via Wan. YOU write the prompt from what you gauged the user wants. Uses credits — confirm cost first.';
+    'Generate a short video on the Open Canvas from an authored prompt (shot / subject / motion / mood) via Wan. YOU write the prompt from what you gauged the user wants. It is a real charge on their own Qwen account — say what you will make and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
@@ -401,9 +398,9 @@ export class DesignGenerateVideoTool implements Tool {
     description:
       'Generate a short video clip on the canvas. YOU author the prompt: describe the shot, subject, camera motion, ' +
       'mood and lighting the way a director briefs a shot — drawn from what you gauged the user wants. Wan runs it ' +
-      '(a few minutes; it auto-dubs a soundtrack). Clips are 2 to 30 seconds. Credits scale with LENGTH and ' +
-      'resolution — 30s costs six times 5s because it is six times the work — so say what it will cost and get ' +
-      'a yes before calling.',
+      '(a few minutes; it auto-dubs a soundtrack). Clips are 2 to 30 seconds. The cost on their own ' +
+      'Qwen account scales with LENGTH and resolution — 30s costs about six times 5s — so say what you will make ' +
+      'and get a yes before calling.',
     parameters: {
       type: 'object',
       properties: {
@@ -418,8 +415,8 @@ export class DesignGenerateVideoTool implements Tool {
           type: 'string',
           description:
             'Clip length in seconds, 2 to 30. Default 5. Ask for what the SHOT needs — a held mood or a single '
-            + 'movement is 5, a demonstration or a walkthrough earns 15 or 30. It is charged by the second, so '
-            + 'thirty seconds is not a free upgrade: it costs six times five seconds and takes several times as '
+            + 'movement is 5, a demonstration or a walkthrough earns 15 or 30. It is billed by the second on the '
+            + 'user\'s own key, so thirty seconds is not a free upgrade: it costs about six times five seconds and takes several times as '
             + 'long to render.',
         },
         aspect: {
@@ -452,10 +449,9 @@ export class DesignGenerateVideoTool implements Tool {
       if (!res.ok) return { success: false, output: res.error || 'Video generation failed.' };
       const d = res.data as { duration?: string; credits?: number } | undefined;
       const secs = d?.duration ? `${d.duration}s ` : '';
-      const cr = d?.credits ? ` ${d.credits} credits.` : '';
       return {
         success: true,
-        output: `Generated a ${secs}clip — it's playing on the canvas.${cr} Ask if they want it saved or a different take.`.replace(/\s+/g, ' ').trim(),
+        output: `Generated a ${secs}clip — it's playing on the canvas. Ask if they want it saved or a different take.`.replace(/\s+/g, ' ').trim(),
         metadata: d,
       };
     } catch (err) {
@@ -472,7 +468,7 @@ export class DesignGenerateVideoTool implements Tool {
 export class DesignGenerateImageTool implements Tool {
   readonly name = 'design_generate_image';
   readonly description =
-    'Generate a free-form image on the Open Canvas from an authored prompt (subject / style / composition / lighting / mood). YOU write the full prompt from what you gauged the user wants. This is NOT an icon — no armature, no matte. Uses credits — confirm cost first.';
+    'Generate a free-form image on the Open Canvas from an authored prompt (subject / style / composition / lighting / mood). YOU write the full prompt from what you gauged the user wants. This is NOT an icon — no armature, no matte. It is a real charge on their own Qwen account — say what you will make and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
@@ -482,7 +478,7 @@ export class DesignGenerateImageTool implements Tool {
       'Generate a single free-form image on the canvas (a hero shot, illustration, background, scene) — NOT an icon. ' +
       'YOU author the full prompt: describe the subject, style, composition, lighting and mood the way a designer briefs ' +
       'an image, drawn from what you gauged the user wants. It renders full-frame with no matte and no shape armature. ' +
-      'Uses credits (~12) — state that and get a yes before calling.',
+      'It is a real charge on their own Qwen account — say what you will make and get a yes first.',
     parameters: {
       type: 'object',
       properties: {
@@ -515,10 +511,9 @@ export class DesignGenerateImageTool implements Tool {
       });
       if (!res.ok) return { success: false, output: res.error || 'Image generation failed.' };
       const d = res.data as { credits?: number } | undefined;
-      const credits = d?.credits ? ` ${d.credits} credits.` : '';
       return {
         success: true,
-        output: `Generated the image — it's on the canvas.${credits} Ask if they want it saved or a different take.`.replace(/\s+/g, ' ').trim(),
+        output: `Generated the image — it's on the canvas. Ask if they want it saved or a different take.`.replace(/\s+/g, ' ').trim(),
         metadata: d,
       };
     } catch (err) {
@@ -534,14 +529,14 @@ export class DesignGenerateImageTool implements Tool {
 export class DesignGenerateLogoTool implements Tool {
   readonly name = 'design_generate_logo';
   readonly description =
-    'Design a full LOGO SYSTEM for the active brand — a mark YOU construct as exact vector geometry, plus a real-font wordmark, composed into lockups, symbol-only, wordmark-only, mono (light/dark) and favicon. No image model, instant; 20 credits (same as an icon). Name/palette/feel come from the active brand kit. After it renders, offer to set it as the brand logo (design_brand_kit set_logo).';
+    'Design a full LOGO SYSTEM for the active brand — a mark YOU construct as exact vector geometry, plus a real-font wordmark, composed into lockups, symbol-only, wordmark-only, mono (light/dark) and favicon. No image model, instant, and free — it runs on this machine. Name/palette/feel come from the active brand kit. After it renders, offer to set it as the brand logo (design_brand_kit set_logo).';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'design_generate_logo',
     description:
-      'Design a complete logo system for the active brand kit. YOU construct the mark — parametric vector geometry you compose yourself (see the mark primitives in your Logo-room brief) — and the brand NAME is typeset in a real bundled font. Both are exact vector: nothing is generated as pixels, nothing is traced, and it renders instantly. Costs 20 credits (icon parity). ' +
+      'Design a complete logo system for the active brand kit. YOU construct the mark — parametric vector geometry you compose yourself (see the mark primitives in your Logo-room brief) — and the brand NAME is typeset in a real bundled font. Both are exact vector: nothing is generated as pixels, nothing is traced, and it renders instantly, free, on this machine. ' +
       'Whatever you leave out, the operator\'s panel supplies. Author the `direction` (what the mark means) and choose a `font` by brand feel. After it renders, offer to make it the brand logo.',
     parameters: {
       type: 'object',
@@ -625,7 +620,6 @@ export class DesignGenerateLogoTool implements Tool {
         wordmark_colour: args.wordmark_colour, font: args.font, brand_name: args.brand_name,
       });
       if (!res.ok) return { success: false, output: res.error || 'Logo generation failed.' };
-      chargeCredits('logo_gen'); // a made logo — 20 credits (construction, value-priced at icon parity)
       const d = res.data as { brandName?: string; font?: string; variants?: number; markType?: string; style?: string; concept?: string; preview?: string } | undefined;
       // The rendered lockup comes back as base64 so the agent's vision pipeline
       // feeds it to Ava as an image — she SEES what she made instead of designing
@@ -655,7 +649,7 @@ export class DesignGenerateLogoTool implements Tool {
 export class DesignExploreLogosTool implements Tool {
   readonly name = 'design_explore_logos';
   readonly description =
-    'Explore several logo DIRECTIONS at once. You author 3–4 genuinely different candidates (different mark ideas, forms, fonts); it renders them all into one numbered grid and returns it as an image so you can compare and pick the strongest. Instant; 20 credits for the whole batch (picking one from it is then free — great value). Use this to lead with real options instead of one guess.';
+    'Explore several logo DIRECTIONS at once. You author 3–4 genuinely different candidates (different mark ideas, forms, fonts); it renders them all into one numbered grid and returns it as an image so you can compare and pick the strongest. Instant and free — it runs on this machine. Use this to lead with real options instead of one guess.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
@@ -714,7 +708,6 @@ export class DesignExploreLogosTool implements Tool {
     try {
       const res = await control('explore_logos', { brand_name: args.brand_name, candidates });
       if (!res.ok) return { success: false, output: res.error || 'Exploration failed.' };
-      chargeCredits('logo_gen'); // one logo charge for the exploration batch — picking from it is free
       const d = res.data as { count?: number; preview?: string } | undefined;
       const { preview, ...meta } = d ?? {};
       return {
@@ -743,7 +736,7 @@ export class DesignExploreLogosTool implements Tool {
 export class DesignGenerateVoiceTool implements Tool {
   readonly name = 'design_generate_voice';
   readonly description =
-    'Generate a voiceover on the Open Canvas via Qwen3-TTS. YOU author the script (the exact words) AND the delivery (tone / pace / emotion) from what you gauged. Pick a voice from the roster; translate the script yourself and set the language to voice it in another language in the SAME voice. Uses credits — confirm cost first.';
+    'Generate a voiceover on the Open Canvas via Qwen3-TTS. YOU author the script (the exact words) AND the delivery (tone / pace / emotion) from what you gauged. Pick a voice from the roster; translate the script yourself and set the language to voice it in another language in the SAME voice. It is a real charge on their own Qwen account — say what you will make and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
@@ -755,7 +748,7 @@ export class DesignGenerateVoiceTool implements Tool {
       'roster. To voice a TRANSLATED read, translate the script YOURSELF into the target language and set `language` — ' +
       'the same voice speaks it. Pace and volume are real numeric controls; tone is not, so choose the ' +
       'voice for the tone you want. It renders ' +
-      'synchronously and appears as a scrubable waveform. Uses credits — state that and get a yes before calling. ' +
+      'synchronously and appears as a scrubable waveform. It is a real charge on their own Qwen account — say what you will make and get a yes first. ' +
       '',
     parameters: {
       type: 'object',
@@ -815,10 +808,9 @@ export class DesignGenerateVoiceTool implements Tool {
       });
       if (!res.ok) return { success: false, output: res.error || 'Voice generation failed.' };
       const d = res.data as { voice?: string; credits?: number } | undefined;
-      const credits = d?.credits ? ` ${d.credits} credits.` : '';
       return {
         success: true,
-        output: `Voiced it — it's on the canvas.${credits} Ask if they want it saved or a different read.`.replace(/\s+/g, ' ').trim(),
+        output: `Voiced it — it's on the canvas. Ask if they want it saved or a different read.`.replace(/\s+/g, ' ').trim(),
         metadata: d,
       };
     } catch (err) {

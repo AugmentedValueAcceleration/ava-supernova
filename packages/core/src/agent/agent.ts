@@ -44,7 +44,6 @@ import {
 } from './task-classifier.js';
 import { avaEvents, withTrajectory, withChildTrajectory, getTrajectory } from '../dataset/emitter.js';
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
-import { chargeCredits, extractUsage } from '../billing/meter.js';
 import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome, categorizeToolPurpose } from '../dataset/summarizers.js';
 import { pickVerificationTools, categorizeCorrection, VERIFICATION_TOOLS } from '../dataset/verification.js';
 import { matchToolError } from '../tools/error-guidance.js';
@@ -3384,21 +3383,6 @@ export class Agent {
       onEvent({ type: 'usage', usage, cost });
     }
 
-    // Meter the call — one chat_turn charge per agent iteration. A multi-
-    // iteration agent (tool loop) emits one per loop, which is the intended
-    // granularity. Cache-hit detection uses cached_tokens ratio: if >50% of
-    // prompt was cached, treat as a cache hit for discount purposes.
-    // No cast needed since TokenUsage declares the cache fields it always
-    // carried at runtime. The `as unknown as` this replaced was the tell:
-    // the shape was known to be wider than the type all along.
-    const rawUsage = extractUsage(usage);
-    const cacheHit = rawUsage?.cached != null && rawUsage.input > 0 && rawUsage.cached / rawUsage.input > 0.5;
-    chargeCredits('chat_turn', {
-      model: this.model.id,
-      rawTokens: rawUsage,
-      cacheHit,
-    });
-
     // A cut-off is reported, always. When it lands mid tool call the call is
     // simply absent, so without this the turn ends in silence and the work
     // never happened.
@@ -4035,12 +4019,6 @@ ${transcript}`;
         },
         signal,
       );
-      // Meter the compression call. It's a heavy-model completion the same
-      // shape as a chat turn, just summarising rather than answering a user.
-      chargeCredits('chat_turn', {
-        model: this.model.id,
-        rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
-      });
       const choice = response.choices?.[0];
       const content = choice?.message?.content || '';
       if (!content) {

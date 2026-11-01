@@ -4,7 +4,6 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
 import type { GenerationTracker } from '../dataset/generation-emit.js';
-import { chargeCredits } from '../billing/meter.js';
 import { TTS_VOICES, TTS_VOICE_CATALOGUE } from '../creative/index.js';
 import { qwenTts } from '../creative/dashscope.js';
 
@@ -23,8 +22,8 @@ export class GenerateVoiceTool implements Tool {
   readonly name = 'generate_voice';
   readonly description = 'Generate AI voice/speech from text via Qwen3-TTS.';
   readonly riskLevel: ToolRiskLevel = 'write';
-  // Media generation costs credits — confirm before running so Ava never
-  // spends the user's balance without an explicit yes (palette click or
+  // Media generation is a real charge on the user's own Qwen account —
+  // confirm before running so Ava never spends their money without an explicit yes (palette click or
   // chat confirmation).
   readonly requiresConfirmation = true;
 
@@ -172,7 +171,6 @@ export class GenerateVoiceTool implements Tool {
       // whole story. An uploader lived here long after the toggle that
       // controlled it was removed — see the removal commit.
 
-      chargeCredits('voice_gen');
       return {
         success: true,
         output: `Generated voice and saved to ${relativePath}`,

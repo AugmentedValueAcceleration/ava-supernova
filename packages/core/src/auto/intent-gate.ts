@@ -3,7 +3,6 @@ import type { ModelDefinition } from '../core/types.js';
 import type { ProviderRegistry } from '../providers/provider-registry.js';
 import { logger } from '../core/logger.js';
 import { avaEvents } from '../dataset/emitter.js';
-import { chargeCredits, extractUsage } from '../billing/meter.js';
 
 /**
  * Flash-based intent gate.
@@ -173,12 +172,6 @@ export async function classifyIntent(opts: {
       signal,
     );
 
-    // Meter the call — we burned Flash tokens regardless of whether the
-    // response is parseable downstream. Fire-and-forget event.
-    chargeCredits('light_call', {
-      model: model.id,
-      rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
-    });
 
     const assistantMsg = response.choices?.[0]?.message;
     if (!assistantMsg) {
@@ -291,10 +284,6 @@ export async function classifyTeachDepth(opts: {
       signal,
     );
 
-    chargeCredits('light_call', {
-      model: model.id,
-      rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
-    });
 
     const assistantMsg = response.choices?.[0]?.message;
     if (!assistantMsg) {

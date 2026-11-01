@@ -17,7 +17,7 @@ import type { FunctionSchema } from '../providers/types.js';
  * (2) used to be missing entirely: the tool only ever scanned project-relative
  * dirs, so every icon, logo, image and voiceover the user made in the Studio
  * was invisible to Ava — she'd report "no assets" and offer to generate a fresh
- * one, burning credits on something they already owned.
+ * one, spending their money on something they already owned.
  */
 
 const ASSET_EXTENSIONS: Record<string, string> = {
@@ -63,7 +63,7 @@ export class BrowseLibraryTool implements Tool {
       '(logos, graphics, clips, voice-overs, music). Use this whenever the project needs an existing ' +
       'asset: to find a user-made logo/image/media and wire it into code or UI by its REAL path. ' +
       'Always browse_library to get the actual path — never invent or guess an asset filename. ' +
-      'Generation of new media is user-initiated (it costs credits), so reach for existing assets here ' +
+      'Generation of new media is user-initiated (it costs real money on their own key), so reach for existing assets here ' +
       'rather than assuming something needs to be created. Filter by type to narrow results.',
     parameters: {
       type: 'object',
