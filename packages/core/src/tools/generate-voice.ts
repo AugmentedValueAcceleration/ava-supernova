@@ -6,12 +6,15 @@ import { startGenerationTracking } from '../dataset/generation-emit.js';
 import type { GenerationTracker } from '../dataset/generation-emit.js';
 import { chargeCredits } from '../billing/meter.js';
 import { TTS_VOICES, TTS_VOICE_CATALOGUE } from '../creative/index.js';
+import { qwenTts } from '../creative/dashscope.js';
 
 /**
  * Generate AI voice/speech from text via Qwen3-TTS.
  *
  * You author the script and the delivery; pick a voice from the roster and set
- * the spoken language. Routes through the Ava platform API.
+ * the spoken language. With the user's own Qwen key it goes straight to
+ * Alibaba DashScope; the platform route remains only for older account builds
+ * until accounts are removed (BYOK plan, 1 Nov 2026).
  */
 
 const PLATFORM_URL = 'https://avasupernova.com/api';
@@ -97,7 +100,7 @@ export class GenerateVoiceTool implements Tool {
       genManager?.fail(jobId, 'No API key');
       return {
         success: false,
-        output: 'Voice generation requires a Qwen API key (BYOK) or platform account.',
+        output: 'Voice generation needs a Qwen API key — add one in Settings. One Qwen key covers chat, images, voice and video.',
       };
     }
 
@@ -113,23 +116,29 @@ export class GenerateVoiceTool implements Tool {
     const voiceParams = `voice=${voice}, language=${language}`;
 
     try {
-      const res = await fetch(`${PLATFORM_URL}/generate-voice`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resolved.key}`,
-          'Content-Type': 'application/json',
-          // Local only: the platform returns the audio and keeps no copy.
-          'X-Ava-Data-Mode': 'local',
-        },
-        body: JSON.stringify({ text, voice, language_type: language, instructions, speech_rate: speechRate, volume }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Voice generation API error (${res.status}): ${errText}`);
+      let data: { url?: string; error?: string; model?: string };
+      if (resolved.via === 'qwen') {
+        // The user's own key, straight to DashScope. It used to be POSTed to
+        // our server, which only accepts our platform keys — so own-key voice
+        // never worked.
+        data = await qwenTts(resolved.key, { text, voice, language, instructions, speechRate, volume, signal: context.signal });
+      } else {
+        const res = await fetch(`${PLATFORM_URL}/generate-voice`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resolved.key}`,
+            'Content-Type': 'application/json',
+            // Local only: the platform returns the audio and keeps no copy.
+            'X-Ava-Data-Mode': 'local',
+          },
+          body: JSON.stringify({ text, voice, language_type: language, instructions, speech_rate: speechRate, volume }),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Voice generation API error (${res.status}): ${errText}`);
+        }
+        data = await res.json() as { url?: string; error?: string; model?: string };
       }
-
-      const data = await res.json() as { url?: string; error?: string; model?: string };
       if (data.error) throw new Error(data.error);
       if (!data.url) throw new Error('No audio URL returned from API');
 

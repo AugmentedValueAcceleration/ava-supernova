@@ -5,6 +5,7 @@ import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
 import type { GenerationTracker } from '../dataset/generation-emit.js';
 import { chargeCredits } from '../billing/meter.js';
+import { wanSubmit, wanWait } from '../creative/dashscope.js';
 
 /**
  * Generate a short AI video (with synchronized audio) from a text prompt
@@ -103,7 +104,7 @@ export class GenerateVideoTool implements Tool {
       genManager?.fail(jobId, 'No API key');
       return {
         success: false,
-        output: 'Video generation requires an Ava platform account.',
+        output: 'Video generation needs a Qwen API key — add one in Settings. One Qwen key covers chat, images, voice and video.',
       };
     }
 
@@ -120,7 +121,28 @@ export class GenerateVideoTool implements Tool {
     const paramsSummary = `duration=${duration}s, resolution=${resolution}`;
 
     try {
-      // Submit the async job — the platform returns a task_id immediately.
+      // The user's own Qwen key: submit to DashScope and wait for it here.
+      if (resolved.via === 'qwen') {
+        const job = await wanSubmit(resolved.key, { prompt, duration, resolution }, context.signal);
+        tracker = startGenerationTracking({ type: 'video', model: job.model, prompt, paramsSummary });
+        const directUrl = await wanWait(resolved.key, job.taskId, {
+          signal: context.signal,
+          onTick: () => { genManager?.update(jobId, { status: 'generating', progress: 35 }); context.onOutput?.('.'); },
+        });
+        genManager?.update(jobId, { status: 'downloading', progress: 70 });
+        const buf = await this.downloadVideo(directUrl);
+        const rel = targetPath || defaultPath;
+        const abs = join(context.cwd, rel);
+        await mkdir(dirname(abs), { recursive: true });
+        await writeFile(abs, buf);
+        context.onOutput?.(`Video saved: ${rel} (${(buf.length / (1024 * 1024)).toFixed(1)} MB)\n`);
+        const directMeta = { path: rel, absolutePath: abs, size: buf.length, duration, resolution, prompt };
+        genManager?.complete(jobId, directMeta);
+        tracker.complete({ fileSizeBytes: buf.length });
+        return { success: true, output: `Generated ${duration}s ${resolution} video and saved to ${rel}`, metadata: directMeta };
+      }
+
+      // Older account builds: submit through the platform, which returns a task_id.
       const submitRes = await fetch(`${PLATFORM_URL}/generate-video`, {
         method: 'POST',
         headers: {
@@ -249,11 +271,13 @@ export class GenerateVideoTool implements Tool {
     return Buffer.from(await res.arrayBuffer());
   }
 
-  private resolveKey(context: ToolExecutionContext): { key: string; via: 'platform' } | null {
-    // Video runs via the platform route, which uses the server's DashScope key
-    // and chooses the model itself — so this is platform-only (no provider BYOK
-    // path), and core deliberately does not name the model anywhere.
+  private resolveKey(context: ToolExecutionContext): { key: string; via: 'qwen' | 'platform' } | null {
+    // The user's own Qwen key first (BYOK plan, 1 Nov 2026) — it goes straight
+    // to DashScope. The platform route remains only for older account builds.
     const state = context.sharedState as Record<string, unknown> | undefined;
+    const getKey = state?.getProviderKey as ((p: string) => string | undefined) | undefined;
+    const qwenKey = getKey?.('qwen');
+    if (qwenKey) return { key: qwenKey, via: 'qwen' };
     const platformKey = state?.platformKey as string | undefined;
     if (platformKey) return { key: platformKey, via: 'platform' };
     return null;

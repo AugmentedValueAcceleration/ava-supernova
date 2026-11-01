@@ -63,6 +63,11 @@
       "require": "./dist/creative/index.js",
       "types": "./dist/creative/index.d.ts"
     },
+    "./creative/dashscope": {
+      "import": "./dist/creative/dashscope.js",
+      "require": "./dist/creative/dashscope.js",
+      "types": "./dist/creative/dashscope.d.ts"
+    },
     "./audit": {
       "import": "./dist/audit/index.js",
       "require": "./dist/audit/index.js",
