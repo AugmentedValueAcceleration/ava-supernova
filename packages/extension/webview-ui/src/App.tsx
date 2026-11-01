@@ -127,9 +127,7 @@ type ChatAction =
   | { type: 'set_tasks_width'; width: number }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; note?: string }
   | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
-  | { type: 'clear_sign_in_error' }
   | { type: 'dismiss_welcome' }
-  | { type: 'start_sign_in_local'; method: 'github' | 'email' }
   | { type: 'history_watchdog' }
   // Say "started" the moment a click lands, before the host has done anything.
   | { type: 'action_pending'; action: NonNullable<ChatState['pendingAction']> }
@@ -152,18 +150,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           loadStrings(action.locale, action.localeStrings);
         }
       }
-      // Loading-gate logic on init:
-      //   - If providerSource is 'byok' (no platform key), there's no
-      //     account fetch or history fetch in flight. Flip both flags
-      //     false immediately so the chat surface unlocks.
-      //   - If there's a platform key, leave them true and let
-      //     platform_status / history_list arrival drop them.
-      //   - If init already includes platformStatus, the host fetched
-      //     it before sending init — flip accountLoading false straight
-      //     away to avoid a wasted skeleton flash.
-      const initProviderSource = action.providerSource ?? state.providerSource;
-      const isByokOnly = initProviderSource === 'byok';
-      const platformStatusIncluded = !!action.platformStatus;
+      // No accounts: nothing is fetched from a server before chat can run,
+      // so the account gate is gone and only history can still be loading.
       return {
         ...state,
         initialized: true,
@@ -171,19 +159,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         activeModel: action.activeModel,
         needsSetup: action.needsSetup,
         consentRequired: action.consentRequired ?? false,
-        providerSource: initProviderSource,
-        accountLoading: isByokOnly ? false : (platformStatusIncluded ? false : state.accountLoading),
-        historyLoading: isByokOnly ? false : state.historyLoading,
-        platformStatus: action.platformStatus
-          ? {
-              connected: action.platformStatus.connected,
-              tier: action.platformStatus.tier,
-              freeTokensUsed: action.platformStatus.freeTokensUsed,
-              freeTokensLimit: action.platformStatus.freeTokensLimit,
-              subTokensUsed: action.platformStatus.subTokensUsed,
-              subTokensLimit: action.platformStatus.subTokensLimit,
-            }
-          : state.platformStatus,
+        historyLoading: false,
+        userName: action.userName ?? state.userName,
         // showWelcome is a one-shot from the host on first init after
         // setup. Once we've stored it once we latch and don't clear it
         // on later init messages (e.g. after a model switch) so the
@@ -539,21 +516,6 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         lastUsage: { ...action.usage, cost: action.cost, contextWindow: action.contextWindow },
       };
 
-    case 'platform_status':
-      return {
-        ...state,
-        // Account fetch resolved — drop the loading gate.
-        accountLoading: false,
-        platformStatus: {
-          connected: action.connected,
-          tier: action.tier,
-          freeTokensUsed: action.freeTokensUsed,
-          freeTokensLimit: action.freeTokensLimit,
-          subTokensUsed: action.subTokensUsed,
-          subTokensLimit: action.subTokensLimit,
-        },
-      };
-
     case 'dismiss_welcome':
       // Local flag flip. The host was already notified via
       // mark_onboarded when the modal's close path fired.
@@ -789,8 +751,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // window (the host never sent platform_status / history_list — e.g. a
       // failed history read), force them down so the chat is never trapped
       // spinning. No-op once the real events have arrived.
-      if (!state.accountLoading && !state.historyLoading) return state;
-      return { ...state, accountLoading: false, historyLoading: false };
+      if (!state.historyLoading) return state;
+      return { ...state, historyLoading: false };
 
     // ── Click acknowledgement ───────────────────────────────────────────
     //
@@ -970,55 +932,6 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, isCompressing: false, thinkingLabel: modelLabel(state, 'thinking.working') };
     }
 
-    // ── OAuth sign-in flow (v0.37.0) ─────────────────────────────────────
-    case 'start_sign_in_local':
-      // User clicked a sign-in button. Set pending state before posting to
-      // extension host so the UI updates immediately rather than waiting
-      // for the round-trip sign_in_started event.
-      return { ...state, signInPending: action.method, signInError: null };
-
-    case 'sign_in_started':
-      // Confirmation from the extension host that the browser was opened
-      // and a pending attempt is tracked. No state change if we already
-      // optimistically set pending on the button click.
-      return state.signInPending ? state : { ...state, signInPending: 'github', signInError: null };
-
-    case 'sign_in_complete':
-      return {
-        ...state,
-        signInPending: null,
-        signInError: null,
-        signInAccount: action.account,
-        // Clearing needsSetup here lets the UI flip straight into the main
-        // chat view once sign-in succeeds. The extension host will send a
-        // fresh init message shortly after with the new model/account data.
-        needsSetup: false,
-        // Reflect the connection immediately so the account UI flips to
-        // "connected" on sign-in (including via onboarding) instead of waiting
-        // for the next usage report. Real tier/token counts arrive with the
-        // next platform_status message.
-        platformStatus: state.platformStatus
-          ? { ...state.platformStatus, connected: true }
-          : { connected: true, tier: null, freeTokensUsed: 0, freeTokensLimit: 0, subTokensUsed: 0, subTokensLimit: null },
-      };
-
-    case 'sign_in_failed':
-      return {
-        ...state,
-        signInPending: null,
-        signInError: action.error,
-      };
-
-    case 'sign_in_cancelled':
-      return {
-        ...state,
-        signInPending: null,
-        signInError: null,
-      };
-
-    case 'clear_sign_in_error':
-      return { ...state, signInError: null };
-
     default:
       return state;
   }
@@ -1056,10 +969,7 @@ const initialState: ChatState = {
   needsSetup: true,
   consentRequired: false,
   initialized: false,
-  // Default to true — flipped false on init for BYOK-only paths or when the
-  // platform_status / history_list events arrive (gating skeletons + the
-  // loading banner). See ChatState comment in message-types.ts.
-  accountLoading: true,
+  // Flipped false on init (history is local) or when history_list arrives.
   historyLoading: true,
   pendingAction: null,
   lastUsage: null,
@@ -1069,8 +979,6 @@ const initialState: ChatState = {
   historyList: [],
   currentConversationId: null,
   conversationTitle: null,
-  providerSource: 'byok',
-  platformStatus: null,
   showWelcome: false,
   memoryOpen: false,
   memoryGlobal: [],
@@ -1085,9 +993,7 @@ const initialState: ChatState = {
   conductorMode: undefined as string | undefined,
   activePersonas: [] as Array<{ id: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string; error?: string; tools?: Array<{ name: string; done: boolean; success?: boolean }> }>,
   // OAuth sign-in flow (v0.37.0)
-  signInPending: null,
-  signInError: null,
-  signInAccount: null,
+  userName: null,
   // Vault grant prompt — populated when host posts secret_grant_request.
   pendingSecretGrant: null,
 };
@@ -1480,22 +1386,10 @@ export function App() {
     dispatch({ type: 'init', models: state.models, activeModel: state.activeModel, needsSetup: state.needsSetup, consentRequired: false } as any);
   }, [postMessage, state.models, state.activeModel, state.needsSetup]);
 
-  // OAuth sign-in handlers (v0.37.0)
-  const handleStartSignIn = useCallback((method: 'github' | 'email') => {
-    // Optimistically set pending state so the UI flips instantly,
-    // then post to extension host which will open the browser and
-    // confirm via sign_in_started event
-    dispatch({ type: 'start_sign_in_local', method });
-    postMessage({ type: 'start_sign_in', method });
+  // No key yet → the dashboard's key step (where a pasted key is tested).
+  const handleAddKey = useCallback(() => {
+    postMessage({ type: 'open_dashboard_page', page: 'keys' });
   }, [postMessage]);
-
-  const handleCancelSignIn = useCallback(() => {
-    postMessage({ type: 'cancel_sign_in' });
-  }, [postMessage]);
-
-  const handleClearSignInError = useCallback(() => {
-    dispatch({ type: 'clear_sign_in_error' });
-  }, []);
 
   const handleLoadConversation = useCallback(
     (conversationId: string) => {
@@ -1575,13 +1469,6 @@ export function App() {
     (messageId: string, rating: 'up' | 'down', reason?: string, note?: string) => {
       dispatch({ type: 'rate_message', messageId, rating, reason });
       postMessage({ type: 'rate_message', messageId, rating, reason, note });
-    },
-    [postMessage],
-  );
-
-  const handleProviderSourceChange = useCallback(
-    (source: 'platform' | 'byok') => {
-      postMessage({ type: 'set_provider_source', source });
     },
     [postMessage],
   );
@@ -1727,7 +1614,7 @@ export function App() {
             as "no chats" before localStorage drained. The spinner
             takes the messages area entirely while data is in flight,
             disappears the moment both fetches resolve. */}
-        {(state.accountLoading || state.historyLoading) ? (
+        {state.historyLoading ? (
           <div
             role="status"
             aria-live="polite"
@@ -1736,11 +1623,7 @@ export function App() {
           >
             <div className="ava-chat-spinner" aria-hidden />
             <div className="text-[12px]" style={{ color: '#a6adc8' }}>
-              {state.accountLoading && state.historyLoading
-                ? 'Loading your account and chat history…'
-                : state.accountLoading
-                  ? 'Loading your account…'
-                  : 'Loading your chat history…'}
+              {'Loading your chat history…'}
             </div>
             <style>{`
               .ava-chat-spinner {
@@ -1780,17 +1663,13 @@ export function App() {
           conductorActive={state.conductorActive}
           conductorMode={state.conductorMode}
           activePersonas={state.activePersonas}
-          signInPending={state.signInPending}
-          signInError={state.signInError}
-          onStartSignIn={handleStartSignIn}
-          onCancelSignIn={handleCancelSignIn}
-          onClearSignInError={handleClearSignInError}
+          onAddKey={handleAddKey}
           contextUsage={state.contextUsage}
           isCompressing={state.isCompressing}
           isStreaming={state.isStreaming}
           onCompress={handleCompress}
-          userName={state.signInAccount?.name?.split(' ')[0] ?? null}
-          userAvatarUrl={localAvatar ?? state.signInAccount?.avatar_url ?? null}
+          userName={state.userName?.split(' ')[0] ?? null}
+          userAvatarUrl={localAvatar ?? null}
         />
         )}
 
@@ -1831,13 +1710,10 @@ export function App() {
           // Disabled while the first-load fetches are still running so the
           // user can't fire a turn before their account/tier is known
           // (which would otherwise route via stale platform_status).
-          disabled={state.needsSetup || state.accountLoading || state.historyLoading}
+          disabled={state.needsSetup || state.historyLoading}
           usage={state.lastUsage}
           isCompressing={state.isCompressing}
           onCompress={handleCompress}
-          providerSource={state.providerSource}
-          platformStatus={state.platformStatus}
-          onProviderSourceChange={handleProviderSourceChange}
           contextUsage={state.contextUsage}
           modelSupportsVision={
             state.models.find((m) => m.id === state.activeModel)?.supportsVision

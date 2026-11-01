@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { t, tt, useLocale } from '../i18n';
-import type { ProviderSource } from '../types/messages';
 import { SecretVault } from './SecretVault';
 import type { SecretEntry } from './SecretVault';
 import { useSecrets } from '../hooks/useSecrets';
@@ -39,24 +38,12 @@ interface InputAreaProps {
   } | null;
   isCompressing?: boolean;
   onCompress?: () => void;
-  providerSource?: ProviderSource;
   /** Vision capability of the currently-selected model. When false the
    *  attach-image button is disabled and the tooltip explains why.
    *  Undefined means "unknown" — treated as supported (don't block).
    *  Mirrors dashboard-ui/src/chat/components/InputArea.tsx. */
   modelSupportsVision?: boolean;
   contextUsage?: { used: number; limit: number; percent: number } | null;
-  platformStatus?: {
-    connected: boolean;
-    tier: string | null;
-    freeTokensUsed: number;
-    freeTokensLimit: number;
-    subTokensUsed: number;
-    subTokensLimit: number | null;
-    warning?: 'none' | 'approaching' | 'critical' | 'exhausted';
-    warningMessage?: string;
-  } | null;
-  onProviderSourceChange?: (source: ProviderSource) => void;
   /**
    * External prefill source — e.g. starter chips on the empty-state
    * helper. Each new value (compared by `nonce`) replaces the textarea
@@ -95,10 +82,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   write: 'input.placeholder.write',
 };
 
-// onProviderSourceChange is no longer destructured — the Platform/API-key
-// toggle was dropped to match IDE. Prop stays in InputAreaProps so callers
-// can keep passing it without a shape change.
-export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus, modelSupportsVision, prefill }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSupportsVision, prefill }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across panel close/reopen — IDE chat persists via
@@ -481,22 +465,8 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
 
   const hasContent = text.trim().length > 0 || attachments.length > 0;
 
-  const warningLevel = platformStatus?.warning;
-  const warningMsg = platformStatus?.warningMessage;
-
   return (
     <div className="px-3 pb-3 pt-1 relative">
-      {/* Usage warning banner */}
-      {warningLevel && warningLevel !== 'none' && warningMsg && (
-        <div className={`mb-2 rounded-lg px-3 py-2 text-[11px] flex items-center gap-2 ${
-          warningLevel === 'exhausted' ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
-          warningLevel === 'critical' ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20' :
-          'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-        }`}>
-          <span>{warningLevel === 'exhausted' ? '\u26D4' : warningLevel === 'critical' ? '\u26A0' : '\u25CB'}</span>
-          <span className="flex-1">{warningMsg}</span>
-        </div>
-      )}
       {/* Secret Vault panel */}
       {vaultOpen && (
         <SecretVault
@@ -730,37 +700,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
                 </span>
               )}
             </button>
-
-            {/* Credit balance — between Vault and Send, mirrors IDE
-                input bar at DashboardPages.tsx:5517-5529. Red/amber/
-                green colour ramp at 95% / 80% / under. Admin (limit
-                >= 999_999_999) shows ∞. */}
-            {providerSource === 'platform' && platformStatus?.connected && (() => {
-              const subLimit = platformStatus.subTokensLimit ?? 0;
-              const totalLimit = platformStatus.freeTokensLimit + subLimit;
-              const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
-              if (platformStatus.freeTokensLimit >= 999_999_999 || totalLimit >= 999_999_999) {
-                return (
-                  <span
-                    style={{ fontSize: 11, fontFamily: 'monospace', color: '#6c7086', opacity: 0.5, flexShrink: 0 }}
-                    title={t('input.tokens_unlimited')}
-                  >
-                    ∞
-                  </span>
-                );
-              }
-              const remaining = Math.max(0, totalLimit - totalUsed);
-              const pct = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
-              const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : '#a6e3a1';
-              return (
-                <span
-                  style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 600, color, flexShrink: 0 }}
-                  title={`${remaining.toLocaleString()} of ${totalLimit.toLocaleString()} credits remaining (${Math.round(pct)}% used)`}
-                >
-                  {remaining.toLocaleString()}
-                </span>
-              );
-            })()}
 
             {/* Talk | Build — Code mode only. Every other mode already decides
                 for itself whether it builds. */}

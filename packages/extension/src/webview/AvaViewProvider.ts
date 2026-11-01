@@ -103,7 +103,7 @@ import {
   type GradeResult,
 } from '@ava/core/learning';
 import { localeStringsFor } from './locale-strings.js';
-import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PaletteTool } from './message-types.js';
+import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
 import { ExtensionHealthPlanStore } from './health-plan-store-impl.js';
 import { migrateHealthFromGlobalState, readProfile, writeProfile, emptyHealthProfile, listPlanIds, readPlan, readAllSessions } from './health-file-store.js';
@@ -406,7 +406,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   public async deleteLocalConversation(conversationId: string): Promise<void> {
     await this.history.delete(conversationId);
   }
-  private providerSource: ProviderSource = 'byok';
   private heartbeatInterval?: ReturnType<typeof setInterval>;
   private missedPongs = 0;
 
@@ -1500,11 +1499,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.log(`Local provider failed to register: ${err}`);
       }
 
-      // No model list from our server and no account/own-key toggle any more
-      // (1 Nov 2026): every model runs on the user's own key, and starting up
-      // phones nobody.
-      this.providerSource = 'byok';
-
       try {
         let activeModelId = config.get<string>('activeModel') || '';
 
@@ -1584,7 +1578,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // the strings travel with init. Undefined for English, where the
       // webview's bundled copy is already right. See locale-strings.ts.
       localeStrings: localeStringsFor(this.currentLocale),
-      providerSource: this.providerSource,
+      userName: this.getLocalUserName(),
       // Onboarding/welcome now lives in the dashboard (Command Centre) — the
       // chat webview no longer hosts it. See dashboard-ui WelcomeOnboarding.
     });
@@ -2417,7 +2411,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const fallback = list.find((m) => m.available);
     if (!fallback) return saved;   // nothing is available; leave the choice alone
-    this.log(`Active model '${saved}' is unavailable on ${this.providerSource} — falling back to '${fallback.id}'`);
+    this.log(`Active model '${saved}' is unavailable — falling back to '${fallback.id}'`);
     void config.update('activeModel', fallback.id, vscode.ConfigurationTarget.Global);
     return fallback.id;
   }
@@ -3240,7 +3234,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
     options?: { displayText?: string; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; talk?: boolean },
   ): Promise<void> {
-    this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}, providerSource=${this.providerSource}`);
+    this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}`);
     // The Talk switch only means something in Code mode — every other mode
     // already decides for itself whether it builds.
     const talk = mode === 'code' && options?.talk === true;
@@ -5028,9 +5022,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (message.type === 'init') {
         // Remap init → chat_init to avoid collision with dashboard init
         this.externalPostMessage({ ...message, type: 'chat_init' } as any);
-      } else if (message.type === 'platform_status') {
-        // Remap platform_status → chat_platform_status
-        this.externalPostMessage({ ...message, type: 'chat_platform_status' } as any);
       } else {
         this.externalPostMessage(message);
       }

@@ -3,7 +3,7 @@ import type { UIMessage } from '../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
-import { SignInScreen } from './SignInScreen';
+import { AddKeyScreen } from './AddKeyScreen';
 import { t, useLocale } from '../i18n';
 
 interface PersonaInfo {
@@ -43,11 +43,8 @@ interface ChatContainerProps {
   activeModel?: string | null;
   models?: Array<{ id: string; name: string; provider: string }>;
   // OAuth sign-in (v0.37.0)
-  signInPending?: 'github' | 'email' | null;
-  signInError?: string | null;
-  onStartSignIn?: (method: 'github' | 'email') => void;
-  onCancelSignIn?: () => void;
-  onClearSignInError?: () => void;
+  /** No key yet — open the dashboard's key step. */
+  onAddKey?: () => void;
   // Context bar (v0.39.x) — replaces the circular indicator in InputArea.
   contextUsage?: { used: number; limit: number; percent: number } | null;
   isCompressing?: boolean;
@@ -67,7 +64,7 @@ interface ChatContainerProps {
 // IDE's single-seeded-message empty state. Props onSuggestion / activeModel
 // / models stay in ChatContainerProps for caller compatibility but are no
 // longer destructured here.
-export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, scrollRef, contentRef, onScroll, onWheel, onPointerDown, onKeyDown, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, scrollRef, contentRef, onScroll, onWheel, onPointerDown, onKeyDown, needsSetup, consentRequired, onAcceptConsent, initialized, conductorActive, conductorMode, activePersonas, onAddKey, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -207,24 +204,14 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
   // + Modes + Shared Learning + Footer) is dropped to match that — same
   // first-turn experience on both surfaces.
   //
-  // SignInScreen stays when needsSetup since the panel webview can be
-  // open without a key configured; the IDE handles this differently
-  // (key-required sign-in lives on the Account page) but the panel
-  // needs a sign-in affordance inline. This is the one intentional
-  // delta from the IDE on the empty state.
+  // With no key yet the chat shows the "add your key" screen instead — the
+  // panel can be open before onboarding has run.
   if (isNewChat && !isThinking) {
-    if (needsSetup && onStartSignIn && onCancelSignIn && onClearSignInError) {
+    if (needsSetup && onAddKey) {
       return (
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="max-w-lg mx-auto">
-            <SignInScreen
-              pendingMethod={signInPending ?? null}
-              signInError={signInError ?? null}
-              onStartSignIn={onStartSignIn}
-              onCancelSignIn={onCancelSignIn}
-              onOpenDashboard={onOpenDashboard ?? (() => {})}
-              onClearError={onClearSignInError}
-            />
+            <AddKeyScreen onAddKey={onAddKey} />
           </div>
         </div>
       );

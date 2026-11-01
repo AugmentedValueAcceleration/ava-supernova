@@ -4,26 +4,6 @@ import type { ConversationSurface } from '@ava/core';
 // chat webview. The webview-ui imports this file directly via a path alias
 // (@ava-extension/messages) so drift is impossible.
 
-export type ProviderSource = 'platform' | 'byok';
-
-export type WarningLevel = 'none' | 'approaching' | 'critical' | 'exhausted';
-
-export interface PlatformStatus {
-  connected: boolean;
-  tier: string | null;
-  freeTokensUsed: number;
-  freeTokensLimit: number;
-  subTokensUsed: number;
-  subTokensLimit: number | null;
-  /**
-   * Optional warning fields — populated by the host when platform usage is
-   * approaching / at / beyond a limit. Absent on early inits and BYOK paths.
-   */
-  warning?: WarningLevel;
-  warningPct?: number;
-  warningMessage?: string;
-}
-
 // ─── Extension Host → Webview ────────────────────────────────────────────────
 
 export type ExtToWebviewMessage =
@@ -41,13 +21,12 @@ export type ExtToWebviewMessage =
       consentRequired: boolean;
       locale?: string;
       localeStrings?: Record<string, string>;
-      providerSource?: ProviderSource;
-      platformStatus?: PlatformStatus;
+      /** Your name from the local general profile — there are no accounts. */
+      userName?: string;
       /** Legacy chat welcome flag — onboarding now lives in the dashboard,
        *  so the chat no longer sends or renders this. */
       showWelcome?: boolean;
     }
-  | ({ type: 'platform_status' } & PlatformStatus)
   | { type: 'user_message_ack'; text: string; images?: string[] }
   | { type: 'stream_start' }
   /** Prep/routing status for the thinking indicator during the silent
@@ -94,8 +73,6 @@ export type ExtToWebviewMessage =
       /** Raw USD cost — kept for internal logging; not shown to end users. */
       cost?: number;
       contextWindow?: number;
-      /** Credits charged for this turn (cache-hit discount already applied). */
-      credits?: number;
     }
   | { type: 'error'; message: string; code?: string; suggestion?: string }
   | { type: 'done' }
@@ -167,14 +144,6 @@ export type ExtToWebviewMessage =
       reason?: string;
       candidates: Array<{ id: string; label: string; provider?: string; createdAt?: string }>;
     }
-  // OAuth sign-in flow (v0.37.0)
-  | { type: 'sign_in_started' }
-  | {
-      type: 'sign_in_complete';
-      account: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string };
-    }
-  | { type: 'sign_in_failed'; error: string }
-  | { type: 'sign_in_cancelled' }
   | { type: 'plan_records'; records: PlanRecordUI[] }
   | { type: 'document_list'; documents: DocumentCandidateUI[] }
   // Answer to browse_document. `doc` is null when the dialog was cancelled.
@@ -332,7 +301,7 @@ export type WebviewToExtMessage =
   | { type: 'mark_onboarded' }
   /** Dashboard-page deep-links triggered from the welcome modal's
    *  "Open docs" / "Creative Studio" / "Settings" shortcuts. */
-  | { type: 'open_dashboard_page'; page: 'documentation' | 'creative-studio' | 'account' | 'journal' | 'learning' | 'health' }
+  | { type: 'open_dashboard_page'; page: 'documentation' | 'creative-studio' | 'account' | 'keys' | 'journal' | 'learning' | 'health' }
   | { type: 'request_history' }
   | { type: 'load_conversation'; conversationId: string }
   | { type: 'delete_conversation'; conversationId: string }
@@ -343,7 +312,6 @@ export type WebviewToExtMessage =
   | { type: 'new_chat' }
   | { type: 'webview_ready' }
   | { type: 'compress_context' }
-  | { type: 'set_provider_source'; source: ProviderSource }
   | { type: 'request_memory' }
   | { type: 'save_memory'; scope: 'global' | 'project'; content: string }
   | { type: 'clear_memory'; scope: 'global' | 'project' }
@@ -373,10 +341,7 @@ export type WebviewToExtMessage =
   | { type: 'open_tasks_folder' }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; note?: string; model?: string; mode?: string }
   | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
-  | { type: 'accept_consent' }
-  // OAuth sign-in flow (v0.37.0)
-  | { type: 'start_sign_in'; method: 'github' | 'email' }
-  | { type: 'cancel_sign_in' };
+  | { type: 'accept_consent' };
 
 // ─── Webview UI state types ──────────────────────────────────────────────────
 // Shapes that live entirely inside the chat webview (reducer state, bubble
@@ -487,15 +452,7 @@ export interface ChatState {
   needsSetup: boolean;
   consentRequired: boolean;
   initialized: boolean;
-  /**
-   * First-load gates. Both default to true on a session where the extension
-   * has a platform key (account fetch + history fetch are both expected).
-   * Flipped to false when each fetch resolves so the UI can drop the loading
-   * banner + skeleton placeholders in one sweep when both arrive. Local-only
-   * BYOK paths skip both gates by setting them false on init since there is
-   * no platform fetch to wait on.
-   */
-  accountLoading: boolean;
+  /** First-load gate: true until local history has been read. */
   historyLoading: boolean;
   /**
    * Which click we are still waiting on, so the button that was pressed can say
@@ -516,10 +473,8 @@ export interface ChatState {
    * spinner that never stops is worse than none.
    */
   pendingAction: 'dashboard' | 'history' | 'newChat' | 'loadConversation' | null;
-  /** Sign-in state — v0.37.0 OAuth flow */
-  signInPending: 'github' | 'email' | null;
-  signInError: string | null;
-  signInAccount: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string } | null;
+  /** Your name from the local general profile (init). */
+  userName: string | null;
   /** Active secret-grant prompt (slice 2 of vault overhaul). One at a time. */
   pendingSecretGrant: {
     grantId: string;
@@ -542,8 +497,6 @@ export interface ChatState {
   /** Title of the loaded conversation — chip next to the model picker
    *  in the chat header. null on fresh chat. */
   conversationTitle: string | null;
-  providerSource: ProviderSource;
-  platformStatus: PlatformStatus | null;
   memoryOpen: boolean;
   memoryGlobal: MemoryEntryUI[];
   memoryProject: MemoryEntryUI[];
@@ -570,6 +523,4 @@ export interface ChatState {
     error?: string;
     tools?: Array<{ name: string; done: boolean; success?: boolean }>;
   }>;
-  /** Running total of credits consumed in the current session (UI display only). */
-  sessionCredits?: number;
 }
