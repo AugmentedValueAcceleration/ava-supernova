@@ -77,6 +77,13 @@ const PROVIDERS = [
     description: 'Nemotron 3 Ultra — open-weight, 1M context, frontier reasoning (BYOK)',
   },
   {
+    id: 'minimax' as const,
+    name: 'MiniMax',
+    placeholder: '...',
+    signupUrl: 'https://platform.minimax.io/console/keys',
+    description: 'MiniMax M3 — open weights, 1M context, reads images; M2.7 and M2.7 Highspeed',
+  },
+  {
     id: 'brave' as const,
     name: 'Brave Search (optional)',
     placeholder: '...',

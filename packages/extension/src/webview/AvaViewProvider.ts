@@ -1416,10 +1416,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         xiaomi: 'ava-supernova.provider.xiaomi.apiKey',
         tencent: 'ava-supernova.provider.tencent.apiKey',
         nvidia: 'ava-supernova.provider.nvidia.apiKey',
+        minimax: 'ava-supernova.provider.minimax.apiKey',
       };
       // Config key → registry key mapping (glm config maps to zhipu provider)
       const configToRegistry: Record<string, string> = { glm: 'zhipu' };
-      const providerNames = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'xiaomi', 'tencent', 'nvidia'];
+      const providerNames = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'xiaomi', 'tencent', 'nvidia', 'minimax'];
       // Run the legacy-plaintext migration sequentially (it writes to
       // settings + secrets and we don't want races), then read all
       // SecretStorage keys in parallel — sequential awaits used to add
@@ -1502,14 +1503,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       try {
         let activeModelId = config.get<string>('activeModel') || '';
 
-        // Migration: MiniMax is reserved for Creative Studio — never as the chat coordinator.
-        // If a previous session (or the Dashboard leak) stuck a MiniMax model here, reset to Auto
-        // so resolveCoordinatorModel() picks the correct Qwen model on next load.
-        if (activeModelId.toLowerCase().includes('minimax')) {
-          this.log(`Migrating stuck chat model "${activeModelId}" → auto (MiniMax is Creative Studio only)`);
-          activeModelId = 'auto';
-          await config.update('activeModel', 'auto', vscode.ConfigurationTarget.Global);
-        }
+        // (A reset of any MiniMax model back to Auto lived here, from when
+        // MiniMax was reserved for Creative Studio. Since 1 Nov 2026 MiniMax M3 /
+        // M2.7 are chat models on the user's own key, so a chosen one is kept.)
 
         // Restore orchestrated modes (Auto / Supernova / Aurora) — these
         // are aliases, not real model ids in the registry, so resolveModel

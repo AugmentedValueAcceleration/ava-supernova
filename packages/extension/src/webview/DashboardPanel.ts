@@ -136,6 +136,7 @@ const PROVIDER_KEY_SECRETS: Record<string, string> = {
   xiaomi: 'ava-supernova.provider.xiaomi.apiKey',
   tencent: 'ava-supernova.provider.tencent.apiKey',
   nvidia: 'ava-supernova.provider.nvidia.apiKey',
+  minimax: 'ava-supernova.provider.minimax.apiKey',
   // Web search, optional — DuckDuckGo is used without it.
   brave: 'ava-supernova.provider.brave.apiKey',
 };
@@ -2437,8 +2438,7 @@ export class DashboardPanel {
     // "Ava: Show Welcome Tour" still opens the full onboarding on demand.
     const consentAccepted = !!this.context.globalState.get('ava.consentAccepted');
     const hasModel = Object.entries(providerKeys).some(([k, v]) => v && k !== 'brave')
-      || !!(await this.secrets.get('ava-supernova.provider.local.baseUrl'))
-      || !!(await this.secrets.get('ava-supernova.provider.minimax.apiKey'));
+      || !!(await this.secrets.get('ava-supernova.provider.local.baseUrl'));
     let onboarding: 'full' | 'key' | null = null;
     if (!this.context.globalState.get('ava.onboardedV2')) {
       const usedBefore = consentAccepted || hasModel || !!this.context.globalState.get('ava.onboardedV1');
@@ -2660,6 +2660,7 @@ export class DashboardPanel {
       xiaomi: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.xiaomi)),
       tencent: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.tencent)),
       nvidia: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.nvidia)),
+      minimax: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.minimax)),
       brave: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.brave)),
     };
   }
@@ -4149,13 +4150,7 @@ export class DashboardPanel {
     cfg.update('preferences.permissionMode', settings.permissionMode, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.temperature', settings.temperature, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.maxTokens', settings.maxTokens, vscode.ConfigurationTarget.Global);
-    // Guard: MiniMax is reserved for Creative Studio — never as the chat coordinator.
-    // Reject Dashboard writes that would stamp a MiniMax model as the active chat model.
-    if (settings.activeModel && settings.activeModel.toLowerCase().includes('minimax')) {
-      console.warn(`[DashboardPanel] Refusing activeModel="${settings.activeModel}" — MiniMax is Creative Studio only`);
-    } else {
-      cfg.update('activeModel', settings.activeModel, vscode.ConfigurationTarget.Global);
-    }
+    cfg.update('activeModel', settings.activeModel, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.autoMemory', settings.autoMemory, vscode.ConfigurationTarget.Global);
     cfg.update('contributeSharedLearning', settings.contributeSharedLearning, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);

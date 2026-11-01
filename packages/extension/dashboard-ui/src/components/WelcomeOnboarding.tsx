@@ -39,7 +39,6 @@ const DEST_PAGE: Record<Destination, string> = { chat: 'chat', journal: 'journal
 /**
  * Where each provider hands out keys. Every link was checked against the
  * provider's own docs on 1 Nov 2026 (international sites; all need a login).
- * MiniMax is not here on purpose: nothing in the extension uses its key now.
  */
 const QWEN_KEY_URL = 'https://modelstudio.console.alibabacloud.com/ap-southeast-1/settings/api-key';
 const OTHER_PROVIDERS: { id: string; name: string; url: string; note: string }[] = [
@@ -49,6 +48,7 @@ const OTHER_PROVIDERS: { id: string; name: string; url: string; note: string }[]
   { id: 'glm', name: 'GLM (Z.ai)', url: 'https://z.ai/manage-apikey/apikey-list', note: 'Open-weights coding models.' },
   { id: 'tencent', name: 'Tencent TokenHub (Hunyuan)', url: 'https://console.tencentcloud.com/tokenhub/apikey', note: 'Pick the Singapore region before creating the key.' },
   { id: 'nvidia', name: 'NVIDIA', url: 'https://build.nvidia.com/settings/api-keys', note: 'Keys start with nvapi-.' },
+  { id: 'minimax', name: 'MiniMax', url: 'https://platform.minimax.io/console/keys', note: 'MiniMax M3 — reads images too, 1M context.' },
   { id: 'xiaomi', name: 'Xiaomi MiMo', url: 'https://platform.xiaomimimo.com/#/console/api-keys', note: 'Use a pay-as-you-go key (sk-), not a Token Plan key.' },
 ];
 const BRAVE = { id: 'brave', name: 'Brave Search', url: 'https://api-dashboard.search.brave.com/app/keys' };
