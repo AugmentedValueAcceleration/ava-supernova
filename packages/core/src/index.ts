@@ -615,3 +615,6 @@ export {
 // Direct Alibaba DashScope calls on the user's own Qwen key — voice, video (BYOK plan, 1 Nov 2026).
 export { qwenTts, TTS_MODEL, buildWanRequest, wanSubmit, wanStatus, wanWait, wanSeed, wanResolution, wanRatio, WAN_VIDEO_MODEL, DASHSCOPE_BASE } from './creative/dashscope.js';
 export type { TtsOptions, WanRequestInput, WanStatus } from './creative/dashscope.js';
+// Keyless image work on the user's own machine — background removal, logo vectorising (BYOK plan, 1 Nov 2026).
+export { removeWhiteBackground, vectorizeLogo, matteWhite, decodeImage, encodePng, bytesFromDataUrl } from './creative/image-local.js';
+export type { RawImage } from './creative/image-local.js';

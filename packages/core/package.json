@@ -68,6 +68,11 @@
       "require": "./dist/creative/dashscope.js",
       "types": "./dist/creative/dashscope.d.ts"
     },
+    "./creative/image-local": {
+      "import": "./dist/creative/image-local.js",
+      "require": "./dist/creative/image-local.js",
+      "types": "./dist/creative/image-local.d.ts"
+    },
     "./audit": {
       "import": "./dist/audit/index.js",
       "require": "./dist/audit/index.js",
@@ -227,7 +232,10 @@
     "docs:check": "node docs/sync-to-web.mjs && git -C ../web diff --quiet src/lib/docs || (echo 'docs corpus desynced — run pnpm docs:sync and commit the web submodule' && exit 1)"
   },
   "dependencies": {
+    "@napi-rs/wasm-runtime": "1.2.6",
+    "@neplex/vectorizer-wasm32-wasi": "0.1.0",
     "glob": "^13.0.6",
+    "jpeg-js": "0.4.4",
     "marked": "^17.0.3",
     "pngjs": "^7.0.0",
     "zod": "^4.3.6"

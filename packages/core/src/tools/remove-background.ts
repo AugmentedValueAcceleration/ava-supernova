@@ -3,6 +3,7 @@ import { join, dirname, extname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { chargeCredits } from '../billing/meter.js';
+import { removeWhiteBackground } from '../creative/image-local.js';
 
 /**
  * Remove the background from an image, making white/near-white pixels transparent.
@@ -50,7 +51,6 @@ export class RemoveBackgroundTool implements Tool {
     const inputPath = args.input_path as string;
     const threshold = Math.min(255, Math.max(0, (args.threshold as number) || 240));
     const edgeSoftness = Math.min(255, Math.max(0, (args.edge_softness as number) || 40));
-    const edgeThreshold = threshold - edgeSoftness;
 
     const absInput = join(context.cwd, inputPath);
 
@@ -63,51 +63,10 @@ export class RemoveBackgroundTool implements Tool {
 
     try {
       const imageBuffer = await readFile(absInput);
-
-      const { PNG } = await import('pngjs');
-
-      const result = await new Promise<Buffer>((resolve, reject) => {
-        const png = new PNG();
-        png.parse(imageBuffer, (err: Error | null, data: any) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          let pixelsRemoved = 0;
-          const totalPixels = data.width * data.height;
-
-          for (let y = 0; y < data.height; y++) {
-            for (let x = 0; x < data.width; x++) {
-              const idx = (data.width * y + x) * 4;
-              const r = data.data[idx];
-              const g = data.data[idx + 1];
-              const b = data.data[idx + 2];
-
-              if (r >= threshold && g >= threshold && b >= threshold) {
-                // White area — fully transparent
-                data.data[idx + 3] = 0;
-                pixelsRemoved++;
-              } else if (r >= edgeThreshold && g >= edgeThreshold && b >= edgeThreshold) {
-                // Near-white (anti-aliased edges) — semi-transparent
-                const whiteness = (r + g + b) / 3;
-                const alpha = Math.round(255 * (1 - (whiteness - edgeThreshold) / (255 - edgeThreshold)));
-                data.data[idx + 3] = Math.max(0, Math.min(255, alpha));
-                pixelsRemoved++;
-              }
-            }
-          }
-
-          const pct = ((pixelsRemoved / totalPixels) * 100).toFixed(1);
-          context.onOutput?.(`Removed background from ${pct}% of pixels\n`);
-
-          const chunks: Buffer[] = [];
-          const stream = data.pack();
-          stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-          stream.on('end', () => resolve(Buffer.concat(chunks)));
-          stream.on('error', (e: Error) => reject(e));
-        });
-      });
+      // The one shared matte (creative/image-local.ts) — the same method the
+      // Design Studio now runs on the user's machine. PNG and JPEG.
+      const { png: result, removedFraction } = await removeWhiteBackground(imageBuffer, { threshold, edgeSoftness });
+      context.onOutput?.(`Removed background from ${(removedFraction * 100).toFixed(1)}% of pixels\n`);
 
       await mkdir(dirname(absOutput), { recursive: true });
       await writeFile(absOutput, result);
