@@ -1,6 +1,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel, ToolOutputTrust } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { PLATFORM_TAG_POLICY, type WebSearchFn } from '../social/index.js';
+import { PLATFORM_TAG_POLICY } from '../social/index.js';
+import { resolveWebSearch } from './web-search.js';
 import { blueskyTagsFor, measureTags, type TagFetch } from '../social/tag-volume.js';
 
 /**
@@ -37,13 +38,9 @@ export class ResearchPostTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const webSearch = context.sharedState?.webSearch as WebSearchFn | undefined;
-    if (!webSearch) {
-      return {
-        success: false,
-        output: 'Web search is not available in this context. The host must inject `webSearch` into shared state.',
-      };
-    }
+    // Injected (the hub) → the user's own Brave key → DuckDuckGo. This failed
+    // outright without the server's key, so it never worked outside the hub.
+    const webSearch = resolveWebSearch(context).search;
 
     const subject = ((args.subject as string | undefined) || '').trim();
     const platform = ((args.platform as string | undefined) || 'tweet').trim();

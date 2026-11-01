@@ -2,6 +2,8 @@ import { request } from 'node:https';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
+import { braveSearch } from '../search/brave.js';
+
 const DUCKDUCKGO_URL = 'https://lite.duckduckgo.com/lite/';
 const REQUEST_TIMEOUT = 15_000;
 const DEFAULT_MAX_RESULTS = 5;
@@ -27,7 +29,7 @@ const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
  */
 const BLOCKED_RE = /anomaly|captcha|unusual traffic|rate ?limit|too many requests|blocked/i;
 
-interface SearchResult {
+export interface SearchResult {
   title: string;
   url: string;
   snippet: string;
@@ -209,6 +211,24 @@ export class WebSearchTool implements Tool {
       }
     }
 
+    // The user's own Brave key (BYOK plan, 1 Nov 2026): the same search the
+    // hub uses. A failure falls through to DuckDuckGo rather than ending the turn.
+    const braveKey = userBraveKey(context);
+    if (braveKey) {
+      try {
+        const results = await braveSearch(braveKey, query, maxResults, undefined, context.signal);
+        return {
+          success: true,
+          output: results.length
+            ? `Search results for "${query}":\n\n${results.map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}${r.snippet ? `\n   ${r.snippet}` : ''}`).join('\n\n')}`
+            : `No results found for "${query}".`,
+          metadata: { count: results.length, backend: 'brave' },
+        };
+      } catch {
+        /* fall through to DuckDuckGo */
+      }
+    }
+
     return this.searchDuckDuckGo(query, maxResults);
   }
 
@@ -274,4 +294,50 @@ export class WebSearchTool implements Tool {
       };
     }
   }
+}
+
+/** The user's own Brave key, if they added one in Settings. */
+function userBraveKey(context: ToolExecutionContext | undefined): string | undefined {
+  const getKey = context?.sharedState?.getProviderKey as ((p: string) => string | undefined) | undefined;
+  const key = getKey?.('brave');
+  return key && key.trim() ? key.trim() : undefined;
+}
+
+/**
+ * DuckDuckGo as a plain search function, for the tools that take one. Throws
+ * when refused (rate limit) or unreadable, so a caller never mistakes being
+ * blocked for "nothing on the web".
+ */
+export async function duckDuckGoSearch(query: string, max = 5): Promise<SearchResult[]> {
+  let res = await fetchDuckDuckGo(query);
+  if (res.status === 202 || BLOCKED_RE.test(res.html)) {
+    await wait(1_500);
+    res = await fetchDuckDuckGo(query);
+    if (res.status === 202 || BLOCKED_RE.test(res.html)) throw new Error('DuckDuckGo refused the search (rate limit)');
+  }
+  return parseResults(res.html, max);
+}
+
+/**
+ * The search a tool should use, best first (BYOK plan, 1 Nov 2026):
+ * what the surface injected (the hub's server Brave) → the user's own Brave
+ * key → DuckDuckGo. research_post and scan_industry used to fail outright
+ * without the server's key; now they work for everyone.
+ */
+export function resolveWebSearch(context: ToolExecutionContext | undefined): {
+  search: (q: string, max?: number, freshness?: 'pd' | 'pw' | 'pm' | 'py') => Promise<SearchResult[]>;
+  backend: 'platform' | 'brave' | 'duckduckgo';
+} {
+  const injected = context?.sharedState?.webSearch as
+    | ((q: string, max?: number, freshness?: 'pd' | 'pw' | 'pm' | 'py') => Promise<SearchResult[]>)
+    | undefined;
+  if (typeof injected === 'function') return { search: injected, backend: 'platform' };
+  const key = userBraveKey(context);
+  if (key) {
+    return {
+      search: (q, max, freshness) => braveSearch(key, q, max, freshness, context?.signal).catch(() => duckDuckGoSearch(q, max)),
+      backend: 'brave',
+    };
+  }
+  return { search: (q, max) => duckDuckGoSearch(q, max), backend: 'duckduckgo' };
 }

@@ -618,3 +618,7 @@ export type { TtsOptions, WanRequestInput, WanStatus } from './creative/dashscop
 // Keyless image work on the user's own machine — background removal, logo vectorising (BYOK plan, 1 Nov 2026).
 export { removeWhiteBackground, vectorizeLogo, matteWhite, decodeImage, encodePng, bytesFromDataUrl } from './creative/image-local.js';
 export type { RawImage } from './creative/image-local.js';
+// Web search on a key the caller supplies — the user's own Brave key, or the server's (BYOK plan, 1 Nov 2026).
+export { braveSearch } from './search/brave.js';
+export type { BraveResult } from './search/brave.js';
+export { resolveWebSearch, duckDuckGoSearch } from './tools/web-search.js';

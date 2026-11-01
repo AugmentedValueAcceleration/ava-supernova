@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel, ToolOutputTrust } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import type { WebSearchFn } from '../social/index.js';
+import { resolveWebSearch } from './web-search.js';
 
 // The players whose words actually move the AI conversation — the closed
 // frontier AND the open / EU / China side Ava stands with. Curated for mission
@@ -49,13 +49,8 @@ export class ScanIndustryTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const webSearch = context.sharedState?.webSearch as WebSearchFn | undefined;
-    if (!webSearch) {
-      return {
-        success: false,
-        output: 'Web search is not available in this context. The host must inject `webSearch` into shared state.',
-      };
-    }
+    // Injected (the hub) → the user's own Brave key → DuckDuckGo.
+    const webSearch = resolveWebSearch(context).search;
 
     const focus = ((args.focus as string | undefined) || '').trim();
 
