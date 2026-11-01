@@ -120,7 +120,7 @@ export interface SidebarNode {
 export const SECTION_LABELS: Record<Section, string> = {
   start: 'Start here',
   models: 'Models',
-  credits: 'Credits',
+  credits: 'Cost & keys',
   concepts: 'Core concepts',
   reference: 'Reference',
   features: 'Features',

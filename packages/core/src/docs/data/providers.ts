@@ -36,7 +36,7 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'maestro',
     name: '✦ Maestro — single-conductor',
     kind: 'orchestration',
-    notes: 'One conductor drives the entire persona pipeline (Scout, Architect, Builder, Verifier). A cheap fast model handles the upstream intent gate so the conductor only spins up when orchestration is actually needed. Default for everyone, live on every plan.',
+    notes: 'One conductor drives the entire persona pipeline (Scout, Architect, Builder, Verifier). A cheap fast model handles the upstream intent gate so the conductor only spins up when orchestration is actually needed. Default for everyone; needs a Qwen key.',
     models: [
       { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — conductor + every persona + vision; multimodal incl. video', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — second rung on the ladder, and long-form writing', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },

@@ -17,7 +17,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'Yours by default. Your work stays on your own machine. No tracking, no telemetry — ever.',
         'Open for anyone to see. Every line of Ava is public. Nothing to take on trust.',
-        'Free to start. 300 credits every month, no card, no catch — or plug in your own AI keys and pay us nothing at all.',
+        "Free, completely. No accounts, no plans, no paywalls. You bring your own AI keys and pay the providers directly — never us. Ava is supported by donations.",
         'Teaching built in. Ask Ava to teach you any subject and she builds you a real course — lessons, examples, and quizzes.',
       ]},
       { type: 'paragraph', text: 'Never written code? The next page is written just for you. Already technical? Skip ahead — she\'ll keep up.' },
@@ -82,7 +82,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'list', ordered: true, items: [
         'Download the installer for your platform from the releases page.',
         'Run it. The IDE launches with a welcome flow the first time.',
-        'Sign in for the free platform tokens, or paste your own API key to run fully local.',
+        'Paste your API key when it asks — one Qwen key covers everything. No account, no sign-in.',
       ]},
 
       { type: 'heading', level: 3, text: 'CLI' },
@@ -92,7 +92,32 @@ export const START_PAGES: DocPage[] = [
         'First run prompts you for a provider and a model. Pick and go.',
       ]},
 
-      { type: 'callout', variant: 'tip', text: 'No account, no problem. With your own API key (BYOK) you never need to sign in. The free tier is for the platform-managed models.' },
+      { type: 'callout', variant: 'tip', text: 'There is no account to make. Ava runs on your own API keys — one Qwen key covers chat, images, voice and video. "Getting your Qwen key" below takes about five minutes.' },
+    ],
+  },
+  {
+    id: 'start.qwen-key',
+    title: 'Getting your Qwen key',
+    audience: ['newcomer', 'both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 25,
+    section: 'start',
+    body: [
+      { type: 'paragraph', text: "Ava has no accounts: she runs on your own API key, and you pay the provider directly for what you use. One Qwen key from Alibaba Cloud covers everything — chat, images, voiceovers and video. Here is how to get one." },
+      { type: 'list', ordered: true, items: [
+        'Sign in to (or create) an Alibaba Cloud account, then open the Model Studio API Key page: modelstudio.console.alibabacloud.com/ap-southeast-1/settings/api-key',
+        'Check the region in the upper-right corner says Singapore. This matters: Ava talks to the Singapore endpoint, and a key only works in the region it was made in.',
+        'Click Create API Key. Keep the default workspace and set Permissions to All, then click OK.',
+        'Copy the key straight away — Alibaba will not show it to you again. New keys start with sk-ws.',
+        'Paste it into Ava: Settings, then the Qwen key field. That is it.',
+      ]},
+      { type: 'callout', variant: 'tip', text: "Your key is a password for your Alibaba account. Ava keeps it on your machine and sends it only to Alibaba. Never paste it into a chat, an email or Discord — nobody on the Ava team will ever ask for it." },
+    ],
+    deeper: [
+      { type: 'heading', level: 3, text: 'What it costs' },
+      { type: 'paragraph', text: "You pay Alibaba for what you use, at their rates — check your Model Studio console for current pricing and any free allowance on your account. Talking to Ava costs a little per message; images, voiceovers and video cost more per item, which is why Ava always asks before making one." },
+      { type: 'heading', level: 3, text: 'Other keys' },
+      { type: 'paragraph', text: 'You can add keys for other providers too (DeepSeek, Mistral, Kimi and more) — a DeepSeek key unlocks the Supernova routing style alongside Qwen. A Brave Search key is optional and gives better web search; without one Ava uses DuckDuckGo.' },
     ],
   },
   {
@@ -142,8 +167,8 @@ export const START_PAGES: DocPage[] = [
     section: 'start',
     body: [
       { type: 'paragraph', text: 'Everything Ava keeps is local. Memory, tasks, journal, personality, settings — all stored on your machine in ~/.ava/ and .ava/ (per project). She talks to model providers over HTTPS to run your request, then returns home. She does not phone home. She does not collect telemetry. She does not train on your code.' },
-      { type: 'paragraph', text: 'If you sign in, you get 300 free credits a month across both fleets — Maestro on Qwen, and Supernova with a DeepSeek coordinator. Signing in never uploads your memory, tasks or settings — there is no cloud sync. Bring your own API key and Ava works fully without an account.' },
-      { type: 'callout', variant: 'tip', text: 'The rule: local is sacred. Cloud is additive.' },
+      { type: 'paragraph', text: 'There is no Ava account at all. Your API keys stay on your machine and go only to the provider they belong to. Nothing is uploaded to us — there is no cloud sync, and nothing to sign in to.' },
+      { type: 'callout', variant: 'tip', text: 'The rule: local is sacred.' },
     ],
   },
   {
@@ -166,11 +191,11 @@ export const START_PAGES: DocPage[] = [
     ],
     deeper: [
       { type: 'heading', level: 3, text: 'What\'s actually in each style' },
-      { type: 'paragraph', text: 'Maestro — one conductor (Qwen 3.8 Flash) handles every step. Production-tuned, proven, predictable cost.' },
+      { type: 'paragraph', text: 'Maestro — one Qwen conductor handles every step. Proven, predictable cost, and all it needs is a Qwen key.' },
       { type: 'paragraph', text: 'Supernova — a frontier coordinator (DeepSeek Flash, 1.6T parameters / 49B active, 1M context) hands each subtask to a specialist: DeepSeek Flash for high-volume review, Qwen 3.7 Plus for building, and Qwen 3.8 Flash for vision (it sees images and video natively).' },
-      { type: 'heading', level: 3, text: 'Bring your own model (BYOK)' },
-      { type: 'paragraph', text: 'Prefer to use your own AI account? Paste your provider key in settings and you get both — both routing styles, plus the option to pick a single model and skip routing entirely. Useful for a strong preference, a strict budget, or testing a specific model. The full provider list is in the Reference section.' },
-      { type: 'facts', kind: 'providers', filter: { kind: 'managed' } },
+      { type: 'heading', level: 3, text: 'Which keys unlock what' },
+      { type: 'paragraph', text: 'Maestro needs a Qwen key. Supernova needs a DeepSeek key as well. With any key you can also pick a single model and skip routing entirely — useful for a strong preference, a strict budget, or testing a specific model. The full provider list is in the Reference section.' },
+      { type: 'facts', kind: 'providers', filter: { kind: 'byok' } },
     ],
   },
   {
@@ -190,9 +215,8 @@ export const START_PAGES: DocPage[] = [
         ['Routing', "Ava deciding which model to use for each step so you get good answers without overpaying. It happens automatically — \"routing mode\" just picks the overall strategy."],
         ['Tool', 'A specific action Ava can take — read a file, run a search, send an email. A "tool call" is her using one. She asks permission before anything risky.'],
         ['Token', 'How AI measures text — roughly ¾ of a word. Models are priced per million tokens. Mostly something you can ignore.'],
-        ['Credit', "Ava's simpler unit for what an action costs, so you are not doing token maths. Plans come with a monthly bundle."],
-        ['API key', 'A private password that lets software use a paid service (like an AI model) on your account. You only need one if you want to bring your own.'],
-        ['BYOK', "\"Bring Your Own Key.\" Using your own API key instead of Ava's managed access. Optional — for people who already pay a provider directly."],
+        ['API key', 'A private password that lets software use a paid service (like an AI model) on your account. Ava runs on yours — one Qwen key covers everything.'],
+        ['BYOK', "\"Bring Your Own Key.\" How Ava works: you use your own API key with each AI provider and pay them directly. Ava itself is free."],
         ['Local-first', "Your data lives on your own computer. Nothing is uploaded — there is no cloud sync. \"Local is sacred.\""],
         ['Permission mode', 'How cautious Ava is before doing things — ask every time, ask for risky things only, or just go. You set the level.'],
         ['Context window', "How much text a model can hold in mind at once — its short-term memory. \"1M context\" means about a million words. Bigger = it can read more before forgetting."],

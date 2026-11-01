@@ -25,13 +25,13 @@ export const TROUBLESHOOTING_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'What you see: Ava cannot find something you are sure she should remember.' },
       { type: 'paragraph', text: 'Memory works by meaning, not exact words (this is what "semantic" means). So "What did I decide about auth?" works better than "find my auth decision". If the memory is definitely there but not surfacing, open the memory browser and search — if it is not there, it was never saved in the first place.' },
 
-      { type: 'heading', level: 3, text: 'Sign-in loops' },
-      { type: 'paragraph', text: 'What you see: you sign in, but Ava keeps asking you to sign in again — a loop that never lets you through.' },
-      { type: 'paragraph', text: 'The fix is to clear the saved sign-in details and start fresh: in the extension run "Ava: Sign Out" from the command palette, in the IDE use Settings → Account → Sign Out, in the CLI delete the file at ~/.ava/auth.json (a small sign-in file in a folder named .ava in your home directory). Then sign in again.' },
+      { type: 'heading', level: 3, text: 'Ava says she needs a key' },
+      { type: 'paragraph', text: 'What you see: the chat will not start, or Ava says a key is missing for images, voice or video.' },
+      { type: 'paragraph', text: 'Ava runs on your own API key — there is no account to fall back on. Add a Qwen key in Settings (see "Getting your Qwen key"). If you already added one and it is refused, check it was made in the Singapore region: a key only works in the region it came from. New Qwen keys start with sk-ws.' },
 
-      { type: 'heading', level: 3, text: 'Token exhausted' },
-      { type: 'paragraph', text: 'What you see: a message that you are out of free usage for the month. ("Tokens" are how AI usage is measured — "exhausted" just means you have used up this month\'s free allowance.)' },
-      { type: 'paragraph', text: 'Free-tier monthly budget resets on the 1st of each month. Until then, switch to a BYOK provider (use your own API key) to keep working. Your account remains active — only the free platform-managed requests are paused.' },
+      { type: 'heading', level: 3, text: 'The provider says you are out of quota' },
+      { type: 'paragraph', text: "What you see: an error from the AI provider about quota, billing or payment — from Alibaba it often says \"Arrearage\", which means the account has an unpaid bill." },
+      { type: 'paragraph', text: "That message comes from your provider, not from Ava — Ava has no allowance or credits of her own. Open the provider's console (Model Studio for Qwen), check the billing page and settle or top up there. Everything works again as soon as the provider does." },
     ],
   },
   {
@@ -62,12 +62,11 @@ export const TROUBLESHOOTING_PAGES: DocPage[] = [
     order: 30,
     section: 'troubleshooting',
     body: [
-      { type: 'paragraph', text: 'In plain terms: if something is wrong and the fixes above did not help, send us a message about it. The easiest way is to just ask Ava to do it for you.' },
-      { type: 'paragraph', text: 'If a problem is not covered by common errors, file a support ticket (send the support team a request for help). You can do it inside Ava (no form to fill out) or on the web.' },
-      { type: 'heading', level: 3, text: 'From inside Ava' },
-      { type: 'paragraph', text: 'Ask her to file it. "Ava, can you file a support ticket about this?" She calls support_request, attaches the relevant session context (with credentials redacted), and sends it. Fastest path.' },
-      { type: 'heading', level: 3, text: 'From the web' },
-      { type: 'paragraph', text: 'Visit avasupernova.com/support. Pick a category (bug, feature, account, security, general) and describe what happened. Response within one working day.' },
+      { type: 'paragraph', text: 'In plain terms: if something is wrong and the fixes above did not help, tell us. A person on the Ava team answers — and the easiest way to start is to ask Ava to help you write it.' },
+      { type: 'heading', level: 3, text: 'Questions, bugs and ideas: the Discord' },
+      { type: 'paragraph', text: 'Join the Ava Supernova Discord at discord.gg/bbtnKMW4rf and post in #help, #bug-reports or #feature-requests. Answers stay searchable, so they help the next person too. "Ava, help me write this up for the Discord" gets you a post ready to paste.' },
+      { type: 'heading', level: 3, text: 'Anything private: email' },
+      { type: 'paragraph', text: 'For your data, a security issue or a donation question, email support@avasupernova.com. Ask Ava and she drafts the email and opens it in your own mail app — you check it and press send. Nothing is sent without you.' },
       { type: 'heading', level: 3, text: 'What to include' },
       { type: 'list', ordered: false, items: [
         'What you were trying to do.',
@@ -89,8 +88,7 @@ export const TROUBLESHOOTING_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'Found a vulnerability? Thank you. We take every report seriously and work with you on the fix before any public disclosure (before the problem is announced publicly).' },
       { type: 'heading', level: 3, text: 'How to report' },
       { type: 'list', ordered: true, items: [
-        'Email security@ava-supernova.com with a description, reproduction steps, and your preferred disclosure window.',
-        'Or file a support ticket with category "security" — same triage queue.',
+        'Email support@avasupernova.com with "Security" in the subject, a description, reproduction steps, and your preferred disclosure window. Please do not post it on the Discord.',
         'We acknowledge within 24 hours.',
       ]},
       { type: 'heading', level: 3, text: 'Our commitments' },

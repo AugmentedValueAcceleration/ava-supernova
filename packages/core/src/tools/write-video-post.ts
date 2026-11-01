@@ -10,9 +10,11 @@ const AVA_URL = 'avasupernova.com';
  * The line that goes on every video post.
  *
  * It is the one claim a competitor cannot copy, because their business IS the
- * tier: plans here scale credits and storage and never features, so Free and
- * Enterprise are the same product with different allowances. Said plainly it
- * sounds like it cannot be true, which is exactly why it is worth repeating.
+ * account: Ava has none (1 Nov 2026 — fully bring-your-own-key, free, open
+ * source, funded by donations). Your keys, on your machine, and nothing you
+ * make is held back or locked away. Chosen by the operator from three
+ * drafts; it replaced "Every plan is the whole product. Credits scale.
+ * Features never do." when the plans went, and keeps that line's three beats.
  *
  * Appended here rather than asked for, for the same reason as the link below:
  * a rule the model has to remember is a rule that is missing from the one post
@@ -26,11 +28,11 @@ const AVA_URL = 'avasupernova.com';
  *
  * Em dash, not a pipe: the brand is "Ava Supernova" and never "Ava | Supernova".
  *
- * It is a COMMITMENT, not decoration. The day anything ships as a paid-tier
- * exclusive this has to come out, because it is the sentence people will quote
- * back.
+ * It is a COMMITMENT, not decoration. The day Ava needs an account, a key of
+ * ours or a paywall for anything, this has to come out, because it is the
+ * sentence people will quote back.
  */
-const TAGLINE = 'Ava Supernova — Every plan is the whole product. Credits scale. Features never do.';
+const TAGLINE = 'Ava Supernova — Free and open source. Your keys. Your machine. Your work.';
 
 /** Spoken length of the sign-off, in words. Used to extend the clip rather than
  *  to shrink the script — see the sign-off block in run(). */

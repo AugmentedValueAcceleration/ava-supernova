@@ -67,14 +67,21 @@ describe('docs credit multipliers', () => {
     expect(quoted).toEqual([]);
   });
 
-  it('still explains what a multiplier IS, so removing the numbers cost no meaning', () => {
+  // 1 Nov 2026: Ava is fully bring-your-own-key — no accounts, plans or
+  // credits. These replaced the two checks that guarded the credit-multiplier
+  // section and its link to the credits page, both of which are gone.
+  it('says Ava itself costs nothing, and who the user actually pays', () => {
     const text = src();
-    expect(text).toContain('Per-model multipliers');
-    expect(text).toMatch(/1\.0× — any model without a listed multiplier/);
+    expect(text).toContain('What Ava costs');
+    expect(text).toMatch(/no accounts, no plans, no credits/);
+    expect(text).toMatch(/pay them directly/);
   });
 
-  it('sends the reader to the one place the live numbers exist', () => {
-    expect(src()).toContain('avasupernova.com/credits');
+  it('quotes no plan prices and points at no credits page', () => {
+    const text = src();
+    expect(text).not.toMatch(/\$19\/month|\$39\/month|\$79\/month|300 credits/);
+    expect(text).not.toContain('avasupernova.com/credits');
+    expect(text).not.toContain('Per-model multipliers');
   });
 
   it('does not PRICE a model that no longer exists', () => {

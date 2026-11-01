@@ -99,7 +99,7 @@ describe('one video, one generation, a caption per platform', () => {
     });
     for (const v of written!.variants) {
       expect(v.caption).toContain('avasupernova.com');
-      expect(v.caption).toContain('Every plan is the whole product');
+      expect(v.caption).toContain('Your keys. Your machine. Your work.');
     }
   });
 

@@ -51,7 +51,7 @@ export const FEATURE_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'More design types — app icons, logos, badges, avatars, banners, hero and social images, illustrations, patterns, and a full game-dev set — are being brought over, and show as "soon" in the left rail.' },
       { type: 'heading', level: 3, text: 'What powers it' },
       { type: 'paragraph', text: 'Icons and images are generated with Qwen-Image, video with Wan, and voiceovers with Qwen3-TTS. Anything you make lands in your Library, filed under the type you made it in.' },
-      { type: 'paragraph', text: 'Creative Studio is not a paid add-on — it is available on every plan, Free included. Generations draw from your normal credit pool, the same one number as the rest of Ava.' },
+      { type: 'paragraph', text: 'Creative Studio is not a paid add-on — it is part of Ava, free for everyone. Images, voiceovers and video run on your own Qwen key and are paid to Alibaba at their rates; background removal and logo vectorising run on your own machine for free.' },
       { type: 'callout', variant: 'note', text: 'Music is not part of Creative Studio right now — icons, images, video, and voiceovers are. (The old image/music/voice "Compose" surface has been retired into this one workspace.)' },
     ],
   },

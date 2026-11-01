@@ -33,20 +33,16 @@ export const REFERENCE_PAGES: DocPage[] = [
     section: 'reference',
     body: [
       { type: 'paragraph', text: 'A "model" is the AI brain doing the thinking — Qwen, DeepSeek, Mistral and others. This page lists every model Ava can use. The short version: you do not have to choose one. Ava picks the right model for each step herself. Read on only if you want to understand or override that.' },
-      { type: 'paragraph', text: 'Every model Ava can route to, plus the four orchestration strategies — the rules that decide which model handles each part of a job. Pick a routing mode and let Ava dispatch, or pick a single model directly — on your own key that skips routing; on a plan that one model runs the whole persona team on credits.' },
+      { type: 'paragraph', text: 'Every model Ava can route to, plus the four orchestration strategies — the rules that decide which model handles each part of a job. Pick a routing mode and let Ava dispatch, or pick a single model directly to skip routing.' },
 
       { type: 'heading', level: 3, text: 'Routing modes' },
       { type: 'paragraph', text: 'Two orchestrated strategies. The same persona pipeline (the small team of specialist helpers Ava runs behind the scenes) runs on both; what changes is the underlying fleet of models. Pick a mode in the model selector and Ava handles the rest. Each card below shows the constituent specialists the conductor routes to.' },
       { type: 'paragraph', text: 'You do not need to memorise the cards below — they are here so you can see what each strategy is made of.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'orchestration' } },
-      { type: 'callout', variant: 'tip', text: 'Both modes are universally available — on platform credits and on your own keys. You can also pick a single model directly instead of a fleet: on a plan it runs on credits (that one model fills every persona seat itself, so a pricier model costs more per turn), and on your own key it runs on your key. Some providers stay key-only.' },
+      { type: 'callout', variant: 'tip', text: 'Maestro needs a Qwen key; Supernova needs DeepSeek and Qwen keys. You can also pick a single model directly instead of a routing style — that one model then fills every specialist seat itself, so a pricier model costs more per turn.' },
 
-      { type: 'heading', level: 3, text: 'Platform-managed models' },
-      { type: 'paragraph', text: 'Available on every plan, including the free tier. Tokens (the units of text AI is measured in — roughly three-quarters of a word each) count against your plan allowance. The keys (the private passwords that unlock each paid model) are rotated and monitored by the platform — nothing for you to configure.' },
-      { type: 'facts', kind: 'providers', filter: { kind: 'managed' } },
-
-      { type: 'heading', level: 3, text: 'Bring your own key' },
-      { type: 'paragraph', text: 'An "API key" is a private password that lets software use a paid service on your own account. "BYOK" just means "bring your own key" — using yours instead of ours. Paste your API key in settings. BYOK requests go direct from Ava to the provider (the company that runs the model) — they do not pass through our infrastructure and do not consume platform tokens. You pay the provider; we do not see the traffic.' },
+      { type: 'heading', level: 3, text: 'Providers — your own keys' },
+      { type: 'paragraph', text: 'An "API key" is a private password that lets software use a paid service on your own account. Ava runs entirely on yours — there is no Ava account and no key of ours. Paste your keys in Settings. Requests go straight from Ava to the provider (the company that runs the model) and never pass through us: you pay the provider, and we do not see the traffic.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'byok' } },
 
       { type: 'callout', variant: 'tip', text: 'For benchmark scores, capability tags, and side-by-side filtering, see the full Models page at avasupernova.com/models. Pricing shown above is our best read of each provider rate card at publication — always check the provider website before committing to a workload.' },
@@ -201,7 +197,7 @@ export const REFERENCE_PAGES: DocPage[] = [
         'Medium (log in, check logs, download output) — 15–25 steps, ~205–340K tokens, ~$0.12–0.21',
         'Complex (triage three GitHub issues) — 25–30 steps, ~340–410K tokens, ~$0.21–0.25',
       ]},
-      { type: 'paragraph', text: 'The token figures above are the per-trajectory technical caps, not your monthly allowance — that\'s counted in credits, and the free tier\'s 300 a month comfortably covers a mix of chat, code, and a few automations.' },
+      { type: 'paragraph', text: 'The token figures above are the per-trajectory technical caps. They run on your own key, so the dollar figures are what your provider charges — check their console for your current rates.' },
       { type: 'callout', variant: 'tip', text: 'You can override caps per-task at start, but breaches always surface a decision point. Budget is never silently burned.' },
     ],
   },
