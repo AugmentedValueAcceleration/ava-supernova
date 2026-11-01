@@ -63,18 +63,9 @@ const SURFACES = [
       return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts' && f !== 'en.ts');
     },
   },
-  {
-    // Companion — registered 2026-07-18 alongside i18n-check. Its locales were
-    // in full parity already (maintained by hand), but without the surface
-    // registered here a NEW en key could never be seeded into them.
-    name: 'companion',
-    dir: path.join(repoRoot, 'packages/web/src/companion/locales'),
-    kind: 'ts',
-    enFile: 'en.ts',
-    listLocaleFiles() {
-      return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts' && f !== 'en.ts');
-    },
-  },
+  // The companion was here until 2026-10-05, when the web companion was
+  // retired and src/companion/ was deleted (i18n-check dropped it then;
+  // seed and translate kept it and crashed on the missing folder, 1 Nov 2026).
   {
     name: 'nls',
     dir: path.join(repoRoot, 'packages/extension'),

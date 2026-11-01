@@ -5,9 +5,6 @@ export const enStrings = {
   'welcome.subtitle': 'Your open-source agentic coding assistant.',
 
   // Welcome — Setup
-  'welcome.setup_title': 'Get Started — Sign in or bring your own keys',
-  'welcome.setup_desc': 'Sign in with GitHub or email for 300 free credits every month to try Ava, or bring your own API key from any provider for unlimited usage and skip the account entirely.',
-  'welcome.setup_cta': 'Open Settings',
   'welcome.ready_with': 'Ready with',
 
   // Welcome — Sections
@@ -408,19 +405,6 @@ export const enStrings = {
   'addkey.cta': 'Add your key',
   'addkey.qwen_tip': 'New to this? A Qwen key covers everything: chat, images, voice and video.',
   'addkey.local_note': 'Free and open source. Your keys. Your machine. Your work.',
-  'signin.cancel': 'Cancel',
-  'signin.continue_email': 'Sign in with email',
-  'signin.continue_github': 'Continue with GitHub',
-  'signin.continue_local': 'Continue without an account',
-  'signin.error_title': 'Sign-in failed',
-  'signin.local_first_note': 'Local only, always. Your data stays on your machine.',
-  'signin.or': 'OR',
-  'signin.waiting_email': 'Complete sign-in with email in your browser, then return here.',
-  'signin.waiting_github': 'Complete sign-in with GitHub in your browser, then return here.',
-  'signin.waiting_timeout': 'This will time out after 5 minutes.',
-  'signin.waiting_title': 'Waiting for browser...',
-  'signin.welcome_subtitle': 'Connect your account to use Ava\'s hosted models with your credits.',
-  'signin.welcome_title': 'Sign in to Ava Supernova',
   'starter.description': 'I can read your code, plan a feature, teach you something, audit security, brainstorm, or just chat. Pick one — you can edit before sending.',
   'starter.tip_after': 'to switch modes any time.',
   'starter.tip_before': 'Tip: type',

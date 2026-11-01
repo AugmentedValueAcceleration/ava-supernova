@@ -24,7 +24,7 @@
 
 Ava is the AI coding agent that does everything between the idea and the ship — and remembers it all so the next time gets easier. Engineer your features. Design your assets. Teach you what you don't know. Audit your security. Plan your strategy. Brainstorm what's next. All from inside VS Code.
 
-> **Install, open, go.** No account. No credit card. No trial. Bring your own API key, or sign up for **300 free credits a month**.
+> **Install, open, go.** Free and open source. Your keys. Your machine. Your work. No account, no credit card, no trial.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AugmentedValueAcceleration/ava-supernova/d607425f697ffb06293054bf14293e8a9db7c0ae/packages/extension/media/screenshots/chat-building.png" width="900" alt="Ava planning an item system against a real codebase" />
@@ -34,27 +34,17 @@ Ava is the AI coding agent that does everything between the idea and the ship �
 
 ---
 
-## Three ways to run it
+## Two ways to run it
 
-**1 — Your own key. No account.**
-Install, paste a provider key, start working. There is nothing to sign up for and nothing for us to meter — you pay your provider directly. Qwen, DeepSeek, Moonshot, Zhipu, Mistral, MiniMax, Xiaomi, Tencent and NVIDIA are all supported.
+**1 — Your own key.**
+Install, paste a provider key, start working. There is nothing to sign up for and nothing for us to meter — you pay your provider directly, at their price. Start with **Qwen**: one key covers chat, images, voice and video. DeepSeek, Moonshot, Zhipu, Mistral, MiniMax, Xiaomi, Tencent and NVIDIA are all supported too. Ava tests every key before she saves it, and it stays in VS Code's secret storage on your machine.
 
-**2 — Your own machine. No key, no account, no bill.**
+**2 — Your own machine. No key, no bill.**
 Point Ava at **Ollama**, **LM Studio**, **vLLM** or any standard API endpoint and she runs entirely on your hardware. No network, nothing leaving the machine, no spend.
 
-**3 — An Ava account**, if you would rather not manage keys at all.
-Managed models, one bill, and credits that meter everything in one place.
+And they mix: your own key for most work, a local model for anything that must never leave your machine.
 
-| Plan | Monthly | Credits | Storage |
-|---|---|---|---|
-| **Free** | $0 | 300 | 2 GB |
-| **Pro** | $19 | 5,000 | 25 GB |
-| **Ultra** | $39 | 10,000 | 100 GB |
-| **Enterprise** | $79 | 20,000 | 500 GB |
-
-**Every plan is the whole product.** Tiers change your credit allowance and storage — never which models you can reach, and never what Ava can do. There is no feature behind a higher tier.
-
-And they mix. Bring your own key *with* an account, use managed models for some work and your own key for the rest, or keep a local model for anything that must never leave your machine.
+**Everything is free, for everyone.** There are no accounts, no plans and no paywalls — every feature is there from the first minute. If Ava is useful to you, you can [support her with a donation](https://avasupernova.com/support-ava). It unlocks nothing; it keeps Ava free.
 
 ---
 
@@ -93,24 +83,23 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 | **Maestro** | **Ships now** | Qwen 3.8 Flash | Qwen 3.8 Flash (Builder + vision, reuses the coordinator) · Qwen 3.7 Flash (intent gate) · Qwen 3.5 Flash (chat, image-gen) · Qwen 3.7 Plus (long-form) | Alibaba |
 | **Supernova** | **Ships now** | DeepSeek V4.1 Flash | Qwen 3.7 Plus (Builder) · Qwen 3.8 Flash (vision) · DeepSeek V4.1 Flash (chat + mid-tier) · Qwen 3.7 Flash (intent gate) | DeepSeek + Alibaba |
 
-Both are live on every plan. With your own keys, each unlocks from the keys it needs:
+Each unlocks from the keys it needs:
 
 - **Maestro** — a **Qwen** key.
 - **Supernova** — **DeepSeek + Qwen** keys.
 
-**Or skip the orchestration entirely and pick one model.** Single models sit in the same picker as the fleets, and nothing is gated by tier — every plan reaches every managed model, and your own key reaches whatever that provider offers.
+**Or skip the orchestration entirely and pick one model.** Single models sit in the same picker as the fleets, and your own key reaches whatever that provider offers.
 
 ### Every model, and where it runs
 
 | Source | Models |
 |---|---|
-| **Ava Managed** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, DeepSeek V4.1 Flash |
 | **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
 | **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
 | **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
 | **BYOK — Mistral** | Medium 3.5, Small 4, Large 3 |
-| **BYOK — MiniMax** | M3, M2.7, M2.7 HighSpeed |
+| **BYOK — MiniMax** | M3 *(1M context, reads images)*, M3.1 Flash |
 | **BYOK — Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
 | **BYOK — Tencent** | Hunyuan Hy3 *(open-weight MoE, 262K context)* |
 | **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning *(open-weight, 1M context)* |
@@ -188,7 +177,7 @@ Every asset is tracked in the **Library** tab — grid or list view, filter by t
 <details>
 <summary><strong>As Your Tutor</strong></summary>
 
-Tell Ava what you want to learn and she becomes a real teacher. Teach runs on the same credits as every other mode — so the 300 free each month gets the Free tier learning at no cost.
+Tell Ava what you want to learn and she becomes a real teacher. Teach runs on your own key like every other mode — there is no separate charge for learning.
 
 **Ava builds the curriculum from scratch.** Tell her what you want — *"teach me Rust for game development"*, *"help me get good at React Server Components"* — and her Curriculum Architect designs a full learning path: modules, lessons, prerequisites, exercises, projects, quizzes — sequenced to your level and goal.
 
@@ -326,9 +315,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 ## Tools
 
-**Over 120 user-facing tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
-
-Counted from the registry as this extension builds it, not estimated: 119 register here, minus 8 that are internal plumbing for the agent loop. Every tool below is one you can actually call — the list and the number agree.
+**90+ tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
 
 | Category | Tools |
 |---|---|
@@ -336,15 +323,14 @@ Counted from the registry as this extension builds it, not estimated: 119 regist
 | **Shell** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
 | **Web** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
-| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `regenerate_hero`, `regenerate_demo`, `open_design_studio` |
+| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `open_design_studio` |
 | **Office & Authoring** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `conversation_recall` |
 | **Tasks & Planning** | `todo_write`, `task_manage`, `task_suggest`, `create_project`, `brainstorm_session` |
 | **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress`, `open_learning_room` |
 | **Security & data** | `audit_dependencies`, `database_query` |
 | **System** | `get_datetime`, `detect_language`, `support_request`, `propose_tool` |
-| **Health & nutrition** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room`, `find_recipe`, `read_recipe`, `write_recipe`, `check_recipe`, `add_ingredient`, `find_exercise`, `read_exercise`, `write_exercise`, `check_exercise`, `propose_exercises`, `set_muscles`, `set_nutrition`, `add_equipment`, `add_contraindication`, `day_plan_read`, `day_plan_write`, `day_plan_item_status`, `record_machine_rule` |
-| **Newsroom & social** | `discover_news`, `research_story`, `suggest_stories`, `suggest_beats`, `scan_industry`, `fact_check`, `write_article`, `revise_section`, `research_post`, `write_post`, `write_post_image`, `write_video_post`, `write_voiceover`, `propose_seeds`, `propose_hooks`, `post_performance` |
+| **Health & nutrition** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room`, `find_recipe`, `read_recipe`, `find_exercise`, `read_exercise`, `day_plan_read`, `day_plan_write`, `day_plan_item_status` |
 
 ---
 
@@ -352,7 +338,7 @@ Counted from the registry as this extension builds it, not estimated: 119 regist
 
 1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova)
 2. Click the Ava icon in the activity bar (or `Ctrl+Shift+A`)
-3. Sign up for **300 free credits a month**, or bring your own API keys in Settings
+3. Add your key when Ava asks — she tests it before saving it (a Qwen key covers everything) — or point her at a local model
 4. Pick a mode and start
 
 > No account. No credit card. No trial.
@@ -370,6 +356,7 @@ Counted from the registry as this extension builds it, not estimated: 119 regist
 - Prompt-injection resistance built in
 - No analytics, no telemetry, no screen captures
 - Your data stays on your machine — nothing is synced to the cloud
+- No account — there is nothing to sign in to, and nothing about you on our servers
 
 ### Shared Learning (opt-in)
 
@@ -394,6 +381,8 @@ Built by **Augmented Value Acceleration Ltd**, registered in England and Wales. 
 - [GitHub](https://github.com/AugmentedValueAcceleration/ava-supernova)
 - [YouTube](https://youtube.com/@AugmentedValueAcceleration)
 - [Release Notes](https://avasupernova.com/releases)
+- [Support Ava](https://avasupernova.com/support-ava)
+- [Discord](https://discord.gg/bbtnKMW4rf)
 
 ---
 

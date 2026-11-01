@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, useLocale, tt } from '../i18n';
 import { Select } from '../components/Select';
 import type {
   HealthTaxonomies, HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
@@ -17,7 +17,7 @@ import type {
  *   - Ava-draft: Kind → Method → Intake → Generating → Form (pre-filled) → Submitted
  *
  * Manual stays untouched; Ava-draft asks 3–5 clarifying questions,
- * posts to /api/health/generate/{exercise,recipe} (2 credits), drops
+ * posts to /api/health/generate/{exercise,recipe} (on the user's Qwen key), drops
  * the structured draft straight into the form for review + edit.
  * Submission to /api/health/submissions/{kind} is the same as manual.
  *
@@ -473,7 +473,7 @@ function MethodPicker({ kind, onPick, onBack }: { kind: Kind; onPick: (m: Method
         >
           <div className="flex items-baseline justify-between mb-2">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">{t('health.submit.method_ava_kicker')}</div>
-            <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">{t('health.submit.credits_2')}</span>
+            <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">{tt('health.submit.on_your_key', 'Your Qwen key')}</span>
           </div>
           <div className="text-[15px] font-light text-[var(--text-primary)] mb-1">{t('health.submit.method_ava_title')}</div>
           <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">

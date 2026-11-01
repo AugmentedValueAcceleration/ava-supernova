@@ -232,7 +232,7 @@
               "nvidia:nvidia/nemotron-3-ultra-550b-a55b"
             ],
             "enumDescriptions": [
-              "No model selected — sign in for 300 free credits/month, or bring your own keys",
+              "No model selected — add a provider key, or point Ava at a local model",
               "DeepSeek V4.1 Flash — 1M context, multimodal, 384K output, MIT open-weight ($0.15/$0.60 off-peak)",
               "Kimi K3 — Moonshot frontier model, 2.8T MoE, 1M context, native vision",
               "Kimi K2.7 Code — agentic coding leader, 256K context, multimodal",

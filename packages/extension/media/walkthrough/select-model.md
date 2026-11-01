@@ -1,6 +1,6 @@
 # Choose Your Model
 
-Pick the model that fits your workflow. The free tier gives you **300 credits a month** on managed models — no card, no trial. (Every model spends credits; none is unlimited-free.)
+Pick the model that fits your workflow. Every model runs on your own key — the fleets need the keys their models use, and a single model needs only its own provider's key.
 
 | Model | Best For |
 |---|---|

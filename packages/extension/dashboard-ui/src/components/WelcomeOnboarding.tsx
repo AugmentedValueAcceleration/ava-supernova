@@ -267,7 +267,7 @@ function KeyStep({ providerKeys, onLocalModel }: { providerKeys: ProviderKeyStat
                 <span className="text-sm font-semibold text-white">{p.name}</span>
                 <LinkButton url={p.url} label={tt('onb.key.get', 'Get a key')} />
               </div>
-              <p className="text-[11px] text-[var(--text-muted)] mb-2">{p.note}</p>
+              <p className="text-[11px] text-[var(--text-muted)] mb-2">{tt(`onb.key.note.${p.id}`, p.note)}</p>
               <KeyBox provider={p.id} saved={!!providerKeys[p.id]} placeholder={tt('onb.key.paste', 'Paste the key')} />
             </div>
           ))}
