@@ -88,7 +88,7 @@ export const TOOLS: ToolFact[] = [
   { name: 'rollback', category: 'git', description: 'Restore, discard, or check the status of a git checkpoint.', risk: 'dangerous' },
   { name: 'secret_request', category: 'system', description: 'Request access to a secret from the user vault. Returns an opaque handle the host substitutes at execution time.', risk: 'safe' },
   { name: 'self_inspect', category: 'file_ops', description: 'Read Ava own source code when the actual implementation needs to be quoted or examined.', risk: 'safe' },
-  { name: 'support_request', category: 'system', description: 'Submit a support ticket to the Ava development team.', risk: 'write' },
+  { name: 'support_request', category: 'system', description: 'Point you to the Discord for public questions, or draft a private email to support@avasupernova.com for you to send.', risk: 'safe' },
   { name: 'switch_mode', category: 'documents', description: 'Offer to transition to a different mode when the current mode work is complete.', risk: 'safe' },
   { name: 'task_manage', category: 'documents', description: 'Manage the personal task list — list, create, complete, update, delete.', risk: 'safe' },
   { name: 'task_suggest', category: 'documents', description: 'Offer the user a task you noticed as a card they can add, edit, or dismiss — never writes to their list without a tap.', risk: 'safe' },

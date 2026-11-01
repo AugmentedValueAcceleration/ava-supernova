@@ -3,7 +3,7 @@ import type { FunctionSchema } from '../providers/types.js';
 
 export class ProposeToolTool implements Tool {
   readonly name = 'propose_tool';
-  readonly description = 'Propose a new tool when you hit a capability gap — something you should be able to do but can\'t. The proposal is reviewed by the development team and may be built. Include: what the tool would do, why it\'s needed, and example use cases. This is how Ava evolves.';
+  readonly description = 'Propose a new tool when you hit a capability gap — something you should be able to do but can\'t. Drafts the proposal as a post for the #feature-requests channel of the Ava Supernova Discord, where the team and other users see it.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = true;
 
@@ -11,22 +11,14 @@ export class ProposeToolTool implements Tool {
     name: 'propose_tool',
     description:
       'Propose a new tool when you identify a capability gap — something you need to accomplish the ' +
-      'user\'s task but cannot do with existing tools. The proposal is sent to the Ava development team ' +
-      'for review. The user who triggered this proposal may receive bonus tokens as a reward. ' +
+      'user\'s task but cannot do with existing tools. This DRAFTS the proposal as a post for #feature-requests ' +
+      'in the Ava Supernova Discord (https://discord.gg/bbtnKMW4rf) — the user posts it, and others who need ' +
+      'the same thing can back it there. Nothing is sent from here and there is no reward. ' +
       'You MUST explain to the user what you\'re proposing and why before invoking this tool. ' +
       'Only propose tools that would be genuinely useful and reusable — not one-off workarounds.',
     parameters: {
       type: 'object',
       properties: {
-        email: {
-          type: 'string',
-          description:
-            'The user\'s email address (for crediting the proposal). Ask the user if not known.',
-        },
-        name: {
-          type: 'string',
-          description: 'The user\'s name (optional, for crediting).',
-        },
         tool_name: {
           type: 'string',
           description:
@@ -69,22 +61,12 @@ export class ProposeToolTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const email = (args.email as string)?.trim();
-    const name = (args.name as string)?.trim() || undefined;
     const toolName = (args.tool_name as string)?.trim();
     const description = (args.description as string)?.trim();
     const proposedSchema = args.proposed_schema || {};
     const riskLevel = args.risk_level as string;
     const justification = (args.justification as string)?.trim();
     const taskContext = (args.task_context as string)?.trim() || undefined;
-
-    // Email is OPTIONAL. It exists so an end user can be credited and replied
-    // to — but the operator running this in their own hub IS the dev team, and
-    // demanding their address to propose a tool to themselves blocked the call
-    // outright. Record it uncredited rather than refusing to file the gap.
-    if (email && !email.includes('@')) {
-      return { success: false, output: 'That does not look like a valid email address. Leave it out to file the proposal uncredited.' };
-    }
 
     if (!toolName) {
       return { success: false, output: 'Tool name is required.' };
@@ -118,69 +100,25 @@ export class ProposeToolTool implements Tool {
       return { success: false, output: 'Risk level must be one of: safe, write, dangerous.' };
     }
 
-    // Get the API base URL
-    const apiBase = (context.sharedState?.platformApiBase as string) || 'https://avasupernova.com';
-    const platformKey = context.sharedState?.platformKey as string | undefined;
-
-    try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (platformKey) {
-        headers['Authorization'] = `Bearer ${platformKey}`;
-      }
-
-      const response = await fetch(`${apiBase}/api/tool-proposals`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          email,
-          name,
-          tool_name: toolName,
-          description,
-          proposed_schema: proposedSchema,
-          risk_level: riskLevel,
-          justification,
-          task_context: taskContext,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg = (errorData as Record<string, string>).error || `HTTP ${response.status}`;
-        return { success: false, output: `Failed to submit tool proposal: ${errorMsg}` };
-      }
-
-      const result = await response.json() as Record<string, unknown>;
-
-      if (result.duplicate) {
-        return {
-          success: true,
-          output:
-            `This tool ("${toolName}") has already been proposed by another user! ` +
-            `Your vote has been recorded (now ${result.vote_count} votes). ` +
-            `The more users who need this tool, the higher priority it gets. ` +
-            `The user who triggered this will be credited if the tool is implemented.`,
-        };
-      }
-
-      const proposalId = (result.id as string)?.slice(0, 8) || 'unknown';
-
-      return {
-        success: true,
-        output:
-          `Tool proposal submitted successfully (ID: ${proposalId}).\n\n` +
-          `**Proposed tool:** \`${toolName}\`\n` +
-          `**Risk level:** ${riskLevel}\n` +
-          `**Status:** Pending review\n\n` +
-          `The Ava development team will review this proposal. ` +
-          `If approved and implemented, ${email} will receive bonus tokens as a thank-you. ` +
-          `You can track proposals at ${apiBase}/dashboard.`,
-      };
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      return { success: false, output: `Failed to submit tool proposal: ${msg}` };
-    }
+    // Accounts are going (1 Nov 2026), and with them the proposals endpoint,
+    // the dashboard to track them on and the "bonus tokens" reward. Ideas live
+    // where the community can see and back them: Discord #feature-requests.
+    void context;
+    const post = [
+      `**Tool idea: \`${toolName}\`** (risk: ${riskLevel})`,
+      '',
+      description,
+      '',
+      `**Why:** ${justification}`,
+      ...(taskContext ? ['', `**Where it came up:** ${taskContext}`] : []),
+      ...(proposedSchema ? ['', '**Proposed parameters:**', '```json', JSON.stringify(proposedSchema, null, 2), '```'] : []),
+    ].join('\n');
+    return {
+      success: true,
+      output:
+        'Drafted as a post for #feature-requests in the Ava Supernova Discord (https://discord.gg/bbtnKMW4rf). ' +
+        'Show it to the user; they post it, and anyone else who needs it can back it there:\n\n' + post,
+      metadata: { channel: 'discord', discordChannel: '#feature-requests', toolName },
+    };
   }
 }

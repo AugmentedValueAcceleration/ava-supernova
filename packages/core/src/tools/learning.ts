@@ -1515,14 +1515,10 @@ export class LearningProgressTool implements Tool {
         const query = args.query as string;
         if (!query) return { success: false, output: 'query is required for library_search' };
 
-        const platformKey = (context.sharedState as Record<string, unknown>)?.platformKey as string | undefined;
-        if (!platformKey) {
-          return { success: true, output: 'The Learning Library is available on the Ava platform. Connect your account or browse the Library tab in your dashboard to explore curated and community learning paths.' };
-        }
-
+        // The Library is public — no account needed (1 Nov 2026). This used to
+        // refuse without one, though the server never asked for it.
         try {
           const res = await fetch(`https://avasupernova.com/api/learning/library?search=${encodeURIComponent(query)}&limit=5`, {
-            headers: { 'Authorization': `Bearer ${platformKey}` },
             signal: AbortSignal.timeout(8000),
           });
           if (!res.ok) return { success: false, output: 'Failed to search library' };
@@ -1537,16 +1533,16 @@ export class LearningProgressTool implements Tool {
 
           return { success: true, output: `**Learning Library — "${query}"**\n\n${results}\n\nSay "start [title]" to fork a path and begin learning, or I can create a custom one.` };
         } catch {
-          return { success: false, output: 'Library search timed out. Try again or browse the Library tab in your dashboard.' };
+          return { success: false, output: 'Library search timed out. Try again, or I can create a custom learning path.' };
         }
       }
 
       case 'library_recommend': {
-        const platformKey = (context.sharedState as Record<string, unknown>)?.platformKey as string | undefined;
         const localRecs = generateRecommendations(store);
         let libraryRecs = '';
 
-        if (platformKey) {
+        // Public — everyone gets the Library's picks, not only account holders.
+        {
           try {
             const completedLevels = store.curriculums
               .filter(c => c.status === 'completed')
@@ -1558,7 +1554,6 @@ export class LearningProgressTool implements Tool {
                 : 'beginner';
 
             const res = await fetch(`https://avasupernova.com/api/learning/library?sort=popular&level=${nextLevel}&limit=3`, {
-              headers: { 'Authorization': `Bearer ${platformKey}` },
               signal: AbortSignal.timeout(5000),
             });
             if (res.ok) {

@@ -3,32 +3,44 @@ import type { FunctionSchema } from '../providers/types.js';
 import { containsCredentials } from './security.js';
 
 /**
- * Open a private support TICKET (30 Oct 2026 — one ticket system replaced the
- * old chat-style conversations). Every ticket is answered by a person: Ava's
- * part is to help write it and send it, never to answer it.
+ * Help the user reach the Ava team (1 Nov 2026 — support is Discord and
+ * email only; accounts are going, and private tickets went with them).
  *
- * Tickets belong to an account, so this needs the platform key. Without one
- * the user is pointed to the Discord for public questions; email support for
- * people without an account comes later.
+ * Public questions, bugs and ideas go to the Discord, where answers stay
+ * searchable for the next person. Anything private — their data, a security
+ * issue, a payment — becomes an email to support@avasupernova.com that Ava
+ * DRAFTS and the user sends from their own mail app. Nothing leaves the
+ * machine from here: the user presses send, so no confirmation is needed and
+ * no account is either. A person answers every message, never Ava.
  */
-const CATEGORIES = ['question', 'bug', 'feature', 'account', 'billing', 'privacy', 'security', 'other'] as const;
+export const SUPPORT_EMAIL = 'support@avasupernova.com';
+export const DISCORD_INVITE = 'https://discord.gg/bbtnKMW4rf';
+
+const CATEGORIES = ['question', 'bug', 'feature', 'privacy', 'security', 'donation', 'other'] as const;
+type Category = typeof CATEGORIES[number];
+const PRIVATE: ReadonlySet<Category> = new Set(['privacy', 'security', 'donation']);
+
+/** A mailto link: the user's own mail app opens with the message written. */
+export function supportMailto(subject: string, body: string): string {
+  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 export class SupportRequestTool implements Tool {
   readonly name = 'support_request';
-  readonly description = 'Open a PRIVATE support ticket with the Ava team, answered by a person. Public questions, bugs and ideas go to the Ava Supernova Discord first; use this for anything private (account, billing, personal data, security) or when the user would rather not post publicly.';
-  readonly riskLevel: ToolRiskLevel = 'write';
-  readonly requiresConfirmation = true;
+  readonly description = 'Help the user contact the Ava team: the Discord for public questions, bugs and ideas; a drafted email to support@avasupernova.com for anything private. A person answers.';
+  readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'support_request',
     description:
-      'Open a PRIVATE support ticket with the Ava team. A PERSON answers every ticket — never say you will ' +
-      'answer it yourself, and never promise a reply time. For public questions, bugs and ideas, point the ' +
-      'user to the Ava Supernova Discord first (https://discord.gg/bbtnKMW4rf — #help, #bug-reports, ' +
-      '#feature-requests), where answers stay searchable. Use this ticket for anything private — account, ' +
-      'billing, personal data, a security issue — or when the user would rather not post publicly. ' +
-      'Draft the subject, category and message from the conversation, SHOW the user exactly what will be ' +
-      'sent, and only send once they confirm. Never include API keys, passwords or tokens.',
+      'Help the user reach the Ava team. A PERSON answers — never say you will answer it yourself, and never ' +
+      'promise a reply time. PUBLIC questions, bugs and ideas go to the Ava Supernova Discord ' +
+      `(${DISCORD_INVITE} — #help, #bug-reports, #feature-requests), where answers stay searchable. ` +
+      `Anything PRIVATE — their data, a security issue, a donation — becomes an email to ${SUPPORT_EMAIL}: ` +
+      'draft the subject and message from the conversation; this returns the draft and a link that opens it ' +
+      'in their own mail app, and THEY send it. Show them exactly what it says. Never include API keys, ' +
+      'passwords or tokens. Ava has no accounts, so there is no account, login or billing to help with.',
     parameters: {
       type: 'object',
       properties: {
@@ -36,13 +48,13 @@ export class SupportRequestTool implements Tool {
           type: 'string',
           enum: [...CATEGORIES],
           description:
-            'question (how do I…), bug (something broken), feature (an idea), account (login, keys, profile), ' +
-            'billing (plans, credits, payments), privacy (their data — export, deletion, what is stored), ' +
-            'security (a vulnerability or a suspected compromise), other (anything else).',
+            'question (how do I…), bug (something broken), feature (an idea) — these three go to the Discord; ' +
+            'privacy (their data), security (a vulnerability or suspected compromise), donation (a payment or ' +
+            'sponsorship question), other — these get an email draft.',
         },
         subject: {
           type: 'string',
-          description: 'A short, specific summary — "Can\'t sign in after changing email", not "help". Max 200 characters.',
+          description: 'A short, specific summary — "Voice generation fails with my Qwen key", not "help". Max 200 characters.',
         },
         message: {
           type: 'string',
@@ -55,8 +67,8 @@ export class SupportRequestTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const category = (CATEGORIES as readonly string[]).includes(String(args.category)) ? String(args.category) : 'other';
+  async execute(args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
+    const category: Category = (CATEGORIES as readonly string[]).includes(String(args.category)) ? args.category as Category : 'other';
     const subject = String(args.subject ?? '').trim().slice(0, 200);
     const message = String(args.message ?? '').trim();
 
@@ -67,46 +79,30 @@ export class SupportRequestTool implements Tool {
     if (containsCredentials(subject) || containsCredentials(message)) {
       return {
         success: false,
-        output: 'Blocked: the ticket appears to contain an API key, token or password. Remove it before sending — the team never needs a key to help.',
+        output: 'Blocked: this appears to contain an API key, token or password. Remove it — the team never needs a key to help.',
       };
     }
 
-    const platformKey = context.sharedState?.platformKey as string | undefined;
-    if (!platformKey) {
-      return {
-        success: false,
-        output:
-          'A private ticket needs the user to be signed in to their Ava Supernova account, and they are not. ' +
-          'Tell them so plainly. For a public question, bug or idea, the Discord works without signing in: ' +
-          'https://discord.gg/bbtnKMW4rf. Do not ask them to paste anything private into Discord.',
-      };
-    }
-
-    const apiBase = (context.sharedState?.platformApiBase as string) || 'https://avasupernova.com';
-    try {
-      const response = await fetch(`${apiBase}/api/tickets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${platformKey}` },
-        body: JSON.stringify({ category, subject, message, source: 'ava' }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({})) as { error?: string };
-        return { success: false, output: `The ticket was not sent: ${errorData.error || `HTTP ${response.status}`}` };
-      }
-
-      const data = await response.json() as { ticket?: { ref_label?: string } };
-      const ref = data.ticket?.ref_label || 'a new ticket';
+    if (!PRIVATE.has(category) && category !== 'other') {
+      const channel = category === 'bug' ? '#bug-reports' : category === 'feature' ? '#feature-requests' : '#help';
       return {
         success: true,
         output:
-          `Ticket ${ref} is open. A person on the Ava team will answer it — not you. They will be emailed ` +
-          `when there is a reply, and can follow it in Help → Support (or Support in their dashboard on the ` +
-          `website). Tell them the reference and that it is private: only they and the team can see it.`,
+          `This belongs in the Ava Supernova Discord, ${channel}: ${DISCORD_INVITE} — public, so the answer helps ` +
+          `the next person too. Here is the post, ready to paste:\n\n**${subject}**\n${message}\n\n` +
+          `If any of it is private after all, say so and it becomes an email to ${SUPPORT_EMAIL} instead.`,
+        metadata: { channel: 'discord', discordChannel: channel, url: DISCORD_INVITE },
       };
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      return { success: false, output: `The ticket was not sent: ${msg}` };
     }
+
+    const mailto = supportMailto(subject, message);
+    return {
+      success: true,
+      output:
+        `Private, so it goes by email to ${SUPPORT_EMAIL} — only they and the team see it. The draft is below; ` +
+        `this link opens it in their mail app to check and send: ${mailto}\n\n**Subject:** ${subject}\n\n${message}\n\n` +
+        'They send it, not you. A person on the team replies by email.',
+      metadata: { channel: 'email', to: SUPPORT_EMAIL, subject, mailto },
+    };
   }
 }
