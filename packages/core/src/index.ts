@@ -622,3 +622,6 @@ export type { RawImage } from './creative/image-local.js';
 export { braveSearch } from './search/brave.js';
 export type { BraveResult } from './search/brave.js';
 export { resolveWebSearch, duckDuckGoSearch } from './tools/web-search.js';
+// Bring account-era data (~/.ava/users/<id>) home into ~/.ava — copy-only, nothing lost (BYOK plan, 1 Nov 2026).
+export { mergeAccountFolders, pickActiveAccount, ACCOUNT_MERGE_MARKER } from './config/account-merge.js';
+export type { AccountMergeReport } from './config/account-merge.js';
