@@ -275,3 +275,50 @@ describe('on-screen captions — for everyone watching muted', () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe('the every-day list and one video a day (1 Nov 2026)', () => {
+  // He asked every morning for a Discord post and a star-the-repo post and got
+  // them twice in eight days: the split and "a covered subject is spent"
+  // outranked a chat message. They are now part of the day.
+  const tool = new SuggestBeatsTool();
+  let got: Array<Record<string, unknown>> = [];
+  const DAILY = [{ id: 'discord', title: 'Join our Discord' }, { id: 'star_repo', title: 'Star the GitHub repo' }];
+  const ctx = (daily = DAILY) =>
+    ({ cwd: '.', sharedState: { beatStore: { suggest: async (b: never[]) => { got = b; } }, planningDay: { date: '2026-11-01', isToday: true, hoursLeft: 10, daily } } }) as never;
+  const work = (a: string, extra: Record<string, unknown> = {}) => ({ angle: a, why: 'w', kind: 'our_work', ...extra });
+  const news = (a: string, extra: Record<string, unknown> = {}) => ({ angle: a, why: 'w', kind: 'news', ...extra });
+  const talk = (a: string) => ({ angle: a, why: 'w', kind: 'conversation', venue: 'HN thread', position: 'we ship it' });
+  const day = [work('a'), news('b'), talk('c'), work('d')];
+  const dailies = [{ angle: 'come talk to us', why: 'w', daily: 'discord' }, { angle: 'a star helps', why: 'w', daily: 'star_repo' }];
+
+  it('refuses a plan that leaves an every-day post out, naming it', async () => {
+    const r = await tool.execute({ beats: [...day, dailies[0]] }, ctx());
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/Star the GitHub repo/);
+  });
+
+  it('counts the every-day posts apart from the day and its split', async () => {
+    const r = await tool.execute({ beats: [...day, ...dailies] }, ctx());
+    expect(r.success).toBe(true);
+    expect(got).toHaveLength(6);
+    expect(r.output).toMatch(/plus 2 every-day posts/);
+  });
+
+  it('does not let the every-day posts stand in for the day', async () => {
+    const r = await tool.execute({ beats: [work('a'), news('b'), ...dailies] }, ctx());
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/FOUR TO SIX/);
+  });
+
+  it('allows one video, and only on a beat that promotes us', async () => {
+    expect((await tool.execute({ beats: [work('a', { needs_video: true }), news('b', { needs_video: true }), talk('c'), work('d'), ...dailies] }, ctx())).success).toBe(false);
+    const onNews = await tool.execute({ beats: [work('a'), news('b', { needs_video: true }), talk('c'), work('d'), ...dailies] }, ctx());
+    expect(onNews.success).toBe(false);
+    expect(onNews.output).toMatch(/promotes us/);
+    expect((await tool.execute({ beats: [...day, { ...dailies[0], needs_video: true }, dailies[1]] }, ctx())).success).toBe(true);
+  });
+
+  it('asks for no every-day posts when there is no list', async () => {
+    expect((await tool.execute({ beats: day }, ctx([]))).success).toBe(true);
+  });
+});

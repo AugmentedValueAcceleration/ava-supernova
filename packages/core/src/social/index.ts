@@ -570,6 +570,14 @@ export interface Beat {
   needs_video?: boolean;
 
   /**
+   * Set on an EVERY-DAY beat: the id of the daily item it is (see
+   * PlanningDay.daily). Every-day beats sit outside the day's split and its
+   * count, and "a covered subject is spent" does not apply to them — the
+   * subject repeats daily; the ANGLE must be fresh.
+   */
+  daily?: string;
+
+  /**
    * The shape the idea wants, when the FORM is the idea rather than a wrapper
    * on it — "30s piece to camera", "15s held shot of the dish", "silent 30s
    * scene, caption carries it".
@@ -646,6 +654,24 @@ export interface PlanningDay {
   isToday: boolean;
   /** Hours left before midnight, for today. Null for a future day. */
   hoursLeft: number | null;
+  /**
+   * The operator's EVERY-DAY list (Posts rebuild step 5, 1 Nov 2026): posts
+   * that go on every day's plan — starting with the Discord and starring the
+   * GitHub repo. He asked for them every morning and got them twice in eight
+   * days, because the day's rules (the split, "a covered subject is spent")
+   * outranked a chat message. They are now part of the day, not a request.
+   */
+  daily?: DailyItem[];
+}
+
+/** One post that goes on every day's plan. */
+export interface DailyItem {
+  /** Stable id, e.g. "discord", "star_repo". */
+  id: string;
+  /** What it promotes, in his words — "Join our Discord". */
+  title: string;
+  /** The link and anything she must know. */
+  notes?: string;
 }
 
 /**
