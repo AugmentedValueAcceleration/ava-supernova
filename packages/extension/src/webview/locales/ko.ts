@@ -467,4 +467,9 @@ export const koStrings: Record<StringKey, string> = {
   'welcome_modal.mode.brainstorm.name': '브레인스토밍',
   'welcome_modal.mode.brainstorm.tagline': '아이디어 제안자. 아이디어에 도전합니다.',
   'welcome_modal.mode.brainstorm.example': '2 주 동안 자유 시간이 있다면 무엇을 만들어야 할까요?',
+  'addkey.title': 'Add your key to start',
+  'addkey.subtitle': 'Ava runs on your own AI provider key. It stays on this machine, and you pay the provider directly.',
+  'addkey.cta': 'Add your key',
+  'addkey.qwen_tip': 'New to this? A Qwen key covers everything: chat, images, voice and video.',
+  'addkey.local_note': 'Free and open source. Your keys. Your machine. Your work.',
 };

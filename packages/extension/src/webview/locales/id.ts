@@ -467,4 +467,9 @@ export const idStrings: Record<StringKey, string> = {
   'welcome_modal.mode.brainstorm.name': 'Gali Ide',
   'welcome_modal.mode.brainstorm.tagline': 'Penggagas ide. Tantang ide.',
   'welcome_modal.mode.brainstorm.example': 'apa yang harus saya bangun dengan waktu luang 2 minggu?',
+  'addkey.title': 'Add your key to start',
+  'addkey.subtitle': 'Ava runs on your own AI provider key. It stays on this machine, and you pay the provider directly.',
+  'addkey.cta': 'Add your key',
+  'addkey.qwen_tip': 'New to this? A Qwen key covers everything: chat, images, voice and video.',
+  'addkey.local_note': 'Free and open source. Your keys. Your machine. Your work.',
 };

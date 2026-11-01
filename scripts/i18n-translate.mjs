@@ -206,10 +206,10 @@ const SURFACES = [
   },
   {
     name: 'webview',
-    dir: path.join(repoRoot, 'packages/extension/webview-ui/src/locales'),
+    dir: path.join(repoRoot, 'packages/extension/src/webview/locales'),
     kind: 'ts',
     enFile: 'en.ts',
-    keepEnglishFile: path.join(repoRoot, 'packages/extension/webview-ui/src/locales/keep-english.ts'),
+    keepEnglishFile: path.join(repoRoot, 'packages/extension/src/webview/locales/keep-english.ts'),
     localeCodeFromFile: (f) => f.replace(/\.ts$/, ''),
     listLocaleFiles() {
       return fs.readdirSync(this.dir).filter(f => f.endsWith('.ts') && f !== 'keep-english.ts' && f !== 'en.ts');

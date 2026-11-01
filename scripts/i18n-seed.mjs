@@ -16,7 +16,7 @@
  *
  * Covers the same three surfaces as the check/translate scripts:
  *   core (packages/core/src/i18n/locales/*.ts),
- *   webview (packages/extension/webview-ui/src/locales/*.ts),
+ *   webview (packages/extension/src/webview/locales/*.ts),
  *   nls (packages/extension/package.nls*.json).
  *
  * Idempotent: keys already present in a locale are left untouched. New keys
@@ -56,7 +56,7 @@ const SURFACES = [
   },
   {
     name: 'webview',
-    dir: path.join(repoRoot, 'packages/extension/webview-ui/src/locales'),
+    dir: path.join(repoRoot, 'packages/extension/src/webview/locales'),
     kind: 'ts',
     enFile: 'en.ts',
     listLocaleFiles() {

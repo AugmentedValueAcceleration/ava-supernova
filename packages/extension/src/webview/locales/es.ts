@@ -465,4 +465,9 @@ export const esStrings: Record<StringKey, string> = {
   'welcome_modal.mode.brainstorm.name': 'Lluvia de ideas',
   'welcome_modal.mode.brainstorm.tagline': 'Generador de ideas. Cuestiona las ideas.',
   'welcome_modal.mode.brainstorm.example': '¿Qué debería construir con 2 semanas libres?',
+  'addkey.title': 'Add your key to start',
+  'addkey.subtitle': 'Ava runs on your own AI provider key. It stays on this machine, and you pay the provider directly.',
+  'addkey.cta': 'Add your key',
+  'addkey.qwen_tip': 'New to this? A Qwen key covers everything: chat, images, voice and video.',
+  'addkey.local_note': 'Free and open source. Your keys. Your machine. Your work.',
 };

@@ -467,4 +467,9 @@ export const hiStrings: Record<StringKey, string> = {
   'welcome_modal.mode.brainstorm.name': 'विचार विमर्श',
   'welcome_modal.mode.brainstorm.tagline': 'विचारक। विचारों को चुनौती देता है।',
   'welcome_modal.mode.brainstorm.example': '2 हफ्ते मुक्त समय के साथ मैं क्या बनाऊं?',
+  'addkey.title': 'Add your key to start',
+  'addkey.subtitle': 'Ava runs on your own AI provider key. It stays on this machine, and you pay the provider directly.',
+  'addkey.cta': 'Add your key',
+  'addkey.qwen_tip': 'New to this? A Qwen key covers everything: chat, images, voice and video.',
+  'addkey.local_note': 'Free and open source. Your keys. Your machine. Your work.',
 };

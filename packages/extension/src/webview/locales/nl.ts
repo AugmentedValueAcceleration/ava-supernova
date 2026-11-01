@@ -467,4 +467,9 @@ export const nlStrings: Record<StringKey, string> = {
   'welcome_modal.mode.brainstorm.name': 'Brainstorm',
   'welcome_modal.mode.brainstorm.tagline': 'Ideeënstarter. Daagt ideeën uit.',
   'welcome_modal.mode.brainstorm.example': 'wat moet ik bouwen met 2 weken vrij?',
+  'addkey.title': 'Add your key to start',
+  'addkey.subtitle': 'Ava runs on your own AI provider key. It stays on this machine, and you pay the provider directly.',
+  'addkey.cta': 'Add your key',
+  'addkey.qwen_tip': 'New to this? A Qwen key covers everything: chat, images, voice and video.',
+  'addkey.local_note': 'Free and open source. Your keys. Your machine. Your work.',
 };

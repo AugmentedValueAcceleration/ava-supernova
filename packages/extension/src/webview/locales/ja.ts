@@ -467,4 +467,9 @@ export const jaStrings: Record<StringKey, string> = {
   'welcome_modal.mode.brainstorm.name': 'ブレスト',
   'welcome_modal.mode.brainstorm.tagline': 'アイデア考案者。アイデアに挑戦する。',
   'welcome_modal.mode.brainstorm.example': '2 週間の空き時間で何を構築すべきですか？',
+  'addkey.title': 'Add your key to start',
+  'addkey.subtitle': 'Ava runs on your own AI provider key. It stays on this machine, and you pay the provider directly.',
+  'addkey.cta': 'Add your key',
+  'addkey.qwen_tip': 'New to this? A Qwen key covers everything: chat, images, voice and video.',
+  'addkey.local_note': 'Free and open source. Your keys. Your machine. Your work.',
 };

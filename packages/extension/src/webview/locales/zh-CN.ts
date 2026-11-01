@@ -467,4 +467,9 @@ export const zhCNStrings: Record<StringKey, string> = {
   'welcome_modal.mode.brainstorm.name': '头脑风暴',
   'welcome_modal.mode.brainstorm.tagline': '创意者。挑战想法。',
   'welcome_modal.mode.brainstorm.example': '我有两周空闲时间，应该构建什么？',
+  'addkey.title': 'Add your key to start',
+  'addkey.subtitle': 'Ava runs on your own AI provider key. It stays on this machine, and you pay the provider directly.',
+  'addkey.cta': 'Add your key',
+  'addkey.qwen_tip': 'New to this? A Qwen key covers everything: chat, images, voice and video.',
+  'addkey.local_note': 'Free and open source. Your keys. Your machine. Your work.',
 };
