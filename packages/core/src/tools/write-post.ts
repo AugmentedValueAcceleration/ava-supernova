@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput, MODERATION_GUIDANCE } from '../social/index.js';
+import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput, MODERATION_GUIDANCE, UNTAGGED_PLATFORMS, tagsIn } from '../social/index.js';
 
 /**
  * Emit a finished social post to the Social Studio canvas — one call per post.
@@ -99,9 +99,22 @@ export class WritePostTool implements Tool {
       }
     }
 
-    const hashtags = Array.isArray(args.hashtags)
+    const declaredTags = Array.isArray(args.hashtags)
       ? (args.hashtags as unknown[]).map(h => String(h).trim().replace(/^#/, '')).filter(Boolean)
       : [];
+    // Tags written into the text count too, and are carried into the array so
+    // the Library keeps them as tags rather than only as words in the body.
+    const hashtags = tagsIn(declaredTags, content);
+    if (!UNTAGGED_PLATFORMS.has(platform) && hashtags.length === 0) {
+      return {
+        success: false,
+        output:
+          `This ${platform} post has no hashtags. Posts always carry tags (the operator's rule) — every platform ` +
+          'except Reddit and Discord. Pick them from research for THIS post\'s subject (research_post gives ' +
+          'measured Bluesky use), within the platform tag policy, put them in the content AND in `hashtags`, ' +
+          'and call write_post again.',
+      };
+    }
 
     const post: SocialPostInput = {
       platform,

@@ -21,7 +21,7 @@ const videoCtx = {
   },
 } as never;
 
-const POSTS = [{ platform: 'tiktok', caption: 'a caption' }];
+const POSTS = [{ platform: 'tiktok', caption: 'a caption', hashtags: ['test'] }];
 
 describe('the clip has to be about the thing', () => {
   const tool = new WriteVideoPostTool();

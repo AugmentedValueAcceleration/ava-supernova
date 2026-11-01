@@ -1,6 +1,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel, ToolOutputTrust } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { PLATFORM_TAG_POLICY, type WebSearchFn } from '../social/index.js';
+import { blueskyTagsFor, measureTags, type TagFetch } from '../social/tag-volume.js';
 
 /**
  * Ground a post in the present BEFORE drafting: how the subject is being framed
@@ -20,7 +21,7 @@ export class ResearchPostTool implements Tool {
 
   readonly schema: FunctionSchema = {
     name: 'research_post',
-    description: 'Research what is CURRENTLY landing for a subject BEFORE you draft a post. Returns how the topic is being framed right now (Reddit / Hacker News / open web), candidate hashtags actually in use (split so you choose reach vs niche), and the target platform\'s tag policy. ALWAYS call this before write_post when the operator gives you a subject — it grounds your angle and tags in the present instead of guessing. It does NOT return live platform engagement numbers (not available); tags reflect current discussion + best practice, so filter them through the brand voice.',
+    description: 'Research what is CURRENTLY landing for a subject BEFORE you draft a post. Returns how the topic is being framed right now (Reddit / Hacker News / open web), candidate hashtags actually in use (split so you choose reach vs niche), and the target platform\'s tag policy. ALWAYS call this before write_post when the operator gives you a subject — it grounds your angle and tags in the present instead of guessing. It also returns MEASURED tags: how many posts a day really carry each candidate on Bluesky (the only platform with free tag data) — reach ≥50/day, niche 1-50, quiet <1. Pick from those within the platform tag policy: a mix of reach and niche, never a quiet tag. Filter everything through the brand voice.',
     parameters: {
       type: 'object',
       properties: {
@@ -70,6 +71,13 @@ export class ResearchPostTool implements Tool {
       }
       const ranked = Object.entries(freq).sort((a, b) => b[1] - a[1]).map(([t]) => t);
 
+      // Measured use (1 Nov 2026). Candidates = what Bluesky users actually tag
+      // this subject with, plus the web harvest; each measured by real recent
+      // volume. Best effort: if Bluesky is unreachable the harvest still stands.
+      const tagFetch = context.sharedState?.tagFetch as TagFetch | undefined;
+      const fromBluesky = await blueskyTagsFor(subject, tagFetch).catch(() => [] as string[]);
+      const measured = await measureTags([...fromBluesky.slice(0, 6), ...ranked.slice(0, 6)], tagFetch).catch(() => []);
+
       const discussion = all
         .filter(r => r.snippet)
         .slice(0, 6)
@@ -83,8 +91,11 @@ export class ResearchPostTool implements Tool {
           tag_policy: PLATFORM_TAG_POLICY[platform] || PLATFORM_TAG_POLICY.tweet,
           candidate_reach_tags: ranked.slice(0, 3),
           candidate_niche_tags: ranked.slice(3, 8),
+          measured_tags: measured.map(m => ({ tag: `#${m.tag}`, bluesky_posts_per_day: m.perDay, band: m.band })),
           current_discussion: discussion,
-          note: 'Tags are harvested from current discussion + best practice, not live platform engagement (not available free). Choose reach vs niche within the tag policy; filter everything through the brand voice — ride beats that fit the mission, ignore the rest.',
+          note: measured.length
+            ? 'measured_tags are REAL Bluesky volume (posts/day). Prefer them: a mix of reach and niche within the tag policy, never a quiet one. Other platforms publish no tag data, so this is a guide to what people genuinely use, not a guarantee for X or TikTok. Say which tags you picked and why in tag_note.'
+            : 'Bluesky could not be measured just now, so these tags are harvested from current discussion, not measured. Choose reach vs niche within the tag policy; filter everything through the brand voice.',
         }),
       };
     } catch (err) {

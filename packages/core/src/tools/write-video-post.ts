@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput, MODERATION_GUIDANCE } from '../social/index.js';
+import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput, MODERATION_GUIDANCE, tagsIn } from '../social/index.js';
 
 /** Every video carries the link. Lower-case for the idempotency check; the
  *  appended form is the same string, so it reads as written. */
@@ -433,6 +433,18 @@ export class WriteVideoPostTool implements Tool {
     // rather than described. Hashtags are refused in it for the same reason
     // the policy now says to keep them out: on Shorts the title IS the
     // discovery surface and tags were consuming it.
+    // Every caption carries tags (the operator's rule, 1 Nov 2026). Tags typed
+    // into the caption count, and are lifted into the array for the Library.
+    for (const v of finished) v.hashtags = tagsIn(v.hashtags ?? [], v.caption);
+    const untagged = finished.filter((v) => (v.hashtags?.length ?? 0) === 0).map((v) => v.platform);
+    if (untagged.length > 0) {
+      return {
+        success: false,
+        output:
+          `No hashtags on: ${untagged.join(', ')}. Every video caption always carries tags (the operator's rule). ` +
+          'Pick them from research for THIS subject, within each platform\'s tag policy, and call write_video_post again.',
+      };
+    }
     const ytMissingTitle = finished.filter((v) => v.platform === 'youtube' && !(v.title || '').trim());
     if (ytMissingTitle.length > 0) {
       return {

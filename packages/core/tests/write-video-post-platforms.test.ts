@@ -48,7 +48,7 @@ describe('one video, one generation, a caption per platform', () => {
         // youtube REQUIRES a title — on Shorts the description is collapsed
         // on mobile, so a Short without one goes up unfindable.
         { platform: 'youtube', caption: 'the shorts version', hashtags: ['cli'], title: 'Run a coding agent offline' },
-        { platform: 'facebook', caption: 'the plain-language version', hashtags: [] },
+        { platform: 'facebook', caption: 'the plain-language version', hashtags: ['opensource'] },
       ],
     });
     expect(r.success).toBe(true);
@@ -80,8 +80,8 @@ describe('one video, one generation, a caption per platform', () => {
       // about the script being SHARED, not about the length rule.
       script: 'Ava runs in your terminal now. No editor, no window, just a prompt that answers and waits.',
       posts: [
-        { platform: 'tiktok', caption: 'a' },
-        { platform: 'facebook', caption: 'b' },
+        { platform: 'tiktok', caption: 'a', hashtags: ['t'] },
+        { platform: 'facebook', caption: 'b', hashtags: ['t'] },
       ],
     });
     // The footage lives once on the input, not per variant — which is what
@@ -93,8 +93,8 @@ describe('one video, one generation, a caption per platform', () => {
   it('appends the tagline and the link to EVERY caption, not just the first', async () => {
     await run({
       posts: [
-        { platform: 'tiktok', caption: 'one' },
-        { platform: 'instagram', caption: 'two' },
+        { platform: 'tiktok', caption: 'one', hashtags: ['t'] },
+        { platform: 'instagram', caption: 'two', hashtags: ['t'] },
       ],
     });
     for (const v of written!.variants) {
@@ -135,7 +135,7 @@ describe('one video, one generation, a caption per platform', () => {
   it('refuses two captions for the same platform', async () => {
     const r = await run({
       posts: [
-        { platform: 'tiktok', caption: 'one' },
+        { platform: 'tiktok', caption: 'one', hashtags: ['t'] },
         { platform: 'tiktok', caption: 'two' },
       ],
     });
