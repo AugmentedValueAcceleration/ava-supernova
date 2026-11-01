@@ -94,7 +94,6 @@ function isFleetId(id: string | null | undefined): id is RoutingMode {
   if (id === 'aurora') return AURORA_ENABLED;
   return isRoutingMode(id);
 }
-import { creditsFor } from '@ava/core/billing/credits';
 import {
   checkGradeable,
   buildGradeUserMessage,
@@ -104,12 +103,11 @@ import {
   type GradeResult,
 } from '@ava/core/learning';
 import { localeStringsFor } from './locale-strings.js';
-import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';
+import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
 import { ExtensionHealthPlanStore } from './health-plan-store-impl.js';
 import { migrateHealthFromGlobalState, readProfile, writeProfile, emptyHealthProfile, listPlanIds, readPlan, readAllSessions } from './health-file-store.js';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
-import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
 import { SecretAccess } from '../secrets/secret-access.js';
 import { DocumentPreviewPanel } from './DocumentPreviewPanel.js';
@@ -227,15 +225,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   /** What the room's right-hand panel is set to — so Ava designs from the dials
    *  the operator actually set, instead of guessing and overriding them. */
   private activeDesignPanel: string | undefined;
-  /** One-shot guard for the transient-platform-failure auto-retry: when the
-   *  account check or the stored model can't resolve because the platform is
-   *  unreachable, we schedule a single delayed re-init instead of (the old
-   *  bug) overwriting the user's stored model choice or deleting their key. */
-  private platformRetryScheduled = false;
-  /** True once we've told the user about the current transient-failure window —
-   *  the 60s auto-retry loop must not re-post the same notice every cycle.
-   *  Reset when a session init succeeds. */
-  private transientNotified = false;
   private conversation?: Conversation;
   /** Second conversation thread — the focused "Ava Health & Fitness" room.
    *  Same Ava: shares memoryManager, health profile, tools and model with the
@@ -345,7 +334,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private projectContextReady?: Promise<void>;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
-  private cachedAccount: AccountInfo | null = null;
+  /** Your name from the general profile (~/.ava/general.json) — kept on this machine; there are no accounts. */
+  private getLocalUserName(): string | undefined {
+    const n = readGeneralProfile(this.accountScopedDir)?.display_name;
+    return n && n.trim() ? n.trim() : undefined;
+  }
   private accountScopedDir: string = AVA_HOME; // scoped per account when connected
 
   /** globalState key holding the LAST account this machine signed into.
@@ -414,7 +407,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     await this.history.delete(conversationId);
   }
   private providerSource: ProviderSource = 'byok';
-  private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;
   private missedPongs = 0;
 
@@ -706,69 +698,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     logTo(this.outputChannel, message);
   }
 
-  /** Report token usage to the platform API and update webview with pool state */
-  private async reportUsageToPlatform(usage: { prompt_tokens: number; completion_tokens: number }): Promise<void> {
-    try {
-      const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
-      if (!platformKey) return;
-
-      const isByok = this.providerSource !== 'platform';
-
-      // BYOK users: no usage reporting — their tokens, their provider, nothing to track
-      // Platform users: always report — platform tokens must be deducted
-      if (isByok) return;
-
-      const res = await apiFetch('/usage', {
-        method: 'POST',
-        platformKey,
-        body: {
-          model: this.activeModelDef?.id ?? 'unknown',
-          provider: this.activeModelDef?.provider ?? 'unknown',
-          input_tokens: usage.prompt_tokens,
-          output_tokens: usage.completion_tokens,
-          byok: isByok,
-        },
-      });
-
-      if (res.ok && res.data && typeof res.data === 'object') {
-        const data = res.data as {
-          free_credits_used: number;
-          free_credits_limit: number;
-          credits_used: number;
-          credits_limit: number | null;
-          warning?: string;
-          warning_pct?: number;
-          warning_message?: string;
-        };
-
-        this.log(`Usage reported — free: ${data.free_credits_used}/${data.free_credits_limit}, sub: ${data.credits_used}/${data.credits_limit}`);
-
-        // Keep cached account in sync so future init messages don't revert the display
-        if (this.cachedAccount?.usage) {
-          this.cachedAccount.usage.free_credits_used = data.free_credits_used ?? 0;
-          this.cachedAccount.usage.credits_used = data.credits_used ?? 0;
-        }
-
-        this.postMessage({
-          type: 'platform_status',
-          connected: true,
-          tier: this.cachedAccount?.tier ?? null,
-          freeTokensUsed: data.free_credits_used,
-          freeTokensLimit: data.free_credits_limit,
-          subTokensUsed: data.credits_used,
-          subTokensLimit: data.credits_limit,
-          warning: (data.warning as 'none' | 'approaching' | 'critical' | 'exhausted') || 'none',
-          warningPct: data.warning_pct || 0,
-          warningMessage: data.warning_message || '',
-        });
-      } else {
-        this.log(`Usage reporting returned non-ok: status=${res.status}, data=${JSON.stringify(res.data)}`);
-      }
-    } catch (err) {
-      this.log(`Usage reporting failed (non-blocking): ${err}`);
-    }
-  }
-
   // ── Sidebar View ───────────────────────────────────────────────────────────
 
   resolveWebviewView(
@@ -981,9 +910,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       case 'compress_context':
         mapped = { type: 'compress_context' };
-        break;
-      case 'set_provider_source':
-        mapped = { type: 'set_provider_source', source: msg.source as ProviderSource };
         break;
       case 'request_memory':
         mapped = { type: 'request_memory' };
@@ -1464,21 +1390,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Private Methods ────────────────────────────────────────────────────────
 
-  /** Schedule ONE delayed re-init after a transient platform failure (network
-   *  down / timeout / 5xx). Auto-heals the session when connectivity returns
-   *  without the user having to reload — and without ever touching their
-   *  stored key or model choice. One-shot per failure window: the guard only
-   *  resets when the retry actually runs, so retries never stack. */
-  private scheduleTransientRetry(): void {
-    if (this.platformRetryScheduled) return;
-    this.platformRetryScheduled = true;
-    setTimeout(() => {
-      this.platformRetryScheduled = false;
-      this.log('Retrying session init after transient platform failure…');
-      void this.initializeSession();
-    }, 60_000);
-  }
-
   private async initializeSession(): Promise<void> {
     try {
       // Ensure project context (memory, tasks, journal) is ready before proceeding
@@ -1589,70 +1500,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.log(`Local provider failed to register: ${err}`);
       }
 
-      // ── Fetch enabled models from platform (non-blocking) ─────────────────
-      // Sends the platform key as a Bearer token so admin-gated rows
-      // (migration 218 — currently the DeepSeek Flash/Flash managed
-      // entries) are only returned when the caller resolves to tier=admin.
-      // Non-admin accounts get the public list; not signing in at all
-      // also works (fetch proceeds without Authorization header).
-      //
-      // Cache key is suffixed with "admin"/"public" so switching between
-      // admin and non-admin accounts doesn't serve the wrong list from
-      // a stale cache.
-      try {
-        // Re-fetch platform key — the previous try block scoped it out
-        // of reach. Cheap VSCode SecretStorage read.
-        const modelFetchKey = await this.context.secrets.get('ava-supernova.platformKey');
-        // Cache key versioned (v2) so upgrades that change the server-side
-        // shape of /api/models (e.g. admin-gated rows landing in the
-        // response for admin callers) invalidate any stale caches from
-        // the previous major response shape. Bump when the server filter
-        // logic changes.
-        const cacheKey = modelFetchKey ? 'enabledModels_admin_v2' : 'enabledModels_public_v2';
-        const cached = this.context.globalState.get<{ ids: string[]; ts: number }>(cacheKey);
-        if (cached && Date.now() - cached.ts < 3600000) {
-          this.enabledModelIds = new Set(cached.ids);
-        } else {
-          const headers: Record<string, string> = {};
-          if (modelFetchKey) headers['Authorization'] = `Bearer ${modelFetchKey}`;
-          // Hard 6s timeout — this fetch is on the chat-init critical
-          // path: chat_init (which clears the webview's "loading…" gate)
-          // can't fire until it returns. Without a bound a cold/slow
-          // platform stalls the whole chat surface — the ~60s hang.
-          // On timeout we fall through to the catch and use every
-          // registered model, which is the correct safe default anyway.
-          const modelsAbort = new AbortController();
-          const modelsTimer = setTimeout(() => modelsAbort.abort(), 6000);
-          let res: Response;
-          try {
-            res = await fetch('https://avasupernova.com/api/models', { headers, signal: modelsAbort.signal });
-          } finally {
-            clearTimeout(modelsTimer);
-          }
-          if (res.ok) {
-            const models = (await res.json()) as Array<{ id: string; enabled: boolean }>;
-            const ids = models.filter(m => m.enabled !== false).map(m => m.id);
-            this.enabledModelIds = new Set(ids);
-            await this.context.globalState.update(cacheKey, { ids, ts: Date.now() });
-            this.log(`Fetched ${ids.length} enabled models from platform (${modelFetchKey ? 'admin-aware' : 'public'})`);
-          }
-        }
-      } catch {
-        this.log('Could not fetch enabled models from platform — using all registered');
-      }
-
-      // Resolve provider source (persisted preference)
-      const hasPlatform = this.providerRegistry.listAllModels().some(m => m.provider === 'platform');
-      const hasByok = this.providerRegistry.listAllModels().some(m => m.provider !== 'platform');
-      const storedSource = this.context.workspaceState.get<ProviderSource>('providerSource');
-
-      if (storedSource === 'platform' && hasPlatform) {
-        this.providerSource = 'platform';
-      } else if (storedSource === 'byok' && hasByok) {
-        this.providerSource = 'byok';
-      } else {
-        this.providerSource = hasPlatform ? 'platform' : 'byok';
-      }
+      // No model list from our server and no account/own-key toggle any more
+      // (1 Nov 2026): every model runs on the user's own key, and starting up
+      // phones nobody.
+      this.providerSource = 'byok';
 
       try {
         let activeModelId = config.get<string>('activeModel') || '';
@@ -1699,23 +1550,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               this.log(`No models available to auto-select. Available: ${allModels.map(m => m.id).join(', ') || 'none'}`);
             }
           } else {
-            // A STORED choice failed to resolve — usually the platform being
-            // unreachable this instant (its provider only registers after a
-            // successful account check), or a BYOK provider that's been
-            // removed. NEVER overwrite the user's stored model here: the old
-            // code auto-picked a different model AND persisted it, silently
-            // and permanently changing the user's selection on any network
-            // blip — the exact bug class the model-persistence audit flagged.
-            // Keep the setting untouched, say so, and retry shortly.
-            this.log(`Stored model "${activeModelId}" is unavailable this session — keeping the user's choice untouched.`);
-            if (!this.transientNotified) {
-              this.transientNotified = true;
-              this.postMessage({
-                type: 'system_message',
-                content: `Your selected model (${activeModelId}) isn't reachable right now — this is usually a temporary connection issue. Your choice is unchanged; retrying shortly.`,
-              } as ExtToWebviewMessage);
-            }
-            this.scheduleTransientRetry();
+            // A STORED choice failed to resolve — almost always its provider's
+            // key being removed. NEVER overwrite the user's stored model here:
+            // the old code auto-picked a different model AND persisted it,
+            // silently and permanently changing the user's selection — the bug
+            // class the model-persistence audit flagged. Keep it and say why.
+            this.log(`Stored model "${activeModelId}" is unavailable — keeping the user's choice untouched.`);
+            this.postMessage({
+              type: 'system_message',
+              content: `Your selected model (${activeModelId}) isn't available — its provider key may be missing. Add it in Settings, or pick another model. Your choice is unchanged.`,
+            } as ExtToWebviewMessage);
           }
         }
       } catch (err) {
@@ -1727,20 +1571,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // ── Always send init — webview must never be left in loading state ─────
     this.updateStatusBar('ready');
-
-    const platformStatus: PlatformStatus | undefined = this.cachedAccount
-      ? {
-          connected: true,
-          tier: this.cachedAccount.tier,
-          freeTokensUsed: this.cachedAccount.tier === 'admin' ? 0 : (this.cachedAccount.usage?.free_credits_used ?? 0),
-          freeTokensLimit: this.cachedAccount.tier === 'admin' ? 999_999_999 : (this.cachedAccount.usage?.free_credits_limit ?? 300),
-          subTokensUsed: this.cachedAccount.usage?.credits_used ?? 0,
-          subTokensLimit: this.cachedAccount.usage?.credits_limit ?? null,
-          warning: 'none',
-          warningPct: 0,
-          warningMessage: '',
-        }
-      : undefined;
 
     this.postMessage({
       type: 'init',
@@ -1755,7 +1585,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // webview's bundled copy is already right. See locale-strings.ts.
       localeStrings: localeStringsFor(this.currentLocale),
       providerSource: this.providerSource,
-      platformStatus,
       // Onboarding/welcome now lives in the dashboard (Command Centre) — the
       // chat webview no longer hosts it. See dashboard-ui WelcomeOnboarding.
     });
@@ -1873,12 +1702,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             }
             return { days: streak, writtenToday };
           } : undefined,
-          getTokenBalance: () => {
-            if (this.cachedAccount?.usage) {
-              return { used: this.cachedAccount.usage.free_credits_used, limit: this.cachedAccount.usage.free_credits_limit };
-            }
-            return null;
-          },
+          getTokenBalance: () => null, // no credits — the provider holds the balance
           getSupportUnread: () => 0, // TODO: track from support polling
         });
 
@@ -1992,16 +1816,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const minimaxApiKey = await this.context.secrets.get('ava-supernova.provider.minimax.apiKey') || undefined;
 
-    const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
-
     // Sealed key getter — API keys are accessed via function, not stored as plain strings
     // in sharedState. This prevents accidental exposure through logging or serialisation.
+    // Every provider the user can save a key for, Brave Search included (1 Nov
+    // 2026 — it knew only Qwen and MiniMax, so core's own-key paths for
+    // anything else came back empty).
+    const savedKeys = new Map<string, string>();
+    for (const name of ['deepseek', 'kimi', 'mistral', 'zhipu', 'xiaomi', 'tencent', 'nvidia', 'brave']) {
+      const k = await this.context.secrets.get(`ava-supernova.provider.${name}.apiKey`);
+      if (k) savedKeys.set(name, k);
+    }
     const getProviderKey = (provider: string): string | undefined => {
       switch (provider) {
         case 'qwen': return qwenApiKey;
         case 'minimax': return minimaxApiKey;
-        case 'platform': return platformKey || undefined;
-        default: return undefined;
+        default: return savedKeys.get(provider);
       }
     };
 
@@ -2064,8 +1893,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         const byokKey = provider.name === 'platform'
           ? undefined
           : await this.context.secrets.get(`ava-supernova.provider.${provider.name}.apiKey`) || undefined;
-        if (!platformKey && !byokKey) {
-          throw new Error('Sign in to your Ava account, or add your own provider key, to generate a plan.');
+        if (!byokKey) {
+          throw new Error('Add a provider key in Settings to generate a plan.');
         }
         // Send the profile as an OBJECT. It used to be JSON.stringify'd and cut
         // at 1500 characters, which routinely truncated mid-object — so the
@@ -2080,14 +1909,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           profile = JSON.parse(raw);
         } catch { /* no local profile — the server handles its absence */ }
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (platformKey) headers.Authorization = `Bearer ${platformKey}`;
-        // No account at all — authenticate as BYOK instead. The header pair is
-        // what the route's door accepts; the body still carries the model so
-        // the provider is resolved from it rather than assumed.
-        if (!platformKey && byokKey) {
-          headers['X-BYOK-Provider'] = provider.name;
-          headers['X-BYOK-Key'] = byokKey;
-        }
+        // The user's own key. The header pair is what the route's door accepts;
+        // the body still carries the model so the provider is resolved from it.
+        headers['X-BYOK-Provider'] = provider.name;
+        headers['X-BYOK-Key'] = byokKey;
         const res = await fetch('https://avasupernova.com/api/health/generate/plan', {
           method: 'POST',
           headers,
@@ -2114,7 +1939,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.log(`[health] plan generation failed (${res.status}): ${msg}`);
           throw new Error(msg);
         }
-        return { days: (data as { days?: unknown[] }).days ?? [], credits_charged: (data as { credits_charged?: number }).credits_charged ?? 0 };
+        return { days: (data as { days?: unknown[] }).days ?? [] };
       },
       // Design Studio control — the Design Architect's tools (design_find_shape,
       // design_generate_icon, …) drive the open Design Studio canvas through
@@ -2127,7 +1952,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         if (!panel) return { ok: false, error: 'The Design Studio isn\'t open. Open it in Creative Studio → Design Studio.' };
         return panel.requestFromDesign(command, cargs);
       },
-      platformKey,
       clientSurface: 'extension',
       getProviderKey,
       activeModelId: model.id,
@@ -2215,14 +2039,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // (see orchestration-gate dedupe below) without re-threading.
     this.sharedState = sharedState;
 
-    // Auto Mode — detect available providers and create coordinator.
-    // The provider-source toggle is authoritative: 'byok' means the user is
-    // running their own keys this turn, so platform is withheld entirely.
-    // Routing + the persona team then run on their chosen model, never a
-    // managed one — and `hasPlatform` goes false so the BYOK persona pin fires.
-    const usePlatform = this.providerSource === 'platform' && !!platformKey;
+    // Auto Mode — detect available providers and create coordinator. Every
+    // provider is the user's own key; there is no platform provider.
     const availableProviders = new Set<string>();
-    if (usePlatform) availableProviders.add('platform');
     if (qwenApiKey) availableProviders.add('qwen');
     if (minimaxApiKey) availableProviders.add('minimax');
     const kimiKey = await this.context.secrets.get('ava-supernova.provider.kimi.apiKey') || undefined;
@@ -2249,14 +2068,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         : 'auto');
 
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
-    if (availableProviders.size > 1 || availableProviders.has('platform')) {
+    if (availableProviders.size > 1) {
       this.autoCoordinator = AutoCoordinator.create({
         providerRegistry: this.providerRegistry,
         toolRegistry: this.toolRegistry,
         cwd,
         sharedState,
         availableProviders,
-        platformKey: usePlatform ? platformKey : undefined,
         mode: routingMode,
         // Thread Decisions folder state through to spawned task agents so
         // Builder agents share the same project context as the conductor.
@@ -2289,10 +2107,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // volume — Mistral-only routing for the EU-stack guarantee. Large 3 is
     // the heavy reserve, not the coordinator.
     if (isFleetId(modelId)) {
-      const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
-      const hasPlatform = !!platformKey;
       const availableProviders = new Set<string>();
-      if (hasPlatform) availableProviders.add('platform');
       const qwenKey = await this.context.secrets.get('ava-supernova.provider.qwen.apiKey');
       if (qwenKey) availableProviders.add('qwen');
       const minimaxKey = await this.context.secrets.get('ava-supernova.provider.minimax.apiKey');
@@ -2311,7 +2126,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // non-Mistral coordinator — the EU-stack guarantee.
       let preferredCoordinatorId: string | undefined;
       if (modelId === 'supernova') {
-        preferredCoordinatorId = 'platform:deepseek-flash-platform';
+        preferredCoordinatorId = 'deepseek:deepseek-flash'; // on the user's own DeepSeek key
       } else if (modelId === 'aurora') {
         // Medium 3.5 first — it's the coordinator per core's aurora-router,
         // the web API (/api/chat resolves aurora -> mistral-medium-3.5-platform)
@@ -2355,7 +2170,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           }
         }
       }
-      const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, hasPlatform, preferredCoordinatorId);
+      const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, false, preferredCoordinatorId);
       const modeLabel = modelId === 'supernova'
         ? 'Supernova'
         : modelId === 'aurora'
@@ -2424,7 +2239,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> {
-    const isAdmin = this.cachedAccount?.tier === 'admin';
+    const isAdmin = false; // no accounts — nothing is admin-gated
 
     const allModels = this.providerRegistry.listAllPossibleModels()
       .filter((m) => {
@@ -2433,7 +2248,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         // isn't set (available:false). Platform entries only apply when
         // signed into the platform. (Was: keyless BYOK hidden in platform
         // mode — which buried the catalogue. Operator decision 2026-06-21.)
-        if (m.provider === 'platform') return this.providerSource === 'platform';
+        if (m.provider === 'platform') return false; // no account models
         return true;
       })
       // MiniMax is reserved for Creative Studio on platform (no chat use).
@@ -2457,10 +2272,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Gate platform entries by the platform-enabled cache; every BYOK model
     // stays (we want the whole catalogue), key or not.
-    const enabledIds = this.enabledModelIds;
-    const filtered = enabledIds
-      ? allModels.filter((m) => m.provider !== 'platform' || enabledIds.has(m.id))
-      : allModels;
+    const filtered = allModels;
 
     // Detect mode prerequisites from the whole pool (incl. platform) BEFORE
     // stripping platform-section. The 3 orchestrated modes need to know if a
@@ -2513,9 +2325,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     //
     // In API Key mode platformServedIds is empty, so this filter is a no-op and
     // the whole catalogue shows exactly as before.
-    const offered = this.providerSource === 'platform'
-      ? byokOnly.filter((m) => platformServedIds.has(m.id))
-      : byokOnly;
+    const offered = byokOnly;
 
     const modelList: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }> =
       offered.map((m) => {
@@ -2626,7 +2436,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   private async buildCurrentSystemPrompt(): Promise<string> {
     return buildCurrentSystemPromptFn({
-      cachedAccount: this.cachedAccount,
+      userName: this.getLocalUserName(),
       taskManager: this.taskManager,
       journalManager: this.journalManager,
       projectInstructions: this.projectInstructions,
@@ -2972,10 +2782,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const config = vscode.workspace.getConfiguration('ava-supernova');
       const contributeSharedLearning = config.get<boolean>('contributeSharedLearning', false);
       if (contributeSharedLearning) {
-        const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
         await apiFetch('/feedback', {
           method: 'POST',
-          platformKey,
           // Stable per install, not derived from hardware, and already what
           // VS Code uses to tell installs apart. Enough to stop one person's
           // rating counting twice; not enough to identify them.
@@ -3199,12 +3007,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         await this.handleCompressContext();
         break;
 
-      case 'set_provider_source':
-        this.providerSource = message.source;
-        this.context.workspaceState.update('providerSource', message.source);
-        this.log(`Provider source switched to: ${message.source}`);
-        await this.initializeSession();
-        break;
 
       case 'request_memory':
         await this.sendMemoryContent();
@@ -3407,26 +3209,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'accept_consent': {
-        const consentTimestamp = new Date().toISOString();
-        const extensionVersion = this.context.extension.packageJSON?.version || 'unknown';
-        await this.context.globalState.update('ava.consentAccepted', consentTimestamp);
+        // Consent is recorded on this machine only — there is no account to record it against.
+        await this.context.globalState.update('ava.consentAccepted', new Date().toISOString());
         this.log('User accepted Terms of Service and Privacy Policy');
-
-        // Record consent server-side if connected — GDPR audit trail
-        const consentPlatformKey = await this.context.secrets.get('ava-supernova.platformKey');
-        if (consentPlatformKey) {
-          apiFetch('/consent', {
-            method: 'POST',
-            platformKey: consentPlatformKey,
-            body: {
-              platform: 'extension',
-              appVersion: extensionVersion,
-              acceptedAt: consentTimestamp,
-              termsVersion: '1.0',
-              privacyVersion: '1.0',
-            },
-          }).catch(() => { /* consent recording is non-critical */ });
-        }
         break;
       }
 
@@ -3888,22 +3673,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           break;
         }
         case 'usage': {
-          // Mirror the server's credit math on the client so the in-chat
-          // session counter shows credits (not raw provider tokens). Main
-          // agent turns charge chat_turn; cache-hit detection matches the
-          // server's threshold (cached > 50% of prompt).
-          const prompt = event.usage.prompt_tokens || 0;
-          const cached = (event.usage as { cached_tokens?: number }).cached_tokens ?? 0;
-          const cacheHit = prompt > 0 && cached / prompt > 0.5;
-          const credits = creditsFor('chat_turn', { cacheHit });
+          // Tokens and the provider's own price — there are no credits.
           this.postMessage({
             type: 'usage',
             usage: event.usage,
             cost: event.cost,
             contextWindow: this.activeModelDef?.contextWindow,
-            credits,
           });
-          this.log(`Usage: ${event.usage.prompt_tokens}+${event.usage.completion_tokens} tokens → ${credits} credits${event.cost ? ` ($${event.cost.toFixed(4)})` : ''}`);
+          this.log(`Usage: ${event.usage.prompt_tokens}+${event.usage.completion_tokens} tokens${event.cost ? ` ($${event.cost.toFixed(4)})` : ''}`);
           // Track session stats
           sessionStats.recordUsage(
             this.activeModelDef?.id ?? 'unknown',
@@ -3911,8 +3688,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             event.usage.prompt_tokens,
             event.usage.completion_tokens,
           );
-          // Report usage to platform (fire-and-forget)
-          this.reportUsageToPlatform(event.usage);
           break;
         }
         case 'error': {
@@ -4392,7 +4167,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const topics = userMessages.slice(0, 3).map(m => m.slice(0, 80)).join('. ');
 
-    const userName = this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0] || 'the user';
+    const userName = this.getLocalUserName() || 'the user';
 
     const entry = topics
       ? `Worked with ${userName} for ${duration} minutes on: ${topics}. Used ${stats.tool_calls} tools across ${stats.messages} exchanges on ${model}.`

@@ -16,10 +16,10 @@ import type {
   PermissionMode,
   DecisionsState,
 } from '@ava/core';
-import type { AccountInfo } from './dashboard-message-types.js';
 
 export interface SystemPromptContext {
-  cachedAccount: AccountInfo | null;
+  /** The name you gave in onboarding, kept on this machine. */
+  userName?: string;
   /** Retained for future use — currently unused downstream. */
   taskManager?: TaskManager;
   /** Retained for future use — currently unused downstream. */
@@ -43,7 +43,6 @@ export interface SystemPromptContext {
 export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promise<string> {
   const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
   const cfg = vscode.workspace.getConfiguration('ava-supernova');
-  const isAdmin = ctx.cachedAccount?.tier === 'admin';
 
   // Detect if workspace is the Ava monorepo — let Ava read her own source.
   let sourceRoot: string | undefined;
@@ -51,8 +50,11 @@ export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promis
   if (existsSync(join(cwd, 'packages/core/src/agent/agent.ts'))) {
     sourceRoot = cwd;
   }
+  // "Developer" now means: the open workspace IS Ava's own source. It used to
+  // mean an admin-tier account, and there are no accounts.
+  const isAdmin = !!sourceRoot;
 
-  ctx.log(`System prompt build — userName: ${ctx.cachedAccount?.name || ctx.cachedAccount?.email?.split('@')[0] || 'none'}, isAdmin: ${isAdmin}, sourceRoot: ${sourceRoot || 'none'}`);
+  ctx.log(`System prompt build — userName: ${ctx.userName || 'none'}, isAdmin: ${isAdmin}, sourceRoot: ${sourceRoot || 'none'}`);
 
   // Personality (optional — silent fallback to default). Read from the
   // account-scoped dir so signed-in users get their own Ava, not AVA_HOME.
@@ -76,8 +78,7 @@ export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promis
     projectInstructions: ctx.projectInstructions,
     autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
     language: ctx.currentLocale,
-    userName: ctx.cachedAccount?.name || ctx.cachedAccount?.email?.split('@')[0],
-    userEmail: ctx.cachedAccount?.email,
+    userName: ctx.userName,
     isAdmin,
     sourceRoot,
     personality,
