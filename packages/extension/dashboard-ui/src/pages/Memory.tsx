@@ -261,7 +261,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
 
   // Refresh memories from the local store when the page mounts.
   useEffect(() => {
-    post({ type: 'load_local_memories' });
+    post({ type: 'load_memories' });
   }, []);
 
   // Partition entries
@@ -396,7 +396,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => post({ type: 'load_local_memories' })}
+            onClick={() => post({ type: 'load_memories' })}
             className="rounded-lg border border-[var(--accent)]/20 bg-transparent px-3 py-1.5 text-xs text-[#9ca3af] transition hover:text-white"
             title={t('memory.refresh_title')}
           >

@@ -9,45 +9,6 @@ import type { LearnerProgression, GradeResult } from '@ava/core/learning';
 import type { ExportFormat } from '@ava/core/authoring/formats';
 import type { ProjectsUsage } from '@ava/core/projects/storage';
 
-export interface AccountInfo {
-  id: string;
-  email: string;
-  name: string | null;
-  /** Auth-provider avatar (Google / GitHub OAuth photo, populated
-   *  automatically on sign-in). Threaded through to the chat user-
-   *  message bubbles so the operator's photo replaces the gradient
-   *  + person SVG fallback. Null when never set. */
-  avatar_url?: string | null;
-  tier: 'free' | 'pro' | 'ultra' | 'enterprise' | 'admin';
-  usage: {
-    credits_used: number;
-    credits_limit: number | null;
-    requests_count: number;
-    period_start: string | null;
-    period_end: string | null;
-    free_credits_used: number;
-    free_credits_limit: number;
-  } | null;
-  storage?: {
-    used_gb: number;
-    base_gb: number;
-    addon_gb: number;
-    total_gb: number;
-    percent_used: number;
-  };
-  /**
-   * Active subscription, if any. Drives the "Renews <date>" line on the
-   * billing card — usage.period_end tracks the usage-tracking window
-   * (calendar month for free, sub cycle for paid) and is NOT the
-   * renewal date. Null for free / admin / cancelled accounts.
-   */
-  subscription?: {
-    status: string;
-    current_period_start: string | null;
-    current_period_end: string | null;
-  } | null;
-}
-
 export type MemoryCategory = 'pattern' | 'preference' | 'architecture' | 'bug-fix' | 'convention' | 'tool-config' | 'decision' | 'person' | 'health' | 'general';
 
 export interface MemoryEntry {
@@ -146,15 +107,6 @@ export interface ProviderKeyStatus {
   [key: string]: boolean;
 }
 
-export interface UsageLogEntry {
-  id: string;
-  model: string;
-  provider: string;
-  input_tokens: number;
-  output_tokens: number;
-  timestamp: string;
-}
-
 /** Which room a conversation came from. Derived in core from the scaffold tag
  *  already in the transcript — no schema change, works on every old record.
  *  Mode tags ([Chat Mode], [Plan Mode]…) are modes within the main chat, so they
@@ -171,38 +123,6 @@ export interface ConversationEntry {
   updated_at: string;
   /** Undefined is treated as 'main'. */
   surface?: ConversationSurface;
-}
-
-// ── Support tickets ───────────────────────────────────────────────────────
-// ONE private ticket system on /api/tickets, always answered by the team.
-// Same shape the web, IDE and hub read.
-
-export type SupportTicketCategory =
-  | 'question' | 'bug' | 'feature' | 'account' | 'billing' | 'privacy' | 'security' | 'other';
-
-export type SupportTicketStatus = 'waiting_on_us' | 'waiting_on_you' | 'resolved' | 'closed';
-
-export interface SupportTicket {
-  id: string | number;
-  ref: string | number;
-  /** Human reference, e.g. "AVA-1042" — what the API paths take. */
-  ref_label: string;
-  category: SupportTicketCategory | string;
-  subject: string;
-  status: SupportTicketStatus | string;
-  source: string;
-  unread_user: number;
-  created_at: string;
-  last_message_at: string;
-}
-
-export interface SupportTicketMessage {
-  id: string | number;
-  /** 'ava' only appears in old history (the retired auto-reply). */
-  sender: 'user' | 'team' | 'ava';
-  sender_name: string | null;
-  body: string;
-  created_at: string;
 }
 
 export interface SessionStats {
@@ -1309,32 +1229,11 @@ export interface PersonalityData {
 
 // ─── Usage Analytics Types ───────────────────────────────────────────────────
 
-export interface UsageHistoryData {
-  balance: { used: number; limit: number; tier: string } | null;
-  daily: Array<{ date: string; tokens: number }>;
-  sessions: Array<{ date: string; duration: string; messages: number; tokens: number; model: string; cost: number }>;
-  monthTotal: number;
-  lastMonthTotal: number;
-  topModels: Array<{ model: string; tokens: number }>;
-  avgPerSession: number;
-  totalSessions: number;
-}
-
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
-export type ProviderSource = 'platform' | 'byok';
 export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'health' | 'design';
-
-export interface ChatPlatformStatus {
-  connected: boolean;
-  tier: string | null;
-  freeTokensUsed: number;
-  freeTokensLimit: number;
-  subTokensUsed: number;
-  subTokensLimit: number | null;
-}
 
 export interface ToolCallDisplay {
   id: string;
@@ -1483,15 +1382,7 @@ export interface ChatState {
   isThinking: boolean;
   needsSetup: boolean;
   initialized: boolean;
-  /**
-   * First-load gates for the dashboard chat surface. Mirror of the
-   * webview-ui flags (see message-types.ts). Both default true on a
-   * platform-key session; flipped false when chat_platform_status /
-   * history_list arrive, so the chat area can render a spinner
-   * takeover instead of an empty/broken-looking conversation list
-   * during the initial fetch.
-   */
-  accountLoading: boolean;
+  /** First-load gate: true until local history has been read. */
   historyLoading: boolean;
   lastUsage: {
     prompt_tokens: number;
@@ -1509,15 +1400,6 @@ export interface ChatState {
    *  model picker in the chat header (mirrors IDE chat). null while a
    *  fresh chat is in progress. */
   conversationTitle: string | null;
-  providerSource: ProviderSource;
-  platformStatus: {
-    connected: boolean;
-    tier: string | null;
-    freeTokensUsed: number;
-    freeTokensLimit: number;
-    subTokensUsed: number;
-    subTokensLimit: number | null;
-  } | null;
   memoryOpen: boolean;
   memoryGlobal: MemoryEntryUI[];
   memoryProject: MemoryEntryUI[];
@@ -1545,7 +1427,6 @@ export interface ChatState {
   docPickerOpen: boolean;
   docCandidates: DocumentCandidateUI[];
   docPaneWidth: number;
-  sessionCredits: number;
   conductorActive: boolean;
   conductorMode?: string | null;
   activePersonas: Array<{
@@ -1623,16 +1504,12 @@ export type ExtToDashboardMessage =
   | { type: 'locale_strings'; locale: string; strings: Record<string, string> | null }
   | {
       type: 'init';
-      account: AccountInfo | null;
+      /** Always null — there are no accounts. Kept so the init shape is stable. */
+      account: null;
       connections: ConnectionStatus;
       settings: DashboardSettings;
       providerKeys: ProviderKeyStatus;
       locale: string;
-      /** Present when the user has a platform key saved — lets the dashboard show signed-in state at boot. */
-      platformKey?: string;
-      /** Persisted Platform/API-Key routing choice, so the NavSidebar toggle
-       *  renders the host's actual source on load instead of guessing. */
-      providerSource?: 'platform' | 'byok';
       /** Render the welcome overlay on this init (gated by the "show welcome on
        *  startup" preference). Shown for everyone, signed in or not. */
       showWelcome?: boolean;
@@ -1640,7 +1517,6 @@ export type ExtToDashboardMessage =
       welcomeOnStartup?: boolean;
     }
   | { type: 'show_welcome' }
-  | { type: 'account_updated'; account: AccountInfo | null }
   | { type: 'dataset:config'; config: {
       enabled: boolean;
       capture_modes: string[];
@@ -1660,24 +1536,14 @@ export type ExtToDashboardMessage =
   | { type: 'connection_tested'; service: string; success: boolean; message: string }
   | { type: 'connection_saved'; service: string }
   | { type: 'connection_removed'; service: string }
-  | { type: 'usage_logs_loaded'; logs: UsageLogEntry[] }
   | { type: 'conversations_loaded'; conversations: ConversationEntry[] }
   | { type: 'conversation_deleted'; id: string }
   // BYOK messages
   | { type: 'local_memories_loaded'; memories: MemoryEntry[] }
   | { type: 'local_memory_deleted'; id: string }
   | { type: 'local_memory_upserted'; memory: MemoryEntry }
-  // `allTime` is archived months + the live one, from local counters. It is
-  // what All-Time shows when there is no account: the platform's own
-  // all-time figures are credits, which a BYOK user does not have.
+  // `allTime` is archived months + the live one, from local counters.
   | { type: 'session_stats_loaded'; stats: SessionStats; allTime?: SessionStats }
-  | { type: 'usage_history_loaded'; data: UsageHistoryData | null }
-  // Support tickets. `signedIn: false` = no platform key, so no calls were made.
-  | { type: 'support_tickets_loaded'; tickets: SupportTicket[]; unread: number; signedIn: boolean; error?: string }
-  | { type: 'support_ticket_loaded'; ticket: SupportTicket; messages: SupportTicketMessage[] }
-  | { type: 'support_ticket_submitted'; ticket: SupportTicket }
-  | { type: 'support_ticket_reply_sent'; ref: string }
-  | { type: 'support_ticket_failed'; action: 'open' | 'create' | 'reply' | 'close' | 'reopen'; error: string }
   // Task messages
   | { type: 'tasks_loaded'; tasks: DashboardTaskEntry[] }
   | { type: 'task_upserted'; task: DashboardTaskEntry }
@@ -1728,7 +1594,6 @@ export type ExtToDashboardMessage =
       ok: boolean;
       day?: HealthPlanDay;
       note?: string;
-      credits_charged?: number;
       unverifiable_allergens?: string[];
       error?: string;
     }
@@ -1775,7 +1640,6 @@ export type ExtToDashboardMessage =
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
   | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
   | { type: 'library_path_forked'; curriculumId: string; title: string }
-  | { type: 'library_path_published'; pathId: string; status: string; message: string }
   | {
       type: 'content_rated';
       subjectType: 'course' | 'recipe' | 'exercise' | 'workout' | 'plan';
@@ -1833,18 +1697,8 @@ export type ExtToDashboardMessage =
   | { type: 'contradictions_loaded'; contradictions: Array<{ nodeA: any; nodeB: any; similarity: number; edgeId: string }> }
   | { type: 'patterns_loaded'; patterns: Array<{ id: string; taskType: string; toolSequence: string[]; observationCount: number; confidence: number; crystallised: boolean; lastObservedAt: string }> }
   | { type: 'project_brain_loaded'; brain: { brief: string; stack: string[]; keyDecisions: string[]; confidenceAvg: number; nodeCount: number; lastSessionDate: string } | null }
-  // OAuth sign-in flow (v0.37.0) — same events as chat webview, routed to
-  // the dashboard ConnectAccount screen via AvaViewProvider's externalPostMessage.
-  | { type: 'sign_in_started' }
-  | {
-      type: 'sign_in_complete';
-      account: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string };
-    }
-  | { type: 'sign_in_failed'; error: string }
-  | { type: 'sign_in_cancelled' }
   // ── Chat messages (Extension → Chat page) ───────────────────────────────
-  | { type: 'chat_init'; models: ChatModel[]; activeModel: string | null; needsSetup: boolean; locale?: string; localeStrings?: Record<string, string>; providerSource?: ProviderSource; platformStatus?: ChatPlatformStatus }
-  | ({ type: 'chat_platform_status' } & ChatPlatformStatus)
+  | { type: 'chat_init'; models: ChatModel[]; activeModel: string | null; needsSetup: boolean; locale?: string; localeStrings?: Record<string, string>; userName?: string }
   | { type: 'user_message_ack'; text: string; images?: string[] }
   | { type: 'stream_start' }
   | { type: 'thinking_delta'; content: string }
@@ -1975,16 +1829,8 @@ export type DashboardToExtMessage =
   | { type: 'request_locale_strings'; locale: string }
   | { type: 'webview_ready' }
   | { type: 'set_welcome_on_startup'; enabled: boolean }
-  | { type: 'connect_account'; key: string }
-  | { type: 'disconnect_account' }
   | { type: 'factory_reset_scan' }
   | { type: 'factory_reset_execute'; categories: string[] }
-  | { type: 'skip_account' }
-  // OAuth sign-in flow (v0.37.0) — dashboard-side versions of the same
-  // messages the chat webview uses. Routed through DashboardPanel.handleMessage
-  // which delegates to AvaViewProvider's SignInManager.
-  | { type: 'start_sign_in'; method: 'github' | 'email' }
-  | { type: 'cancel_sign_in' }
   | { type: 'save_provider_key'; provider: string; apiKey: string }
   | { type: 'remove_provider_key'; provider: string }
   // Local / custom OpenAI-compatible provider — Ollama, LM Studio, vLLM.
@@ -1999,10 +1845,6 @@ export type DashboardToExtMessage =
   | { type: 'save_connection'; service: 'github' | 'email' | 'slack' | 'discord'; credentials: Record<string, string> }
   | { type: 'remove_connection'; service: string }
   | { type: 'test_connection'; service: string }
-  | { type: 'load_usage_logs'; period: '7d' | '30d' | 'all' }
-  | { type: 'open_checkout'; plan: 'pro' | 'ultra' }
-  | { type: 'open_topup'; package: 'starter' | 'standard' | 'pro_pack' }
-  | { type: 'open_portal' }
   | { type: 'save_settings'; settings: DashboardSettings }
   | { type: 'open_chat' }
   // Dataset capture (Ava action capture) — own granular schema in
@@ -2016,9 +1858,6 @@ export type DashboardToExtMessage =
       min_trajectory_length: number;
     } }
   | { type: 'open_url'; url: string }
-  | { type: 'update_name'; name: string }
-  | { type: 'refresh_account' }
-  | { type: 'refresh_storage' }
   | { type: 'load_conversations' }
   /** Load a saved chat conversation into the chat panel. Sent from the
    *  dashboard's History → Conversations tab. The host forwards to the
@@ -2027,12 +1866,6 @@ export type DashboardToExtMessage =
   | { type: 'load_conversation'; id: string }
   | { type: 'delete_conversation'; id: string }
   // Support tickets — `ref` is the ref label, e.g. "AVA-1042".
-  | { type: 'load_support_tickets' }
-  | { type: 'open_support_ticket'; ref: string }
-  | { type: 'leave_support_ticket' }
-  | { type: 'submit_support_ticket'; category: SupportTicketCategory; subject: string; message: string }
-  | { type: 'send_support_ticket_reply'; ref: string; message: string }
-  | { type: 'set_support_ticket_status'; ref: string; action: 'close' | 'reopen' }
   // BYOK messages
   | { type: 'load_local_memories' }
   | { type: 'delete_local_memory'; id: string }
@@ -2040,7 +1873,6 @@ export type DashboardToExtMessage =
   | { type: 'archive_local_memory'; id: string }
   | { type: 'restore_local_memory'; id: string }
   | { type: 'load_session_stats' }
-  | { type: 'load_usage_history' }
   | { type: 'set_working_hours'; start: number; end: number }
   | { type: 'download_asset'; path: string }
   | { type: 'delete_all_memories' }
@@ -2117,7 +1949,6 @@ export type DashboardToExtMessage =
    * not a stub, it is the whole thing waiting.
    */
   | { type: 'fork_library_path'; id: string; intent?: 'start' | 'save' }
-  | { type: 'publish_to_library'; curriculumId: string }
   | { type: 'rate_library_path'; id: string; rating: number; reason?: string; note?: string }
   /** Rate any rateable thing. Supersedes rate_library_path, which was
    *  course-only and would have needed a near-identical twin for recipes and
@@ -2247,7 +2078,6 @@ export type DashboardToExtMessage =
   | { type: 'request_audit_log' }
   | { type: 'request_audit_findings' }
   | { type: 'export_audit_log'; format: 'markdown' | 'json' }
-  | { type: 'export_full_account_data' }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
   | { type: 'cancel' }
@@ -2261,7 +2091,6 @@ export type DashboardToExtMessage =
   | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
   | { type: 'new_chat' }
   | { type: 'compress_context' }
-  | { type: 'set_provider_source'; source: ProviderSource }
   | { type: 'request_memory' }
   | { type: 'save_chat_memory'; scope: 'global' | 'project'; content: string }
   | { type: 'clear_chat_memory'; scope: 'global' | 'project' }

@@ -26,17 +26,12 @@ const SEX_OPTIONS: Array<{ value: GeneralProfile['sex']; labelKey: string }> = [
 
 interface Props {
   profile: GeneralProfile | null;
-  /** Account display name (from auth) — shown as the placeholder when the
-   *  user hasn't set an explicit display_name override. */
-  accountName?: string | null;
-  /** Only used for the avatar's fallback initial when there is no name. */
-  accountEmail?: string | null;
   /** The saved profile picture, as a data URL. */
   avatarDataUrl?: string;
   onSave: (next: GeneralProfile) => void;
 }
 
-export function GeneralProfilePage({ profile, accountName, accountEmail, avatarDataUrl, onSave }: Props) {
+export function GeneralProfilePage({ profile, avatarDataUrl, onSave }: Props) {
   useLocale();
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -101,7 +96,7 @@ export function GeneralProfilePage({ profile, accountName, accountEmail, avatarD
             {/* YOUR initial. This used to fall back to Ava's name, which is how
                 you could end up with her first letter standing in for your face. */}
             {!avatarDataUrl && (
-              (draft.display_name?.[0] ?? accountName?.[0] ?? accountEmail?.[0] ?? '?').toUpperCase()
+              (draft.display_name?.[0] ?? '?').toUpperCase()
             )}
           </div>
           <div>
@@ -139,7 +134,7 @@ export function GeneralProfilePage({ profile, accountName, accountEmail, avatarD
             type="text"
             value={draft.display_name ?? ''}
             onChange={e => patch({ display_name: e.target.value || null })}
-            placeholder={accountName || t('general.profile.display_name_placeholder')}
+            placeholder={t('general.profile.display_name_placeholder')}
             maxLength={60}
             className={inputCls}
           />

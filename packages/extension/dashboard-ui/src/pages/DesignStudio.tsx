@@ -1,18 +1,13 @@
 import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode, type CSSProperties } from 'react';
-import type { AccountInfo, ExtToDashboardMessage, ChatModel, ChatPlatformStatus } from '../types/messages';
+import type { ExtToDashboardMessage, ChatModel } from '../types/messages';
 import { PenNib } from '@phosphor-icons/react';
 import { post } from '../App';
-// The credit table itself, not a copy of it. A price quoted in the inspector
-// that disagrees with the price charged is worse than quoting nothing.
-import { videoCreditCost } from '@ava/core/billing/credits';
 import { TTS_VOICE_CATALOGUE, TTS_VOICES, TTS_VOICE_SPEEDS, TTS_VOICE_VOLUMES, voiceSpeechRate, voiceVolume } from '@ava/core/creative';
 
-/** '1080p' | '720p' | '480p' -> the SR number the credit table is keyed on. */
-const wanSr = (r: string): number => (r === '1080p' ? 1080 : r === '480p' ? 480 : 720);
 import { Chat } from './Chat';
 import { ModelSelector } from '../chat/components/ModelSelector';
 
-type DesignModelState = { models: ChatModel[]; activeModel: string | null; needsSetup: boolean; platformStatus: ChatPlatformStatus | null };
+type DesignModelState = { models: ChatModel[]; activeModel: string | null; needsSetup: boolean };
 import { Select } from '../components/Select';
 import { tt, useLocale } from '../i18n';
 import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
@@ -609,7 +604,6 @@ const VOICE_OPTIONS = TTS_VOICE_CATALOGUE.map(v => ({
 const VOICE_LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Japanese', 'Korean', 'Italian', 'Portuguese', 'Chinese', 'Russian'];
 
 export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, onSwitchDesignModel, userName, userAvatarUrl }: {
-  account?: AccountInfo | null;
   onRegisterDesignChatDispatch?: (dispatch: (msg: ExtToDashboardMessage) => void) => void;
   designModelState?: DesignModelState;
   onSwitchDesignModel?: (id: string) => void;
@@ -1192,7 +1186,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         if (out.ok && out.dataUrl) {
           // Auto-save to the Library, like every other lane (the set already does).
           saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-'), 'icon');
-          reply(true, { label: resolved.label, material: artDir ? 'custom-direction' : mat.label, credits: 20 });
+          reply(true, { label: resolved.label, material: artDir ? 'custom-direction' : mat.label });
         } else reply(false, undefined, out.error || 'Generation failed.');
         return;
       }
@@ -1213,7 +1207,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           if (out.ok && out.dataUrl) { made++; saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-'), 'icon'); }
           else failed.push(resolved.label);
         }
-        reply(true, { made, failed, credits: made * 20 });
+        reply(true, { made, failed });
         return;
       }
       if (m.command === 'generate_logo') {
@@ -1388,7 +1382,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         setVideoResolution(resArg);
         const wanRes = resArg === '1080p' ? '1080P' : '720P'; // route: '480P' | '720P' | '1080P'
         const out = await runVideoGeneration(prompt, dur, asp, wanRes, m.requestId);
-        if (out.ok) reply(true, { duration: Number(dur), credits: videoCreditCost(wanSr(resArg), Number(dur)) });
+        if (out.ok) reply(true, { duration: Number(dur) });
         else reply(false, undefined, out.error || 'Video generation failed.');
         return;
       }
@@ -1399,7 +1393,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const size = typeof args.size === 'string' && ['1024*1024', '1280*720', '720*1280'].includes(args.size) ? args.size : imageSize;
         setImageSize(size);
         const out = await runImageGeneration(prompt, size);
-        if (out.ok) reply(true, { credits: 12 });
+        if (out.ok) reply(true, {});
         else reply(false, undefined, out.error || 'Image generation failed.');
         return;
       }
@@ -1421,7 +1415,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const rate = typeof args.speech_rate === 'number' ? args.speech_rate : voiceSpeechRate(voiceSpeed);
         const vol = typeof args.volume === 'number' ? args.volume : voiceVolume(voiceLoudness);
         const out = await runVoiceGeneration(script, voice, language, rate, vol, m.requestId);
-        if (out.ok) reply(true, { voice, credits: 10 });
+        if (out.ok) reply(true, { voice });
         else reply(false, undefined, out.error || 'Voice generation failed.');
         return;
       }
@@ -1511,8 +1505,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           paddingBottom reserves room for the collapsed dock so the canvas
           content never hides behind the static composer. */}
       <div className="flex-1 flex flex-col min-w-0 relative" style={{ paddingBottom: DOCK_COLLAPSED }}>
-        {/* TOP BAR — the model dropdown + credit balance, always visible (BYOK:
-            dropdown for everyone; credit only for platform users). */}
+        {/* TOP BAR — the model dropdown, always visible. */}
         <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-card)] shrink-0">
           <ModelSelector
             models={designModelState?.models ?? []}
@@ -1522,18 +1515,6 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
             onOpenDashboard={() => {}}
           />
           <div className="flex-1" />
-          {(() => {
-            const ps = designModelState?.platformStatus;
-            if (!ps?.connected) return null;
-            const limit = (ps.freeTokensLimit ?? 0) + (ps.subTokensLimit ?? 0);
-            const used = (ps.freeTokensUsed ?? 0) + (ps.subTokensUsed ?? 0);
-            if (limit >= 999_999_999) return <span className="text-[11px] tabular-nums opacity-50" style={{ fontFamily: 'monospace', color: '#6c7086' }}>∞ credits</span>;
-            if (limit <= 0) return null;
-            const remaining = Math.max(0, limit - used);
-            const pct = (used / limit) * 100;
-            const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : '#a6e3a1';
-            return <span className="text-[11px] tabular-nums font-semibold" style={{ fontFamily: 'monospace', color }} title={`${remaining.toLocaleString()} of ${limit.toLocaleString()} credits remaining`}>{remaining.toLocaleString()} left</span>;
-          })()}
         </div>
         {view === 'icon' ? (
           <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
@@ -1881,7 +1862,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                   );
                 })}
               </div>
-              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">{tt('dash.studio.icon.material_hint', 'The shape becomes a reference the model paints onto — then matted to a transparent icon. Uses credits.')}</p>
+              <p className="text-[10.5px] text-[var(--text-muted)] mt-1.5">{tt('dash.studio.icon.material_hint', 'The shape becomes a reference the model paints onto — then matted to a transparent icon. Runs on your Qwen key.')}</p>
             </Section>
 
             <Section title={tt('dash.studio.colour_brand', 'Colour — from Brand Kit')}>
@@ -1918,10 +1899,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                 <Select size="sm" className="w-[118px]" value={videoDuration} onChange={v => setVideoDuration(v)}
                   options={[5, 10, 15, 30].map(secs => ({
                     value: String(secs),
-                    // The price belongs ON the choice. It is charged by the
-                    // second now, so picking 30 over 5 is a six-fold decision
-                    // and the menu should not make you find that out later.
-                    label: `${secs}s · ${videoCreditCost(wanSr(videoResolution), secs)} cr`,
+                    // Billed by the second on your Qwen account — 30s costs six times 5s.
+                    label: `${secs}s`,
                   }))} />
               </div>
               <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)] py-[5px]">

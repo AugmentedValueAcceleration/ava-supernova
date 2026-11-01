@@ -42,7 +42,6 @@ export function dayDate(plan: HealthPlan, day: HealthPlanDay): string | null {
 export interface DayProposal {
   day: HealthPlanDay;
   note: string;
-  credits: number;
   unverifiable: string[];
 }
 

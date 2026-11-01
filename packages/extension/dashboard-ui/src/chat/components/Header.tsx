@@ -1,7 +1,6 @@
 import { ModelSelector } from './ModelSelector';
 import { AnnouncementTicker } from '../../components/AnnouncementTicker';
 import { t, tt, useLocale } from '../../i18n';
-import type { ProviderSource } from '../../types/messages';
 
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
@@ -25,15 +24,10 @@ interface HeaderProps {
   onFlipSidebar?: () => void;
   /** @deprecated see onFlipSidebar. */
   sidebarSide?: 'left' | 'right';
-  sessionCredits?: number;
   /** Length of session task list — drives the badge on the Tasks pill. */
   /** Loaded conversation title — rendered as a chip next to the model
    *  picker (mirrors IDE chat). null/undefined hides the chip. */
   conversationTitle?: string | null;
-  providerSource?: ProviderSource;
-  platformStatus?: { connected: boolean; tier: string | null; freeTokensUsed: number; freeTokensLimit: number; subTokensUsed: number; subTokensLimit: number | null } | null;
-  /** @deprecated extension-only Platform/API-key toggle — IDE doesn't have it; provider routing is set in Settings. */
-  onProviderSourceChange?: (source: ProviderSource) => void;
   /** Hides the New Chat button — the Ava Health room runs its own thread and
    *  must not offer a reset that would clear the main chat. Default shown. */
   showNewChat?: boolean;
@@ -55,7 +49,6 @@ export function Header({
   onOpenDocument,
   openDocName,
   conversationTitle,
-  platformStatus,
   showNewChat = true,
   showClearChat = false,
   onClearChat,
@@ -107,42 +100,8 @@ export function Header({
         {announcement && announcement.length > 0 && <AnnouncementTicker messages={announcement} />}
       </div>
 
-      {/* Right side: tokens + context ring + tasks */}
+      {/* Right side: context ring + tasks */}
       <div className="flex items-center gap-3">
-        {/* Credit balance display — matches IDE chat header at
-            DashboardPages.tsx:4210-4225. Shows total platform balance
-            remaining when signed in (with red/amber/green colour ramp at
-            95/80%); falls back to session count for the standalone case.
-            Plain "X credits" text from the previous extension shape is
-            retired — IDE doesn't show that. */}
-        {platformStatus?.connected ? (() => {
-          const limit = (platformStatus.freeTokensLimit ?? 0) + (platformStatus.subTokensLimit ?? 0);
-          const used = (platformStatus.freeTokensUsed ?? 0) + (platformStatus.subTokensUsed ?? 0);
-          const isAdmin = limit >= 999_999_999;
-          if (isAdmin) {
-            return (
-              <span
-                className="text-[11px] tabular-nums opacity-50"
-                style={{ fontFamily: 'monospace', color: '#6c7086' }}
-                title={tt('dash.topbar.unlimited_credits', 'Unlimited credits')}
-              >∞ credits</span>
-            );
-          }
-          if (limit <= 0) return null;
-          const remaining = Math.max(0, limit - used);
-          const pct = (used / limit) * 100;
-          const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : '#a6e3a1';
-          return (
-            <span
-              className="text-[11px] tabular-nums font-semibold"
-              style={{ fontFamily: 'monospace', color }}
-              title={`${remaining.toLocaleString()} of ${limit.toLocaleString()} credits remaining (${Math.round(pct)}% used)`}
-            >
-              {remaining.toLocaleString()} left
-            </span>
-          );
-        })() : null}
-
         {/* Tasks toggle removed — the always-visible Tasks spine on the right
             edge is now the single control (the grip expands/collapses it).
             A header button would be redundant with the self-advertising rail. */}
@@ -231,34 +190,6 @@ export function Header({
       </div>
     </div>
 
-      {/* Token usage bar — full width below header. Unified total covering
-          free + subscription + top-ups so Pro/Ultra users see their real
-          balance, not just the 3M free pool. */}
-      {platformStatus?.connected && platformStatus.freeTokensLimit > 0 && platformStatus.freeTokensLimit < 999_999_999 && (() => {
-        const totalLimit = platformStatus.freeTokensLimit + (platformStatus.subTokensLimit ?? 0);
-        const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
-        const remaining = Math.max(0, totalLimit - totalUsed);
-        const pct = totalLimit > 0 ? Math.max(0, Math.min(100, (remaining / totalLimit) * 100)) : 0;
-        const color = pct <= 5 ? '#ef4444' : pct <= 20 ? '#eab308' : 'var(--accent)';
-        return (
-          <div className="px-3 pb-1.5">
-            <div className="flex items-center gap-2">
-              <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${pct}%`, background: color }}
-                />
-              </div>
-              <span
-                className="text-[9px] tabular-nums shrink-0"
-                style={{ color, opacity: pct <= 20 ? 0.9 : 0.4, fontFamily: 'monospace' }}
-              >
-                {remaining.toLocaleString('en-US')} left
-              </span>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

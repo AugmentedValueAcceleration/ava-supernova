@@ -1301,7 +1301,6 @@ export class DashboardPanel {
             ok: true,
             day: data.day,
             note: data.note ?? '',
-            credits_charged: data.credits_charged ?? 0,
             unverifiable_allergens: data.unverifiable_allergens ?? [],
           });
         } catch (err) {
@@ -2425,8 +2424,10 @@ export class DashboardPanel {
     this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, providerSource: 'byok', showWelcome: welcomeOnStartup, welcomeOnStartup, userAvatar } as never);
 
     // Memories + session stats are local, so the Memory and Usage panels
-    // render with data straight away.
-    this.loadLocalMemories().catch(() => { /* non-fatal */ });
+    // render with data straight away. Memories through the PAGED loader over
+    // Ava's own memory graph — what signed-in users always saw; the older
+    // loadLocalMemories posts a whole store at once.
+    this.loadMemories().catch(() => { /* non-fatal */ });
     this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
   }
 

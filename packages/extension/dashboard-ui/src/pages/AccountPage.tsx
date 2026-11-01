@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { Settings } from './Settings';
-import { Billing } from './Billing';
 import { Connections } from './Connections';
 import { Personality } from './Personality';
 import { GeneralProfilePage } from './GeneralProfilePage';
 import type {
   DashboardSettings, ProviderKeyStatus, PersonalityData,
-  ConnectionStatus, Page, AccountInfo,
+  ConnectionStatus, Page,
   GeneralProfile,
 } from '../types/messages';
 
-type AccountTab = 'settings' | 'billing' | 'connections' | 'personality' | 'profile';
+type AccountTab = 'settings' | 'connections' | 'personality' | 'profile';
 
 /** "{name}'s profile" holds what is genuinely ACCOUNT-shaped: who you are.
  *  Name, picture, body basics — reusable well beyond health.
@@ -27,26 +26,17 @@ interface AccountPageProps {
   providerKeys: ProviderKeyStatus;
   onNavigate?: (page: Page) => void;
   personality?: PersonalityData | null;
-  /** Full account object from the platform — powers the Billing tab and
-   *  the Cloud Management panel (storage totals, addons). The narrower
-   *  {email,name} shape the page historically used wasn't enough for
-   *  Cloud Management, so callers now pass the full AccountInfo when
-   *  available. Optional: Account page still works signed-out. */
-  account?: AccountInfo | null;
   avatarDataUrl?: string;
   connections: ConnectionStatus;
-  isPlatform: boolean;
   // "Your profile" tab — identity, picture and body basics.
   generalProfile: GeneralProfile | null;
   onSaveGeneralProfile: (next: GeneralProfile) => void;
 }
 
-// Connections shows always; Billing gates on platform.
-function getAccountTabs(name?: string | null): { key: AccountTab; label: string; platformOnly?: boolean }[] {
+function getAccountTabs(name?: string | null): { key: AccountTab; label: string }[] {
   const firstName = name?.trim().split(/\s+/)[0];
   return [
     { key: 'settings', label: tt('dash.account.tab_settings', 'Settings') },
-    { key: 'billing', label: tt('dash.account.tab_billing', 'Billing'), platformOnly: true },
     // Connections tab hidden for now — being reworked later this week.
     // Re-enable by restoring: { key: 'connections', label: tt('dash.account.tab_connections', 'Connections') },
     { key: 'personality', label: tt('dash.account.tab_personality', "Ava's Style") },
@@ -56,21 +46,21 @@ function getAccountTabs(name?: string | null): { key: AccountTab; label: string;
 
 export function AccountPage({
   settings, onSettingsChange, providerKeys,
-  personality, account, avatarDataUrl,
-  connections, isPlatform,
+  personality, avatarDataUrl,
+  connections,
   generalProfile, onSaveGeneralProfile,
 }: AccountPageProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<AccountTab>('settings');
 
-  const visibleTabs = getAccountTabs(account?.name).filter(tab => !tab.platformOnly || isPlatform);
+  const visibleTabs = getAccountTabs(generalProfile?.display_name);
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div>
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{tt('dash.account.title', 'Account')}</h1>
-        <p className="mt-1.5 text-[13px] text-[#6c7086]">{tt('dash.account.subtitle', 'Settings, billing, connections, and personalisation')}</p>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">{tt('dash.account.subtitle', 'Settings, connections, and personalisation')}</p>
       </div>
 
       {/* Tab bar — matches IDE AccountPage at DashboardPages.tsx:12910-12919. */}
@@ -97,12 +87,7 @@ export function AccountPage({
           onSettingsChange={onSettingsChange}
           providerKeys={providerKeys}
           showProviderKeys
-          account={account}
         />
-      )}
-
-      {activeTab === 'billing' && (
-        <Billing account={account ?? null} />
       )}
 
       {activeTab === 'connections' && (
@@ -118,8 +103,6 @@ export function AccountPage({
       {activeTab === 'profile' && (
         <GeneralProfilePage
           profile={generalProfile}
-          accountName={account?.name ?? null}
-          accountEmail={account?.email ?? null}
           avatarDataUrl={avatarDataUrl}
           onSave={onSaveGeneralProfile}
         />

@@ -13,7 +13,6 @@ interface SettingsProps {
   onSettingsChange: (s: DashboardSettings) => void;
   providerKeys: ProviderKeyStatus;
   showProviderKeys: boolean;
-  account?: { email?: string; tier?: string } | null;
 }
 
 // ── Static Data ──────────────────────────────────────────────────────────────
@@ -84,7 +83,6 @@ export function Settings({
   onSettingsChange,
   providerKeys,
   showProviderKeys,
-  account,
 }: SettingsProps) {
   useLocale();
   const [resetOpen, setResetOpen] = useState(false);
@@ -962,28 +960,6 @@ export function Settings({
         </>
       )}
 
-      {/* Danger Zone lives under Privacy, mirroring the IDE. */}
-      {tab === 'privacy' && account && (
-        <>
-          <SectionLabel>{t('dash.settings.section.danger_zone')}</SectionLabel>
-          <div className="mb-4 rounded-xl border border-red-500/30 bg-[var(--bg-card)] p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-red-400">{t('dash.settings.disconnect_account')}</p>
-                <p className="text-xs text-red-400/70">
-                  {t('dash.settings.disconnect_desc')}
-                </p>
-              </div>
-              <button
-                onClick={() => post({ type: 'disconnect_account' })}
-                className="rounded-lg border border-red-500/40 px-4 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
-              >
-                {t('dash.settings.disconnect')}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

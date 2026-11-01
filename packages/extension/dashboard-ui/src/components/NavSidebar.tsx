@@ -5,30 +5,17 @@ import type { Page, DashboardJournalDaySummary, HealthPlanSummary, ProviderKeySt
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
   Brain, ChartLineUp, GearSix, Question, Barbell, GraduationCap,
-  ArrowsLeftRight, CaretLeft, CaretRight,
+  ArrowsLeftRight, CaretLeft, CaretRight, Heart,
 } from '@phosphor-icons/react';
+
+/** The donation page on the website — Ava is free, and donations keep it so. */
+const SUPPORT_AVA_URL = 'https://avasupernova.com/support-ava';
 
 interface NavSidebarProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
-  mode: 'platform' | 'byok';
-  email?: string | null;
-  isAdmin?: boolean;
-  /** Subscription tier — drives the colored badge below the email
-   *  in the account block. Mirrors the IDE Sidebar at Sidebar.tsx:1012. */
-  tier?: 'free' | 'pro' | 'ultra' | 'enterprise' | 'admin' | string;
-  /** True when the user has a platform account but is using BYOK keys
-   *  instead. Drives the Platform / API Key pill state. The user can
-   *  hold both — this flag chooses which one routes requests. */
-  byokMode?: boolean;
-  /** Toggle between platform-routed and BYOK-routed requests. Only
-   *  shown to signed-in users. Mirrors IDE Sidebar.tsx:1026-1037. */
-  onSetByokMode?: (byok: boolean) => void;
-  /** True while the host is fetching the account snapshot (init
-   *  arrived with a platformKey but account is still null). Drives
-   *  a loading skeleton in the account block instead of flashing
-   *  the signed-out Connect screen. */
-  accountLoading?: boolean;
+  /** Your name from the local general profile. */
+  userName?: string | null;
   /**
    * The nav item whose page is still waiting on its data, or null.
    *
@@ -39,7 +26,6 @@ interface NavSidebarProps {
    * stops because data arrived rather than because a timer ran out.
    */
   loadingPage?: Page | null;
-  onConnectAccount?: () => void;
   /** Which BYOK providers already hold a key. Presence flags only — the host
    *  keeps the values in SecretStorage and never sends them to the webview.
    *  Drives the collapsible API Keys block below the account, mirroring the
@@ -60,7 +46,6 @@ interface NavSidebarProps {
   sidebarSide?: 'left' | 'right';
   onNewChat?: () => void;
   onOpenHistory?: () => void;
-  supportUnread?: number;
   avatarUrl?: string;
   /** When true the sidebar renders as a narrow icon rail. Click any icon
    *  to navigate; click the rail's toggle to expand back. Previously a
@@ -81,7 +66,6 @@ interface NavItem {
   icon: ReactNode;
   label: string;
   description: string;
-  platformOnly?: boolean;
   adminOnly?: boolean;
   comingSoon?: boolean;
   /** Shipped and usable, but still moving. Mirrored in the IDE sidebar. */
@@ -107,8 +91,8 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     // the previous tt('dash.nav.usage', 'History') resolved to "Usage"
     // because the i18n key exists in the locale (the fallback only fires
     // for missing keys). Hardcoding the label like the IDE does.
-    { page: 'history', icon: <ChartLineUp weight="duotone" size={18} />, label: tt('dash.nav.history', 'History'), description: tt('dash.nav.history_desc', 'Credits, sessions, models') },
-    { page: 'account', icon: <GearSix weight="duotone" size={18} />, label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
+    { page: 'history', icon: <ChartLineUp weight="duotone" size={18} />, label: tt('dash.nav.history', 'History'), description: tt('dash.nav.history_desc', 'Conversations, usage, audit') },
+    { page: 'account', icon: <GearSix weight="duotone" size={18} />, label: tt('dash.nav.settings', 'Settings'), description: tt('dash.nav.settings_desc', 'Keys, profile, personalisation') },
     // Documentation folded under Help to match the IDE Sidebar — the IDE
     // doesn't carry a separate Documentation row; docs are reachable
     // from inside Help. Existing /documentation deep links still resolve
@@ -132,14 +116,7 @@ export function NavSidebar({
   currentPage,
   loadingPage,
   onNavigate,
-  mode,
-  email,
-  isAdmin,
-  tier,
-  byokMode,
-  onSetByokMode,
-  accountLoading,
-  onConnectAccount,
+  userName,
   providerKeys,
   aiName,
   selectedJournalDate,
@@ -153,7 +130,6 @@ export function NavSidebar({
   // onNewChat + onOpenHistory removed from destructure — both now route
   // through the dashboard nav (History as a top-level page; New Chat as
   // a chat-header pill). Props stay in NavSidebarProps for caller shape.
-  supportUnread,
   avatarUrl,
   collapsed,
   generationJobs,
@@ -212,7 +188,7 @@ export function NavSidebar({
     onNavigate(page);
   };
 
-  const navItems = getNavItems(isAdmin);
+  const navItems = getNavItems(false);
 
   // ── Collapsed rail: icons-only, fixed 56px width ──────────────────────
   // Jobs actually in flight. Finished ones linger in the list for a few
@@ -267,9 +243,6 @@ export function NavSidebar({
               } ${item.comingSoon ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               {loadingPage === item.page ? <NavSpinner /> : item.icon}
-              {item.page === 'help' && supportUnread && supportUnread > 0 ? (
-                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{supportUnread}</span>
-              ) : null}
               {/* Collapsed: the rail lives beside the calendar and NEITHER is
                   rendered here, so this dot is the only way a background render
                   stays visible once the sidebar is tucked away — which is
@@ -283,21 +256,16 @@ export function NavSidebar({
 
         {/* Account avatar at the bottom */}
         <div className="mt-auto pt-2 border-t border-[var(--border-card)] w-full flex justify-center">
-          {mode === 'platform' ? (
-            avatarUrl ? (
-              <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" title={email || undefined} />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-xs font-light text-purple-400" title={email || undefined}>
-                {email?.[0]?.toUpperCase() || '?'}
-              </div>
-            )
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" title={userName || undefined} />
           ) : (
             <button
-              onClick={onConnectAccount}
-              title={t('dash.auth.connect')}
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent)] text-white text-xs font-medium border-none cursor-pointer"
+              onClick={() => post({ type: 'open_url', url: SUPPORT_AVA_URL })}
+              title={tt('dash.nav.support_ava', 'Support Ava')}
+              className="flex items-center justify-center w-8 h-8 rounded-full border-none cursor-pointer"
+              style={{ background: 'color-mix(in srgb, var(--accent) 18%, transparent)', color: 'var(--accent)' }}
             >
-              {'\u2192'}
+              <Heart weight="fill" size={14} />
             </button>
           )}
         </div>
@@ -375,7 +343,6 @@ export function NavSidebar({
             onClick={() => handleNavigate(item.page)}
             comingSoon={item.comingSoon}
             earlyAccess={item.earlyAccess}
-            badge={item.page === 'help' ? supportUnread : undefined}
           />
         ))}
       </div>
@@ -399,105 +366,37 @@ export function NavSidebar({
         onRefresh={onLoadTaskDates}
       />
 
-      {/* Account section — mirrors IDE Sidebar at Sidebar.tsx:982-1037.
-          Shows avatar + email + tier badge + Disconnect, then a
-          Platform / API Key toggle that routes requests through the
-          chosen source. Signed-out users see Connect + BYOK hint. */}
+      {/* You + Support Ava. There are no accounts (1 Nov 2026): this is your
+          picture and name from this machine, and the donation link where the
+          sign-in and billing used to be. Ava is free; donations keep it so. */}
       <div className="border-t border-[var(--border-card)] p-4">
-        {accountLoading ? (
-          /* Skeleton — host is fetching the account snapshot. Avoids
-             the signed-out Connect screen flashing into view for the
-             first few seconds after dashboard open. */
-          <div className="flex items-center gap-3 animate-pulse">
-            <div className="h-9 w-9 shrink-0 rounded-full bg-[var(--bg-input)]" />
-            <div className="flex-1 min-w-0 space-y-1.5">
-              <div className="h-2.5 w-3/4 rounded bg-[var(--bg-input)]" />
-              <div className="h-2 w-1/3 rounded bg-[var(--bg-input)]" />
-            </div>
-          </div>
-        ) : mode === 'platform' || (email && byokMode) ? (
-          <>
-            <div className="flex items-center gap-3 mb-2">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
-              ) : (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-sm font-light text-purple-400">
-                  {email?.[0]?.toUpperCase() || '?'}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-[11px] font-medium text-white">{email}</p>
-                {tier && <TierBadge tier={tier} isAdmin={isAdmin} />}
-              </div>
-              <button
-                onClick={() => post({ type: 'disconnect_account' })}
-                className="shrink-0 rounded-md border border-[var(--border-card)] px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-400"
-              >
-                {t('dash.auth.disconnect')}
-              </button>
-            </div>
-
-            {/* Platform / API Key toggle — only shown when the caller
-                wired the byok-mode setter. Stays hidden in surfaces
-                that don't yet plumb the toggle through. */}
-            {onSetByokMode && (
-              <div className="flex gap-1">
-                {([
-                  { key: 'platform' as const, label: tt('dash.auth.platform', 'Platform') },
-                  { key: 'byok' as const,     label: tt('dash.auth.api_key', 'API Key') },
-                ]).map(opt => {
-                  const active = opt.key === 'platform' ? !byokMode : !!byokMode;
-                  return (
-                    <button
-                      key={opt.key}
-                      onClick={() => onSetByokMode(opt.key === 'byok')}
-                      /* House button style — the chat header's "New Chat" pill:
-                         translucent accent fill, accent border + text. The
-                         selected side sits at 18%/40%, the unselected at
-                         transparent with a muted border, so the pair still
-                         reads as one segmented control. Was solid-accent +
-                         white vs flat grey, which matched nothing else. */
-                      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 8%, transparent)'; }}
-                      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
-                      className="flex-1 rounded-lg text-[11px] font-semibold transition cursor-pointer"
-                      style={{
-                        padding: '5px 0',
-                        background: active ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent',
-                        border: active
-                          ? '1px solid color-mix(in srgb, var(--accent) 40%, transparent)'
-                          : '1px solid var(--border-card)',
-                        color: active ? 'var(--accent)' : '#6c7086',
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
+        {(avatarUrl || userName) && (
+          <div className="flex items-center gap-3 mb-3">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-sm font-light text-purple-400">
+                {userName?.[0]?.toUpperCase() || '?'}
               </div>
             )}
-          </>
-        ) : (
-          <div>
-            {/* House button — mirrors the IDE sidebar: translucent accent
-                fill, accent border + text, at the same 18% / 40% weights the
-                Platform / API Key toggle above uses when selected. Was solid
-                accent with white text on both surfaces. */}
-            <button
-              onClick={onConnectAccount}
-              className="w-full rounded-lg px-3 py-1.5 text-xs font-semibold transition mb-1.5"
-              style={{
-                border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)',
-                background: 'color-mix(in srgb, var(--accent) 18%, transparent)',
-                color: 'var(--accent)',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 26%, transparent)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 18%, transparent)'; }}
-            >
-              {t('dash.auth.connect')}
-            </button>
-            <p className="text-center text-[10px] text-[var(--text-muted)]">{t('dash.auth.byok_hint')}</p>
+            {userName && <p className="flex-1 min-w-0 truncate text-[11px] font-medium text-white">{userName}</p>}
           </div>
         )}
+        <button
+          onClick={() => post({ type: 'open_url', url: SUPPORT_AVA_URL })}
+          className="w-full flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition"
+          style={{
+            border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)',
+            background: 'color-mix(in srgb, var(--accent) 18%, transparent)',
+            color: 'var(--accent)',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 26%, transparent)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 18%, transparent)'; }}
+        >
+          <Heart weight="fill" size={12} />
+          {tt('dash.nav.support_ava', 'Support Ava')}
+        </button>
+        <p className="mt-1.5 text-center text-[10px] text-[var(--text-muted)]">{tt('dash.nav.support_ava_hint', 'Free and open source. Donations keep it that way.')}</p>
       </div>
 
       {/* API Keys (BYOK) — mirrors the IDE sidebar, which puts this right below
@@ -609,36 +508,6 @@ function SidebarApiKeys({ providerKeys }: { providerKeys?: ProviderKeyStatus }) 
         </div>
       )}
     </div>
-  );
-}
-
-/* SidebarConnect removed — OAuth sign-in replaced the inline paste-key
- * form. The signed-out nav path above already routes users through the
- * ConnectAccount page which runs the GitHub / email OAuth flow. */
-
-/* ── TierBadge ────────────────────────────────────────────────────────── */
-// Matches IDE Sidebar.tsx:1012 — tier-coloured pill below the email.
-// `isAdmin` overrides the tier-derived label so admins always see "Admin"
-// even when their backing tier row is something else.
-const TIER_COLORS: Record<string, string> = {
-  free:       '#a6e3a1',
-  pro:        '#89b4fa',
-  ultra:      '#cba6f7',
-  enterprise: '#f9e2af',
-  admin:      '#f38ba8',
-};
-
-function TierBadge({ tier, isAdmin }: { tier: string; isAdmin?: boolean }) {
-  const effective = isAdmin ? 'admin' : tier;
-  const color = TIER_COLORS[effective] || '#a6e3a1';
-  const label = effective.charAt(0).toUpperCase() + effective.slice(1);
-  return (
-    <span
-      className="inline-block mt-0.5 rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider"
-      style={{ color, background: `${color}18` }}
-    >
-      {label}
-    </span>
   );
 }
 

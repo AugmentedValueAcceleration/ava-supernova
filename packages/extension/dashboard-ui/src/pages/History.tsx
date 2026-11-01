@@ -1,12 +1,11 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react';
-import { t, tt, useLocale, getLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
-import { UsageBar } from '../components/UsageBar';
 import { Select } from '../components/Select';
 import { Icon } from '../components/Icon';
 import { Skeleton } from '../components/Skeleton';
-import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry, ConversationSurface, Page } from '../types/messages';
+import type { SessionStats, ConversationEntry, ConversationSurface, Page } from '../types/messages';
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
 import { useTabTransition } from '../lib/useTabTransition';
 import { TabSpinner } from '../components/TabSpinner';
@@ -170,11 +169,7 @@ const SECURITY_META: Record<SecurityConcern, { labelKey: string; badge: string }
 
 interface HistoryProps {
   sessionStats: SessionStats | null;
-  usageHistory: UsageHistoryData | null;
-  mode: 'platform' | 'byok';
-  account: AccountInfo | null;
-  /** Archived months + the live one, from local counters. What All-Time shows
-   *  when there is no account — the platform's figures are credits. */
+  /** Archived months + the live one, from local counters — what All-Time shows. */
   localAllTime?: SessionStats | null;
   auditLog?: AuditEntry[];
   auditFindings?: AuditFinding[];
@@ -196,7 +191,7 @@ interface HistoryProps {
 // below — rather than a nested sub-toggle.
 type TopTab = 'conversations' | 'usage' | 'audit';
 
-export function History({ sessionStats, localAllTime, usageHistory, mode, account, auditLog, auditFindings, conversations, loaded, onNavigate }: HistoryProps) {
+export function History({ sessionStats, localAllTime, auditLog, auditFindings, conversations, loaded, onNavigate }: HistoryProps) {
   useLocale();
   // Opens on the first tab every time — a page that remembers where you left
   // it last week is a page that opens somewhere you did not ask for.
@@ -245,20 +240,14 @@ export function History({ sessionStats, localAllTime, usageHistory, mode, accoun
     }
   }, []);
 
-  // The data landing is what ends the wait. auditLog/usageHistory arrive as
-  // props from App, so watching them is the only honest signal we have.
+  // The data landing is what ends the wait. auditLog arrives as a prop from
+  // App, so watching it is the only honest signal we have. Usage is local and
+  // already here.
   useEffect(() => { if (auditLog !== undefined) clearPending('audit'); }, [auditLog]);
-  // Usage is tracked for symmetry and for the tab-strip hint below; AllTimeView
-  // already renders its own spinner when data is null, so it needs nothing else.
-  useEffect(() => { if (usageHistory !== null) clearPending('usage'); }, [usageHistory]);
   useEffect(() => { if (loaded) clearPending('conversations'); }, [loaded]);
 
   const handleTabChange = (tab: TopTab) => {
     setActiveTab(tab);
-    if (tab === 'usage' && mode === 'platform') {
-      markPending('usage');
-      post({ type: 'load_usage_history' });
-    }
     if (tab === 'audit') {
       markPending('audit');
       post({ type: 'request_audit_log' });
@@ -314,9 +303,9 @@ export function History({ sessionStats, localAllTime, usageHistory, mode, accoun
           <UsageRegion label={t('dash.usage.session')}>
             <SessionView stats={sessionStats} />
           </UsageRegion>
-          {/* All-time — credits, charts, history (or the connect hint for BYOK). */}
+          {/* All-time — your own usage, from the local counters. */}
           <UsageRegion label={t('dash.usage.all_time')}>
-            <AllTimeView data={usageHistory} localAllTime={localAllTime} mode={mode} account={account} />
+            <AllTimeView localAllTime={localAllTime} />
           </UsageRegion>
         </div>
       )}
@@ -1006,293 +995,19 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
 
 // ─── All-Time View ───────────────────────────────────────────────────────────
 
-function AllTimeView({ data, localAllTime, mode, account }: { data: UsageHistoryData | null; localAllTime?: SessionStats | null; mode: 'platform' | 'byok'; account: AccountInfo | null }) {
-  const [expandedSession, setExpandedSession] = useState<number | null>(null);
-
-  // No account: show what YOU have spent, from the local counters — every
-  // completed month plus the live one. The credits view below is about a plan
-  // that does not exist here, and pointing a BYOK user at it was sending them
-  // to the one screen that could never apply to them.
-  if (mode === 'byok' || !account) {
-    return (
-      <>
-        <div className="mb-3">
-          <p className="text-sm font-medium text-[var(--text-secondary)]">{t('dash.usage.your_usage')}</p>
-          <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.est_note')}</p>
-        </div>
-        <SessionView stats={localAllTime ?? null} />
-      </>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-card)] border-t-[var(--accent)]" />
-      </div>
-    );
-  }
-
-  // Tokens-to-credits conversion ratio. The server returns historical
-  // aggregates as raw token totals (legacy /usage/summary contract) but
-  // the user thinks and budgets in credits, so we convert client-side.
-  // Anchored to the user's actual billing ratio: balance.used credits ÷
-  // monthTotal tokens for the same period gives the exact tokens/credit
-  // rate that produced their current balance, so the chart numbers
-  // line up exactly with what the Credit Balance card shows. Falls back
-  // to TOKENS_PER_BRACKET (16K) when no monthTotal is available — that's
-  // the same constant @ava/core/billing uses for credit-per-turn math.
-  const TOKENS_PER_CREDIT_FALLBACK = 16_000;
-  const tokensPerCredit = data.balance && data.balance.used > 0 && data.monthTotal > 0
-    ? data.monthTotal / data.balance.used
-    : TOKENS_PER_CREDIT_FALLBACK;
-  const tokensToCredits = (tokens: number): number => Math.round(tokens / tokensPerCredit);
-
-  // Pre-converted aggregates for the cards + chart. Original token
-  // values stay available via data.* if a future view needs them.
-  const monthCredits = tokensToCredits(data.monthTotal);
-  const lastMonthCredits = tokensToCredits(data.lastMonthTotal);
-  const avgSessionCredits = tokensToCredits(data.avgPerSession);
-  const dailyCredits = data.daily.map(d => ({ ...d, credits: tokensToCredits(d.tokens) }));
-
-  // Forecast calculation — credits per day → days remaining at current pace.
-  const daysWithUsage = dailyCredits.filter(d => d.credits > 0).length;
-  const avgDailyCredits = daysWithUsage > 0 ? dailyCredits.reduce((s, d) => s + d.credits, 0) / daysWithUsage : 0;
-  const remaining = data.balance ? Math.max(0, data.balance.limit - data.balance.used) : 0;
-  const forecastDays = avgDailyCredits > 0 ? Math.floor(remaining / avgDailyCredits) : null;
-
-  // Month comparison — credits-vs-credits, same percentage either way.
-  const monthChange = lastMonthCredits > 0
-    ? ((monthCredits - lastMonthCredits) / lastMonthCredits * 100).toFixed(0)
-    : null;
-
-  // Daily chart max — credits, drives bar heights.
-  const dailyMax = Math.max(...dailyCredits.map(d => d.credits), 1);
-  const today = new Date().toISOString().slice(0, 10);
-
+function AllTimeView({ localAllTime }: { localAllTime?: SessionStats | null }) {
+  // What YOU have spent, from the local counters — every completed month plus
+  // the live one. (The credits view that sat here was for accounts, gone 1 Nov 2026.)
   return (
     <>
-      {/* Credit Balance Bar — billing-facing surface. The underlying
-          field name on the wire is still `tokens_*` for backwards-compat
-          but the values now reflect credits per the credits-redesign.
-          Section label uses an i18n key with a literal fallback so the
-          rename works even on locales that haven't translated the new
-          key yet. */}
-      {data.balance && (
-        <div className="mb-6">
-          <SectionGroup label={t('dash.usage.credit_balance') !== 'dash.usage.credit_balance' ? t('dash.usage.credit_balance') : 'Credit Balance'}>
-            <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-              {data.balance.tier === 'admin' ? (
-                <>
-                  <div className="mb-2 flex justify-between text-xs">
-                    <span className="text-[var(--text-secondary)]">{t('dash.usage.admin_tier')}</span>
-                    <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-[var(--bg-input)]">
-                    <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="mb-2 flex justify-between text-xs">
-                    <span className="text-[var(--text-secondary)]">
-                      {t('dash.usage.used_of', { used: formatNumber(data.balance.used), limit: formatNumber(data.balance.limit) })}
-                    </span>
-                    <span className="text-[var(--text-muted)]">
-                      {((data.balance.used / data.balance.limit) * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                  <UsageBar used={data.balance.used} limit={data.balance.limit} />
-                </>
-              )}
-              {forecastDays !== null && data.balance.tier !== 'admin' && (
-                <p className="mt-2 text-[10px] text-[var(--text-muted)]">
-                  {t('dash.usage.estimated_remaining', { days: forecastDays, days_label: forecastDays === 1 ? t('dash.usage.day') : t('dash.usage.days') })}
-                </p>
-              )}
-            </div>
-          </SectionGroup>
-        </div>
-      )}
-
-      {/* Overview — credits. Same unit as the Credit Balance card so
-          the numbers connect. Tokens-per-credit ratio is anchored to
-          the user's actual billing rate (see tokensPerCredit derivation
-          above) so This Month here always agrees with the credits used
-          in the balance bar. Hover any value to see the underlying
-          token aggregate the conversion came from. */}
-      <div className="mb-6">
-        <SectionGroup label={t('dash.usage.overview')}>
-          <div className="grid grid-cols-4 gap-3">
-            <StatCard
-              label={t('dash.usage.this_month')}
-              value={monthCredits.toLocaleString()}
-              sub={monthChange !== null ? `${Number(monthChange) >= 0 ? '+' : ''}${monthChange}% ${t('dash.usage.vs_last')}` : t('dash.usage.first_month')}
-              title={`${formatNumber(data.monthTotal)} raw tokens`}
-            />
-            <StatCard
-              label={t('dash.usage.last_month')}
-              value={lastMonthCredits.toLocaleString()}
-              title={`${formatNumber(data.lastMonthTotal)} raw tokens`}
-            />
-            <StatCard
-              label={t('dash.usage.avg_session')}
-              value={avgSessionCredits.toLocaleString()}
-              title={`${formatNumber(data.avgPerSession)} raw tokens`}
-            />
-            <StatCard label={t('dash.usage.total_sessions')} value={String(data.totalSessions)} />
-          </div>
-        </SectionGroup>
+      <div className="mb-3">
+        <p className="text-sm font-medium text-[var(--text-secondary)]">{t('dash.usage.your_usage')}</p>
+        <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.est_note')}</p>
       </div>
-
-      {/* Daily Usage Chart — credits by day, anchored to the same
-          tokens-per-credit ratio used by the Overview cards. Bar height
-          is proportional to credits; tooltip shows credits with the
-          underlying token count in parentheses for transparency. */}
-      <div className="mb-6">
-        <SectionGroup label={t('dash.usage.daily_usage')}>
-          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-            <div className="flex items-end gap-1" style={{ height: 120 }}>
-              {dailyCredits.map((d) => {
-                const heightPct = dailyMax > 0 ? (d.credits / dailyMax) * 100 : 0;
-                const isToday = d.date === today;
-                const dayLabel = new Date(d.date + 'T00:00:00').toLocaleDateString(getLocale(), { day: 'numeric' });
-
-                return (
-                  <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${d.date}: ${d.credits.toLocaleString()} credits (${formatNumber(d.tokens)} tokens)`}>
-                    <div className="w-full flex items-end" style={{ height: 90 }}>
-                      <div
-                        className={`w-full rounded-t transition-all ${
-                          isToday
-                            ? 'bg-[var(--accent)]'
-                            : d.credits > 0
-                              ? 'bg-gradient-to-t from-[var(--gradient-start)] to-[var(--gradient-end)] opacity-70'
-                              : 'bg-[var(--bg-input)]'
-                        }`}
-                        style={{ height: `${Math.max(heightPct, d.credits > 0 ? 4 : 2)}%`, minHeight: 2 }}
-                      />
-                    </div>
-                    <span className={`text-[8px] ${isToday ? 'text-[var(--accent)] font-bold' : 'text-[var(--text-muted)]'}`}>
-                      {dayLabel}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-2 flex justify-between text-[8px] text-[var(--text-muted)]">
-              <span>{data.daily[0]?.date ? new Date(data.daily[0].date + 'T00:00:00').toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' }) : ''}</span>
-              <span>{t('dash.usage.today')}</span>
-            </div>
-          </div>
-        </SectionGroup>
-      </div>
-
-      {/* Most Used Models */}
-      <div className="mb-6">
-        <SectionGroup label={t('dash.usage.most_used_models')}>
-          {data.topModels.length > 0 ? (
-            <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
-              {data.topModels.map((m) => {
-                const credits = tokensToCredits(m.tokens);
-                const pct = (m.tokens / data.topModels[0].tokens) * 100;
-                return (
-                  <div key={m.model} title={`${formatNumber(m.tokens)} raw tokens`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium truncate mr-3">{m.model}</span>
-                      <span className="text-[10px] text-[var(--text-muted)] shrink-0">{t('dash.history.n_credits', { n: credits.toLocaleString() })}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <SectionEmpty>{t('dash.usage.no_usage_period')}</SectionEmpty>
-          )}
-        </SectionGroup>
-      </div>
-
-      {/* Session History */}
-      <div className="mb-6">
-        <SectionGroup label={t('dash.usage.session_history')} count={data.sessions.length > 0 ? t('dash.usage.sessions_count', { count: data.sessions.length }) : undefined}>
-          {data.sessions.length > 0 ? (
-            <div className="rounded-xl border border-[var(--border-card)] overflow-hidden">
-              {/* Header */}
-              <div className="grid grid-cols-6 gap-2 bg-[var(--bg-card)] px-4 py-2 border-b border-[var(--border-card)]">
-                <span className="text-[10px] font-medium text-[var(--text-muted)]">{t('dash.usage.date')}</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)]">{t('dash.usage.duration')}</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">{t('dash.usage.messages')}</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">{t('dash.usage.tokens')}</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)]">{t('dash.usage.model')}</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">{t('dash.usage.cost')}</span>
-              </div>
-
-              {/* Rows */}
-              <div className="max-h-80 overflow-y-auto">
-                {data.sessions.map((s, i) => (
-                  <div key={i}>
-                    <div
-                      className="grid grid-cols-6 gap-2 px-4 py-2.5 cursor-pointer transition hover:bg-[var(--bg-input)]/50 bg-[var(--bg-card)]/50 border-b border-[var(--border-card)] last:border-b-0"
-                      onClick={() => setExpandedSession(expandedSession === i ? null : i)}
-                    >
-                      <span className="text-xs text-[var(--text-secondary)]">
-                        {new Date(s.date + 'T00:00:00').toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })}
-                      </span>
-                      <span className="text-xs text-[var(--text-muted)]">{s.duration}</span>
-                      <span className="text-xs text-[var(--text-muted)] text-right">{s.messages}</span>
-                      <span className="text-xs font-mono text-[var(--text-secondary)] text-right">{formatNumber(s.tokens)}</span>
-                      <span className="text-xs text-[var(--text-muted)] truncate" title={s.model}>{s.model}</span>
-                      <span className={`text-xs font-mono text-right ${costColour(s.cost)}`}>${s.cost.toFixed(3)}</span>
-                    </div>
-                    {expandedSession === i && (
-                      <div className="px-4 py-3 bg-[var(--bg-input)]/30 border-b border-[var(--border-card)]">
-                        <div className="grid grid-cols-3 gap-3 text-[10px]">
-                          <div>
-                            <span className="text-[var(--text-muted)]">{t('dash.usage.date')}: </span>
-                            <span className="text-[var(--text-secondary)]">{s.date}</span>
-                          </div>
-                          <div>
-                            <span className="text-[var(--text-muted)]">{t('dash.usage.duration')}: </span>
-                            <span className="text-[var(--text-secondary)]">{s.duration}</span>
-                          </div>
-                          <div>
-                            <span className="text-[var(--text-muted)]">{t('dash.usage.primary_model')}: </span>
-                            <span className="text-[var(--text-secondary)]">{s.model}</span>
-                          </div>
-                          <div>
-                            <span className="text-[var(--text-muted)]">{t('dash.usage.messages')}: </span>
-                            <span className="text-[var(--text-secondary)]">{s.messages}</span>
-                          </div>
-                          <div>
-                            <span className="text-[var(--text-muted)]">{t('dash.usage.tokens')}: </span>
-                            <span className="text-[var(--text-secondary)]">{s.tokens.toLocaleString()}</span>
-                          </div>
-                          <div>
-                            <span className="text-[var(--text-muted)]">{t('dash.usage.est_cost')}: </span>
-                            <span className={costColour(s.cost)}>${s.cost.toFixed(4)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <SectionEmpty>{t('dash.usage.no_usage_period')}</SectionEmpty>
-          )}
-        </SectionGroup>
-      </div>
+      <SessionView stats={localAllTime ?? null} />
     </>
   );
 }
-
-// ─── Stat Card ───────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub, highlight, title }: { label: string; value: string; sub?: string; highlight?: boolean; title?: string }) {
   return (

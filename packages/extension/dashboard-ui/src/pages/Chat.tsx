@@ -152,21 +152,12 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         setLocale(action.locale);
         if (action.localeStrings) loadStrings(action.locale, action.localeStrings);
       }
-      // BYOK-only sessions (no platform key) have nothing to fetch —
-      // drop both gates immediately. Sessions with a platform key drop
-      // accountLoading the moment chat_init carries platformStatus
-      // (the host fetched it before sending init).
-      const initProviderSource = action.providerSource ?? state.providerSource;
-      const isByokOnly = initProviderSource === 'byok';
-      const platformStatusIncluded = !!action.platformStatus;
       return {
         ...state,
         initialized: true,
         models: action.models,
         activeModel: action.activeModel,
         needsSetup: action.needsSetup,
-        providerSource: initProviderSource,
-        accountLoading: isByokOnly ? false : (platformStatusIncluded ? false : state.accountLoading),
         // Drop the history gate on init unconditionally. The chat surface
         // doesn't need the conversation list to render — that data only
         // populates the History sidebar. Previously this stayed true
@@ -176,16 +167,6 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         // right after init, and the sidebar gates its own open state
         // separately on historyList being non-null.
         historyLoading: false,
-        platformStatus: action.platformStatus
-          ? {
-              connected: action.platformStatus.connected,
-              tier: action.platformStatus.tier,
-              freeTokensUsed: action.platformStatus.freeTokensUsed,
-              freeTokensLimit: action.platformStatus.freeTokensLimit,
-              subTokensUsed: action.platformStatus.subTokensUsed,
-              subTokensLimit: action.platformStatus.subTokensLimit,
-            }
-          : state.platformStatus,
       };
     }
 
@@ -453,29 +434,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'usage':
-      // Accumulate credits charged per turn (server-authoritative math
-      // mirrored on the host side; sent on the usage message). Old
-      // behaviour summed raw provider tokens which didn't match what
-      // the user was actually billed post-credits.
       return {
         ...state,
         lastUsage: { ...action.usage, cost: action.cost, contextWindow: action.contextWindow },
-        sessionCredits: state.sessionCredits + (action.credits ?? 0),
-      };
-
-    case 'chat_platform_status':
-      return {
-        ...state,
-        // Account fetch resolved — drop the gate.
-        accountLoading: false,
-        platformStatus: {
-          connected: action.connected,
-          tier: action.tier,
-          freeTokensUsed: action.freeTokensUsed,
-          freeTokensLimit: action.freeTokensLimit,
-          subTokensUsed: action.subTokensUsed,
-          subTokensLimit: action.subTokensLimit,
-        },
       };
 
     case 'error': {
@@ -843,10 +804,7 @@ const initialState: ChatState = {
   isThinking: false,
   needsSetup: true,
   initialized: false,
-  // Default true — flipped false when chat_init delivers a platform
-  // status (account fetched) and when history_list arrives. Spinner
-  // overlay holds the chat surface while either is in flight.
-  accountLoading: true,
+  // Flipped false on chat_init (history is local) or when history_list arrives.
   historyLoading: true,
   lastUsage: null,
   contextUsage: null,
@@ -855,8 +813,6 @@ const initialState: ChatState = {
   historyList: [],
   currentConversationId: null,
   conversationTitle: null,
-  providerSource: 'byok',
-  platformStatus: null,
   memoryOpen: false,
   memoryGlobal: [],
   memoryProject: [],
@@ -873,7 +829,6 @@ const initialState: ChatState = {
   docPickerOpen: false,
   docCandidates: [],
   docPaneWidth: 460,
-  sessionCredits: 0,
   conductorActive: false,
   conductorMode: null,
   activePersonas: [],
@@ -1284,10 +1239,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     post({ type: 'rate_message', messageId, rating, reason, note });
   }, []);
 
-  const handleProviderSourceChange = useCallback((source: 'platform' | 'byok') => {
-    post({ type: 'set_provider_source', source });
-  }, []);
-
   // handleCloseHistory removed — slide-over is gone; close_history reducer
   // case kept in case ambient code paths still dispatch it.
 
@@ -1436,8 +1387,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             onToggleTasks={handleToggleTasks}
             tasksOpen={state.tasksOpen}
             conversationTitle={state.conversationTitle}
-            sessionCredits={state.sessionCredits}
-            platformStatus={state.platformStatus}
             showNewChat={lane === 'main'}
             showClearChat={lane === 'health'}
             onClearChat={handleClearChat}
@@ -1459,7 +1408,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             </div>
           )}
 
-          {!hideMessages && ((state.accountLoading || (lane === 'main' && state.historyLoading)) ? (
+          {!hideMessages && ((lane === 'main' && state.historyLoading) ? (
             <div
               role="status"
               aria-live="polite"
@@ -1468,11 +1417,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             >
               <div className="ava-chat-spinner" aria-hidden />
               <div className="text-[12px]" style={{ color: '#a6adc8' }}>
-                {state.accountLoading && state.historyLoading
-                  ? 'Loading your account and chat history…'
-                  : state.accountLoading
-                    ? 'Loading your account…'
-                    : 'Loading your chat history…'}
+                {'Loading your chat history…'}
               </div>
               <style>{`
                 .ava-chat-spinner {
@@ -1580,9 +1525,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             usage={state.lastUsage}
             isCompressing={state.isCompressing}
             onCompress={handleCompress}
-            providerSource={state.providerSource}
-            platformStatus={state.platformStatus}
-            onProviderSourceChange={handleProviderSourceChange}
             contextUsage={state.contextUsage}
             modelSupportsVision={
               state.models.find((m) => m.id === state.activeModel)?.supportsVision

@@ -1,25 +1,17 @@
 import { useState } from 'react';
 import { post } from '../App';
 import { t, useLocale } from '../i18n';
-import { SupportTickets } from './SupportTickets';
+import { SupportPanel } from './SupportPanel';
 import { Releases } from './Releases';
 import { Roadmap } from './Roadmap';
 import { DocumentationPageLazy } from './DocumentationPage.lazy';
 import { LazyPage } from '../components/LazyPage';
-import type { ReleaseNote, RoadmapTheme, SupportTicket, SupportTicketMessage } from '../types/messages';
+import type { ReleaseNote, RoadmapTheme } from '../types/messages';
 
 type HelpTab = 'support' | 'docs' | 'releases' | 'roadmap';
 
 interface HelpPageProps {
   releases: ReleaseNote[];
-  supportTickets: SupportTicket[];
-  supportLoading: boolean;
-  supportUnread: number;
-  supportSignedIn: boolean | null;
-  supportListError: string | null;
-  activeTicket: SupportTicket | null;
-  activeTicketMessages: SupportTicketMessage[];
-  onCloseTicket: () => void;
   roadmapThemes: RoadmapTheme[];
   roadmapLoading: boolean;
 }
@@ -33,7 +25,7 @@ function getHelpTabs(): { key: HelpTab; label: string }[] {
   ];
 }
 
-export function HelpPage({ releases, supportTickets, supportLoading, supportUnread, supportSignedIn, supportListError, activeTicket, activeTicketMessages, onCloseTicket, roadmapThemes, roadmapLoading }: HelpPageProps) {
+export function HelpPage({ releases, roadmapThemes, roadmapLoading }: HelpPageProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<HelpTab>('support');
 
@@ -58,26 +50,13 @@ export function HelpPage({ releases, supportTickets, supportLoading, supportUnre
             }`}
           >
             {label}
-            {key === 'support' && supportUnread > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
-                {supportUnread}
-              </span>
-            )}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
       {activeTab === 'support' && (
-        <SupportTickets
-          tickets={supportTickets}
-          loading={supportLoading}
-          signedIn={supportSignedIn}
-          listError={supportListError}
-          activeTicket={activeTicket}
-          activeMessages={activeTicketMessages}
-          onCloseTicket={onCloseTicket}
-        />
+        <SupportPanel />
       )}
 
       {activeTab === 'docs' && <LazyPage><DocumentationPageLazy /></LazyPage>}

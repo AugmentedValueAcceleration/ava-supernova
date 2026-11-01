@@ -1,14 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { t, tt, useLocale } from '../i18n';
-import { SectionGroup } from '../components/SectionGroup';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
 import { post } from '../App';
 import {
-  Lightning, ChartBar, Clock, CloudSun, Newspaper, Rocket,
+  Clock, CloudSun, Newspaper, Rocket,
 } from '@phosphor-icons/react';
 import type {
-  AccountInfo,
   ConnectionStatus,
   DashboardJournalDay,
   DashboardLearningCurriculum,
@@ -17,7 +15,6 @@ import type {
   MemoryEntry,
   Page,
   SessionStats,
-  UsageLogEntry,
 } from '../types/messages';
 import { HealthDashboard } from './HealthDashboard';
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
@@ -96,12 +93,13 @@ function truncate(str: string, len: number): string {
 // ── Props ────────────────────────────────────────────────────────────────────
 
 interface OverviewProps {
-  account: AccountInfo | null;
   connections: ConnectionStatus;
   onNavigate: (page: Page) => void;
-  logs: UsageLogEntry[];
   sessionStats?: SessionStats | null;
-  mode: 'platform' | 'byok';
+  /** Your name from the local general profile (the one Ava uses). */
+  userName: string | null;
+  /** Save a new name to the local general profile. */
+  onRenameUser: (name: string | null) => void;
   tasks: DashboardTaskEntry[];
   journalDay: DashboardJournalDay | null;
   learningCurriculums: DashboardLearningCurriculum[];
@@ -138,12 +136,11 @@ let lastCcTab: CcTab = 'daily';
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export function Overview({
-  account,
   connections: _connections,
   onNavigate,
-  logs,
-  sessionStats: stats,
-  mode,
+  sessionStats: _stats,
+  userName,
+  onRenameUser,
   tasks,
   journalDay,
   learningCurriculums,
@@ -180,74 +177,18 @@ export function Overview({
   };
 
   useEffect(() => {
-    if (logs.length === 0 && account) {
-      post({ type: 'load_usage_logs', period: '30d' });
-    }
     // Pull the audit trust-nudges (lightweight — findings only) so the
     // Command Centre can flag them without the user opening the audit tab.
     post({ type: 'request_audit_findings' });
   }, []);
 
-  // ── Hooks: ALL of them, before any early return ────────────────────────
-  //
-  // These five sat BELOW the `mode === 'byok' || !account` return, so Overview
-  // rendered two hooks signed out and seven once the account arrived — React
-  // #310, "rendered more hooks than during the previous render". It only
-  // became reachable when the sign-in wall came off and Overview started
-  // mounting without an account. They drive the click-to-edit display name,
-  // which the ByokOverview branch never shows; being up here costs nothing.
-  // Editable display name. Mirrors the IDE Command Centre's behaviour
-  // (DashboardPages.tsx) so users on either surface get the same
-  // click-to-edit affordance. localStorage override takes priority over
-  // account.name so the user can pick what Ava calls them without
-  // touching the platform-side account record. Falls back to first
-  // word of account.name, then email prefix.
-  const resolveDisplayName = (): string => {
-    try {
-      const stored = (localStorage.getItem('ava-extension-user-name') ?? '').trim();
-      if (stored) return stored;
-    } catch { /* webview localStorage disabled — fall through */ }
-    // account is null while it loads, and on the BYOK path entirely — this
-    // used to run only after the early return guaranteed one.
-    return (account?.name?.trim().split(/\s+/)[0]) || account?.email?.split('@')[0] || '';
-  };
-  const [firstName, setFirstName] = useState<string>(resolveDisplayName);
+  // Editable display name — the general profile's display_name, the same
+  // name Ava uses for you. It used to be a localStorage override on top of the
+  // account name; with no accounts there is one name and it lives on disk.
+  const firstName = userName?.trim().split(/\s+/)[0] ?? '';
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [nameHover, setNameHover] = useState(false);
-  useEffect(() => {
-    setFirstName(resolveDisplayName());
-    const refresh = () => setFirstName(resolveDisplayName());
-    window.addEventListener('ava-extension-name-changed', refresh);
-    return () => window.removeEventListener('ava-extension-name-changed', refresh);
-    // account dependency — when sign-in/out arrives via postMessage, the
-    // account prop changes and the displayed name needs to re-resolve in
-    // case the localStorage override was cleared by a sign-out elsewhere.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account?.name, account?.email]);
-
-  if (mode === 'byok' || !account) {
-    return (
-      <ByokOverview
-        stats={stats}
-        onNavigate={onNavigate}
-        tasks={tasks}
-        journalDay={journalDay}
-        learningCurriculums={learningCurriculums}
-        memories={memories}
-        weatherData={weatherData}
-        newsArticles={newsArticles}
-        latestRelease={latestRelease}
-        articleLoading={articleLoading}
-        onOpenArticle={onOpenArticle}
-        tasksLoaded={tasksLoaded}
-        journalLoaded={journalLoaded}
-        weatherLoaded={weatherLoaded}
-
-      />
-    );
-  }
-
   // Hero strip — mirrors the IDE Command Centre header exactly. Greeting
   // + date on the left; weather, working-hours, and latest-version pills
   // on the right. Replaces the previous flat "Command Centre" h1 + name
@@ -262,20 +203,7 @@ export function Overview({
       : t('dash.cc.greeting_evening');
 
   const saveDisplayName = () => {
-    const next = nameInput.trim();
-    try {
-      if (next) localStorage.setItem('ava-extension-user-name', next);
-      else localStorage.removeItem('ava-extension-user-name');
-    } catch { /* storage disabled — keep in-memory only */ }
-    setFirstName(next || (account.name?.trim().split(/\s+/)[0]) || account.email?.split('@')[0] || '');
-    // Push to the platform via the host. The host's update_name handler
-    // PATCHes /account-info and posts account_updated back, which App.tsx
-    // sets on the account prop — the useEffect below picks the new value
-    // up automatically. No-op when not signed in (host early-returns).
-    // Local-first means the UI commits regardless; the round-trip exists
-    // so the IDE / companion / web dashboard read the same name.
-    if (next) post({ type: 'update_name', name: next });
-    window.dispatchEvent(new CustomEvent('ava-extension-name-changed'));
+    onRenameUser(nameInput.trim() || null);
     setEditingName(false);
   };
 
@@ -1186,32 +1114,6 @@ function ReleaseStrip({ release }: { release: ReleaseInfo | null }) {
   );
 }
 
-function ReleaseWidget({ release }: { release: ReleaseInfo | null }) {
-  return (
-    <WidgetCard title={t('dash.cc.latest_release')} icon={<Rocket weight="duotone" size={16} />} onRefresh={() => post({ type: 'load_latest_release' })}>
-      {!release ? (
-        <p className="py-4 text-xs text-[var(--text-muted)]">{t('dash.cc.no_release')}</p>
-      ) : (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[var(--accent)]/15 px-2.5 py-0.5 text-xs font-bold text-[var(--accent)]">
-              v{release.version}
-            </span>
-            <span className="text-[10px] text-[var(--text-muted)]">{formatRelativeDate(release.published_at)}</span>
-          </div>
-          <p className="text-xs font-medium text-white">{release.title}</p>
-          <button
-            onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/releases' })}
-            className="text-[10px] text-[var(--accent)] hover:underline"
-          >
-            {t('dash.nav.release_notes')} &rarr;
-          </button>
-        </div>
-      )}
-    </WidgetCard>
-  );
-}
-
 // ── Shared sub-components ────────────────────────────────────────────────────
 
 function WidgetCard({
@@ -1280,195 +1182,5 @@ function WidgetCard({
   );
 }
 
-function StatCard({ icon, value, label, subtext }: { icon: React.ReactNode; value: string; label: string; subtext?: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 transition hover:border-[var(--accent)]/20">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl text-[var(--accent)]" style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
-        {icon}
-      </div>
-      <div className="text-2xl font-bold tracking-tight">{value}</div>
-      <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">{label}</div>
-      {subtext && <div className="mt-1 text-[10px] text-[var(--text-muted)]">{subtext}</div>}
-    </div>
-  );
-}
-
-function ActionCard({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5 text-left text-sm text-[var(--text-secondary)] transition hover:border-[var(--accent)]/30 hover:text-white"
-    >
-      {label}
-    </button>
-  );
-}
-
-// ── BYOK Overview ────────────────────────────────────────────────────────────
-
-function ByokOverview({
-  stats,
-  onNavigate,
-  tasks,
-  journalDay,
-  learningCurriculums,
-  memories,
-  weatherData,
-  newsArticles,
-  latestRelease,
-  articleLoading,
-  onOpenArticle,
-  tasksLoaded,
-  journalLoaded,
-  weatherLoaded,
-}: {
-  stats?: SessionStats | null;
-  onNavigate: (page: Page) => void;
-  tasks: DashboardTaskEntry[];
-  journalDay: DashboardJournalDay | null;
-  learningCurriculums: DashboardLearningCurriculum[];
-  memories: MemoryEntry[];
-  weatherData: WeatherData | null;
-  newsArticles: NewsArticle[];
-  articleLoading?: boolean;
-  onOpenArticle?: (slug: string) => void;
-  latestRelease: ReleaseInfo | null;
-  tasksLoaded: boolean;
-  journalLoaded: boolean;
-  weatherLoaded: boolean;
-}) {
-  const totalTokens = stats ? stats.total_input_tokens + stats.total_output_tokens : 0;
-  const sessionDuration = stats ? timeSince(stats.session_start) : '\u2014';
-
-  return (
-    <div className="w-full">
-      <div className="mb-6">
-        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.nav.command_centre')}</h1>
-        <p className="mt-1.5 text-[13px] text-[#6c7086]">
-          {t('dash.nav.command_centre_desc')}
-        </p>
-      </div>
-
-      {/* ── Weather + Working Hours ──────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <WeatherWidget weather={weatherData} loaded={weatherLoaded} />
-        <WorkingHoursClock />
-      </div>
-
-
-      {/* Session Stats */}
-      <div className="mb-4">
-        <SectionGroup label={t('dash.cc.session_stats')}>
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard
-              icon={<Lightning weight="duotone" size={20} />}
-              value={String(stats?.messages ?? 0)}
-              label={t('dash.usage.messages')}
-              subtext={t('dash.usage.session')}
-            />
-            <StatCard
-              icon={<ChartBar weight="duotone" size={20} />}
-              value={formatNumber(totalTokens)}
-              label={t('dash.cc.credits_used')}
-              subtext={`${t('dash.usage.input_tokens')}: ${formatNumber(stats?.total_input_tokens ?? 0)} / ${t('dash.usage.output_tokens')}: ${formatNumber(stats?.total_output_tokens ?? 0)}`}
-            />
-            <StatCard
-              icon={<Lightning weight="duotone" size={20} />}
-              value={String(stats?.tool_calls ?? 0)}
-              label={t('dash.usage.tool_calls')}
-              subtext={t('dash.usage.session')}
-            />
-            <StatCard
-              icon={<ChartBar weight="duotone" size={20} />}
-              value={sessionDuration}
-              label={t('dash.usage.session')}
-              subtext={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) }) : undefined}
-            />
-          </div>
-        </SectionGroup>
-      </div>
-
-      {/* ── News + Tasks (2-col) ──────────────────────────────────────── */}
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <NewsWidget articles={newsArticles} articleLoading={articleLoading} onOpenArticle={onOpenArticle} />
-        <TasksWidget tasks={tasks} loaded={tasksLoaded} onNavigate={onNavigate} />
-      </div>
-
-      {/* ── Journal + Learning + Memory + Release (2x2) ───────────────── */}
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <JournalWidget journalDay={journalDay} loaded={journalLoaded} onNavigate={onNavigate} />
-        <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
-        <MemoryWidget memories={memories} onNavigate={onNavigate} />
-        <ReleaseWidget release={latestRelease} />
-      </div>
-
-      {/* Upgrade Comparison */}
-      <div className="mb-6">
-        <SectionGroup label={t('dash.cc.get_more')}>
-          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t('dash.cc.what_you_have')}</h3>
-                <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.local_memory')}</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.session_usage')}</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.own_keys')}</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.all_tools')}</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.no_account')}</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--gradient-start)]">{t('dash.cc.with_account')}</h3>
-                <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.full_history')}</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.priority_support')}</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.free_credits')}</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.conversation_backup')}</li>
-                </ul>
-              </div>
-            </div>
-            <div className="mt-5 border-t border-[var(--border-card)] pt-4 text-center">
-              <p className="mb-3 text-xs text-[var(--text-muted)]">
-                {t('dash.cc.upgrade_hint')}
-              </p>
-              <button
-                onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/signup' })}
-                className="rounded-lg bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
-              >
-                {t('dash.cc.connect_free')}
-              </button>
-            </div>
-          </div>
-        </SectionGroup>
-      </div>
-
-      {/* Quick Actions */}
-      <SectionGroup label={t('dash.cc.quick_actions')}>
-        <div className="grid grid-cols-2 gap-3">
-          <ActionCard label={t('dash.chat.new_chat')} onClick={() => post({ type: 'open_chat' })} />
-          <ActionCard label={t('dash.settings.provider_keys')} onClick={() => onNavigate('keys')} />
-        </div>
-      </SectionGroup>
-    </div>
-  );
-}
-
 // ── Utility functions ────────────────────────────────────────────────────────
 
-function timeSince(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(ms / 60000);
-  if (mins < 1) return '<1m';
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  const remaining = mins % 60;
-  return `${hours}h ${remaining}m`;
-}
-
-function formatNumber(n: number | null | undefined): string {
-  const v = Number(n ?? 0);
-  if (!Number.isFinite(v)) return '0';
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
-  return String(Math.round(v));
-}

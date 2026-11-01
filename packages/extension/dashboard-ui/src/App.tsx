@@ -8,7 +8,6 @@ import type { GenerationJobLite } from './components/NavSidebar';
 import { DashboardTopBar } from './components/DashboardTopBar';
 import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { LazyPage } from './components/LazyPage';
-import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
 import { Memory } from './pages/Memory';
 import { History } from './pages/History';
@@ -28,7 +27,6 @@ import { LearningRoom } from './pages/LearningRoom';
 import type { DayProposal } from './components/AssistSheet';
 import type {
   Page,
-  AccountInfo,
   ConnectionStatus,
   ConversationEntry,
   DashboardTaskEntry,
@@ -38,16 +36,11 @@ import type {
   DashboardJournalKind,
   DashboardJournalSearchHit,
   SessionStats,
-  UsageHistoryData,
-  SupportTicket,
-  SupportTicketMessage,
   DashboardSettings,
   MemoryEntry,
   ProviderKeyStatus,
-  UsageLogEntry,
   ExtToDashboardMessage,
   ChatModel,
-  ChatPlatformStatus,
   DashboardLearningCurriculum,
   LearnerProfilePayload,
   ReleaseNote,
@@ -189,10 +182,9 @@ export function App() {
     for (const cached of lastChatSetupRef.current.values()) fn(cached);
   }, []);
 
-  // Model + credit state for the Design Studio's OWN top bar (so it shows the
-  // model dropdown + credits even when the chat overlay is closed). Fed from the
-  // same chat_init / chat_platform_status the host already sends.
-  const [designModel, setDesignModel] = useState<{ models: ChatModel[]; activeModel: string | null; needsSetup: boolean; platformStatus: ChatPlatformStatus | null }>({ models: [], activeModel: null, needsSetup: false, platformStatus: null });
+  // Model state for the Design Studio's OWN top bar (so it shows the model
+  // dropdown even when the chat overlay is closed). Fed from chat_init.
+  const [designModel, setDesignModel] = useState<{ models: ChatModel[]; activeModel: string | null; needsSetup: boolean }>({ models: [], activeModel: null, needsSetup: false });
   const switchDesignModel = useCallback((id: string) => {
     post({ type: 'switch_model', modelId: id });
     setDesignModel(s => ({ ...s, activeModel: id }));
@@ -229,18 +221,6 @@ export function App() {
       setArticleLoading(false);
     }
   };
-  const [account, setAccount] = useState<AccountInfo | null>(null);
-  /** True when init said the user has a platform key but the account
-   *  snapshot hasn't arrived yet. Drives skeleton placeholders in
-   *  account-dependent surfaces (NavSidebar account block, Billing
-   *  tab) instead of flashing "Connect" buttons during the network
-   *  round-trip. Cleared when account_updated arrives, regardless of
-   *  whether the snapshot itself is null. */
-  const [accountLoading, setAccountLoading] = useState(false);
-  // OAuth sign-in state (v0.37.0) — tracks in-flight attempts from the
-  // ConnectAccount screen so it can show the pending spinner and errors.
-  const [signInPending, setSignInPending] = useState<'github' | 'email' | null>(null);
-  const [signInError, setSignInError] = useState<string | null>(null);
   const [connections, setConnections] = useState<ConnectionStatus>({
     github: false,
     email: false,
@@ -264,16 +244,8 @@ export function App() {
   const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
     deepseek: false, kimi: false, glm: false, qwen: false, mistral: false, xiaomi: false, tencent: false, nvidia: false,
   });
-  const [usageLogs, setUsageLogs] = useState<UsageLogEntry[]>([]);
   const [conversations, setConversations] = useState<ConversationEntry[]>([]);
   const [, setConversationsLoading] = useState(false);
-  const [byokMode, setByokMode] = useState(false);
-  // Sign-in is a page you CHOOSE — opened by the sidebar's Connect button —
-  // not a gate you are held behind. Declared here with the rest of the state:
-  // it briefly sat below the `if (!initialized) return` above, which made it a
-  // conditional hook and threw React #310 on reload.
-  const [showSignIn, setShowSignIn] = useState(false);
-  const [localMemories, setLocalMemories] = useState<MemoryEntry[]>([]);
   const [tasks, setTasks] = useState<DashboardTaskEntry[]>(() => {
     try { const saved = localStorage.getItem('ava-dash-tasks'); return saved ? JSON.parse(saved) : []; } catch { return []; }
   });
@@ -296,7 +268,6 @@ export function App() {
   const [plannerJournalNavTick, setPlannerJournalNavTick] = useState(0);
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
 const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(null);
-  const [usageHistoryData, setUsageHistoryData] = useState<UsageHistoryData | null>(null);
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>(() => {
     try { const saved = localStorage.getItem('ava-dash-learning'); return saved ? JSON.parse(saved) : []; } catch { return []; }
   });
@@ -531,6 +502,18 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     setGeneralProfile(profile);
     post({ type: 'save_general_profile', profile });
   }, []);
+  // The Command Centre's click-to-edit name writes the same profile field.
+  const handleRenameUser = useCallback((name: string | null) => {
+    setGeneralProfile((prev) => {
+      const next: GeneralProfile = {
+        ...(prev ?? { schema_version: 1, sex: null, date_of_birth: null, height_cm: null, weight_kg: null, body_fat_pct: null, units: 'metric' }),
+        display_name: name,
+        updated_at: new Date().toISOString(),
+      };
+      post({ type: 'save_general_profile', profile: next });
+      return next;
+    });
+  }, []);
   // Multi-week Plans — single open, save (upsert), delete. The library
   // list loads via the dashboard-mount pre-warm.
   const handleOpenHealthPlan = useCallback((id: string) => {
@@ -646,16 +629,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     setPagePersist('chat');
   }, []);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  // Support tickets (private, answered by the team). `supportSignedIn` is the
-  // host's answer — null until the first list arrives — so a signed-out user
-  // sees the sign-in line rather than a list that can never load.
-  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
-  const [supportLoading, setSupportLoading] = useState(false);
-  const [supportUnread, setSupportUnread] = useState(0);
-  const [supportSignedIn, setSupportSignedIn] = useState<boolean | null>(null);
-  const [supportListError, setSupportListError] = useState<string | null>(null);
-  const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
-  const [activeTicketMessages, setActiveTicketMessages] = useState<SupportTicketMessage[]>([]);
   // Release notes state
   const [releases, setReleases] = useState<ReleaseNote[]>([]);
   // Library state
@@ -849,7 +822,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     // here. Mirror them to the room surfaces so their chats have model/account
     // context too — and cache the latest of each so a room mounted later (when
     // the user first opens Health / Learning) gets them replayed on registration.
-    const isChatSetup = msg.type === 'chat_init' || msg.type === 'chat_platform_status';
+    const isChatSetup = msg.type === 'chat_init';
     if (isChatSetup) lastChatSetupRef.current.set(msg.type, msg);
     // Cache the latest MAIN-lane restore/reset so a late-mounting chat can replay
     // it on registration (see registerChatDispatch). Room-lane messages carry a
@@ -885,12 +858,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       if (msg.surface === 'health' && pageRef.current === 'health') setHealthInitialTab('ava');
       return;
     }
-    // Keep the Design Studio top-bar model/credit state in sync.
+    // Keep the Design Studio top-bar model state in sync.
     if (msg.type === 'chat_init') {
-      setDesignModel({ models: msg.models, activeModel: msg.activeModel, needsSetup: msg.needsSetup, platformStatus: msg.platformStatus ?? null });
-    } else if (msg.type === 'chat_platform_status') {
-      const { type: _t, ...ps } = msg;
-      setDesignModel(s => ({ ...s, platformStatus: ps as ChatPlatformStatus }));
+      setDesignModel({ models: msg.models, activeModel: msg.activeModel, needsSetup: msg.needsSetup });
     } else if (msg.type === 'model_switched') {
       // Same staleness, same fix: this top bar tracked chat_init and nothing
       // after it.
@@ -952,31 +922,11 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         break;
 
       case 'init':
-        setAccount(msg.account);
         setConnections(msg.connections);
         setSettings(msg.settings);
         setProviderKeys(msg.providerKeys);
         setShowWelcome(Boolean((msg as { showWelcome?: boolean }).showWelcome));
         setWelcomeOnStartup((msg as { welcomeOnStartup?: boolean }).welcomeOnStartup ?? true);
-        // accountLoading is true when we have a key but no account yet —
-        // sendInit posts init with account=null and fetches the account
-        // in the background, so this fires the skeleton immediately.
-        setAccountLoading(Boolean((msg as any).platformKey) && !msg.account);
-        // Reflect the host's persisted Platform/API-Key choice when present, so
-        // the sidebar toggle shows the REAL routing source rather than a guess;
-        // fall back to the key-presence heuristic on fresh/never-set installs.
-        const persistedSource = (msg as any).providerSource;
-        if (persistedSource === 'platform' || persistedSource === 'byok') {
-          setByokMode(persistedSource === 'byok');
-        } else if (!msg.account && !((msg as any).platformKey) && Object.values(msg.providerKeys).some(Boolean)) {
-          setByokMode(true);
-        }
-        // Store key in memory only (not localStorage) for Creative Studio API calls
-        if ((msg as any).platformKey) {
-          (window as any).__avaPlatformKey = (msg as any).platformKey;
-        } else {
-          delete (window as any).__avaPlatformKey;
-        }
         localStorage.removeItem('ava-platform-key');
         setInitialized(true);
         // The avatar now arrives WITH init — one message, no round trip to
@@ -987,52 +937,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           if (withInit) setAvatarDataUrl(withInit);
           else post({ type: 'load_avatar' });
         }
-        break;
-      case 'account_updated':
-        setAccount(msg.account);
-        setAccountLoading(false);
-        // Sign-in landed — leave the sign-in page, or the user sits on it
-        // staring at buttons for an account they now have.
-        if (msg.account) setShowSignIn(false);
-        if (!msg.account && Object.values(providerKeys).some(Boolean)) {
-          setByokMode(true);
-        }
-        // Support tickets follow the account: the nav badge shows a team reply
-        // without opening Help first, and signing in or out flips the Support
-        // tab between the ticket list and the sign-in line.
-        post({ type: 'load_support_tickets' });
-        break;
-
-      // ── OAuth sign-in events (v0.37.0) ──────────────────────────────
-      case 'sign_in_started':
-        // Confirmation from the extension host that the browser was opened.
-        // Usually we've already optimistically set the pending state when
-        // the user clicked the button — this just ensures consistency.
-        if (!signInPending) setSignInPending('github');
-        setSignInError(null);
-        break;
-      case 'sign_in_complete':
-        setSignInPending(null);
-        setSignInError(null);
-        // Set the account directly from the sign-in completion event —
-        // this is what flips hasAccess from false to true and transitions
-        // the dashboard out of the ConnectAccount screen. Without this
-        // the user would see the sign-in page forever until manual reload.
-        if (msg.account) {
-          setAccount(msg.account as AccountInfo);
-        }
-        // Also tell DashboardPanel to refresh from the server so we get
-        // the full account data (tier, usage, etc.) that the exchange
-        // endpoint's minimal account payload might not include.
-        post({ type: 'refresh_account' });
-        break;
-      case 'sign_in_failed':
-        setSignInPending(null);
-        setSignInError(msg.error);
-        break;
-      case 'sign_in_cancelled':
-        setSignInPending(null);
-        setSignInError(null);
         break;
       case 'provider_keys_updated':
         setProviderKeys(msg.providerKeys);
@@ -1053,9 +957,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'connection_removed':
         setConnections((prev) => ({ ...prev, [msg.service]: false }));
         break;
-      case 'usage_logs_loaded':
-        setUsageLogs(msg.logs);
-        break;
       case 'conversations_loaded':
         setConversations(msg.conversations);
         setConversationsLoading(false);
@@ -1064,16 +965,12 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         setConversations((prev) => prev.filter((c) => c.id !== msg.id));
         break;
       // BYOK messages
-      case 'local_memories_loaded':
-        setLocalMemories(msg.memories);
-        break;
       case 'local_memory_deleted':
-        // Both lists: signed in, the Memory page renders `memories`.
-        setLocalMemories((prev) => prev.filter((m) => m.id !== msg.id));
         setMemories((prev) => prev.filter((m) => m.id !== msg.id));
+        setMemoryTotal((n) => Math.max(0, n - 1));
         break;
       case 'local_memory_upserted': {
-        const upsert = (prev: typeof localMemories) => {
+        const upsert = (prev: MemoryEntry[]) => {
           const idx = prev.findIndex((m) => m.id === msg.memory.id);
           if (idx >= 0) {
             const updated = [...prev];
@@ -1082,16 +979,12 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           }
           return [msg.memory, ...prev];
         };
-        setLocalMemories(upsert);
-        setMemories((prev) => (prev.some((m) => m.id === msg.memory.id) ? upsert(prev) : prev));
+        setMemories(upsert);
         break;
       }
       case 'session_stats_loaded':
         setSessionStatsData(msg.stats);
         if ((msg as any).allTime) setLocalAllTimeData((msg as any).allTime);
-        break;
-      case 'usage_history_loaded':
-        setUsageHistoryData(msg.data);
         break;
       // Task messages
       case 'tasks_loaded':
@@ -1150,27 +1043,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         post({ type: 'load_journal_summaries', from, to });
         break;
       }
-      // Support tickets. Busy/error state for the forms lives in the Support
-      // tab itself (support_ticket_submitted / _reply_sent / _failed).
-      case 'support_tickets_loaded':
-        // A failed refresh keeps the list already on screen and says so,
-        // rather than blanking it to "no tickets".
-        if (!msg.error || !msg.signedIn) {
-          setSupportTickets(msg.tickets);
-          setSupportUnread(msg.unread);
-        }
-        setSupportSignedIn(msg.signedIn);
-        setSupportListError(msg.error ?? null);
-        setSupportLoading(false);
-        if (!msg.signedIn) {
-          setActiveTicket(null);
-          setActiveTicketMessages([]);
-        }
-        break;
-      case 'support_ticket_loaded':
-        setActiveTicket(msg.ticket);
-        setActiveTicketMessages(msg.messages);
-        break;
       case 'learning_loaded':
         // The host reads the LOCAL learning.json (the single source of truth —
         // learning is local-only). Replace wholesale; never merge in cached
@@ -1283,7 +1155,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           setDayAssistProposal({
             day: msg.day,
             note: msg.note ?? '',
-            credits: msg.credits_charged ?? 0,
             unverifiable: msg.unverifiable_allergens ?? [],
           });
         } else {
@@ -1658,20 +1529,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-fetch account info whenever the webview becomes visible — covers
-  // the "upgraded on the website in a browser tab, came back to VSCode"
-  // flow so tier / token allowance reflects the new plan without waiting
-  // for the user to navigate to the Billing tab.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        post({ type: 'refresh_account' });
-      }
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, []);
-
   // Load data when navigating to pages
   useEffect(() => {
     if (page === 'history') {
@@ -1679,22 +1536,11 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       post({ type: 'load_session_stats' });
       // Load conversations for the Conversations tab
       post({ type: 'load_conversations' });
-      // Load usage history for connected users
-      if (account) {
-        post({ type: 'load_usage_history' });
-      }
       // Auto-refresh every 15 seconds while on this page
       const interval = setInterval(() => {
         post({ type: 'load_session_stats' });
-        if (account) post({ type: 'load_usage_history' });
       }, 15_000);
       return () => clearInterval(interval);
-    }
-    // Refetched on every visit — one cheap GET, and it is how a team reply
-    // reaches the list. The spinner only shows before the first answer.
-    if (page === 'support' || page === 'help') {
-      if (supportSignedIn === null) setSupportLoading(true);
-      post({ type: 'load_support_tickets' });
     }
     // Load learning when navigating to learning page
     if (page === 'learning') {
@@ -1730,14 +1576,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       post({ type: 'load_news' });
       post({ type: 'load_latest_release' });
       post({ type: 'get_storage_scan' });  // powers the header storage bar
-      if (account) {
-        post({ type: 'load_memories' });
-      } else {
-        post({ type: 'load_local_memories' });
-      }
-    }
-    // BYOK: refresh session stats when viewing the overview
-    if (page === 'overview' && byokMode && !account) {
+      post({ type: 'load_memories' });
       post({ type: 'load_session_stats' });
     }
     // Unified Library — load all three data sources when the page opens.
@@ -1790,65 +1629,17 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     );
   }
 
-  // The dashboard is usable without an account — same as the IDE, which opens
-  // the Command Centre and leaves Connect in the sidebar. hasAccess used to
-  // decide whether you saw the dashboard AT ALL; it now only decides whether
-  // the chat pane mounts, which genuinely needs somewhere to send a message.
-  //
-  // It also fired wrongly: byokMode is seeded from the host's persisted
-  // providerSource, which outranks the key-presence check, so signing out
-  // while it read 'platform' left byokMode false and walled a user who held
-  // provider keys the whole time.
-  const hasAccess = Boolean(account) || byokMode || Object.values(providerKeys).some(Boolean);
+  // The chat pane mounts once a model can run — any provider key, or a
+  // local model (which the host reports as a model in chat_init).
+  const hasAccess = Object.values(providerKeys).some(Boolean) || designModel.models.some((m) => m.available);
 
   // If chat cannot run, show the overview rather than a blank pane.
   const effectivePage = (!hasAccess && page === 'chat') ? 'overview' : page;
 
-  function handleSkipAccount() {
-    setByokMode(true);
-    setShowSignIn(false);
-    setPagePersist('overview');
-    post({ type: 'skip_account' });
-  }
-
-  function handleConnectAccount() {
-    setByokMode(false);
-    setShowSignIn(true);
-    setPagePersist('overview');
-  }
-
-  // The NavSidebar Platform / API-Key toggle. Posts set_provider_source to the
-  // host (DashboardPanel forwards it to AvaViewProvider, which persists the
-  // choice and re-initializes the session so routing actually switches) AND
-  // flips local state for instant feedback. Without the post the toggle was
-  // cosmetic — it showed "API Key" while requests still used the platform key,
-  // i.e. the UI lied about a signed-in user being able to use their own keys.
-  function handleSourceToggle(byok: boolean) {
-    setByokMode(byok);
-    post({ type: 'set_provider_source', source: byok ? 'byok' : 'platform' });
-  }
+  // Your first name, from the profile on this machine (there are no accounts).
+  const firstName = generalProfile?.display_name?.trim().split(/\s+/)[0] || null;
 
   const renderPage = () => {
-    // Only when the user asked for it — Connect in the sidebar, or a fresh
-    // install with no account and no keys, where sign-in IS the first screen.
-    if (showSignIn || (!account && !byokMode && !Object.values(providerKeys).some(Boolean))) {
-      return (
-        <ConnectAccount
-          onSkipAccount={handleSkipAccount}
-          pendingSignIn={signInPending}
-          signInError={signInError}
-          onClearSignInError={() => setSignInError(null)}
-          onStartSignIn={(method) => {
-            // Optimistic pending state so the UI flips instantly rather
-            // than waiting for the round-trip sign_in_started event
-            setSignInPending(method);
-            setSignInError(null);
-            post({ type: 'start_sign_in', method });
-          }}
-        />
-      );
-    }
-    const mode = account ? 'platform' as const : 'byok' as const;
     switch (page) {
       case 'chat':
         return null; // Chat is rendered separately (always mounted)
@@ -1900,7 +1691,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
 
       case 'account':
       case 'settings':
-      case 'billing':
       case 'connections':
       case 'personality':
       case 'keys':
@@ -1911,10 +1701,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             providerKeys={providerKeys}
             onNavigate={setPagePersist}
             personality={personalityData}
-            account={account}
             avatarDataUrl={avatarDataUrl}
             connections={connections}
-            isPlatform={!!account}
             generalProfile={generalProfile}
             onSaveGeneralProfile={handleSaveGeneralProfile}
           />
@@ -1927,14 +1715,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         return (
           <HelpPage
             releases={releases}
-            supportTickets={supportTickets}
-            supportLoading={supportLoading}
-            supportUnread={supportUnread}
-            supportSignedIn={supportSignedIn}
-            supportListError={supportListError}
-            activeTicket={activeTicket}
-            activeTicketMessages={activeTicketMessages}
-            onCloseTicket={() => { setActiveTicket(null); setActiveTicketMessages([]); }}
             roadmapThemes={roadmapThemes}
             roadmapLoading={roadmapLoading}
           />
@@ -1959,11 +1739,11 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
+        return <Overview connections={connections} onNavigate={setPagePersist} sessionStats={sessionStatsData} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={memories} memoryTotal={memoryTotal} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'memory':
-        return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
+        return <Memory memories={memories} serverTotal={memoryTotal} serverHasMore={memoryHasMore} loaded={isLoaded('memories')} />;
       case 'history':
-        return <History sessionStats={sessionStatsData} localAllTime={localAllTimeData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
+        return <History sessionStats={sessionStatsData} localAllTime={localAllTimeData} auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
       case 'library':
         return (
           <Library
@@ -1994,12 +1774,12 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'learning-library':
         return null;
       case 'creative-studio':
-        return <CreativeStudio account={account}
+        return <CreativeStudio
           onRegisterDesignChatDispatch={registerDesignChatDispatch}
           designModelState={designModel}
           onSwitchDesignModel={switchDesignModel}
-          userName={account?.name?.split(' ')[0] ?? null}
-          userAvatarUrl={avatarDataUrl || account?.avatar_url || null} />;
+          userName={firstName}
+          userAvatarUrl={avatarDataUrl || null} />;
       case 'health':
         return (
           <Health
@@ -2096,8 +1876,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
               onStart: handleStartCuratedPlan,
             }}
             onRegisterHealthChatDispatch={registerHealthChatDispatch}
-            userName={account?.name?.split(' ')[0] ?? null}
-            userAvatarUrl={avatarDataUrl || account?.avatar_url || null}
+            userName={firstName}
+            userAvatarUrl={avatarDataUrl || null}
             initialTab={healthInitialTab}
             onConsumeInitialTab={() => setHealthInitialTab(null)}
           />
@@ -2112,8 +1892,8 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
             learningLoaded={isLoaded('learning')}
             learnerProfile={learnerProfilePayload}
             onRegisterLearningChatDispatch={registerLearningChatDispatch}
-            userName={account?.name?.split(' ')[0] ?? null}
-            userAvatarUrl={avatarDataUrl || account?.avatar_url || null}
+            userName={firstName}
+            userAvatarUrl={avatarDataUrl || null}
             initialTab={learningInitialTab}
             onConsumeInitialTab={() => setLearningInitialTab(null)}
           />
@@ -2130,15 +1910,8 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
         <NavSidebar
           currentPage={page}
           onNavigate={setPagePersist}
-          mode={account && !byokMode ? 'platform' : 'byok'}
-          email={account?.email}
-          isAdmin={account?.tier === 'admin'}
-          tier={account?.tier}
-          byokMode={byokMode}
-          onSetByokMode={handleSourceToggle}
-          accountLoading={accountLoading}
+          userName={generalProfile?.display_name ?? null}
           loadingPage={navLoadingPage}
-          onConnectAccount={handleConnectAccount}
           providerKeys={providerKeys}
           aiName={personalityData?.name}
           journalSummaries={journalSummaries}
@@ -2164,7 +1937,6 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
           // Route to the History page rather than opening a slide-over
           // inside the chat surface.
           onOpenHistory={() => setPagePersist('history')}
-          supportUnread={supportUnread}
           avatarUrl={avatarDataUrl}
           collapsed={sidebarCollapsed}
           generationJobs={generationJobs}
@@ -2184,8 +1956,8 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
             onFlipSidebar={flipSidebar}
             sidebarSide={sidebarSide}
             onNavigate={setPagePersist}
-            userName={account?.name?.split(' ')[0] ?? null}
-            userAvatarUrl={avatarDataUrl || account?.avatar_url || null}
+            userName={firstName}
+            userAvatarUrl={avatarDataUrl || null}
           />
         </div>
       )}
@@ -2193,7 +1965,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
       {/* Other pages */}
       {effectivePage !== 'chat' && (
         <div className="flex-1 flex flex-col overflow-hidden" style={{ order: 1 }}>
-          <DashboardTopBar account={account} announcement={announcement} storageScan={storageScan} projectsUsage={projectsUsage} />
+          <DashboardTopBar announcement={announcement} storageScan={storageScan} projectsUsage={projectsUsage} />
           {/* flex column, so a page can claim the remaining height with flex-1.
               Without this, `min-h-full` on a page root has nothing definite to
               size against and any flex-1 section inside it collapses back to its
@@ -2211,7 +1983,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
       )}
       {showWelcome && (
         <WelcomeOnboarding
-          isConnected={!!account}
+          isConnected={false} /* the overlay is rebuilt key-first next */
           welcomeOnStartup={welcomeOnStartup}
           onSetWelcomeOnStartup={(enabled) => { setWelcomeOnStartup(enabled); post({ type: 'set_welcome_on_startup', enabled }); }}
           onClose={() => setShowWelcome(false)}

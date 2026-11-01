@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { t, tt, useLocale } from '../../i18n';
-import type { ProviderSource } from '../../types/messages';
 import { SecretVault } from './SecretVault';
 import type { SecretEntry } from './SecretVault';
 import { CommandPalette, filterPaletteActions } from './CommandPalette';
@@ -46,19 +45,7 @@ interface InputAreaProps {
   } | null;
   isCompressing?: boolean;
   onCompress?: () => void;
-  providerSource?: ProviderSource;
   contextUsage?: { used: number; limit: number; percent: number } | null;
-  platformStatus?: {
-    connected: boolean;
-    tier: string | null;
-    freeTokensUsed: number;
-    freeTokensLimit: number;
-    subTokensUsed: number;
-    subTokensLimit: number | null;
-    warning?: 'none' | 'approaching' | 'critical' | 'exhausted';
-    warningMessage?: string;
-  } | null;
-  onProviderSourceChange?: (source: ProviderSource) => void;
   /** Vision capability of the currently-selected model. When false the
    *  attach-image button is disabled and the tooltip explains why.
    *  Undefined means "unknown" — treated as supported (don't block). */
@@ -108,7 +95,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   write: 'input.placeholder.write',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel, onFocusInput, suppressAutoFocus, missingKeyProvider, onAddKey }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel, onFocusInput, suppressAutoFocus, missingKeyProvider, onAddKey }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across page reload — same shape as webview-ui.
@@ -450,9 +437,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
 
   const hasContent = text.trim().length > 0 || attachments.length > 0;
 
-  const warningLevel = platformStatus?.warning;
-  const warningMsg = platformStatus?.warningMessage;
-
   return (
     <div className="px-3 pb-3 pt-1 relative">
       {/* The chosen model has no key for its provider.
@@ -475,17 +459,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
         </div>
       )}
 
-      {/* Usage warning banner */}
-      {warningLevel && warningLevel !== 'none' && warningMsg && (
-        <div className={`mb-2 rounded-lg px-3 py-2 text-[11px] flex items-center gap-2 ${
-          warningLevel === 'exhausted' ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
-          warningLevel === 'critical' ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20' :
-          'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-        }`}>
-          <span>{warningLevel === 'exhausted' ? '\u26D4' : warningLevel === 'critical' ? '\u26A0' : '\u25CB'}</span>
-          <span className="flex-1">{warningMsg}</span>
-        </div>
-      )}
       {/* Secret Vault panel */}
       {vaultOpen && (
         <SecretVault
@@ -680,7 +653,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
             }}
           />
 
-          {/* Right side: attach + vault + credits + send/stop */}
+          {/* Right side: attach + vault + send/stop */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Attach button — disabled when the current model is text-only.
                 modelSupportsVision === false explicitly blocks; undefined is
@@ -765,36 +738,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               )}
             </button>
             </>)}
-
-            {/* Credit balance — between Vault and Send, mirrors IDE
-                input bar at DashboardPages.tsx:5517-5529. Red/amber/
-                green colour ramp at 95% / 80%. */}
-            {platformStatus?.connected && (() => {
-              const subLimit = platformStatus.subTokensLimit ?? 0;
-              const totalLimit = platformStatus.freeTokensLimit + subLimit;
-              const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
-              if (platformStatus.freeTokensLimit >= 999_999_999 || totalLimit >= 999_999_999) {
-                return (
-                  <span
-                    style={{ fontSize: 11, fontFamily: 'monospace', color: '#6c7086', opacity: 0.5, flexShrink: 0 }}
-                    title={t('input.tokens_unlimited')}
-                  >
-                    ∞
-                  </span>
-                );
-              }
-              const remaining = Math.max(0, totalLimit - totalUsed);
-              const pct = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
-              const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : '#a6e3a1';
-              return (
-                <span
-                  style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 600, color, flexShrink: 0 }}
-                  title={`${remaining.toLocaleString()} of ${totalLimit.toLocaleString()} credits remaining (${Math.round(pct)}% used)`}
-                >
-                  {remaining.toLocaleString()}
-                </span>
-              );
-            })()}
 
             {/* Talk | Build — Code mode only, never in a room. */}
             {showTalk && (
