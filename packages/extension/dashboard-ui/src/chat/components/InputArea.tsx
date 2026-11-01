@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { t, useLocale } from '../../i18n';
+import { t, tt, useLocale } from '../../i18n';
 import type { ProviderSource } from '../../types/messages';
 import { SecretVault } from './SecretVault';
 import type { SecretEntry } from './SecretVault';
@@ -33,7 +33,7 @@ interface InputAreaProps {
    *  composer says so BEFORE anything is typed, and blocks send. */
   missingKeyProvider?: string;
   onAddKey?: () => void;
-  onSend: (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => void;
+  onSend: (text: string, mode: AvaMode, attachments?: ImageAttachment[], talk?: boolean) => void;
   onCancel: () => void;
   isStreaming: boolean;
   disabled: boolean;
@@ -128,6 +128,16 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
   useEffect(() => {
     try { localStorage.setItem('ava-dashboard-chat-mode', mode); } catch { /* quota */ }
   }, [mode]);
+  // Code mode's Talk switch — same as the sidebar's InputArea and the IDE.
+  // On, she reads and discusses and changes nothing; off (Build), she codes.
+  const [talk, setTalk] = useState<boolean>(() => {
+    try { return localStorage.getItem('ava-dashboard-talk') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('ava-dashboard-talk', talk ? '1' : '0'); } catch { /* quota */ }
+  }, [talk]);
+  // Rooms lock the mode, and the switch means nothing there.
+  const showTalk = !lockedModeLabel && mode === 'code';
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [modesExpanded, setModesExpanded] = useState(false);
@@ -288,13 +298,13 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
         return `{{secret:${found.id}}}`;
       });
     }
-    onSend(trimmed || '(image)', mode, attachments.length > 0 ? attachments : undefined);
+    onSend(trimmed || '(image)', mode, attachments.length > 0 ? attachments : undefined, showTalk && talk);
     setText('');
     setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [text, mode, attachments, onSend, secrets]);
+  }, [text, mode, showTalk, talk, attachments, onSend, secrets]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -655,7 +665,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
             onPaste={handlePaste}
             onFocus={() => { setIsFocused(true); onFocusInput?.(); }}
             onBlur={() => setIsFocused(false)}
-            placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
+            placeholder={disabled ? t('input.placeholder.disabled') : showTalk && talk ? tt('input.placeholder.talk', "Let's talk it through — I'll read, not change anything") : t(PLACEHOLDER_KEYS[mode])}
             disabled={disabled}
             rows={1}
             style={{
@@ -785,6 +795,40 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                 </span>
               );
             })()}
+
+            {/* Talk | Build — Code mode only, never in a room. */}
+            {showTalk && (
+              <div
+                role="radiogroup"
+                aria-label={tt('input.talk_switch_aria', 'Talk or build')}
+                className="flex items-center h-9 rounded-lg p-0.5 shrink-0"
+                style={{
+                  border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+                  background: 'color-mix(in srgb, var(--accent) 5%, transparent)',
+                }}
+              >
+                {([
+                  { on: true, label: tt('input.talk', 'Talk'), hint: tt('input.talk_hint', 'Talk it through — Ava reads and searches, but changes nothing') },
+                  { on: false, label: tt('input.build', 'Build'), hint: tt('input.build_hint', 'Build — Ava is free to edit files and run commands') },
+                ] as const).map((opt) => {
+                  const selected = talk === opt.on;
+                  return (
+                    <button
+                      key={opt.label}
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setTalk(opt.on)}
+                      title={opt.hint}
+                      className={`h-full px-2.5 rounded-md text-[11px] font-semibold cursor-pointer transition-all duration-200
+                        ${selected ? 'text-white' : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90'}`}
+                      style={selected ? { background: 'linear-gradient(135deg, var(--accent), #7c3aed)' } : undefined}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {isStreaming ? (
               <button

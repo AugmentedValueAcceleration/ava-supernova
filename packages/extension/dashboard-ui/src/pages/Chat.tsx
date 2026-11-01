@@ -1188,14 +1188,14 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
   // ── Callbacks ──────────────────────────────────────────────────────────────
 
-  const handleSend = useCallback((text: string, mode: AvaMode, attachments?: ImageAttachment[]) => {
+  const handleSend = useCallback((text: string, mode: AvaMode, attachments?: ImageAttachment[], talk?: boolean) => {
     // Show the thinking indicator immediately — matches the status bar, closes the
     // gap before the host's stream_start (see the 'local_thinking' reducer note).
     dispatch({ type: 'local_thinking' });
     // In the health room every turn is health-scoped — force the mode so the
     // briefing always applies, and tag the lane so the host runs it on the
     // separate health thread.
-    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, attachments, surface: lane, courseId, ...(lane === 'design' ? { designRoom, designPanel } : {}) });
+    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, attachments, surface: lane, courseId, ...(lane === 'design' ? { designRoom, designPanel } : {}), ...(talk && lane === 'main' ? { talk: true } : {}) });
   }, [lane, courseId, designRoom, designPanel]);
 
   const handlePaletteAction = useCallback((tool: PaletteTool, action: string, mode: AvaMode) => {
