@@ -18,6 +18,7 @@ import {
 import { sessionStats } from './session-stats.js';
 import { withSharedProviderKeys } from './secrets/shared-keychain.js';
 import { syncSharedOnboarding } from './webview/onboarding-state.js';
+import { SharedSettingsSync } from './shared-settings.js';
 
 let viewProvider: AvaViewProvider | undefined;
 
@@ -39,6 +40,16 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
   // Consent + a finished welcome are shared through ~/.ava/onboarding.json, so
   // the welcome is done once across both apps.
   void syncSharedOnboarding(context.globalState);
+  // Settings, local model, permissions… shared through ~/.ava/settings.json
+  // (avatar and personality already live in ~/.ava). Matched now, then on
+  // focus, blur, any Ava setting change and every few seconds.
+  const sharedSettings = new SharedSettingsSync(
+    context,
+    (msg) => console.log(`[Ava shared settings] ${msg}`),
+    (mode) => viewProvider?.applyChatMode(mode),
+  );
+  void sharedSettings.sync('shared');
+  context.subscriptions.push(sharedSettings.watch());
   context.subscriptions.push(
     vscode.window.onDidChangeWindowState((state) => {
       if (state.focused) sharedSecrets.checkForOutsideChanges();

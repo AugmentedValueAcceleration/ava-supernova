@@ -17,6 +17,11 @@
  *
  * The keychain is reached through @napi-rs/keyring (keyring-rs, the crate the
  * IDE uses, so the entry format is identical — checked both ways on Windows).
+ * Two more secrets follow the user the same way, in entries the IDE's
+ * src/lib/keychain.ts reads: the local model server's key (`local.apiKey`)
+ * and the secret vault (`vault.head` + numbered pieces — a Windows credential
+ * holds only 1,280 characters, and a vault can hold a private key or two).
+ *
  * Its native builds for every platform ship in dist/native/ (esbuild.config.mjs)
  * and the one for this machine is loaded at runtime. If none fits, or it fails
  * to load, provider keys stay in VS Code's SecretStorage as before: an
@@ -43,6 +48,9 @@ const FIELD: Record<string, string> = {
 };
 
 const PROVIDER_SECRET = /^ava-supernova\.provider\.([a-z]+)\.apiKey$/;
+const LOCAL_KEY_SECRET = 'ava-supernova.provider.local.apiKey';
+const VAULT_SECRET = 'ava-supernova.secretVault';
+// Characters per piece (the pattern in writeVault/writeBlob uses it literally).
 
 /** The slice of @napi-rs/keyring used here. */
 interface NativeEntry {
@@ -113,16 +121,98 @@ export class SharedSecretStorage implements vscode.SecretStorage {
   /** The keychain entry for a provider-key secret, or undefined for any other
    *  secret (or when there is no keychain). */
   private entryFor(key: string): NativeEntry | undefined {
-    const m = PROVIDER_SECRET.exec(key);
-    const field = m ? FIELD[m[1]] : undefined;
-    if (!field) return undefined;
+    let account: string | undefined;
+    if (key === LOCAL_KEY_SECRET) account = 'local.apiKey';
+    else {
+      const m = PROVIDER_SECRET.exec(key);
+      const field = m ? FIELD[m[1]] : undefined;
+      if (field) account = `byok.${field}`;
+    }
+    return account ? this.entry(account) : undefined;
+  }
+
+  private entry(account: string): NativeEntry | undefined {
     const kr = this.keyring();
     if (!kr) return undefined;
     try {
-      return new kr.Entry(SERVICE, `byok.${field}`);
+      return new kr.Entry(SERVICE, account);
     } catch (err) {
-      this.log(`Keychain entry for ${field} failed: ${err}`);
+      this.log(`Keychain entry ${account} failed: ${err}`);
       return undefined;
+    }
+  }
+
+  // ── The vault, in pieces ────────────────────────────────────────────────
+  // Same layout as the IDE's writeBlob/readBlob: pieces under a generation,
+  // made current by `vault.head` only once every piece is written and read
+  // back, so a failed save leaves the previous vault readable.
+
+  private readHead(): { gen: number; count: number } | null {
+    try {
+      const raw = this.entry('vault.head')?.getPassword();
+      const h = raw ? JSON.parse(raw) as { gen: number; count: number } : null;
+      return h && Number.isInteger(h.gen) && Number.isInteger(h.count) ? h : null;
+    } catch { return null; }
+  }
+
+  private readVault(): string | null {
+    const head = this.readHead();
+    if (!head) return null;
+    let out = '';
+    for (let i = 0; i < head.count; i++) {
+      const piece = this.entry(`vault.${head.gen}.${i}`)?.getPassword();
+      if (piece == null) return null;
+      out += piece;
+    }
+    return out;
+  }
+
+  private writeVault(value: string | null): void {
+    const old = this.readHead();
+    const put = (account: string, v: string) => {
+      const e = this.entry(account);
+      if (!e) throw new Error('no keychain');
+      e.setPassword(v);
+      if (e.getPassword() !== v) throw new Error('the keychain did not keep the vault');
+    };
+    if (value !== null) {
+      const gen = (old?.gen ?? 0) + 1;
+      const pieces = value.match(/[\s\S]{1,1000}/g) ?? [];
+      pieces.forEach((p, i) => put(`vault.${gen}.${i}`, p));
+      put('vault.head', JSON.stringify({ gen, count: pieces.length }));
+    } else {
+      try { this.entry('vault.head')?.deletePassword(); } catch { /* gone */ }
+    }
+    if (old) for (let i = 0; i < old.count; i++) {
+      try { this.entry(`vault.${old.gen}.${i}`)?.deletePassword(); } catch { /* gone */ }
+    }
+  }
+
+  private async getVault(): Promise<string | undefined> {
+    const local = await this.inner.get(VAULT_SECRET);
+    let shared: string | null;
+    try { shared = this.readVault(); } catch (err) {
+      this.log(`Keychain vault read failed: ${err}`);
+      return local;
+    }
+    if (!local) return shared ?? undefined;
+    // An older version kept the vault in VS Code. Bring its entries in beside
+    // anything the IDE already put in the shared vault, then drop the VS Code
+    // copy once the keychain hands the merged vault back.
+    try {
+      const mine = JSON.parse(local) as { id: string }[];
+      const theirs = shared ? JSON.parse(shared) as { id: string }[] : [];
+      const ids = new Set(theirs.map((e) => e.id));
+      const merged = JSON.stringify([...theirs, ...mine.filter((e) => !ids.has(e.id))]);
+      this.writeVault(merged);
+      if (this.readVault() === merged) {
+        await this.dropVsCodeCopy(VAULT_SECRET);
+        this.log('Moved the secret vault to the shared keychain');
+      }
+      return merged;
+    } catch (err) {
+      this.log(`Keychain vault move failed, kept in VS Code: ${err}`);
+      return local;
     }
   }
 
@@ -136,6 +226,7 @@ export class SharedSecretStorage implements vscode.SecretStorage {
   }
 
   async get(key: string): Promise<string | undefined> {
+    if (key === VAULT_SECRET && this.keyring()) return this.getVault();
     const e = this.entryFor(key);
     if (!e) return this.inner.get(key);
     let shared: string | null;
@@ -171,6 +262,15 @@ export class SharedSecretStorage implements vscode.SecretStorage {
   }
 
   async store(key: string, value: string): Promise<void> {
+    if (key === VAULT_SECRET && this.keyring()) {
+      try {
+        this.writeVault(value);
+        await this.dropVsCodeCopy(key);
+        return;
+      } catch (err) {
+        this.log(`Keychain vault write failed, saving in VS Code instead: ${err}`);
+      }
+    }
     const e = this.entryFor(key);
     if (e) {
       try {
@@ -188,6 +288,11 @@ export class SharedSecretStorage implements vscode.SecretStorage {
   }
 
   async delete(key: string): Promise<void> {
+    if (key === VAULT_SECRET && this.keyring()) {
+      try { this.writeVault(null); } catch (err) { this.log(`Keychain vault delete failed: ${err}`); }
+      await this.dropVsCodeCopy(key);
+      return;
+    }
     const e = this.entryFor(key);
     if (e) {
       try { e.deletePassword(); } catch (err) { this.log(`Keychain delete failed for ${key}: ${err}`); }

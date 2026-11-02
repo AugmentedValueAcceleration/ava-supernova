@@ -1517,6 +1517,8 @@ export type ExtToDashboardMessage =
       consentAccepted?: boolean;
       /** The picture you set on this machine, as a data URL. */
       userAvatar?: string;
+      /** Working hours — shared with the IDE through ~/.ava/settings.json. */
+      workingHours?: { start: number; end: number } | null;
     }
   | { type: 'show_welcome' }
   /** Answer to test_provider_key. `saved` is false only when the provider refused the key. */

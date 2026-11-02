@@ -834,6 +834,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.log(`handleChatMessage received: type=${msg.type}`);
     // Remap unified message types to internal chat types
     const type = msg.type as string;
+    if (type === 'set_chat_mode' && typeof msg.mode === 'string') {
+      // Stored in the shared vocabulary (core's ids — 'work', not 'code'), so
+      // ~/.ava/settings.json reads the same from both apps.
+      await this.context.globalState.update('ava.chatMode', msg.mode === 'code' ? 'work' : msg.mode);
+      return;
+    }
     let mapped: WebviewToExtMessage;
     switch (type) {
       case 'send_message': {
@@ -1235,6 +1241,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale, localeStrings: localeStringsFor(this.currentLocale) });
   }
 
+  /** Put the chat input in a mode from the shared vocabulary ('work' is this
+   *  panel's 'code'). Modes this panel does not have (the IDE's desktop) are
+   *  left alone. */
+  applyChatMode(shared: string | undefined): void {
+    if (!shared) return;
+    const mode = shared === 'work' ? 'code' : shared;
+    const valid = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'];
+    if (valid.includes(mode)) this.postMessage({ type: 'chat_mode', mode: mode as 'code' });
+  }
+
   focusInput(): void {
     // Show the panel if hidden, then tell webview to focus the input
     this.openInEditor();
@@ -1579,6 +1595,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Onboarding/welcome now lives in the dashboard (Command Centre) — the
       // chat webview no longer hosts it. See dashboard-ui WelcomeOnboarding.
     });
+    // The mode last used in either app (shared with the IDE via ~/.ava).
+    this.applyChatMode(this.context.globalState.get<string>('ava.chatMode'));
 
     // Auto-fire history list on init so the chat panel can drop its
     // historyLoading gate as soon as the data arrives. Previously this only

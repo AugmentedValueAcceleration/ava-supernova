@@ -932,6 +932,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         setOnboarding(msg.onboarding ?? null);
         setConsentAccepted(!!msg.consentAccepted);
         localStorage.removeItem('ava-platform-key');
+        // Working hours are the extension's (and the IDE's, via ~/.ava) — the
+        // clock reads this page's storage, so bring it in line before it renders.
+        if (msg.workingHours) {
+          try {
+            localStorage.setItem('ava-work-start', String(msg.workingHours.start));
+            localStorage.setItem('ava-work-end', String(msg.workingHours.end));
+          } catch { /* storage off */ }
+        }
         setInitialized(true);
         // The avatar now arrives WITH init — one message, no round trip to
         // fail. The explicit request stays as a belt-and-braces retry for a

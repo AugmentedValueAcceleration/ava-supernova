@@ -2470,7 +2470,8 @@ export class DashboardPanel {
       if (dataUrl.startsWith('data:image/')) userAvatar = dataUrl;
     } catch { /* no avatar set */ }
 
-    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, onboarding, consentAccepted, userAvatar });
+    const workingHours = this.context.globalState.get<{ start: number; end: number }>('ava.workingHours') ?? null;
+    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, onboarding, consentAccepted, userAvatar, workingHours });
 
     // Memories + session stats are local, so the Memory and Usage panels
     // render with data straight away. Memories through the PAGED loader over

@@ -7,6 +7,8 @@ import type { ConversationSurface } from '@ava/core';
 // ─── Extension Host → Webview ────────────────────────────────────────────────
 
 export type ExtToWebviewMessage =
+  // The chat mode, as last used in either app (shared with the IDE via ~/.ava).
+  | { type: 'chat_mode'; mode: AvaMode }
   // Local footprint for the chat header chip. Total only is used, but the
   // whole scan is sent because it is one object and the dashboard's
   // contract already carries it — a second, trimmed shape would be a
@@ -245,6 +247,8 @@ export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainst
 export type PaletteTool = 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans';
 
 export type WebviewToExtMessage =
+  // The input's mode changed — recorded so the IDE can follow it.
+  | { type: 'set_chat_mode'; mode: AvaMode }
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   /**
    * Fired by a command-palette button. Carries the pre-classified intent

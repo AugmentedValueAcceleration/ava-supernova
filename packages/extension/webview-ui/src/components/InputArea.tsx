@@ -85,6 +85,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
 export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSupportsVision, prefill }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
+  const { postMessage } = useVSCodeApi();
   // Mode persists across panel close/reopen — IDE chat persists via
   // localStorage key 'ava-ide-chat-mode'; extension panel uses
   // 'ava-ext-chat-mode' (separate webview localStorage origin so the
@@ -98,11 +99,27 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSuppor
     } catch { /* localStorage unavailable */ }
     return 'code';
   });
+  const modeReported = useRef(false);
   // Persist mode on every change so the next panel mount lands on the
   // last-used mode rather than the default.
   useEffect(() => {
     try { localStorage.setItem('ava-ext-chat-mode', mode); } catch { /* quota / disabled */ }
-  }, [mode]);
+    // The host records it in ~/.ava so the IDE opens in the same mode — but
+    // not the value this panel opened with, which may be older than the
+    // shared one the host is about to send.
+    if (modeReported.current) postMessage({ type: 'set_chat_mode', mode });
+    modeReported.current = true;
+  }, [mode, postMessage]);
+  // …and a mode chosen in the IDE arrives here.
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      const m = e.data as { type?: string; mode?: string };
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'];
+      if (m?.type === 'chat_mode' && m.mode && (valid as string[]).includes(m.mode)) setMode(m.mode as AvaMode);
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
   // Code mode's Talk switch. On, she reads and discusses and changes nothing;
   // off (Build), she codes as normal. A switch rather than a trip to the mode
   // menu, because the operator flips between the two constantly — and "ai is
@@ -120,7 +137,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSuppor
   const { secrets, setSecrets } = useSecrets();
   // Used to grant a secret to Ava's working set when the operator references
   // one with @secret:<label> — see handleSend.
-  const { postMessage } = useVSCodeApi();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
