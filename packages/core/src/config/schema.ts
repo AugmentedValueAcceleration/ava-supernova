@@ -21,7 +21,6 @@ export interface AvaConfig {
    * had been hand-copied into five files and drifted when Longxiang landed.
    */
   routingMode?: RoutingMode;
-  platformKey?: string;
   providers: {
     deepseek?: ProviderSettings;
     kimi?: ProviderSettings;

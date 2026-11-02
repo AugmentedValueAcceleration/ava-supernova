@@ -95,9 +95,7 @@ export type AvaEventType =
   // Context management (Dataset 11 — Phase 2)
   | 'context_compression'
   // Perception / vision bridge (Dataset 12 — Phase 2)
-  | 'vision_bridge'
-  // Credits / billing metering (added 2026-04-22)
-  | 'credits_charged';
+  | 'vision_bridge';
 
 // ─── Per-event payload shapes ───────────────────────────────────────────────
 
@@ -407,36 +405,6 @@ export interface VisionBridgePayload {
   success: boolean;                     // at least one image described (vs fallback note)
 }
 
-/* Credits / billing metering (added 2026-04-22) ──────────────────────────── */
-
-/**
- * A metered action completed and credits were deducted from the user's
- * allowance. NO LONGER EMITTED (1 Nov 2026): Ava is going fully bring-your-
- * own-key with no credits, and `chargeCredits()` / billing/meter.ts were
- * removed. The type stays so older captured rows still parse. The server
- * sums these per user per billing period once Stage 3's billing switch
- * is live; during Stage 2 (dual-write) the server bills on raw tokens
- * while recording the `credits` field for parity auditing.
- *
- * One event per chargeable action — not per model iteration. An Agent
- * that loops 5 times for tool use emits one charge per iteration (each
- * is a `chat_turn`); a full Conductor run emits one charge per persona
- * (`light_persona` or `heavy_persona`).
- */
-export interface CreditsChargedPayload {
-  /** CreditAction from billing/credits — kept as string here to avoid a
-   *  dataset ↔ billing import dependency. */
-  action: string;
-  /** Credits actually deducted (after cache-hit discount, if any). */
-  credits: number;
-  cache_hit: boolean;
-  /** Provider's raw input token count (dual-write for billing parity). */
-  raw_input_tokens?: number;
-  raw_output_tokens?: number;
-  raw_cached_tokens?: number;
-  model?: string;
-}
-
 // ─── Discriminated union map ────────────────────────────────────────────────
 
 export interface AvaEventPayloadMap {
@@ -471,7 +439,6 @@ export interface AvaEventPayloadMap {
   knowledge_pack_used: KnowledgePackUsedPayload;
   context_compression: ContextCompressionPayload;
   vision_bridge: VisionBridgePayload;
-  credits_charged: CreditsChargedPayload;
 }
 
 // ─── Helper type for typed emit/subscribe ───────────────────────────────────

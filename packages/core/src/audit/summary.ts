@@ -8,24 +8,21 @@ import type { AuditEntry } from './types.js';
 export interface AuditSummary {
   total: number;
   totalFailed: number;
-  totalCredits: number;
   totalUsd: number;
-  topByCost: { toolName: string; count: number; failed: number; credits: number; usd: number }[];
+  topByCost: { toolName: string; count: number; failed: number; usd: number }[];
   perApproval: { approval: string; count: number; failed: number; failRate: number }[];
 }
 
 export function summarise(entries: AuditEntry[]): AuditSummary {
-  const byTool = new Map<string, { count: number; failed: number; credits: number; usd: number }>();
+  const byTool = new Map<string, { count: number; failed: number; usd: number }>();
   const byApproval = new Map<string, { count: number; failed: number }>();
-  let totalCredits = 0;
   let totalUsd = 0;
   let totalFailed = 0;
 
   for (const e of entries) {
-    const tool = byTool.get(e.toolName) ?? { count: 0, failed: 0, credits: 0, usd: 0 };
+    const tool = byTool.get(e.toolName) ?? { count: 0, failed: 0, usd: 0 };
     tool.count++;
     if (e.status === 'failed' || e.status === 'denied') { tool.failed++; totalFailed++; }
-    if (e.cost?.credits) { tool.credits += e.cost.credits; totalCredits += e.cost.credits; }
     if (e.cost?.usd)     { tool.usd     += e.cost.usd;     totalUsd     += e.cost.usd; }
     byTool.set(e.toolName, tool);
 
@@ -37,13 +34,12 @@ export function summarise(entries: AuditEntry[]): AuditSummary {
 
   const topByCost = [...byTool.entries()]
     .map(([name, s]) => ({ toolName: name, ...s }))
-    .sort((a, b) => (b.credits + b.usd * 1000) - (a.credits + a.usd * 1000))
+    .sort((a, b) => b.usd - a.usd)
     .slice(0, 10);
 
   return {
     total: entries.length,
     totalFailed,
-    totalCredits,
     totalUsd,
     topByCost,
     perApproval: [...byApproval.entries()].map(([approval, s]) => ({

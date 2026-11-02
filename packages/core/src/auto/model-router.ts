@@ -72,20 +72,17 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
 export class ModelRouter {
   private providerRegistry: ProviderRegistry;
   private availableProviders: Set<string>;
-  private hasPlatform: boolean;
   private userPreferences: UserRoutePreferences;
   private mode: RoutingMode;
 
   constructor(
     providerRegistry: ProviderRegistry,
     availableProviders: Set<string>,
-    platformKey?: string,
     userPreferences?: UserRoutePreferences,
     mode: RoutingMode = 'auto',
   ) {
     this.providerRegistry = providerRegistry;
     this.availableProviders = availableProviders;
-    this.hasPlatform = !!platformKey || availableProviders.has('platform');
     this.userPreferences = userPreferences || {};
     this.mode = mode;
   }
@@ -175,17 +172,6 @@ export class ModelRouter {
   }
 
   private resolveModel(modelId: string, reason: string): RouteResult | null {
-    // Try platform first. The registry bridges the native/-platform id-suffix
-    // duality, so a route written in either form resolves; we surface the
-    // concrete resolved id (e.g. `platform:deepseek-flash-platform`) so the
-    // downstream API call + billing key match the model actually served.
-    if (this.hasPlatform) {
-      const result = this.providerRegistry.resolveModel(`platform:${modelId}`);
-      if (result) {
-        return { modelId: `platform:${result.model.id}`, provider: result.provider, model: result.model, reason };
-      }
-    }
-
     // Try direct provider
     const result = this.providerRegistry.resolveModel(modelId);
     if (result && this.isProviderAvailable(result.provider.name)) {
@@ -203,18 +189,7 @@ export class ModelRouter {
   }
 
   private resolveAnyModel(reason: string): RouteResult | null {
-    // Platform models (preferred order: coding-capable first).
-    // Kimi removed — Kimi is BYOK only, so `platform:kimi-*` never resolved.
-    // MiniMax excluded from reasoning fallback — it is BYOK chat only, never a coordinator.
-    if (this.hasPlatform) {
-      const platformModels = ['qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
-      for (const id of platformModels) {
-        const result = this.providerRegistry.resolveModel(`platform:${id}`);
-        if (result) return { modelId: `platform:${id}`, provider: result.provider, model: result.model, reason };
-      }
-    }
-
-    // BYOK models (dynamic — try whatever providers are available, best first).
+    // Models across the providers the user holds keys for, best first.
     // K3 first: Moonshot's frontier model and the strongest agentic option we
     // reach. K2.7 Code after it as the cheaper agentic coder, K2.6 as the
     // fallbacks. MiniMax excluded — BYOK chat only.
@@ -231,7 +206,6 @@ export class ModelRouter {
       }
       // Try with provider prefix
       for (const providerName of this.availableProviders) {
-        if (providerName === 'platform') continue;
         const qualified = `${providerName}:${id}`;
         const r = this.providerRegistry.resolveModel(qualified);
         if (r) return { modelId: qualified, provider: r.provider, model: r.model, reason };
@@ -248,6 +222,6 @@ export class ModelRouter {
   }
 
   private isProviderAvailable(providerName: string): boolean {
-    return this.availableProviders.has(providerName) || this.hasPlatform;
+    return this.availableProviders.has(providerName);
   }
 }

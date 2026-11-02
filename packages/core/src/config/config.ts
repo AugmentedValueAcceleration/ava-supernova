@@ -66,10 +66,8 @@ function validateConfig(raw: unknown): AvaConfig {
     }
   }
 
-  // platformKey — Ava platform account key
-  if (typeof obj.platformKey === 'string' && obj.platformKey) {
-    config.platformKey = obj.platformKey;
-  }
+  // platformKey (the account-era key) is not read: there are no accounts.
+  // The next save drops it from the file.
 
   // providers — validate structure, skip malformed entries. The list must
   // cover EVERY named provider in the schema: this allowlist previously only
@@ -173,11 +171,14 @@ export class ConfigManager {
     await this.save();
   }
 
+  /** True when there is no model or no provider key in config.json. The apps
+   *  keep keys in the shared OS keychain and decide for themselves; this only
+   *  reads config.json. */
   async needsSetup(): Promise<boolean> {
     const config = await this.load();
     const hasProvider = Object.values(config.providers).some(
       v => v && typeof v === 'object' && 'apiKey' in v,
     );
-    return !config.activeModel || (!hasProvider && !config.platformKey);
+    return !config.activeModel || !hasProvider;
   }
 }

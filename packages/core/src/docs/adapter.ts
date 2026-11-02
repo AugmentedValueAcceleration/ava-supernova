@@ -140,7 +140,7 @@ function filterTools(items: ToolFact[], filter?: { category?: string; risk?: str
   );
 }
 
-function filterProviders(items: ProviderFact[], filter?: { kind?: 'orchestration' | 'managed' | 'byok' }): ProviderFact[] {
+function filterProviders(items: ProviderFact[], filter?: { kind?: 'orchestration' | 'byok' }): ProviderFact[] {
   if (!filter?.kind) return items;
   return items.filter(p => p.kind === filter.kind);
 }

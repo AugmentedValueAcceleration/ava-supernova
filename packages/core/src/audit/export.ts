@@ -96,7 +96,6 @@ export function buildExport(entries: AuditEntry[], format: 'markdown' | 'json' =
   lines.push(`**Generated:** ${generated_at}  `);
   lines.push(`**Entries:** ${summary.total} tool calls  `);
   lines.push(`**Failed:** ${summary.totalFailed}  `);
-  if (summary.totalCredits > 0) lines.push(`**Total credits:** ${summary.totalCredits.toLocaleString()}  `);
   if (summary.totalUsd > 0)     lines.push(`**Total estimated USD:** $${summary.totalUsd.toFixed(4)}  `);
   const integ = rollupIntegrity(entries);
   if (integ.mutations > 0) {
@@ -108,10 +107,10 @@ export function buildExport(entries: AuditEntry[], format: 'markdown' | 'json' =
   if (summary.topByCost.length === 0) {
     lines.push('_No cost-attributable calls in this export._');
   } else {
-    lines.push('| Tool | Calls | Failed | Credits | USD |');
-    lines.push('|------|------:|------:|--------:|----:|');
+    lines.push('| Tool | Calls | Failed | USD |');
+    lines.push('|------|------:|------:|----:|');
     for (const t of summary.topByCost) {
-      lines.push(`| ${t.toolName} | ${t.count} | ${t.failed} | ${t.credits.toLocaleString()} | ${t.usd > 0 ? '$' + t.usd.toFixed(4) : '—'} |`);
+      lines.push(`| ${t.toolName} | ${t.count} | ${t.failed} | ${t.usd > 0 ? '$' + t.usd.toFixed(4) : '—'} |`);
     }
   }
   lines.push('');

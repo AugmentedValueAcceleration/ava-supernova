@@ -2,7 +2,7 @@
 // Pricing is USD per 1M tokens and may drift — verify against provider pages before quoting publicly.
 // Update here when models are added, deprecated, or repriced.
 
-export type ProviderKind = 'orchestration' | 'managed' | 'byok';
+export type ProviderKind = 'orchestration' | 'byok';
 export type ModelCapability = 'tools' | 'vision' | 'thinking' | 'streaming';
 
 export interface ModelFact {
@@ -49,37 +49,12 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'orchestration',
     notes: 'Best-of-breed routing — the coordinator picks the right specialist for each subtask. Every DeepSeek seat is now one model at one price: DeepSeek collapsed V4 Pro into V4.1 Flash on 2026-09-10, so the fleet gets frontier-class reasoning at flash-tier cost throughout rather than paying up for the seats that need depth.',
     models: [
-      { id: 'deepseek-flash-platform', displayName: 'DeepSeek Flash — coordinator + planning, chat, long-context, security, brainstorm, teach; Researcher, CVE Researcher, Ideator, Code Reviewer, Fact Checker, Quiz Master, Recon, Scanner, Curriculum Architect, Tutor, Curator, Explorer, Refiner, Security Verifier/Reporter personas. One model across every DeepSeek seat since 2026-09-10', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'deepseek-flash', displayName: 'DeepSeek Flash — coordinator + planning, chat, long-context, security, brainstorm, teach; Researcher, CVE Researcher, Ideator, Code Reviewer, Fact Checker, Quiz Master, Recon, Scanner, Curriculum Architect, Tutor, Curator, Explorer, Refiner, Security Verifier/Reporter personas. One model across every DeepSeek seat since 2026-09-10', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — vision seat + Design Reviewer persona', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — Builder + coding, image-gen; Architect + Content Writer personas', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — outage fallback tier only (retired from primary routes)', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-flash', displayName: 'Qwen 3.7 Flash — upstream intent gate', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — Scout, Verifier, Sequencer, Challenger, Integrator personas (depth ≤ 2)', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
-    ],
-  },
-  // ── Platform-managed providers ────────────────────────────────────────────
-  {
-    id: 'qwen',
-    name: 'Qwen (Alibaba Cloud)',
-    kind: 'managed',
-    notes: 'Qwen 3.8 Flash coordinates Auto Mode; 3.5 Flash is the fast-path option. All models available on every plan.',
-    // MUST MATCH PLATFORM_MODELS in core/src/providers/platform/models.ts —
-    // the managed catalogue, which is what a signed-in plan can actually drive.
-    // Nothing else belongs in a `managed` entry. Corrected 2026-10-07: this
-    // listed qwen3-coder-next, qwen3-coder-flash and qwen3.7-flash, none of
-    // which are in PLATFORM_MODELS, and omitted qwen3.8-max, which is. Listing
-    // a model here that a plan cannot select is selling something we do not
-    // offer; omitting one hides something we do.
-    //
-    // qwen3.7-flash is deliberately absent despite being very much in use: it
-    // runs every fleet's intent gate, so it appears in the ORCHESTRATION
-    // entries above. Served on your behalf is not the same as selectable.
-    models: [
-      { id: 'qwen3.8-max', displayName: 'Qwen 3.8 Max', inputPricePerM: 2.00, outputPricePerM: 6.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
     ],
   },
   {
@@ -93,15 +68,6 @@ export const PROVIDERS: ProviderFact[] = [
     ],
   },
   {
-    id: 'deepseek-managed',
-    name: 'DeepSeek (Supernova orchestration)',
-    kind: 'managed',
-    notes: 'Powers Supernova routing mode. One model across every DeepSeek seat since 2026-09-10, when DeepSeek retired V4 Pro into V4.1 Flash: it coordinates the persona pipeline AND handles builds and review. Open-weight MIT, 1M context, 384K max output, multimodal, dual thinking/non-thinking modes. Prices are off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri) is exactly double.',
-    models: [
-      { id: 'deepseek-flash-platform', displayName: 'DeepSeek V4.1 Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-    ],
-  },
-  {
     id: 'deepseek',
     name: 'DeepSeek',
     kind: 'byok',
@@ -110,19 +76,16 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'deepseek-flash', displayName: 'DeepSeek V4.1 Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
-  // Qwen has a managed section above (models we serve on your plan). This is the
-  // BYOK half — the same split DeepSeek and Mistral already have. It exists
-  // because qwen3.7-max shipped in the catalogue and the picker while being
-  // absent from the docs entirely, which meant docs_lookup could not answer
-  // questions about it. (It was BYOK-only when this section was written; Max
-  // was opened to credits on 2026-07-23 and the note here went stale.)
+  // Every model here runs on your own key. The id stays 'qwen-byok' because
+  // docs pages link to it.
   {
     id: 'qwen-byok',
-    name: 'Qwen (Alibaba Cloud) — your own key',
+    name: 'Qwen (Alibaba Cloud)',
     kind: 'byok',
-    notes: 'Bring your own DashScope (international) key. Qwen 3.8 Max (3 August 2026) is the current flagship. It replaced 3.7 Max entirely on 2026-08-09 — it is cheaper at $2/$6, doubles the output ceiling to 131K, and takes video as well as images, so there was no task left that 3.7 Max was the right pick for. Max is ALSO served on a plan; the earlier note that it was BYOK-only stopped being true on 2026-07-23. Prices are Alibaba\'s published international rates; 3.7 Plus is tiered (input rises above 256K tokens) and the figure shown is the base tier. 3.5 Plus and 3.5 Flash still answer but Alibaba now treats them as legacy.',
+    notes: 'Bring your own DashScope (international) key. Qwen 3.8 Max (3 August 2026) is the current flagship. It replaced 3.7 Max entirely on 2026-08-09 — it is cheaper at $2/$6, doubles the output ceiling to 131K, and takes video as well as images, so there was no task left that 3.7 Max was the right pick for. 3.8 Flash coordinates Maestro. Prices are Alibaba\'s published international rates; 3.7 Plus is tiered (input rises above 256K tokens) and the figure shown is the base tier. 3.5 Plus and 3.5 Flash still answer but Alibaba now treats them as legacy.',
     models: [
       { id: 'qwen3.8-max', displayName: 'Qwen 3.8 Max — Alibaba\'s flagship, 131K output, video in', inputPricePerM: 2.00, outputPricePerM: 6.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — coordinates Maestro', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — legacy', inputPricePerM: 0.40, outputPricePerM: 2.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — legacy, text only', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 262_000, capabilities: ['tools', 'streaming'] },
@@ -202,5 +165,4 @@ export const PROVIDERS: ProviderFact[] = [
   },
 ];
 
-export const MANAGED_PROVIDERS = PROVIDERS.filter(p => p.kind === 'managed');
 export const BYOK_PROVIDERS = PROVIDERS.filter(p => p.kind === 'byok');

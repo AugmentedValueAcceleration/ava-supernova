@@ -32,10 +32,8 @@ export interface AuditEntry {
   /** Tool result — truncated to a sensible length to keep the log
    *  bounded. Full result still lives in the conversation history. */
   result?: string;
-  /** Cost of this tool call. Filled in client-side when known —
-   *  platform users see credits (via creditsForTurn for chat-style
-   *  tools) and BYOK users see the underlying provider cost in USD
-   *  estimated from token counts. */
+  /** Cost of this tool call. Filled in client-side when known: the
+   *  provider cost in USD, estimated from token counts. */
   cost?: AuditCost;
   /** Optional link back to the conversation + message that triggered
    *  this call. Lets the audit row jump back to the chat where it
@@ -79,9 +77,10 @@ export type IntegrityStatus = 'unchanged' | 'modified' | 'deleted' | 'unverifiab
 export type SecurityConcern = 'network' | 'out-of-workspace' | 'secret-access' | 'dangerous';
 
 export interface AuditCost {
-  /** Which billing model this entry is on. */
+  /** 'byok' for everything recorded since 1 Nov 2026. 'platform' appears
+   *  only on entries logged on an account before then, and is read as-is. */
   mode: 'platform' | 'byok';
-  /** Credits charged (platform users only). */
+  /** Credits charged — only on those older account-era entries. */
   credits?: number;
   /** Estimated USD cost (BYOK users only — based on provider rate cards). */
   usd?: number;

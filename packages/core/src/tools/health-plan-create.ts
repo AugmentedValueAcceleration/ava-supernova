@@ -192,7 +192,7 @@ export class HealthPlanCreateTool implements Tool {
     if (!days) {
       const gen = context.sharedState?.generateHealthPlanDays as
         | ((i: { type: HealthPlanType; duration_days: number; goal: string | null; title: string })
-            => Promise<{ days: HealthPlanDay[]; credits_charged?: number } | null>)
+            => Promise<{ days: HealthPlanDay[] } | null>)
         | undefined;
       if (typeof gen === 'function') {
         try {

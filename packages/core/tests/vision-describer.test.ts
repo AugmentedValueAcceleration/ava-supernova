@@ -14,7 +14,7 @@
 // should not need this file edited.
 import { describe, it, expect } from 'vitest';
 import { resolveVisionDescriber } from '../src/agent/vision-bridge.js';
-import { listAllModelDefs, PLATFORM_MODELS } from '../src/providers/catalog.js';
+import { listAllModelDefs } from '../src/providers/catalog.js';
 import type { Provider } from '../src/providers/types.js';
 import type { ModelDefinition } from '../src/core/types.js';
 
@@ -27,8 +27,7 @@ function registryWith(...providers: string[]) {
         ? qualifiedId.split(':', 2) as [string, string]
         : [undefined, qualifiedId];
       if (!p || !held.has(p)) return undefined;
-      const pool = p === 'platform' ? PLATFORM_MODELS : listAllModelDefs();
-      const model = pool.find((m) => m.id === id);
+      const model = listAllModelDefs().find((m) => m.id === id);
       if (!model) return undefined;
       return { provider: { name: p } as unknown as Provider, model };
     },
@@ -36,7 +35,7 @@ function registryWith(...providers: string[]) {
 }
 
 describe('resolveVisionDescriber', () => {
-  it('uses the users own key when they have no Qwen and no platform', () => {
+  it('uses the users own key when they have no Qwen', () => {
     // The whole bug, one line. Zhipu alone used to resolve to nothing.
     const hit = resolveVisionDescriber(registryWith('zhipu'));
     expect(hit).not.toBeNull();
@@ -50,12 +49,6 @@ describe('resolveVisionDescriber', () => {
       expect(hit?.model.provider).toBe(provider);
       expect(hit?.model.supportsVision).toBe(true);
     });
-
-  it('prefers the platform when it is available', () => {
-    // Managed users should not spend a BYOK key describing a picture.
-    const hit = resolveVisionDescriber(registryWith('platform', 'zhipu'));
-    expect(hit?.model.provider).toBe('platform');
-  });
 
   it('picks the cheapest of several keys, not the flashiest', () => {
     // It describes one image for a model that would otherwise be blind. The
@@ -88,7 +81,7 @@ describe('resolveVisionDescriber', () => {
     // vision-capable until 2026-07-17 and returned a 1210 on every image.
     // Routing someone ELSE'S image into that is the new failure mode, so the
     // one thing this must never do is hand back a text-only model.
-    for (const p of ['zhipu', 'kimi', 'mistral', 'xiaomi', 'minimax', 'qwen', 'platform']) {
+    for (const p of ['zhipu', 'kimi', 'mistral', 'xiaomi', 'minimax', 'qwen']) {
       const hit = resolveVisionDescriber(registryWith(p));
       if (hit) expect(hit.model.supportsVision).toBe(true);
     }

@@ -20,8 +20,7 @@ export type DatasetName =
   | 'generation-effectiveness'
   | 'knowledge-pack-effectiveness'
   | 'context-management'
-  | 'perception'
-  | 'billing-credits';
+  | 'perception';
 
 export const ALL_DATASETS: readonly DatasetName[] = [
   'tool-trajectories',
@@ -36,7 +35,6 @@ export const ALL_DATASETS: readonly DatasetName[] = [
   'knowledge-pack-effectiveness',
   'context-management',
   'perception',
-  'billing-credits',
 ] as const;
 
 /**
@@ -101,7 +99,5 @@ export function eventToDataset(eventType: AvaEventType): DatasetName {
     case 'vision_bridge':
       return 'perception';
 
-    case 'credits_charged':
-      return 'billing-credits';
   }
 }

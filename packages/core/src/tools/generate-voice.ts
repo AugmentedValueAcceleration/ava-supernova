@@ -11,12 +11,9 @@ import { qwenTts } from '../creative/dashscope.js';
  * Generate AI voice/speech from text via Qwen3-TTS.
  *
  * You author the script and the delivery; pick a voice from the roster and set
- * the spoken language. With the user's own Qwen key it goes straight to
- * Alibaba DashScope; the platform route remains only for older account builds
- * until accounts are removed (BYOK plan, 1 Nov 2026).
+ * the spoken language. It runs on the user's own Qwen key, straight to
+ * Alibaba DashScope.
  */
-
-const PLATFORM_URL = 'https://avasupernova.com/api';
 
 export class GenerateVoiceTool implements Tool {
   readonly name = 'generate_voice';
@@ -106,45 +103,22 @@ export class GenerateVoiceTool implements Tool {
     genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.('Generating voice...\n');
 
-    // Created AFTER the response, because core does not choose the voice model
-    // — the platform route does, and it now reports which one it used. This
-    // said 'qwen3-tts', which is not a model at all: probed against DashScope on
-    // 28 August it answers "Model not exist." So every voice row in the dataset
-    // named something that has never run.
+    // Created AFTER the response, which reports the model that ran. This used
+    // to say 'qwen3-tts', which is not a model at all (DashScope answers "Model
+    // not exist."), so every voice row in the dataset named something that had
+    // never run.
     let tracker: GenerationTracker | null = null;
     const voiceParams = `voice=${voice}, language=${language}`;
 
     try {
-      let data: { url?: string; error?: string; model?: string };
-      if (resolved.via === 'qwen') {
-        // The user's own key, straight to DashScope. It used to be POSTed to
-        // our server, which only accepts our platform keys — so own-key voice
-        // never worked.
-        data = await qwenTts(resolved.key, { text, voice, language, instructions, speechRate, volume, signal: context.signal });
-      } else {
-        const res = await fetch(`${PLATFORM_URL}/generate-voice`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resolved.key}`,
-            'Content-Type': 'application/json',
-            // Local only: the platform returns the audio and keeps no copy.
-            'X-Ava-Data-Mode': 'local',
-          },
-          body: JSON.stringify({ text, voice, language_type: language, instructions, speech_rate: speechRate, volume }),
-        });
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(`Voice generation API error (${res.status}): ${errText}`);
-        }
-        data = await res.json() as { url?: string; error?: string; model?: string };
-      }
+      const data: { url?: string; error?: string; model?: string } =
+        await qwenTts(resolved.key, { text, voice, language, instructions, speechRate, volume, signal: context.signal });
       if (data.error) throw new Error(data.error);
       if (!data.url) throw new Error('No audio URL returned from API');
 
       tracker = startGenerationTracking({
         type: 'voice',
-        // What the route says it ran. 'unknown' rather than a guess if an older
-        // deployment does not report it — an honest gap beats a wrong label.
+        // What DashScope says it ran — 'unknown' rather than a guess.
         model: data.model || 'unknown',
         prompt: text,
         paramsSummary: voiceParams,
@@ -199,13 +173,11 @@ export class GenerateVoiceTool implements Tool {
     return Buffer.from(await res.arrayBuffer());
   }
 
-  private resolveKey(context: ToolExecutionContext): { key: string; via: 'qwen' | 'platform' } | null {
+  /** The user's own Qwen key — it goes straight to DashScope. */
+  private resolveKey(context: ToolExecutionContext): { key: string } | null {
     const state = context.sharedState as Record<string, unknown> | undefined;
     const getKey = state?.getProviderKey as ((p: string) => string | undefined) | undefined;
     const qwenKey = getKey?.('qwen');
-    if (qwenKey) return { key: qwenKey, via: 'qwen' };
-    const platformKey = state?.platformKey as string | undefined;
-    if (platformKey) return { key: platformKey, via: 'platform' };
-    return null;
+    return qwenKey ? { key: qwenKey } : null;
   }
 }

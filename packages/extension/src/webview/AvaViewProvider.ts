@@ -2167,7 +2167,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           }
         }
       }
-      const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, false, preferredCoordinatorId);
+      const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, preferredCoordinatorId);
       const modeLabel = modelId === 'supernova'
         ? 'Supernova'
         : modelId === 'aurora'

@@ -118,7 +118,6 @@ export type {
 } from './providers/types.js';
 export { BaseProvider } from './providers/base-provider.js';
 export { ProviderRegistry } from './providers/provider-registry.js';
-export { PlatformProvider } from './providers/platform/index.js';
 export { GenericProvider, listOpenAICompatibleModels } from './providers/generic/index.js';
 export type { GenericProviderConfig } from './providers/generic/index.js';
 export { ProviderHealthTracker } from './providers/health-tracker.js';
@@ -157,28 +156,6 @@ export { formatPlanDecision } from './tools/present-plan.js';
 export { BrainstormStore, projectHash } from './brainstorm/brainstorm-store.js';
 export type { BrainstormSession, BrainstormIdea, BrainstormKind, BrainstormSessionSummary } from './brainstorm/types.js';
 export type { PlanDecision } from './tools/present-plan.js';
-
-// Billing — canonical plan data + website redirect URL builders
-export {
-  PLANS,
-  TOKEN_TOPUPS,
-  AVA_SITE_BASE,
-  pricingUrl,
-  dashboardBillingUrl,
-  upgradeUrl,
-  tokenTopupUrl,
-} from './billing/plans.js';
-export type {
-  PlanTier,
-  PlanDefinition,
-  TokenTopupDefinition,
-} from './billing/plans.js';
-// Canonical per-action credit costs — single source of truth for what
-// the platform charges. Surfaces (Creative Studio cost preview, etc.)
-// import this so previews track the server. Bumping a constant here
-// updates the preview everywhere automatically.
-export { CREDIT_COST, TOKENS_PER_BRACKET } from './billing/credits.js';
-export type { CreditAction } from './billing/credits.js';
 
 // Memory
 export { MemoryManager } from './memory/memory-manager.js';

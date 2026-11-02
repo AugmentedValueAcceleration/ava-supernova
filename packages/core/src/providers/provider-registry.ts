@@ -81,11 +81,9 @@ export class ProviderRegistry {
         const model = this.findModel(provider, modelId);
         return model ? { provider, model } : undefined;
       }
-      // A `platform:` id with no platform registered — no account, which is
-      // everyone once Ava is fully BYOK (1 Nov 2026). Saved choices and older
-      // surfaces still say `platform:qwen3.7-plus`; rather than "no provider
-      // available", resolve the same model on the user's own keys. Only when
-      // there IS no platform, so an account holder's routing is untouched.
+      // A `platform:` id is a choice saved on an account, before Ava went
+      // fully BYOK (1 Nov 2026) — `platform:qwen3.7-plus`. Rather than "no
+      // provider available", resolve the same model on the user's own keys.
       if (providerName !== 'platform') return undefined;
     }
 
@@ -98,15 +96,10 @@ export class ProviderRegistry {
   }
 
   /**
-   * Find a model on a provider, bridging the platform/native id-suffix duality.
-   *
-   * The same logical model is listed under different ids depending on surface:
-   * the managed platform serves DeepSeek/Mistral under `<id>-platform` rows
-   * (the server `models` table key), while a BYOK provider lists the native
-   * `<id>`. A routing table written against either form must resolve on both
-   * surfaces. So after an exact match, also try the id with `-platform`
-   * stripped and appended. Qwen uses one native id on both surfaces and is
-   * unaffected. Returns the concrete model so callers use its real `.id`.
+   * Find a model on a provider. An account-era id carries a `-platform`
+   * suffix (`deepseek-flash-platform`, the old server's row for the same
+   * model); a choice saved with one still resolves to the native model.
+   * Returns the concrete model so callers use its real `.id`.
    */
   private findModel(provider: Provider, modelId: string): ModelDefinition | undefined {
     // Disabled models are invisible to resolution — auto-routing skips them and
@@ -115,10 +108,9 @@ export class ProviderRegistry {
     const exact = models.find((m) => m.id === modelId);
     if (exact) return exact;
 
-    const alt = modelId.endsWith('-platform')
-      ? modelId.slice(0, -'-platform'.length) // platform route → native BYOK id
-      : `${modelId}-platform`;                // BYOK/native route → platform row
-    return models.find((m) => m.id === alt);
+    if (!modelId.endsWith('-platform')) return undefined;
+    const native = modelId.slice(0, -'-platform'.length);
+    return models.find((m) => m.id === native);
   }
 
   listAllModels(): ModelDefinition[] {

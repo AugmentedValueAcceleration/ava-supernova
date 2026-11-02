@@ -335,8 +335,8 @@ export abstract class BaseProvider implements Provider {
 
   // ── Shared HTTP logic ────────────────────────────────────────────────────
 
-  /** How a completion body goes on the wire. Plain JSON for every provider;
-   *  our own platform overrides it (see PlatformProvider). */
+  /** How a completion body goes on the wire. Plain JSON; a provider whose
+   *  endpoint wants something else overrides it. */
   protected serializeBody(body: unknown): string {
     return JSON.stringify(body);
   }

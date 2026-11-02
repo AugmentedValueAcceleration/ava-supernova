@@ -7,34 +7,10 @@ import type { GenerationTracker } from '../dataset/generation-emit.js';
 import { wanSubmit, wanWait } from '../creative/dashscope.js';
 
 /**
- * Generate a short AI video (with synchronized audio) from a text prompt
- * using Wan 2.5 on the Ava platform.
- *
- * Supports 5-second and 10-second clips at 720P. The platform submit
- * endpoint is async — it returns a task_id and the clip is produced over
- * the next 1–6 minutes — so this tool submits, then polls the status
- * route until the job reaches a terminal state.
+ * Generate a short AI video (with synchronized audio) from a text prompt with
+ * Wan, on the user's own Qwen key: submitted to DashScope, then waited on here
+ * (creative/dashscope.ts) until the clip is ready.
  */
-
-const PLATFORM_URL = 'https://avasupernova.com/api';
-  /**
-   * How long to keep asking, and how often.
-   *
-   * Measured 28 August on wan3.0: two 30-second renders of the same shape took
-   * 8 minutes and 25 minutes. The spread is queue contention rather than clip
-   * length, so a short clip is not reliably quick either. The old ceiling was
-   * 8 minutes, set when wan2.5 only made 5 and 10 second clips.
-   *
-   * A timeout is the most expensive failure available to us: the render
-   * succeeds, we are billed, and the user is told it failed. So the ceiling is
-   * generous, and the cadence backs off instead - 5s while it might genuinely
-   * be about to land, 15s once we are plainly waiting. That is FEWER requests
-   * across a 25-minute render than the old loop made across an 8-minute one.
-   */
-const POLL_CEILING_MS = 45 * 60 * 1000;
-const POLL_FAST_WINDOW_MS = 2 * 60 * 1000;
-const POLL_FAST_MS = 5000;
-const POLL_SLOW_MS = 15000;
 
 export class GenerateVideoTool implements Tool {
   readonly name = 'generate_video';
@@ -110,75 +86,19 @@ export class GenerateVideoTool implements Tool {
     genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.('Generating video (this may take a few minutes)...\n');
 
-    // The tracker is created AFTER the submit, because core does not choose the
-    // model — the platform route does, and it returns which one it used. This
-    // recorded 'wan2.5-t2v-preview' for months after the route moved to
-    // wan3.0-video, so every usage row for a Design Studio clip named a model
-    // that had not run. A hardcoded name here is a second copy of a fact that
-    // lives somewhere else; the response is the source.
+    // The tracker is created AFTER the submit, because the submit returns which
+    // model ran. A hardcoded name here once named a model for months after it
+    // stopped being the one that ran; the response is the source.
     let tracker: GenerationTracker | null = null;
     const paramsSummary = `duration=${duration}s, resolution=${resolution}`;
 
     try {
-      // The user's own Qwen key: submit to DashScope and wait for it here.
-      if (resolved.via === 'qwen') {
-        const job = await wanSubmit(resolved.key, { prompt, duration, resolution }, context.signal);
-        tracker = startGenerationTracking({ type: 'video', model: job.model, prompt, paramsSummary });
-        const directUrl = await wanWait(resolved.key, job.taskId, {
-          signal: context.signal,
-          onTick: () => { genManager?.update(jobId, { status: 'generating', progress: 35 }); context.onOutput?.('.'); },
-        });
-        genManager?.update(jobId, { status: 'downloading', progress: 70 });
-        const buf = await this.downloadVideo(directUrl);
-        const rel = targetPath || defaultPath;
-        const abs = join(context.cwd, rel);
-        await mkdir(dirname(abs), { recursive: true });
-        await writeFile(abs, buf);
-        context.onOutput?.(`Video saved: ${rel} (${(buf.length / (1024 * 1024)).toFixed(1)} MB)\n`);
-        const directMeta = { path: rel, absolutePath: abs, size: buf.length, duration, resolution, prompt };
-        genManager?.complete(jobId, directMeta);
-        tracker.complete({ fileSizeBytes: buf.length });
-        return { success: true, output: `Generated ${duration}s ${resolution} video and saved to ${rel}`, metadata: directMeta };
-      }
-
-      // Older account builds: submit through the platform, which returns a task_id.
-      const submitRes = await fetch(`${PLATFORM_URL}/generate-video`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resolved.key}`,
-          'Content-Type': 'application/json',
-          // Local only: the platform returns the video and keeps no copy.
-          'X-Ava-Data-Mode': 'local',
-        },
-        body: JSON.stringify({ prompt, duration, resolution }),
+      const job = await wanSubmit(resolved.key, { prompt, duration, resolution }, context.signal);
+      tracker = startGenerationTracking({ type: 'video', model: job.model, prompt, paramsSummary });
+      const videoUrl = await wanWait(resolved.key, job.taskId, {
+        signal: context.signal,
+        onTick: () => { genManager?.update(jobId, { status: 'generating', progress: 35 }); context.onOutput?.('.'); },
       });
-
-      if (!submitRes.ok) {
-        const errText = await submitRes.text();
-        throw new Error(`Video generation API error (${submitRes.status}): ${errText}`);
-      }
-
-      const submitData = await submitRes.json() as {
-        task_id?: string; url?: string; error?: string; model?: string;
-      };
-      if (submitData.error) throw new Error(submitData.error);
-
-      tracker = startGenerationTracking({
-        type: 'video',
-        // What the route says it ran. 'unknown' rather than a guess if an older
-        // deployment does not report it — an honest gap beats a wrong label.
-        model: submitData.model || 'unknown',
-        prompt,
-        paramsSummary,
-      });
-
-      // Poll the status route until the clip is ready (Wan runs 1–6 min).
-      // A synchronous `url` (legacy path) is honoured if ever present.
-      let videoUrl = submitData.url;
-      if (!videoUrl && submitData.task_id) {
-        videoUrl = await this.pollVideoStatus(submitData.task_id, resolved.key, genManager, jobId, context);
-      }
-      if (!videoUrl) throw new Error('No video URL returned from API');
 
       // Download video buffer
       genManager?.update(jobId, { status: 'downloading', progress: 70 });
@@ -218,46 +138,6 @@ export class GenerateVideoTool implements Tool {
     }
   }
 
-  /**
-   * Poll the platform's async video status route until the job finishes.
-   * Runs in the core process (CLI / extension host) with no serverless timeout.
-   * Transient poll failures are tolerated — only an explicit `failed` status or
-   * the ceiling ends the loop. See POLL_CEILING_MS for why it is what it is.
-   */
-  private async pollVideoStatus(
-    taskId: string,
-    key: string,
-    genManager: { update: (id: string, p: any) => void } | undefined,
-    jobId: string,
-    context: ToolExecutionContext,
-  ): Promise<string | undefined> {
-    const statusUrl = `${PLATFORM_URL}/generate-video/status/${encodeURIComponent(taskId)}`;
-    const started = Date.now();
-    const deadline = started + POLL_CEILING_MS;
-    while (Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, Date.now() - started < POLL_FAST_WINDOW_MS
-        ? POLL_FAST_MS : POLL_SLOW_MS));
-      let data: { status?: string; url?: string; error?: string } | null;
-      try {
-        const res = await fetch(statusUrl, { headers: { 'Authorization': `Bearer ${key}` } });
-        if (!res.ok) continue; // transient — keep polling
-        data = await res.json() as { status?: string; url?: string; error?: string };
-      } catch {
-        continue; // network blip — keep polling until the ceiling
-      }
-      if (data?.status === 'success' && data?.url) return data.url;
-      if (data?.status === 'failed') throw new Error(data?.error || 'Video generation failed');
-      // status === 'processing' — keep going. The progress number is a STAGE
-      // marker, not a measurement: Wan reports a state and never a percentage,
-      // so a creeping number (this used to reach 60% on a timer) tells the user
-      // something we do not know. The surfaces read `status` and show elapsed
-      // time, which is a fact.
-      genManager?.update(jobId, { status: 'generating', progress: 35 });
-      context.onOutput?.('.');
-    }
-    throw new Error('Video generation timed out');
-  }
-
   private async downloadVideo(url: string): Promise<Buffer> {
     if (url.startsWith('data:')) {
       const base64 = url.split(',')[1];
@@ -269,15 +149,11 @@ export class GenerateVideoTool implements Tool {
     return Buffer.from(await res.arrayBuffer());
   }
 
-  private resolveKey(context: ToolExecutionContext): { key: string; via: 'qwen' | 'platform' } | null {
-    // The user's own Qwen key first (BYOK plan, 1 Nov 2026) — it goes straight
-    // to DashScope. The platform route remains only for older account builds.
+  /** The user's own Qwen key — it goes straight to DashScope. */
+  private resolveKey(context: ToolExecutionContext): { key: string } | null {
     const state = context.sharedState as Record<string, unknown> | undefined;
     const getKey = state?.getProviderKey as ((p: string) => string | undefined) | undefined;
     const qwenKey = getKey?.('qwen');
-    if (qwenKey) return { key: qwenKey, via: 'qwen' };
-    const platformKey = state?.platformKey as string | undefined;
-    if (platformKey) return { key: platformKey, via: 'platform' };
-    return null;
+    return qwenKey ? { key: qwenKey } : null;
   }
 }

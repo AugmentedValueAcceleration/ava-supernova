@@ -1,26 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { ProviderRegistry } from '../src/providers/provider-registry.js';
-import { PlatformProvider } from '../src/providers/platform/index.js';
 import { ModelRouter, type RoutingMode } from '../src/auto/model-router.js';
 import { LONGXIANG_ENABLED, AURORA_ENABLED, VISIBLE_ROUTING_MODES } from '../src/auto/routing-modes.js';
 import { AutoCoordinator } from '../src/auto/auto-coordinator.js';
 import { ToolRegistry } from '../src/tools/tool-registry.js';
 
 /**
- * Surface-parity regression. The managed platform serves DeepSeek/Mistral
- * under `-platform`-suffixed ids and Qwen under native ids; BYOK providers
- * list native ids. A routing table written in either form must resolve to the
- * intended fleet model on BOTH surfaces. This locks in the registry-bridge fix
- * so Aurora can never silently fall back to Qwen on platform, and Supernova's
- * DeepSeek routes can never silently fall back to Qwen on BYOK.
+ * Fleet routing on the user's own keys. Each fleet must resolve to its
+ * intended models — Aurora never silently falls back off Mistral, Supernova's
+ * DeepSeek routes never silently fall back to Qwen. (This file also covered
+ * the managed platform until accounts went, 1 Nov 2026.)
  */
 
 type Setup = (reg: ProviderRegistry, avail: Set<string>) => void;
 
-const platform: Setup = (reg, avail) => {
-  reg.registerCustom('platform', new PlatformProvider({ apiKey: 'pk' }));
-  avail.add('platform');
-};
 const byok = (...providers: string[]): Setup => (reg, avail) => {
   for (const p of providers) { reg.register(p, { apiKey: 'k' }); avail.add(p); }
 };
@@ -29,8 +22,7 @@ function router(mode: RoutingMode, setup: Setup): ModelRouter {
   const reg = new ProviderRegistry();
   const avail = new Set<string>();
   setup(reg, avail);
-  const platformKey = avail.has('platform') ? 'pk' : undefined;
-  return new ModelRouter(reg, avail, platformKey, {}, mode);
+  return new ModelRouter(reg, avail, {}, mode);
 }
 
 /** Concrete resolved model id for a category (strips the provider prefix). */
@@ -43,11 +35,9 @@ function coordinatorFor(mode: RoutingMode, setup: Setup): string | null {
   const reg = new ProviderRegistry();
   const avail = new Set<string>();
   setup(reg, avail);
-  const platformKey = avail.has('platform') ? 'pk' : undefined;
   const ac = AutoCoordinator.create({
     providerRegistry: reg,
     availableProviders: avail,
-    platformKey,
     toolRegistry: new ToolRegistry(),
     mode,
   });
@@ -92,14 +82,13 @@ describe('Aurora — Mistral-only, and BYOK-only (EU-stack guarantee)', () => {
     // deleted outright.
     expect(AURORA_ENABLED).toBe(false);
     expect(VISIBLE_ROUTING_MODES).not.toContain('aurora');
-    const r = router('aurora', platform);
+    const r = router('aurora', byok('mistral'));
     expect(modelFor(r, 'coding')).toBeTruthy();
   });
 });
 
-describe('Supernova — DeepSeek reachable on both surfaces', () => {
+describe('Supernova — DeepSeek on the user\'s key', () => {
   for (const [label, setup, suffix] of [
-    ['platform', platform, '-platform'],
     ['BYOK deepseek+qwen', byok('deepseek', 'qwen'), ''],
   ] as const) {
     it(`routes deep work to V4 Pro and mid-tier to V4 Flash (${label})`, () => {
@@ -116,7 +105,7 @@ describe('Supernova — DeepSeek reachable on both surfaces', () => {
   }
 });
 
-describe('Longxiang — open-weights fleet, plan or BYOK', () => {
+describe('Longxiang — open-weights fleet, on the user\'s keys', () => {
   const fleet = byok('kimi', 'qwen', 'deepseek');
 
   it('pins K3 to the depth routes (coding, planning, security)', () => {
@@ -140,21 +129,6 @@ describe('Longxiang — open-weights fleet, plan or BYOK', () => {
 
   it('coordinator is Kimi K3 on BYOK', () => {
     expect(coordinatorFor('longxiang', fleet)).toBe('kimi-k3');
-  });
-
-  it('plan access follows the launch flag', () => {
-    if (LONGXIANG_ENABLED) {
-      // Live: Longxiang is NOT special-cased — a signed-in plan runs it on
-      // credits, exactly like Maestro / Supernova / Aurora.
-      expect(coordinatorFor('longxiang', platform)).not.toBeNull();
-    } else {
-      // Dark: the managed K3 entry is gated out of PLATFORM_MODELS entirely,
-      // so a plan cannot reach it. This is the leak guard — a bookable
-      // managed model must not exist for a fleet nobody can select yet.
-      // BYOK still resolves (see the test above), because that runs on the
-      // user's own key and costs us nothing.
-      expect(coordinatorFor('longxiang', platform)).toBeNull();
-    }
   });
 
   it('launch flag is DOWN again — the fleet could not be staffed', () => {
@@ -227,8 +201,8 @@ describe('Chat routes to the cheap tier, never the coordinator', () => {
   });
 });
 
-describe('Maestro — Qwen on both surfaces', () => {
-  for (const [label, setup] of [['platform', platform], ['BYOK qwen', byok('qwen')]] as const) {
+describe('Maestro — Qwen on the user\'s key', () => {
+  for (const [label, setup] of [['BYOK qwen', byok('qwen')]] as const) {
     it(`routes core work to Qwen 3.7 Plus (${label})`, () => {
       const r = router('auto', setup);
       for (const c of ['coding', 'planning', 'security', 'long_context'] as const) {
@@ -239,30 +213,24 @@ describe('Maestro — Qwen on both surfaces', () => {
 });
 
 describe('Coordinator pinning per mode', () => {
-  it('Aurora coordinator is Mistral Medium 3.5 on a Mistral key, and nothing on the plan', () => {
-    // Null on the plan is correct, not a hole: there is no managed Mistral to
-    // seat, and seating a Qwen coordinator for a fleet sold as an EU stack
-    // would be the one outcome worse than refusing.
-    expect(coordinatorFor('aurora', platform)).toBeNull();
+  it('Aurora coordinator is Mistral Medium 3.5 on a Mistral key, and nothing without one', () => {
+    // Null without a Mistral key is correct, not a hole: seating a Qwen
+    // coordinator for a fleet sold as an EU stack would be the one outcome
+    // worse than refusing.
+    expect(coordinatorFor('aurora', byok('qwen'))).toBeNull();
     expect(coordinatorFor('aurora', byok('mistral'))).toBe('mistral-medium-3.5');
   });
-  it('Supernova coordinator is DeepSeek V4 Pro on both surfaces', () => {
-    expect(coordinatorFor('supernova', platform)).toBe('deepseek-flash-platform');
+  it('Supernova coordinator is DeepSeek Flash', () => {
     expect(coordinatorFor('supernova', byok('deepseek', 'qwen'))).toBe('deepseek-flash');
   });
   it('Supernova falls through gracefully when DeepSeek is absent', () => {
     // qwen-only Supernova user — polyglot fallback, never null.
     expect(coordinatorFor('supernova', byok('qwen'))).not.toBeNull();
   });
-  it('Maestro coordinator is a Qwen flagship on both surfaces', () => {
+  it('Maestro coordinator is a Qwen flagship on a Qwen key', () => {
     // Regression this guards: the flagship was absent from the BYOK ladder, so
-    // a qwen-only user got 3.5 Plus as the classifier-brain.
-    //
-    // The two surfaces legitimately differ. Coordinating is classify-and-pick,
-    // which is a light job, so the managed plan seats 3.8 Flash and spends the
-    // budget on the specialists doing the work. A BYOK user has no managed
-    // ladder to fall back to, so the strongest key they hold takes the seat.
-    expect(coordinatorFor('auto', platform)).toBe('qwen3.8-flash');
+    // a qwen-only user got 3.5 Plus as the classifier-brain. The strongest
+    // key the user holds takes the seat.
     expect(coordinatorFor('auto', byok('qwen'))).toBe('qwen3.7-plus');
   });
   it('reasoning-capable flagship outranks the non-reasoning Mistral Large 3', () => {
@@ -273,8 +241,8 @@ describe('Coordinator pinning per mode', () => {
 });
 
 describe('a pinned coordinator that cannot be reached (fully BYOK, 1 Nov 2026)', () => {
-  // The extension and IDE pin Supernova to a PLATFORM model. With no account
-  // that pin never resolves; it used to be treated as the override anyway,
+  // An older surface pinned Supernova to an account-era PLATFORM model. That
+  // pin never resolves; it used to be treated as the override anyway,
   // skipping the Supernova branch, so an own-key user got the generic ladder.
   const pinned = (setup: Setup, preferredCoordinatorId: string) => {
     const reg = new ProviderRegistry();
@@ -299,21 +267,14 @@ describe('a pinned coordinator that cannot be reached (fully BYOK, 1 Nov 2026)',
   });
 });
 
-describe('a platform: model id with no account (fully BYOK, 1 Nov 2026)', () => {
-  // Saved choices and older surfaces still name `platform:` models. With no
-  // platform registered they used to resolve to nothing — "no provider".
+describe('an account-era platform: model id (fully BYOK, 1 Nov 2026)', () => {
+  // Choices saved on an account still name `platform:` models. With no
+  // platform they used to resolve to nothing — "no provider".
   it('resolves on the user\'s own key, bridging the -platform suffix', () => {
     const reg = new ProviderRegistry();
     byok('qwen', 'deepseek')(reg, new Set());
     expect(reg.resolveModel('platform:qwen3.7-plus')?.model.id).toBe('qwen3.7-plus');
     expect(reg.resolveModel('platform:deepseek-flash-platform')?.model.id).toBe('deepseek-flash');
-  });
-
-  it('leaves an account holder\'s platform routing exactly as it was', () => {
-    const reg = new ProviderRegistry();
-    platform(reg, new Set());
-    byok('qwen')(reg, new Set());
-    expect(reg.resolveModel('platform:qwen3.7-plus')?.provider.name).toBe('platform');
   });
 
   it('does not invent a provider that is not there', () => {

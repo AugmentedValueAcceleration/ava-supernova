@@ -49,16 +49,6 @@
       "require": "./dist/providers/request-shaping/index.js",
       "types": "./dist/providers/request-shaping/index.d.ts"
     },
-    "./billing": {
-      "import": "./dist/billing/plans.js",
-      "require": "./dist/billing/plans.js",
-      "types": "./dist/billing/plans.d.ts"
-    },
-    "./billing/credits": {
-      "import": "./dist/billing/credits.js",
-      "require": "./dist/billing/credits.js",
-      "types": "./dist/billing/credits.d.ts"
-    },
     "./creative": {
       "import": "./dist/creative/index.js",
       "require": "./dist/creative/index.js",

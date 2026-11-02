@@ -1,16 +1,11 @@
 // Cost attribution for audit entries.
 //
-// Two billing models, two unit conventions:
-//   - Platform mode: charge in credits via creditsForTurn() — same math
-//     the server bills with, so the audit row's credit number matches
-//     the actual charge byte-for-byte.
-//   - BYOK mode: estimate USD from the provider's published per-token
-//     rate × the call's token counts. Rates live in PROVIDER_USD_RATES
-//     below — keep this small + visible rather than importing from a
-//     bigger model registry, since the bench repo is already the
-//     auditable source of truth for model facts.
+// Every call runs on the user's own key (no accounts, 1 Nov 2026), so a cost
+// is an ESTIMATE in USD: the provider's published per-token rate × the call's
+// token counts. Rates live in PROVIDER_USD_RATES below — keep this small +
+// visible rather than importing from a bigger model registry, since the bench
+// repo is already the auditable source of truth for model facts.
 
-import { creditsForTurn } from '../billing/credits.js';
 import type { AuditCost } from './types.js';
 
 interface ProviderRate {
@@ -140,30 +135,16 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
  *  in both billing models. Returns undefined when there's nothing to
  *  attribute, so the receipt UI can render a dash instead of "$0.00". */
 export function computeCost(opts: {
-  mode: 'platform' | 'byok';
   toolName: string;
   inputTokens?: number;
   outputTokens?: number;
   provider?: string;
   model?: string;
-  cacheHit?: boolean;
 }): AuditCost | undefined {
-  const { mode, inputTokens = 0, outputTokens = 0, provider, model, cacheHit } = opts;
+  const { inputTokens = 0, outputTokens = 0, provider, model } = opts;
   const tokens = inputTokens + outputTokens;
   if (tokens === 0) return undefined;
 
-  if (mode === 'platform') {
-    const { credits } = creditsForTurn('chat_turn', { inputTokens, outputTokens, model, cachedTokens: cacheHit ? inputTokens : 0 });
-    return {
-      mode: 'platform',
-      credits,
-      tokens: { input: inputTokens, output: outputTokens },
-      provider,
-      model,
-    };
-  }
-
-  // BYOK — estimate USD from provider rate card.
   const usd = estimateByokUsd(provider, model, inputTokens, outputTokens);
   return {
     mode: 'byok',
@@ -193,7 +174,8 @@ function estimateByokUsd(provider: string | undefined, model: string | undefined
 }
 
 /** Format a cost record for display. Returns a short string suitable
- *  for table cells: "12 credits", "$0.04", "—" when no cost data. */
+ *  for table cells: "$0.04", or "—" when no cost data. An entry recorded on
+ *  an account before 1 Nov 2026 still reads as what it was charged. */
 export function formatCost(cost: AuditCost | undefined): string {
   if (!cost) return '—';
   if (cost.mode === 'platform' && cost.credits != null) return `${cost.credits} credit${cost.credits === 1 ? '' : 's'}`;

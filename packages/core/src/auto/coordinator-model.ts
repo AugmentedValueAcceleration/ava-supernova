@@ -38,36 +38,6 @@ export interface CoordinatorModelResult {
   reason: string;
 }
 
-// Ordered by reasoning capability — best first.
-// Both Plus tiers are 1M context — no cliff on fallback. MiniMax excluded — BYOK chat only, never a coordinator.
-// Qwen 3.5 Plus left this ladder on 2026-09-10. It was dominated outright by
-// Qwen 3.8 Flash — dearer at $0.20/$1.20 against $0.15/$0.47, no vision, and a
-// generation older — so there was no workload for which it was the right rung.
-// It stays in the catalogue and resolvable by id; it is simply no longer a
-// step the ladder walks through.
-//
-// ── 2026-10-06: Qwen 3.8 Flash promoted to the lead seat ──
-//
-// This block previously held 3.8 Flash at second and said the lead moves "when
-// a replay of our own traffic says so, not before" — because its published
-// figures (SWE-bench Pro 62.5 vs 3.7 Plus's 55.8) were Flash-Next's, not this
-// production id's. That replay still has not been run. The operator promoted it
-// anyway, deliberately, on cost: Maestro's lead runs every step of every turn,
-// and the credit multiplier drops from 0.94 to 0.44 — a little over half.
-//
-// So this is a cost decision taken ahead of the quality evidence, which is the
-// opposite of the usual order here. Recorded plainly rather than dressed up: if
-// Maestro turns start needing more steps, or verification starts failing more
-// often, this line is the first thing to put back.
-//
-// 3.7 Plus stays directly beneath it, so the fallback is a step UP in capability
-// rather than down — which is the right shape for a lead that is cheaper than
-// its own backup.
-const PLATFORM_PRIORITY = [
-  { id: 'qwen3.8-flash',    reason: 'Qwen 3.8 Flash — Maestro coordinator: 1M context, multimodal, newer generation at flash cost' },
-  { id: 'qwen3.7-plus',     reason: 'Qwen 3.7 Plus — best agentic coding, 1M context, native function calling' },
-  { id: 'qwen3.5-flash',    reason: 'Qwen 3.5 Flash — lightweight fallback' },
-];
 
 const BYOK_PRIORITY = [
   // K3 leads this list on merit as well as by default: Moonshot's launch table
@@ -89,7 +59,6 @@ const BYOK_PRIORITY = [
 export function resolveCoordinatorModel(
   providerRegistry: ProviderRegistry,
   availableProviders: Set<string>,
-  hasPlatform: boolean,
   preferredCoordinatorId?: string,
 ): CoordinatorModelResult | null {
   // Operator override — if the user has picked a specific coordinator in
@@ -109,17 +78,7 @@ export function resolveCoordinatorModel(
     }
   }
 
-  // Platform users — try platform models first (managed, reliable)
-  if (hasPlatform) {
-    for (const candidate of PLATFORM_PRIORITY) {
-      const resolved = providerRegistry.resolveModel(`platform:${candidate.id}`);
-      if (resolved) {
-        return { provider: resolved.provider, model: resolved.model, reason: candidate.reason };
-      }
-    }
-  }
-
-  // BYOK users — try each model across available providers
+  // Try each model across the providers the user holds keys for
   for (const candidate of BYOK_PRIORITY) {
     // Direct lookup (provider may be implicit)
     const direct = providerRegistry.resolveModel(candidate.id);
@@ -129,7 +88,6 @@ export function resolveCoordinatorModel(
 
     // Try with each available provider prefix
     for (const providerName of availableProviders) {
-      if (providerName === 'platform') continue; // Already tried above
       const qualified = `${providerName}:${candidate.id}`;
       const resolved = providerRegistry.resolveModel(qualified);
       if (resolved) {

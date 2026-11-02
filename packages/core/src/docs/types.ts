@@ -104,7 +104,7 @@ export type DocBlock =
  */
 export type FactsBlock =
   | { type: 'facts'; kind: 'tools'; filter?: { category?: string; risk?: string } }
-  | { type: 'facts'; kind: 'providers'; filter?: { kind?: 'orchestration' | 'managed' | 'byok' } }
+  | { type: 'facts'; kind: 'providers'; filter?: { kind?: 'orchestration' | 'byok' } }
   | { type: 'facts'; kind: 'modes' }
   | { type: 'facts'; kind: 'personas'; filter?: { mode?: string } }
   | { type: 'facts'; kind: 'permissions' }

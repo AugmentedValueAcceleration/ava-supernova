@@ -52,7 +52,7 @@ const CATEGORY_TO_MODE: Record<string, string> = {
 /**
  * Auto Mode coordinator.
  *
- * Sits on a persistent model (M2.7 for platform users) and routes tasks
+ * Sits on a persistent model and routes tasks
  * to the best available model by spawning fresh Agent instances.
  * Simple tasks (chat, image gen) are handled directly without spawning.
  */
@@ -75,15 +75,6 @@ export class AutoCoordinator {
    * Conductor.needsOrchestration gate.
    */
   private intentGate: { provider: Provider; model: ModelDefinition } | null;
-  /**
-   * True when a platform key is present. On platform we split light-tier
-   * personas onto a cheap fast model (a cost optimisation — the platform
-   * holds every key). On BYOK (false) we DON'T: the whole persona team runs
-   * on the user's one coordinator model, so the full Ava orchestration runs
-   * on the model they actually chose, never silently handed to a model they
-   * may not even have a key for.
-   */
-  private readonly hasPlatform: boolean;
   // The Agent currently executing inside run(). May be the planning task agent
   // or a Builder spawned by TaskExecutor. inject() forwards to whichever is
   // active so user mid-run messages reach the agent that's actually running.
@@ -125,7 +116,6 @@ export class AutoCoordinator {
     cwd: string;
     sharedState: Record<string, unknown>;
     availableProviders: Set<string>;
-    platformKey?: string;
     userPreferences?: UserRoutePreferences;
     projectInstructions?: string;
     systemPromptOpts?: Record<string, unknown>;
@@ -151,7 +141,6 @@ export class AutoCoordinator {
     this.router = new ModelRouter(
       opts.providerRegistry,
       opts.availableProviders,
-      opts.platformKey,
       opts.userPreferences,
       this.mode,
     );
@@ -161,28 +150,21 @@ export class AutoCoordinator {
     // 256K context, vision encoder from scratch, 77.6% SWE-Bench Verified,
     // modified-MIT open weights). Auto reuses the coordinator model for
     // backward-compatibility with the existing tuning. If the override
-    // can't resolve (platform not enabled, model not registered) fall
-    // back to the coordinator model rather than block.
+    // can't resolve (no key for it) fall back to the coordinator model
+    // rather than block.
     if (this.mode === 'supernova') {
-      const resolved = opts.providerRegistry.resolveModel(`platform:${SUPERNOVA_BUILDER_ID}`)
-        ?? opts.providerRegistry.resolveModel(SUPERNOVA_BUILDER_ID);
+      const resolved = opts.providerRegistry.resolveModel(SUPERNOVA_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
     } else if (this.mode === 'aurora') {
-      // Aurora is Mistral-only — try platform-managed Mistral first
-      // (Ava's Mistral key, includes Aurora as a managed option), then
-      // BYOK Mistral, then fall back to coordinator if neither resolves.
-      const resolved = opts.providerRegistry.resolveModel(`platform:${AURORA_BUILDER_ID}`)
-        ?? opts.providerRegistry.resolveModel(`mistral:${AURORA_BUILDER_ID}`)
+      // Aurora is Mistral-only — the user's Mistral key, else the coordinator.
+      const resolved = opts.providerRegistry.resolveModel(`mistral:${AURORA_BUILDER_ID}`)
         ?? opts.providerRegistry.resolveModel(AURORA_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
     } else if (this.mode === 'longxiang') {
-      // K3 builds as well as coordinates. Platform-managed first, then the
-      // user's own Moonshot key — same ladder as the other fleets.
-      const resolved = opts.providerRegistry.resolveModel(`platform:${LONGXIANG_BUILDER_ID}-platform`)
-        ?? opts.providerRegistry.resolveModel(`platform:${LONGXIANG_BUILDER_ID}`)
-        ?? opts.providerRegistry.resolveModel(`kimi:${LONGXIANG_BUILDER_ID}`)
+      // K3 builds as well as coordinates, on the user's own Moonshot key.
+      const resolved = opts.providerRegistry.resolveModel(`kimi:${LONGXIANG_BUILDER_ID}`)
         ?? opts.providerRegistry.resolveModel(LONGXIANG_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
@@ -192,15 +174,14 @@ export class AutoCoordinator {
     }
 
     // Resolve the vision model for image inputs (see field doc). Mirrors the
-    // builder resolution: platform-managed first, then BYOK, then null.
+    // builder resolution: the fleet's own pick, then any vision model, then null.
     const visionId = this.mode === 'aurora'
       ? AURORA_VISION_ID
       : this.mode === 'longxiang'
         ? LONGXIANG_VISION_ID
         : SUPERNOVA_VISION_ID;
     const visionResolved =
-      opts.providerRegistry.resolveModel(`platform:${visionId}`)
-      ?? opts.providerRegistry.resolveModel(visionId)
+      opts.providerRegistry.resolveModel(visionId)
       ?? (this.mode === 'aurora' ? opts.providerRegistry.resolveModel(`mistral:${visionId}`) : null)
       // Net under the fleet's own choice, NOT a replacement for it. Each
       // fleet names a vision model deliberately — Aurora's is Mistral Medium
@@ -213,15 +194,12 @@ export class AutoCoordinator {
     this.visionProvider = visionResolved?.provider ?? null;
     this.visionModel = visionResolved?.model ?? null;
 
-    // Resolve a cheap fast model for the upstream intent gate.
-    // Prefers Qwen 3.5 Flash on platform; falls through to Haiku/DeepSeek
-    // on BYOK. Null if nothing viable is reachable — in that case the
-    // spawn decision falls back to the regex-based Conductor gate only.
-    this.hasPlatform = !!opts.platformKey || opts.availableProviders.has('platform');
+    // Resolve a cheap fast model for the upstream intent gate. Null if
+    // nothing viable is reachable — in that case the spawn decision falls
+    // back to the regex-based Conductor gate only.
     this.intentGate = resolveIntentGateModel(
       opts.providerRegistry,
       opts.availableProviders,
-      this.hasPlatform,
     );
 
     // The coordinator's own agent — handles direct tasks (chat, simple questions).
@@ -241,9 +219,9 @@ export class AutoCoordinator {
   }
 
   /**
-   * Create an AutoCoordinator with the correct coordinator model.
-   * Platform users: Kimi K2.5. BYOK users: best available. Free: Qwen Flash.
-   * Returns null if no model is available.
+   * Create an AutoCoordinator with the correct coordinator model — the mode's
+   * pinned coordinator, else the best the user's keys reach. Returns null if
+   * no model is available.
    */
   static create(opts: {
     providerRegistry: ProviderRegistry;
@@ -251,11 +229,10 @@ export class AutoCoordinator {
     cwd: string;
     sharedState: Record<string, unknown>;
     availableProviders: Set<string>;
-    platformKey?: string;
     userPreferences?: UserRoutePreferences;
     projectInstructions?: string;
     systemPromptOpts?: Record<string, unknown>;
-    // Operator's chosen coordinator model id (e.g. 'platform:deepseek-flash-platform').
+    // Operator's chosen coordinator model id (e.g. 'deepseek:deepseek-flash').
     // When set and resolvable, wins over the default priority ladder.
     preferredCoordinatorId?: string;
     /** 'auto' (default) or 'supernova'. */
@@ -266,31 +243,25 @@ export class AutoCoordinator {
     // Large 3. Falls through to the default priority ladder if the
     // operator already passed an explicit preference (rare; means they're
     // admin-overriding the override).
-    const hasPlatform = !!opts.platformKey || opts.availableProviders.has('platform');
     let coordinator: ReturnType<typeof resolveCoordinatorModel> = null;
 
-    // An explicit pin wins — but only when it can actually be reached. The
-    // extension and IDE pin Supernova to a PLATFORM model; with no account
-    // (fully BYOK, 1 Nov 2026) that never resolves, and treating it as the
-    // override anyway skipped the Supernova branch below, so an own-key user
-    // silently got the generic ladder instead of their DeepSeek coordinator.
+    // An explicit pin wins — but only when it can actually be reached.
+    // Treating an unreachable pin as the override anyway would skip the mode
+    // branch below and silently hand the turn to the generic ladder.
     if (opts.preferredCoordinatorId && opts.providerRegistry.resolveModel(opts.preferredCoordinatorId)) {
       // Explicit operator override wins for any mode.
       coordinator = resolveCoordinatorModel(
-        opts.providerRegistry, opts.availableProviders, hasPlatform, opts.preferredCoordinatorId,
+        opts.providerRegistry, opts.availableProviders, opts.preferredCoordinatorId,
       );
     } else if (opts.mode === 'aurora') {
       // Aurora is Mistral-only — never silently routes to a non-Mistral
-      // coordinator. Try Medium 3.5 platform-managed → BYOK → Large 3 reserve.
+      // coordinator. Medium 3.5 on the user's Mistral key, then the Large 3 reserve.
       // Returns null if no Mistral model is reachable so the caller can surface
       // a clear error rather than breaking the EU-stack guarantee with a Qwen
-      // fallback. The registry bridges the native/-platform id-suffix duality,
-      // so the native AURORA_* ids resolve on both managed and BYOK surfaces.
+      // fallback.
       const tries = [
-        `platform:${AURORA_COORDINATOR_ID}`,
         `mistral:${AURORA_COORDINATOR_ID}`,
         AURORA_COORDINATOR_ID,
-        `platform:${AURORA_BUILDER_ID}`,
         `mistral:${AURORA_BUILDER_ID}`,
         AURORA_BUILDER_ID,
       ];
@@ -310,12 +281,8 @@ export class AutoCoordinator {
       // it's the strongest open coder we have and a strong tool-driver, so
       // there's nothing to gain by splitting them.
       //
-      // Resolves platform-managed first, then BYOK — the same ladder every
-      // other fleet uses. A plan runs Longxiang on credits; a BYOK user runs
-      // it on their own Moonshot key.
+      // On the user's own Moonshot key.
       const tries = [
-        `platform:${LONGXIANG_COORDINATOR_ID}-platform`,
-        `platform:${LONGXIANG_COORDINATOR_ID}`,
         `kimi:${LONGXIANG_COORDINATOR_ID}`,
         LONGXIANG_COORDINATOR_ID,
       ];
@@ -331,12 +298,11 @@ export class AutoCoordinator {
         }
       }
     } else if (opts.mode === 'supernova') {
-      // Supernova pins DeepSeek Flash as coordinator — try platform-managed →
-      // BYOK deepseek → native. Unlike Aurora, Supernova is polyglot, so it
+      // Supernova pins DeepSeek Flash as coordinator, on the user's DeepSeek
+      // key. Unlike Aurora, Supernova is polyglot, so it
       // falls through to the generic priority ladder if DeepSeek isn't
       // reachable rather than erroring.
       for (const id of [
-        `platform:${SUPERNOVA_COORDINATOR_ID}`,
         `deepseek:${SUPERNOVA_COORDINATOR_ID}`,
         SUPERNOVA_COORDINATOR_ID,
       ]) {
@@ -351,11 +317,11 @@ export class AutoCoordinator {
         }
       }
       if (!coordinator) {
-        coordinator = resolveCoordinatorModel(opts.providerRegistry, opts.availableProviders, hasPlatform);
+        coordinator = resolveCoordinatorModel(opts.providerRegistry, opts.availableProviders);
       }
     } else {
       // Auto / Maestro — generic priority ladder.
-      coordinator = resolveCoordinatorModel(opts.providerRegistry, opts.availableProviders, hasPlatform);
+      coordinator = resolveCoordinatorModel(opts.providerRegistry, opts.availableProviders);
     }
     if (!coordinator) return null;
 
@@ -1116,16 +1082,10 @@ Should these tasks be executed as a plan? Output yes or no.`;
       const taskConductor = new Conductor({
         provider: route.provider,
         model: route.model,
-        // PLATFORM: thread the intent-gate's cheap fast pair through so
-        // personas tagged modelTier:'light' (critics, summarisers, readers)
-        // run on it instead of the heavy route model — a cost optimisation
-        // the platform can afford because it holds every key.
-        // BYOK: pass nothing, so the Conductor runs EVERY persona on the
+        // No light-tier split: the Conductor runs EVERY persona on the
         // user's coordinator model. The full persona team — the real Ava
         // magic — runs on the exact model they chose, never split off to a
         // cheaper model they might not have a key for.
-        lightProvider: this.hasPlatform ? this.intentGate?.provider : undefined,
-        lightModel: this.hasPlatform ? this.intentGate?.model : undefined,
         // Vision bridge so text-only personas can see attached images.
         visionProvider: this.visionProvider ?? undefined,
         visionModel: this.visionModel ?? undefined,

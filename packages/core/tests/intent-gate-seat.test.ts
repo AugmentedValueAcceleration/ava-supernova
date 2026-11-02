@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { SUPERNOVA_INTENT_GATE_ID } from '../src/auto/supernova-router.js';
 import { LONGXIANG_INTENT_GATE_ID } from '../src/auto/longxiang-router.js';
 import { AURORA_INTENT_GATE_ID } from '../src/auto/aurora-router.js';
-import { modelCostMultiplier, CREDIT_COST } from '../src/billing/credits.js';
 
 /**
  * The intent gate seat, pinned.
@@ -33,18 +32,6 @@ describe('intent gate seat', () => {
     // Aurora's whole promise is that no call leaves Mistral. A gate is still a
     // call, so it must not quietly become a Qwen model along with the others.
     expect(AURORA_INTENT_GATE_ID).toBe('mistral-small-4');
-  });
-
-  it('costs the user no more than the model it replaced', () => {
-    // The move was justified on accuracy, not price — 3.7 Flash carries a
-    // higher multiplier than 3.5 Flash. It stays free to the user because a
-    // gate call is one bracket and the 1-credit floor absorbs the difference.
-    // If that ever stops being true, this seat became a real cost increase on
-    // every turn and someone should have to say so out loud.
-    const charge = (id: string) =>
-      Math.max(1, Math.round(CREDIT_COST.light_call * modelCostMultiplier(id)));
-
-    expect(charge('qwen3.7-flash')).toBe(charge('qwen3.5-flash'));
   });
 
   it('keeps a fallback that is a DIFFERENT model', () => {

@@ -10,8 +10,6 @@
 // append. Keep each suffix to one short sentence; the model has more taste than
 // we do.
 
-import { CREDIT_COST, videoCreditCost } from '../billing/credits.js';
-
 export type CreativeMode = 'images' | 'audio' | 'voice' | 'video';
 
 /** All modes, in tab order. */
@@ -91,28 +89,6 @@ export function composeMusicPrompt(prompt: string, moodId: string): string {
 }
 export function composeVideoPrompt(prompt: string, cameraId: string, motionId: string): string {
   return prompt.trim() + suffixFor(VIDEO_CAMERAS, cameraId) + (VIDEO_MOTION.find((m) => m.id === motionId)?.suffix ?? '');
-}
-
-// ── Cost estimates (credits per generation) ──────────────────────────────────
-// Source of truth: billing/credits CREDIT_COST. The server bills with the same
-// constants. Variations fan out client-side (N parallel calls) so they multiply.
-// Voice scales by 500-char chunks; music + video are flat-charged.
-
-export const VOICE_CHARS_PER_UNIT = 500;
-
-export function estimateImageCredits(variations: number): number {
-  return CREDIT_COST.image_gen * Math.max(1, variations);
-}
-export function estimateMusicCredits(_durationSec?: number): number {
-  return CREDIT_COST.music_gen;
-}
-export function estimateVoiceCredits(textLen: number): number {
-  const chunks = Math.max(1, Math.ceil(textLen / VOICE_CHARS_PER_UNIT));
-  return CREDIT_COST.voice_gen * chunks;
-}
-export function estimateVideoCredits(resolution: string, seconds?: number): number {
-  const sr = resolution === '1080P' ? 1080 : resolution === '480P' ? 480 : 720;
-  return videoCreditCost(sr, seconds);
 }
 
 // ── Empty-state suggestion prompts ───────────────────────────────────────────

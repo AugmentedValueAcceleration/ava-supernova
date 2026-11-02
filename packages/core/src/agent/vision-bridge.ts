@@ -14,7 +14,7 @@
 
 import type { Provider } from '../providers/types.js';
 import type { ModelDefinition, Message, ContentPart } from '../core/types.js';
-import { listAllModelDefs, PLATFORM_MODELS } from '../providers/catalog.js';
+import { listAllModelDefs } from '../providers/catalog.js';
 import { logger } from '../core/logger.js';
 import { avaEvents } from '../dataset/emitter.js';
 
@@ -56,11 +56,6 @@ export function resolveVisionDescriber(
     .filter((m) => m.supportsVision && !m.disabled)
     .sort((a, b) => (a.pricing?.inputPerMillion ?? Number.POSITIVE_INFINITY)
                   - (b.pricing?.inputPerMillion ?? Number.POSITIVE_INFINITY));
-
-  for (const m of cheapestFirst(PLATFORM_MODELS)) {
-    const hit = registry.resolveModel(`platform:${m.id}`);
-    if (hit) return hit;
-  }
 
   for (const m of cheapestFirst(listAllModelDefs())) {
     const hit = registry.resolveModel(`${m.provider}:${m.id}`);

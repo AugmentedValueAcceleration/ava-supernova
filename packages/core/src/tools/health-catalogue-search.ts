@@ -171,9 +171,8 @@ export class HealthCatalogueSearchTool implements Tool {
       if (wanted.length) url.searchParams.set('diet', wanted.join(','));
     }
 
+    // The catalogue is public — no key, no account.
     const headers: Record<string, string> = { Accept: 'application/json' };
-    const platformKey = context.sharedState?.platformKey as string | undefined;
-    if (platformKey) headers.Authorization = `Bearer ${platformKey}`;
 
     try {
       const response = await fetch(url.toString(), { headers });

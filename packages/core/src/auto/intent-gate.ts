@@ -57,17 +57,8 @@ export interface TeachDepthDecision {
 export function resolveIntentGateModel(
   providerRegistry: ProviderRegistry,
   availableProviders: Set<string>,
-  hasPlatform: boolean,
 ): { provider: Provider; model: ModelDefinition } | null {
-  // Platform priority — Qwen Flash family first
-  if (hasPlatform) {
-    for (const id of ['qwen3.7-flash', 'qwen3.5-flash', 'qwen-flash']) {
-      const resolved = providerRegistry.resolveModel(`platform:${id}`);
-      if (resolved) return { provider: resolved.provider, model: resolved.model };
-    }
-  }
-
-  // BYOK — any small/fast model will do the classification.
+  // Any small/fast model the user holds a key for will do the classification.
   // DeepSeek Flash replaces `deepseek-chat` (retired upstream 2026-07-24). It
   // was picked as the cheaper of the two V4 tiers; since 2026-09-10 there is
   // only one DeepSeek tier, so it is here on availability, not on price.
@@ -101,7 +92,6 @@ export function resolveIntentGateModel(
     const direct = providerRegistry.resolveModel(id);
     if (direct) return { provider: direct.provider, model: direct.model };
     for (const provName of availableProviders) {
-      if (provName === 'platform') continue;
       const qualified = providerRegistry.resolveModel(`${provName}:${id}`);
       if (qualified) return { provider: qualified.provider, model: qualified.model };
     }
