@@ -410,22 +410,23 @@ export function NavSidebar({
 /* ── SidebarApiKeys ───────────────────────────────────────────────────────── */
 /**
  * Collapsible BYOK key block for the sidebar. Mirrors the IDE's Sidebar
- * section, but NOT its storage: the IDE keeps keys in localStorage, whereas the
- * extension hands them to the host, which puts them in VS Code SecretStorage.
+ * section. The host keeps the keys (in the OS keychain the IDE shares).
  * The webview therefore never holds a key value — it only learns WHICH
  * providers have one (`providerKeys`, booleans). So a configured provider shows
  * as saved with a Remove action rather than echoing dots we don't have.
  *
- * The eight providers here are the same set (and wording) as Settings' PROVIDERS.
+ * The ten providers here are the same set as Settings' PROVIDERS. MiniMax and
+ * Brave were missing until 2 Nov 2026 — the count above the list said 10 while
+ * the list showed 8.
  * Anthropic left both on 2026-09-01: the models were withdrawn on 13 August
  * and this list kept asking for a key that could not reach anything.
  */
 // Explicit union rather than `keyof ProviderKeyStatus` — that interface carries
 // a `[key: string]: boolean` index signature, so keyof widens to string | number
-// and stops meaning anything. These eight are the real providers.
+// and stops meaning anything. These ten are the real providers.
 type SidebarProviderId =
   | 'deepseek' | 'kimi' | 'glm' | 'qwen'
-  | 'mistral' | 'xiaomi' | 'tencent' | 'nvidia';
+  | 'mistral' | 'minimax' | 'xiaomi' | 'tencent' | 'nvidia' | 'brave';
 
 const SIDEBAR_PROVIDERS: Array<{ id: SidebarProviderId; label: string; placeholder: string }> = [
   { id: 'deepseek', label: 'DeepSeek', placeholder: 'sk-...' },
@@ -433,9 +434,11 @@ const SIDEBAR_PROVIDERS: Array<{ id: SidebarProviderId; label: string; placehold
   { id: 'glm', label: 'GLM (Zhipu AI)', placeholder: '...' },
   { id: 'qwen', label: 'Qwen (Alibaba)', placeholder: 'sk-...' },
   { id: 'mistral', label: 'Mistral AI', placeholder: '...' },
+  { id: 'minimax', label: 'MiniMax', placeholder: '...' },
   { id: 'xiaomi', label: 'Xiaomi (MiMo)', placeholder: '...' },
   { id: 'tencent', label: 'Tencent Hunyuan', placeholder: '...' },
   { id: 'nvidia', label: 'NVIDIA', placeholder: 'nvapi-...' },
+  { id: 'brave', label: 'Brave Search', placeholder: '...' },
 ];
 
 function SidebarApiKeys({ providerKeys }: { providerKeys?: ProviderKeyStatus }) {

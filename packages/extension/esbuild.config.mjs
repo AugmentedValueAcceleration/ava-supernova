@@ -72,7 +72,11 @@ function copyKeyringNative() {
       fs.rmSync(path.join(cache, 'package'), { recursive: true, force: true });
       fs.rmSync(path.join(cache, tgz), { force: true });
     }
-    fs.copyFileSync(cached, path.join(out, file));
+    // Skip a file already in place: a running VS Code holds the loaded .node
+    // open, and copying over it fails with EBUSY mid-build.
+    const dest = path.join(out, file);
+    if (fs.existsSync(dest) && fs.readFileSync(dest).equals(fs.readFileSync(cached))) continue;
+    fs.copyFileSync(cached, dest);
   }
   fs.copyFileSync(path.join(cache, 'LICENSE.third-party.md'), path.join(out, 'LICENSE.third-party.md'));
 }
