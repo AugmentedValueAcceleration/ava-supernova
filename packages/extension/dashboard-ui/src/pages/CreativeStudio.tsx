@@ -35,7 +35,7 @@ export type DesignModelState = { models: ChatModel[]; activeModel: string | null
    self-contained (own players, own gallery, own composer).
    ══════════════════════════════════════════════════════════════════════ */
 
-export function CreativeStudio({ onRegisterDesignChatDispatch, designModelState, onSwitchDesignModel, userName, userAvatarUrl }: {
+export function CreativeStudio({ onRegisterDesignChatDispatch, designModelState, onSwitchDesignModel, userName, userAvatarUrl, hasQwenKey }: {
   // Threaded to the Design Studio dock's <Chat lane="design">: App routes
   // design-lane host events here, and passes the operator name/avatar. The
   // model state feeds Design Studio's own top bar.
@@ -44,13 +44,15 @@ export function CreativeStudio({ onRegisterDesignChatDispatch, designModelState,
   onSwitchDesignModel?: (id: string) => void;
   userName?: string | null;
   userAvatarUrl?: string | null;
+  /** Image, video and voice lanes need it. */
+  hasQwenKey?: boolean;
 }) {
   // Break out of <main>'s p-8 and fill it exactly (h-full) so the design
   // workspace is full-bleed and the page never scrolls — only the inspector.
   return (
     <div className="w-[calc(100%+4rem)] flex flex-col -m-8 h-[calc(100%+4rem)] min-h-0 overflow-hidden">
       <LazyPage>
-        <DesignStudio onRegisterDesignChatDispatch={onRegisterDesignChatDispatch} designModelState={designModelState} onSwitchDesignModel={onSwitchDesignModel} userName={userName} userAvatarUrl={userAvatarUrl} />
+        <DesignStudio onRegisterDesignChatDispatch={onRegisterDesignChatDispatch} designModelState={designModelState} onSwitchDesignModel={onSwitchDesignModel} userName={userName} userAvatarUrl={userAvatarUrl} hasQwenKey={hasQwenKey} />
       </LazyPage>
     </div>
   );

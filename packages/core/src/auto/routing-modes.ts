@@ -28,11 +28,10 @@ export type RoutingMode = typeof ROUTING_MODES[number];
 /**
  * Which fleets are OFFERED. The type above stays complete on purpose.
  *
- * Aurora and Longxiang are dark from 2026-10-06. We approached five labs on
- * 9 Sep and only Qwen and DeepSeek answered, so a fleet built on Mistral and
- * one built on Moonshot are both advertising a relationship that does not
- * exist yet. Supernova (DeepSeek + Qwen) and Maestro (Qwen) stand on labs that
- * did reply.
+ * Aurora and Longxiang went dark on 2026-10-06: we approached five labs on
+ * 9 Sep and only Qwen and DeepSeek answered. Aurora came back on 2 Nov 2026
+ * (his call) — with no accounts, every user runs on their own key, so a
+ * Mistral fleet needs nothing from Mistral. Longxiang stays dark.
  *
  * Flags rather than deletion, and the ids stay in ROUTING_MODES, because:
  *   - a saved preference of `aurora` must still PARSE, so the router can fall
@@ -45,7 +44,7 @@ export type RoutingMode = typeof ROUTING_MODES[number];
  * previous failures all came from surfaces that could not and wrote their own.
  * A picker that hides a fleet by hand is the tenth.
  */
-export const AURORA_ENABLED = false;
+export const AURORA_ENABLED = true;
 export const LONGXIANG_ENABLED = false;
 
 /** The fleets a picker should actually show. Use THIS for anything

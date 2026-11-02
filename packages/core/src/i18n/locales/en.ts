@@ -1210,6 +1210,8 @@ export const enStrings = {
   'dash.studio.group.web_app': 'Web / App',
   'dash.studio.group.game': 'Game',
   'dash.studio.soon': 'SOON',
+  'dash.studio.needs_qwen': 'Needs Qwen key',
+  'dash.studio.needs_qwen_tip': 'Images, video and voiceovers run on your Qwen key — add one in Settings. Logos are made on your computer and need no key.',
   'dash.studio.coming_soon': 'Being brought over from the hub. The Icon lane is live — this one lands in an upcoming slice.',
   // NOTE: the logo style / mark-type / lockup-form labels are ALREADY translated
   // at their render sites via dash.studio.style.*, dash.studio.marktype.* and
@@ -2078,7 +2080,7 @@ export const enStrings = {
   'dash.model.sub.byok_qwen': 'BYOK · Qwen',
   'dash.model.sub.supernova_poly': 'Polyglot ensemble',
   'dash.model.sub.byok_ds_qwen': 'BYOK · DeepSeek + Qwen',
-  'dash.model.sub.aurora_eu': 'EU stack — Mistral end-to-end',
+  'dash.model.sub.aurora_eu': 'Mistral only — a European lab',
   'dash.model.sub.byok_mistral': 'BYOK · Mistral',
   'dash.model.sub.add_deepseek': 'Add DeepSeek key',
   'dash.model.sub.add_qwen': 'Add Qwen key',
@@ -2096,7 +2098,7 @@ export const enStrings = {
   'dash.model.sub.byok_longxiang': 'BYOK · Moonshot + Qwen + DeepSeek',
   'dash.model.sub.add_moonshot': 'Add Moonshot key',
   'dash.model.sub.connect_longxiang': 'Add Moonshot + Qwen + DeepSeek keys',
-  'dash.model.aurora_title': 'Aurora — Mistral-only EU stack. Three-tier fleet: Mistral Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Mistral Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Mistral Large 3 is the heavy reserve. EU-only data residency, GDPR-strict, open weights.',
+  'dash.model.aurora_title': 'Aurora — Mistral only. Mistral Large 4 coordinates, codes and does the deep work; Mistral Small 4 handles chat and brainstorming. Models from a European lab.',
   'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash coordinates, codes and does the heavy thinking; Qwen 3.8 Flash handles images. Heavy multi-step work.',
   'dash.model.maestro_title': 'Maestro — Qwen only. Qwen 3.8 Flash coordinates and chats, Qwen 3.7 Plus does the deep work. Daily work, predictable cost.',
   // Careful with this string: it must NOT claim "open weights end to end"

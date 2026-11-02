@@ -19,16 +19,16 @@ export const FLEET_IDS: readonly string[] = ['auto', 'supernova', 'aurora', 'lon
 
 /**
  * The fleets a picker may SHOW. Aurora and Longxiang went dark on 2026-10-06 —
- * we approached five labs on 9 Sep and only Qwen and DeepSeek replied, so a
- * Mistral fleet and a Moonshot fleet both advertise a relationship that does
- * not exist yet.
+ * we approached five labs on 9 Sep and only Qwen and DeepSeek replied. Aurora
+ * came back on 2 Nov 2026: on the user's own key it needs nothing from
+ * Mistral. Longxiang stays dark.
  *
  * Mirrors AURORA_ENABLED / LONGXIANG_ENABLED in core's routing-modes.ts, which
  * is the source of truth. It is duplicated here only because these two webview
  * bundles cannot import core — and that duplication is exactly the failure that
  * file's header documents nine times over, so if you change one, change both.
  */
-export const VISIBLE_FLEET_IDS: readonly string[] = ['auto', 'supernova'];
+export const VISIBLE_FLEET_IDS: readonly string[] = ['auto', 'supernova', 'aurora'];
 
 /** True when a fleet should appear in a picker. Use this for display;
  *  use isFleetModelId for recognising an id that already exists. */
@@ -74,10 +74,10 @@ export const FLEET_COPY: Record<string, FleetCopy> = {
   },
   aurora: {
     label: '✦ Aurora',
-    sub: 'EU stack — Mistral end-to-end',
+    sub: 'Mistral only — a European lab',
     subLocked: 'Add Mistral key',
-    tip: 'Aurora — Mistral-only three-tier EU stack. Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Large 3 is the heavy reserve. Stays inside European infrastructure.',
-    tipLocked: 'Aurora — EU-stack Mistral-only routing. Sign in for platform access, or add a Mistral API key for BYOK.',
+    tip: 'Aurora — Mistral only. Mistral Large 4 coordinates, codes and does the deep work; Mistral Small 4 handles chat and brainstorming.',
+    tipLocked: 'Aurora — Mistral only. Add a Mistral API key to use it.',
   },
   longxiang: {
     // NOTE: the copy deliberately does NOT claim "open weights end to end" —

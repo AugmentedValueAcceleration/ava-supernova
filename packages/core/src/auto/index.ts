@@ -7,7 +7,7 @@ export { ROUTING_MODES, isRoutingMode, AURORA_ENABLED, VISIBLE_ROUTING_MODES, is
 export { classifyTask } from './task-classifier.js';
 export { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 export { ContextTracker } from './context-tracker.js';
-export { resolveCoordinatorModel, resolveMaestroCoordinator, resolveOnFleet, FLEET_PROVIDERS, MAESTRO_PROVIDER, MAESTRO_COORDINATOR_LADDER } from './coordinator-model.js';
+export { resolveCoordinatorModel, resolveMaestroCoordinator, resolveAuroraCoordinator, resolveOnFleet, FLEET_PROVIDERS, MAESTRO_PROVIDER, MAESTRO_COORDINATOR_LADDER } from './coordinator-model.js';
 // Longxiang's launch flag is exported (the routing tables are not) so every
 // surface gates off the SAME boolean instead of each keeping its own copy.
 export { LONGXIANG_ENABLED } from './longxiang-router.js';

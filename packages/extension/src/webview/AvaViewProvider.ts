@@ -44,6 +44,7 @@ import {
   IntentClassifier,
   resolveCoordinatorModel,
   resolveMaestroCoordinator,
+  resolveAuroraCoordinator,
   BriefingEngine,
   EventDetector,
   addLearning,
@@ -88,9 +89,9 @@ import type { RoutingMode } from '@ava/core';
  *  path while the fleet is dark. */
 function isFleetId(id: string | null | undefined): id is RoutingMode {
   if (!id) return false;
-  // Both dark fleets, not just Longxiang. Aurora went dark on 2026-10-06 — a
-  // stale `activeModel: 'aurora'` in settings must not route through the fleet
-  // path any more than a stale longxiang one does.
+  // Each fleet's launch flag. Aurora was dark 6 Oct – 2 Nov 2026; Longxiang
+  // still is — a stale `activeModel: 'longxiang'` must not route through the
+  // fleet path.
   if (id === 'longxiang') return LONGXIANG_ENABLED;
   if (id === 'aurora') return AURORA_ENABLED;
   return isRoutingMode(id);
@@ -2102,13 +2103,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    // Auto Mode + Supernova Mode + Aurora Mode — resolve the correct
-    // coordinator via the core helper. Auto picks the platform default
-    // ladder (Qwen 3.7 Plus on platform). Supernova pins to DeepSeek V4
-    // Pro and runs Builder spawns on Qwen 3.7 Plus. Aurora pins to
-    // Mistral Medium 3.5 (AURORA_COORDINATOR_ID) with Small 4 carrying the
-    // volume — Mistral-only routing for the EU-stack guarantee. Large 3 is
-    // the heavy reserve, not the coordinator.
+    // The fleets — each coordinator on its own providers only, through the
+    // core helpers: Maestro Qwen 3.8 Flash, Supernova DeepSeek V4.1 Flash,
+    // Aurora Mistral Large 4.
     if (isFleetId(modelId)) {
       const availableProviders = new Set<string>();
       const qwenKey = await this.context.secrets.get('ava-supernova.provider.qwen.apiKey');
@@ -2122,41 +2119,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const mistralKey = await this.context.secrets.get('ava-supernova.provider.mistral.apiKey');
       if (mistralKey) availableProviders.add('mistral');
 
-      // Supernova pins coordinator to DeepSeek Flash. Aurora pins coordinator to
-      // Mistral Medium 3.5 (AURORA_COORDINATOR_ID), the fleet's lead seat.
-      // Auto follows the default priority ladder. Aurora uses a strict
-      // Mistral-only resolution chain so it never silently routes to a
-      // non-Mistral coordinator — the EU-stack guarantee.
       let preferredCoordinatorId: string | undefined;
       if (modelId === 'supernova') {
         preferredCoordinatorId = 'deepseek:deepseek-flash'; // on the user's own DeepSeek key
-      } else if (modelId === 'aurora') {
-        // Medium 3.5 first — it's the coordinator per core's aurora-router,
-        // the web API (/api/chat resolves aurora -> mistral-medium-3.5-platform)
-        // and the docs. Large 3 is the heavy RESERVE and Small 4 the volume
-        // workhorse, so they're fallbacks, not the lead.
-        //
-        // This chain used to start at Large 3 and never listed Medium 3.5 at
-        // all, so Aurora was coordinated by a non-reasoning, text-only reserve
-        // model — while the billing table (credits.ts) had already been
-        // rebalanced on the assumption Medium 3.5 leads ("Large 3 ... now
-        // Aurora's heavy reserve/fallback, not the coordinator").
-        //
-        // Down the tiers on the user's own Mistral key. First resolvable wins.
-        const tries = [
-          'mistral:mistral-medium-3.5',
-          'mistral-medium-3.5',
-          'mistral:mistral-large-3',
-          'mistral-large-3',
-          'mistral:mistral-small-4',
-          'mistral-small-4',
-        ];
-        for (const id of tries) {
-          if (this.providerRegistry.resolveModel(id)) {
-            preferredCoordinatorId = id;
-            break;
-          }
-        }
       } else if (modelId === 'longxiang') {
         // Kimi K3 holds BOTH coordinator and Builder (LONGXIANG_COORDINATOR_ID
         // / LONGXIANG_BUILDER_ID), on the user's own Moonshot key.
@@ -2168,14 +2133,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           }
         }
       }
-      // Maestro is Qwen-only: its own ladder, never the generic one (which
-      // seats the strongest key held — Kimi K3, given a Moonshot key).
-      // Maestro is Qwen-only and Supernova Qwen + DeepSeek with DeepSeek
-      // coordinating — never the generic ladder, which seats the strongest key
-      // held (Kimi K3, given a Moonshot key).
+      // Maestro (Qwen), Aurora (Mistral) and Supernova (DeepSeek coordinating)
+      // never use the generic ladder, which seats the strongest key held (Kimi
+      // K3, given a Moonshot key).
       const supernovaSeat = this.providerRegistry.resolveModel('deepseek:deepseek-flash');
       const coordinator = modelId === 'auto'
         ? resolveMaestroCoordinator(this.providerRegistry)
+        : modelId === 'aurora'
+          ? resolveAuroraCoordinator(this.providerRegistry)
         : modelId === 'supernova'
           ? (supernovaSeat?.provider.name === 'deepseek'
               ? { ...supernovaSeat, reason: `${supernovaSeat.model.name} — Supernova coordinator` }
@@ -2194,6 +2159,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           ? 'Maestro runs on Qwen — add a Qwen key in Settings.'
           : modelId === 'supernova'
             ? 'Supernova runs on DeepSeek and Qwen — add a DeepSeek key in Settings.'
+            : modelId === 'aurora'
+              ? 'Aurora runs on Mistral — add a Mistral key in Settings.'
             : `${modeLabel} needs at least one configured provider. Add an API key in Settings.` });
         return;
       }
@@ -2308,10 +2275,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // strike through a fleet that handles images perfectly well.
     modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: maestroAvailable, supportsVision: true });
     modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: supernovaAvailable, supportsVision: true });
-    // Aurora — dark since 2026-10-06, same treatment as Longxiang below: not
-    // pushed at all rather than pushed-and-greyed, because an unavailable row
-    // still shows the name and the fleet is unannounced while Mistral has not
-    // answered our 9 Sep approach.
+    // Aurora — behind its launch flag like Longxiang below (dark 6 Oct – 2 Nov
+    // 2026). While off it is not pushed at all, rather than pushed-and-greyed.
     if (AURORA_ENABLED) {
       modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable, supportsVision: true });
     }

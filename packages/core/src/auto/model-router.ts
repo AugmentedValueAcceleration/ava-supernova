@@ -221,7 +221,7 @@ export class ModelRouter {
     // `deepseek-reasoner`) on 2026-07-24, after which it 400s. Since
     // 2026-09-10 there is exactly one DeepSeek model, `deepseek-flash`, and
     // every id we have ever shipped maps onto it via DEEPSEEK_RETIRED_IDS.
-    const byokModels = ['kimi-k3', 'kimi-k2.7-code', 'kimi-k2.6', 'deepseek-flash', 'glm-5.3', 'mistral-medium-3.5', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
+    const byokModels = ['kimi-k3', 'kimi-k2.7-code', 'kimi-k2.6', 'deepseek-flash', 'glm-5.3', 'mistral-large-4', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {

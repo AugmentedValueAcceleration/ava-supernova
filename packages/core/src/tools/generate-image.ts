@@ -42,6 +42,7 @@ const MAX_VISION_RETRIES = 2;
 
 export class GenerateImageTool implements Tool {
   readonly name = 'generate_image';
+  readonly requiresProviderKey = 'qwen';
   readonly description = 'Generate an AI image from a text prompt and save it to the project';
   readonly riskLevel: ToolRiskLevel = 'write';
   // Media generation is a real charge on the user's own Qwen account —
@@ -89,14 +90,6 @@ export class GenerateImageTool implements Tool {
     },
   };
 
-  // Image generation runs on Wan (Qwen/DashScope). Gate on a Qwen active model
-  // so the Qwen/platform key path is available. MiniMax is chat-only, not images.
-  private canGenerate(context: ToolExecutionContext): boolean {
-    const state = context.sharedState as Record<string, unknown> | undefined;
-    const activeModel = (state?.activeModelId as string || '').toLowerCase();
-    return activeModel.startsWith('qwen') || activeModel.startsWith('wan');
-  }
-
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const rawPrompt = args.prompt as string;
     const rawFilename = (args.filename as string).replace(/\.\w+$/, '');
@@ -110,13 +103,6 @@ export class GenerateImageTool implements Tool {
     const jobId = `img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const savePath = targetPath || `images/${rawFilename}.png`;
     genManager?.create({ id: jobId, type: 'image', prompt: rawPrompt, filename: rawFilename, targetPath: savePath });
-
-    if (!this.canGenerate(context)) {
-      return {
-        success: false,
-        output: 'Image generation runs on Wan and requires a Qwen model. Switch to a Qwen model to use this tool.',
-      };
-    }
 
     const size = SIZE_MAP[sizeKey] || '1280*1280';
 

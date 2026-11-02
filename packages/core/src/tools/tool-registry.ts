@@ -617,8 +617,13 @@ export class ToolRegistry {
     return this.tools.get(this.resolveToolName(name));
   }
 
-  getSchemas(): ToolSchema[] {
-    return Array.from(this.tools.values()).map((tool) => {
+  /**
+   * The model-facing schemas. Pass the session's shared state and any tool
+   * whose provider key is missing (`requiresProviderKey`) is left out — image,
+   * video and voice generation without a Qwen key.
+   */
+  getSchemas(sharedState?: Record<string, unknown>): ToolSchema[] {
+    return Array.from(this.tools.values()).filter((tool) => hasRequiredKey(tool, sharedState)).map((tool) => {
       const modelName = ToolRegistry.INTERNAL_TO_MODEL_NAME[tool.name];
       if (!modelName) {
         return { type: 'function' as const, function: tool.schema };
@@ -853,4 +858,14 @@ export class ToolRegistry {
       fileMutation,
     });
   }
+}
+
+/** True when the tool needs no provider key, or the session holds it. With no
+ *  shared state to ask, nothing is withheld. */
+export function hasRequiredKey(tool: Tool, sharedState?: Record<string, unknown>): boolean {
+  if (!tool.requiresProviderKey || !sharedState) return true;
+  const getKey = sharedState.getProviderKey as ((p: string) => string | undefined) | undefined;
+  const key = getKey?.(tool.requiresProviderKey)
+    ?? (tool.requiresProviderKey === 'qwen' ? sharedState.qwenApiKey as string | undefined : undefined);
+  return !!key;
 }

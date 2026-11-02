@@ -45,24 +45,20 @@ function coordinatorFor(mode: RoutingMode, setup: Setup): string | null {
   return ac ? ac.coordinatorModel.id : null;
 }
 
-describe('Aurora — Mistral-only, and BYOK-only (EU-stack guarantee)', () => {
-  // Rewritten 9 Oct 2026. This block used to assert the guarantee on the
-  // MANAGED surface too. Of the five vendors approached, only Qwen and
-  // DeepSeek came back on rates, so there is no managed Mistral to route to
-  // and the fleet is retired from the picker. The guarantee itself still
-  // matters and is still asserted — on the surface where it is still real,
-  // which is a user's own Mistral key.
+describe('Aurora — Mistral only, on the user\'s key', () => {
+  // Back in the picker from 2 Nov 2026 (his call), on Mistral Large 4 and
+  // Small 4. Medium 3.5 and Large 3 left the fleet: Mistral deprecated both.
   for (const [label, setup, suffix] of [
     ['BYOK mistral', byok('mistral'), ''],
   ] as const) {
-    it(`routes deep work to Medium 3.5 and volume to Small 4 (${label})`, () => {
+    it(`routes deep work to Large 4 and volume to Small 4 (${label})`, () => {
       const r = router('aurora', setup);
-      // Deep / hard routes → frontier Medium 3.5.
-      for (const c of ['coding', 'planning', 'security', 'teach', 'vision'] as const) {
-        expect(modelFor(r, c)).toBe(`mistral-medium-3.5${suffix}`);
+      // Deep work and long context (1M) → Large 4.
+      for (const c of ['coding', 'planning', 'security', 'teach', 'vision', 'long_context'] as const) {
+        expect(modelFor(r, c)).toBe(`mistral-large-4${suffix}`);
       }
-      // High-volume routes → cheap-but-capable Small 4.
-      for (const c of ['chat', 'long_context', 'brainstorm', 'image_gen'] as const) {
+      // Volume → Small 4.
+      for (const c of ['chat', 'brainstorm', 'image_gen'] as const) {
         expect(modelFor(r, c)).toBe(`mistral-small-4${suffix}`);
       }
     });
@@ -75,16 +71,9 @@ describe('Aurora — Mistral-only, and BYOK-only (EU-stack guarantee)', () => {
     });
   }
 
-  it('is retired from the picker, and a stored preference still resolves', () => {
-    // Both halves matter. The flag keeps a fleet we cannot staff out of the
-    // picker; the fallback keeps a preference saved while it WAS offered from
-    // becoming a dead end. A user who picked Aurora months ago gets a working
-    // model, not null — which is why the mode still parses rather than being
-    // deleted outright.
-    expect(AURORA_ENABLED).toBe(false);
-    expect(VISIBLE_ROUTING_MODES).not.toContain('aurora');
-    const r = router('aurora', byok('mistral'));
-    expect(modelFor(r, 'coding')).toBeTruthy();
+  it('is offered in the picker again', () => {
+    expect(AURORA_ENABLED).toBe(true);
+    expect(VISIBLE_ROUTING_MODES).toContain('aurora');
   });
 });
 
@@ -217,12 +206,11 @@ describe('Maestro — Qwen on the user\'s key', () => {
 });
 
 describe('Coordinator pinning per mode', () => {
-  it('Aurora coordinator is Mistral Medium 3.5 on a Mistral key, and nothing without one', () => {
-    // Null without a Mistral key is correct, not a hole: seating a Qwen
-    // coordinator for a fleet sold as an EU stack would be the one outcome
-    // worse than refusing.
-    expect(coordinatorFor('aurora', byok('qwen'))).toBeNull();
-    expect(coordinatorFor('aurora', byok('mistral'))).toBe('mistral-medium-3.5');
+  it('Aurora coordinator is Mistral Large 4 on a Mistral key, and nothing without one', () => {
+    // Null without a Mistral key is correct, not a hole: Aurora is Mistral
+    // only, and the surface says the Mistral key is missing.
+    expect(coordinatorFor('aurora', byok('qwen', 'deepseek', 'kimi'))).toBeNull();
+    expect(coordinatorFor('aurora', byok('mistral'))).toBe('mistral-large-4');
   });
   it('Supernova coordinator is DeepSeek Flash', () => {
     expect(coordinatorFor('supernova', byok('deepseek', 'qwen'))).toBe('deepseek-flash');
@@ -336,6 +324,15 @@ describe('the live fleets never leave their own providers (his call, 2 Nov 2026)
     const s = seats('auto');
     expect(fleet('auto').ac.coordinatorModel.id).toBe('qwen3.8-flash');
     for (const p of [s.coordinator, s.builder, s.vision, s.gate, ...s.routes]) expect(p).toBe('qwen');
+  });
+
+  it('Aurora: every seat is Mistral, Large 4 coordinating and building', () => {
+    const s = seats('aurora');
+    expect(fleet('aurora').ac.coordinatorModel.id).toBe('mistral-large-4');
+    for (const p of [s.coordinator, s.builder, s.vision, s.gate, ...s.routes]) expect(p).toBe('mistral');
+    const internals = fleet('aurora').ac as unknown as { builderModel: { id: string }; intentGate: { model: { id: string } } | null };
+    expect(internals.builderModel.id).toBe('mistral-large-4');
+    expect(internals.intentGate?.model.id).toBe('mistral-small-4');
   });
 
   it('Supernova: every seat is Qwen or DeepSeek, DeepSeek coordinating', () => {

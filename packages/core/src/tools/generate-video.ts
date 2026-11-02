@@ -14,6 +14,7 @@ import { wanSubmit, wanWait } from '../creative/dashscope.js';
 
 export class GenerateVideoTool implements Tool {
   readonly name = 'generate_video';
+  readonly requiresProviderKey = 'qwen';
   readonly description = 'Generate a short AI video with synced audio from a text prompt using Wan 2.5.';
   readonly riskLevel: ToolRiskLevel = 'write';
   // Media generation is a real charge on the user's own Qwen account —

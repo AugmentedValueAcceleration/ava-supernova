@@ -15,10 +15,10 @@ import { classifyTask } from './task-classifier.js';
 import { ModelRouter } from './model-router.js';
 import { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 import { ContextTracker } from './context-tracker.js';
-import { resolveCoordinatorModel, resolveMaestroCoordinator, resolveOnFleet, FLEET_PROVIDERS } from './coordinator-model.js';
+import { resolveCoordinatorModel, resolveMaestroCoordinator, resolveAuroraCoordinator, resolveOnFleet, FLEET_PROVIDERS } from './coordinator-model.js';
 import { classifyIntent, classifyTeachDepth, resolveIntentGateModel } from './intent-gate.js';
 import { SUPERNOVA_COORDINATOR_ID, SUPERNOVA_BUILDER_ID, SUPERNOVA_VISION_ID } from './supernova-router.js';
-import { AURORA_COORDINATOR_ID, AURORA_BUILDER_ID, AURORA_VISION_ID } from './aurora-router.js';
+import { AURORA_BUILDER_ID, AURORA_VISION_ID } from './aurora-router.js';
 import { LONGXIANG_COORDINATOR_ID, LONGXIANG_BUILDER_ID, LONGXIANG_VISION_ID } from './longxiang-router.js';
 import type { RoutingMode } from './model-router.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
@@ -145,22 +145,16 @@ export class AutoCoordinator {
       this.mode,
     );
 
-    // Resolve the Builder model. Supernova spawns Qwen 3.7 Plus, Aurora
-    // spawns Mistral Medium 3.5 (the merged flagship — 128B dense,
-    // 256K context, vision encoder from scratch, 77.6% SWE-Bench Verified,
-    // modified-MIT open weights). Auto reuses the coordinator model for
-    // backward-compatibility with the existing tuning. If the override
-    // can't resolve (no key for it) fall back to the coordinator model
-    // rather than block.
+    // Resolve the Builder model on the fleet's own providers: Supernova
+    // DeepSeek V4.1 Flash, Aurora Mistral Large 4, Maestro Qwen 3.7 Plus. If
+    // it can't resolve, fall back to the coordinator model rather than block.
     const fleet = FLEET_PROVIDERS[this.mode];
     if (this.mode === 'supernova') {
       const resolved = resolveOnFleet(opts.providerRegistry, fleet!, SUPERNOVA_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
     } else if (this.mode === 'aurora') {
-      // Aurora is Mistral-only — the user's Mistral key, else the coordinator.
-      const resolved = opts.providerRegistry.resolveModel(`mistral:${AURORA_BUILDER_ID}`)
-        ?? opts.providerRegistry.resolveModel(AURORA_BUILDER_ID);
+      const resolved = resolveOnFleet(opts.providerRegistry, fleet!, AURORA_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
     } else if (this.mode === 'longxiang') {
@@ -190,7 +184,7 @@ export class AutoCoordinator {
         : SUPERNOVA_VISION_ID;
     // A locked fleet reads images on its own providers or not at all.
     const fleetVision = (providers: readonly string[]) => {
-      for (const id of [visionId, 'qwen3.7-plus', 'deepseek-flash']) {
+      for (const id of [visionId, 'qwen3.7-plus', 'deepseek-flash', 'mistral-small-4']) {
         const r = resolveOnFleet(opts.providerRegistry, providers, id);
         if (r?.model.supportsVision) return r;
       }
@@ -200,10 +194,9 @@ export class AutoCoordinator {
       opts.providerRegistry.resolveModel(visionId)
       ?? (this.mode === 'aurora' ? opts.providerRegistry.resolveModel(`mistral:${visionId}`) : null)
       // Net under the fleet's own choice, NOT a replacement for it. Each
-      // fleet names a vision model deliberately — Aurora's is Mistral Medium
-      // because its encoder handles odd aspect ratios best, and because
-      // Aurora is the EU-sovereign fleet, so routing its images to whatever
-      // is cheapest would break the promise the fleet exists to make. Only
+      // fleet names a vision model deliberately, and a locked fleet never
+      // reaches this line — it reads images on its own providers or not at
+      // all (fleetVision above). Only
       // when the fleet's own pick is unreachable do we ask the broader
       // question: does this user hold a key for anything that can see?
       ?? resolveVisionDescriber(opts.providerRegistry);
@@ -275,28 +268,9 @@ export class AutoCoordinator {
         opts.providerRegistry, opts.availableProviders, opts.preferredCoordinatorId,
       );
     } else if (opts.mode === 'aurora') {
-      // Aurora is Mistral-only — never silently routes to a non-Mistral
-      // coordinator. Medium 3.5 on the user's Mistral key, then the Large 3 reserve.
-      // Returns null if no Mistral model is reachable so the caller can surface
-      // a clear error rather than breaking the EU-stack guarantee with a Qwen
-      // fallback.
-      const tries = [
-        `mistral:${AURORA_COORDINATOR_ID}`,
-        AURORA_COORDINATOR_ID,
-        `mistral:${AURORA_BUILDER_ID}`,
-        AURORA_BUILDER_ID,
-      ];
-      for (const id of tries) {
-        const resolved = opts.providerRegistry.resolveModel(id);
-        if (resolved) {
-          coordinator = {
-            provider: resolved.provider,
-            model: resolved.model,
-            reason: `${resolved.model.name} — Aurora coordinator (Mistral-only routing)`,
-          };
-          break;
-        }
-      }
+      // Aurora is Mistral only: Large 4, then Small 4, on the user's Mistral
+      // key. Null without one, and the caller says Mistral is missing.
+      coordinator = resolveAuroraCoordinator(opts.providerRegistry);
     } else if (opts.mode === 'longxiang') {
       // Longxiang pins Kimi K3 in BOTH the coordinator and Builder seats —
       // it's the strongest open coder we have and a strong tool-driver, so

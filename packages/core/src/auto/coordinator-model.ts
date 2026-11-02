@@ -52,7 +52,7 @@ const BYOK_PRIORITY = [
   // 'tools + vision' stood here for six weeks after the catalogue was
   // corrected on 2026-07-17: the GLM main line cannot see. Gone with 5.2.
   { id: 'glm-5.3',              reason: 'Zhipu GLM-5.3 — open-weights, 1M context, tools + thinking (text only)' },
-  { id: 'mistral-large-3',      reason: 'Mistral Large 3 — broad-knowledge fallback (non-reasoning today)' },
+  { id: 'mistral-large-4',      reason: 'Mistral Large 4 — Mistral flagship, 1M context, reasoning + vision' },
   { id: 'qwen3.8-flash',        reason: 'Qwen 3.8 Flash — 1M context, multimodal, newer generation at flash cost' },
   { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];
@@ -63,6 +63,7 @@ const BYOK_PRIORITY = [
  * intent gate, the Builder and image reading (his call, 2 Nov 2026).
  *   - Maestro: Qwen only, Qwen 3.8 Flash coordinating.
  *   - Supernova: Qwen + DeepSeek, DeepSeek V4.1 Flash coordinating.
+ *   - Aurora: Mistral only, Mistral Large 4 coordinating.
  * A seat these providers cannot fill stays empty and the user is told which
  * key is missing; it is never quietly given to another key they hold. (Before
  * this, Maestro's coordinator came from the generic ladder below, which seats
@@ -72,6 +73,7 @@ const BYOK_PRIORITY = [
 export const FLEET_PROVIDERS: Partial<Record<RoutingMode, readonly string[]>> = {
   auto: ['qwen'],
   supernova: ['qwen', 'deepseek'],
+  aurora: ['mistral'],
 };
 
 /** Resolve a model id on a fleet's own providers only. */
@@ -102,6 +104,21 @@ export function resolveMaestroCoordinator(providerRegistry: ProviderRegistry): C
     const resolved = providerRegistry.resolveModel(`${MAESTRO_PROVIDER}:${id}`);
     if (resolved && resolved.provider.name === MAESTRO_PROVIDER) {
       return { provider: resolved.provider, model: resolved.model, reason: `${resolved.model.name} — Maestro coordinator (Qwen-only)` };
+    }
+  }
+  return null;
+}
+
+/** Aurora's coordinator ladder: Large 4, then Small 4 — Mistral only. */
+export const AURORA_PROVIDER = 'mistral';
+export const AURORA_COORDINATOR_LADDER = ['mistral-large-4', 'mistral-small-4'] as const;
+
+/** Aurora's coordinator on the user's Mistral key — null without one. */
+export function resolveAuroraCoordinator(providerRegistry: ProviderRegistry): CoordinatorModelResult | null {
+  for (const id of AURORA_COORDINATOR_LADDER) {
+    const resolved = providerRegistry.resolveModel(`${AURORA_PROVIDER}:${id}`);
+    if (resolved && resolved.provider.name === AURORA_PROVIDER) {
+      return { provider: resolved.provider, model: resolved.model, reason: `${resolved.model.name} — Aurora coordinator (Mistral-only)` };
     }
   }
   return null;

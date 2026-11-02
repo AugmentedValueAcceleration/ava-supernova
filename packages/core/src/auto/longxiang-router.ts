@@ -189,9 +189,9 @@ export const LONGXIANG_ROUTES: Record<TaskCategory, LongxiangRouteEntry> = {
 //
 // Keys match persona names from packages/core/src/personas/definitions.ts.
 //
-// NOTE: this map has no live consumer, and neither does AURORA_PERSONA_MODEL.
-// Both fleets are dark. Supernova's equivalent was deleted on 2 Nov 2026
-// because its personas run on their task's routed model.
+// NOTE: this map has no live consumer — the fleet is dark. Supernova's and
+// Aurora's equivalents were deleted on 2 Nov 2026 because their personas run
+// on their task's routed model.
 
 export const LONGXIANG_PERSONA_MODEL: Record<string, string> = {
   // Heavy specialists — the seats where K3's coding + reasoning lead pays.

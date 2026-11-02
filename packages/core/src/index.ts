@@ -10,7 +10,7 @@ export { isStopCommand, haltIntent } from './agent/stop-command.js';
 export type { HaltIntent } from './agent/stop-command.js';
 
 // Auto Mode
-export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker, resolveCoordinatorModel, resolveMaestroCoordinator, resolveOnFleet, FLEET_PROVIDERS, MAESTRO_PROVIDER, MAESTRO_COORDINATOR_LADDER, LONGXIANG_ENABLED } from './auto/index.js';
+export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker, resolveCoordinatorModel, resolveMaestroCoordinator, resolveAuroraCoordinator, resolveOnFleet, FLEET_PROVIDERS, MAESTRO_PROVIDER, MAESTRO_COORDINATOR_LADDER, LONGXIANG_ENABLED } from './auto/index.js';
 export type { RoutingMode } from './auto/index.js';
 export { ROUTING_MODES, isRoutingMode, AURORA_ENABLED, VISIBLE_ROUTING_MODES, isVisibleRoutingMode } from './auto/index.js';
 export type { TaskCategory as AutoTaskCategory, ClassificationResult, RouteResult, UserRoutePreferences, TaskBrief, AutoEvent, CoordinatorModelResult } from './auto/index.js';

@@ -104,6 +104,7 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'glm-4.5-air':   { inputPerMillion: 0.20, outputPerMillion: 1.10 },
   },
   mistral: {
+    'mistral-large-4':    { inputPerMillion: 0.70, outputPerMillion: 2.10 },
     'mistral-large-3':    { inputPerMillion: 0.50, outputPerMillion: 1.50 },
     'mistral-medium-3.5': { inputPerMillion: 1.50, outputPerMillion: 7.50 },
     // Was $0.10/$0.30 against a real $0.15/$0.60 — Aurora's high-volume

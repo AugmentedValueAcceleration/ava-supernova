@@ -89,6 +89,7 @@ export class DesignFindShapeTool implements Tool {
 // a transparent icon. A real charge on the user's Qwen key — the persona asks first.
 export class DesignGenerateIconTool implements Tool {
   readonly name = 'design_generate_icon';
+  readonly requiresProviderKey = 'qwen';
   readonly description =
     'Generate one on-brand icon from a shape armature: pick shape + material + colour, run shape-as-dial (Lucide → qwen-image-edit-max → matte). Each one is a real charge on their own Qwen account — say what you will make and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
@@ -169,6 +170,7 @@ export class DesignGenerateIconTool implements Tool {
 // subject varies. N images on the user's Qwen key; the persona says how many first.
 export class DesignGenerateSetTool implements Tool {
   readonly name = 'design_generate_set';
+  readonly requiresProviderKey = 'qwen';
   readonly description =
     'Generate a matched set of icons — same material, colour and lighting held constant so they sit together as a family. One image per icon on their own Qwen key — say how many and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
@@ -388,6 +390,7 @@ export class DesignSaveTool implements Tool {
 // Open Canvas video player. Wan takes minutes and auto-dubs a soundtrack.
 export class DesignGenerateVideoTool implements Tool {
   readonly name = 'design_generate_video';
+  readonly requiresProviderKey = 'qwen';
   readonly description =
     'Generate a short video on the Open Canvas from an authored prompt (shot / subject / motion / mood) via Wan. YOU write the prompt from what you gauged the user wants. It is a real charge on their own Qwen account — say what you will make and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
@@ -467,6 +470,7 @@ export class DesignGenerateVideoTool implements Tool {
 // to the Open Canvas Image stage. This is NOT the icon pipeline.
 export class DesignGenerateImageTool implements Tool {
   readonly name = 'design_generate_image';
+  readonly requiresProviderKey = 'qwen';
   readonly description =
     'Generate a free-form image on the Open Canvas from an authored prompt (subject / style / composition / lighting / mood). YOU write the full prompt from what you gauged the user wants. This is NOT an icon — no armature, no matte. It is a real charge on their own Qwen account — say what you will make and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';
@@ -735,6 +739,7 @@ export class DesignExploreLogosTool implements Tool {
 // synchronously to the Open Canvas as a scrubable waveform.
 export class DesignGenerateVoiceTool implements Tool {
   readonly name = 'design_generate_voice';
+  readonly requiresProviderKey = 'qwen';
   readonly description =
     'Generate a voiceover on the Open Canvas via Qwen3-TTS. YOU author the script (the exact words) AND the delivery (tone / pace / emotion) from what you gauged. Pick a voice from the roster; translate the script yourself and set the language to voice it in another language in the SAME voice. It is a real charge on their own Qwen account — say what you will make and get a yes first.';
   readonly riskLevel: ToolRiskLevel = 'write';

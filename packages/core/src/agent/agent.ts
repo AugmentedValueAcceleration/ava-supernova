@@ -1796,7 +1796,8 @@ export class Agent {
     }
 
     const useNativeTools = this.model.supportsToolCalls !== false;
-    const allSchemas = this.toolRegistry.getSchemas();
+    // Tools whose provider key is missing never reach the model.
+    const allSchemas = this.toolRegistry.getSchemas(this.toolContext.sharedState as Record<string, unknown> | undefined);
 
     // ── Mode-aware filtering ───────────────────────────────────────────
     // Every mode except code wraps the user's message in a literal tag, so

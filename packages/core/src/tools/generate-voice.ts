@@ -17,6 +17,7 @@ import { qwenTts } from '../creative/dashscope.js';
 
 export class GenerateVoiceTool implements Tool {
   readonly name = 'generate_voice';
+  readonly requiresProviderKey = 'qwen';
   readonly description = 'Generate AI voice/speech from text via Qwen3-TTS.';
   readonly riskLevel: ToolRiskLevel = 'write';
   // Media generation is a real charge on the user's own Qwen account —

@@ -22,7 +22,7 @@ import { fontById, suggestFont, WORDMARK_FONTS } from '../lib/asset-forge/logo/f
 import { loadFont, registerWordmarkFonts } from '../lib/asset-forge/logo/pipeline';
 import { renderMark, renderElements, type MarkSpec, type MarkStyle } from '../lib/asset-forge/logo/mark-primitives';
 import type { LogoBrief, LogoSystem, LogoVariant } from '../lib/asset-forge/logo/types';
-import { DESIGN_GROUPS, type ViewId } from '../lib/design-types';
+import { DESIGN_GROUPS, QWEN_VIEWS, type ViewId } from '../lib/design-types';
 import { toWebp } from '../lib/compress';
 
 type GenOutcome = { ok: boolean; dataUrl?: string; error?: string };
@@ -603,12 +603,14 @@ const VOICE_OPTIONS = TTS_VOICE_CATALOGUE.map(v => ({
 // and sets the language; the SAME voice speaks the translated words.
 const VOICE_LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Japanese', 'Korean', 'Italian', 'Portuguese', 'Chinese', 'Russian'];
 
-export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, onSwitchDesignModel, userName, userAvatarUrl }: {
+export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, onSwitchDesignModel, userName, userAvatarUrl, hasQwenKey = true }: {
   onRegisterDesignChatDispatch?: (dispatch: (msg: ExtToDashboardMessage) => void) => void;
   designModelState?: DesignModelState;
   onSwitchDesignModel?: (id: string) => void;
   userName?: string | null;
   userAvatarUrl?: string | null;
+  /** False greys out the lanes that generate on the Qwen key (QWEN_VIEWS). */
+  hasQwenKey?: boolean;
 }) {
   useLocale();  // re-render Studio labels when the language changes
   const [kit, setKit] = useState<BrandKit>(() => activeKit());     // the ACTIVE kit
@@ -653,6 +655,10 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       return 'icon';  // storage disabled — not worth failing the page over
     }
   });
+  // Without a Qwen key the image, video, voice and icon lanes can't make
+  // anything, so a saved view on one of them opens on Logo instead.
+  const needsQwen = (id: ViewId) => !hasQwenKey && QWEN_VIEWS.includes(id);
+  useEffect(() => { if (needsQwen(view)) setView('logo'); }, [hasQwenKey, view]);  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     try { localStorage.setItem('ava-design-studio-view', view); } catch { /* not important enough to throw */ }
   }, [view]);
@@ -1469,11 +1475,14 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
             </div>
             {g.items.map(it => {
               const on = view === it.id;
-              // Badged items aren't built yet — inactive so the nav never implies
-              // something works when it doesn't. Only 'Icon' is live.
-              const disabled = !!it.badge;
+              // Badged items aren't built yet, and Qwen lanes can't run without
+              // the key — inactive so the nav never implies something works
+              // when it doesn't.
+              const keyless = needsQwen(it.id);
+              const disabled = !!it.badge || keyless;
               return (
                 <button key={it.id} onClick={disabled ? undefined : () => setView(it.id)} disabled={disabled}
+                  title={keyless ? tt('dash.studio.needs_qwen_tip', 'Images, video and voiceovers run on your Qwen key — add one in Settings. Logos are made on your computer and need no key.') : undefined}
                   className={`flex items-center gap-2 w-full px-2.5 py-[7px] rounded-lg text-[12.5px] text-left border ${
                     disabled ? 'opacity-45 cursor-default border-transparent bg-transparent text-[var(--text-secondary)] font-light'
                     : on ? 'cursor-pointer border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)] font-normal'
@@ -1481,6 +1490,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                   }`}>
                   {tt('dash.studio.asset.' + it.id, it.label)}
                   {it.badge && <span className="ml-auto text-[9px] tracking-wider text-[var(--text-muted)] border border-[var(--border-card)] px-1.5 rounded-full">{tt('dash.studio.soon', it.badge)}</span>}
+                  {!it.badge && keyless && <span className="ml-auto text-[9px] tracking-wider text-[var(--text-muted)] border border-[var(--border-card)] px-1.5 rounded-full whitespace-nowrap">{tt('dash.studio.needs_qwen', 'Needs Qwen key')}</span>}
                 </button>
               );
             })}

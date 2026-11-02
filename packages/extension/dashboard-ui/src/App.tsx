@@ -1796,6 +1796,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         return null;
       case 'creative-studio':
         return <CreativeStudio
+          hasQwenKey={providerKeys.qwen}
           onRegisterDesignChatDispatch={registerDesignChatDispatch}
           designModelState={designModel}
           onSwitchDesignModel={switchDesignModel}

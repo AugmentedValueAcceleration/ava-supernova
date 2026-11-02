@@ -110,6 +110,13 @@ export interface Tool {
    * Default: false.
    */
   readonly usesDynamicConfirmation?: boolean;
+  /**
+   * The provider whose key this tool spends — 'qwen' for image, video and
+   * voice generation. Without that key the tool is withheld from the model
+   * (ToolRegistry.getSchemas), so Ava never offers to make something she
+   * cannot (his call, 2 Nov 2026). Read through sharedState.getProviderKey.
+   */
+  readonly requiresProviderKey?: string;
   execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult>;
 }
 

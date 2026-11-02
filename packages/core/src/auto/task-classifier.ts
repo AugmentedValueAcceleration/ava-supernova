@@ -29,9 +29,9 @@ const MODEL_ALIASES: Record<string, string> = {
   'deepseek': 'deepseek-flash',
   'deepseek pro': 'deepseek-flash',
   'deepseek flash': 'deepseek-flash',
-  // Mistral — "use mistral" should give the flagship: Medium 3.5 is the
-  // current frontier model (Index 39), above Large 3 (23).
-  'mistral': 'mistral-medium-3.5',
+  // Mistral — "use mistral" gives the flagship, Large 4 (6 Oct 2026), which
+  // replaces Medium 3.5 and Large 3 (both deprecated 31 Oct 2026).
+  'mistral': 'mistral-large-4',
 };
 
 // Build regex pattern from all aliases: @kimi, use kimi, with kimi, etc.

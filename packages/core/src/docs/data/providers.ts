@@ -56,6 +56,16 @@ export const PROVIDERS: ProviderFact[] = [
     ],
   },
   {
+    id: 'aurora',
+    name: '✦ Aurora — Mistral only',
+    kind: 'orchestration',
+    notes: 'Every model in an Aurora turn is a Mistral model, on your Mistral key. Mistral Large 4 coordinates and does the deep work — coding (and the Builder), planning, security, teaching, image reading and long context. Mistral Small 4 handles chat, brainstorming and image-generation requests, and runs the gate that decides whether a turn needs the team. Each falls back to the other. Generating images, video and voiceovers uses your Qwen key.',
+    models: [
+      { id: 'mistral-large-4', displayName: 'Mistral Large 4 — coordinator, coding + Builder, planning, security, teaching, vision, long context', inputPricePerM: 0.70, outputPricePerM: 2.10, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-small-4', displayName: 'Mistral Small 4 — chat, brainstorm, image generation, intent gate', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+    ],
+  },
+  {
     id: 'minimax',
     name: 'MiniMax',
     kind: 'byok',
@@ -104,11 +114,12 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'mistral',
     name: 'Mistral AI',
     kind: 'byok',
-    notes: 'Bring your own Mistral key and pick any of these directly. EU infrastructure, open weights (Large 3 and Small 4 Apache-2.0; Medium 3.5 Modified MIT).',
+    notes: 'Bring your own Mistral key and pick any of these directly. Mistral retires Medium 3.5 and Large 3 on 30 April 2027 — Large 4 replaces both.',
     models: [
-      { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5 (frontier flagship)', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-large-4', displayName: 'Mistral Large 4 (flagship, public preview)', inputPricePerM: 0.70, outputPricePerM: 2.10, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5 (retiring 30 Apr 2027)', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-large-3', displayName: 'Mistral Large 3', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-large-3', displayName: 'Mistral Large 3 (retiring 30 Apr 2027)', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       // Codestral + Devstral 2 retired 2026-07-23 — superseded by Mistral Small 4.
     ],
   },

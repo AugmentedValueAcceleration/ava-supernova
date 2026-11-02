@@ -61,7 +61,8 @@ export function resolveIntentGateModel(
   onlyProviders?: readonly string[],
 ): { provider: Provider; model: ModelDefinition } | null {
   if (onlyProviders) {
-    for (const id of ['qwen3.7-flash', 'qwen3.5-flash', 'qwen3.8-flash', 'deepseek-flash']) {
+    // Aurora's gate is Small 4 — the only one of these on Mistral.
+    for (const id of ['qwen3.7-flash', 'qwen3.5-flash', 'qwen3.8-flash', 'deepseek-flash', 'mistral-small-4']) {
       for (const p of onlyProviders) {
         const r = providerRegistry.resolveModel(`${p}:${id}`);
         if (r && r.provider.name === p) return { provider: r.provider, model: r.model };

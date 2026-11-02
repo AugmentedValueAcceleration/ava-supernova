@@ -30,7 +30,7 @@ const MODE_LABELS: Record<string, string> = {
 /** One line of what each fleet actually is, for the tooltip. The status bar is
  *  the only place a user sees the fleet without opening the picker. */
 const MODE_BLURB: Record<string, string> = {
-  aurora:    'Mistral-only, EU-resident end to end',
+  aurora:    'Mistral only — Large 4 leads and builds',
   supernova: 'Polyglot — best specialist per task',
   auto:      'Single conductor, predictable cost',
   longxiang: 'Open weights — K3 leads and builds',

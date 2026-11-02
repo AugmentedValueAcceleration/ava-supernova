@@ -50,6 +50,11 @@ export const DESIGN_GROUPS: DesignGroup[] = [
   ] },
 ];
 
+/** The lanes that generate on the user's Qwen key (image, video, voice, and
+ *  the icon lane's Qwen-Image). Without that key they are greyed out; Logo is
+ *  drawn on the user's computer and Brand Kit generates nothing. */
+export const QWEN_VIEWS: readonly ViewId[] = ['video', 'voice', 'image', 'icon'];
+
 // Flat id → { label, group } lookup, built once from the groups above.
 const TYPE_INDEX: Record<string, { label: string; group: string }> = (() => {
   const idx: Record<string, { label: string; group: string }> = {};

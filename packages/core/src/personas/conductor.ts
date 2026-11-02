@@ -771,7 +771,7 @@ export class Conductor {
       const systemPrompt = this.buildPersonaPrompt(persona, pool);
 
       // Get scoped tool schemas (only tools this persona is allowed to use)
-      const allSchemas = this.toolRegistry.getSchemas();
+      const allSchemas = this.toolRegistry.getSchemas(this.toolContext.sharedState as Record<string, unknown> | undefined);
       const allowedSet = new Set(persona.allowedTools);
       const deniedSet = new Set(persona.deniedTools || []);
       // Persona list AND, in a read-only mode, the mode's own allowlist. The
