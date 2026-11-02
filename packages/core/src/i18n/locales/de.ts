@@ -3885,8 +3885,6 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'Abgelehnt',
   'dash.model.select': 'Modell auswählen',
   'dash.model.aurora_title': 'Aurora — Nur-Mistral EU-Stack. Drei-Ebenen-Flotte: Mistral Medium 3.5 führt (Koordinator + Builder + Vision + Deep-Spezialisten), Mistral Small 4 übernimmt das Volumen (Chat, Langkontext, Brainstorming, Intent-Gate), Mistral Large 3 ist die schwere Reserve. Nur EU-Datenspeicherung, GDPR-konform, offene Gewichte.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash koordiniert und spezialisiert, mit Qwen-Buildern. Schwere Mehrschritt-Arbeit.',
-  'dash.model.maestro_title': 'Maestro — Einziger Qwen 3.7 Plus Dirigent. Tägliche Arbeit, vorhersehbare Kosten.',
   'model.add_key': 'Schlüssel hinzufügen',
   'dash.model.sub.maestro_best': 'Bestes Modell pro Aufgabe',
   'dash.model.sub.byok_qwen': 'Eigener Schlüssel · Qwen',
@@ -4338,4 +4336,6 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'Token, Sitzungen, Modelle',
   'ide.cli.not_running': 'Ava läuft nicht — fügen Sie einen Anbieter-Schlüssel in der Seitenleiste hinzu oder richten Sie sie auf ein lokales Modell in den Einstellungen aus.',
   'onb.key.subtitle_ide': 'Ava läuft mit Ihrem eigenen KI-Anbieterschlüssel. Dieser wird hier getestet und dann in Ihrem System-Schlüsselbund auf diesem Gerät gespeichert — er kommt niemals zu uns.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash koordiniert, codet und übernimmt die Schwerstarbeit; Qwen 3.8 Flash verarbeitet Bilder. Schwere mehrstufige Aufgaben.',
+  'dash.model.maestro_title': 'Maestro — Nur Qwen. Qwen 3.8 Flash koordiniert und chattet, Qwen 3.7 Plus erledigt die komplexe Arbeit. Tägliche Arbeit, vorhersehbare Kosten.',
 };

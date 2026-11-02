@@ -34,27 +34,25 @@ export const PROVIDERS: ProviderFact[] = [
   // offers.
   {
     id: 'maestro',
-    name: '✦ Maestro — single-conductor',
+    name: '✦ Maestro — Qwen only',
     kind: 'orchestration',
-    notes: 'One conductor drives the entire persona pipeline (Scout, Architect, Builder, Verifier). A cheap fast model handles the upstream intent gate so the conductor only spins up when orchestration is actually needed. Default for everyone; needs a Qwen key.',
+    notes: 'Every model in a Maestro turn is a Qwen model, on your Qwen key. Qwen 3.8 Flash coordinates and handles chat, image reading, image generation and long context; Qwen 3.7 Plus does the deep work — coding (and the Builder), planning, security, teaching and brainstorming. The persona teams run on the model their task is routed to. A fast Qwen 3.7 Flash gate decides whether a turn needs the team at all.',
     models: [
-      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — conductor + every persona + vision; multimodal incl. video', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — second rung on the ladder, and long-form writing', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — light classifier tier', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
+      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — coordinator, chat, vision, image generation, long context', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — coding + Builder, planning, security, teaching, brainstorming; fallback for every 3.8 Flash seat', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-flash', displayName: 'Qwen 3.7 Flash — intent gate', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {
     id: 'supernova',
-    name: '✦ Supernova — polyglot ensemble',
+    name: '✦ Supernova — DeepSeek + Qwen',
     kind: 'orchestration',
-    notes: 'Best-of-breed routing — the coordinator picks the right specialist for each subtask. Every DeepSeek seat is now one model at one price: DeepSeek collapsed V4 Pro into V4.1 Flash on 2026-09-10, so the fleet gets frontier-class reasoning at flash-tier cost throughout rather than paying up for the seats that need depth.',
+    notes: 'DeepSeek and Qwen only, on your keys. DeepSeek V4.1 Flash coordinates and does nearly everything — coding (and the Builder), planning, chat, long context, security, teaching and brainstorming. Qwen 3.8 Flash reads and generates images. DeepSeek collapsed V4 Pro into V4.1 Flash on 2026-09-10, so it is one model at one price throughout. The persona teams run on the model their task is routed to; a fast Qwen 3.7 Flash gate decides whether a turn needs the team.',
     models: [
-      { id: 'deepseek-flash', displayName: 'DeepSeek Flash — coordinator + planning, chat, long-context, security, brainstorm, teach; Researcher, CVE Researcher, Ideator, Code Reviewer, Fact Checker, Quiz Master, Recon, Scanner, Curriculum Architect, Tutor, Curator, Explorer, Refiner, Security Verifier/Reporter personas. One model across every DeepSeek seat since 2026-09-10', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — vision seat + Design Reviewer persona', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — Builder + coding, image-gen; Architect + Content Writer personas', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — outage fallback tier only (retired from primary routes)', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.7-flash', displayName: 'Qwen 3.7 Flash — upstream intent gate', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — Scout, Verifier, Sequencer, Challenger, Integrator personas (depth ≤ 2)', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
+      { id: 'deepseek-flash', displayName: 'DeepSeek V4.1 Flash — coordinator, coding + Builder, planning, chat, long context, security, teaching, brainstorming', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — image reading + image generation', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — fallback for coding, planning and the rest', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-flash', displayName: 'Qwen 3.7 Flash — intent gate', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {

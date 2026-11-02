@@ -3905,8 +3905,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'अस्वीकृत',
   'dash.model.select': 'मॉडल चुनें',
   'dash.model.aurora_title': 'Aurora — केवल Mistral वाला EU स्टैक। तीन-स्तरीय फ्लीट: Mistral Medium 3.5 अग्रणी (समन्वयक + बिल्डर + विजन + गहन विशेषज्ञ), Mistral Small 4 भारी मात्रा संभालता है (चैट, लंबे संदर्भ, ब्रेनस्टॉर्म, इंटेंट गेट), Mistral Large 3 भारी रिज़र्व है। केवल EU में डेटा निवास, GDPR-कठोर, खुले वजन।',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash समन्वय और विशेषज्ञता दोनों संभालता है, Qwen बिल्डर्स के साथ। भारी बहु-चरण कार्य।',
-  'dash.model.maestro_title': 'Maestro — एकल Qwen 3.7 Plus संचालक। दैनिक कार्य, पूर्वानुमेय लागत।',
   'model.add_key': 'कुंजी जोड़ें',
   'dash.model.sub.maestro_best': 'कार्य के लिए सर्वश्रेष्ठ मॉडल',
   'dash.model.sub.byok_qwen': 'अपनी कुंजी · Qwen',
@@ -4358,4 +4356,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'टोकन, सत्र, मॉडल',
   'ide.cli.not_running': 'Ava चल नहीं रही है — साइडबार में प्रोवाइडर कुंजी जोड़ें, या सेटिंग्स में किसी स्थानीय मॉडल पर निर्देशित करें।',
   'onb.key.subtitle_ide': 'Ava आपके स्वयं के कृत्रिम बुद्धि प्रोवाइडर कुंजी पर चलती है। इसे यहाँ परीक्षण किया जाता है, फिर इस मशीन पर आपके सिस्टम कीचेन में सुरक्षित रखा जाता है — यह कभी हमारे पास नहीं आता।',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash समन्वय करता है, कोड लिखता है और गहन सोच करता है; Qwen 3.8 Flash छवियों को संभालता है। भारी बहु-चरण कार्य।',
+  'dash.model.maestro_title': 'Maestro — केवल Qwen। Qwen 3.8 Flash समन्वय और चैट करता है, Qwen 3.7 Plus गहन कार्य करता है। दैनिक कार्य, पूर्वानुमेय लागत।',
 };

@@ -169,6 +169,13 @@ export class AutoCoordinator {
         ?? opts.providerRegistry.resolveModel(LONGXIANG_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
+    } else if (this.mode === 'auto') {
+      // Maestro builds on Qwen 3.7 Plus — the same model as its coding route.
+      // It reused the coordinator, so pinning the coordinator to 3.8 Flash
+      // took the Builder down with it.
+      const resolved = resolveOnFleet(opts.providerRegistry, fleet!, 'qwen3.7-plus');
+      this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
+      this.builderModel = resolved?.model ?? opts.coordinatorModel;
     } else {
       this.builderProvider = opts.coordinatorProvider;
       this.builderModel = opts.coordinatorModel;

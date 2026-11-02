@@ -3905,8 +3905,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': '거부됨',
   'dash.model.select': '모델 선택',
   'dash.model.aurora_title': 'Aurora — Mistral 전용 EU 스택. 3 단계 플릿: Mistral Medium 3.5 가 주도합니다 (조정자 + 빌더 + 비전 + 심층 전문가), Mistral Small 4 는 대량 작업을 처리합니다 (채팅, 긴 컨텍스트, 브레인스토밍, 의도 게이트), Mistral Large 3 은 주요 백업입니다. EU 전용 데이터 위치, GDPR 엄격 준수, 가중치 공개.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash가 조정과 전문 작업을 모두 담당, Qwen 빌더와 함께. 복잡한 다단계 작업용.',
-  'dash.model.maestro_title': 'Maestro — 단일 Qwen 3.7 Plus 지휘자. 일상 업무, 예측 가능한 비용.',
   'model.add_key': '키 추가',
   'dash.model.sub.maestro_best': '작업별 최적 모델',
   'dash.model.sub.byok_qwen': '자신만의 키 · Qwen',
@@ -4358,4 +4356,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': '토큰, 세션, 모델',
   'ide.cli.not_running': 'Ava 가 실행 중이 아닙니다 — 사이드바에 제공자 키를 추가하거나, 설정에서 로컬 모델을 지정하세요.',
   'onb.key.subtitle_ide': 'Ava 는 사용자 자신의 AI 제공자 키로 실행됩니다. 여기에서 테스트된 후 이 기기의 시스템 키체인에 저장되며, 절대 저희에게 전송되지 않습니다.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash 가 조정, 코딩 및 심층 추론을 수행합니다; Qwen 3.8 Flash 는 이미지를 처리합니다. 복잡한 다단계 작업.',
+  'dash.model.maestro_title': 'Maestro — Qwen 전용입니다. Qwen 3.8 Flash 가 조정 및 채팅을 담당하고, Qwen 3.7 Plus 가 심층 작업을 수행합니다. 일상 업무, 예측 가능한 비용.',
 };

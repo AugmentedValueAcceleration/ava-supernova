@@ -63,14 +63,14 @@ export const FLEET_COPY: Record<string, FleetCopy> = {
     sub: 'Best model per task',
     subLocked: 'Add Qwen key',
     tip: 'One coordinator handles everything — proven, production-tuned',
-    tipLocked: 'Maestro — Qwen fleet. Sign in for platform access, or add a Qwen API key for BYOK.',
+    tipLocked: 'Maestro — Qwen only. Add a Qwen API key to use it.',
   },
   supernova: {
     label: '✦ Supernova',
     sub: 'Polyglot ensemble',
     subLocked: 'Add DeepSeek + Qwen keys',
     tip: 'Multi-model orchestration — coordinator picks the best specialist for each task',
-    tipLocked: 'Supernova — DeepSeek + Qwen polyglot ensemble. Sign in for platform access, or add DeepSeek + Qwen API keys for BYOK.',
+    tipLocked: 'Supernova — DeepSeek + Qwen. Add DeepSeek and Qwen API keys to use it.',
   },
   aurora: {
     label: '✦ Aurora',

@@ -3906,8 +3906,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': '已拒絕',
   'dash.model.select': '選擇模型',
   'dash.model.aurora_title': '奧羅拉 — 僅限 Mistral 的歐盟堆疊。三層艦隊：Mistral Medium 3.5 領銜（協調員 + 構建者 + 視覺 + 深度專家），Mistral Small 4 承擔主要任務量（聊天、長上下文、創意發想、意圖閘門），Mistral Large 3 是主力備援。僅限歐盟數據駐留，嚴格符合 GDPR，權重開放。',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash 既負責協調也負責專項，搭配 Qwen 構建者。處理複雜多步驟工作。',
-  'dash.model.maestro_title': '大師 — 單一 Qwen 3.7 Plus 指揮官。日常工作，成本可預測。',
   'model.add_key': '新增金鑰',
   'dash.model.sub.maestro_best': '每項任務的最佳模型',
   'dash.model.sub.byok_qwen': '自帶金鑰 · Qwen',
@@ -4359,4 +4357,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'Token 數、會話、模型',
   'ide.cli.not_running': 'Ava 未運行 — 請在側邊欄新增提供者金鑰，或在設定中指定至本地模型。',
   'onb.key.subtitle_ide': 'Ava 使用您自己的人工智慧提供者金鑰運行。此處進行測試後，將儲存於本機的系統金鑰鏈中 — 絕不會傳給我們。',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash 協調、編碼並進行深度思考；Qwen 3.8 Flash 處理圖像。適合繁重多步驟任務。',
+  'dash.model.maestro_title': 'Maestro — 僅限 Qwen。Qwen 3.8 Flash 協調與對話，Qwen 3.7 Plus 執行深度任務。日常工作，成本可預測。',
 };

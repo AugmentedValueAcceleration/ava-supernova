@@ -29,10 +29,11 @@ import type { TaskCategory } from './types.js';
 /** The conductor that classifies tasks, picks specialists, runs the loop. */
 export const SUPERNOVA_COORDINATOR_ID = 'deepseek-flash';
 
-/** Builder agent — TaskExecutor spawn for any session task. Terminal-Bench
- *  leader; production-tested in our existing personas; vision-aware so an
- *  attached screenshot doesn't need a re-route. */
-export const SUPERNOVA_BUILDER_ID = 'qwen3.7-plus';
+/** Builder agent — TaskExecutor spawn for any session task. DeepSeek V4.1
+ *  Flash (his call, 2 Nov 2026 — "not had anything it can't handle"): 74.2 on
+ *  DeepSWE v1.1 by DeepSeek's figure, 74.34 in Fireworks' independent rerun.
+ *  It was Qwen 3.7 Plus. Images still go to Qwen 3.8 Flash (vision route). */
+export const SUPERNOVA_BUILDER_ID = 'deepseek-flash';
 
 /** Vision input override — any prompt with images bypasses persona / category
  *  routing and lands on Qwen 3.8 Flash (native vision + video).
@@ -83,14 +84,14 @@ export interface SupernovaRouteEntry {
 }
 
 export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
-  // Builder dominates — Qwen 3.7 Plus is the Terminal-Bench leader and what
-  // we've tuned the Builder persona against.
-  coding:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-flash' },
-  // Vision input → Qwen 3.7 Plus (native vision + video).
+  // Coding on DeepSeek V4.1 Flash, the same model as the Builder seat (his
+  // call, 2 Nov 2026); Qwen 3.7 Plus is the fallback.
+  coding:       { modelId: 'deepseek-flash',              reason: 'DeepSeek V4.1 Flash — 74 on DeepSWE v1.1 (independently rerun), the Supernova Builder', fallbackModelId: 'qwen3.7-plus' },
+  // Vision input → Qwen 3.8 Flash (native vision + video).
   vision:       { modelId: 'qwen3.8-flash',               reason: 'Qwen 3.8 Flash — native vision + video, 1M context', fallbackModelId: 'qwen3.7-plus', requiresVision: true },
-  // image_gen orchestrates a generate_image tool call to Wan —
-  // no agentic depth needed at this layer. Flash is cheapest.
-  image_gen:    { modelId: 'qwen3.5-flash',               reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
+  // image_gen orchestrates a generate_image tool call to Wan — no agentic
+  // depth needed at this layer, but it should see a reference image.
+  image_gen:    { modelId: 'qwen3.8-flash',               reason: 'Qwen 3.8 Flash — orchestrates generate_image tool calls and sees reference images', fallbackModelId: 'qwen3.7-plus' },
   // computer_use route retired alongside the Holo3 integration.
   // Planning is Architect + Researcher territory — Architect is Qwen 3.6
   // Plus per the map, but planning leans heavily on Researcher's

@@ -3907,8 +3907,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': '拒否',
   'dash.model.select': 'モデルを選択',
   'dash.model.aurora_title': 'オーロラ — Mistral のみ採用の欧州スタック。3 段構成ファーム：Mistral Medium 3.5 が主導（コーディネーター＋ビルダー＋ビジョン＋ディープスペシャリスト）、Mistral Small 4 がボリュームを担う（チャット、長文脈、ブレインストーミング、意図ゲート）、Mistral Large 3 は主力予備。欧州限定データ所在地、GDPR 厳守、オープンウェイト。',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash が調整と専門処理の両方を担当、Qwen ビルダー付き。複雑な多ステップ作業用。',
-  'dash.model.maestro_title': 'マエストロ — 単一の Qwen 3.7 Plus 指揮者。日常業務向け、コスト予測可能。',
   'model.add_key': 'キーを追加',
   'dash.model.sub.maestro_best': 'タスク別ベストモデル',
   'dash.model.sub.byok_qwen': '持参キー · Qwen',
@@ -4360,4 +4358,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'トークン，セッション，モデル',
   'ide.cli.not_running': 'Ava は動作していません — サイドバーにプロバイダーキーを追加するか、設定でローカルモデルを指定してください。',
   'onb.key.subtitle_ide': 'Ava は独自の AI プロバイダーキー上で動作します。ここでは検証後、このマシンのシステムキーチェーンに保存されます — 当社には一切送信されません。',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 フラッシュが調整・コード生成・複雑な推論を担当；Qwen 3.8 フラッシュが画像処理を担当。重厚な多段階作業向け。',
+  'dash.model.maestro_title': 'マエストロ — Qwen のみ。Qwen 3.8 フラッシュが調整・チャットを担当し、Qwen 3.7 プラスが深い作業を担当。日常業務向け、コスト予測可能。',
 };

@@ -92,16 +92,15 @@ describe('Supernova — DeepSeek on the user\'s key', () => {
   for (const [label, setup, suffix] of [
     ['BYOK deepseek+qwen', byok('deepseek', 'qwen'), ''],
   ] as const) {
-    it(`routes deep work to V4 Pro and mid-tier to V4 Flash (${label})`, () => {
+    it(`runs everything but images on DeepSeek V4.1 Flash (${label})`, () => {
       const r = router('supernova', setup);
-      for (const c of ['planning', 'security', 'long_context'] as const) {
+      // Coding moved onto DeepSeek on 2 Nov 2026 (his call), with the Builder.
+      for (const c of ['coding', 'planning', 'security', 'long_context', 'chat', 'teach', 'brainstorm'] as const) {
         expect(modelFor(r, c)).toBe(`deepseek-flash${suffix}`);
       }
-      for (const c of ['chat', 'teach', 'brainstorm'] as const) {
-        expect(modelFor(r, c)).toBe(`deepseek-flash${suffix}`);
-      }
-      // Builder + vision stay on Qwen per the polyglot map.
-      expect(modelFor(r, 'coding')).toBe('qwen3.7-plus');
+      // Images — reading them and generating them — on Qwen 3.8 Flash.
+      expect(modelFor(r, 'vision')).toBe('qwen3.8-flash');
+      expect(modelFor(r, 'image_gen')).toBe('qwen3.8-flash');
     });
   }
 });
@@ -204,10 +203,14 @@ describe('Chat routes to the cheap tier, never the coordinator', () => {
 
 describe('Maestro — Qwen on the user\'s key', () => {
   for (const [label, setup] of [['BYOK qwen', byok('qwen')]] as const) {
-    it(`routes core work to Qwen 3.7 Plus (${label})`, () => {
+    it(`deep work on Qwen 3.7 Plus, the rest on Qwen 3.8 Flash (${label})`, () => {
       const r = router('auto', setup);
-      for (const c of ['coding', 'planning', 'security', 'long_context'] as const) {
+      for (const c of ['coding', 'planning', 'security', 'teach', 'brainstorm'] as const) {
         expect(modelFor(r, c)).toBe('qwen3.7-plus');
+      }
+      // Moved off 3.5 Flash / 3.7 Plus on 2 Nov 2026 (his call).
+      for (const c of ['chat', 'image_gen', 'vision', 'long_context'] as const) {
+        expect(modelFor(r, c)).toBe('qwen3.8-flash');
       }
     });
   }
@@ -322,6 +325,12 @@ describe('the live fleets never leave their own providers (his call, 2 Nov 2026)
       routes: categories.map((c) => r.route(c)?.provider.name),
     };
   };
+
+  it('Builders: Maestro on Qwen 3.7 Plus, Supernova on DeepSeek V4.1 Flash', () => {
+    const builder = (mode: RoutingMode) => (fleet(mode).ac as unknown as { builderModel: { id: string } }).builderModel.id;
+    expect(builder('auto')).toBe('qwen3.7-plus');
+    expect(builder('supernova')).toBe('deepseek-flash');
+  });
 
   it('Maestro: every seat is Qwen', () => {
     const s = seats('auto');

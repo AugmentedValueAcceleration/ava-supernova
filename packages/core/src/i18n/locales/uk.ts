@@ -3885,8 +3885,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'відхилено',
   'dash.model.select': 'Вибрати модель',
   'dash.model.aurora_title': 'Aurora — стек виключно Mistral для ЄС. Трирівневий флот: Mistral Medium 3.5 керує (координатор + будівник + зорові + глибокі спеціалісти), Mistral Small 4 обробляє основний обсяг (чат, довгий контекст, мозковий штурм, шлюз наміру), Mistral Large 3 є головним резервом. Резиденція даних лише в ЄС, суворе дотримання GDPR, відкриті ваги.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash координує і спеціалізується, із будівниками Qwen. Складна багатокрокова робота.',
-  'dash.model.maestro_title': 'Maestro — єдиний диригент Qwen 3.7 Plus. Щоденна робота, передбачувана вартість.',
   'model.add_key': 'Додати ключ',
   'dash.model.sub.maestro_best': 'Найкраща модель для завдання',
   'dash.model.sub.byok_qwen': 'Власний ключ · Qwen',
@@ -4338,4 +4336,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'Токени, сесії, моделі',
   'ide.cli.not_running': 'Ava не працює — додайте ключ провайдера на бічній панелі або вкажіть локальну модель у Налаштуваннях.',
   'onb.key.subtitle_ide': 'Ava працює на вашому власному ключі провайдера ШІ. Він перевіряється тут, а потім зберігається у вашому системному сховищі ключів цього пристрою — він ніколи не надходить до нас.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash координує, кодує та виконує складні міркування; Qwen 3.8 Flash обробляє зображення. Складна багатокрокова робота.',
+  'dash.model.maestro_title': 'Maestro — Тільки Qwen. Qwen 3.8 Flash координує та спілкується, Qwen 3.7 Plus виконує глибинну роботу. Щоденна робота, передбачувана вартість.',
 };

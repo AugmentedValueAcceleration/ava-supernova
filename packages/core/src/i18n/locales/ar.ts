@@ -3905,8 +3905,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'مرفوض',
   'dash.model.select': 'اختر نموذجًا',
   'dash.model.aurora_title': 'أورورا — بنية EU تعتمد على Mistral فقط. أسطول ثلاثي الطبقات: يقود Mistral Medium 3.5 (منسق + مُهيئ + رؤية + متخصصون عميقون)، يتولى Mistral Small 4 العبء (دردشة، سياق طويل، عصف ذهني، بوابة النية)، بينما Mistral Large 3 هو الاحتياطي الثقيل. إقامة بيانات مقيدة بـ EU فقط، صارمة بموجب GDPR، أوزان مفتوحة.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash ينسّق ويتخصّص، مع مُهيئات Qwen. أعمال مكثفة متعددة الخطوات.',
-  'dash.model.maestro_title': 'مايسترو — قائد Qwen 3.7 Plus وحيد. عمل يومي، تكلفة متوقعة.',
   'model.add_key': 'إضافة مفتاح',
   'dash.model.sub.maestro_best': 'أفضل نموذج لكل مهمة',
   'dash.model.sub.byok_qwen': 'مفتاحك الخاص · Qwen',
@@ -4358,4 +4356,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'الرموز، الجلسات، النماذج',
   'ide.cli.not_running': 'Ava لا تعمل — أضف مفتاح المزود في الشريط الجانبي، أو وجهها لنموذج محلي في الإعدادات.',
   'onb.key.subtitle_ide': 'تعمل Ava على مفتاح مزود الذكاء الاصطناعي الخاص بك. يتم اختباره هنا، ثم يُحفظ في سلسلة مفاتيح النظام على هذا الجهاز — ولا يصل إلينا أبدًا.',
+  'dash.model.supernova_title': 'Supernova — يقوم DeepSeek V4.1 Flash بتنسيق المهام وكتابة الأكواد والتفكير المكثف؛ بينما تعالج Qwen 3.8 Flash الصور. مهام متعددة الخطوات وثقيلة.',
+  'dash.model.maestro_title': 'المايسترو — Qwen فقط. تقوم Qwen 3.8 Flash بتنسيق المحادثات، بينما Qwen 3.7 Plus تقوم بالعمل العميق. أعمال يومية بتكلفة متوقعة.',
 };

@@ -3905,8 +3905,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'geweigerd',
   'dash.model.select': 'Model selecteren',
   'dash.model.aurora_title': 'Aurora — Uitsluitend Mistral EU-stack. Drie-niveau vloot: Mistral Medium 3.5 leidt (coördinator + Bouwer + Vision + diepe specialisten), Mistral Small 4 verwerkt het volume (chat, lange context, brainstorm, intentie-poort), Mistral Large 3 is de zware reserve. Alleen EU-gegevensresidentie, GDPR-strikt, open gewichten.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash coördineert én specialiseert, met Qwen bouwers. Complexe meerstaps taken.',
-  'dash.model.maestro_title': 'Maestro — enkele Qwen 3.7 Plus dirigent. Dagelijks werk, voorspelbare kosten.',
   'model.add_key': 'Sleutel toevoegen',
   'dash.model.sub.maestro_best': 'Beste model per taak',
   'dash.model.sub.byok_qwen': 'Eigen sleutel · Qwen',
@@ -4358,4 +4356,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'Tokenen, sessies, modellen',
   'ide.cli.not_running': 'Ava draait niet — voeg een providersleutel toe in de zijkant, of wijs haar naar een lokaal model in Instellingen.',
   'onb.key.subtitle_ide': 'Ava draait op uw eigen AI-aanbiedersleutel. Deze wordt hier getest en vervolgens opgeslagen in uw systeem sleutelhanger op deze computer — ze komt nooit bij ons.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash coördineert, codeert en verricht het zware denkwerk; Qwen 3.8 Flash verwerkt afbeeldingen. Zwaar meerstaps werk.',
+  'dash.model.maestro_title': 'Maestro — Alleen Qwen. Qwen 3.8 Flash coördineert en chat, Qwen 3.7 Plus verricht het diepgaande werk. Dagelijks werk, voorspelbare kosten.',
 };

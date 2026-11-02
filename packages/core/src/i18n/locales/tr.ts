@@ -3905,8 +3905,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'reddedildi',
   'dash.model.select': 'Model Seç',
   'dash.model.aurora_title': 'Aurora — Sadece Mistral tabanlı AB altyapısı. Üç seviyeli küme: Mistral Medium 3.5 önderlik eder (koordinatör + Oluşturucu + Görüntü + Derin Uzmanlar), Mistral Small 4 yükü taşır (sohbet, uzun bağlam, beyin fırtınası, niyet kontrolü), Mistral Large 3 güçlü yedektir. Sadece AB veri yerleşimi, GDPR uyumlu, açık ağırlıklı.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash hem koordine eder hem uzmanlaşır, Qwen oluşturucularıyla. Yoğun çok adımlı işler.',
-  'dash.model.maestro_title': 'Maestro — Tek Qwen 3.7 Plus yönetici. Günlük işler, tahmin edilebilir maliyet.',
   'model.add_key': 'Anahtar Ekle',
   'dash.model.sub.maestro_best': 'Görev başına en iyi model',
   'dash.model.sub.byok_qwen': 'Kendi Anahtarın · Qwen',
@@ -4358,4 +4356,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'Tokenlar, oturumlar, modeller',
   'ide.cli.not_running': 'Ava çalışmıyor — yan panelden bir sağlayıcı anahtarı ekleyin veya Ayarlar\'dan yerel bir modele bağlayın.',
   'onb.key.subtitle_ide': 'Ava kendi Yapay zeka sağlayıcı anahtarınız üzerinden çalışır. Anahtar burada test edilir, sonra bu bilgisayardaki sistem anahtar zincirinde saklanır — asla bize ulaşmaz.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash koordinasyonu sağlar, kod yazar ve ağır düşünce işini yürütür; Qwen 3.8 Flash görüntüleri işler. Yoğun çok adımlı işler.',
+  'dash.model.maestro_title': 'Maestro — Yalnızca Qwen. Qwen 3.8 Flash koordinasyon ve sohbet yapar, Qwen 3.7 Plus derin işleri yürütür. Günlük işler, öngörülebilir maliyet.',
 };

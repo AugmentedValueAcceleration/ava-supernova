@@ -3905,8 +3905,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'ปฏิเสธ',
   'dash.model.select': 'เลือกโมเดล',
   'dash.model.aurora_title': 'Aurora — สแต็ก EU ที่ใช้เฉพาะ Mistral. ฟลีต 3 ระดับ: Mistral Medium 3.5 นำทีม (ผู้ประสานงาน + บิลเดอร์ + วิชัน + ผู้เชี่ยวชาญเชิงลึก), Mistral Small 4 รองรับปริมาณงาน (แชท, บริบทยาว, ระดมสมอง, เกตเจตนา), Mistral Large 3 เป็นสำรองหลัก. ที่อยู่ข้อมูลใน EU เท่านั้น, ยึด GDPR อย่างเคร่งครัด, น้ำหนักเปิด.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash ทั้งประสานงานและทำงานเฉพาะทาง พร้อมบิลเดอร์ Qwen. งานหลายขั้นตอนที่ซับซ้อน.',
-  'dash.model.maestro_title': 'Maestro — Qwen 3.7 Plus ผู้ประสานงานรายเดียว. งานประจำวัน, ต้นทุนคาดการณ์ได้.',
   'model.add_key': 'เพิ่มคีย์',
   'dash.model.sub.maestro_best': 'โมเดลที่ดีที่สุดสำหรับแต่ละงาน',
   'dash.model.sub.byok_qwen': 'ใช้คีย์ของคุณเอง · Qwen',
@@ -4358,4 +4356,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'โทเค็น, เซสชัน, โมเดล',
   'ide.cli.not_running': 'Ava ไม่ได้ทำงานอยู่ — เพิ่มคีย์ผู้ให้บริการในแถบด้านข้าง หรือชี้ไปที่โมเดลท้องถิ่นในการตั้งค่า.',
   'onb.key.subtitle_ide': 'Ava ทำงานบนคีย์ผู้ให้บริการปัญญาประดิษฐ์ของคุณเอง มันถูกทดสอบที่นี่, แล้วเก็บไว้ในระบบกุญแจของเครื่องนี้ — ไม่ส่งข้อมูลมาให้เรา.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash ประสานงาน เขียนโค้ด และคิดหนัก; Qwen 3.8 Flash จัดการรูปภาพ. งานหลายขั้นตอนซับซ้อน',
+  'dash.model.maestro_title': 'Maestro — เฉพาะ Qwen. Qwen 3.8 Flash ประสานงานและแชท, Qwen 3.7 Plus ทำงานเชิงลึก. งานประจำวัน, ต้นทุนคาดการณ์ได้',
 };

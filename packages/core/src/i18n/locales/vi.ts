@@ -3905,8 +3905,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'từ chối',
   'dash.model.select': 'Chọn mô hình',
   'dash.model.aurora_title': 'Cực quang — Chỉ Mistral cho hệ thống Châu Âu. Đội ngũ ba tầng: Mistral Trung bình 3.5 dẫn đầu (người phối hợp + Nhà xây dựng + thị giác + chuyên gia sâu), Mistral Nhỏ 4 xử lý khối lượng lớn (trò chuyện, ngữ cảnh dài, gợi ý ý tưởng, cổng mục đích), Mistral Lớn 3 là dự bị chính. Tuân thủ dữ liệu chỉ Châu Âu, nghiêm ngặt GDPR, trọng số mở.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash vừa phối hợp vừa đảm nhận chuyên môn, cùng nhà xây dựng Qwen. Công việc đa bước phức tạp.',
-  'dash.model.maestro_title': 'Nhạc trưởng — một nhạc trưởng Qwen 3.7 Plus duy nhất. Công việc hàng ngày, chi phí dự đoán được.',
   'model.add_key': 'Mô hình · Thêm khóa',
   'dash.model.sub.maestro_best': 'Phân loại Mô hình Maestro Tốt nhất cho từng nhiệm vụ',
   'dash.model.sub.byok_qwen': 'Tự mang khóa · Qwen',
@@ -4358,4 +4356,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'Token, phiên, mô hình',
   'ide.cli.not_running': 'Ava không chạy — thêm khóa nhà cung cấp trong thanh bên, hoặc chỉ định mô hình cục bộ trong Cài đặt.',
   'onb.key.subtitle_ide': 'Ava hoạt động dựa trên khóa nhà cung cấp AI của riêng bạn. Nó được kiểm tra ở đây, sau đó được lưu trong chuỗi khóa hệ thống của máy này — nó không bao giờ gửi đến chúng tôi.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash điều phối, viết code và xử lý tư duy phức tạp; Qwen 3.8 Flash xử lý hình ảnh. Dành cho công việc đa bước phức tạp.',
+  'dash.model.maestro_title': 'Maestro — Chỉ dùng Qwen. Qwen 3.8 Flash điều phối và trò chuyện, Qwen 3.7 Plus đảm nhận công việc chuyên sâu. Công việc hàng ngày, chi phí ổn định.',
 };

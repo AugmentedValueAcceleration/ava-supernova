@@ -32,27 +32,28 @@ interface RouteEntry {
   creationModelId?: string;
 }
 
-// Maestro routing — Qwen-only, TWO tiers by operator decision (2026-07-04):
-// everything substantive runs on Qwen 3.7 Plus (#1 on SWE-bench Pro, Terminal-
-// Bench 2.0, SkillsBench as of 2026-04-20); light orchestration / chat lanes
-// stay on Qwen 3.5 Flash. Qwen 3.5 Plus is retired from primary routes and
-// survives only as the outage fallback for 3.7 Plus. Vision-input tasks land
-// on Qwen 3.7 Plus (native vision + video).
+// Maestro routing — Qwen-only. The deep work (coding, planning, security,
+// teach, brainstorm) runs on Qwen 3.7 Plus, with 3.5 Plus as its outage
+// fallback. Chat, image generation, image reading and long context run on
+// Qwen 3.8 Flash (his call, 2 Nov 2026): they sat on 3.5 Flash and 3.7 Plus
+// from April, before 3.8 Flash existed, and were never revisited. 3.8 Flash
+// reads images and video natively, has 1M context and a 131K reply ceiling,
+// and is the current generation; 3.5 Flash is text-only, 256K, 8K replies,
+// and legacy to Alibaba. 3.7 Plus is every 3.8 Flash route's fallback.
 // MiniMax is BYOK chat only (M3) — never a platform route; creative generation uses Qwen-Image / Wan / Qwen3-TTS.
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   coding:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen3.5-plus' },
   // Vision — Qwen 3.7 Plus sees images + video natively (1M context).
-  vision:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — native vision + video, 1M context', fallbackModelId: 'qwen3.5-plus', requiresVision: true },
-  // image_gen orchestrates the generate_image tool call to Wan —
-  // no agentic depth needed at this layer. Flash is ~6× cheaper.
-  image_gen:    { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
+  vision:       { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — native vision + video, 1M context', fallbackModelId: 'qwen3.7-plus', requiresVision: true },
+  // image_gen orchestrates the generate_image tool call to Wan — no agentic
+  // depth needed at this layer, but it should see a reference image.
+  image_gen:    { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — orchestrates generate_image tool calls and sees reference images', fallbackModelId: 'qwen3.7-plus' },
   // computer_use route retired alongside the Holo3 integration.
   planning:     { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — 1M context for architecture + planning depth', fallbackModelId: 'qwen3.5-plus' },
-  // Chat = direct conversational response. Flash's $0.05/$0.40 pricing and
-  // faster TTFT are right for typical chat turns; 3.7 Plus is the warm
-  // fallback if Flash is unavailable.
-  chat:         { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — fast TTFT, cheapest input/output for typical chat turns', fallbackModelId: 'qwen3.7-plus' },
-  long_context: { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — hybrid linear-attention + MoE efficient at 1M', fallbackModelId: 'qwen3.5-plus' },
+  // Chat = direct conversational response, on the same model that
+  // coordinates — and one that can see an image dropped into the chat.
+  chat:         { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — fast, sees images, 1M context', fallbackModelId: 'qwen3.7-plus' },
+  long_context: { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — 1M context at flash cost', fallbackModelId: 'qwen3.7-plus' },
   // Teach runs on the flagship — operator call (2026-07-04): 3.5 Plus retired
   // from primary routes. 3.5 Plus remains as the outage fallback only.
   teach:        { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — flagship-quality long-form tutorials, 1M context', fallbackModelId: 'qwen3.5-plus', creationModelId: 'qwen3.7-plus' },

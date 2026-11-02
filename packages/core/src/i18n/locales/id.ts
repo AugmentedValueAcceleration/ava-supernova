@@ -3903,8 +3903,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'ditolak',
   'dash.model.select': 'Pilih model',
   'dash.model.aurora_title': 'Aurora — Stack UE eksklusif Mistral. Armada tiga tingkat: Mistral Medium 3.5 memimpin (koordinator + Pembangun + visi + spesialis mendalam), Mistral Small 4 menangani volume (obrolan, konteks panjang, curah ide, gerbang niat), Mistral Large 3 adalah cadangan utama. Residensi data eksklusif UE, ketat GDPR, bobot terbuka.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash mengoordinasi sekaligus menangani spesialisasi, dengan pembangun Qwen. Pekerjaan multi-langkah berat.',
-  'dash.model.maestro_title': 'Maestro — konduktor tunggal Qwen 3.7 Plus. Pekerjaan harian, biaya yang dapat diprediksi.',
   'model.add_key': 'Tambahkan kunci',
   'dash.model.sub.maestro_best': 'Model terbaik untuk setiap tugas',
   'dash.model.sub.byok_qwen': 'Bawa Kunci Anda Sendiri · Qwen',
@@ -4356,4 +4354,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'Token, sesi, model',
   'ide.cli.not_running': 'Ava tidak berjalan — tambahkan kunci penyedia di bilah sisi, atau arahkan ke model lokal di Pengaturan.',
   'onb.key.subtitle_ide': 'Ava berjalan menggunakan kunci penyedia AI Anda sendiri. Kunci ini diuji di sini, lalu disimpan di penyimpanan kunci sistem pada perangkat ini — tidak pernah sampai ke kami.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash mengoordinasi, membuat kode, dan melakukan pemikiran berat; Qwen 3.8 Flash menangani gambar. Pekerjaan multi-langkah yang berat.',
+  'dash.model.maestro_title': 'Maestro — Hanya Qwen. Qwen 3.8 Flash mengoordinasi dan chat, Qwen 3.7 Plus mengerjakan pekerjaan mendalam. Pekerjaan harian, biaya terprediksi.',
 };

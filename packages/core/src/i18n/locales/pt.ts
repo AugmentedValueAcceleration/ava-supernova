@@ -3903,8 +3903,6 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.audit.appr_denied': 'negado',
   'dash.model.select': 'Selecionar modelo',
   'dash.model.aurora_title': 'Aurora — Stack exclusivo da UE com apenas Mistral. Frota de três níveis: Mistral Medium 3.5 lidera (coordenador + Construtor + visão + especialistas profundos), Mistral Small 4 assume o volume (conversa, contexto longo, brainstorm, filtro de intenção), Mistral Large 3 é a reserva pesada. Residência de dados exclusiva da UE, estrito ao GDPR, pesos abertos.',
-  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash coordena e especializa, com construtores Qwen. Trabalho pesado multi-etapa.',
-  'dash.model.maestro_title': 'Maestro — único regente Qwen 3.7 Plus. Trabalho diário, custo previsível.',
   'model.add_key': 'Adicionar chave',
   'dash.model.sub.maestro_best': 'Melhor modelo por tarefa',
   'dash.model.sub.byok_qwen': 'Chave Própria · Qwen',
@@ -4356,4 +4354,6 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'dash.history.subtitle_short': 'tokens, sessões, modelos',
   'ide.cli.not_running': 'Ava não está em execução — adicione uma chave de provedor na barra lateral ou aponte-a para um modelo local em Configurações.',
   'onb.key.subtitle_ide': 'Ava usa sua própria chave de provedor de IA. Ela é testada aqui e mantida no cofre de chaves do sistema deste dispositivo — ela nunca chega até nós.',
+  'dash.model.supernova_title': 'Supernova — DeepSeek V4.1 Flash coordena, codifica e realiza o raciocínio pesado; Qwen 3.8 Flash processa imagens. Trabalho pesado multietapa.',
+  'dash.model.maestro_title': 'Maestro — Apenas Qwen. Qwen 3.8 Flash coordena e conversa, Qwen 3.7 Plus realiza o trabalho profundo. Trabalho diário, custo previsível.',
 };
