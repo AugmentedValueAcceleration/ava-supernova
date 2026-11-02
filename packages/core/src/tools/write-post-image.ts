@@ -28,7 +28,7 @@ export class WritePostImageTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'write_post_image',
     description:
-      'Make the picture that goes with a post, sized correctly for its platform. Use when a post needs a visual — you do NOT need to send them to the Design Studio for this. To FIX an image that is nearly right, pass its URL as reference_image and describe only the change: that edits it rather than generating a new one, which keeps everything that already worked. Check the canvas and browse_library first — the image you want may already exist.',
+      'Make the picture that goes with a post, sized correctly for its platform. Use when a post needs a visual — you do NOT need to send them to the Creative Studio for this. To FIX an image that is nearly right, pass its URL as reference_image and describe only the change: that edits it rather than generating a new one, which keeps everything that already worked. Check the canvas and browse_library first — the image you want may already exist.',
     parameters: {
       type: 'object',
       properties: {

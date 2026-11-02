@@ -46,7 +46,7 @@ export class OpenDesignStudioTool implements Tool {
     // just confirms the offer was shown.
     return {
       success: true,
-      output: 'Offered a jump to the Design Studio.',
+      output: 'Offered a jump to the Creative Studio.',
     };
   }
 }

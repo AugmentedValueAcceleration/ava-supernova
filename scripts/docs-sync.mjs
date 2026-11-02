@@ -25,7 +25,8 @@ const SRC = path.join(repoRoot, 'packages/core/src/docs');
 // generated mirror under src/lib/docs/. Add a target here to keep it in step.
 const DSTS = [
   path.join(repoRoot, 'packages/web/src/lib/docs'),
-  path.join(repoRoot, 'packages/web/src/companion/lib/docs'),
+  // packages/web/src/companion/lib/docs stood here — the companion was retired
+  // and its folder deleted; syncing to it recreated a dead copy (2 Nov 2026).
 ];
 
 const BANNER = [

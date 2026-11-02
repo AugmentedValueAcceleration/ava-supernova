@@ -87,9 +87,9 @@ export const START_PAGES: DocPage[] = [
 
       { type: 'heading', level: 3, text: 'CLI' },
       { type: 'list', ordered: true, items: [
-        'npm install -g @ava/cli  (or pnpm / yarn — your choice).',
-        'Run  ava  in any project directory.',
-        'First run prompts you for a provider and a model. Pick and go.',
+        'Clone the repository:  git clone https://github.com/AugmentedValueAcceleration/ava-supernova  — the CLI runs from source; there is no npm package.',
+        'Build it:  pnpm install && pnpm build  (needs Node.js and pnpm).',
+        'Run  node packages/cli/dist/index.js  in any project directory. The first run asks for a provider key and a model.',
       ]},
 
       { type: 'callout', variant: 'tip', text: 'There is no account to make. Ava runs on your own API keys — one Qwen key covers chat, images, voice and video. "Getting your Qwen key" below takes about five minutes.' },

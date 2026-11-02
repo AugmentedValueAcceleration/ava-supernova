@@ -29,7 +29,7 @@ function getControl(context: ToolExecutionContext): DesignControl | undefined {
 }
 
 const NO_CANVAS =
-  'The Design Studio canvas isn\'t open here, so I can\'t drive it. This tool works inside the Design Studio in the app.';
+  'The Creative Studio canvas isn\'t open here, so I can\'t drive it. This tool works inside the Creative Studio in the app.';
 
 // ── design_find_shape ────────────────────────────────────────────────────────
 // Discovery step — pull the Lucide armature(s) that match a subject. The shape
