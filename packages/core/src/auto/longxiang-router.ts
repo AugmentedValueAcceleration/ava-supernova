@@ -189,10 +189,9 @@ export const LONGXIANG_ROUTES: Record<TaskCategory, LongxiangRouteEntry> = {
 //
 // Keys match persona names from packages/core/src/personas/definitions.ts.
 //
-// NOTE: as of writing, neither SUPERNOVA_PERSONA_MODEL nor AURORA_PERSONA_MODEL
-// has a live consumer — the maps are declared ahead of the wiring. This one
-// mirrors them deliberately so Longxiang doesn't become the odd fleet out when
-// that wiring lands.
+// NOTE: this map has no live consumer, and neither does AURORA_PERSONA_MODEL.
+// Both fleets are dark. Supernova's equivalent was deleted on 2 Nov 2026
+// because its personas run on their task's routed model.
 
 export const LONGXIANG_PERSONA_MODEL: Record<string, string> = {
   // Heavy specialists — the seats where K3's coding + reasoning lead pays.

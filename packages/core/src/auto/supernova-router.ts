@@ -122,60 +122,11 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   brainstorm:   { modelId: 'deepseek-flash',  reason: 'DeepSeek V4.1 Flash — breadth-first ideation at 1M context', fallbackModelId: 'qwen3.8-flash' },
 };
 
-// ── Per-persona override map ──────────────────────────────────────────────
+// ── Personas ──────────────────────────────────────────────────────────────
 //
-// Used by Conductor when spawning specific personas. Persona is finer-grained
-// than task category — a "planning" task might invoke Architect (Qwen 3.7 Plus)
-// AND Researcher (DeepSeek Flash) within the same orchestration. Persona override
-// wins over the category route when set.
-//
-// Keys match persona names from packages/core/src/personas/definitions.ts.
-
-export const SUPERNOVA_PERSONA_MODEL: Record<string, string> = {
-  // Heavy specialists — chosen per the locked routing map.
-  architect:           'qwen3.7-plus',                  // vision-aware planning, MCP, production-tested
-  builder:             'qwen3.7-plus',                  // Terminal-Bench leader, real agent loops
-  curator:             'deepseek-flash',    // mid-tier reasoning, cost-effective
-  researcher:          'deepseek-flash',      // long-context synthesis
-  cve_researcher:      'deepseek-flash',      // deep reasoning over attack chain
-  content_writer:      'qwen3.7-plus',                  // flagship long output — 3.5 Plus retired from primaries (operator, 2026-07-04)
-  tutor:               'deepseek-flash',    // mid-depth, latency matters
-  ideator:             'deepseek-flash',      // reasoning depth 5 — Think-Max territory
-
-  // Light specialists — cheapest classifier where reasoning depth ≤ 2.
-  scout:               'qwen3.5-flash',
-  verifier:            'qwen3.5-flash',
-  sequencer:           'qwen3.5-flash',
-  challenger:          'qwen3.5-flash',
-  integrator:          'qwen3.5-flash',
-
-  // Mid-light specialists — reasoning depth 3. These sat on the cheaper
-  // DeepSeek tier when there were two; they now sit on the same model as the
-  // coordinator, so "mid-light" describes the work, not the price.
-  code_reviewer:       'deepseek-flash',
-  fact_checker:        'deepseek-flash',
-  quiz_master:         'deepseek-flash',
-  recon:               'deepseek-flash',
-  scanner:             'deepseek-flash',
-  security_verifier:   'deepseek-flash',
-  security_reporter:   'deepseek-flash',
-  curriculum_architect:'deepseek-flash',
-  explorer:            'deepseek-flash',
-  refiner:             'deepseek-flash',
-
-  // Vision specialist — follows SUPERNOVA_VISION_ID onto Qwen 3.8 Flash:
-  // same native image + video, newer generation, roughly a third the cost.
-  design_reviewer:     'qwen3.8-flash',
-};
-
-/**
- * Resolve the right model id for a persona in Supernova mode. Falls back to
- * `defaultModelId` when the persona isn't in the map (a new persona shipped
- * without a Supernova route — graceful degrade rather than throw).
- */
-export function resolveSupernovaPersonaModel(
-  persona: string,
-  defaultModelId: string,
-): string {
-  return SUPERNOVA_PERSONA_MODEL[persona.toLowerCase()] ?? defaultModelId;
-}
+// Supernova's personas run on the model their task is routed to. The teams
+// only field for planning, security, brainstorm and teach, and all four route
+// to DeepSeek V4.1 Flash, so every persona runs there (Qwen falls back: 3.7
+// Plus, or 3.8 Flash for brainstorm). A per-persona map lived here from April and was never wired;
+// it was deleted on 2 Nov 2026 because wiring it would have moved personas
+// off DeepSeek, and its keys did not match the real persona ids.
