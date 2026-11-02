@@ -16,13 +16,31 @@ import {
   installDatasetConsumer,
 } from '@ava/core';
 import { sessionStats } from './session-stats.js';
+import { withSharedProviderKeys } from './secrets/shared-keychain.js';
 
 let viewProvider: AvaViewProvider | undefined;
 
 const PANEL_STATE_KEY = 'avaSupernova.panelOpen';
 const DASHBOARD_STATE_KEY = 'avaSupernova.dashboardOpen';
 
-export function activate(context: vscode.ExtensionContext): void {
+export function activate(vscodeContext: vscode.ExtensionContext): void {
+  // Provider keys live in the OS keychain the IDE shares, so a user with both
+  // apps enters each key once. Everything below gets the wrapped context, and
+  // with it the shared keys; every other secret passes through to VS Code.
+  const { context, secrets: sharedSecrets } = withSharedProviderKeys(
+    vscodeContext,
+    (msg) => console.log(`[Ava keychain] ${msg}`),
+  );
+  // The keychain sends no events, so a key added or removed in the IDE is
+  // picked up when this window comes back into focus. The first look only
+  // records what is there.
+  sharedSecrets.checkForOutsideChanges();
+  context.subscriptions.push(
+    vscode.window.onDidChangeWindowState((state) => {
+      if (state.focused) sharedSecrets.checkForOutsideChanges();
+    }),
+  );
+
   // The projects folder exists from launch, not from the first time somebody
   // starts a project. Two surfaces already show its path; this is what makes
   // that path true. Fire-and-forget — nothing here should delay activation,

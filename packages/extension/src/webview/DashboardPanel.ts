@@ -300,6 +300,13 @@ export class DashboardPanel {
     this.secrets = context.secrets;
     this.viewProvider = viewProvider;
 
+    // A key added or removed in the IDE (shared keychain) shows here without
+    // reopening the dashboard.
+    this.disposables.push(this.secrets.onDidChange(async (e) => {
+      if (!Object.values(PROVIDER_KEY_SECRETS).includes(e.key)) return;
+      this.post({ type: 'provider_keys_updated', providerKeys: await this.getProviderKeyStatus() });
+    }));
+
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'AvaSupernovaIcon.png');
 
     // Register message handler BEFORE setting HTML to catch webview_ready
