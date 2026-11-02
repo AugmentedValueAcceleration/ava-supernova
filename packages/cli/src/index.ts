@@ -27,12 +27,17 @@ import {
   resolveLocale,
   installDatasetConsumer,
   resolveVisionDescriber,
+  mergeAccountFolders,
+  GenericProvider,
+  loadPersonality,
 } from '@ava/core';
 // Deep import, not from the index — keeping desktop tools out of the main
 // module graph is what stops them reaching the VS Code extension's bundle.
 import { registerDesktopTools } from '@ava/core/desktop-tools';
-import type { ProviderSettings } from '@ava/core';
 import { runSetupWizard } from './setup-wizard.js';
+import {
+  loadProviderKeys, loadLocalModel, sharedSetting, setSharedSetting, sharedUserName, clearPlatformKey,
+} from './shared.js';
 import { Repl } from './cli/repl.js';
 import { CommandHandler, type RoutingMode } from './cli/commands.js';
 
@@ -53,62 +58,79 @@ async function main(): Promise<void> {
     ? await loadDecisionsState(projectRoot)
     : undefined;
 
+  // There are no accounts (1 Nov 2026): everything lives in ~/.ava. Bring any
+  // account-era folder (~/.ava/users/<id>) home once — the same helper the
+  // extension and the IDE run, copy-only, marker-guarded — and drop the dead
+  // platform key so nothing routes on it.
+  clearPlatformKey();
+  try { await mergeAccountFolders(AVA_HOME); } catch { /* the old folder stays; nothing lost */ }
+  const globalDir = AVA_HOME;
+
   const config = new ConfigManager();
   const providerRegistry = new ProviderRegistry();
   const historyManager = new HistoryManager(projectRoot);
 
   await historyManager.init();
 
-  // First-run setup if needed
-  if (await config.needsSetup()) {
-    await runSetupWizard(config, providerRegistry);
+  // Keys are shared with the extension and the IDE through the OS keychain:
+  // a key added in either is already here. First run only when there is no
+  // way to chat at all — no key (Brave is search) and no local model.
+  const hasChat = () => Object.keys(loadProviderKeys()).some((id) => id !== 'brave') || !!loadLocalModel();
+  if (!hasChat()) {
+    await runSetupWizard(config);
   }
 
-  // Load config and register providers
   const appConfig = await config.load();
-
-  // Scope data directory per account — prevents memory leakage between accounts
-  let globalDir = AVA_HOME;
-  if (appConfig.platformKey) {
-    try {
-      const res = await fetch('https://avasupernova.com/api/account-info', {
-        headers: { Authorization: `Bearer ${appConfig.platformKey}` },
-      });
-      if (res.ok) {
-        const account = (await res.json()) as { id?: string };
-        if (account?.id) {
-          const { join } = await import('node:path');
-          const { mkdir } = await import('node:fs/promises');
-          globalDir = join(AVA_HOME, 'users', account.id);
-          await mkdir(globalDir, { recursive: true });
-        }
-      }
-    } catch { /* fall back to default AVA_HOME */ }
-  }
+  const keys = loadProviderKeys();
   const embeddingService = createEmbeddingServiceFromConfig(appConfig.preferences);
   const memoryManager = new MemoryManager({ globalDir, projectRoot, embeddingService });
   const configToRegistry: Record<string, string> = { glm: 'zhipu' };
-  for (const [name, providerConfig] of Object.entries(appConfig.providers)) {
-    if (name === 'generic' || !providerConfig) continue;
-    const settings = providerConfig as ProviderSettings;
-    if (settings.apiKey) {
-      try {
-        const registryKey = configToRegistry[name] || name;
-        providerRegistry.register(registryKey, settings);
-      } catch {
-        // Provider not yet implemented, skip
-      }
+  for (const [id, apiKey] of Object.entries(keys)) {
+    if (id === 'brave') continue; // search, not a chat provider — read via getProviderKey
+    try {
+      providerRegistry.register(configToRegistry[id] || id, { apiKey });
+    } catch {
+      // Provider not yet implemented, skip
+    }
+  }
+  // A local model server set up in any Ava app (Ollama, LM Studio…). The
+  // wizard used to save it in a shape config.json's loader dropped, and the
+  // provider loop skipped 'generic' anyway — a CLI local model never ran.
+  const local = loadLocalModel();
+  if (local) {
+    const ids = local.models.length ? local.models : local.modelName ? [local.modelName] : [];
+    if (ids.length) {
+      const label = local.label && ids.length === 1 ? local.label : undefined;
+      providerRegistry.registerCustom('generic', new GenericProvider({
+        apiKey: local.apiKey || 'local',
+        baseUrl: local.baseUrl,
+        models: ids.map((id) => ({
+          id, name: label ?? id, provider: 'generic',
+          contextWindow: 32000, maxOutputTokens: 4096, supportsToolCalls: true, supportsStreaming: true,
+        })),
+      }));
     }
   }
 
-  // Resolve locale from config
-  const language = resolveLocale(appConfig.preferences?.language ?? 'auto');
+  // Language and model follow the other apps: what was last chosen in any of
+  // them (~/.ava/settings.json) wins over the CLI's own older choice.
+  const language = resolveLocale(sharedSetting<string>('language') ?? appConfig.preferences?.language ?? 'auto');
   await setLocale(language);
+  const autoMemory = sharedSetting<{ autoMemory?: boolean }>('preferences')?.autoMemory
+    ?? appConfig.preferences.autoMemory ?? true;
 
-  // Resolve active model
-  const resolved = providerRegistry.resolveModel(appConfig.activeModel);
+  // The model: the shared pick if this machine can run it, else the CLI's
+  // own, else the first model a key unlocks.
+  const candidates = [sharedSetting<string>('chat_model'), appConfig.activeModel, ...providerRegistry.listAllModels().map((m) => `${m.provider}:${m.id}`)];
+  let resolved: ReturnType<typeof providerRegistry.resolveModel> = undefined;
+  let activeModelId = '';
+  for (const c of candidates) {
+    if (!c) continue;
+    resolved = providerRegistry.resolveModel(c);
+    if (resolved) { activeModelId = c; break; }
+  }
   if (!resolved) {
-    console.error(`Active model "${appConfig.activeModel}" not found. Run setup again.`);
+    console.error('No model available — add a provider key with /provider add <name>, or set up a local model in the extension or the IDE.');
     process.exit(1);
   }
 
@@ -134,8 +156,12 @@ async function main(): Promise<void> {
       supportsVision: resolved.model.supportsVision,
       projectInstructions: projectInstructions ?? undefined,
       memory: memory || undefined,
-      autoMemory: appConfig.preferences.autoMemory ?? true,
+      autoMemory,
       language,
+      // Ava's style and your name, as set in any Ava app (~/.ava). The CLI
+      // passed neither, so it always ran on the default personality.
+      personality: await loadPersonality(AVA_HOME),
+      userName: sharedUserName(),
       decisionsContext: decisionsState?.context ?? undefined,
       decisionsFolderExists: decisionsState?.hasFolder ?? false,
       decisionsOptInStatus: decisionsState?.optInStatus ?? 'not-asked',
@@ -143,21 +169,13 @@ async function main(): Promise<void> {
     }),
   );
 
-  // Sealed key getter — API keys accessed via function, not stored as plain strings
-  const qwenApiKey = appConfig.providers?.qwen?.apiKey || undefined;
-  const minimaxApiKey = appConfig.providers?.minimax?.apiKey || undefined;
-  const getProviderKey = (provider: string): string | undefined => {
-    switch (provider) {
-      case 'qwen': return qwenApiKey;
-      case 'minimax': return minimaxApiKey;
-      case 'platform': return appConfig.platformKey || undefined;
-      default: return undefined;
-    }
-  };
+  // Sealed key getter — API keys accessed via function, not stored as plain
+  // strings. Every key, Brave's included (web search reads it here).
+  const getProviderKey = (provider: string): string | undefined =>
+    keys[provider === 'zhipu' ? 'glm' : provider] || undefined;
 
   const sharedState: Record<string, unknown> = {
     memoryManager,
-    platformKey: appConfig.platformKey,
     getProviderKey,
     activeModelId: resolved.model.id,
     // Active provider + model + tool registry — needed by specialist tools
@@ -168,9 +186,7 @@ async function main(): Promise<void> {
   };
 
   // Memory Agent — curates briefs instead of raw memory dumps
-  const qwenFlash = providerRegistry.resolveModel('platform:qwen3.5-flash')
-    || providerRegistry.resolveModel('platform:qwen3.5-omni-flash')
-    || providerRegistry.resolveModel('qwen:qwen3.5-flash');
+  const qwenFlash = providerRegistry.resolveModel('qwen:qwen3.5-flash');
   if (qwenFlash && memoryManager) {
     const memoryAgent = new MemoryAgent({
       memoryManager,
@@ -182,7 +198,7 @@ async function main(): Promise<void> {
 
   // Build resilient provider with automatic failover
   const healthTracker = new ProviderHealthTracker();
-  const fallbackChain = providerRegistry.buildFallbackChain(appConfig.activeModel);
+  const fallbackChain = providerRegistry.buildFallbackChain(activeModelId);
   const provider = fallbackChain && fallbackChain.length > 1
     ? new ResilientProvider({
         primary: fallbackChain[0],
@@ -223,12 +239,11 @@ async function main(): Promise<void> {
 
   // Auto Mode — determine available providers for routing
   const availableProviders = new Set<string>();
-  if (appConfig.platformKey) availableProviders.add('platform');
-  if (appConfig.providers?.qwen?.apiKey || process.env.QWEN_API_KEY) availableProviders.add('qwen');
-  if (appConfig.providers?.minimax?.apiKey || process.env.MINIMAX_API_KEY) availableProviders.add('minimax');
-  if (appConfig.providers?.kimi?.apiKey || process.env.KIMI_API_KEY) availableProviders.add('kimi');
-  if (appConfig.providers?.deepseek?.apiKey || process.env.DEEPSEEK_API_KEY) availableProviders.add('deepseek');
-  if (appConfig.providers?.mistral?.apiKey || process.env.MISTRAL_API_KEY) availableProviders.add('mistral');
+  if (keys.qwen || process.env.QWEN_API_KEY) availableProviders.add('qwen');
+  if (keys.minimax || process.env.MINIMAX_API_KEY) availableProviders.add('minimax');
+  if (keys.kimi || process.env.KIMI_API_KEY) availableProviders.add('kimi');
+  if (keys.deepseek || process.env.DEEPSEEK_API_KEY) availableProviders.add('deepseek');
+  if (keys.mistral || process.env.MISTRAL_API_KEY) availableProviders.add('mistral');
 
   // Routing mode — persisted in config, defaults to 'auto' (Maestro / Qwen-only).
   // Changed at runtime via /route maestro|supernova|aurora|longxiang —
@@ -236,14 +251,13 @@ async function main(): Promise<void> {
   let routingMode: RoutingMode = appConfig.routingMode ?? 'auto';
 
   // Auto Mode — picks the right coordinator for the routing mode.
-  const autoCoordinator = (availableProviders.size > 1 || availableProviders.has('platform')
+  const autoCoordinator = (availableProviders.size > 1
     ? AutoCoordinator.create({
         providerRegistry,
         toolRegistry,
         cwd,
         sharedState,
         availableProviders,
-        platformKey: appConfig.platformKey,
         mode: routingMode,
       })
     : undefined) ?? undefined;
@@ -265,6 +279,8 @@ async function main(): Promise<void> {
     },
     onModelSwitch: (provider, model) => {
       sharedState.activeModelId = model.id;
+      // The other apps follow a model picked here.
+      try { setSharedSetting('chat_model', `${provider.name}:${model.id}`); } catch { /* shared file unwritable */ }
       repl.setAgent(
         new Agent({ provider, model, toolRegistry, cwd, sharedState }),
       );
@@ -272,14 +288,13 @@ async function main(): Promise<void> {
         new Conductor({ provider, model, toolRegistry, cwd, sharedState }),
       );
       // Update AutoCoordinator — uses correct coordinator model (not user's selection)
-      if (availableProviders.size > 1 || availableProviders.has('platform')) {
+      if (availableProviders.size > 1) {
         repl.setAutoCoordinator(AutoCoordinator.create({
           providerRegistry,
           toolRegistry,
           cwd,
           sharedState,
           availableProviders,
-          platformKey: appConfig.platformKey,
           mode: routingMode,
         }) ?? undefined);
       }
@@ -288,14 +303,13 @@ async function main(): Promise<void> {
     onRouteSwitch: async (next) => {
       routingMode = next;
       await config.set('routingMode', next);
-      if (availableProviders.size > 1 || availableProviders.has('platform')) {
+      if (availableProviders.size > 1) {
         repl.setAutoCoordinator(AutoCoordinator.create({
           providerRegistry,
           toolRegistry,
           cwd,
           sharedState,
           availableProviders,
-          platformKey: appConfig.platformKey,
           mode: routingMode,
         }) ?? undefined);
       }

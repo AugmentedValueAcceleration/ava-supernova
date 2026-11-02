@@ -1,204 +1,135 @@
 import * as readline from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import { t } from '@ava/core';
-import type { ConfigManager, ProviderRegistry, ProviderSettings } from '@ava/core';
+import { t, testProviderKey, ProviderRegistry } from '@ava/core';
+import type { ConfigManager } from '@ava/core';
 import { THEME } from './cli/theme.js';
+import { CHAT_PROVIDERS, BRAVE, registryName, type KeyProvider } from './providers-list.js';
+import { saveProviderKey, saveLocalModel } from './shared.js';
 
-const PROVIDERS = [
-  {
-    key: 'deepseek',
-    displayName: 'DeepSeek',
-    description: 'Best price/performance, strong reasoning',
-    keyUrl: 'https://platform.deepseek.com/api_keys',
-    live: true,
-  },
-  {
-    key: 'kimi',
-    displayName: 'Kimi (Moonshot AI)',
-    description: 'Best multi-step tool calling, 76.8% SWE-Bench',
-    keyUrl: 'https://platform.moonshot.ai/console/api-keys',
-    live: true,
-  },
-  {
-    key: 'qwen',
-    displayName: 'Qwen (Alibaba Cloud)',
-    description: 'Strong all-round, 1M context window',
-    keyUrl: 'https://bailian.console.alibabacloud.com/#/model-market/detail/qwen3.5-plus',
-    live: true,
-  },
-  {
-    key: 'zhipu',
-    displayName: 'GLM (Zhipu AI)',
-    description: 'Free tier available, 77.8% SWE-Bench',
-    keyUrl: 'https://z.ai/manage-apikey/apikey-list',
-    live: true,
-  },
-  {
-    key: 'mistral',
-    displayName: 'Mistral AI',
-    description: 'European provider, 256K context, Codestral',
-    keyUrl: 'https://console.mistral.ai/api-keys',
-    live: true,
-  },
-  {
-    key: 'tencent',
-    displayName: 'Tencent Hunyuan',
-    description: 'Hunyuan Hy3 — open-weight MoE, agentic, very cheap',
-    keyUrl: 'https://tokenhub.tencentmaas.com',
-    live: true,
-  },
-  {
-    key: 'nvidia',
-    displayName: 'NVIDIA',
-    description: 'Nemotron 3 Ultra — open-weight, 1M context (BYOK)',
-    keyUrl: 'https://build.nvidia.com',
-    live: true,
-  },
-  {
-    key: 'generic',
-    displayName: 'Custom / Local (Ollama, LMStudio, etc.)',
-    description: 'Any standard API format endpoint',
-    keyUrl: '',
-    live: true,
-  },
-];
-
-export async function runSetupWizard(
-  config: ConfigManager,
-  registry: ProviderRegistry,
-): Promise<void> {
+/**
+ * First run, key-first — the same order as the extension's and the IDE's key
+ * screens. Runs only when this machine has no way to chat at all: a key added
+ * in the extension or the IDE is already in the shared keychain, so someone
+ * with either app never sees this. Every key is tested before it is saved.
+ */
+export async function runSetupWizard(config: ConfigManager): Promise<void> {
   const rl = readline.createInterface({ input: stdin, output: stdout });
   const accent = chalk.hex(THEME.accent);
   const dim = chalk.dim;
+  const ok = chalk.hex(THEME.success);
+  const bad = chalk.hex(THEME.error);
 
   console.log('');
   console.log(accent.bold('  ' + t('setup.welcome')));
-  console.log(dim('  ' + t('setup.intro')));
+  console.log(dim('  Ava runs on your own AI provider key. It is tested, then kept in your'));
+  console.log(dim('  system keychain on this machine — it never comes to us. The extension'));
+  console.log(dim('  and the IDE use the same keychain, so you only add a key once.'));
   console.log('');
 
-  // Split into live and coming soon
-  const liveProviders = PROVIDERS.filter(p => p.live);
-  const comingSoon = PROVIDERS.filter(p => !p.live);
-
-  // Show live providers
-  console.log(accent('  Available providers:'));
+  CHAT_PROVIDERS.forEach((p, i) => {
+    console.log(accent(`  ${i + 1}.`) + chalk.bold(` ${p.name}`) + dim(` — ${p.note}`));
+  });
+  const localIdx = CHAT_PROVIDERS.length + 1;
+  console.log(accent(`  ${localIdx}.`) + chalk.bold(' A local model') + dim(' — Ollama, LM Studio, or any server with the standard API format'));
+  console.log(dim(`  ${localIdx + 1}. Skip for now`));
   console.log('');
-  for (let i = 0; i < liveProviders.length; i++) {
-    const p = liveProviders[i];
-    console.log(
-      accent(`  ${i + 1}.`) +
-      chalk.bold(` ${p.displayName}`) +
-      dim(` — ${p.description}`),
-    );
+
+  const choice = parseInt(await rl.question(accent('  > ') + t('setup.choose')), 10);
+  if (isNaN(choice) || choice < 1 || choice > localIdx + 1) {
+    console.log(bad('  ' + t('setup.invalid_choice')));
+    rl.close();
+    return;
   }
-  console.log(dim(`  ${liveProviders.length + 1}. Skip for now`));
-
-  // Show coming soon providers
-  if (comingSoon.length > 0) {
-    console.log('');
-    console.log(dim('  Coming soon: ' + comingSoon.map(p => p.displayName).join(', ')));
-  }
-  console.log('');
-
-  const choice = await rl.question(accent('  > ') + t('setup.choose'));
-  const choiceIdx = parseInt(choice, 10) - 1;
-
-  // Validate input is a number
-  if (isNaN(choiceIdx)) {
-    console.log(chalk.hex(THEME.error)('  ' + t('setup.invalid_choice')));
+  if (choice === localIdx + 1) {
+    console.log(dim('\n  Skipped. Run /provider add <name> later.\n'));
     rl.close();
     return;
   }
 
-  // Skip option
-  if (choiceIdx === liveProviders.length) {
-    console.log(dim('\n  Skipped. Run /provider add <name> later to configure.\n'));
+  if (choice === localIdx) {
+    await setUpLocalModel(rl, config);
     rl.close();
     return;
   }
 
-  if (choiceIdx < 0 || choiceIdx >= liveProviders.length) {
-    console.log(chalk.hex(THEME.error)('  ' + t('setup.invalid_choice')));
-    rl.close();
-    return;
-  }
+  const selected = CHAT_PROVIDERS[choice - 1];
+  const key = await askForWorkingKey(rl, selected);
+  if (!key) { rl.close(); return; }
 
-  const selected = liveProviders[choiceIdx];
-
-  // Generic provider needs base URL + model name, others need API key
-  if (selected.key === 'generic') {
-    console.log('');
-    console.log(dim('  Enter the base URL of your API endpoint (e.g. http://localhost:11434/v1)'));
-    const baseUrl = await rl.question(accent('  > ') + 'Base URL: ');
-    if (!baseUrl.trim()) {
-      console.log(chalk.hex(THEME.error)('  No URL provided.'));
-      rl.close();
-      return;
-    }
-    // Validate URL scheme — only HTTP(S) allowed
-    try {
-      const parsed = new URL(baseUrl.trim());
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error('unsupported protocol');
-      }
-    } catch {
-      console.log(chalk.hex(THEME.error)('  Invalid URL. Must start with http:// or https://'));
-      rl.close();
-      return;
-    }
-
-    const apiKey = await rl.question(accent('  > ') + 'API Key (leave empty if not required): ');
-    const modelId = await rl.question(accent('  > ') + 'Model name (e.g. llama3, codellama): ');
-    if (!modelId.trim()) {
-      console.log(chalk.hex(THEME.error)('  No model name provided.'));
-      rl.close();
-      return;
-    }
-
-    const settings: ProviderSettings = {
-      apiKey: apiKey.trim() || 'none',
-      baseUrl: baseUrl.trim(),
-    };
-
-    const providers = await config.get('providers');
-    (providers as Record<string, ProviderSettings>)[selected.key] = settings;
-    await config.set('providers', providers);
-    await config.set('activeModel', `generic:${modelId.trim()}`);
-
-    console.log('');
-    console.log(chalk.hex(THEME.success)(`  \u2713 Configured ${modelId.trim()} at ${baseUrl.trim()}`));
-    console.log(dim('  Use /model to switch models.'));
-    console.log('');
-    rl.close();
-    return;
-  }
-
-  console.log('');
-  console.log(dim('  ' + t('setup.key_url', { url: selected.keyUrl })));
-  console.log('');
-  const apiKey = await rl.question(accent('  > ') + t('setup.enter_key', { provider: selected.displayName }));
-
-  if (!apiKey.trim()) {
-    console.log(chalk.hex(THEME.error)('  ' + t('setup.no_key')));
-    rl.close();
-    return;
-  }
-
-  const providers = await config.get('providers');
-  (providers as Record<string, ProviderSettings>)[selected.key] = { apiKey: apiKey.trim() };
-  await config.set('providers', providers);
-
-  registry.register(selected.key, { apiKey: apiKey.trim() });
-  const models = registry.get(selected.key)!.listModels();
-
+  const registry = new ProviderRegistry();
+  registry.register(registryName(selected.id), { apiKey: key });
+  const models = registry.get(registryName(selected.id))?.listModels() ?? [];
   if (models.length > 0) {
-    await config.set('activeModel', `${selected.key}:${models[0].id}`);
-    console.log('');
-    console.log(chalk.hex(THEME.success)('  \u2713 ' + t('setup.complete', { model: models[0].name })));
-    console.log(dim('  Use /model to see all available models.'));
+    await config.set('activeModel', `${registryName(selected.id)}:${models[0].id}`);
+    console.log(ok('  ✓ ' + t('setup.complete', { model: models[0].name })));
   }
 
+  // Better web search is one more optional key.
+  console.log('');
+  console.log(dim(`  ${BRAVE.name}: ${BRAVE.note}`));
+  console.log(dim('  ' + t('setup.key_url', { url: BRAVE.url })));
+  const brave = (await rl.question(accent('  > ') + 'Brave Search key (Enter to skip): ')).trim();
+  if (brave) {
+    const r = await testProviderKey('brave', brave);
+    if (r.status === 'invalid') console.log(bad(`  ${r.message} Not saved — add it later with /provider add brave.`));
+    else { saveProviderKey('brave', brave); console.log(ok('  ✓ Brave Search key saved.')); }
+  }
+
+  console.log(dim('  Use /model to see every model your keys unlock.'));
   console.log('');
   rl.close();
+}
+
+/** Ask for a key until the provider accepts it (or the user gives up). */
+export async function askForWorkingKey(rl: readline.Interface, p: KeyProvider): Promise<string | undefined> {
+  const accent = chalk.hex(THEME.accent);
+  console.log('');
+  console.log(chalk.dim(`  ${p.note}`));
+  console.log(chalk.dim('  ' + t('setup.key_url', { url: p.url })));
+  for (;;) {
+    const key = (await rl.question(accent('  > ') + t('setup.enter_key', { provider: p.name }))).trim();
+    if (!key) {
+      console.log(chalk.hex(THEME.error)('  ' + t('setup.no_key')));
+      return undefined;
+    }
+    process.stdout.write(chalk.dim('  Testing the key…'));
+    const r = await testProviderKey(p.id, key);
+    process.stdout.write('\r\x1b[K');
+    if (r.status === 'invalid') {
+      console.log(chalk.hex(THEME.error)(`  ${r.message}`));
+      console.log(chalk.dim('  Paste it again, or press Enter to stop.'));
+      continue;
+    }
+    // 'unverified' is saved: a provider we could not reach is not a key we know is wrong.
+    if (r.status === 'unverified') console.log(chalk.dim(`  ${r.message}`));
+    saveProviderKey(p.id, key);
+    console.log(chalk.hex(THEME.success)(`  ✓ ${p.name} key works and is saved.`));
+    return key;
+  }
+}
+
+async function setUpLocalModel(rl: readline.Interface, config: ConfigManager): Promise<void> {
+  const accent = chalk.hex(THEME.accent);
+  const bad = chalk.hex(THEME.error);
+  console.log('');
+  console.log(chalk.dim('  The base URL of your server (e.g. http://localhost:11434/v1 for Ollama)'));
+  const baseUrl = (await rl.question(accent('  > ') + 'Base URL: ')).trim();
+  try {
+    const u = new URL(baseUrl);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('protocol');
+  } catch {
+    console.log(bad('  Invalid URL. Must start with http:// or https://'));
+    return;
+  }
+  const modelName = (await rl.question(accent('  > ') + 'Model name (e.g. qwen2.5-coder:7b): ')).trim();
+  if (!modelName) { console.log(bad('  No model name provided.')); return; }
+  const apiKey = (await rl.question(accent('  > ') + 'API key (Enter if your server needs none): ')).trim();
+  // ~/.ava/settings.json + the shared keychain — the extension and the IDE
+  // pick it up too.
+  saveLocalModel({ baseUrl, modelName, label: '', models: [modelName], apiKey: apiKey || undefined });
+  await config.set('activeModel', `generic:${modelName}`);
+  console.log('');
+  console.log(chalk.hex(THEME.success)(`  ✓ ${modelName} at ${baseUrl} is set up.`));
+  console.log('');
 }

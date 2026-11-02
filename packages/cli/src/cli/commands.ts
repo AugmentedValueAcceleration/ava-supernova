@@ -7,7 +7,6 @@ import type {
   ConfigManager,
   Provider,
   ModelDefinition,
-  ProviderSettings,
   ToolRegistry,
   HistoryManager,
 } from '@ava/core';
@@ -17,9 +16,12 @@ import {
   loadDatasetConfig, saveDatasetConfig, configPathFor, ALL_DATASETS,
   AVA_HOME,
   LONGXIANG_ENABLED,
+  testProviderKey,
   type DatasetConfig, type DatasetName, type AvaMode,
 } from '@ava/core';
 import { join } from 'node:path';
+import { ALL_KEY_PROVIDERS, registryName } from '../providers-list.js';
+import { loadProviderKeys, saveProviderKey, removeProviderKey } from '../shared.js';
 
 interface Command {
   name: string;
@@ -41,7 +43,7 @@ const ROUTE_INFO: Record<RoutingMode, { label: string; stack: string; tagline: s
   auto:      { label: 'Maestro',   stack: 'Qwen',            tagline: 'orchestration-tuned, balanced cost' },
   supernova: { label: 'Supernova', stack: 'DeepSeek + Qwen', tagline: 'polyglot depth for serious work' },
   aurora:    { label: 'Aurora',    stack: 'Mistral',         tagline: 'EU-sovereign three-tier' },
-  longxiang: { label: 'Longxiang', stack: 'Kimi + Qwen + DeepSeek', tagline: 'open weights, BYOK-only, zero credits' },
+  longxiang: { label: 'Longxiang', stack: 'Kimi + Qwen + DeepSeek', tagline: 'open weights, your own keys' },
 };
 
 /** Routes the user can actually pick right now. Longxiang is built but dark
@@ -202,52 +204,61 @@ export class CommandHandler {
         const parts = args.trim().split(/\s+/);
         const action = parts[0];
 
-        const liveProviders = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'generic'];
-        const comingSoonProviders: string[] = [];
-        const allSupported = [...liveProviders, ...comingSoonProviders];
-        // Config key → registry key mapping (glm config maps to zhipu provider)
-        const configToRegistry: Record<string, string> = { glm: 'zhipu' };
+        // The same providers, links and key test as the extension and the IDE.
+        // Keys go to the shared keychain, so one added here is in both of them.
+        const ids = ALL_KEY_PROVIDERS.map((p) => p.id);
 
         if (action === 'add') {
-          const providerName = parts[1];
-
-          if (!providerName || !allSupported.includes(providerName)) {
-            console.log(`  ${t('cmd.provider.usage', { providers: allSupported.join('|') })}`);
+          const p = ALL_KEY_PROVIDERS.find((x) => x.id === (parts[1] === 'zhipu' ? 'glm' : parts[1]));
+          if (!p) {
+            console.log(`  ${t('cmd.provider.usage', { providers: ids.join('|') })}`);
             return true;
           }
-
-          const apiKey = await this.askQuestion(`  ${t('cmd.provider.enter_key', { provider: providerName })}`);
-          if (!apiKey) {
-            console.log(`  ${t('cmd.provider.cancelled')}`);
+          console.log(chalk.dim(`  ${p.note}`));
+          console.log(chalk.dim(`  ${t('setup.key_url', { url: p.url })}`));
+          for (;;) {
+            const apiKey = (await this.askQuestion(`  ${t('cmd.provider.enter_key', { provider: p.name })}`)).trim();
+            if (!apiKey) {
+              console.log(`  ${t('cmd.provider.cancelled')}`);
+              return true;
+            }
+            const result = await testProviderKey(p.id, apiKey);
+            if (result.status === 'invalid') {
+              console.log(chalk.red(`  ${result.message}`));
+              continue;
+            }
+            if (result.status === 'unverified') console.log(chalk.dim(`  ${result.message}`));
+            saveProviderKey(p.id, apiKey);
+            if (p.id === 'brave') {
+              console.log(chalk.green(`  ${t('cmd.provider.added', { provider: p.name })}`));
+              return true;
+            }
+            try {
+              opts.providerRegistry.register(registryName(p.id), { apiKey });
+              console.log(chalk.green(`  ${t('cmd.provider.added', { provider: p.name })}`));
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              console.log(chalk.red(`  ${t('cmd.provider.failed', { provider: p.name, error: msg })}`));
+            }
             return true;
           }
-
-          const settings: ProviderSettings = { apiKey };
-          const appConfig = await opts.config.load();
-          (appConfig.providers as Record<string, ProviderSettings>)[providerName] = settings;
-          await opts.config.save();
-
-          try {
-            const registryKey = configToRegistry[providerName] || providerName;
-            opts.providerRegistry.register(registryKey, settings);
-            console.log(chalk.green(`  ${t('cmd.provider.added', { provider: providerName })}`));
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.log(chalk.red(`  ${t('cmd.provider.failed', { provider: providerName, error: msg })}`));
+        } else if (action === 'remove') {
+          const p = ALL_KEY_PROVIDERS.find((x) => x.id === (parts[1] === 'zhipu' ? 'glm' : parts[1]));
+          if (!p) {
+            console.log(`  /provider remove <${ids.join('|')}>`);
+            return true;
           }
+          removeProviderKey(p.id);
+          console.log(chalk.green(`  ${p.name} key removed — from the extension and the IDE too.`));
         } else {
-          const appConfig = await opts.config.load();
+          const keys = loadProviderKeys();
           console.log('');
           console.log(chalk.bold(`  ${t('cmd.provider.title')}`));
-          for (const name of liveProviders) {
-            const configured = (appConfig.providers as Record<string, ProviderSettings | undefined>)[name];
-            const status = configured?.apiKey
+          for (const p of ALL_KEY_PROVIDERS) {
+            const status = keys[p.id]
               ? chalk.green(t('cmd.provider.configured'))
               : chalk.dim(t('cmd.provider.not_configured'));
-            console.log(`  ${chalk.bold(name)} — ${status}`);
-          }
-          if (comingSoonProviders.length > 0) {
-            console.log(chalk.dim(`  Coming soon: ${comingSoonProviders.join(', ')}`));
+            console.log(`  ${chalk.bold(p.id)} — ${status}`);
           }
           console.log('');
           console.log(chalk.dim(`  ${t('cmd.provider.hint')}`));
