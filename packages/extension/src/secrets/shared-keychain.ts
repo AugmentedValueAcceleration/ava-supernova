@@ -342,8 +342,18 @@ export function withSharedProviderKeys(
   log: (msg: string) => void,
 ): { context: vscode.ExtensionContext; secrets: SharedSecretStorage } {
   const secrets = new SharedSecretStorage(context.secrets, log);
-  const wrapped = new Proxy(context, {
-    get: (target, prop) => (prop === 'secrets' ? secrets : Reflect.get(target, prop, target)),
+  // The proxy's target is a blank object, NOT the context: VS Code's context
+  // makes `secrets` a read-only, non-configurable property, and a proxy may
+  // not report a different value for one of those on its own target — so
+  // proxying the context directly fails activation outright. Everything else
+  // is read from the real context (methods bound to it).
+  const wrapped = new Proxy({} as vscode.ExtensionContext, {
+    get: (_blank, prop) => {
+      if (prop === 'secrets') return secrets;
+      const v = Reflect.get(context, prop, context);
+      return typeof v === 'function' ? v.bind(context) : v;
+    },
+    has: (_blank, prop) => prop in context,
   });
   return { context: wrapped, secrets };
 }
