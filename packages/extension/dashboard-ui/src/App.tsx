@@ -753,9 +753,10 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     health: ['active_health_plans_loaded', 'health_plans_loaded'],
     // load_conversations + load_session_stats.
     history: ['conversations_loaded', 'session_stats_loaded'],
-    // load_support_tickets + load_roadmap. Only the first: roadmap comes
-    // from the platform over the network and can fail silently.
-    help: ['support_tickets_loaded'],
+    // help is deliberately absent too: it only asks for the roadmap, a network
+    // call that can fail silently. It used to wait on support_tickets_loaded,
+    // which nothing has sent since tickets retired (1 Nov 2026) — so every
+    // visit to Help spun for the full eight seconds.
     //
     // Deliberately absent: chat is live; account renders from state already in
     // hand; planner and memory request nothing on arrival — their data is loaded
