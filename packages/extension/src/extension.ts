@@ -17,6 +17,7 @@ import {
 } from '@ava/core';
 import { sessionStats } from './session-stats.js';
 import { withSharedProviderKeys } from './secrets/shared-keychain.js';
+import { syncSharedOnboarding } from './webview/onboarding-state.js';
 
 let viewProvider: AvaViewProvider | undefined;
 
@@ -35,6 +36,9 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
   // picked up when this window comes back into focus. The first look only
   // records what is there.
   sharedSecrets.checkForOutsideChanges();
+  // Consent + a finished welcome are shared through ~/.ava/onboarding.json, so
+  // the welcome is done once across both apps.
+  void syncSharedOnboarding(context.globalState);
   context.subscriptions.push(
     vscode.window.onDidChangeWindowState((state) => {
       if (state.focused) sharedSecrets.checkForOutsideChanges();

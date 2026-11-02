@@ -114,6 +114,7 @@ import { DocumentPreviewPanel } from './DocumentPreviewPanel.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
+import { markShared } from './onboarding-state.js';
 import {
   logTo,
   readPermissionMode,
@@ -3202,6 +3203,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'accept_consent': {
         // Consent is recorded on this machine only — there is no account to record it against.
         await this.context.globalState.update('ava.consentAccepted', new Date().toISOString());
+        void markShared({ consent: true }).catch(() => {});
         this.log('User accepted Terms of Service and Privacy Policy');
         break;
       }

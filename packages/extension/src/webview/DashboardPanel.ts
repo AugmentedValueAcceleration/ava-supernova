@@ -50,6 +50,7 @@ import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, Journa
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch, getDeviceId } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
+import { markShared } from './onboarding-state.js';
 import type { AvaViewProvider } from './AvaViewProvider.js';
 import type {
   ExtToDashboardMessage,
@@ -422,10 +423,12 @@ export class DashboardPanel {
       // The onboarding's Welcome screen. Same flag the chat sidebar sets.
       case 'accept_consent':
         await this.context.globalState.update('ava.consentAccepted', new Date().toISOString());
+        void markShared({ consent: true }).catch(() => {});
         break;
 
       case 'finish_onboarding':
         await this.context.globalState.update('ava.onboardedV2', true);
+        void markShared({ onboarded: true }).catch(() => {});
         break;
 
       case 'remove_provider_key':
@@ -2451,7 +2454,10 @@ export class DashboardPanel {
       const usedBefore = consentAccepted || hasModel || !!this.context.globalState.get('ava.onboardedV1');
       if (!usedBefore) onboarding = 'full';
       else if (!hasModel) onboarding = 'key';
-      else await this.context.globalState.update('ava.onboardedV2', true);
+      else {
+        await this.context.globalState.update('ava.onboardedV2', true);
+        void markShared({ onboarded: true }).catch(() => {});
+      }
     }
     // Avatar goes WITH init rather than via a separate load_avatar round trip.
     // The round trip is one more thing that can fail to complete, and when it
