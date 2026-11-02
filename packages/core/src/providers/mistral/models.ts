@@ -39,7 +39,7 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
   // DEPRECATED by Mistral 31 Oct 2026, switched off 30 Apr 2027 (replacement:
-  // Large 4). Out of Aurora; stays pickable by name until then.
+  // Large 4). Out of Aurora and out of the picker; still works for anyone who chose it.
   // Mistral Large 3 (December 2025) — sparse MoE, 41B active / 675B total,
   // 256K context, multimodal (text + image), Apache-2.0. The broadest-
   // knowledge, most-permissive open-weight Mistral — the truest sovereign
@@ -59,9 +59,13 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     supportsVision: true,
     desktopCapable: true,
     pricing: { inputPerMillion: 0.50, outputPerMillion: 1.50 },
+    // Deprecated by Mistral 31 Oct 2026 (switched off 30 Apr 2027; replacement
+    // Large 4). Out of the picker since 2 Nov; anyone who already chose it keeps
+    // it working until Mistral switches it off.
+    hiddenFromPicker: true,
   },
   // DEPRECATED by Mistral 31 Oct 2026, switched off 30 Apr 2027 (replacement:
-  // Large 4). Out of Aurora; stays pickable by name until then.
+  // Large 4). Out of Aurora and out of the picker; still works for anyone who chose it.
   // Mistral Medium 3.5 (May 2026) — 128B dense, 256K context, vision-capable
   // from-scratch encoder, modified-MIT open weights, configurable reasoning.
   // Was Aurora's lead seat until Large 4 replaced it: Artificial Analysis
@@ -78,6 +82,10 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     supportsVision: true,
     desktopCapable: true,
     pricing: { inputPerMillion: 1.50, outputPerMillion: 7.50 },
+    // Deprecated by Mistral 31 Oct 2026 (switched off 30 Apr 2027; replacement
+    // Large 4). Out of the picker since 2 Nov; anyone who already chose it keeps
+    // it working until Mistral switches it off.
+    hiddenFromPicker: true,
   },
   // Codestral + Devstral 2 retired 2026-07-23 (superseded by Mistral Small 4,
   // which unifies Magistral + Pixtral + Devstral in one weight set). Removed

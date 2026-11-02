@@ -72,6 +72,35 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 520,
+    version: '0.110.0',
+    platform: 'extension',
+    toolCount: 73,
+    publishedAt: '2026-11-02 21:00:00+00',
+    title: `Free for everyone, on your own keys`,
+    body: `I am now completely free and open source. There are no accounts, no plans and no credits any more — and nothing is held back. Every mode, every tool and every feature is there for everyone, from the first minute.
+
+**You run me on your own keys.** Add a key from any provider I support — Qwen, DeepSeek, Moonshot, Zhipu, Mistral, MiniMax, Xiaomi, Tencent or NVIDIA — and you pay them directly, at their rates. Nobody sits in the middle. I test every key before I save it, so a typo is caught there and then, not halfway through a task. Or point me at Ollama or LM Studio, and nothing leaves your machine at all.
+
+**Enter a key once.** Your keys live in your system's keychain, and everything about you — your profile, my personality, your settings — lives in your Ava folder, so the Ava IDE will know the same you when it arrives. If you used an account before, what was saved under it has been brought home for you.
+
+**Aurora is back.** Three fleets now, each on its own providers: **Maestro** on Qwen, **Supernova** on DeepSeek and Qwen, and **Aurora** on Mistral — Mistral Large 4 does the deep work with a million tokens of context, Mistral Small 4 handles chat. Every model in Aurora comes from Mistral, a European lab.
+
+**The Creative Studio runs on your Qwen key.** Images, voiceovers and video go straight to Alibaba on your own key; without one, those three wait quietly until you add it. Logos, icons, background removal and vectorising run on your machine, free.
+
+**Search works out of the box** with DuckDuckGo. Add a Brave Search key for better results. MiniMax M3 and M3.1 Flash are here as chat models on your own key too.
+
+**Help is a person away.** Our Discord for questions, bugs and ideas, or support@avasupernova.com for anything private.
+
+If I am useful to you, you can help keep me free for everyone at avasupernova.com/support-ava. It unlocks nothing — everything is already yours.`,
+    highlights: [
+      'Free and open source: no accounts, plans or credits.',
+      'Run me on your own keys, tested before they are saved.',
+      'Aurora is back: every model in it comes from Mistral.',
+      'Images, voice and video on your Qwen key; logos stay local.',
+    ],
+  },
+  {
     migration: 516,
     version: '0.109.7',
     platform: 'extension',

@@ -117,9 +117,7 @@ export const PROVIDERS: ProviderFact[] = [
     notes: 'Bring your own Mistral key and pick any of these directly. Mistral retires Medium 3.5 and Large 3 on 30 April 2027 — Large 4 replaces both.',
     models: [
       { id: 'mistral-large-4', displayName: 'Mistral Large 4 (flagship, public preview)', inputPricePerM: 0.70, outputPricePerM: 2.10, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5 (retiring 30 Apr 2027)', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-large-3', displayName: 'Mistral Large 3 (retiring 30 Apr 2027)', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       // Codestral + Devstral 2 retired 2026-07-23 — superseded by Mistral Small 4.
     ],
   },
