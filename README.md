@@ -2,19 +2,21 @@
   <h1 align="center">Ava Supernova</h1>
   <p align="center">
     <strong>The open-source AI coding agent that works for everyone — not just the people who can afford it.</strong><br/>
-    120+ tools · 7 modes · 24 specialist personas · frontier open-weight models from every major lab · a Creative Studio that builds real assets into your project. <strong>Free to start, no account, no credit card.</strong>
+    80+ tools · 7 modes · 24 specialist personas · frontier open-weight models from every major lab · a Creative Studio that builds real assets into your project.<br/>
+    <strong>Free and open source. Your keys. Your machine. Your work.</strong>
   </p>
   <p align="center">
     <a href="#what-ava-is">What Ava Is</a> &middot;
-    <a href="#one-ava-four-surfaces">Surfaces</a> &middot;
+    <a href="#where-ava-runs">Where Ava Runs</a> &middot;
     <a href="#models--fleets">Models</a> &middot;
     <a href="#getting-started">Getting Started</a> &middot;
     <a href="#tools">Tools</a> &middot;
     <a href="#privacy">Privacy</a> &middot;
+    <a href="#support-ava">Support Ava</a> &middot;
     <a href="#contributing">Contributing</a>
   </p>
   <p align="center">
-    <a href="https://github.com/AugmentedValueAcceleration/ava-supernova/blob/production/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/Node-%3E%3D20.0.0-brightgreen.svg" alt="Node">
     <img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript">
     <a href="https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova"><img src="https://img.shields.io/badge/VS%20Code-Marketplace-007ACC.svg" alt="VS Code Marketplace"></a>
@@ -27,23 +29,25 @@
 
 Agentic coding shouldn't be a luxury. Ava Supernova is a full AI coding agent — she reads your codebase, plans the work, executes it task by task, and remembers what she learns so the next time gets easier. She runs on the frontier of **open-weight** models, which now match or beat closed frontier models on agentic coding at a fraction of the cost.
 
-She's open-source, **local-first**, and free to start:
+She's free, open source and **local-first**:
 
-- **No account, no credit card, no trial.** Install, open, go. Bring your own API key and run fully local — or sign up for **300 free credits a month** and start with zero setup.
+- **No account, no sign-in, no subscription.** Install, add an API key from any supported provider (or point her at a local model), and go. You pay your provider directly, at their rates — Ava never sits in the middle.
 - **Your data stays on your machine.** Memory, history, journal, tasks — all stored locally. There is no cloud sync.
-- **No gatekeeping.** Every capability — including the security toolkit and the teaching engine — is available to everyone. The free tier is a floor, not a free trial.
+- **No gatekeeping.** Every capability — including the security toolkit and the teaching engine — is there for everyone. Nothing is held back for a paid tier, because there isn't one.
 
 > Ask Ava `what can you do?` and she'll read her own source code and tell you herself.
 
-## One Ava, Four Surfaces
+## Where Ava Runs
 
-The same agent engine (`@ava/core`) powers every surface — same tools, same personas, same memory. You choose where you work:
+The same agent engine (`@ava/core`) powers every surface — same tools, same personas, same memory:
 
 | Surface | What it is | Best for |
 |---|---|---|
-| **CLI** (`@ava/cli`) | A terminal REPL with the full agent loop. | Living in the terminal, scripting, servers, SSH. |
 | **VS Code Extension** | Ava inside the editor you already use — chat, agent, command-centre dashboard. | Adding Ava to your existing VS Code workflow. |
-| **IDE** | A standalone desktop app (Tauri + Rust) with Ava native and a local engine. Owns **desktop automation**. | A dedicated AI-native workspace; controlling the whole machine. |
+| **IDE** — *coming Q4 2026* | A standalone desktop app (Tauri + Rust) with Ava native and a local engine. Brings **desktop automation**. | A dedicated AI-native workspace; controlling the whole machine. |
+| **CLI** | A terminal REPL with the full agent loop, run from this repository. | Living in the terminal, scripting, servers, SSH. |
+
+Your keys and everything Ava knows about you — profile, personality, settings — are shared between the extension and the IDE. Enter a key once and both have it.
 
 ## What Makes Ava Different
 
@@ -51,7 +55,7 @@ The same agent engine (`@ava/core`) powers every surface — same tools, same pe
 - **She thinks before she builds.** 24 specialist personas across 7 modes plan, verify, and challenge before executing. Simple questions skip orchestration entirely — zero overhead.
 - **She won't fake a "done."** A built-in honesty gate checks every claim of completion or success — "it's fixed", "tests pass", "deployed" — against the tools she actually ran that turn, and flags any it can't back with evidence. A guess never stands as fact. Always on, no off-switch.
 - **She picks the right fleet for the work.** You pick the job; the right multi-model fleet falls out of it (see [Models & Fleets](#models--fleets)).
-- **She teaches for free.** Switch to Teach mode, say "teach me Rust," and she builds a personalised curriculum and teaches it lesson by lesson — fact-checked against the live web. Same credits as every other mode.
+- **She teaches.** Switch to Teach mode, say "teach me Rust," and she builds a personalised curriculum and teaches it lesson by lesson — fact-checked against the live web.
 - **She explains herself.** Ask "how does your memory work?" and she reads her own implementation and walks you through it.
 - **She's yours to design.** Name, pronouns, tone, energy, communication style — same brain, your personality. The whole UI translates into 20 languages and switches live the moment you change it — no restart.
 
@@ -69,7 +73,7 @@ Modes aren't tool restrictions — they're states of mind. The toolkit and the p
 | **Brainstorm** | `**` | Ideator | Research, generate, challenge, and refine ideas |
 | **Write** | `<<` | Author | Drafting real documents — reports, proposals, letters, articles — exported as branded Word & PDF |
 
-Switch with the dropdown or `Ctrl+Shift+1` through `Ctrl+Shift+7`.
+Switch with the mode menu, or start a message with its prefix.
 
 ## Personas — Ava's Internal Specialist Team
 
@@ -85,126 +89,104 @@ Chat and Write run without personas — just Ava.
 
 ## Models & Fleets
 
-You don't pick a model — you pick the work, and the right fleet falls out of it. Four orchestrated fleets, three of them fully live.
+You don't have to pick a model — pick the work, and a fleet routes each part of it to the right one. Three orchestrated fleets, each locked to its own providers:
 
-| Fleet | Status | Coordinator | Best for |
+| Fleet | Needs | Coordinator | How it splits the work |
 |---|---|---|---|
-| **Maestro** | **Ships now** | Qwen 3.8 Flash | Daily work, predictable cost — a tier-differentiated Qwen ensemble |
-| **Supernova** | **Ships now** | DeepSeek V4.1 Flash | Heavy multi-step work — a polyglot fleet picking the best model per role |
+| **Maestro** | A Qwen key | Qwen 3.8 Flash | Flash coordinates and handles chat, images and long context; Qwen 3.7 Plus does the deep work — coding, planning, security, teaching. |
+| **Supernova** | DeepSeek + Qwen keys | DeepSeek V4.1 Flash | DeepSeek does nearly everything; Qwen 3.8 Flash reads and makes images. |
+| **Aurora** | A Mistral key | Mistral Large 4 | Every model from Mistral, a European lab: Large 4 does the deep work with 1M context, Small 4 handles chat and brainstorming. |
 
-Both are live on every plan. With your own keys, **Maestro** unlocks with a Qwen key and **Supernova** with DeepSeek + Qwen keys.
-
-### Supported models
-
-Bring your own key for any provider, or use Ava-managed models on a plan. Every plan gets every managed model — tiers differ only on monthly credit allowance, never on which models you can use.
+Or pick any single model your keys reach:
 
 | Provider | Models |
 |---|---|
-| **Ava Managed** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, DeepSeek V4.1 Flash |
-| **Qwen (Alibaba)** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash — 1M context, vision, reasoning |
-| **DeepSeek** | DeepSeek V4.1 Flash — MIT open-weight, 1M context, multimodal |
-| **Moonshot** | Kimi K3 (2.8T MoE, 1M context, native vision), K2.7 Code, K2.6 |
-| **Zhipu** | GLM-5.3, GLM-5.3 Flash — MIT open-weight, 1M context; 5.3 is text only, Flash reads images and video |
-| **Mistral** | Medium 3.5, Small 4, Large 3 — EU, open weights, up to 262K context |
-| **MiniMax** | M3, M2.7, M2.7 HighSpeed — up to 1M context (BYOK) |
-| **Xiaomi** | MiMo V2.5, V2.5-Pro — 1M context, native multimodal |
+| **Qwen (Alibaba)** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash — up to 1M context, vision, reasoning |
+| **DeepSeek** | DeepSeek V4.1 Flash — MIT open-weight, 1M context |
+| **Moonshot** | Kimi K3 (1M context, native vision), K2.7 Code, K2.6 |
+| **Zhipu** | GLM-5.3, GLM-5.3 Flash — MIT open-weight, 1M context |
+| **Mistral** | Large 4 (1M context), Small 4 |
+| **MiniMax** | M3, M3.1 Flash — 1M context |
+| **Xiaomi** | MiMo V2.6-Pro, V2.6-Flash — 1M context, native multimodal |
 | **Tencent** | Hunyuan Hy3 — open-weight MoE, 262K context |
 | **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning — open-weight, 1M context |
-| **Custom / Local** | Ollama, LM Studio, vLLM, or any standard API-format endpoint — the $0 path |
+| **Local** | Ollama, LM Studio, vLLM, or any standard API-format endpoint — no key, no cost |
+
+**Images, voiceovers and video** in the Creative Studio run on your own **Qwen key**, billed by Alibaba at Alibaba's rates; without one, those are switched off. Make Qwen keys in Alibaba Cloud Model Studio's **Singapore** region — keys are region-locked and Ava uses the international endpoint.
+
+**Web search** uses DuckDuckGo out of the box; add a Brave Search key for better results.
 
 ## Getting Started
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org) v20.0.0 or later
-- An API key from any supported provider — **or sign up for 300 free credits a month**
-
-### CLI
-
-```bash
-# Install from npm
-npm install -g @ava/cli
-ava
-```
-
-On first launch, Ava runs an interactive setup wizard: pick a provider, paste your key (or skip and sign in for the free tier), and you're ready.
-
 ### VS Code Extension
 
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova) — or search "Ava Supernova" in the Extensions panel. Click the Ava icon in the activity bar (or `Ctrl+Shift+A`) and start.
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova) — or search "Ava Supernova" in the Extensions panel. Click the Ava icon in the activity bar (or press `Ctrl+Shift+A`), add a key from any supported provider in the sidebar, and start.
 
 ### IDE
 
-Download the standalone desktop IDE from [ava-supernova.com](https://ava-supernova.com). A local Node.js engine runs `@ava/core` on your machine — the full agent without a browser or VS Code.
+The standalone desktop IDE is **coming Q4 2026**, alongside desktop automation.
 
-### Build from source
+### CLI
+
+Requires [Node.js](https://nodejs.org) 20 or later and [pnpm](https://pnpm.io).
 
 ```bash
 git clone https://github.com/AugmentedValueAcceleration/ava-supernova.git
 cd ava-supernova
-pnpm install
-pnpm build
+pnpm install && pnpm build
+node packages/cli/dist/index.js
 ```
+
+On first launch, Ava runs a short setup: pick a provider and paste your key (or choose a local model), and you're ready.
 
 ## Tools
 
-**123 user-facing built-in tools.** Ava decides which to use, runs them, reads the results, and keeps reasoning.
-
-That number is counted from the registry rather than estimated: 131 tools register, minus 8 that are internal plumbing for the agent loop — things like `switch_mode` and `ask_user`, which nobody would name if asked what Ava can do. Desktop automation is included and gated to Desktop mode; browser automation needs Playwright installed.
+**80+ tools.** Ava decides which to use, runs them, reads the results, and keeps reasoning. Each mode carries the tools its work needs.
 
 | Category | Tools |
 |---|---|
-| **File ops** | `read`, `write`, `edit`, `glob`, `grep`, `list_directory`, `find_symbol`, `project_index`, `analyze_architecture`, `self_inspect`, `docs_lookup`, `browse_library` |
-| **Shell** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
+| **Files & code** | `read`, `write`, `edit`, `glob`, `grep`, `list_directory`, `find_symbol`, `project_index`, `analyze_architecture`, `create_project`, `self_inspect`, `docs_lookup` |
+| **Shell & testing** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
-| **Web** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
-| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `regenerate_hero`, `regenerate_demo`, `open_design_studio` |
+| **Web & research** | `web_search`, `http_request`, `browser`, `news`, `weather`, `release_notes`, `paper_fetch_full_text` |
+| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `browse_library`, `open_design_studio` |
 | **Documents & tasks** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate`, `todo_write`, `task_manage`, `task_suggest`, `journal_write` |
-| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `conversation_recall` |
+| **Memory** | `memory_save`, `memory_recall`, `memory_update` |
 | **Learning** | `learning_create`, `learning_teach`, `learning_progress`, `open_learning_room` |
+| **Health** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room` |
 | **Security & data** | `audit_dependencies`, `database_query` |
+| **Brainstorm** | `brainstorm_session` |
 | **System** | `get_datetime`, `detect_language`, `support_request`, `propose_tool` |
-| **Health & nutrition** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room`, `find_recipe`, `read_recipe`, `write_recipe`, `check_recipe`, `add_ingredient`, `find_exercise`, `read_exercise`, `write_exercise`, `check_exercise`, `propose_exercises`, `set_muscles`, `set_nutrition`, `add_equipment`, `add_contraindication`, `day_plan_read`, `day_plan_write`, `day_plan_item_status`, `record_machine_rule` |
-| **Newsroom & social** | `discover_news`, `research_story`, `suggest_stories`, `suggest_beats`, `scan_industry`, `fact_check`, `write_article`, `revise_section`, `research_post`, `write_post`, `write_post_image`, `write_video_post`, `write_voiceover`, `propose_seeds`, `propose_hooks`, `post_performance` |
-| **Desktop automation** | `desktop_launch_app`, `desktop_focus_window`, `desktop_list_elements`, `desktop_click_by_name`, `desktop_type`, `desktop_key_press`, `desktop_plan_approve` |
-| **Browser automation** | `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_close` |
+| **Desktop & browser automation** *(IDE, Q4 2026)* | `desktop_launch_app`, `desktop_focus_window`, `desktop_list_elements`, `desktop_click_by_name`, `desktop_type`, `desktop_key_press`, `desktop_plan_approve`, `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_close` |
 
 ## Creative Studio
 
 Ava designs whole brand identities and wires them straight into your project — a logo into `public/`, a hero clip into your landing page.
 
-- **Logos & icons** are **constructed as true vectors (SVG), not pixels** — composed from geometric primitives and real fonts, so they stay razor-sharp at any size. A logo brief yields a full system: primary, stacked, symbol, wordmark, monochrome and favicon. Ava shows several directions and lets you pick.
+- **Logos & icons** are **constructed as true vectors (SVG), not pixels** — composed from geometric primitives and real fonts on your own machine, so they stay razor-sharp at any size. A logo brief yields a full system: primary, stacked, symbol, wordmark, monochrome and favicon. Ava shows several directions and lets you pick.
 - **Brand kits** tie it together — set your name, palette and fonts once, and every asset inherits them.
-- **Images & video** run on **Wan**, **voiceovers** on **Qwen3-TTS** (Alibaba's open-weight models) — same voice, any of 19 languages.
-- Every asset is tracked in the **Library** — grid or list view, filter by type, preview, reuse across projects. A full logo system saves as one grouped card.
+- **Images & video** run on **Wan**, **voiceovers** on **Qwen3-TTS** (Alibaba's models) — on your own Qwen key.
+- **Background removal and logo vectorising** run on your machine, free.
+- Every asset is tracked in the **Library** — grid or list view, filter by type, preview, reuse across projects.
 
 ## Privacy
 
 Your data stays yours:
 
-- **API keys** encrypted in your OS keychain (VS Code SecretStorage). Never logged, never sent to Ava servers.
-- **Conversations & memory** stored locally (`~/.ava/`), and only there.
+- **API keys** are kept in your operating system's keychain — shared by the extension and the IDE, never logged, never sent to us.
+- **Conversations & memory** are stored locally (`~/.ava/`), and only there. There is no cloud sync.
 - **Credential safety** — runtime detection blocks API keys, tokens, and private keys from being saved to memory; high-confidence key patterns are redacted from chat output before they hit the screen.
 - **Capability-based secrets** — Ava receives opaque handles for vault secrets, not raw values, scoped to the current session.
 - **Prompt-injection resistance** built in. **No telemetry** — we don't track your usage, code, or conversations.
-- **No cloud sync** — your memory, tasks, journal and history are never uploaded.
+- **We never train on your data.**
 
-## Plans
+## Support Ava
 
-Every plan gets every managed model. Tiers differ only on monthly credit allowance.
-
-| Tier | Price | Monthly credits |
-|---|---|---|
-| **Free** | $0 | 300 |
-| **Pro** | $19 | 5,000 |
-| **Ultra** | $39 | 10,000 |
-| **Enterprise** | $79 | 20,000 |
-
-Or run fully local with your own keys — the floor is free, forever.
+Ava is free for everyone and kept that way by donations. If she saves you time, you can give once or monthly at [avasupernova.com/support-ava](https://avasupernova.com/support-ava). Companies can [sponsor](https://avasupernova.com/sponsors) — recognition only, never features or a say in the roadmap. Every six months we publish what came in and what it paid for at [avasupernova.com/transparency](https://avasupernova.com/transparency).
 
 ## Architecture
 
-A pnpm monorepo with a shared core, plus submodules for the IDE and web platform:
+A pnpm monorepo with a shared core, plus submodules for the IDE and the website:
 
 ```
 packages/
@@ -213,7 +195,7 @@ packages/
 ├── extension/   # VS Code extension host + React webview + dashboard
 ├── ide/         # Standalone IDE (Tauri v2 + Rust + Node.js engine) — submodule
 ├── mobile/      # Dormant — the companion was retired 2026-10-05
-└── web/         # Platform website — submodule
+└── web/         # The website — submodule
 ```
 
 **Key design decisions:**
@@ -223,11 +205,11 @@ packages/
 - **Self-contained tools** — each tool carries its own schema and handler; adding one is a single file plus one registry line.
 - **No provider SDKs** — all provider communication uses native `fetch`.
 - **Permission matrix** — risk levels (`safe`, `write`, `dangerous`) combine with your permission mode to decide what needs approval. Plans and user questions always require approval.
-- **Local-first** — everything works offline, and nothing is synced to the cloud.
+- **Local-first** — everything works offline with a local model, and nothing is synced to the cloud.
 
 ## Contributing
 
-Contributions are welcome — this is built for the community.
+Contributions are welcome — this is built for the community. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 1. Fork the repository
 2. Create a feature branch from `development`
@@ -236,10 +218,11 @@ Contributions are welcome — this is built for the community.
 
 ## Links
 
-- [Website](https://ava-supernova.com)
+- [Website](https://avasupernova.com)
 - [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova)
-- [Release Notes](https://ava-supernova.com/releases)
-- [YouTube](https://youtube.com/@AugmentedValueAcceleration)
+- [Release Notes](https://avasupernova.com/releases)
+- [Discord](https://discord.gg/bbtnKMW4rf) — questions, bugs and ideas
+- Email: [support@avasupernova.com](mailto:support@avasupernova.com)
 
 ## License
 

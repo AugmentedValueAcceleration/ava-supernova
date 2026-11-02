@@ -10,7 +10,7 @@
   <a href="https://avasupernova.com">Website</a> &nbsp;&middot;&nbsp;
   <a href="https://avasupernova.com/en/documentation">Docs</a> &nbsp;&middot;&nbsp;
   <a href="https://github.com/AugmentedValueAcceleration/ava-supernova">Source</a> &nbsp;&middot;&nbsp;
-  <a href="https://avasupernova.com/en/pricing">Pricing</a>
+  <a href="https://avasupernova.com/support-ava">Support Ava</a>
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
 
 Ava is the AI coding agent that does everything between the idea and the ship — and remembers it all so the next time gets easier. Engineer your features. Design your assets. Teach you what you don't know. Audit your security. Plan your strategy. Brainstorm what's next. All from inside VS Code.
 
-> **Install, open, go.** Free and open source. Your keys. Your machine. Your work. No account, no credit card, no trial.
+> **Install, open, go.** Free and open source. Your keys. Your machine. Your work. No account, no sign-in, no subscription.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/AugmentedValueAcceleration/ava-supernova/d607425f697ffb06293054bf14293e8a9db7c0ae/packages/extension/media/screenshots/chat-building.png" width="900" alt="Ava planning an item system against a real codebase" />
@@ -37,7 +37,7 @@ Ava is the AI coding agent that does everything between the idea and the ship �
 ## Two ways to run it
 
 **1 — Your own key.**
-Install, paste a provider key, start working. There is nothing to sign up for and nothing for us to meter — you pay your provider directly, at their price. Start with **Qwen**: one key covers chat, images, voice and video. DeepSeek, Moonshot, Zhipu, Mistral, MiniMax, Xiaomi, Tencent and NVIDIA are all supported too. Ava tests every key before she saves it, and it stays in VS Code's secret storage on your machine.
+Install, paste a provider key, start working. There is nothing to sign up for and nothing for us to meter — you pay your provider directly, at their price. Start with **Qwen**: one key covers chat, images, voice and video. DeepSeek, Moonshot, Zhipu, Mistral, MiniMax, Xiaomi, Tencent and NVIDIA are all supported too. Ava tests every key before she saves it, and keeps it in your operating system's keychain — shared with the Ava IDE, so a key entered once works in both.
 
 **2 — Your own machine. No key, no bill.**
 Point Ava at **Ollama**, **LM Studio**, **vLLM** or any standard API endpoint and she runs entirely on your hardware. No network, nothing leaving the machine, no spend.
@@ -62,7 +62,7 @@ Ava isn't a single tool. She's a partner who plays multiple roles depending on w
 - **Coach** — builds fitness and meal plans from a real exercise and recipe library
 - **Friend** — checks in, remembers your goals, journals with you
 
-Switch roles with a keystroke. Same brain. Same memory. Different mindset.
+Switch roles in a click. Same brain. Same memory. Different mindset.
 
 > Ask Ava `what can you do?` and she'll read her own source code and tell you herself.
 
@@ -74,19 +74,15 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 
 ---
 
-## Two fleets — or any single model you like
+## Three fleets — or any single model you like
 
-**Fleets** are for when you would rather describe the work than choose the tool. You pick the work, and the right fleet falls out of it.
+**Fleets** are for when you would rather describe the work than choose the tool. You pick the work, and a fleet routes each part of it to the right model. Each is locked to its own providers.
 
-| Fleet | Status | Coordinator | Specialists | Residency |
-|---|---|---|---|---|
-| **Maestro** | **Ships now** | Qwen 3.8 Flash | Qwen 3.8 Flash (Builder + vision, reuses the coordinator) · Qwen 3.7 Flash (intent gate) · Qwen 3.5 Flash (chat, image-gen) · Qwen 3.7 Plus (long-form) | Alibaba |
-| **Supernova** | **Ships now** | DeepSeek V4.1 Flash | Qwen 3.7 Plus (Builder) · Qwen 3.8 Flash (vision) · DeepSeek V4.1 Flash (chat + mid-tier) · Qwen 3.7 Flash (intent gate) | DeepSeek + Alibaba |
-
-Each unlocks from the keys it needs:
-
-- **Maestro** — a **Qwen** key.
-- **Supernova** — **DeepSeek + Qwen** keys.
+| Fleet | Needs | Coordinator | How it splits the work |
+|---|---|---|---|
+| **Maestro** | A **Qwen** key | Qwen 3.8 Flash | Flash coordinates and handles chat, image reading, image generation and long context · Qwen 3.7 Plus does the deep work — coding and the Builder, planning, security, teaching, brainstorming |
+| **Supernova** | **DeepSeek + Qwen** keys | DeepSeek V4.1 Flash | DeepSeek does nearly everything — coding and the Builder, planning, chat, long context, security, teaching, brainstorming · Qwen 3.8 Flash reads and generates images |
+| **Aurora** | A **Mistral** key | Mistral Large 4 | Every model from Mistral, a European lab · Large 4 does the deep work — coding and the Builder, planning, security, teaching, image reading, 1M context · Small 4 handles chat, brainstorming and image requests |
 
 **Or skip the orchestration entirely and pick one model.** Single models sit in the same picker as the fleets, and your own key reaches whatever that provider offers.
 
@@ -98,14 +94,14 @@ Each unlocks from the keys it needs:
 | **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
 | **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
-| **BYOK — Mistral** | Medium 3.5, Small 4, Large 3 |
+| **BYOK — Mistral** | Large 4 *(1M context, reads images)*, Small 4 |
 | **BYOK — MiniMax** | M3 *(1M context, reads images)*, M3.1 Flash |
 | **BYOK — Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
 | **BYOK — Tencent** | Hunyuan Hy3 *(open-weight MoE, 262K context)* |
 | **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning *(open-weight, 1M context)* |
-| **BYOK — Custom** | Ollama, LM Studio, vLLM, any standard API endpoint |
+| **Local** | Ollama, LM Studio, vLLM, any standard API endpoint |
 
----
+Make Qwen keys in Alibaba Cloud Model Studio's **Singapore** region — keys are region-locked and Ava uses the international endpoint. **Web search** works out of the box with DuckDuckGo; add a Brave Search key for better results.
 
 ---
 
@@ -123,7 +119,7 @@ Modes aren't tool restrictions. They're states of mind. The toolkit and the pers
 | **Brainstorm** | `**` | Ideator | New product ideas, problem framing, refinement |
 | **Write** | `<<` | Author | Drafting real documents — reports, proposals, letters, articles — exported as branded Word & PDF |
 
-Switch with the dropdown or `Ctrl+Shift+1` through `Ctrl+Shift+7`.
+Switch with the mode menu, or start a message with its prefix.
 
 ---
 
@@ -146,7 +142,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 
 **Her internal team activates for complex work:** Scout → Architect → Verifier → Sequencer → Challenger → Builder. Simple questions skip orchestration entirely — zero overhead.
 
-Pick the fleet that fits the job: **Maestro** (a tier-differentiated Qwen ensemble — the predictable daily driver, with Qwen 3.8 Flash coordinating and building) or **Supernova** (the polyglot — DeepSeek V4.1 Flash coordinates and takes the chat and mid-tier seats, Qwen 3.7 Plus builds, Qwen 3.8 Flash handles vision).
+Pick the fleet that fits the job: **Maestro** (Qwen — Qwen 3.8 Flash coordinates, Qwen 3.7 Plus builds), **Supernova** (DeepSeek V4.1 Flash coordinates and builds, Qwen 3.8 Flash handles images) or **Aurora** (Mistral — Large 4 coordinates and builds, Small 4 handles chat).
 
 </details>
 
@@ -166,7 +162,9 @@ Ava ships with a **Creative Studio** that generates real assets and integrates t
 
 **Logos and icons are built, not guessed.** Ava composes them from geometric primitives and real fonts into clean, resolution-independent SVG — so a mark stays razor-sharp at any size and drops straight into your favicon or JSX. She'll show you **several directions and let you pick** the one that fits.
 
-**Brand kits tie it together.** Set your name, palette and fonts once, and every asset Ava makes inherits them. **Image and video run on Wan**, voice on **Qwen3-TTS** — Alibaba's open-weight models.
+**Brand kits tie it together.** Set your name, palette and fonts once, and every asset Ava makes inherits them.
+
+**Images, video and voiceovers run on your own Qwen key** — image and video on **Wan**, voice on **Qwen3-TTS**, billed by Alibaba at Alibaba's rates. Without a Qwen key those three are switched off. **Logos, icons, background removal and vectorising run on your machine, free.**
 
 **The integration is the point.** When Ava designs a logo, she can drop it into your `public/` folder and reference it in your JSX. When she generates a hero video, she can wire it into your landing page. **The Creative Studio isn't a separate app — it's a tool Ava uses in the middle of building your project.**
 
@@ -315,22 +313,24 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 ## Tools
 
-**90+ tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning.
+**70+ tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning. Each mode carries the tools its work needs.
 
 | Category | Tools |
 |---|---|
-| **File ops** | `read`, `write`, `edit`, `glob`, `grep`, `list_directory`, `find_symbol`, `project_index`, `analyze_architecture`, `self_inspect`, `docs_lookup`, `browse_library` |
-| **Shell** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
+| **Files & code** | `read`, `write`, `edit`, `glob`, `grep`, `list_directory`, `find_symbol`, `project_index`, `analyze_architecture`, `create_project`, `self_inspect`, `docs_lookup` |
+| **Shell & testing** | `bash`, `test_run`, `test_generate`, `benchmark`, `debug_logs` |
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
-| **Web** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
-| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `open_design_studio` |
+| **Web & research** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
+| **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `browse_library`, `open_design_studio` |
 | **Office & Authoring** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate` |
-| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `conversation_recall` |
-| **Tasks & Planning** | `todo_write`, `task_manage`, `task_suggest`, `create_project`, `brainstorm_session` |
+| **Memory** | `memory_save`, `memory_recall`, `memory_update` |
+| **Tasks & Planning** | `todo_write`, `task_manage`, `task_suggest`, `brainstorm_session` |
 | **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress`, `open_learning_room` |
+| **Health** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room` |
 | **Security & data** | `audit_dependencies`, `database_query` |
 | **System** | `get_datetime`, `detect_language`, `support_request`, `propose_tool` |
-| **Health & nutrition** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room`, `find_recipe`, `read_recipe`, `find_exercise`, `read_exercise`, `day_plan_read`, `day_plan_write`, `day_plan_item_status` |
+
+Desktop automation — launching apps, clicking and typing across the whole machine — comes with the **Ava IDE**, Q4 2026.
 
 ---
 
@@ -338,17 +338,17 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova)
 2. Click the Ava icon in the activity bar (or `Ctrl+Shift+A`)
-3. Add your key when Ava asks — she tests it before saving it (a Qwen key covers everything) — or point her at a local model
+3. Add your key when Ava asks — she tests it before saving it (a Qwen key covers everything, images and video included) — or point her at a local model
 4. Pick a mode and start
 
-> No account. No credit card. No trial.
+> No account. No sign-in. No subscription.
 
 ---
 
 ## Privacy
 
-- API keys encrypted in your OS keychain (VS Code SecretStorage)
-- All memory and conversation data stored locally by default
+- API keys kept in your OS keychain — shared with the Ava IDE, never logged, never sent to us
+- All memory and conversation data stored locally, under `~/.ava/`
 - Export everything as readable JSON, or a passphrase-encrypted `.ava-backup` you can move between devices — your data, in your hands
 - Credentials blocked from memory at runtime
 - Streaming-safe redaction — high-confidence key patterns are scrubbed from chat output before they hit the screen
@@ -357,6 +357,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 - No analytics, no telemetry, no screen captures
 - Your data stays on your machine — nothing is synced to the cloud
 - No account — there is nothing to sign in to, and nothing about you on our servers
+- We never train on your data
 
 ### Shared Learning (opt-in)
 
@@ -379,7 +380,6 @@ Built by **Augmented Value Acceleration Ltd**, registered in England and Wales. 
 
 - [Website](https://avasupernova.com)
 - [GitHub](https://github.com/AugmentedValueAcceleration/ava-supernova)
-- [YouTube](https://youtube.com/@AugmentedValueAcceleration)
 - [Release Notes](https://avasupernova.com/releases)
 - [Support Ava](https://avasupernova.com/support-ava)
 - [Discord](https://discord.gg/bbtnKMW4rf)

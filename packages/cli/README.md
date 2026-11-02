@@ -2,22 +2,24 @@
 
 **The open-source AI coding agent, in your terminal.**
 
-`@ava/cli` is the terminal surface of [Ava Supernova](https://avasupernova.com) — a full agentic coding agent with over 120 tools, 7 modes, and 24 specialist personas, running the same `@ava/core` engine as the VS Code extension and the desktop IDE. She reads your codebase, plans the work, executes it task by task, and remembers what she learns across sessions.
+`@ava/cli` is the terminal surface of [Ava Supernova](https://avasupernova.com) — a full agentic coding agent with 80+ tools, 7 modes, and 24 specialist personas, running the same `@ava/core` engine as the VS Code extension and the desktop IDE. She reads your codebase, plans the work, executes it task by task, and remembers what she learns across sessions.
 
-> **No account, no credit card, no trial.** Bring your own API key and run fully local — or sign up for **300 free credits a month**.
+> **Free and open source. Your keys. Your machine. Your work.** No account, no sign-in — bring an API key from any supported provider, or run a local model.
 
 ---
 
 ## Install
 
+The CLI runs from this repository. You need [Node.js](https://nodejs.org) 20 or later and [pnpm](https://pnpm.io).
+
 ```bash
-npm install -g @ava/cli
-ava
+git clone https://github.com/AugmentedValueAcceleration/ava-supernova.git
+cd ava-supernova
+pnpm install && pnpm build
+node packages/cli/dist/index.js
 ```
 
-Requires [Node.js](https://nodejs.org) v20 or later.
-
-On first launch, Ava runs an interactive setup wizard — pick a provider, paste your API key (or skip and sign in for the free tier), and you're ready. You can reconfigure any time with `/provider`.
+On first launch, Ava runs a short setup — pick a provider and paste your API key, or choose a local model (Ollama, LM Studio, or any standard API-format server) — and you're ready. Add more keys any time with `/provider add <name>`.
 
 ## What you get
 
@@ -27,11 +29,11 @@ On first launch, Ava runs an interactive setup wizard — pick a provider, paste
 - **24 specialist personas** — complex tasks activate an internal team (Scout → Architect → Verifier → Sequencer → Challenger → Builder for code); simple tasks go direct.
 - **Persistent memory** — Ava remembers your conventions, decisions, and past fixes across sessions. Local-first.
 - **Conversation history** — every session auto-saved, searchable, resumable, exportable.
-- **Bring your own model** — any supported provider, or a local endpoint (Ollama, LM Studio, vLLM) for a fully free, fully offline agent.
+- **Bring your own model** — any supported provider, or a local endpoint (Ollama, LM Studio, vLLM) for a free, fully offline agent.
 
 ## Models
 
-Bring your own key for any provider, or use Ava-managed models with a free or paid account:
+Pick any model your keys reach:
 
 | Provider | Models |
 |---|---|
@@ -39,14 +41,20 @@ Bring your own key for any provider, or use Ava-managed models with a free or pa
 | **DeepSeek** | DeepSeek V4.1 Flash |
 | **Moonshot** | Kimi K3, K2.7 Code, K2.6 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash |
-| **Mistral** | Medium 3.5, Small 4, Large 3 |
-| **MiniMax** | M3, M2.7, M2.7 HighSpeed |
+| **Mistral** | Large 4, Small 4 |
+| **MiniMax** | M3, M3.1 Flash |
 | **Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
 | **Tencent** | Hunyuan Hy3 |
 | **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning |
-| **Custom / Local** | Ollama, LM Studio, vLLM, any standard API-format endpoint |
+| **Local** | Ollama, LM Studio, vLLM, any standard API-format endpoint |
 
-Switch the orchestration fleet with `/route`: **Maestro** (Qwen ensemble, everyday) or **Supernova** (polyglot, best-model-per-role).
+Or let a fleet route the work with `/route`:
+
+- **Maestro** — Qwen only. Needs a Qwen key.
+- **Supernova** — DeepSeek + Qwen. Needs both keys.
+- **Aurora** — every model from Mistral, a European lab. Needs a Mistral key.
+
+Make Qwen keys in Alibaba Cloud Model Studio's **Singapore** region — keys are region-locked and Ava uses the international endpoint.
 
 ## Commands
 
@@ -54,7 +62,7 @@ Switch the orchestration fleet with `/route`: **Maestro** (Qwen ensemble, everyd
 |---|---|---|
 | `/help` | `/h` | Show all commands |
 | `/model [provider:id]` | `/m` | List models, or switch the active model |
-| `/route [mode]` | `/r` | Switch routing fleet — Maestro / Supernova |
+| `/route [fleet]` | `/r` | Switch the routing fleet — Maestro / Supernova / Aurora |
 | `/provider [add <name>]` | `/p` | List providers, or add a provider API key |
 | `/permission [mode]` | `/perm` | View or set permission mode — strict / balanced / autonomous |
 | `/tools` | | List every tool available to the agent |
@@ -85,46 +93,50 @@ Run `/init` to create `.ava/instructions.md` in your project root. Use it for ar
 
 ## Configuration
 
-Ava stores config at `~/.ava/config.json` (owner-read/write only — it holds your keys):
+**API keys** go in your operating system's keychain — the same one the VS Code extension and the IDE use, so a key entered in any of them works in all three. If a keychain isn't available, keys fall back to `~/.ava/config.json`, written owner-read/write only.
+
+Everything else lives in `~/.ava/config.json`:
 
 ```json
 {
   "activeModel": "qwen:qwen3.7-plus",
-  "providers": {
-    "qwen": { "apiKey": "sk-..." },
-    "deepseek": { "apiKey": "sk-..." }
-  },
   "preferences": { "temperature": 0.7, "maxTokens": 8192 }
 }
 ```
 
 ### Local / custom endpoint (Ollama, LM Studio, vLLM)
 
+Choose **A local model** in the first-run setup. It is saved in `~/.ava/settings.json` — shared with the extension and the IDE — like this:
+
 ```json
 {
-  "providers": {
-    "generic": [
-      { "baseUrl": "http://localhost:11434/v1", "model": "qwen2.5-coder" }
-    ]
+  "local_model": {
+    "baseUrl": "http://localhost:11434/v1",
+    "modelName": "qwen2.5-coder",
+    "models": ["qwen2.5-coder"]
   }
 }
 ```
 
-This is the **$0 path** — a full agent, fully offline, no account.
+If your server needs a key, the setup asks for it and keeps it in the keychain.
+
+That's a full agent, fully offline, at no cost.
 
 ## Privacy
 
-- API keys stored locally with owner-only file permissions; never sent to Ava servers.
-- Conversations and memory stored locally under `~/.ava/`.
+- API keys kept in your OS keychain; never logged, never sent to us.
+- Conversations and memory stored locally under `~/.ava/`. No cloud sync.
 - Runtime credential detection blocks keys and tokens from being saved to memory.
-- No telemetry.
+- No telemetry. We never train on your data.
 
 ## Links
 
 - [Website](https://avasupernova.com)
 - [GitHub](https://github.com/AugmentedValueAcceleration/ava-supernova)
 - [Release Notes](https://avasupernova.com/releases)
+- [Discord](https://discord.gg/bbtnKMW4rf)
+- [Support Ava](https://avasupernova.com/support-ava) — Ava is free and kept that way by donations
 
 ## License
 
-[Apache License 2.0](https://github.com/AugmentedValueAcceleration/ava-supernova/blob/production/LICENSE) — Copyright 2026 Augmented Value Acceleration
+[Apache License 2.0](../../LICENSE) — Copyright 2026 Augmented Value Acceleration

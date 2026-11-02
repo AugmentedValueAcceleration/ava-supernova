@@ -42,7 +42,7 @@ export type RouteGetter = () => RoutingMode;
 const ROUTE_INFO: Record<RoutingMode, { label: string; stack: string; tagline: string }> = {
   auto:      { label: 'Maestro',   stack: 'Qwen',            tagline: 'orchestration-tuned, balanced cost' },
   supernova: { label: 'Supernova', stack: 'DeepSeek + Qwen', tagline: 'polyglot depth for serious work' },
-  aurora:    { label: 'Aurora',    stack: 'Mistral',         tagline: 'EU-sovereign three-tier' },
+  aurora:    { label: 'Aurora',    stack: 'Mistral',         tagline: 'every model from Mistral, a European lab' },
   longxiang: { label: 'Longxiang', stack: 'Kimi + Qwen + DeepSeek', tagline: 'open weights, your own keys' },
 };
 
