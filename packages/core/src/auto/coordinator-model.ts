@@ -1,6 +1,7 @@
 import type { ProviderRegistry } from '../providers/provider-registry.js';
 import type { Provider } from '../providers/types.js';
 import type { ModelDefinition } from '../core/types.js';
+import type { RoutingMode } from './routing-modes.js';
 
 /**
  * Coordinator model resolution for Auto Mode.
@@ -55,6 +56,56 @@ const BYOK_PRIORITY = [
   { id: 'qwen3.8-flash',        reason: 'Qwen 3.8 Flash — 1M context, multimodal, newer generation at flash cost' },
   { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];
+
+/**
+ * The providers each live fleet may use — and nothing else, in any seat: the
+ * coordinator, every route and its fallback, the router's last resort, the
+ * intent gate, the Builder and image reading (his call, 2 Nov 2026).
+ *   - Maestro: Qwen only, Qwen 3.8 Flash coordinating.
+ *   - Supernova: Qwen + DeepSeek, DeepSeek V4.1 Flash coordinating.
+ * A seat these providers cannot fill stays empty and the user is told which
+ * key is missing; it is never quietly given to another key they hold. (Before
+ * this, Maestro's coordinator came from the generic ladder below, which seats
+ * the strongest key held — Kimi K3 for anyone with a Moonshot key.) An
+ * explicit @model or per-category preference is the user's own choice.
+ */
+export const FLEET_PROVIDERS: Partial<Record<RoutingMode, readonly string[]>> = {
+  auto: ['qwen'],
+  supernova: ['qwen', 'deepseek'],
+};
+
+/** Resolve a model id on a fleet's own providers only. */
+export function resolveOnFleet(
+  providerRegistry: ProviderRegistry,
+  providers: readonly string[],
+  modelId: string,
+): { provider: Provider; model: ModelDefinition } | undefined {
+  for (const p of providers) {
+    const r = providerRegistry.resolveModel(`${p}:${modelId}`);
+    if (r && r.provider.name === p) return r;
+  }
+  return undefined;
+}
+
+/**
+ * Maestro's coordinator ladder.
+ * 3.8 Flash leads (the operator's call of 6 Oct 2026: classify-and-pick is a
+ * light job, and it runs on every step of every turn); 3.7 Plus beneath it, so
+ * the fallback is a step UP in capability; 3.5 Flash last.
+ */
+export const MAESTRO_PROVIDER = 'qwen';
+export const MAESTRO_COORDINATOR_LADDER = ['qwen3.8-flash', 'qwen3.7-plus', 'qwen3.5-flash'] as const;
+
+/** Maestro's coordinator on the user's Qwen key — null without one. */
+export function resolveMaestroCoordinator(providerRegistry: ProviderRegistry): CoordinatorModelResult | null {
+  for (const id of MAESTRO_COORDINATOR_LADDER) {
+    const resolved = providerRegistry.resolveModel(`${MAESTRO_PROVIDER}:${id}`);
+    if (resolved && resolved.provider.name === MAESTRO_PROVIDER) {
+      return { provider: resolved.provider, model: resolved.model, reason: `${resolved.model.name} — Maestro coordinator (Qwen-only)` };
+    }
+  }
+  return null;
+}
 
 export function resolveCoordinatorModel(
   providerRegistry: ProviderRegistry,

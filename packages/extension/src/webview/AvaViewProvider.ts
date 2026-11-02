@@ -43,6 +43,7 @@ import {
   MemoryAgent,
   IntentClassifier,
   resolveCoordinatorModel,
+  resolveMaestroCoordinator,
   BriefingEngine,
   EventDetector,
   addLearning,
@@ -2167,7 +2168,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           }
         }
       }
-      const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, preferredCoordinatorId);
+      // Maestro is Qwen-only: its own ladder, never the generic one (which
+      // seats the strongest key held — Kimi K3, given a Moonshot key).
+      // Maestro is Qwen-only and Supernova Qwen + DeepSeek with DeepSeek
+      // coordinating — never the generic ladder, which seats the strongest key
+      // held (Kimi K3, given a Moonshot key).
+      const supernovaSeat = this.providerRegistry.resolveModel('deepseek:deepseek-flash');
+      const coordinator = modelId === 'auto'
+        ? resolveMaestroCoordinator(this.providerRegistry)
+        : modelId === 'supernova'
+          ? (supernovaSeat?.provider.name === 'deepseek'
+              ? { ...supernovaSeat, reason: `${supernovaSeat.model.name} — Supernova coordinator` }
+              : null)
+          : resolveCoordinatorModel(this.providerRegistry, availableProviders, preferredCoordinatorId);
       const modeLabel = modelId === 'supernova'
         ? 'Supernova'
         : modelId === 'aurora'
@@ -2177,7 +2190,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             : 'Maestro';
       if (!coordinator) {
         this.log(`${modeLabel}: no coordinator model available`);
-        this.postMessage({ type: 'error', message: `${modeLabel} needs at least one configured provider. Add an API key or sign in.` });
+        this.postMessage({ type: 'error', message: modelId === 'auto'
+          ? 'Maestro runs on Qwen — add a Qwen key in Settings.'
+          : modelId === 'supernova'
+            ? 'Supernova runs on DeepSeek and Qwen — add a DeepSeek key in Settings.'
+            : `${modeLabel} needs at least one configured provider. Add an API key in Settings.` });
         return;
       }
 

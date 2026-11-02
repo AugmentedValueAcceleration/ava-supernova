@@ -3,6 +3,7 @@ import type { TaskCategory, RouteResult, UserRoutePreferences } from './types.js
 import { SUPERNOVA_ROUTES } from './supernova-router.js';
 import { AURORA_ROUTES } from './aurora-router.js';
 import { LONGXIANG_ROUTES } from './longxiang-router.js';
+import { FLEET_PROVIDERS, resolveOnFleet } from './coordinator-model.js';
 
 // The fleet list lives in routing-modes.ts — its own dependency-free file so
 // browser surfaces can import it through a narrow subpath instead of writing
@@ -74,6 +75,10 @@ export class ModelRouter {
   private availableProviders: Set<string>;
   private userPreferences: UserRoutePreferences;
   private mode: RoutingMode;
+  /** The fleet's own providers (FLEET_PROVIDERS): its table, fallbacks and
+   *  last resort resolve on these and nothing else. An explicit @model or
+   *  per-category preference is the user's own choice and is not locked. */
+  private readonly lockedTo: readonly string[] | undefined;
 
   constructor(
     providerRegistry: ProviderRegistry,
@@ -85,6 +90,7 @@ export class ModelRouter {
     this.availableProviders = availableProviders;
     this.userPreferences = userPreferences || {};
     this.mode = mode;
+    this.lockedTo = FLEET_PROVIDERS[mode];
   }
 
   /**
@@ -136,13 +142,13 @@ export class ModelRouter {
         : entry.reason;
 
     // Try primary
-    const primary = this.resolveModel(primaryModelId, primaryReason);
+    const primary = this.resolveRoute(primaryModelId, primaryReason);
     if (primary) {
       // Check vision requirement
       if (entry.requiresVision && !primary.model.supportsVision) {
         // Primary doesn't have vision — try fallback
         if (entry.fallbackModelId) {
-          const fallback = this.resolveModel(entry.fallbackModelId, `${entry.reason} (fallback — primary lacks vision)`);
+          const fallback = this.resolveRoute(entry.fallbackModelId, `${entry.reason} (fallback — primary lacks vision)`);
           if (fallback?.model.supportsVision) return fallback;
         }
         // No vision model available — return primary with warning
@@ -153,7 +159,7 @@ export class ModelRouter {
 
     // Try fallback
     if (entry.fallbackModelId) {
-      const fallback = this.resolveModel(entry.fallbackModelId, `${entry.reason} (fallback)`);
+      const fallback = this.resolveRoute(entry.fallbackModelId, `${entry.reason} (fallback)`);
       if (fallback) return fallback;
     }
 
@@ -169,6 +175,13 @@ export class ModelRouter {
   /** Update user preferences (e.g. from settings change) */
   setPreferences(prefs: UserRoutePreferences): void {
     this.userPreferences = prefs;
+  }
+
+  /** A table route — on the fleet's own providers only, when it has a lock. */
+  private resolveRoute(modelId: string, reason: string): RouteResult | null {
+    if (!this.lockedTo) return this.resolveModel(modelId, reason);
+    const r = resolveOnFleet(this.providerRegistry, this.lockedTo, modelId);
+    return r ? { modelId: `${r.provider.name}:${r.model.id}`, provider: r.provider, model: r.model, reason } : null;
   }
 
   private resolveModel(modelId: string, reason: string): RouteResult | null {
@@ -189,6 +202,15 @@ export class ModelRouter {
   }
 
   private resolveAnyModel(reason: string): RouteResult | null {
+    // A locked fleet never leaves its own providers, even as a last resort.
+    if (this.lockedTo) {
+      for (const id of ['qwen3.7-plus', 'deepseek-flash', 'qwen3.8-flash', 'qwen3.5-plus', 'qwen3.5-flash']) {
+        const r = this.resolveRoute(id, reason);
+        if (r) return r;
+      }
+      return null;
+    }
+
     // Models across the providers the user holds keys for, best first.
     // K3 first: Moonshot's frontier model and the strongest agentic option we
     // reach. K2.7 Code after it as the cheaper agentic coder, K2.6 as the

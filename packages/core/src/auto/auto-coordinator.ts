@@ -15,7 +15,7 @@ import { classifyTask } from './task-classifier.js';
 import { ModelRouter } from './model-router.js';
 import { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 import { ContextTracker } from './context-tracker.js';
-import { resolveCoordinatorModel } from './coordinator-model.js';
+import { resolveCoordinatorModel, resolveMaestroCoordinator, resolveOnFleet, FLEET_PROVIDERS } from './coordinator-model.js';
 import { classifyIntent, classifyTeachDepth, resolveIntentGateModel } from './intent-gate.js';
 import { SUPERNOVA_COORDINATOR_ID, SUPERNOVA_BUILDER_ID, SUPERNOVA_VISION_ID } from './supernova-router.js';
 import { AURORA_COORDINATOR_ID, AURORA_BUILDER_ID, AURORA_VISION_ID } from './aurora-router.js';
@@ -152,8 +152,9 @@ export class AutoCoordinator {
     // backward-compatibility with the existing tuning. If the override
     // can't resolve (no key for it) fall back to the coordinator model
     // rather than block.
+    const fleet = FLEET_PROVIDERS[this.mode];
     if (this.mode === 'supernova') {
-      const resolved = opts.providerRegistry.resolveModel(SUPERNOVA_BUILDER_ID);
+      const resolved = resolveOnFleet(opts.providerRegistry, fleet!, SUPERNOVA_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
     } else if (this.mode === 'aurora') {
@@ -180,7 +181,15 @@ export class AutoCoordinator {
       : this.mode === 'longxiang'
         ? LONGXIANG_VISION_ID
         : SUPERNOVA_VISION_ID;
-    const visionResolved =
+    // A locked fleet reads images on its own providers or not at all.
+    const fleetVision = (providers: readonly string[]) => {
+      for (const id of [visionId, 'qwen3.7-plus', 'deepseek-flash']) {
+        const r = resolveOnFleet(opts.providerRegistry, providers, id);
+        if (r?.model.supportsVision) return r;
+      }
+      return null;
+    };
+    const visionResolved = fleet ? fleetVision(fleet) :
       opts.providerRegistry.resolveModel(visionId)
       ?? (this.mode === 'aurora' ? opts.providerRegistry.resolveModel(`mistral:${visionId}`) : null)
       // Net under the fleet's own choice, NOT a replacement for it. Each
@@ -200,6 +209,7 @@ export class AutoCoordinator {
     this.intentGate = resolveIntentGateModel(
       opts.providerRegistry,
       opts.availableProviders,
+      fleet,
     );
 
     // The coordinator's own agent — handles direct tasks (chat, simple questions).
@@ -248,7 +258,11 @@ export class AutoCoordinator {
     // An explicit pin wins — but only when it can actually be reached.
     // Treating an unreachable pin as the override anyway would skip the mode
     // branch below and silently hand the turn to the generic ladder.
-    if (opts.preferredCoordinatorId && opts.providerRegistry.resolveModel(opts.preferredCoordinatorId)) {
+    const pin = opts.preferredCoordinatorId ? opts.providerRegistry.resolveModel(opts.preferredCoordinatorId) : undefined;
+    // A pin never takes a locked fleet off its own providers.
+    const lock = FLEET_PROVIDERS[opts.mode ?? 'auto'];
+    const pinAllowed = !!pin && (!lock || lock.includes(pin.provider.name));
+    if (pinAllowed) {
       // Explicit operator override wins for any mode.
       coordinator = resolveCoordinatorModel(
         opts.providerRegistry, opts.availableProviders, opts.preferredCoordinatorId,
@@ -298,13 +312,11 @@ export class AutoCoordinator {
         }
       }
     } else if (opts.mode === 'supernova') {
-      // Supernova pins DeepSeek Flash as coordinator, on the user's DeepSeek
-      // key. Unlike Aurora, Supernova is polyglot, so it
-      // falls through to the generic priority ladder if DeepSeek isn't
-      // reachable rather than erroring.
+      // Supernova's coordinator is DeepSeek V4.1 Flash, on the user's DeepSeek
+      // key — and only that. Without it the seat stays empty and the caller
+      // says DeepSeek is missing; it is never handed to another key.
       for (const id of [
         `deepseek:${SUPERNOVA_COORDINATOR_ID}`,
-        SUPERNOVA_COORDINATOR_ID,
       ]) {
         const resolved = opts.providerRegistry.resolveModel(id);
         if (resolved) {
@@ -316,12 +328,10 @@ export class AutoCoordinator {
           break;
         }
       }
-      if (!coordinator) {
-        coordinator = resolveCoordinatorModel(opts.providerRegistry, opts.availableProviders);
-      }
     } else {
-      // Auto / Maestro — generic priority ladder.
-      coordinator = resolveCoordinatorModel(opts.providerRegistry, opts.availableProviders);
+      // Maestro — Qwen-only. Null without a Qwen key, so the caller says so
+      // rather than seating whatever other key the user holds.
+      coordinator = resolveMaestroCoordinator(opts.providerRegistry);
     }
     if (!coordinator) return null;
 

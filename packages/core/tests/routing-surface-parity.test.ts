@@ -3,6 +3,7 @@ import { ProviderRegistry } from '../src/providers/provider-registry.js';
 import { ModelRouter, type RoutingMode } from '../src/auto/model-router.js';
 import { LONGXIANG_ENABLED, AURORA_ENABLED, VISIBLE_ROUTING_MODES } from '../src/auto/routing-modes.js';
 import { AutoCoordinator } from '../src/auto/auto-coordinator.js';
+import { resolveCoordinatorModel } from '../src/auto/coordinator-model.js';
 import { ToolRegistry } from '../src/tools/tool-registry.js';
 
 /**
@@ -223,20 +224,26 @@ describe('Coordinator pinning per mode', () => {
   it('Supernova coordinator is DeepSeek Flash', () => {
     expect(coordinatorFor('supernova', byok('deepseek', 'qwen'))).toBe('deepseek-flash');
   });
-  it('Supernova falls through gracefully when DeepSeek is absent', () => {
-    // qwen-only Supernova user — polyglot fallback, never null.
-    expect(coordinatorFor('supernova', byok('qwen'))).not.toBeNull();
+  it('Supernova without a DeepSeek key has NO coordinator — never another key', () => {
+    // It used to fall through to the generic ladder, which seats whatever the
+    // user holds. Supernova's coordinator is DeepSeek V4.1 Flash or nothing,
+    // and the surface says DeepSeek is missing.
+    expect(coordinatorFor('supernova', byok('qwen'))).toBeNull();
+    expect(coordinatorFor('supernova', byok('qwen', 'kimi', 'mistral'))).toBeNull();
   });
-  it('Maestro coordinator is a Qwen flagship on a Qwen key', () => {
-    // Regression this guards: the flagship was absent from the BYOK ladder, so
-    // a qwen-only user got 3.5 Plus as the classifier-brain. The strongest
-    // key the user holds takes the seat.
-    expect(coordinatorFor('auto', byok('qwen'))).toBe('qwen3.7-plus');
+  it('Maestro coordinator is Qwen 3.8 Flash', () => {
+    expect(coordinatorFor('auto', byok('qwen'))).toBe('qwen3.8-flash');
   });
-  it('reasoning-capable flagship outranks the non-reasoning Mistral Large 3', () => {
-    // The BYOK ladder is "ordered by reasoning capability — best first", so the
-    // reasoning-capable 3.7 Plus must beat non-reasoning Large 3 for multi-key users.
-    expect(coordinatorFor('auto', byok('qwen', 'mistral'))).toBe('qwen3.7-plus');
+  it('Maestro without a Qwen key has NO coordinator — never another key', () => {
+    expect(coordinatorFor('auto', byok('kimi', 'deepseek', 'mistral'))).toBeNull();
+  });
+  it('the generic ladder ranks the reasoning-capable flagship above Mistral Large 3', () => {
+    // No live fleet uses this ladder any more; an explicit pin still goes
+    // through it. Ordered by reasoning capability — best first.
+    const reg = new ProviderRegistry();
+    const avail = new Set<string>();
+    byok('qwen', 'mistral')(reg, avail);
+    expect(resolveCoordinatorModel(reg, avail)?.model.id).toBe('qwen3.7-plus');
   });
 });
 
@@ -281,5 +288,66 @@ describe('an account-era platform: model id (fully BYOK, 1 Nov 2026)', () => {
     const reg = new ProviderRegistry();
     byok('qwen')(reg, new Set());
     expect(reg.resolveModel('mistral:mistral-large-3')).toBeUndefined();
+  });
+});
+
+describe('the live fleets never leave their own providers (his call, 2 Nov 2026)', () => {
+  // Maestro is Qwen only; Supernova is Qwen + DeepSeek. Given EVERY key a
+  // user can hold, no seat may land anywhere else: Maestro's coordinator used
+  // to be Kimi K3 for anyone with a Moonshot key.
+  const everyKey = byok('qwen', 'deepseek', 'kimi', 'mistral', 'zhipu', 'tencent', 'nvidia', 'xiaomi', 'minimax');
+  const categories = ['coding', 'vision', 'image_gen', 'planning', 'chat', 'long_context', 'teach', 'security', 'brainstorm'] as const;
+  const fleet = (mode: RoutingMode) => {
+    const reg = new ProviderRegistry();
+    const avail = new Set<string>();
+    everyKey(reg, avail);
+    const ac = AutoCoordinator.create({
+      providerRegistry: reg, availableProviders: avail, toolRegistry: new ToolRegistry(), cwd: '.', sharedState: {}, mode,
+    })!;
+    return { ac, r: new ModelRouter(reg, avail, {}, mode), reg, avail };
+  };
+  const seats = (mode: RoutingMode) => {
+    const { ac, r } = fleet(mode);
+    const internals = ac as unknown as {
+      coordinatorProvider: { name: string };
+      builderProvider: { name: string };
+      visionProvider: { name: string } | null;
+      intentGate: { provider: { name: string } } | null;
+    };
+    return {
+      coordinator: internals.coordinatorProvider.name,
+      builder: internals.builderProvider.name,
+      vision: internals.visionProvider?.name,
+      gate: internals.intentGate?.provider.name,
+      routes: categories.map((c) => r.route(c)?.provider.name),
+    };
+  };
+
+  it('Maestro: every seat is Qwen', () => {
+    const s = seats('auto');
+    expect(fleet('auto').ac.coordinatorModel.id).toBe('qwen3.8-flash');
+    for (const p of [s.coordinator, s.builder, s.vision, s.gate, ...s.routes]) expect(p).toBe('qwen');
+  });
+
+  it('Supernova: every seat is Qwen or DeepSeek, DeepSeek coordinating', () => {
+    const s = seats('supernova');
+    expect(fleet('supernova').ac.coordinatorModel.id).toBe('deepseek-flash');
+    for (const p of [s.coordinator, s.builder, s.vision, s.gate, ...s.routes]) expect(['qwen', 'deepseek']).toContain(p);
+  });
+
+  it('a pin cannot take Maestro off Qwen', () => {
+    const reg = new ProviderRegistry();
+    const avail = new Set<string>();
+    everyKey(reg, avail);
+    const ac = AutoCoordinator.create({
+      providerRegistry: reg, availableProviders: avail, toolRegistry: new ToolRegistry(), cwd: '.', sharedState: {},
+      mode: 'auto', preferredCoordinatorId: 'kimi:kimi-k3',
+    });
+    expect(ac?.coordinatorModel.id).toBe('qwen3.8-flash');
+  });
+
+  it('an explicit @model is still the user\'s own choice', () => {
+    const { r } = fleet('auto');
+    expect(r.route('coding', 'kimi:kimi-k3')?.model.id).toBe('kimi-k3');
   });
 });

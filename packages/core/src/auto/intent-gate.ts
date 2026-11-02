@@ -57,7 +57,19 @@ export interface TeachDepthDecision {
 export function resolveIntentGateModel(
   providerRegistry: ProviderRegistry,
   availableProviders: Set<string>,
+  /** Only these providers' models — a fleet's own (FLEET_PROVIDERS). */
+  onlyProviders?: readonly string[],
 ): { provider: Provider; model: ModelDefinition } | null {
+  if (onlyProviders) {
+    for (const id of ['qwen3.7-flash', 'qwen3.5-flash', 'qwen3.8-flash', 'deepseek-flash']) {
+      for (const p of onlyProviders) {
+        const r = providerRegistry.resolveModel(`${p}:${id}`);
+        if (r && r.provider.name === p) return { provider: r.provider, model: r.model };
+      }
+    }
+    return null;
+  }
+
   // Any small/fast model the user holds a key for will do the classification.
   // DeepSeek Flash replaces `deepseek-chat` (retired upstream 2026-07-24). It
   // was picked as the cheaper of the two V4 tiers; since 2026-09-10 there is
