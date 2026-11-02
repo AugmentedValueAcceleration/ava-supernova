@@ -185,7 +185,10 @@ const DO_NOT_TRANSLATE = [
   'Qwen', 'DeepSeek', 'Kimi', 'Mistral', 'MiniMax', 'Anthropic', 'Claude', 'GLM', 'Zhipu',
   'GitHub', 'Slack', 'Discord', 'Git',
   'IDE', 'CLI', 'API', 'URL', 'HTTP', 'HTTPS', 'JSON', 'YAML', 'SQL',
-  'Pro', 'Ultra', 'Enterprise', 'Admin', 'Free',
+  // 'Pro', 'Ultra', 'Enterprise' and 'Free' were plan names and sat here until
+  // the plans went (2 Nov 2026). 'Free' then meant free-of-charge, and keeping
+  // it in English left "Free and open source" half-translated in ten languages.
+  'Admin',
   'OWASP', 'CVE',
   'OK',
 ];
