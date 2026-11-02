@@ -52,11 +52,6 @@ export async function apiFetch(
   options: {
     method?: string;
     body?: unknown;
-    /** Optional — anonymous endpoints (public reads + anonymous-allowed
-     *  contribution flow) work without a platform key. When unset, the
-     *  Authorization header is omitted and the server falls back to
-     *  device-id-based identity. */
-    platformKey?: string;
     timeoutMs?: number;
     /** Extra headers to attach (e.g. BYOK provider/key for the health
      *  generation passthrough). */
@@ -80,7 +75,6 @@ export async function apiFetch(
       'X-Ava-Platform': 'extension',
       'X-Ava-Device': getDeviceId(),
       'X-Ava-Timezone': localTimezone(),
-      ...(options.platformKey ? { 'Authorization': `Bearer ${options.platformKey}` } : {}),
       ...(options.extraHeaders ?? {}),
       ...(body ? { 'Content-Length': String(Buffer.byteLength(body)) } : {}),
     };

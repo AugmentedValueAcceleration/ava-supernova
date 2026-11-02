@@ -1890,19 +1890,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       generateHealthPlanDays: async (i: { type: string; duration_days: number; goal: string | null; title: string }) => {
         // WHICH MODEL, AND WHOSE KEY.
         //
-        // This sent neither. So a BYOK user's plan was generated on the
-        // platform's Qwen key AND charged to their credits — the same billing
-        // fault fixed on the companion, in the surface that has had the feature
-        // longest. It also refused outright without a platform key, which meant
-        // a BYOK-only user could not generate a plan at all despite paying for
-        // every token themselves.
+        // This used to send neither, so a plan ran on the server's key, and it
+        // refused outright for anyone holding only their own keys.
         //
         // The active model id goes with the request so the server resolves the
         // right provider, and the user's OWN key goes with it whenever they are
-        // not on the platform provider. Their key, their bill, no credits.
-        const byokKey = provider.name === 'platform'
-          ? undefined
-          : await this.context.secrets.get(`ava-supernova.provider.${provider.name}.apiKey`) || undefined;
+        // Their key, their bill.
+        const byokKey = await this.context.secrets.get(`ava-supernova.provider.${provider.name}.apiKey`) || undefined;
         if (!byokKey) {
           throw new Error('Add a provider key in Settings to generate a plan.');
         }
@@ -1978,9 +1972,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // curation. Shared by the Memory Agent (brief curation) and the
     // Intent Classifier (tool-use gate). Using one resolution keeps the
     // two wiring sites in lockstep.
-    const qwenFlash = this.providerRegistry.resolveModel('platform:qwen3.5-flash')
-      || this.providerRegistry.resolveModel('platform:qwen3.5-omni-flash')
-      || this.providerRegistry.resolveModel('qwen:qwen3.5-flash');
+    const qwenFlash = this.providerRegistry.resolveModel('qwen:qwen3.5-flash');
 
     // Memory Agent — curates memory briefs instead of raw dumps
     if (qwenFlash && this.memoryManager) {
@@ -2149,16 +2141,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         // rebalanced on the assumption Medium 3.5 leads ("Large 3 ... now
         // Aurora's heavy reserve/fallback, not the coordinator").
         //
-        // Platform-managed first, then BYOK, then down the tiers. First
-        // resolvable wins.
+        // Down the tiers on the user's own Mistral key. First resolvable wins.
         const tries = [
-          'platform:mistral-medium-3.5-platform',
           'mistral:mistral-medium-3.5',
           'mistral-medium-3.5',
-          'platform:mistral-large-3-platform',
           'mistral:mistral-large-3',
           'mistral-large-3',
-          'platform:mistral-small-4-platform',
           'mistral:mistral-small-4',
           'mistral-small-4',
         ];
@@ -2170,9 +2158,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         }
       } else if (modelId === 'longxiang') {
         // Kimi K3 holds BOTH coordinator and Builder (LONGXIANG_COORDINATOR_ID
-        // / LONGXIANG_BUILDER_ID). Platform-managed first, then the user's own
-        // Moonshot key — the same ladder Aurora and Supernova use.
-        const tries = ['platform:kimi-k3-platform', 'kimi:kimi-k3', 'kimi-k3'];
+        // / LONGXIANG_BUILDER_ID), on the user's own Moonshot key.
+        const tries = ['kimi:kimi-k3', 'kimi-k3'];
         for (const id of tries) {
           if (this.providerRegistry.resolveModel(id)) {
             preferredCoordinatorId = id;
@@ -2249,45 +2236,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> {
-    const isAdmin = false; // no accounts — nothing is admin-gated
+    // Every model your keys could run — always listed; one whose provider key
+    // isn't set renders locked ("Add key", non-selectable) via available:false.
+    // There is no account, so there are no platform entries to filter.
+    const filtered = this.providerRegistry.listAllPossibleModels();
 
-    const allModels = this.providerRegistry.listAllPossibleModels()
-      .filter((m) => {
-        // Promote the FULL catalogue: every BYOK model is always listed — it
-        // renders locked ("Add key", non-selectable) when its provider key
-        // isn't set (available:false). Platform entries only apply when
-        // signed into the platform. (Was: keyless BYOK hidden in platform
-        // mode — which buried the catalogue. Operator decision 2026-06-21.)
-        if (m.provider === 'platform') return false; // no account models
-        return true;
-      })
-      // MiniMax is reserved for Creative Studio on platform (no chat use).
-      // BYOK MiniMax — where the user has supplied their own key — stays
-      // visible because their key, their call. The hide-from-chat rule
-      // only applies to managed MiniMax entries (provider='platform',
-      // id prefixed `MiniMax-`).
-      .filter((m) => !(m.provider === 'platform' && m.id.startsWith('MiniMax-')))
-      // Defensive admin-gate on platform-side V4 entries. The /api/models
-      // endpoint already filters them server-side, but we filter here too
-      // so a stale enabledIds cache or a non-admin user with the
-      // PLATFORM_MODELS code-side definition can't leak the entries into
-      // the dropdown. Suffix `-platform` is the convention used in
-      // migration 218 to disambiguate from the BYOK ids.
-      .filter((m) => {
-        const isAdminGatedPlatformModel =
-          m.provider === 'platform' &&
-          (m.id === 'deepseek-flash-platform' || m.id === 'deepseek-flash-platform');
-        return !isAdminGatedPlatformModel || isAdmin;
-      });
-
-    // Gate platform entries by the platform-enabled cache; every BYOK model
-    // stays (we want the whole catalogue), key or not.
-    const filtered = allModels;
-
-    // Detect mode prerequisites from the whole pool (incl. platform) BEFORE
-    // stripping platform-section. The 3 orchestrated modes need to know if a
-    // platform/BYOK fleet path exists to show their own gating.
-    const hasPlatform = filtered.some(m => m.provider === 'platform' && m.available);
     const hasQwen = filtered.some(m => m.provider === 'qwen' && m.available);
     const hasDeepSeek = filtered.some(m => m.provider === 'deepseek' && m.available);
     const hasMistral = filtered.some(m => m.provider === 'mistral' && m.available);
@@ -2301,23 +2254,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // isn't listed twice.
     const seen = new Set<string>();
     const byokOnly = filtered.filter((m) => {
-      if (m.provider === 'platform') return false;
       if (m.hiddenFromPicker) return false; // superseded (newer version exists) — still routable, just not shown
       if (seen.has(m.id)) return false;
       seen.add(m.id);
       return true;
     });
-
-    // Fleet single models opened to the account tier (2026-07-23). A vendor
-    // model the platform ALSO serves can run on plan CREDITS. `filtered` only
-    // carries platform entries in Platform mode (providerSource gate at the top
-    // of this method), so this set is EMPTY in API Key mode and the credit
-    // branch below is a pure no-op there — API Key mode stays exactly as before.
-    // Platform ids are `-platform`-suffixed for DeepSeek/Kimi/Mistral and bare
-    // for Qwen; strip the suffix so both forms match their vendor twin.
-    const platformServedIds = new Set(
-      filtered.filter((m) => m.provider === 'platform').map((m) => m.id.replace(/-platform$/, '')),
-    );
 
     // supportsVision is sent as an EXPLICIT boolean. It used to be spread in
     // only when true, so a text-only model arrived as `undefined` — which the
@@ -2325,49 +2266,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // therefore never fire and images were sent to blind models. Absent on a
     // ModelDefinition means no vision (the convention across the catalogue),
     // so `=== true` is the honest coercion.
-    // THE SOURCE TOGGLE DECIDES WHAT IS ON OFFER.
-    //
-    // On Platform, a plan reaches the fleets and the vendor singles the platform
-    // also serves — DeepSeek, Qwen, Kimi, Mistral. It cannot reach Zhipu,
-    // Xiaomi, Hunyuan, NVIDIA or a local endpoint, so listing those here was
-    // offering rows that could only be failed at. They are one toggle away and
-    // that is where they belong.
-    //
-    // In API Key mode platformServedIds is empty, so this filter is a no-op and
-    // the whole catalogue shows exactly as before.
-    const offered = byokOnly;
-
     const modelList: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean; lockedReason?: string }> =
-      offered.map((m) => {
-        // On Platform, a fleet single is selectable on credits even without the
-        // provider key. It STAYS in its vendor group (provider unchanged — no
-        // new section); only its id routes to the platform provider so the pick
-        // draws credits, not a key the user may not hold. The agent's registry
-        // bridges `platform:<bare-id>` to the `-platform` row and bills at the
-        // model's multiplier. In API Key mode platformServedIds is empty, so
-        // this is exactly the old BYOK behaviour (vendor id, key-gated).
-        const creditPath = platformServedIds.has(m.id);
-        return {
-          id: creditPath ? `platform:${m.id}` : `${m.provider}:${m.id}`,
-          name: m.name,
-          provider: m.provider,
-          available: creditPath || m.available,
-          supportsVision: m.supportsVision === true,
-        };
-      });
+      byokOnly.map((m) => ({
+        id: `${m.provider}:${m.id}`,
+        name: m.name,
+        provider: m.provider,
+        available: m.available,
+        supportsVision: m.supportsVision === true,
+      }));
 
-    // Three orchestrated modes. Admin gate retired 2026-04-30 — public
-    // launch of Aurora + Supernova alongside Maestro. Any signed-in
-    // platform user gets all three; BYOK users get a mode the moment
-    // they have the keys for its fleet (Maestro=Qwen, Supernova=
-    // DeepSeek+Qwen, Aurora=Mistral).
+    // The orchestrated modes: each is available the moment you hold the keys
+    // for its fleet (Maestro=Qwen, Supernova=DeepSeek+Qwen, Aurora=Mistral).
     // Dropdown order: Aurora → Supernova → Maestro (most strategic first).
     // The id stays 'auto' for Maestro for backward compat with saved
     // settings; the display label is "Maestro".
-    void isAdmin;
-    const maestroAvailable   = hasPlatform || hasQwen;
-    const supernovaAvailable = hasPlatform || (hasDeepSeek && hasQwen);
-    const auroraAvailable    = hasPlatform || hasMistral;
+    const maestroAvailable   = hasQwen;
+    const supernovaAvailable = hasDeepSeek && hasQwen;
+    const auroraAvailable    = hasMistral;
     // The fleets always accept images. Maestro and Aurora have vision-capable
     // coordinators outright; Supernova's coordinator (DeepSeek V4) is blind,
     // but the vision bridge describes the image with a vision model and injects
@@ -2383,14 +2298,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (AURORA_ENABLED) {
       modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable, supportsVision: true });
     }
-    // Longxiang — BYOK-only, so no `hasPlatform ||` branch: a plan can never
-    // unlock it (Moonshot won't invoice us for the K3 lead seat). While the
+    // Longxiang — the full Moonshot + Qwen + DeepSeek key set. While the
     // launch flag is off it is not pushed at all, rather than pushed-and-
     // greyed — an unavailable row still shows the name, and the fleet is
     // unannounced until K3's weights land.
     if (LONGXIANG_ENABLED) {
-      // Same access rule as the other three: plan OR the full BYOK key set.
-      const longxiangAvailable = hasPlatform || (hasKimi && hasQwen && hasDeepSeek);
+      const longxiangAvailable = hasKimi && hasQwen && hasDeepSeek;
       // Name the ONE key still missing, in the same priority order the IDE
       // uses (mode-availability.ts: Moonshot → Qwen → DeepSeek). Listing all
       // three is both too long for the picker's subtitle column and out of

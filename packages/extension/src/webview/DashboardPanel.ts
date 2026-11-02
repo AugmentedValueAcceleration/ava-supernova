@@ -1329,7 +1329,7 @@ export class DashboardPanel {
             break;
           }
           const data = res.data as {
-            day?: HealthPlanDay; note?: string; credits_charged?: number; unverifiable_allergens?: string[];
+            day?: HealthPlanDay; note?: string; unverifiable_allergens?: string[];
           };
           this.post({
             type: 'health_day_generated',
