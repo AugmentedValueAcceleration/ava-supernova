@@ -1481,6 +1481,36 @@ export interface CreativeAsset {
   thumbnail_url?: string | null;
   source?: string | null;      // e.g. "Creative Studio", "Chat"
   created_at: string;
+  /** Present on 3D models (asset_type 'model') — one asset that is a whole
+   *  folder built in Blender. `glb_url` feeds the Library's 3D viewer. */
+  model?: {
+    glb_url?: string;
+    files?: string[];
+    triangles?: number;
+    size_m?: number[];
+    blender_version?: string;
+    updated_at?: string;
+  };
+}
+
+/** A model in the 3D Model / Prop room — including one with only a brief. */
+export interface DesignModelSummary {
+  slug: string;
+  name: string;
+  built: boolean;
+  updated_at: string;
+  /** The Library entry id (model_<slug>) once built — for Open in Blender etc. */
+  creative_id?: string;
+  preview_url?: string;
+  glb_url?: string;
+  triangles?: number;
+  size_m?: number[];
+  brief: null | {
+    status: 'proposed' | 'agreed';
+    edited_by_person?: boolean;
+    reasoning: string;
+    fields: Array<{ key: string; label: string; value: string }>;
+  };
 }
 
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
@@ -1681,6 +1711,8 @@ export type ExtToDashboardMessage =
   | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string; hasFolder?: boolean }
   | { type: 'library_image_deleted'; path: string }
   | { type: 'local_creative_loaded'; assets: CreativeAsset[] }
+  | { type: 'models_listed'; models: DesignModelSummary[] }
+  | { type: 'blender_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
   | { type: 'storage_scan_loaded'; scan: StorageScan }
   /** What the projects folder costs, with the age of the figure. */
   | { type: 'projects_usage_loaded'; usage: ProjectsUsage | null }
@@ -2077,7 +2109,7 @@ export type DashboardToExtMessage =
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`
@@ -2154,6 +2186,18 @@ export type DashboardToExtMessage =
   | { type: 'delete_local_creative'; id: string }
   | { type: 'rename_local_creative'; id: string; title: string }
   | { type: 'use_creative_in_project'; id: string }
+  // 3D models in the Library (Design Studio 3D, 3 Nov 2026).
+  | { type: 'open_model_in_blender'; id: string }
+  | { type: 'reveal_creative'; id: string }
+  | { type: 'copy_model_path'; id: string; ext: 'glb' | 'fbx' | 'blend' }
+  // The 3D Model / Prop room: its models, and the brief he agrees on the card.
+  // Settings → Blender: which one is used, and choosing one by hand.
+  | { type: 'get_blender_status' }
+  | { type: 'choose_blender_path' }
+  | { type: 'clear_blender_path' }
+  | { type: 'list_models' }
+  | { type: 'agree_model_brief'; slug: string }
+  | { type: 'save_model_brief'; slug: string; fields: Record<string, string> }
   // Storage manager — bulk-delete local creative assets by id (the webview
   // computes which items a "clear this type / older than N days" action covers).
   | { type: 'prune_creative'; ids: string[] }

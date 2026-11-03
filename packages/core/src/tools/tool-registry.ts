@@ -91,6 +91,8 @@ import {
   DesignBrandKitTool,
   DesignSaveTool,
 } from './design-studio-tools.js';
+import { DesignBuildModelTool, DesignDuplicateModelTool } from './blender/build-model.js';
+import { DesignProposeModelBriefTool } from './blender/model-brief.js';
 import { DocumentManageTool } from './document-manage.js';
 import { DocumentAuthorTool } from './document-author.js';
 import { GitCommitTool } from './git-commit.js';
@@ -187,6 +189,8 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   design_generate_set: 'media', design_generate_video: 'media',
   design_generate_image: 'media', design_generate_voice: 'media',
   design_brand_kit: 'media', design_save: 'media',
+  // 3D in Blender — free and local, but it runs a script and writes files.
+  design_build_model: 'media', design_duplicate_model: 'media', design_propose_model_brief: 'media',
   // Social Studio's paid outputs. These were in no category at all, so they
   // fell through to the 'file_ops' default and auto-ran — a video, a picture or
   // a voiceover could be generated without the operator ever being asked, which
@@ -473,6 +477,9 @@ export class ToolRegistry {
       new DesignExploreLogosTool(),
       new DesignBrandKitTool(),
       new DesignSaveTool(),
+      new DesignProposeModelBriefTool(),
+      new DesignBuildModelTool(),
+      new DesignDuplicateModelTool(),
       new HealthPlanListTool(),
       new HealthPlanCreateTool(),
       new HealthPlanUpdateTool(),

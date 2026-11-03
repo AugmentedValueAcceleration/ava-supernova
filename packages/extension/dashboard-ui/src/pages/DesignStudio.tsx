@@ -23,6 +23,8 @@ import { loadFont, registerWordmarkFonts } from '../lib/asset-forge/logo/pipelin
 import { renderMark, renderElements, type MarkSpec, type MarkStyle } from '../lib/asset-forge/logo/mark-primitives';
 import type { LogoBrief, LogoSystem, LogoVariant } from '../lib/asset-forge/logo/types';
 import { DESIGN_GROUPS, QWEN_VIEWS, type ViewId } from '../lib/design-types';
+import { ModelRoom } from '../components/ModelRoom';
+import type { DesignModelSummary } from '../types/messages';
 import { toWebp } from '../lib/compress';
 
 type GenOutcome = { ok: boolean; dataUrl?: string; error?: string };
@@ -665,7 +667,9 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // Which room the Design Architect chat should reflect. The Open-Canvas Video
   // and Voiceover views map to their own rooms; everything else is the icon
   // studio (greeting / chips / heading / persona all follow this).
-  const designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : view === 'image' ? 'image' : view === 'logo' ? 'logo' : 'icon';
+  const designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : view === 'image' ? 'image' : view === 'logo' ? 'logo' : view === 'model' ? 'model' : 'icon';
+  // The model on the 3D room's stage — its brief goes to Ava with every turn.
+  const [activeModel, setActiveModel] = useState<DesignModelSummary | null>(null);
 
   const [query, setQuery] = useState('');
   const [shapeId, setShapeId] = useState('Bell');
@@ -794,6 +798,15 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // fallback, so Ava designed blind and her arguments always won. Now she sees
   // them, works from them, and may change them when the design calls for it.
   const designPanel = useMemo(() => {
+    if (view === 'model') {
+      // She sees the card as it stands — including his edits — every turn.
+      if (!activeModel) return 'No model yet in this room.';
+      const b = activeModel.brief;
+      const head = `Model on the stage: "${activeModel.name}" (${activeModel.built ? 'built' : 'not built yet'})`;
+      if (!b) return `${head} · no brief yet`;
+      const status = b.status === 'agreed' ? 'brief AGREED by them' : `brief waiting for their agreement${b.edited_by_person ? ' — THEY EDITED IT, work from their version' : ''}`;
+      return `${head} · ${status} · ${b.fields.map((f) => `${f.label}: ${f.value}`).join(' · ')}`;
+    }
     if (view !== 'logo') return undefined;
     const bits = [
       `form: ${logoForm}`,
@@ -809,7 +822,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       `wordmark colour: ${logoWordColour}`,
     ].filter(Boolean);
     return bits.join(' · ');
-  }, [view, logoForm, logoTagline, logoMarkType, logoMark, logoContainer, logoSpec, logoStyle, logoColour, logoSecondary, logoWordColour, logoFontId, kit.styleTags]);
+  }, [view, activeModel, logoForm, logoTagline, logoMarkType, logoMark, logoContainer, logoSpec, logoStyle, logoColour, logoSecondary, logoWordColour, logoFontId, kit.styleTags]);
   // Register the bundled wordmark fonts (from bytes) when the Logo room opens, so
   // the font picker previews each name in its own typeface.
   useEffect(() => { if (view === 'logo') void registerWordmarkFonts(); }, [view]);
@@ -1674,6 +1687,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               </div>
             )}
           </div>
+        ) : view === 'model' ? (
+          <ModelRoom onActiveModel={setActiveModel} />
         ) : view === 'brandkit' ? (
           <div className="flex-1 overflow-hidden relative">
             {/* Overview — all brand kits at a glance */}

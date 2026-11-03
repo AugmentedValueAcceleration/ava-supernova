@@ -6,49 +6,44 @@
 // where the asset was made — one list to maintain, never two to keep in sync.
 
 export type ViewId =
-  | 'icon' | 'iconset' | 'appicon' | 'logo' | 'badge' | 'avatar' | 'banner' | 'hero' | 'ogimage' | 'illustration' | 'pattern'
-  | 'game-concept' | 'game-character' | 'game-creature' | 'game-ability' | 'game-item' | 'game-card' | 'game-env' | 'game-keyart' | 'game-map' | 'game-emblem' | 'game-texture' | 'game-tileset' | 'game-sprite'
+  | 'icon' | 'logo' | 'model'
   | 'image' | 'video' | 'voice' | 'brandkit';
 
 export interface DesignTypeItem { id: ViewId; label: string; badge?: string }
 export interface DesignGroup { labelKey: string; label: string; accent: string; items: DesignTypeItem[] }
 
-// Left-nav group accent colours mirror the hub (Web/App purple, Game orange,
-// Open Canvas blue).
-export const DESIGN_GROUPS: DesignGroup[] = [
+// The groups (his call, 3 Nov 2026): Open Canvas · Brand & Web · 2D · 3D. No
+// "Game Dev" — a 3D model is as much for a product shot or a 3D print as for a
+// game; rooms that really are game-specific say so in their own description.
+//
+// ONLY rooms that work are listed. The SOON placeholders are gone: thirteen
+// greyed-out promises read as things we had not done. A room is added here the
+// day its pipeline is real, and a group with no live room is not shown at all,
+// so 2D and 3D appear with their first room. Planned rooms: see
+// Decisions/plans/2026-10-28-design-studio-3d-headless.md (decision 6).
+//
+// Accents: Open Canvas blue, Brand & Web purple (as Web / App was), 2D and 3D
+// the orange Game Dev had.
+/** Every group, empty or not — the Library always shows all four (his call,
+ *  3 Nov 2026), so where a thing will live is visible before it exists. */
+export const ALL_DESIGN_GROUPS: DesignGroup[] = [
   { labelKey: 'dash.studio.group.open_canvas', label: 'Open Canvas', accent: '#6aa9ff', items: [
     { id: 'video', label: 'Video' },
     { id: 'voice', label: 'Voiceover' },
     { id: 'image', label: 'Image' },
   ] },
-  { labelKey: 'dash.studio.group.web_app', label: 'Web / App', accent: 'var(--accent)', items: [
+  { labelKey: 'dash.studio.group.brand_web', label: 'Brand & Web', accent: 'var(--accent)', items: [
     { id: 'icon', label: 'Icon' },
-    { id: 'appicon', label: 'App Icon / Favicon', badge: 'SOON' },
     { id: 'logo', label: 'Logo' },
-    { id: 'badge', label: 'Badge / Mark', badge: 'SOON' },
-    { id: 'avatar', label: 'Avatar', badge: 'SOON' },
-    { id: 'banner', label: 'Banner', badge: 'SOON' },
-    { id: 'hero', label: 'Hero', badge: 'SOON' },
-    { id: 'ogimage', label: 'Social / OG Image', badge: 'SOON' },
-    { id: 'illustration', label: 'Illustration', badge: 'SOON' },
-    { id: 'pattern', label: 'Pattern / Background', badge: 'SOON' },
   ] },
-  { labelKey: 'ext.studio.group.game_dev', label: 'Game Dev', accent: '#f0a24b', items: [
-    { id: 'game-concept', label: 'Concept Art', badge: 'SOON' },
-    { id: 'game-character', label: 'Character / Portrait', badge: 'SOON' },
-    { id: 'game-creature', label: 'Creature / Enemy', badge: 'SOON' },
-    { id: 'game-ability', label: 'Ability Icons', badge: 'SOON' },
-    { id: 'game-item', label: 'Item / Prop', badge: 'SOON' },
-    { id: 'game-card', label: 'Card', badge: 'SOON' },
-    { id: 'game-env', label: 'Environment / Background', badge: 'SOON' },
-    { id: 'game-keyart', label: 'Key Art / Splash', badge: 'SOON' },
-    { id: 'game-map', label: 'World Map', badge: 'SOON' },
-    { id: 'game-emblem', label: 'Emblem / Crest', badge: 'SOON' },
-    { id: 'game-texture', label: 'Texture / Material', badge: 'SOON' },
-    { id: 'game-tileset', label: 'Tileset', badge: 'SOON' },
-    { id: 'game-sprite', label: 'Sprite', badge: 'SOON' },
+  { labelKey: 'dash.studio.group.2d', label: '2D', accent: '#f0a24b', items: [] },
+  { labelKey: 'dash.studio.group.3d', label: '3D', accent: '#f0a24b', items: [
+    { id: 'model', label: '3D Model / Prop' },
   ] },
 ];
+
+/** The Design Studio sidebar: only groups with a working room. */
+export const DESIGN_GROUPS: DesignGroup[] = ALL_DESIGN_GROUPS.filter((g) => g.items.length > 0);
 
 /** The lanes that generate on the user's Qwen key (image, video, voice, and
  *  the icon lane's Qwen-Image). Without that key they are greyed out; Logo is
@@ -57,8 +52,11 @@ export const QWEN_VIEWS: readonly ViewId[] = ['video', 'voice', 'image', 'icon']
 
 // Flat id → { label, group } lookup, built once from the groups above.
 const TYPE_INDEX: Record<string, { label: string; group: string }> = (() => {
-  const idx: Record<string, { label: string; group: string }> = {};
-  for (const g of DESIGN_GROUPS) for (const it of g.items) idx[it.id] = { label: it.label, group: g.label };
+  const idx: Record<string, { label: string; group: string }> = {
+    // Made by Ava's tools before their room is in the sidebar — still sorted
+    // into the group they belong to. 3D models come from design_build_model.
+  };
+  for (const g of ALL_DESIGN_GROUPS) for (const it of g.items) idx[it.id] = { label: it.label, group: g.label };
   return idx;
 })();
 

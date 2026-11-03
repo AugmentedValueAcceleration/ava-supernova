@@ -68,6 +68,9 @@ export interface AvaConfig {
      * not yet have one — not to overrule someone who does.
      */
     projectsHome?: string;
+    /** Blender to use for 3D models, when it isn't found by itself. Set in
+     *  Settings; shared by the extension and the IDE. */
+    blenderPath?: string;
   };
   knowledgePacks?: {
     enabled?: string[];

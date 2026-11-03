@@ -8,8 +8,9 @@ import { Icon } from '../components/Icon';
 import { tabBar, tab as tabClass } from '../components/ui';
 import { useTabTransition } from '../lib/useTabTransition';
 import { TabSpinner } from '../components/TabSpinner';
-import { DESIGN_GROUPS, designTypeMeta, coarseKindToType } from '../lib/design-types';
+import { ALL_DESIGN_GROUPS, designTypeMeta, coarseKindToType } from '../lib/design-types';
 import { Drawer } from '../components/Drawer';
+import { LazyModelViewer } from '../components/LazyModelViewer';
 // The dependency-free leaf, so the host and this bundle agree on what is
 // exportable and what it is called without either keeping its own list.
 import { canExport, targetsFor, TARGET_LABELS, type ExportFormat } from '@ava/core/authoring/formats';
@@ -78,6 +79,7 @@ const ASSET_TYPE_ICONS: Record<string, string> = {
   voice: '\u{1F3A4}',
   document: '\u{1F4C4}',
   spreadsheet: '\u{1F4CA}',
+  model: '\u{1F9CA}',
 };
 
 function formatSize(bytes: number): string {
@@ -137,10 +139,15 @@ function unifyCreativeAsset(a: CreativeAsset): UnifiedItem {
     designType: a.design_type || undefined,
     title: a.title || 'Untitled',
     subtitle: a.prompt?.slice(0, 80) || '',
-    thumbnail: (kind === 'image' ? (a.thumbnail_url || a.url) : undefined) || undefined,
-    createdAt: a.created_at,
+    thumbnail: (kind === 'image' || kind === 'model' ? (a.thumbnail_url || a.url) : undefined) || undefined,
+    createdAt: a.model?.updated_at || a.created_at,
     raw: a,
   };
+}
+
+/** "1.22 × 0.82 × 0.8 m" — a model's real size, the check that it was built to scale. */
+function modelSizeLabel(size?: number[]): string | null {
+  return size && size.length === 3 ? `${size.map((n) => +n.toFixed(2)).join(' × ')} m` : null;
 }
 
 function unifyLocalImage(img: LibraryImage, projectRoot: string): UnifiedItem {
@@ -243,7 +250,7 @@ export function Library({
         if (variant === 'primary') g.primary = a;
         continue;
       }
-      if (['image', 'video', 'graphic', 'voice', 'music', 'sfx'].includes(k)) {
+      if (['image', 'video', 'graphic', 'voice', 'music', 'sfx', 'model'].includes(k)) {
         list.push(unifyCreativeAsset(a));
       }
     }
@@ -286,9 +293,9 @@ export function Library({
   // that can be created, so the chips come from the catalogue, not from what
   // happens to have been made yet. Live types are clickable (with a count when
   // they hold assets); SOON / NEXT types show as promotion of what's coming.
-  const groupChips = useMemo(() => DESIGN_GROUPS.map(g => g.label), []);
+  const groupChips = useMemo(() => ALL_DESIGN_GROUPS.map(g => g.label), []);
   const typeChips = useMemo(
-    () => DESIGN_GROUPS.find(x => x.label === assetGroup)?.items ?? [],
+    () => ALL_DESIGN_GROUPS.find(x => x.label === assetGroup)?.items ?? [],
     [assetGroup],
   );
 
@@ -676,6 +683,8 @@ function PreviewModal({
   const isMusic = item.kind === 'music';
   const isVoice = item.kind === 'voice';
   const isAudio = isMusic || isVoice;
+  // A 3D model: one asset that is a whole folder made in Blender.
+  const isModel = item.kind === 'model';
 
   // Two kinds of "local": workspace files (LibraryImage, carry a `path`) and
   // local-creative gallery items (CreativeAsset saved by Creative Studio — a
@@ -753,7 +762,9 @@ function PreviewModal({
 
   // Download. Two routes to the bytes: a workspace file has a path, and a
   // Studio make is known by its id in the creative gallery.
-  const canDownload = Boolean((isLocal && localPath) || isLocalCreative);
+  // Not for a model: it is a folder of files, and Open folder / Use in project
+  // are how its files come out.
+  const canDownload = !isModel && Boolean((isLocal && localPath) || isLocalCreative);
 
   // The formats on offer. Images can be re-encoded here in the webview (see
   // image-export.ts for why SVG is offered only when the source IS vector);
@@ -892,6 +903,11 @@ function PreviewModal({
             </div>
             <p className="text-[11px] text-[var(--text-muted)] mt-3 text-center">All {item.logoGroup.variants.length} forms are saved as vector SVG — use “Open folder” to get the files.</p>
           </div>
+        ) : isModel && rawCreative.model?.glb_url ? (
+          // Turn and zoom the model itself; Ava's preview render is the poster.
+          <LazyModelViewer src={rawCreative.model.glb_url} poster={item.thumbnail} alt={item.title} />
+        ) : isModel && item.thumbnail ? (
+          <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20 p-4" />
         ) : isImage && item.thumbnail ? (
           <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20" />
         ) : isVideo && mediaSrc ? (
@@ -936,6 +952,29 @@ function PreviewModal({
             </p>
           )}
 
+          {/* A model's facts: its real size (built to scale?), how heavy it is,
+              which Blender made it, and the files it exists as. */}
+          {isModel && rawCreative.model && (
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[11px]">
+              {modelSizeLabel(rawCreative.model.size_m) && (<>
+                <dt className="text-[var(--text-muted)]">{tt('library.model.size', 'Size')}</dt>
+                <dd className="text-[var(--text-secondary)]">{modelSizeLabel(rawCreative.model.size_m)}</dd>
+              </>)}
+              {typeof rawCreative.model.triangles === 'number' && (<>
+                <dt className="text-[var(--text-muted)]">{tt('library.model.triangles', 'Triangles')}</dt>
+                <dd className="text-[var(--text-secondary)]">{rawCreative.model.triangles.toLocaleString()}</dd>
+              </>)}
+              {rawCreative.model.blender_version && (<>
+                <dt className="text-[var(--text-muted)]">{tt('library.model.made_in', 'Made in')}</dt>
+                <dd className="text-[var(--text-secondary)]">Blender {rawCreative.model.blender_version}</dd>
+              </>)}
+              {!!rawCreative.model.files?.length && (<>
+                <dt className="text-[var(--text-muted)]">{tt('library.model.files', 'Files')}</dt>
+                <dd className="text-[var(--text-secondary)]">{rawCreative.model.files.join(', ')}</dd>
+              </>)}
+            </dl>
+          )}
+
           {/* Actions
               Local: Open (LibreOffice for office docs / default viewer
                 otherwise) · Reveal · Download · Delete
@@ -965,6 +1004,33 @@ function PreviewModal({
           )}
 
           <div className="mt-5 flex flex-wrap gap-2">
+            {/* A model opens in the person's own Blender. Whatever they change
+                and save there, Ava's next step builds on. */}
+            {isModel && rawCreative.id && (
+              <>
+                <button
+                  onClick={() => post({ type: 'open_model_in_blender', id: rawCreative.id! })}
+                  className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+                >
+                  {tt('library.model.open_in_blender', 'Open in Blender')}
+                </button>
+                <button
+                  onClick={() => post({ type: 'reveal_creative', id: rawCreative.id! })}
+                  className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
+                >
+                  {tt('library.model.open_folder', 'Open folder')}
+                </button>
+                {(['glb', 'fbx'] as const).filter((ext) => rawCreative.model?.files?.some((f) => f.endsWith(`.${ext}`))).map((ext) => (
+                  <button
+                    key={ext}
+                    onClick={() => post({ type: 'copy_model_path', id: rawCreative.id!, ext })}
+                    className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
+                  >
+                    {tt(`library.model.copy_${ext}_path`, `Copy .${ext} path`)}
+                  </button>
+                ))}
+              </>
+            )}
             {/* Use in project — the thing that makes a Studio asset usable in
                 code. Hidden when there's nothing to copy from. */}
             {isLocalCreative && rawCreative.id && (
@@ -1099,7 +1165,11 @@ function PreviewModal({
               {t('library.delete_confirm_title', { name: deleteName })}
             </p>
             <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
-              {deleteCount > 1
+              {isModel
+                // A model is a folder — say so, because "this file" would
+                // undersell what goes: the .blend, its exports and its versions.
+                ? tt('library.model.delete_confirm', 'The whole model folder is removed from disk — the Blender file, its exports and its saved versions. It cannot be undone.')
+                : deleteCount > 1
                 ? t('library.delete_confirm_many', { count: String(deleteCount) })
                 : t('library.delete_confirm_one')}
             </p>
@@ -1697,7 +1767,7 @@ function AssetCard({
         <img
           src={item.thumbnail}
           alt={item.title}
-          className={item.designType === 'icon' || item.designType === 'logo'
+          className={item.designType === 'icon' || item.designType === 'logo' || item.kind === 'model'
             ? 'h-24 w-full object-contain p-3'
             : 'h-24 w-full object-cover'}
           loading="lazy"

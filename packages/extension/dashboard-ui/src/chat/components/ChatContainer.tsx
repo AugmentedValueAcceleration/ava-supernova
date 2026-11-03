@@ -56,7 +56,7 @@ interface ChatContainerProps {
    *  Drives the room-aware greeting, starter chips and heading so the Design
    *  Architect reflects the active Open-Canvas view (Video / Voiceover) instead
    *  of always greeting about icons. Defaults to 'icon'. */
-  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo';
+  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model';
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed
@@ -174,7 +174,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
  * Date is appended in conversational form ("Tuesday") rather than full
  * ISO so it reads like a human picking up a conversation.
  */
-function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' = 'icon'): string {
+function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' = 'icon'): string {
   const now = new Date();
   const h = now.getHours();
   const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -200,6 +200,9 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
     }
     if (designRoom === 'image') {
       return `Hey${name} — Design Architect here, on the Open Canvas. What are we making? Describe the image — subject, style, mood — and I'll compose it and render it right here.`;
+    }
+    if (designRoom === 'model') {
+      return `Hey${name} — let's build something in 3D. Tell me what it is and where it'll live — a prop for your game, a product shot, something to print — and I'll research it, find real references and measurements, and put a brief on the card for you to question before we touch Blender. Then we build it together, step by step, and I'll talk you through every one.`;
     }
     if (designRoom === 'logo') {
       return `Hey${name} — Design Architect here, and this is the big one: your brand's identity. A logo isn't one picture, it's a system — so let's design it properly. Tell me about the brand: what does it do, who's it for, and what should it feel like? Or just say the word and I'll work from your brand kit. And here's the real question — what's the one idea the mark should carry? The best ones say a lot with a little.`;
@@ -234,7 +237,7 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
  * chips with prefix-coloured tokens so the modes are recognisable on
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
-function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' }) {
+function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' }) {
   useLocale();
   const isHealth = lane === 'health';
   const isLearning = lane === 'learning';
@@ -272,7 +275,14 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
     { label: t('ext.chat.starter.logo.3_l'), prefix: '✦', prompt: t('ext.chat.starter.logo.3_p'), color: '#60a5fa' },
     { label: t('ext.chat.starter.logo.4_l'), prefix: '✦', prompt: t('ext.chat.starter.logo.4_p'), color: '#94e2d5' },
   ];
-  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : designRoom === 'image' ? imageChips : designRoom === 'logo' ? logoChips : iconChips;
+  // English for now, like the room itself; the extractor picks these up at release.
+  const modelChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: 'A prop for my game', prefix: '◆', prompt: 'I need a prop for my game — help me work out the brief.', color: '#f0a24b' },
+    { label: 'A worn wooden crate', prefix: '◆', prompt: 'Let’s make a worn wooden supply crate, game-ready.', color: 'var(--accent)' },
+    { label: 'A product for a render', prefix: '◆', prompt: 'I want a 3D model of a product for a clean studio render.', color: '#60a5fa' },
+    { label: 'Something to 3D print', prefix: '◆', prompt: 'I want to design something to 3D print — help me get it right.', color: '#94e2d5' },
+  ];
+  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : designRoom === 'image' ? imageChips : designRoom === 'logo' ? logoChips : designRoom === 'model' ? modelChips : iconChips;
   // Health room: plain-prompt chips (no mode prefix — the room is locked to
   // health). They prefill the composer so the user can edit before sending.
   const healthChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [

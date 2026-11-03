@@ -8,6 +8,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // RELATIVE, because this runs in a webview: the host serves index-*.js from a
+  // vscode-resource URL and nothing lives at "/". With the default base '/',
+  // a lazy chunk that has CSS dependencies (the 3D viewer, imported from the
+  // Design Studio chunk) asked for "/index-<hash>.css", got nothing, and
+  // threw "Unable to preload CSS" — the first nested lazy import with a CSS
+  // dep, so the earlier lazy pages never hit it (3 Nov 2026). Relative base
+  // makes Vite resolve every preload against the importing chunk's own URL.
+  base: './',
   resolve: {
     alias: {
       '@ava-extension/messages': path.resolve(

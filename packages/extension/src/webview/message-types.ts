@@ -249,7 +249,7 @@ export type PaletteTool = 'task' | 'journal' | 'memory' | 'support' | 'learning'
 export type WebviewToExtMessage =
   // The input's mode changed — recorded so the IDE can follow it.
   | { type: 'set_chat_mode'; mode: AvaMode }
-  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
+  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   /**
    * Fired by a command-palette button. Carries the pre-classified intent
    * (tool + action) and the mode the input is currently in. The host turns

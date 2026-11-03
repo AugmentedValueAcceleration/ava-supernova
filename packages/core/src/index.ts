@@ -31,7 +31,7 @@ export * from './learning/course-check.js';
 export * from './learning/course-store.js';
 export * from './learning/course-review.js';
 export * from './learning/grade-open-answer.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getWorkModePrefix, getWorkTalkPrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, getSocialStudioPrefix, SOCIAL_STUDIO_PERSONA, getNewsroomPrefix, getPantryPrefix, getGymPrefix, getClassroomPrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getWorkModePrefix, getWorkTalkPrefix, getDesktopModePrefix, getHealthRoomPrefix, getDesignStudioPrefix, type DesignRoom, getSocialStudioPrefix, SOCIAL_STUDIO_PERSONA, getNewsroomPrefix, getPantryPrefix, getGymPrefix, getClassroomPrefix } from './agent/system-prompt.js';
 
 // Newsroom contracts — the surface-injected news index + article store the
 // Correspondent's tools write through, plus the syndication clusterer that
@@ -605,3 +605,10 @@ export { resolveWebSearch, duckDuckGoSearch } from './tools/web-search.js';
 // Bring account-era data (~/.ava/users/<id>) home into ~/.ava — copy-only, nothing lost (BYOK plan, 1 Nov 2026).
 export { mergeAccountFolders, pickActiveAccount, ACCOUNT_MERGE_MARKER } from './config/account-merge.js';
 export type { AccountMergeReport } from './config/account-merge.js';
+
+// Design Studio 3D — the surfaces open models in Blender and list them in the Library.
+export { findBlender, setBlenderPath, blenderStatus, BLENDER_DOWNLOAD_URL } from './tools/blender/find-blender.js';
+export type { BlenderInstall } from './tools/blender/find-blender.js';
+export { modelsDir, modelSlug } from './tools/blender/paths.js';
+export { readModelBrief, agreeModelBrief, saveModelBriefEdits, listModels, formatModelBrief, BRIEF_FIELDS } from './tools/blender/model-brief.js';
+export type { ModelBrief, ModelBriefFields, ModelSummary } from './tools/blender/model-brief.js';

@@ -846,6 +846,8 @@ export function Settings({
           options={languageOptions()}
         />
       </div>
+      <SectionLabel>{tt('dash.settings.blender', 'Blender (3D models)')}</SectionLabel>
+      <BlenderSetting />
       <SectionLabel>{tt('ext.settings.welcome_tour', 'Welcome tour')}</SectionLabel>
       <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <p className="text-xs text-[var(--text-muted)]">{tt('ext.settings.replay_tour_hint', 'See the first-run walkthrough again.')}</p>
@@ -981,6 +983,45 @@ export function Settings({
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
+
+/** Which Blender the Design Studio's 3D room uses. Found by itself in the
+ *  usual places; chosen by hand only for an unusual install. Saved in
+ *  ~/.ava, so the IDE uses the same one. */
+function BlenderSetting() {
+  const [st, setSt] = useState<{ path: string | null; version: string | null; source: string | null; configured: string | null; error?: string } | null>(null);
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'blender_status') setSt(e.data);
+    };
+    window.addEventListener('message', onMessage);
+    post({ type: 'get_blender_status' });
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+  const btn = 'rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition';
+  return (
+    <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+      {!st ? (
+        <p className="text-xs text-[var(--text-muted)]">{tt('dash.settings.blender_checking', 'Looking for Blender…')}</p>
+      ) : st.path ? (
+        <>
+          <p className="text-xs text-[var(--text-primary)]">Blender {st.version} {st.configured ? tt('dash.settings.blender_chosen', '(chosen by you)') : tt('dash.settings.blender_found', '(found automatically)')}</p>
+          <p className="mt-1 break-all font-mono text-[10.5px] text-[var(--text-muted)]">{st.path}</p>
+        </>
+      ) : (
+        <p className="text-xs text-[var(--text-secondary)]">
+          {tt('dash.settings.blender_missing', 'Blender isn’t installed, or it’s somewhere unusual. It’s free from blender.org — or choose where yours is.')}
+        </p>
+      )}
+      {st?.error && <p className="mt-2 text-xs text-red-400">{st.error}</p>}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button onClick={() => post({ type: 'choose_blender_path' })} className={btn}>{tt('dash.settings.blender_choose', 'Choose…')}</button>
+        {st?.configured && (
+          <button onClick={() => post({ type: 'clear_blender_path' })} className={btn}>{tt('dash.settings.blender_auto', 'Use automatic')}</button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (

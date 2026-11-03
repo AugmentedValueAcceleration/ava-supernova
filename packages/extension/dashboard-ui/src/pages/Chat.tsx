@@ -923,7 +923,7 @@ export interface ChatPageProps {
    *  Drives the room-aware greeting / chips / heading and is tagged on every
    *  design-lane send so the host runs Ava with the matching Design Architect
    *  persona (icon / video / voice / image / logo). Ignored on other lanes. */
-  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo';
+  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model';
   /** What the room's right-hand panel is set to right now, in one line. Ava
    *  designs FROM these rather than guessing — and may change them, with a
    *  reason, when the design calls for it. Sent with every design-lane turn. */
@@ -1152,6 +1152,20 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     // separate health thread.
     post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, attachments, surface: lane, courseId, ...(lane === 'design' ? { designRoom, designPanel } : {}), ...(talk && lane === 'main' ? { talk: true } : {}) });
   }, [lane, courseId, designRoom, designPanel]);
+
+  // The design room's own controls speak to Ava through the chat, as him: the
+  // 3D room's "Agree the brief" says so in the conversation, so she carries on
+  // instead of waiting to be told (his ask, 3 Nov 2026). It is a real turn in
+  // his name, visible in the thread — not a hidden signal.
+  useEffect(() => {
+    if (lane !== 'design') return;
+    const onSay = (e: Event) => {
+      const text = (e as CustomEvent<{ text?: string }>).detail?.text?.trim();
+      if (text) handleSend(text, 'design' as AvaMode);
+    };
+    window.addEventListener('ava-design-say', onSay);
+    return () => window.removeEventListener('ava-design-say', onSay);
+  }, [lane, handleSend]);
 
   const handlePaletteAction = useCallback((tool: PaletteTool, action: string, mode: AvaMode) => {
     post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, surface: lane, courseId });

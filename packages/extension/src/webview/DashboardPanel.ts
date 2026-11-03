@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
 import * as https from 'node:https';
 import * as http from 'node:http';
 
@@ -44,6 +45,9 @@ import {
   // Calendar days in the user's terms, not UTC's — core/src/core/dates.ts.
   todayLocal,
   testProviderKey,
+  // Design Studio 3D — open a model in Blender from the Library.
+  findBlender, setBlenderPath, blenderStatus, BLENDER_DOWNLOAD_URL,
+  listModels, agreeModelBrief, saveModelBriefEdits, BRIEF_FIELDS,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -92,7 +96,7 @@ import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { exportDocument } from '@ava/core/authoring';
-import { readLocalCreative, readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
+import { modelFolder, readLocalCreative, readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
 import { scanStorage, reclaimStorage, measureProjects, readProjectsUsage } from './storage-scan.js';
 import { projectsHomeFrom } from '@ava/core/projects/home';
 import { qwenImage, qwenTts, wanSubmit, wanWait } from '@ava/core/creative/dashscope';
@@ -307,6 +311,33 @@ export class DashboardPanel {
       if (!Object.values(PROVIDER_KEY_SECRETS).includes(e.key)) return;
       this.post({ type: 'provider_keys_updated', providerKeys: await this.getProviderKeyStatus() });
     }));
+
+    // The Library follows the creative folder's index. Ava's 3D models are
+    // written by core (design_build_model), not through this panel, so without
+    // this a model she just built would not appear until the Library reopened.
+    // Also catches assets made in the IDE, which shares the folder.
+    {
+      // Both folders must EXIST before they are watched: a watcher on a missing
+      // base never fires, so the first brief Ava proposed on a fresh machine
+      // never reached the card (3 Nov 2026). Created up front; empty is fine.
+      try { mkdirSync(path.join(AVA_HOME, 'creative', 'blender'), { recursive: true }); } catch { /* watched anyway */ }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const watcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative')), 'metadata.json'),
+      );
+      const reload = () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { void this.loadLocalCreative(); void this.loadModels(); }, 400);
+      };
+      watcher.onDidChange(reload); watcher.onDidCreate(reload);
+      // The 3D room's cards follow each model's brief.json (Ava proposes it
+      // from core) as well as the index.
+      const briefs = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'blender')), '*/brief.json'),
+      );
+      briefs.onDidChange(reload); briefs.onDidCreate(reload); briefs.onDidDelete(reload);
+      this.disposables.push(watcher, briefs, { dispose: () => { if (timer) clearTimeout(timer); } });
+    }
 
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'AvaSupernovaIcon.png');
 
@@ -1915,6 +1946,95 @@ export class DashboardPanel {
         break;
       }
 
+      // ── 3D models (Design Studio 3D) ──────────────────────────────────────
+      case 'open_model_in_blender': {
+        const item = (await readLocalCreative(this.getUserDataDir())).find((i) => i.id === msg.id);
+        const folder = item && modelFolder(this.getUserDataDir(), item);
+        const slug = folder ? path.basename(folder) : '';
+        const blend = folder ? path.join(folder, `${slug}.blend`) : '';
+        if (!folder || !existsSync(blend)) {
+          vscode.window.showWarningMessage('Could not find that model’s Blender file.');
+          break;
+        }
+        const blender = await findBlender();
+        if (!blender) {
+          const pick = await vscode.window.showWarningMessage('Blender is not installed, or Ava can’t find it. It’s free.', 'Get Blender');
+          if (pick) await vscode.env.openExternal(vscode.Uri.parse(BLENDER_DOWNLOAD_URL));
+          break;
+        }
+        // The person's own Blender, with its window — detached, so closing the
+        // dashboard never closes their work. Their saves land in the model
+        // folder, and Ava's next step opens that saved file and builds on it.
+        const { spawn } = await import('node:child_process');
+        const child = spawn(blender.path, [blend], { cwd: folder, detached: true, stdio: 'ignore' });
+        child.on('error', (err) => vscode.window.showErrorMessage(`Could not open Blender: ${err.message}`));
+        child.unref();
+        this.log(`[Creative] Opened model ${slug} in Blender ${blender.version}`);
+        break;
+      }
+
+      case 'get_blender_status':
+        await this.postBlenderStatus();
+        break;
+
+      case 'choose_blender_path': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          openLabel: 'Use this Blender',
+          title: 'Choose blender.exe',
+          filters: process.platform === 'win32' ? { Blender: ['exe'] } : undefined,
+        });
+        if (!picked?.[0]) break;
+        const res = await setBlenderPath(picked[0].fsPath);
+        await this.postBlenderStatus(res.ok ? undefined : res.error);
+        break;
+      }
+
+      case 'clear_blender_path':
+        await setBlenderPath(null);
+        await this.postBlenderStatus();
+        break;
+
+      case 'list_models':
+        await this.loadModels();
+        break;
+
+      case 'agree_model_brief':
+        // His button — the only way a brief becomes agreed (core enforces it:
+        // design_build_model refuses until then).
+        await agreeModelBrief(msg.slug);
+        await this.loadModels();
+        break;
+
+      case 'save_model_brief':
+        await saveModelBriefEdits(msg.slug, msg.fields);
+        await this.loadModels();
+        break;
+
+      case 'reveal_creative': {
+        const item = (await readLocalCreative(this.getUserDataDir())).find((i) => i.id === msg.id);
+        if (!item) break;
+        const folder = modelFolder(this.getUserDataDir(), item);
+        // A model is its folder, so open the folder; anything else, its file.
+        if (folder) await vscode.env.openExternal(vscode.Uri.file(folder));
+        else await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(item.absolutePath));
+        break;
+      }
+
+      case 'copy_model_path': {
+        const item = (await readLocalCreative(this.getUserDataDir())).find((i) => i.id === msg.id);
+        const folder = item && modelFolder(this.getUserDataDir(), item);
+        if (!folder) break;
+        const file = path.join(folder, `${path.basename(folder)}.${msg.ext}`);
+        if (!existsSync(file)) {
+          vscode.window.showWarningMessage(`This model has no .${msg.ext} file yet.`);
+          break;
+        }
+        await vscode.env.clipboard.writeText(file);
+        vscode.window.showInformationMessage(`Copied the .${msg.ext} path.`);
+        break;
+      }
+
       case 'use_creative_in_project': {
         // Copy a Studio asset into the open project. The library lives outside
         // any project, so referencing it from code would only ever work on this
@@ -2929,7 +3049,7 @@ export class DashboardPanel {
       const items = await readLocalCreativeSized(this.getUserDataDir());
       const assets = items.map((it) => {
         const uri = this.panel.webview.asWebviewUri(vscode.Uri.file(it.absolutePath)).toString();
-        return {
+        const base = {
           id: it.id,
           asset_type: it.kind,
           design_type: it.designType,
@@ -2940,10 +3060,78 @@ export class DashboardPanel {
           thumbnail_url: it.kind === 'image' ? uri : undefined,
           created_at: it.createdAt,
         };
+        if (it.kind !== 'model') return base;
+        // Every rebuild rewrites preview.png and the .glb at the SAME path, so
+        // the webview would keep showing the cached first build. The version
+        // stamp makes each build a new URL.
+        const v = encodeURIComponent(it.updatedAt || it.createdAt);
+        const preview = `${uri}?v=${v}`;
+        const glbPath = it.glb ? path.join(this.getUserDataDir(), 'creative', it.glb) : undefined;
+        return {
+          ...base,
+          url: preview,
+          thumbnail_url: preview,
+          model: {
+            glb_url: glbPath ? `${this.panel.webview.asWebviewUri(vscode.Uri.file(glbPath)).toString()}?v=${v}` : undefined,
+            files: it.files,
+            triangles: it.triangles,
+            size_m: it.sizeM,
+            blender_version: it.blenderVersion,
+            updated_at: it.updatedAt,
+          },
+        };
       });
       this.post({ type: 'local_creative_loaded', assets: assets as never });
     } catch {
       this.post({ type: 'local_creative_loaded', assets: [] });
+    }
+  }
+
+  private async postBlenderStatus(error?: string): Promise<void> {
+    const { install, configured } = await blenderStatus();
+    this.post({
+      type: 'blender_status',
+      path: install?.path ?? null,
+      version: install?.version ?? null,
+      source: install?.source ?? null,
+      configured,
+      ...(error ? { error } : {}),
+    });
+  }
+
+  /** The 3D Model / Prop room's models: every model folder, with its brief
+   *  (proposed or agreed) and, once built, its preview and .glb. */
+  private async loadModels(): Promise<void> {
+    try {
+      const [models, items] = await Promise.all([listModels(), readLocalCreative(this.getUserDataDir())]);
+      const uri = (p: string, v: string) => `${this.panel.webview.asWebviewUri(vscode.Uri.file(p)).toString()}?v=${encodeURIComponent(v)}`;
+      this.post({
+        type: 'models_listed',
+        models: models.map((m) => {
+          const entry = items.find((i) => i.id === `model_${m.slug}`);
+          const v = entry?.updatedAt || m.updatedAt;
+          return {
+            slug: m.slug,
+            name: entry?.title || m.name,
+            built: m.built,
+            updated_at: m.updatedAt,
+            creative_id: entry?.id,
+            preview_url: entry && existsSync(entry.absolutePath) ? uri(entry.absolutePath, v) : undefined,
+            glb_url: entry?.glb ? uri(path.join(this.getUserDataDir(), 'creative', entry.glb), v) : undefined,
+            triangles: entry?.triangles,
+            size_m: entry?.sizeM,
+            brief: m.brief ? {
+              status: m.brief.status,
+              edited_by_person: m.brief.editedByPerson,
+              reasoning: m.brief.reasoning,
+              fields: BRIEF_FIELDS.map(([key, label]) => ({ key, label, value: m.brief![key] })),
+            } : null,
+          };
+        }),
+      });
+    } catch (err) {
+      this.log(`[Creative] Could not list models: ${err instanceof Error ? err.message : String(err)}`);
+      this.post({ type: 'models_listed', models: [] });
     }
   }
 
@@ -5130,8 +5318,8 @@ export class DashboardPanel {
         content="default-src 'none';
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}' 'strict-dynamic';
-                 connect-src https://avasupernova.com https://*.supabase.co;
-                 img-src ${webview.cspSource} data: https: vscode-resource:;
+                 connect-src https://avasupernova.com https://*.supabase.co ${webview.cspSource} blob:;
+                 img-src ${webview.cspSource} data: https: vscode-resource: blob:;
                  media-src ${webview.cspSource} data: https: blob:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>

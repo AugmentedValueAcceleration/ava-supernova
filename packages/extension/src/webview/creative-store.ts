@@ -8,8 +8,8 @@
 // machine, account-scoped (~/.ava/users/<id>/creative/), so it travels with the
 // local data export and never touches a bucket.
 
-import { writeFile, readFile, mkdir, rm, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { writeFile, readFile, mkdir, rm, stat, readdir, cp } from 'node:fs/promises';
+import { join, resolve, sep } from 'node:path';
 
 export type CreativeKind = 'image' | 'video' | 'music' | 'voice' | 'sfx';
 
@@ -17,7 +17,9 @@ export type CreativeKind = 'image' | 'video' | 'music' | 'voice' | 'sfx';
  *  host can build a webview URI for display; `absolutePath` is for delete. */
 export interface LocalCreativeItem {
   id: string;
-  kind: CreativeKind;
+  // 'model' items are written by core (design_build_model), never by
+  // saveLocalCreative — hence not in CreativeKind.
+  kind: CreativeKind | 'model';
   // Fine-grained Design Studio type ('icon' | 'image' | 'logo' | 'game-sprite'
   // …). Optional — legacy assets and non-studio saves have only `kind`. The
   // Library uses it to sort assets into the same bucket they were made in.
@@ -30,6 +32,36 @@ export interface LocalCreativeItem {
   // On-disk size in bytes. Stamped at save so the Library storage view can
   // total usage per type without stat-ing every file. Optional for legacy items.
   bytes?: number;
+  // ── 3D models (kind 'model', written by core's design_build_model) ──
+  // A model is ONE asset that is a whole folder (creative/blender/<slug>/):
+  // .blend, .glb, .fbx, preview.png, the scripts, versions/. `path` points at
+  // its preview so the Library shows the picture; these carry the rest.
+  folder?: string;          // "blender/<slug>"
+  absoluteFolder?: string;
+  glb?: string;             // "blender/<slug>/<slug>.glb"
+  files?: string[];
+  triangles?: number;
+  sizeM?: number[];
+  blenderVersion?: string;
+  updatedAt?: string;
+}
+
+/** The model's folder, but ONLY if it really sits inside this creative dir —
+ *  a hand-edited metadata.json must never point a delete somewhere else. */
+export function modelFolder(scopedDir: string, item: LocalCreativeItem): string | null {
+  if (item.kind !== 'model' || !item.absoluteFolder) return null;
+  const root = resolve(join(creativeDir(scopedDir), 'blender')) + sep;
+  const folder = resolve(item.absoluteFolder);
+  return folder.toLowerCase().startsWith(root.toLowerCase()) ? folder : null;
+}
+
+async function folderBytes(dir: string): Promise<number> {
+  let total = 0;
+  for (const e of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
+    const p = join(dir, e.name);
+    total += e.isDirectory() ? await folderBytes(p) : (await stat(p).catch(() => ({ size: 0 }))).size;
+  }
+  return total;
 }
 
 const KIND_DIR: Record<CreativeKind, string> = {
@@ -96,6 +128,14 @@ export async function readLocalCreativeSized(scopedDir: string): Promise<LocalCr
   const items = await readLocalCreative(scopedDir);
   let changed = false;
   for (const it of items) {
+    // A model's folder changes whenever it is opened and saved in Blender by
+    // hand, so its size is measured every time rather than trusted.
+    const folder = modelFolder(scopedDir, it);
+    if (folder) {
+      const b = await folderBytes(folder);
+      if (b !== it.bytes) { it.bytes = b; changed = true; }
+      continue;
+    }
     if (typeof it.bytes === 'number') continue;
     try { it.bytes = (await stat(it.absolutePath)).size; changed = true; } catch { /* file gone */ }
   }
@@ -227,6 +267,20 @@ export async function copyCreativeToProject(
     }
   }
 
+  // A model is a folder: copy what an engine or a teammate needs (the .blend,
+  // the exports, textures, the preview) — not its version history or scripts.
+  const folder = modelFolder(scopedDir, item);
+  if (folder) {
+    const slug = folder.split(/[\\/]/).pop() || 'model';
+    let name = slug; let k = 2;
+    for (;;) {
+      try { await stat(join(destDir, name)); name = `${slug}-${k++}`; } catch { break; }
+    }
+    const absDir = join(destDir, name);
+    await cp(folder, absDir, { recursive: true, filter: (p) => !/[\\/](versions|scripts|\.tmp)([\\/]|$)/.test(p.slice(folder.length)) });
+    return { relPath: absDir.slice(projectRoot.length + 1).replace(/\\/g, '/'), absPath: absDir };
+  }
+
   const absPath = join(destDir, filename);
   const data = await readFile(item.absolutePath);
   await writeFile(absPath, data);
@@ -240,7 +294,8 @@ export async function deleteLocalCreative(scopedDir: string, id: string): Promis
   const items = await readLocalCreative(scopedDir);
   const item = items.find((i) => i.id === id);
   if (!item) return;
-  try { await rm(item.absolutePath, { force: true }); } catch { /* already gone */ }
+  const folder = modelFolder(scopedDir, item);
+  try { await rm(folder ?? item.absolutePath, { force: true, recursive: !!folder }); } catch { /* already gone */ }
   await writeLocalCreative(scopedDir, items.filter((i) => i.id !== id)).catch(() => {});
 }
 
@@ -252,7 +307,8 @@ export async function pruneLocalCreative(scopedDir: string, ids: string[]): Prom
   const items = await readLocalCreative(scopedDir);
   const doomed = items.filter((i) => kill.has(i.id));
   for (const it of doomed) {
-    try { await rm(it.absolutePath, { force: true }); } catch { /* already gone */ }
+    const folder = modelFolder(scopedDir, it);
+    try { await rm(folder ?? it.absolutePath, { force: true, recursive: !!folder }); } catch { /* already gone */ }
   }
   await writeLocalCreative(scopedDir, items.filter((i) => !kill.has(i.id))).catch(() => {});
   return doomed.length;

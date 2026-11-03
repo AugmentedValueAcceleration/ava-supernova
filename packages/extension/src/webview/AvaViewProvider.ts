@@ -28,6 +28,7 @@ import {
   getWorkTalkPrefix,
   getHealthRoomPrefix,
   getDesignStudioPrefix,
+  type DesignRoom,
   loadFreshDesignContext,
   summariseEquipment,
   coerceLoad,
@@ -224,7 +225,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  Design Architect ('icon' | 'video' | 'voice'). Threaded from the dashboard
    *  send_message payload so getDesignStudioPrefix leads with the active room.
    *  Defaults to 'icon' (the Web/App lane). */
-  private activeDesignRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' = 'icon';
+  private activeDesignRoom: DesignRoom = 'icon';
   /** What the room's right-hand panel is set to — so Ava designs from the dials
    *  the operator actually set, instead of guessing and overriding them. */
   private activeDesignPanel: string | undefined;
@@ -852,7 +853,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           : undefined;
         // Remember which Design Studio room the design-lane turn came from so the
         // Design Architect prefix reflects where the operator is standing.
-        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon' || msg.designRoom === 'image' || msg.designRoom === 'logo') {
+        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon' || msg.designRoom === 'image' || msg.designRoom === 'logo' || msg.designRoom === 'model') {
           this.activeDesignRoom = msg.designRoom;
         }
         this.activeDesignPanel = typeof msg.designPanel === 'string' && msg.designPanel.trim() ? msg.designPanel.trim() : undefined;

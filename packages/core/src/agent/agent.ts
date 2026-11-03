@@ -525,6 +525,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'design_find_shape', 'design_generate_icon', 'design_generate_set',
     'design_generate_video', 'design_generate_image', 'design_generate_voice',
     'design_generate_logo', 'design_explore_logos', 'design_brand_kit', 'design_save',
+    // 3D in headless Blender — free, local, guarded (Design Studio 3D plan, 3 Nov 2026).
+    'design_propose_model_brief', 'design_build_model', 'design_duplicate_model',
     'memory_save', 'memory_recall', 'memory_update',
     // Journal — Ava reflects on the person + their taste in her own voice
     'journal_write',
