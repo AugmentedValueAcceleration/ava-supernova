@@ -72,6 +72,24 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 521,
+    version: '0.110.1',
+    platform: 'extension',
+    toolCount: 73,
+    publishedAt: '2026-11-03 13:00:00+00',
+    title: `Talk mode no longer stops on an error`,
+    body: `With the **Talk** switch on, a conversation could stop with "Ava sent a field this model rejects", and only pressing Continue got it going again. That is fixed.
+
+**What was happening.** In Talk I am not allowed to change your project, and sometimes I reached for a tool that would have — to run a command, say. I was told no, which is right. But on our side, my request for the tool was then dropped while the "no" was kept, so the next message to the model answered a question that was no longer there. DeepSeek, quite fairly, refused it. That was ours, not yours, and not the model's.
+
+**Now** every request I make stays paired with its answer, whether the tool ran or was refused. Talk still changes nothing in your project; it simply no longer trips over itself. The same fix covers the moment I am told to stop reading and start writing.`,
+    highlights: [
+      'Talk mode no longer stops with "a field this model rejects".',
+      'A refused tool now stays paired with its answer.',
+      'Talk still changes nothing in your project.',
+    ],
+  },
+  {
     migration: 520,
     version: '0.110.0',
     platform: 'extension',
