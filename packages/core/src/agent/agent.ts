@@ -2771,6 +2771,14 @@ export class Agent {
         repeatCount = 0;
       }
 
+      // The calls that will actually RUN. The reply itself keeps every call it
+      // made: a refused call stays on it, answered by its refusal. Taking the
+      // call off while keeping the refusal left an answer to a call that no
+      // longer existed, and DeepSeek rejected the NEXT request with "the
+      // reasoning_content in the thinking mode must be passed back" — every
+      // time Ava reached for a tool with the Talk switch on (3 Nov 2026).
+      let callsToRun: ToolCall[] = assistantMessage.tool_calls;
+
       // ── Mode enforcement: block tools not allowed in the active mode ────
       // ALWAYS_ALLOWED_TOOLS is honoured here as well as in the schema filter
       // above. The two must agree: offering a schema and then blocking the call
@@ -2834,15 +2842,10 @@ export class Agent {
               tool_call_id: tc.id,
             } as any);
           }
-          // Remove blocked calls, keep allowed ones.
-          assistantMessage.tool_calls = assistantMessage.tool_calls.filter((tc: ToolCall) => isAllowed(tc.function.name));
-          if (assistantMessage.tool_calls.length === 0) {
-            // Delete the field entirely — Qwen rejects `tool_calls: []`.
-            // Since assistantMessage is a reference already in `messages`,
-            // the deletion propagates to the history.
-            delete (assistantMessage as Partial<AssistantMessage>).tool_calls;
-            continue;
-          }
+          // Run only the allowed ones. The blocked calls stay on the reply,
+          // each paired with the refusal pushed above.
+          callsToRun = callsToRun.filter((tc: ToolCall) => isAllowed(tc.function.name));
+          if (callsToRun.length === 0) continue;
         }
       }
 
@@ -2859,9 +2862,9 @@ export class Agent {
         const hardBudget = COMPLEXITY_BUDGETS[this.currentTaskComplexity];
         const hardCap = hardBudget.readCapBeforeFirstWrite * 2;
         const projectedReads = this.readCountBeforeFirstWrite
-          + assistantMessage.tool_calls.filter((tc: ToolCall) => this.isReadOnlyToolCall(tc.function.name)).length;
+          + callsToRun.filter((tc: ToolCall) => this.isReadOnlyToolCall(tc.function.name)).length;
         if (projectedReads > hardCap) {
-          const blockedReads = assistantMessage.tool_calls.filter((tc: ToolCall) => this.isReadOnlyToolCall(tc.function.name));
+          const blockedReads = callsToRun.filter((tc: ToolCall) => this.isReadOnlyToolCall(tc.function.name));
           if (blockedReads.length > 0) {
             logger.warn(`[agent] HARD BUDGET BLOCK: ${this.readCountBeforeFirstWrite} reads already done, ${blockedReads.length} more would exceed ${hardCap} cap for ${this.currentTaskComplexity} task`);
             // Note: assistantMessage is already in `messages` (pushed
@@ -2885,15 +2888,10 @@ export class Agent {
                 tool_call_id: tc.id,
               } as any);
             }
-            // Remove blocked reads, keep any non-read tool calls (writes, etc.)
-            assistantMessage.tool_calls = assistantMessage.tool_calls.filter(
-              (tc: ToolCall) => !blockedReads.some(b => b.id === tc.id)
-            );
-            if (assistantMessage.tool_calls.length === 0) {
-              // Delete the field entirely — Qwen rejects `tool_calls: []`.
-              delete (assistantMessage as Partial<AssistantMessage>).tool_calls;
-              continue;
-            }
+            // Run any non-read calls (writes, etc.); the blocked reads stay on
+            // the reply, each paired with its refusal.
+            callsToRun = callsToRun.filter((tc: ToolCall) => !blockedReads.some(b => b.id === tc.id));
+            if (callsToRun.length === 0) continue;
           }
         }
       }
@@ -2904,7 +2902,7 @@ export class Agent {
       const confirmCalls: ToolCall[] = [];
       const autoCalls: ToolCall[] = [];
 
-      for (const tc of assistantMessage.tool_calls) {
+      for (const tc of callsToRun) {
         const tool = this.toolRegistry.getTool(tc.function.name);
         if (tool && this.toolRegistry.needsConfirmation(tool)) {
           confirmCalls.push(tc);
