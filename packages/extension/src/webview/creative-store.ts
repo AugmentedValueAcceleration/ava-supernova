@@ -19,7 +19,7 @@ export interface LocalCreativeItem {
   id: string;
   // 'model' items are written by core (design_build_model), never by
   // saveLocalCreative — hence not in CreativeKind.
-  kind: CreativeKind | 'model';
+  kind: CreativeKind | 'model' | 'gimp';
   // Fine-grained Design Studio type ('icon' | 'image' | 'logo' | 'game-sprite'
   // …). Optional — legacy assets and non-studio saves have only `kind`. The
   // Library uses it to sort assets into the same bucket they were made in.
@@ -44,13 +44,17 @@ export interface LocalCreativeItem {
   sizeM?: number[];
   blenderVersion?: string;
   updatedAt?: string;
+  // ── GIMP work (kind 'gimp', written by core's design_build_image): same
+  // shape, its folder under creative/gimp/.
+  imageCount?: number;
+  gimpVersion?: string;
 }
 
 /** The model's folder, but ONLY if it really sits inside this creative dir —
  *  a hand-edited metadata.json must never point a delete somewhere else. */
 export function modelFolder(scopedDir: string, item: LocalCreativeItem): string | null {
-  if (item.kind !== 'model' || !item.absoluteFolder) return null;
-  const root = resolve(join(creativeDir(scopedDir), 'blender')) + sep;
+  if ((item.kind !== 'model' && item.kind !== 'gimp') || !item.absoluteFolder) return null;
+  const root = resolve(join(creativeDir(scopedDir), item.kind === 'gimp' ? 'gimp' : 'blender')) + sep;
   const folder = resolve(item.absoluteFolder);
   return folder.toLowerCase().startsWith(root.toLowerCase()) ? folder : null;
 }

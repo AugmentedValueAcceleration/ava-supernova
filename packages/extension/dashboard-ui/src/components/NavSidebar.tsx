@@ -693,8 +693,8 @@ function GenerationRail({ jobs, onOpen }: { jobs: GenerationJobLite[]; onOpen: (
             className="w-full text-left bg-transparent border-0 p-0 cursor-pointer flex flex-col gap-1"
           >
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[11px] text-[var(--text-secondary)] truncate capitalize">
-                {failed ? `${job.type} failed` : job.type}
+              <span className={`text-[11px] text-[var(--text-secondary)] truncate ${job.type === 'gimp' ? '' : 'capitalize'}`}>
+                {failed ? `${job.type === 'gimp' ? 'GIMP' : job.type} failed` : job.type === 'gimp' ? 'GIMP' : job.type}
               </span>
               <span className="text-[10px] font-mono text-[var(--text-muted)] shrink-0">
                 {elapsedLabel(job.startedAt, job.completedAt, now)}

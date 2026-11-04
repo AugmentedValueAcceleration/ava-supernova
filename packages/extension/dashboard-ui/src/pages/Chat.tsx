@@ -923,7 +923,7 @@ export interface ChatPageProps {
    *  Drives the room-aware greeting / chips / heading and is tagged on every
    *  design-lane send so the host runs Ava with the matching Design Architect
    *  persona (icon / video / voice / image / logo). Ignored on other lanes. */
-  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model';
+  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp';
   /** What the room's right-hand panel is set to right now, in one line. Ava
    *  designs FROM these rather than guessing — and may change them, with a
    *  reason, when the design calls for it. Sent with every design-lane turn. */
@@ -938,6 +938,9 @@ export interface ChatPageProps {
   /** Fires when Ava produces content (stream/thinking delta). The collapsed
    *  Design dock uses this to show an unread badge instead of force-opening. */
   onActivity?: () => void;
+  /** Whether Ava's turn on this lane is running, gaps between her tools
+   *  included. The Design Studio locks Delete on it. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
@@ -964,12 +967,14 @@ function QuestionReply({ onAnswer }: { onAnswer: (text: string) => void }) {
   );
 }
 
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', designPanel, announcement, suppressAutoFocus, onActivity }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', designPanel, announcement, suppressAutoFocus, onActivity, onBusyChange }: ChatPageProps) {
   // Per-room thread key — for learning it includes the course id, so each course
   // has its own saved conversation. 'main' never persists (always-mounted).
   const roomKey = lane === 'main' ? '' : `${lane}${courseId ? ':' + courseId : ''}`;
   // Rooms rehydrate so the conversation survives navigation (module cache) and a
   // webview reload (sessionStorage). The main chat always starts fresh.
+  const reportBusy = useRef(onBusyChange);
+  reportBusy.current = onBusyChange;
   const [state, dispatch] = useReducer(
     chatReducer,
     initialState,
@@ -991,6 +996,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     roomStateCache[roomKey] = state;
     if (!state.isStreaming) writeRoomMessages(roomKey, state.messages);
   }, [state, lane, roomKey]);
+  useEffect(() => { reportBusy.current?.(state.isStreaming); }, [state.isStreaming]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // ── Following the conversation ─────────────────────────────────────────

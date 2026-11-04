@@ -6,7 +6,7 @@
 // where the asset was made — one list to maintain, never two to keep in sync.
 
 export type ViewId =
-  | 'icon' | 'logo' | 'model'
+  | 'icon' | 'logo' | 'model' | 'gimp'
   | 'image' | 'video' | 'voice' | 'brandkit';
 
 export interface DesignTypeItem { id: ViewId; label: string; badge?: string }
@@ -36,7 +36,9 @@ export const ALL_DESIGN_GROUPS: DesignGroup[] = [
     { id: 'icon', label: 'Icon' },
     { id: 'logo', label: 'Logo' },
   ] },
-  { labelKey: 'dash.studio.group.2d', label: '2D', accent: '#f0a24b', items: [] },
+  { labelKey: 'dash.studio.group.2d', label: '2D', accent: '#f0a24b', items: [
+    { id: 'gimp', label: 'GIMP (Headless)' },
+  ] },
   { labelKey: 'dash.studio.group.3d', label: '3D', accent: '#f0a24b', items: [
     { id: 'model', label: 'Blender (Headless)' },
   ] },

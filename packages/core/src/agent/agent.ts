@@ -527,6 +527,10 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'design_generate_logo', 'design_explore_logos', 'design_brand_kit', 'design_save',
     // 3D in headless Blender — free, local, guarded (Design Studio 3D plan, 3 Nov 2026).
     'design_propose_model_brief', 'design_build_model', 'design_duplicate_model',
+    // 2D in headless GIMP — the same pattern (Phase 4, 4 Nov 2026).
+    'design_propose_image_brief', 'design_build_image', 'design_duplicate_image', 'design_show_options',
+    // Her sources of truth: the installed program, and the official docs.
+    'design_api_lookup', 'design_read_docs',
     'memory_save', 'memory_recall', 'memory_update',
     // Journal — Ava reflects on the person + their taste in her own voice
     'journal_write',
@@ -1660,6 +1664,9 @@ export class Agent {
     // impossible: the summary is the fast path, this is the source of truth.
     if (this.toolContext.sharedState) {
       (this.toolContext.sharedState as Record<string, unknown>).recallTranscript = [...messages];
+      // One run() is one thing the person said; the making rooms count their
+      // steps against it to know when to check in (design-checkin.ts).
+      (this.toolContext.sharedState as Record<string, unknown>).designTurnId = randomUUID();
     }
 
     // ─── Stop-command detection ────────────────────────────────────────────
@@ -3026,6 +3033,10 @@ export class Agent {
                   { type: 'image_url' as const, image_url: {
                     url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${resizedBase64}`,
                   }},
+                  ...((result.metadata.more_images as string[] | undefined) ?? []).map((b64) => ({
+                    type: 'image_url' as const,
+                    image_url: { url: `data:${(result.metadata!.mime_type as string) || 'image/png'};base64,${downsampleScreenshotBase64(b64)}` },
+                  })),
                 ],
               },
             ];
@@ -3658,6 +3669,10 @@ export class Agent {
             { type: 'image_url' as const, image_url: {
               url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${result.metadata.base64_image}`,
             }},
+            ...((result.metadata.more_images as string[] | undefined) ?? []).map((b64) => ({
+              type: 'image_url' as const,
+              image_url: { url: `data:${(result.metadata!.mime_type as string) || 'image/png'};base64,${b64}` },
+            })),
           ],
         },
       ];

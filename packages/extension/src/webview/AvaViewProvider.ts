@@ -853,7 +853,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           : undefined;
         // Remember which Design Studio room the design-lane turn came from so the
         // Design Architect prefix reflects where the operator is standing.
-        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon' || msg.designRoom === 'image' || msg.designRoom === 'logo' || msg.designRoom === 'model') {
+        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon' || msg.designRoom === 'image' || msg.designRoom === 'logo' || msg.designRoom === 'model' || msg.designRoom === 'gimp') {
           this.activeDesignRoom = msg.designRoom;
         }
         this.activeDesignPanel = typeof msg.designPanel === 'string' && msg.designPanel.trim() ? msg.designPanel.trim() : undefined;

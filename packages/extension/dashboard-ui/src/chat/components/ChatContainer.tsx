@@ -56,7 +56,7 @@ interface ChatContainerProps {
    *  Drives the room-aware greeting, starter chips and heading so the Design
    *  Architect reflects the active Open-Canvas view (Video / Voiceover) instead
    *  of always greeting about icons. Defaults to 'icon'. */
-  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model';
+  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp';
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed
@@ -174,7 +174,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
  * Date is appended in conversational form ("Tuesday") rather than full
  * ISO so it reads like a human picking up a conversation.
  */
-function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' = 'icon'): string {
+function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' = 'icon'): string {
   const now = new Date();
   const h = now.getHours();
   const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -200,6 +200,9 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
     }
     if (designRoom === 'image') {
       return `Hey${name} — Design Architect here, on the Open Canvas. What are we making? Describe the image — subject, style, mood — and I'll compose it and render it right here.`;
+    }
+    if (designRoom === 'gimp') {
+      return `Hey${name} — let's make something in GIMP. Tell me what you need and where it'll be seen: a set of icons, game UI, a sprite sheet, a texture, web graphics. I'll look at what it has to sit beside, put a brief on the card for you to question, then we make it together in layers you can open and change yourself.`;
     }
     if (designRoom === 'model') {
       return `Hey${name} — let's build something in 3D. Tell me what it is and where it'll live — a prop for your game, a product shot, something to print — and I'll research it, find real references and measurements, and put a brief on the card for you to question before we touch Blender. Then we build it together, step by step, and I'll talk you through every one.`;
@@ -237,7 +240,7 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
  * chips with prefix-coloured tokens so the modes are recognisable on
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
-function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' }) {
+function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' }) {
   useLocale();
   const isHealth = lane === 'health';
   const isLearning = lane === 'learning';
@@ -282,7 +285,13 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
     { label: 'A product for a render', prefix: '◆', prompt: 'I want a 3D model of a product for a clean studio render.', color: '#60a5fa' },
     { label: 'Something to 3D print', prefix: '◆', prompt: 'I want to design something to 3D print — help me get it right.', color: '#94e2d5' },
   ];
-  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : designRoom === 'image' ? imageChips : designRoom === 'logo' ? logoChips : designRoom === 'model' ? modelChips : iconChips;
+  const gimpChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: 'A matching icon set', prefix: '◆', prompt: 'I need a matching set of icons — help me work out the brief.', color: '#f0a24b' },
+    { label: 'Game UI', prefix: '◆', prompt: 'I need UI for my game: buttons, frames and bars that match.', color: 'var(--accent)' },
+    { label: 'A sprite sheet', prefix: '◆', prompt: 'I want to make a sprite sheet — help me get it right.', color: '#60a5fa' },
+    { label: 'Web graphics', prefix: '◆', prompt: 'I need graphics for my website, sized properly.', color: '#94e2d5' },
+  ];
+  const designChips = designRoom === 'video' ? videoChips : designRoom === 'voice' ? voiceChips : designRoom === 'image' ? imageChips : designRoom === 'logo' ? logoChips : designRoom === 'model' ? modelChips : designRoom === 'gimp' ? gimpChips : iconChips;
   // Health room: plain-prompt chips (no mode prefix — the room is locked to
   // health). They prefill the composer so the user can edit before sending.
   const healthChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [

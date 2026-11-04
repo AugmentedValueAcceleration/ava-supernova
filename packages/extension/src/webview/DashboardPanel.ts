@@ -48,6 +48,8 @@ import {
   // Design Studio 3D — open a model in Blender from the Library.
   findBlender, setBlenderPath, blenderStatus, BLENDER_DOWNLOAD_URL,
   listModels, agreeModelBrief, saveModelBriefEdits, BRIEF_FIELDS,
+  findGimp, setGimpPath, gimpStatus, GIMP_DOWNLOAD_URL,
+  listImageWork, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, IMAGE_BRIEF_FIELDS,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -320,14 +322,17 @@ export class DashboardPanel {
       // Both folders must EXIST before they are watched: a watcher on a missing
       // base never fires, so the first brief Ava proposed on a fresh machine
       // never reached the card (3 Nov 2026). Created up front; empty is fine.
-      try { mkdirSync(path.join(AVA_HOME, 'creative', 'blender'), { recursive: true }); } catch { /* watched anyway */ }
+      try {
+        mkdirSync(path.join(AVA_HOME, 'creative', 'blender'), { recursive: true });
+        mkdirSync(path.join(AVA_HOME, 'creative', 'gimp'), { recursive: true });
+      } catch { /* watched anyway */ }
       let timer: ReturnType<typeof setTimeout> | undefined;
       const watcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative')), 'metadata.json'),
       );
       const reload = () => {
         if (timer) clearTimeout(timer);
-        timer = setTimeout(() => { void this.loadLocalCreative(); void this.loadModels(); }, 400);
+        timer = setTimeout(() => { void this.loadLocalCreative(); void this.loadModels(); void this.loadImageWork(); }, 400);
       };
       watcher.onDidChange(reload); watcher.onDidCreate(reload);
       // The 3D room's cards follow each model's brief.json (Ava proposes it
@@ -336,7 +341,16 @@ export class DashboardPanel {
         new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'blender')), '*/brief.json'),
       );
       briefs.onDidChange(reload); briefs.onDidCreate(reload); briefs.onDidDelete(reload);
-      this.disposables.push(watcher, briefs, { dispose: () => { if (timer) clearTimeout(timer); } });
+      const imageBriefs = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'gimp')), '*/brief.json'),
+      );
+      imageBriefs.onDidChange(reload); imageBriefs.onDidCreate(reload); imageBriefs.onDidDelete(reload);
+      // Versions she puts on the stage with design_show_options.
+      const imageOptions = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'gimp')), '*/options.json'),
+      );
+      imageOptions.onDidChange(reload); imageOptions.onDidCreate(reload); imageOptions.onDidDelete(reload);
+      this.disposables.push(watcher, briefs, imageBriefs, imageOptions, { dispose: () => { if (timer) clearTimeout(timer); } });
     }
 
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'AvaSupernovaIcon.png');
@@ -1995,6 +2009,92 @@ export class DashboardPanel {
         await this.postBlenderStatus();
         break;
 
+      case 'list_image_work':
+        await this.loadImageWork();
+        break;
+
+      case 'agree_image_brief':
+        // His button — the only way a brief becomes agreed (core enforces it).
+        await agreeImageBrief(msg.slug);
+        await this.loadImageWork();
+        break;
+
+      case 'save_image_brief':
+        await saveImageBriefEdits(msg.slug, msg.fields);
+        await this.loadImageWork();
+        break;
+
+      case 'delete_design_work':
+        // His button, after the room's own are-you-sure.
+        await deleteDesignWork(msg.tool, msg.slug);
+        await Promise.all([this.loadLocalCreative(), this.loadModels(), this.loadImageWork()]);
+        break;
+
+      case 'pick_image_option':
+        await pickImageOption(msg.slug, msg.index);
+        await this.loadImageWork();
+        break;
+
+      case 'add_image_art': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          openLabel: 'Add to this work',
+          title: 'Choose your art',
+          filters: { Images: ['png', 'jpg', 'jpeg', 'webp'] },
+        });
+        if (!picked?.[0]) break;
+        const res = await addImageReference(msg.slug, picked[0].fsPath);
+        if (!res.ok) {
+          vscode.window.showErrorMessage(res.error);
+          break;
+        }
+        await this.loadImageWork();
+        this.post({ type: 'image_art_added', slug: msg.slug, file: res.file });
+        break;
+      }
+
+      case 'open_work_in_gimp': {
+        const item = (await readLocalCreative(this.getUserDataDir())).find((i) => i.id === msg.id);
+        const folder = item && modelFolder(this.getUserDataDir(), item);
+        if (!folder) { vscode.window.showWarningMessage('Could not find that work.'); break; }
+        const gimp = await findGimp();
+        if (!gimp) {
+          const pick = await vscode.window.showWarningMessage('GIMP 3 is not installed, or Ava can\u2019t find it. It\u2019s free.', 'Get GIMP');
+          if (pick) await vscode.env.openExternal(vscode.Uri.parse(GIMP_DOWNLOAD_URL));
+          break;
+        }
+        // Their own GIMP, with its window, detached. Their saves are what Ava's
+        // next step opens. Every image in the work, so a set opens as a set.
+        const xcfs = (await (await import('node:fs/promises')).readdir(folder)).filter((f) => f.endsWith('.xcf')).map((f) => path.join(folder, f));
+        const { spawn } = await import('node:child_process');
+        const child = spawn(gimp.appPath, xcfs, { cwd: folder, detached: true, stdio: 'ignore' });
+        child.on('error', (err) => vscode.window.showErrorMessage(`Could not open GIMP: ${err.message}`));
+        child.unref();
+        break;
+      }
+
+      case 'get_gimp_status':
+        await this.postGimpStatus();
+        break;
+
+      case 'choose_gimp_path': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          openLabel: 'Use this GIMP',
+          title: 'Choose gimp.exe',
+          filters: process.platform === 'win32' ? { GIMP: ['exe'] } : undefined,
+        });
+        if (!picked?.[0]) break;
+        const res = await setGimpPath(picked[0].fsPath);
+        await this.postGimpStatus(res.ok ? undefined : res.error);
+        break;
+      }
+
+      case 'clear_gimp_path':
+        await setGimpPath(null);
+        await this.postGimpStatus();
+        break;
+
       case 'list_models':
         await this.loadModels();
         break;
@@ -3060,6 +3160,14 @@ export class DashboardPanel {
           thumbnail_url: it.kind === 'image' ? uri : undefined,
           created_at: it.createdAt,
         };
+        if (it.kind === 'gimp') {
+          const stamp = encodeURIComponent(it.updatedAt || it.createdAt);
+          const sheet = `${uri}?v=${stamp}`;
+          return {
+            ...base, url: sheet, thumbnail_url: sheet,
+            model: { files: it.files, gimp_version: it.gimpVersion, image_count: it.imageCount, updated_at: it.updatedAt },
+          };
+        }
         if (it.kind !== 'model') return base;
         // Every rebuild rewrites preview.png and the .glb at the SAME path, so
         // the webview would keep showing the cached first build. The version
@@ -3084,6 +3192,60 @@ export class DashboardPanel {
       this.post({ type: 'local_creative_loaded', assets: assets as never });
     } catch {
       this.post({ type: 'local_creative_loaded', assets: [] });
+    }
+  }
+
+  private async postGimpStatus(error?: string): Promise<void> {
+    const { install, configured } = await gimpStatus();
+    this.post({
+      type: 'gimp_status',
+      path: install?.path ?? null,
+      version: install?.version ?? null,
+      source: install?.source ?? null,
+      configured,
+      ...(error ? { error } : {}),
+    });
+  }
+
+  /** The GIMP (Headless) room's work: every folder, with its brief and, once
+   *  made, its preview. Same shape as the 3D room, so the card is shared. */
+  private async loadImageWork(): Promise<void> {
+    try {
+      const [work, items] = await Promise.all([listImageWork(), readLocalCreative(this.getUserDataDir())]);
+      const uri = (p: string, v: string) => `${this.panel.webview.asWebviewUri(vscode.Uri.file(p)).toString()}?v=${encodeURIComponent(v)}`;
+      this.post({
+        type: 'image_work_listed',
+        models: work.map((w) => {
+          const entry = items.find((i) => i.id === `gimp_${w.slug}`);
+          const v = entry?.updatedAt || w.updatedAt;
+          return {
+            slug: w.slug,
+            name: entry?.title || w.name,
+            built: w.built,
+            updated_at: w.updatedAt,
+            creative_id: entry?.id,
+            preview_url: entry && existsSync(entry.absolutePath) ? uri(entry.absolutePath, v) : undefined,
+            image_count: entry?.imageCount,
+            references: w.references,
+            options: w.options ? {
+              question: w.options.question,
+              items: w.options.options.map((o) => ({
+                label: o.label, note: o.note,
+                url: uri(path.join(AVA_HOME, 'creative', 'gimp', w.slug, o.file), w.options!.proposedAt),
+              })),
+            } : null,
+            brief: w.brief ? {
+              status: w.brief.status,
+              edited_by_person: w.brief.editedByPerson,
+              reasoning: w.brief.reasoning,
+              fields: IMAGE_BRIEF_FIELDS.map(([key, label]) => ({ key, label, value: String(w.brief![key] ?? '') })),
+            } : null,
+          };
+        }),
+      });
+    } catch (err) {
+      this.log(`[Creative] Could not list GIMP work: ${err instanceof Error ? err.message : String(err)}`);
+      this.post({ type: 'image_work_listed', models: [] });
     }
   }
 

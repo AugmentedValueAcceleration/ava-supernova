@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { post } from '../App';
 import { tt } from '../i18n';
 import type { DesignModelSummary } from '../types/messages';
 
 import { LazyModelViewer } from './LazyModelViewer';
+import { Select } from './Select';
 
 // ─── The Blender (Headless) room's stage ───────────────────────────────────────
 //
@@ -17,47 +18,154 @@ import { LazyModelViewer } from './LazyModelViewer';
 // model's brief.json and the creative index, so the card and the viewer update
 // on their own while Ava works.
 
-export function ModelRoom({ onActiveModel }: { onActiveModel: (m: DesignModelSummary | null) => void }) {
+/** What differs between the two rooms. Everything else — the brief card, the
+ *  agreement, the picker — is one component, so the rules cannot drift. */
+const ROOMS = {
+  blender: {
+    list: 'list_models', listed: 'models_listed', agree: 'agree_model_brief', save: 'save_model_brief',
+    titleKey: 'dash.studio.model.title', title: 'Blender (Headless)',
+    subtitleKey: 'dash.studio.model.subtitle', subtitle: 'Built in Blender on your computer — free. The brief comes first: Ava researches it, you agree it, then you build it together.',
+    openKey: 'library.model.open_in_blender', open: 'Open in Blender',
+    emptySub: 'She\u2019ll research real references and measurements, then put a brief here for you to question and agree before anything is built.',
+  },
+  gimp: {
+    list: 'list_image_work', listed: 'image_work_listed', agree: 'agree_image_brief', save: 'save_image_brief',
+    titleKey: 'dash.studio.gimp.title', title: 'GIMP (Headless)',
+    subtitleKey: 'dash.studio.gimp.subtitle', subtitle: 'Made in GIMP on your computer — free. The brief comes first, and you keep layered files you can open and change yourself.',
+    openKey: 'library.gimp.open_in_gimp', open: 'Open in GIMP',
+    emptySub: 'Icons, sets, game UI, sprites, textures, web graphics. She\u2019ll put a brief here for you to question and agree before anything is made.',
+  },
+} as const;
+
+/** What really exists in the room, checked this moment: the one thing a memory
+ *  cannot tell her. Her notes outlive the work, so without this she describes
+ *  deleted pieces as still on disk (4 Nov 2026). */
+export function roomRoster(names: string[]): string {
+  return names.length
+    ? `Everything that exists in this room right now: ${names.map((n) => `"${n}"`).join(', ')}.`
+    : 'This room is EMPTY right now: no briefs, no files, nothing on disk.';
+}
+
+export function ModelRoom({ tool = 'blender', busy = false, onActiveModel, onRoster }: { tool?: keyof typeof ROOMS; busy?: boolean; onActiveModel: (m: DesignModelSummary | null) => void; onRoster?: (names: string[]) => void }) {
+  const room = ROOMS[tool];
   const [models, setModels] = useState<DesignModelSummary[] | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
 
+  // The stage is cleared by New brief, and stays clear until a new piece of
+  // work appears. A slug we have not seen comes forward by itself, even if an
+  // older piece was picked in the dropdown: that pick used to stick and hide it.
+  const [fresh, setFresh] = useState(false);
+  const known = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!models) { known.current = null; return; }
+    const seen = known.current;
+    if (seen && models.some((m) => !seen.has(m.slug))) { setPicked(null); setFresh(false); }
+    known.current = new Set(models.map((m) => m.slug));
+  }, [models]);
+  // The are-you-sure, tied to one slug so it can never carry over to another
+  // piece if the stage changes while it is open.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const startNew = () => {
+    setFresh(true);
+    window.dispatchEvent(new CustomEvent('ava-design-new'));
+  };
+
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === 'models_listed') setModels(e.data.models as DesignModelSummary[]);
+      if (e.data?.type === room.listed) setModels(e.data.models as DesignModelSummary[]);
+      if (e.data?.type === 'image_art_added') sayToAva(`I've added my art: ${e.data.file}. Use it to test the work against.`);
     };
     window.addEventListener('message', onMessage);
-    post({ type: 'list_models' });
+    setModels(null);
+    post({ type: room.list });
     return () => window.removeEventListener('message', onMessage);
-  }, []);
+  }, [room]);
 
   // The model on the stage: the one he picked, else the most recently touched
   // — so a brief Ava has just proposed comes forward by itself.
   const active = useMemo(() => {
-    if (!models?.length) return null;
+    if (!models?.length || fresh) return null;
     return models.find((m) => m.slug === picked) ?? models[0];
-  }, [models, picked]);
+  }, [models, picked, fresh]);
   useEffect(() => { onActiveModel(active); }, [active, onActiveModel]);
+  useEffect(() => { if (models) onRoster?.(models.map((m) => m.name)); }, [models, onRoster]);
 
   return (
     <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
       <div className="mb-3 flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('dash.studio.model.title', 'Blender (Headless)')}</h2>
+          <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt(room.titleKey, room.title)}</h2>
           <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
-            {tt('dash.studio.model.subtitle', 'Built in Blender on your computer — free. The brief comes first: Ava researches it, you agree it, then you build it together.')}
+            {tt(room.subtitleKey, room.subtitle)}
           </p>
         </div>
-        {models && models.length > 1 && (
-          <select
-            value={active?.slug ?? ''}
-            onChange={(e) => setPicked(e.target.value)}
-            className="max-w-[220px] rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] outline-none"
-            aria-label={tt('dash.studio.model.pick', 'Model')}
+        {tool === 'gimp' && active && (
+          <button
+            onClick={() => post({ type: 'add_image_art', slug: active.slug })}
+            className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
           >
-            {models.map((m) => <option key={m.slug} value={m.slug}>{m.name}</option>)}
-          </select>
+            {tt('dash.studio.add_art', 'Add your art')}
+          </button>
+        )}
+        {!!models?.length && !fresh && (
+          <button
+            onClick={startNew}
+            className="shrink-0 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+          >
+            {tt('dash.studio.new_brief', 'New brief')}
+          </button>
+        )}
+        {active && (
+          <button
+            onClick={() => setConfirming(active.slug)}
+            disabled={busy}
+            title={busy ? tt('dash.studio.delete_busy', 'Ava is working. Wait for her to finish, or stop her, to delete this.') : undefined}
+            className="shrink-0 rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          >
+            {tt('library.delete', 'Delete')}
+          </button>
+        )}
+        {models && (models.length > 1 || (fresh && models.length > 0)) && (
+          <Select
+            size="sm"
+            className="w-[220px] shrink-0"
+            title={tt('dash.studio.model.pick', 'Model')}
+            value={active?.slug ?? ''}
+            onChange={(slug) => { if (slug) { setPicked(slug); setFresh(false); } }}
+            options={[
+              ...(fresh ? [{ value: '', label: tt('dash.studio.new_brief', 'New brief') }] : []),
+              ...models.map((m) => ({ value: m.slug, label: m.name })),
+            ]}
+          />
         )}
       </div>
+
+      {active && confirming === active.slug && !busy && (
+        <div className="mb-3 shrink-0 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3">
+          <p className="text-xs font-medium text-[var(--text-primary)]">
+            {tt('dash.studio.delete_title', 'Are you sure you want to delete “{name}”?').replace('{name}', active.name)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
+            {tool === 'gimp'
+              ? tt('dash.studio.gimp.delete_body', 'The brief and the whole folder are removed from disk — the layered files, their exports, saved versions and any art you added. It cannot be undone.')
+              : tt('dash.studio.model.delete_body', 'The brief and the whole model folder are removed from disk — the Blender file, its exports and its saved versions. It cannot be undone.')}
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={() => setConfirming(null)}
+              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+            >
+              {tt('library.cancel', 'Cancel')}
+            </button>
+            <button
+              onClick={() => { post({ type: 'delete_design_work', tool, slug: active.slug }); setConfirming(null); setPicked(null); }}
+              className="rounded-lg border border-red-500/60 bg-red-500/15 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/25"
+            >
+              {tt('library.delete', 'Delete')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {models === null ? (
         <div className="flex-1 flex items-center justify-center">
@@ -68,14 +176,24 @@ export function ModelRoom({ onActiveModel }: { onActiveModel: (m: DesignModelSum
           <span className="text-3xl opacity-50">{'\u{1F9CA}'}</span>
           <p className="text-[13px] text-[var(--text-secondary)]">{tt('dash.studio.model.empty', 'Tell Ava what you want to make.')}</p>
           <p className="max-w-[440px] text-[12px] text-[var(--text-muted)] leading-relaxed">
-            {tt('dash.studio.model.empty_sub', 'She’ll research real references and measurements, then put a brief here for you to question and agree before anything is built.')}
+            {tt(`dash.studio.${tool}.empty_sub`, room.emptySub)}
           </p>
         </div>
       ) : (
         <div className="flex-1 min-h-0 grid gap-4 overflow-hidden" style={{ gridTemplateColumns: 'minmax(280px, 380px) 1fr' }}>
-          <BriefCard key={active.slug + (active.brief?.status ?? '')} model={active} />
+          <BriefCard key={active.slug + (active.brief?.status ?? '')} model={active} agreeType={room.agree} saveType={room.save} />
           <div className="min-h-0 flex flex-col rounded-xl border border-[var(--border-card)] overflow-hidden">
-            {active.built && active.glb_url ? (
+            {tool === 'gimp' && active.options ? (
+              <OptionsStage
+                model={active}
+                onPick={(index, label) => {
+                  post({ type: 'pick_image_option', slug: active.slug, index });
+                  sayToAva(`I pick "${label}".`);
+                }}
+              />
+            ) : active.built && tool === 'gimp' && active.preview_url ? (
+              <img src={active.preview_url} alt={active.name} className="flex-1 min-h-0 w-full object-contain bg-black/20 p-4" />
+            ) : active.built && active.glb_url ? (
               <LazyModelViewer fill src={active.glb_url} poster={active.preview_url} alt={active.name} />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center px-8 py-12">
@@ -90,10 +208,10 @@ export function ModelRoom({ onActiveModel }: { onActiveModel: (m: DesignModelSum
             {active.built && active.creative_id && (
               <div className="shrink-0 flex flex-wrap items-center gap-2 border-t border-[var(--border-card)] px-3 py-2">
                 <button
-                  onClick={() => post({ type: 'open_model_in_blender', id: active.creative_id! })}
+                  onClick={() => post(tool === 'gimp' ? { type: 'open_work_in_gimp', id: active.creative_id! } : { type: 'open_model_in_blender', id: active.creative_id! })}
                   className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
                 >
-                  {tt('library.model.open_in_blender', 'Open in Blender')}
+                  {tt(room.openKey, room.open)}
                 </button>
                 <button
                   onClick={() => post({ type: 'reveal_creative', id: active.creative_id! })}
@@ -102,7 +220,9 @@ export function ModelRoom({ onActiveModel }: { onActiveModel: (m: DesignModelSum
                   {tt('library.model.open_folder', 'Open folder')}
                 </button>
                 <span className="ml-auto text-[11px] text-[var(--text-muted)]">
-                  {[active.size_m?.length === 3 ? `${active.size_m.map((n) => +n.toFixed(2)).join(' × ')} m` : '',
+                  {[typeof active.image_count === 'number' ? `${active.image_count} image${active.image_count === 1 ? '' : 's'}` : '',
+                    active.references?.length ? tt('dash.studio.art_count', 'Your art: {count}').replace('{count}', String(active.references.length)) : '',
+                    active.size_m?.length === 3 ? `${active.size_m.map((n) => +n.toFixed(2)).join(' × ')} m` : '',
                     typeof active.triangles === 'number' ? `${active.triangles.toLocaleString()} tris` : ''].filter(Boolean).join(' · ')}
                 </span>
               </div>
@@ -114,6 +234,34 @@ export function ModelRoom({ onActiveModel }: { onActiveModel: (m: DesignModelSum
   );
 }
 
+/** Versions Ava put on the stage: they choose by eye, and the click is the answer. */
+function OptionsStage({ model, onPick }: { model: DesignModelSummary; onPick: (index: number, label: string) => void }) {
+  const options = model.options!;
+  return (
+    <div className="flex-1 min-h-0 flex flex-col overflow-y-auto p-4 gap-3">
+      <div className="flex items-start gap-2">
+        <p className="min-w-0 flex-1 text-[13px] text-[var(--text-primary)]">{options.question}</p>
+        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: 'rgba(240,162,75,0.14)', color: '#f0a24b' }}>
+          {tt('dash.studio.model.proposed', 'Waiting for you')}
+        </span>
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        {options.items.map((o, i) => (
+          <button
+            key={o.url}
+            onClick={() => onPick(i, o.label)}
+            className="group flex flex-col gap-2 rounded-xl border border-[var(--border-card)] p-2.5 text-left hover:border-[var(--accent)]/50 hover:bg-[var(--bg-hover)] transition"
+          >
+            <img src={o.url} alt={o.label} className="w-full max-h-[280px] object-contain rounded-lg bg-black/20" />
+            <span className="text-[12px] font-medium text-[var(--text-primary)]">{o.label}</span>
+            {o.note && <span className="text-[11px] text-[var(--text-muted)] leading-relaxed">{o.note}</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Say it to Ava in the design chat, as him (Chat.tsx listens on the design lane). */
 function sayToAva(text: string) {
   window.dispatchEvent(new CustomEvent('ava-design-say', { detail: { text } }));
@@ -121,11 +269,11 @@ function sayToAva(text: string) {
 
 const pendingAgree = new Set<string>();
 
-function BriefCard({ model }: { model: DesignModelSummary }) {
+function BriefCard({ model, agreeType, saveType }: { model: DesignModelSummary; agreeType: 'agree_model_brief' | 'agree_image_brief'; saveType: 'save_model_brief' | 'save_image_brief' }) {
   const brief = model.brief;
   useEffect(() => {
     if (brief?.status === 'agreed' && pendingAgree.delete(model.slug)) {
-      sayToAva(`I've agreed the brief for "${model.name}" — go ahead and start building.`);
+      sayToAva(`I've agreed the brief for "${model.name}" — go ahead and start.`);
     }
   }, [brief?.status, model.slug, model.name]);
   const [editing, setEditing] = useState(false);
@@ -145,7 +293,7 @@ function BriefCard({ model }: { model: DesignModelSummary }) {
   const agreed = brief.status === 'agreed';
   const save = () => {
     const changed = (brief?.fields ?? []).filter((f) => (draft[f.key] ?? '').trim() !== f.value).map((f) => f.label.toLowerCase());
-    post({ type: 'save_model_brief', slug: model.slug, fields: draft });
+    post({ type: saveType, slug: model.slug, fields: draft });
     setEditing(false);
     if (changed.length) sayToAva(`I've edited the brief for "${model.name}" — I changed ${changed.join(', ')}. Have a look at my version.`);
   };
@@ -155,7 +303,7 @@ function BriefCard({ model }: { model: DesignModelSummary }) {
   // can see the agreement, and it would refuse.
   const agree = () => {
     pendingAgree.add(model.slug);
-    post({ type: 'agree_model_brief', slug: model.slug });
+    post({ type: agreeType, slug: model.slug });
   };
 
   return (

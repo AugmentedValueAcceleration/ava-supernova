@@ -23,7 +23,7 @@ import { loadFont, registerWordmarkFonts } from '../lib/asset-forge/logo/pipelin
 import { renderMark, renderElements, type MarkSpec, type MarkStyle } from '../lib/asset-forge/logo/mark-primitives';
 import type { LogoBrief, LogoSystem, LogoVariant } from '../lib/asset-forge/logo/types';
 import { DESIGN_GROUPS, QWEN_VIEWS, type ViewId } from '../lib/design-types';
-import { ModelRoom } from '../components/ModelRoom';
+import { ModelRoom, roomRoster } from '../components/ModelRoom';
 import type { DesignModelSummary } from '../types/messages';
 import { toWebp } from '../lib/compress';
 
@@ -667,9 +667,11 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // Which room the Design Architect chat should reflect. The Open-Canvas Video
   // and Voiceover views map to their own rooms; everything else is the icon
   // studio (greeting / chips / heading / persona all follow this).
-  const designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : view === 'image' ? 'image' : view === 'logo' ? 'logo' : view === 'model' ? 'model' : 'icon';
+  const designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : view === 'image' ? 'image' : view === 'logo' ? 'logo' : view === 'model' ? 'model' : view === 'gimp' ? 'gimp' : 'icon';
   // The model on the 3D room's stage — its brief goes to Ava with every turn.
   const [activeModel, setActiveModel] = useState<DesignModelSummary | null>(null);
+  const [designBusy, setDesignBusy] = useState(false);
+  const [roomWork, setRoomWork] = useState<string[]>([]);
 
   const [query, setQuery] = useState('');
   const [shapeId, setShapeId] = useState('Bell');
@@ -729,6 +731,15 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const dockOpenRef = useRef(dockOpen);
   dockOpenRef.current = dockOpen;
   useEffect(() => { if (dockOpen) setUnread(false); }, [dockOpen]);
+  // New brief: open the chat, ready to type.
+  useEffect(() => {
+    const onNew = () => {
+      setDockOpen(true);
+      window.setTimeout(() => document.querySelector<HTMLTextAreaElement>('[data-design-dock] textarea')?.focus(), 80);
+    };
+    window.addEventListener('ava-design-new', onNew);
+    return () => window.removeEventListener('ava-design-new', onNew);
+  }, []);
   // Keep the conversation mounted through the slide-down so the collapse
   // animates too (not just the expand): true while open, and for one transition
   // after it closes, then it unmounts leaving the static composer.
@@ -798,14 +809,17 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // fallback, so Ava designed blind and her arguments always won. Now she sees
   // them, works from them, and may change them when the design calls for it.
   const designPanel = useMemo(() => {
-    if (view === 'model') {
+    if (view === 'model' || view === 'gimp') {
       // She sees the card as it stands — including his edits — every turn.
-      if (!activeModel) return 'No model yet in this room.';
+      const roster = roomRoster(roomWork);
+      if (!activeModel) return `${roster} Nothing is on the stage: they are starting something new here. Ask what they want to make; a new piece needs a NEW name, because the same name continues the old work.`;
       const b = activeModel.brief;
-      const head = `Model on the stage: "${activeModel.name}" (${activeModel.built ? 'built' : 'not built yet'})`;
-      if (!b) return `${head} · no brief yet`;
+      const head = `${view === 'gimp' ? 'Work' : 'Model'} on the stage: "${activeModel.name}" (${activeModel.built ? 'made' : 'not made yet'})`;
+      if (!b) return `${roster} ${head} · no brief yet`;
       const status = b.status === 'agreed' ? 'brief AGREED by them' : `brief waiting for their agreement${b.edited_by_person ? ' — THEY EDITED IT, work from their version' : ''}`;
-      return `${head} · ${status} · ${b.fields.map((f) => `${f.label}: ${f.value}`).join(' · ')}`;
+      const art = activeModel.references?.length ? ` · their art in references/: ${activeModel.references.join(', ')}` : '';
+      const waiting = activeModel.options ? ` · OPTIONS ON THE STAGE waiting for their pick: ${activeModel.options.question}` : '';
+      return `${roster} ${head} · ${status}${art}${waiting} · ${b.fields.map((f) => `${f.label}: ${f.value}`).join(' · ')}`;
     }
     if (view !== 'logo') return undefined;
     const bits = [
@@ -822,7 +836,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       `wordmark colour: ${logoWordColour}`,
     ].filter(Boolean);
     return bits.join(' · ');
-  }, [view, activeModel, logoForm, logoTagline, logoMarkType, logoMark, logoContainer, logoSpec, logoStyle, logoColour, logoSecondary, logoWordColour, logoFontId, kit.styleTags]);
+  }, [view, activeModel, roomWork, logoForm, logoTagline, logoMarkType, logoMark, logoContainer, logoSpec, logoStyle, logoColour, logoSecondary, logoWordColour, logoFontId, kit.styleTags]);
   // Register the bundled wordmark fonts (from bytes) when the Logo room opens, so
   // the font picker previews each name in its own typeface.
   useEffect(() => { if (view === 'logo') void registerWordmarkFonts(); }, [view]);
@@ -1688,7 +1702,9 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
             )}
           </div>
         ) : view === 'model' ? (
-          <ModelRoom onActiveModel={setActiveModel} />
+          <ModelRoom key="blender" tool="blender" busy={designBusy} onActiveModel={setActiveModel} onRoster={setRoomWork} />
+        ) : view === 'gimp' ? (
+          <ModelRoom key="gimp" tool="gimp" busy={designBusy} onActiveModel={setActiveModel} onRoster={setRoomWork} />
         ) : view === 'brandkit' ? (
           <div className="flex-1 overflow-hidden relative">
             {/* Overview — all brand kits at a glance */}
@@ -1815,7 +1831,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
             upward (height animates COLLAPSED ⇄ 58%), so the composer never moves.
             Auto: slides up when you focus the composer to type, slides down when
             an icon finishes generating. The height transition IS the slide. */}
-        <div
+        <div data-design-dock
           className="absolute left-0 right-0 bottom-0 z-30 flex flex-col overflow-hidden transition-[height] duration-300 ease-out"
           style={{ height: dockOpen ? '58%' : DOCK_COLLAPSED, background: 'rgba(13,9,22,0.97)' }}
         >
@@ -1848,6 +1864,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               onComposerFocus={() => setDockOpen(true)}
               suppressAutoFocus
               onActivity={() => { if (!dockOpenRef.current) setUnread(true); }}
+              onBusyChange={setDesignBusy}
               userName={userName ?? null}
               userAvatarUrl={userAvatarUrl ?? null}
             />

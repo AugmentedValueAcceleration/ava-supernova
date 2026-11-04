@@ -612,3 +612,11 @@ export type { BlenderInstall } from './tools/blender/find-blender.js';
 export { modelsDir, modelSlug } from './tools/blender/paths.js';
 export { readModelBrief, agreeModelBrief, saveModelBriefEdits, listModels, formatModelBrief, BRIEF_FIELDS } from './tools/blender/model-brief.js';
 export type { ModelBrief, ModelBriefFields, ModelSummary } from './tools/blender/model-brief.js';
+
+// Design Studio 2D — GIMP (Headless).
+export { findGimp, setGimpPath, gimpStatus, GIMP_DOWNLOAD_URL } from './tools/gimp/find-gimp.js';
+export type { GimpInstall } from './tools/gimp/find-gimp.js';
+export { deleteDesignWork } from './tools/blender/paths.js';
+export { readImageBrief, agreeImageBrief, saveImageBriefEdits, listImageWork, pickImageOption, addImageReference, IMAGE_BRIEF_FIELDS } from './tools/gimp/build-image.js';
+export type { ImageBrief, ImageWorkSummary, ImageOption, ImageOptions } from './tools/gimp/build-image.js';
+export { imagesDir } from './tools/blender/paths.js';

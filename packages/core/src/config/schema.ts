@@ -71,6 +71,8 @@ export interface AvaConfig {
     /** Blender to use for 3D models, when it isn't found by itself. Set in
      *  Settings; shared by the extension and the IDE. */
     blenderPath?: string;
+    /** GIMP 3 to use for 2D work, when it isn't found by itself. */
+    gimpPath?: string;
   };
   knowledgePacks?: {
     enabled?: string[];

@@ -17,11 +17,12 @@
  */
 
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile, readdir, stat } from 'node:fs/promises';
+import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Tool, ToolResult, ToolRiskLevel } from '../types.js';
 import type { FunctionSchema } from '../../providers/types.js';
 import { modelsDir, modelSlug } from './paths.js';
+import { briefStore, type BriefRecord } from '../brief-store.js';
 
 export interface ModelBriefFields {
   what: string;        // what it is
@@ -36,15 +37,7 @@ export interface ModelBriefFields {
   purpose: string;     // own project / marketplace …
 }
 
-export interface ModelBrief extends ModelBriefFields {
-  name: string;
-  reasoning: string;
-  status: 'proposed' | 'agreed';
-  proposedAt: string;
-  agreedAt?: string;
-  /** Set when the person edited it on the card — Ava sees what he changed. */
-  editedByPerson?: boolean;
-}
+export interface ModelBrief extends ModelBriefFields, BriefRecord {}
 
 export const BRIEF_FIELDS: Array<[keyof ModelBriefFields, string, string]> = [
   ['what', 'What it is', 'e.g. "a worn wooden supply crate with iron corner brackets"'],
@@ -59,44 +52,15 @@ export const BRIEF_FIELDS: Array<[keyof ModelBriefFields, string, string]> = [
   ['purpose', 'Purpose', 'their own project, or for sale (a marketplace has stricter checks)'],
 ];
 
-export const briefPath = (slug: string) => join(modelsDir(), slug, 'brief.json');
+const store = briefStore<ModelBrief>(modelsDir, () => BRIEF_FIELDS.map(([k]) => k));
 
-export async function readModelBrief(slug: string): Promise<ModelBrief | null> {
-  try { return JSON.parse(await readFile(briefPath(slug), 'utf-8')) as ModelBrief; } catch { return null; }
-}
-
-async function writeBrief(slug: string, brief: ModelBrief): Promise<void> {
-  await mkdir(join(modelsDir(), slug), { recursive: true });
-  await writeFile(briefPath(slug), JSON.stringify(brief, null, 2), 'utf-8');
-}
-
+export const briefPath = store.path;
+export const readModelBrief = store.read;
+const writeBrief = store.write;
 /** His button on the card. The ONLY way a brief becomes agreed. */
-export async function agreeModelBrief(slug: string): Promise<ModelBrief | null> {
-  const brief = await readModelBrief(slug);
-  if (!brief) return null;
-  brief.status = 'agreed';
-  brief.agreedAt = new Date().toISOString();
-  await writeBrief(slug, brief);
-  return brief;
-}
-
+export const agreeModelBrief = store.agree;
 /** His edits on the card. Saving changes keeps it agreed only if nothing moved. */
-export async function saveModelBriefEdits(slug: string, fields: Partial<ModelBriefFields>): Promise<ModelBrief | null> {
-  const brief = await readModelBrief(slug);
-  if (!brief) return null;
-  let changed = false;
-  for (const [k] of BRIEF_FIELDS) {
-    const v = typeof fields[k] === 'string' ? fields[k]!.trim() : undefined;
-    if (v !== undefined && v !== brief[k]) { brief[k] = v; changed = true; }
-  }
-  if (changed) {
-    brief.editedByPerson = true;
-    brief.status = 'proposed';
-    delete brief.agreedAt;
-    await writeBrief(slug, brief);
-  }
-  return brief;
-}
+export const saveModelBriefEdits = (slug: string, fields: Partial<ModelBriefFields>) => store.saveEdits(slug, fields);
 
 export interface ModelSummary {
   slug: string;

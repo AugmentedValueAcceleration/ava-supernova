@@ -33,6 +33,7 @@ import { randomUUID } from 'node:crypto';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from '../types.js';
 import type { FunctionSchema } from '../../providers/types.js';
 import type { GenerationManager } from '../generation-manager.js';
+import { recordDesignRun } from '../design-checkin.js';
 import { creativeDir, modelsDir, metadataFile, modelSlug } from './paths.js';
 import { readModelBrief, formatModelBrief } from './model-brief.js';
 
@@ -232,6 +233,9 @@ export class DesignBuildModelTool implements Tool {
       if (jobId) {
         if (res.success) jobs?.complete(jobId);
         else jobs?.fail(jobId, res.output.split('\n')[0]);
+        // Runs Blender/GIMP actually made. A refusal is not a run.
+        const checkIn = recordDesignRun(context, `blender:${String(args.name ?? '')}`, res.success);
+        if (checkIn) res.output += `\n\n${checkIn}`;
       }
       return res;
     } catch (err) {

@@ -1489,6 +1489,8 @@ export interface CreativeAsset {
     triangles?: number;
     size_m?: number[];
     blender_version?: string;
+    gimp_version?: string;
+    image_count?: number;
     updated_at?: string;
   };
 }
@@ -1505,6 +1507,12 @@ export interface DesignModelSummary {
   glb_url?: string;
   triangles?: number;
   size_m?: number[];
+  /** GIMP work: how many images are in it. */
+  image_count?: number;
+  /** GIMP work: versions waiting on the stage for them to pick. */
+  options?: null | { question: string; items: Array<{ label: string; note?: string; url: string }> };
+  /** GIMP work: their own art, for Ava to test against. */
+  references?: string[];
   brief: null | {
     status: 'proposed' | 'agreed';
     edited_by_person?: boolean;
@@ -1712,6 +1720,9 @@ export type ExtToDashboardMessage =
   | { type: 'library_image_deleted'; path: string }
   | { type: 'local_creative_loaded'; assets: CreativeAsset[] }
   | { type: 'models_listed'; models: DesignModelSummary[] }
+  | { type: 'image_work_listed'; models: DesignModelSummary[] }
+  | { type: 'image_art_added'; slug: string; file: string }
+  | { type: 'gimp_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
   | { type: 'blender_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
   | { type: 'storage_scan_loaded'; scan: StorageScan }
   /** What the projects folder costs, with the age of the figure. */
@@ -2109,7 +2120,7 @@ export type DashboardToExtMessage =
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`
@@ -2196,6 +2207,17 @@ export type DashboardToExtMessage =
   | { type: 'choose_blender_path' }
   | { type: 'clear_blender_path' }
   | { type: 'list_models' }
+  // The GIMP (Headless) room — the same card, on its own folder.
+  | { type: 'list_image_work' }
+  | { type: 'agree_image_brief'; slug: string }
+  | { type: 'save_image_brief'; slug: string; fields: Record<string, string> }
+  | { type: 'pick_image_option'; slug: string; index: number }
+  | { type: 'delete_design_work'; tool: 'blender' | 'gimp'; slug: string }
+  | { type: 'add_image_art'; slug: string }
+  | { type: 'open_work_in_gimp'; id: string }
+  | { type: 'get_gimp_status' }
+  | { type: 'choose_gimp_path' }
+  | { type: 'clear_gimp_path' }
   | { type: 'agree_model_brief'; slug: string }
   | { type: 'save_model_brief'; slug: string; fields: Record<string, string> }
   // Storage manager — bulk-delete local creative assets by id (the webview

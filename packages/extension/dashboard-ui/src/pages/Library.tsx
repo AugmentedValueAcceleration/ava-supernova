@@ -80,6 +80,7 @@ const ASSET_TYPE_ICONS: Record<string, string> = {
   document: '\u{1F4C4}',
   spreadsheet: '\u{1F4CA}',
   model: '\u{1F9CA}',
+  gimp: '\u{1F3A8}',
 };
 
 function formatSize(bytes: number): string {
@@ -139,7 +140,7 @@ function unifyCreativeAsset(a: CreativeAsset): UnifiedItem {
     designType: a.design_type || undefined,
     title: a.title || 'Untitled',
     subtitle: a.prompt?.slice(0, 80) || '',
-    thumbnail: (kind === 'image' || kind === 'model' ? (a.thumbnail_url || a.url) : undefined) || undefined,
+    thumbnail: (kind === 'image' || kind === 'model' || kind === 'gimp' ? (a.thumbnail_url || a.url) : undefined) || undefined,
     createdAt: a.model?.updated_at || a.created_at,
     raw: a,
   };
@@ -250,7 +251,7 @@ export function Library({
         if (variant === 'primary') g.primary = a;
         continue;
       }
-      if (['image', 'video', 'graphic', 'voice', 'music', 'sfx', 'model'].includes(k)) {
+      if (['image', 'video', 'graphic', 'voice', 'music', 'sfx', 'model', 'gimp'].includes(k)) {
         list.push(unifyCreativeAsset(a));
       }
     }
@@ -685,6 +686,9 @@ function PreviewModal({
   const isAudio = isMusic || isVoice;
   // A 3D model: one asset that is a whole folder made in Blender.
   const isModel = item.kind === 'model';
+  // A piece of GIMP work: also one asset that is a whole folder.
+  const isGimp = item.kind === 'gimp';
+  const isFolderAsset = isModel || isGimp;
 
   // Two kinds of "local": workspace files (LibraryImage, carry a `path`) and
   // local-creative gallery items (CreativeAsset saved by Creative Studio — a
@@ -764,7 +768,7 @@ function PreviewModal({
   // Studio make is known by its id in the creative gallery.
   // Not for a model: it is a folder of files, and Open folder / Use in project
   // are how its files come out.
-  const canDownload = !isModel && Boolean((isLocal && localPath) || isLocalCreative);
+  const canDownload = !isFolderAsset && Boolean((isLocal && localPath) || isLocalCreative);
 
   // The formats on offer. Images can be re-encoded here in the webview (see
   // image-export.ts for why SVG is offered only when the source IS vector);
@@ -906,7 +910,7 @@ function PreviewModal({
         ) : isModel && rawCreative.model?.glb_url ? (
           // Turn and zoom the model itself; Ava's preview render is the poster.
           <LazyModelViewer src={rawCreative.model.glb_url} poster={item.thumbnail} alt={item.title} />
-        ) : isModel && item.thumbnail ? (
+        ) : isFolderAsset && item.thumbnail ? (
           <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20 p-4" />
         ) : isImage && item.thumbnail ? (
           <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20" />
@@ -954,6 +958,18 @@ function PreviewModal({
 
           {/* A model's facts: its real size (built to scale?), how heavy it is,
               which Blender made it, and the files it exists as. */}
+          {isGimp && rawCreative.model && (
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[11px]">
+              {typeof rawCreative.model.image_count === 'number' && (<>
+                <dt className="text-[var(--text-muted)]">{tt('library.gimp.images', 'Images')}</dt>
+                <dd className="text-[var(--text-secondary)]">{rawCreative.model.image_count}</dd>
+              </>)}
+              {rawCreative.model.gimp_version && (<>
+                <dt className="text-[var(--text-muted)]">{tt('library.model.made_in', 'Made in')}</dt>
+                <dd className="text-[var(--text-secondary)]">GIMP {rawCreative.model.gimp_version}</dd>
+              </>)}
+            </dl>
+          )}
           {isModel && rawCreative.model && (
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[11px]">
               {modelSizeLabel(rawCreative.model.size_m) && (<>
@@ -1006,6 +1022,22 @@ function PreviewModal({
           <div className="mt-5 flex flex-wrap gap-2">
             {/* A model opens in the person's own Blender. Whatever they change
                 and save there, Ava's next step builds on. */}
+            {isGimp && rawCreative.id && (
+              <>
+                <button
+                  onClick={() => post({ type: 'open_work_in_gimp', id: rawCreative.id! })}
+                  className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+                >
+                  {tt('library.gimp.open_in_gimp', 'Open in GIMP')}
+                </button>
+                <button
+                  onClick={() => post({ type: 'reveal_creative', id: rawCreative.id! })}
+                  className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
+                >
+                  {tt('library.model.open_folder', 'Open folder')}
+                </button>
+              </>
+            )}
             {isModel && rawCreative.id && (
               <>
                 <button
@@ -1165,7 +1197,9 @@ function PreviewModal({
               {t('library.delete_confirm_title', { name: deleteName })}
             </p>
             <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
-              {isModel
+              {isGimp
+                ? tt('library.gimp.delete_confirm', 'The whole folder is removed from disk — the layered files, their exports and saved versions. It cannot be undone.')
+                : isModel
                 // A model is a folder — say so, because "this file" would
                 // undersell what goes: the .blend, its exports and its versions.
                 ? tt('library.model.delete_confirm', 'The whole model folder is removed from disk — the Blender file, its exports and its saved versions. It cannot be undone.')
@@ -1767,7 +1801,7 @@ function AssetCard({
         <img
           src={item.thumbnail}
           alt={item.title}
-          className={item.designType === 'icon' || item.designType === 'logo' || item.kind === 'model'
+          className={item.designType === 'icon' || item.designType === 'logo' || item.kind === 'model' || item.kind === 'gimp'
             ? 'h-24 w-full object-contain p-3'
             : 'h-24 w-full object-cover'}
           loading="lazy"

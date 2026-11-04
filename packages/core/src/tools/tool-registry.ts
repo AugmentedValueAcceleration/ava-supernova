@@ -93,6 +93,8 @@ import {
 } from './design-studio-tools.js';
 import { DesignBuildModelTool, DesignDuplicateModelTool } from './blender/build-model.js';
 import { DesignProposeModelBriefTool } from './blender/model-brief.js';
+import { DesignBuildImageTool, DesignDuplicateImageTool, DesignProposeImageBriefTool, DesignShowOptionsTool } from './gimp/build-image.js';
+import { DesignApiLookupTool, DesignReadDocsTool } from './design-docs.js';
 import { DocumentManageTool } from './document-manage.js';
 import { DocumentAuthorTool } from './document-author.js';
 import { GitCommitTool } from './git-commit.js';
@@ -191,6 +193,10 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   design_brand_kit: 'media', design_save: 'media',
   // 3D in Blender — free and local, but it runs a script and writes files.
   design_build_model: 'media', design_duplicate_model: 'media', design_propose_model_brief: 'media',
+  // 2D in GIMP — the same.
+  design_build_image: 'media', design_duplicate_image: 'media', design_propose_image_brief: 'media', design_show_options: 'media',
+  // Read-only: the installed program and the official docs.
+  design_api_lookup: 'media', design_read_docs: 'media',
   // Social Studio's paid outputs. These were in no category at all, so they
   // fell through to the 'file_ops' default and auto-ran — a video, a picture or
   // a voiceover could be generated without the operator ever being asked, which
@@ -480,6 +486,12 @@ export class ToolRegistry {
       new DesignProposeModelBriefTool(),
       new DesignBuildModelTool(),
       new DesignDuplicateModelTool(),
+      new DesignProposeImageBriefTool(),
+      new DesignBuildImageTool(),
+      new DesignDuplicateImageTool(),
+      new DesignShowOptionsTool(),
+      new DesignApiLookupTool(),
+      new DesignReadDocsTool(),
       new HealthPlanListTool(),
       new HealthPlanCreateTool(),
       new HealthPlanUpdateTool(),

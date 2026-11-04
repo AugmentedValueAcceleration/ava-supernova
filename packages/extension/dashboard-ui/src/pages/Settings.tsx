@@ -847,7 +847,9 @@ export function Settings({
         />
       </div>
       <SectionLabel>{tt('dash.settings.blender', 'Blender (3D models)')}</SectionLabel>
-      <BlenderSetting />
+      <ToolPathSetting tool="blender" />
+      <SectionLabel>{tt('dash.settings.gimp', 'GIMP (2D images)')}</SectionLabel>
+      <ToolPathSetting tool="gimp" />
       <SectionLabel>{tt('ext.settings.welcome_tour', 'Welcome tour')}</SectionLabel>
       <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <p className="text-xs text-[var(--text-muted)]">{tt('ext.settings.replay_tour_hint', 'See the first-run walkthrough again.')}</p>
@@ -984,39 +986,42 @@ export function Settings({
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-/** Which Blender the Design Studio's 3D room uses. Found by itself in the
- *  usual places; chosen by hand only for an unusual install. Saved in
- *  ~/.ava, so the IDE uses the same one. */
-function BlenderSetting() {
+/** Which Blender or GIMP the Design Studio uses. Found by itself in the usual
+ *  places; chosen by hand only for an unusual install. Saved in ~/.ava, so the
+ *  IDE uses the same one. */
+function ToolPathSetting({ tool }: { tool: 'blender' | 'gimp' }) {
+  const label = tool === 'gimp' ? 'GIMP' : 'Blender';
   const [st, setSt] = useState<{ path: string | null; version: string | null; source: string | null; configured: string | null; error?: string } | null>(null);
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === 'blender_status') setSt(e.data);
+      if (e.data?.type === `${tool}_status`) setSt(e.data);
     };
     window.addEventListener('message', onMessage);
-    post({ type: 'get_blender_status' });
+    post({ type: tool === 'gimp' ? 'get_gimp_status' : 'get_blender_status' });
     return () => window.removeEventListener('message', onMessage);
-  }, []);
+  }, [tool]);
   const btn = 'rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition';
   return (
     <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
       {!st ? (
-        <p className="text-xs text-[var(--text-muted)]">{tt('dash.settings.blender_checking', 'Looking for Blender…')}</p>
+        <p className="text-xs text-[var(--text-muted)]">{tt(`dash.settings.${tool}_checking`, `Looking for ${label}…`)}</p>
       ) : st.path ? (
         <>
-          <p className="text-xs text-[var(--text-primary)]">Blender {st.version} {st.configured ? tt('dash.settings.blender_chosen', '(chosen by you)') : tt('dash.settings.blender_found', '(found automatically)')}</p>
+          <p className="text-xs text-[var(--text-primary)]">{label} {st.version} {st.configured ? tt('dash.settings.blender_chosen', '(chosen by you)') : tt('dash.settings.blender_found', '(found automatically)')}</p>
           <p className="mt-1 break-all font-mono text-[10.5px] text-[var(--text-muted)]">{st.path}</p>
         </>
       ) : (
         <p className="text-xs text-[var(--text-secondary)]">
-          {tt('dash.settings.blender_missing', 'Blender isn’t installed, or it’s somewhere unusual. It’s free from blender.org — or choose where yours is.')}
+          {tt(`dash.settings.${tool}_missing`, tool === 'gimp'
+            ? 'GIMP 3 isn\u2019t installed, or it\u2019s somewhere unusual. It\u2019s free from gimp.org — or choose where yours is.'
+            : 'Blender isn\u2019t installed, or it\u2019s somewhere unusual. It\u2019s free from blender.org — or choose where yours is.')}
         </p>
       )}
       {st?.error && <p className="mt-2 text-xs text-red-400">{st.error}</p>}
       <div className="mt-3 flex flex-wrap gap-2">
-        <button onClick={() => post({ type: 'choose_blender_path' })} className={btn}>{tt('dash.settings.blender_choose', 'Choose…')}</button>
+        <button onClick={() => post({ type: tool === 'gimp' ? 'choose_gimp_path' : 'choose_blender_path' })} className={btn}>{tt('dash.settings.blender_choose', 'Choose…')}</button>
         {st?.configured && (
-          <button onClick={() => post({ type: 'clear_blender_path' })} className={btn}>{tt('dash.settings.blender_auto', 'Use automatic')}</button>
+          <button onClick={() => post({ type: tool === 'gimp' ? 'clear_gimp_path' : 'clear_blender_path' })} className={btn}>{tt('dash.settings.blender_auto', 'Use automatic')}</button>
         )}
       </div>
     </div>
