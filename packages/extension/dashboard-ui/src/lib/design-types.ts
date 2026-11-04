@@ -38,7 +38,7 @@ export const ALL_DESIGN_GROUPS: DesignGroup[] = [
   ] },
   { labelKey: 'dash.studio.group.2d', label: '2D', accent: '#f0a24b', items: [] },
   { labelKey: 'dash.studio.group.3d', label: '3D', accent: '#f0a24b', items: [
-    { id: 'model', label: '3D Model / Prop' },
+    { id: 'model', label: 'Blender (Headless)' },
   ] },
 ];
 

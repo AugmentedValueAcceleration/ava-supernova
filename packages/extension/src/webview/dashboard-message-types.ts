@@ -1493,7 +1493,7 @@ export interface CreativeAsset {
   };
 }
 
-/** A model in the 3D Model / Prop room — including one with only a brief. */
+/** A model in the Blender (Headless) room — including one with only a brief. */
 export interface DesignModelSummary {
   slug: string;
   name: string;
@@ -2190,7 +2190,7 @@ export type DashboardToExtMessage =
   | { type: 'open_model_in_blender'; id: string }
   | { type: 'reveal_creative'; id: string }
   | { type: 'copy_model_path'; id: string; ext: 'glb' | 'fbx' | 'blend' }
-  // The 3D Model / Prop room: its models, and the brief he agrees on the card.
+  // The Blender (Headless) room: its models, and the brief he agrees on the card.
   // Settings → Blender: which one is used, and choosing one by hand.
   | { type: 'get_blender_status' }
   | { type: 'choose_blender_path' }

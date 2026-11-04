@@ -5,7 +5,7 @@ import type { DesignModelSummary } from '../types/messages';
 
 import { LazyModelViewer } from './LazyModelViewer';
 
-// ─── The 3D Model / Prop room's stage ───────────────────────────────────────
+// ─── The Blender (Headless) room's stage ───────────────────────────────────────
 //
 // The brief card and the model, side by side. Ava researches and proposes the
 // brief (design_propose_model_brief); it lands here; he questions it with her
@@ -42,7 +42,7 @@ export function ModelRoom({ onActiveModel }: { onActiveModel: (m: DesignModelSum
     <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
       <div className="mb-3 flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('dash.studio.model.title', '3D Model / Prop')}</h2>
+          <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('dash.studio.model.title', 'Blender (Headless)')}</h2>
           <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
             {tt('dash.studio.model.subtitle', 'Built in Blender on your computer — free. The brief comes first: Ava researches it, you agree it, then you build it together.')}
           </p>

@@ -3099,7 +3099,7 @@ export class DashboardPanel {
     });
   }
 
-  /** The 3D Model / Prop room's models: every model folder, with its brief
+  /** The Blender (Headless) room's models: every model folder, with its brief
    *  (proposed or agreed) and, once built, its preview and .glb. */
   private async loadModels(): Promise<void> {
     try {

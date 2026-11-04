@@ -16,7 +16,7 @@ import { logger } from '../core/logger.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type GenerationType = 'image' | 'video' | 'music' | 'voice' | 'background-removal';
+export type GenerationType = 'image' | 'video' | 'music' | 'voice' | 'background-removal' | 'blender';
 
 export type GenerationStatus = 'queued' | 'generating' | 'downloading' | 'complete' | 'failed';
 

@@ -32,6 +32,7 @@ import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from '../types.js';
 import type { FunctionSchema } from '../../providers/types.js';
+import type { GenerationManager } from '../generation-manager.js';
 import { creativeDir, modelsDir, metadataFile, modelSlug } from './paths.js';
 import { readModelBrief, formatModelBrief } from './model-brief.js';
 
@@ -213,7 +214,37 @@ export class DesignBuildModelTool implements Tool {
     },
   };
 
+  /**
+   * Every real run shows in the sidebar's Studio rail, like an image or a clip
+   * being made (his ask, 4 Nov 2026). Registered only once Blender is about to
+   * start, so a refusal (no brief, a blocked script) never appears as a job.
+   */
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const jobs = context.sharedState?.generationManager as GenerationManager | undefined;
+    let jobId: string | undefined;
+    const started = (name: string, slug: string, assetDir: string) => {
+      jobId = `blender_${randomUUID()}`;
+      jobs?.create({ id: jobId, type: 'blender', prompt: name, filename: slug, targetPath: assetDir });
+      jobs?.update(jobId, { status: 'generating' });
+    };
+    try {
+      const res = await this.step(args, context, started);
+      if (jobId) {
+        if (res.success) jobs?.complete(jobId);
+        else jobs?.fail(jobId, res.output.split('\n')[0]);
+      }
+      return res;
+    } catch (err) {
+      if (jobId) jobs?.fail(jobId, err instanceof Error ? err.message : String(err));
+      throw err;
+    }
+  }
+
+  private async step(
+    args: Record<string, unknown>,
+    context: ToolExecutionContext,
+    started: (name: string, slug: string, assetDir: string) => void,
+  ): Promise<ToolResult> {
     const name = String(args.name ?? '').trim();
     const script = String(args.script ?? '');
     const slug = modelSlug(name);
@@ -274,6 +305,7 @@ export class DesignBuildModelTool implements Tool {
       '--python', runnerPath, '--', jobPath,
     ];
 
+    started(name, slug, assetDir);
     let run;
     try {
       run = await runBlender(blender.path, blenderArgs, assetDir, timeoutS * 1000, context.signal);

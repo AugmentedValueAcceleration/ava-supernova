@@ -216,6 +216,27 @@ describe.skipIf(!blender)('in Blender', () => {
     expect(again.success, again.output).toBe(true);
   }, 300_000);
 
+  it('shows in the Studio rail while Blender runs, but a refused run does not', async () => {
+    const seen: string[] = [];
+    const manager = {
+      create: (j: { type: string; prompt: string }) => seen.push(`create ${j.type} ${j.prompt}`),
+      update: (_: string, p: { status?: string }) => seen.push(`update ${p.status}`),
+      complete: () => seen.push('complete'),
+      fail: (_: string, e: string) => seen.push(`fail ${e}`),
+    };
+    const ctx2 = { cwd: '.', sharedState: { generationManager: manager } };
+    await tool.execute({ name: 'No Brief Here', script: 'import bpy' }, ctx2);
+    expect(seen).toEqual([]);
+
+    await tool.execute({ name: 'Test Crate', script: 'print("ok")' }, ctx2);
+    expect(seen).toEqual(['create blender Test Crate', 'update generating', 'complete']);
+
+    seen.length = 0;
+    await tool.execute({ name: 'Test Crate', script: 'raise ValueError("boom")' }, ctx2);
+    expect(seen[0]).toBe('create blender Test Crate');
+    expect(seen[2]).toMatch(/^fail Your script stopped/);
+  }, 120_000);
+
   it('never wrote to the real Library', () => {
     expect(dir.startsWith(join(homedir(), '.ava'))).toBe(false);
   });
