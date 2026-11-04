@@ -617,6 +617,8 @@ export type { ModelBrief, ModelBriefFields, ModelSummary } from './tools/blender
 export { findGimp, setGimpPath, gimpStatus, GIMP_DOWNLOAD_URL } from './tools/gimp/find-gimp.js';
 export type { GimpInstall } from './tools/gimp/find-gimp.js';
 export { deleteDesignWork } from './tools/blender/paths.js';
-export { readImageBrief, agreeImageBrief, saveImageBriefEdits, listImageWork, pickImageOption, addImageReference, IMAGE_BRIEF_FIELDS } from './tools/gimp/build-image.js';
+export { brandKitsFile, brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, kitForProject, brandKitSummary, type BrandKitRecord } from './brand/brand-kits.js';
+export { contrastRatio, agreeBrandKit } from './brand/brand-kits.js';
+export { readImageBrief, agreeImageBrief, saveImageBriefEdits, listImageWork, pickImageOption, addImageReference, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS } from './tools/gimp/build-image.js';
 export type { ImageBrief, ImageWorkSummary, ImageOption, ImageOptions } from './tools/gimp/build-image.js';
 export { imagesDir } from './tools/blender/paths.js';

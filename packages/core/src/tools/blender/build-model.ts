@@ -35,6 +35,7 @@ import type { FunctionSchema } from '../../providers/types.js';
 import type { GenerationManager } from '../generation-manager.js';
 import { recordDesignRun } from '../design-checkin.js';
 import { creativeDir, modelsDir, metadataFile, modelSlug } from './paths.js';
+import { kitForScripts } from '../../brand/brand-kits.js';
 import { readModelBrief, formatModelBrief } from './model-brief.js';
 
 export { modelsDir, modelSlug } from './paths.js';
@@ -171,6 +172,7 @@ export class DesignBuildModelTool implements Tool {
     name: 'design_build_model',
     description:
       'Run YOUR Blender Python (bpy) on a 3D model and get back a preview image of the result. ' +
+      'KIT is the brand kit for this project: KIT.rgba("primary") for a linear Base Color, KIT.colour("primary") for hex, KIT.logo("mark") for a real file path. If (not KIT) there is none: ask them. ' +
       'The FIRST run of a model starts from an EMPTY scene (no default cube, camera or light). EVERY LATER RUN OPENS THE SAVED MODEL — ' +
       'including anything the person changed by hand in Blender — so write ONLY the change for this step, never rebuild what is already there. ' +
       'Starting again on a new canvas (start_fresh) throws the current scene away for this run: ALWAYS ask the person first and only send it after they say yes. ' +
@@ -300,7 +302,7 @@ export class DesignBuildModelTool implements Tool {
     const runnerPath = join(tmpdir(), `ava-blender-runner-${runId}.py`);
     const jobPath = join(tmpdir(), `ava-blender-job-${runId}.json`);
     await writeFile(runnerPath, BLENDER_RUNNER_PY, 'utf-8');
-    await writeFile(jobPath, JSON.stringify({ assetDir, name: slug, continue: continuing, fbx: args.fbx === true }), 'utf-8');
+    await writeFile(jobPath, JSON.stringify({ assetDir, name: slug, continue: continuing, fbx: args.fbx === true, kit: await kitForScripts((context.sharedState?.designProject as (() => string | null | undefined) | undefined)?.()) }), 'utf-8');
 
     const timeoutS = Math.min(MAX_TIMEOUT_S, Math.max(30, Number(args.timeout_seconds) || DEFAULT_TIMEOUT_S));
     const blenderArgs = [

@@ -923,7 +923,7 @@ export interface ChatPageProps {
    *  Drives the room-aware greeting / chips / heading and is tagged on every
    *  design-lane send so the host runs Ava with the matching Design Architect
    *  persona (icon / video / voice / image / logo). Ignored on other lanes. */
-  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp';
+  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit';
   /** What the room's right-hand panel is set to right now, in one line. Ava
    *  designs FROM these rather than guessing — and may change them, with a
    *  reason, when the design calls for it. Sent with every design-lane turn. */

@@ -13,13 +13,15 @@ import { mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { PNG } from 'pngjs';
 import {
   checkGimpScript, gimpApiHint, DesignBuildImageTool, DesignDuplicateImageTool, DesignProposeImageBriefTool,
   agreeImageBrief, saveImageBriefEdits, readImageBrief, listImageWork, IMAGE_BRIEF_FIELDS,
-  DesignShowOptionsTool, pickImageOption, addImageReference, scriptOutput,
+  DesignShowOptionsTool, DesignMarkFinalTool, pickImageOption, addImageReference, readImageFinals, removeImageFinal, scriptOutput,
 } from '../src/tools/gimp/build-image.js';
 import { findGimp, setGimpPath } from '../src/tools/gimp/find-gimp.js';
 import { deleteDesignWork } from '../src/tools/blender/paths.js';
+import { createBrandKit, linkBrandKit } from '../src/brand/brand-kits.js';
 import { recordDesignRun } from '../src/tools/design-checkin.js';
 
 const BRIEF = Object.fromEntries(IMAGE_BRIEF_FIELDS.map(([k]) => [k, `the ${k}`]));
@@ -371,6 +373,101 @@ ava_export(img, "a.png"); ava_export(img, "b.png")
     expect(await deleteDesignWork('gimp', '')).toBe(false);
     expect(existsSync(join(dir, 'gimp'))).toBe(true);
   });
+
+  it('only marked files are final, and they can take one back off', async () => {
+    await proposeBrief('Finals');
+    await agreeImageBrief('finals');
+    await tool.execute({ name: 'Finals', script: `
+img = ava_image("f", 64, 64)
+ava_layer(img, "A", fill="#ffffff")
+ava_export(img, "logo.png"); ava_export(img, "test.png")
+` }, { cwd: '.' });
+    const mark = new DesignMarkFinalTool();
+    expect(await readImageFinals('finals')).toEqual([]);
+    expect((await mark.execute({ name: 'Finals', files: ['../art/a.png'] })).output).toContain('not an image inside this work');
+    expect((await mark.execute({ name: 'Finals', files: ['exports/none.png'] })).output).toContain('no file at');
+    expect((await mark.execute({ name: 'Finals', files: [] })).success).toBe(false);
+    await mark.execute({ name: 'Finals', files: ['exports/logo.png'] });
+    await mark.execute({ name: 'Finals', files: ['exports/test.png', 'exports/logo.png'] });
+    expect((await listImageWork()).find((w) => w.slug === 'finals')?.finals).toEqual(['exports/logo.png', 'exports/test.png']);
+    await removeImageFinal('finals', 'exports/test.png');
+    expect(await readImageFinals('finals')).toEqual(['exports/logo.png']);
+    await rm(join(dir, 'gimp', 'finals', 'exports', 'logo.png'));
+    expect(await readImageFinals('finals')).toEqual([]);
+  }, 120_000);
+
+  it('a piece is nudged until it has a final, and then the preview shows the final', async () => {
+    await proposeBrief('Ending');
+    await agreeImageBrief('ending');
+    const first = await tool.execute({ name: 'Ending', script: `
+img = ava_image("logo", 64, 64)
+ava_fill(ava_layer(img, "A"), dict(rect=(0, 0, 64, 64)), "#ff0000")
+ava_export(img, "test.png")
+` }, { cwd: '.' });
+    expect(first.output).toContain('NO FINAL YET');
+    const folder = join(dir, 'gimp', 'ending');
+    const before = await readFile(join(folder, 'preview.png'));
+
+    const failed = await tool.execute({ name: 'Ending', script: 'ava_final(ava_image("logo"), "lost.png")\nraise ValueError("no")' }, { cwd: '.' });
+    expect(failed.success).toBe(false);
+    expect(await readImageFinals('ending')).toEqual([]);
+
+    const done = await tool.execute({ name: 'Ending', script: `
+img = ava_image("logo")
+ava_fill(ava_layer(img, "B"), dict(rect=(0, 0, 64, 64)), "#00ff00")
+ava_final(img, "logo.png", size=(32, 32))
+ava_export(img, "later-test.png")
+` }, { cwd: '.' });
+    expect(done.success, done.output).toBe(true);
+    expect(done.output).not.toContain('NO FINAL YET');
+    expect(await readImageFinals('ending')).toEqual(['final/logo.png']);
+    expect(existsSync(join(folder, 'final', 'logo.png'))).toBe(true);
+    expect((await readFile(join(folder, 'preview.png'))).equals(before)).toBe(false);
+    const again = await tool.execute({ name: 'Ending', script: 'ava_final(ava_image("logo"), "logo.png")' }, { cwd: '.' });
+    expect(again.success, again.output).toBe(true);
+    expect(await readImageFinals('ending')).toEqual(['final/logo.png']);
+  }, 120_000);
+
+  it('the preview keeps real transparency, so the room can show it', async () => {
+    await proposeBrief('Clear');
+    await agreeImageBrief('clear');
+    const res = await tool.execute({ name: 'Clear', script: `
+img = ava_image("c", 64, 64)
+ava_fill(ava_layer(img, "A"), dict(rect=(20, 20, 24, 24)), "#ff0000")
+` }, { cwd: '.' });
+    expect(res.success, res.output).toBe(true);
+    const png = PNG.sync.read(await readFile(join(dir, 'gimp', 'clear', 'preview.png')));
+    const alpha = (x: number, y: number) => png.data[(png.width * y + x) * 4 + 3];
+    expect(alpha(2, 2)).toBe(0);
+    expect(alpha(png.width >> 1, png.height >> 1)).toBe(255);
+  }, 120_000);
+
+  it('scripts reach the kit for this project, and are told when there is none', async () => {
+    await proposeBrief('Kitted');
+    await agreeImageBrief('kitted');
+    process.env.AVA_BRAND_KITS_DIR = dir;
+    const project = join(dir, 'Some Game');
+    const kit = await createBrandKit({ name: 'Dawn', palette: { primary: '#3D52D8' } });
+    const ctx = { cwd: '.', sharedState: { designProject: () => project } };
+    const script = `
+img = ava_image("k", 32, 32)
+ava_layer(img, "A", fill="#ffffff")
+print("kit", bool(KIT), KIT.name)
+if KIT:
+    print("colour", KIT.colour("primary"))
+    ava_fill(ava_layer(img, "B"), dict(rect=(0, 0, 32, 32)), KIT.colour("primary"))
+    print("reads", ava_pixel(img, 5, 5))
+`;
+    const none = await tool.execute({ name: 'Kitted', script }, ctx);
+    expect(none.output).toContain('kit False None');
+    await linkBrandKit(kit.id, project);
+    const linked = await tool.execute({ name: 'Kitted', script }, ctx);
+    expect(linked.output).toContain('kit True Dawn');
+    expect(linked.output).toContain('reads #3D52D8');
+    const missing = await tool.execute({ name: 'Kitted', script: 'ava_image("k"); KIT.logo("mark")' }, ctx);
+    expect(missing.output).toContain('no "mark" logo');
+    delete process.env.AVA_BRAND_KITS_DIR;
+  }, 120_000);
 
   it('their art comes in by their own pick, and only images', async () => {
     await proposeBrief('Art');

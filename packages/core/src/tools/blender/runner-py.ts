@@ -8,6 +8,8 @@
  * guard refusal confirmed — programs, network, native code, writes outside
  * the model folder.
  */
+import { KIT_PY } from '../../brand/kit-py.js';
+
 // prettier-ignore
 export const BLENDER_RUNNER_PY = String.raw`# Ava's Blender runner. Started by design_build_model as:
 #   blender -b [model.blend] --factory-startup --disable-autoexec --python runner.py -- job.json
@@ -21,6 +23,7 @@ NAME = JOB['name']
 BLEND = os.path.join(ASSET_DIR, NAME + '.blend')
 STARTED = time.time()
 result = {'ok': False, 'files': [], 'warnings': []}
+${KIT_PY}
 
 def emit():
     sys.stdout.write('\n@@AVA_RESULT@@' + json.dumps(result) + '\n')
@@ -323,7 +326,7 @@ def ava_bake(objects=None, size=2048, maps=('base_color', 'roughness', 'metallic
 
 # ── Ava's script ─────────────────────────────────────────────────────────────
 script_path = os.path.join(ASSET_DIR, 'script.py')
-ns = {'__name__': '__main__', '__file__': script_path, 'ASSET_DIR': ASSET_DIR, 'bpy': bpy,
+ns = {'__name__': '__main__', '__file__': script_path, 'ASSET_DIR': ASSET_DIR, 'bpy': bpy, 'KIT': KIT,
       'ava_unwrap': ava_unwrap, 'ava_bake': ava_bake}
 try:
     with open(script_path, encoding='utf-8') as f:

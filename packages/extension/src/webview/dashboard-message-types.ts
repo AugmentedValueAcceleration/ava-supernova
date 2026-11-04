@@ -1492,6 +1492,8 @@ export interface CreativeAsset {
     gimp_version?: string;
     image_count?: number;
     updated_at?: string;
+    /** GIMP work: the finished files, relative to its folder. */
+    finals?: string[];
   };
 }
 
@@ -1513,6 +1515,8 @@ export interface DesignModelSummary {
   options?: null | { question: string; items: Array<{ label: string; note?: string; url: string }> };
   /** GIMP work: their own art, for Ava to test against. */
   references?: string[];
+  /** GIMP work: the finished files. */
+  finals?: Array<{ file: string; url: string }>;
   brief: null | {
     status: 'proposed' | 'agreed';
     edited_by_person?: boolean;
@@ -1722,6 +1726,7 @@ export type ExtToDashboardMessage =
   | { type: 'models_listed'; models: DesignModelSummary[] }
   | { type: 'image_work_listed'; models: DesignModelSummary[] }
   | { type: 'image_art_added'; slug: string; file: string }
+  | { type: 'brand_kits'; kits: unknown[]; activeId: string | null; project: { key: string; path: string } | null; kinds: unknown[]; pieces: unknown; corePieces: unknown[]; projects: unknown[] }
   | { type: 'gimp_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
   | { type: 'blender_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
   | { type: 'storage_scan_loaded'; scan: StorageScan }
@@ -2120,7 +2125,7 @@ export type DashboardToExtMessage =
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`
@@ -2212,7 +2217,15 @@ export type DashboardToExtMessage =
   | { type: 'agree_image_brief'; slug: string }
   | { type: 'save_image_brief'; slug: string; fields: Record<string, string> }
   | { type: 'pick_image_option'; slug: string; index: number }
+  | { type: 'remove_image_final'; slug: string; file: string }
   | { type: 'delete_design_work'; tool: 'blender' | 'gimp'; slug: string }
+  | { type: 'brand_kits_connect'; kits: unknown; activeId: string | null }
+  | { type: 'brand_kit_save'; kit: unknown }
+  | { type: 'brand_kit_delete'; id: string }
+  | { type: 'brand_kit_link'; id: string; link: boolean; project?: string }
+  | { type: 'brand_kit_agree'; id: string }
+  | { type: 'brand_kit_logo_from_library'; kitId: string; assetId: string; file?: string }
+  | { type: 'brand_kit_set_active'; id: string }
   | { type: 'add_image_art'; slug: string }
   | { type: 'open_work_in_gimp'; id: string }
   | { type: 'get_gimp_status' }

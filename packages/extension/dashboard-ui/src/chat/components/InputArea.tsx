@@ -628,7 +628,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSuppor
           <textarea
             id="chat-input"
             ref={textareaRef}
-            autoFocus
+            autoFocus={!suppressAutoFocus}
             value={text}
             onChange={(e) => {
               setText(e.target.value);

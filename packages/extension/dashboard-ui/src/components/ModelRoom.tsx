@@ -192,7 +192,9 @@ export function ModelRoom({ tool = 'blender', busy = false, onActiveModel, onRos
                 }}
               />
             ) : active.built && tool === 'gimp' && active.preview_url ? (
-              <img src={active.preview_url} alt={active.name} className="flex-1 min-h-0 w-full object-contain bg-black/20 p-4" />
+              <div className="relative flex-1 min-h-0 bg-black/20">
+                <img src={active.preview_url} alt={active.name} className="ava-checker absolute inset-4 m-auto max-w-[calc(100%-2rem)] max-h-[calc(100%-2rem)]" />
+              </div>
             ) : active.built && active.glb_url ? (
               <LazyModelViewer fill src={active.glb_url} poster={active.preview_url} alt={active.name} />
             ) : (
@@ -203,6 +205,29 @@ export function ModelRoom({ tool = 'blender', busy = false, onActiveModel, onRos
                     ? tt('dash.studio.model.not_built_agreed', 'The brief is agreed — Ava can start building. Each step appears here.')
                     : tt('dash.studio.model.not_built_brief', 'Once you agree the brief, Ava builds it here, step by step.')}
                 </p>
+              </div>
+            )}
+            {tool === 'gimp' && active.built && (
+              <div className="shrink-0 flex items-center gap-2 overflow-x-auto border-t border-[var(--border-card)] px-3 py-2">
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{tt('dash.studio.finals', 'Final')}</span>
+                {!active.finals?.length && (
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: 'rgba(240,162,75,0.14)', color: '#f0a24b' }}>
+                    {tt('dash.studio.no_final', 'No final yet')}
+                  </span>
+                )}
+                {active.finals?.map((f) => (
+                  <div key={f.file} title={f.file} className="relative shrink-0 group">
+                    <img src={f.url} alt={f.file} className="ava-checker h-10 w-10 rounded border border-[var(--border-card)] object-contain" />
+                    <button
+                      onClick={() => post({ type: 'remove_image_final', slug: active.slug, file: f.file })}
+                      aria-label={tt('dash.studio.finals_remove', 'Remove from finals')}
+                      title={tt('dash.studio.finals_remove', 'Remove from finals')}
+                      className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-black/80 text-[10px] text-white"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
             {active.built && active.creative_id && (
@@ -252,7 +277,7 @@ function OptionsStage({ model, onPick }: { model: DesignModelSummary; onPick: (i
             onClick={() => onPick(i, o.label)}
             className="group flex flex-col gap-2 rounded-xl border border-[var(--border-card)] p-2.5 text-left hover:border-[var(--accent)]/50 hover:bg-[var(--bg-hover)] transition"
           >
-            <img src={o.url} alt={o.label} className="w-full max-h-[280px] object-contain rounded-lg bg-black/20" />
+            <img src={o.url} alt={o.label} className="ava-checker w-full max-h-[280px] object-contain rounded-lg" />
             <span className="text-[12px] font-medium text-[var(--text-primary)]">{o.label}</span>
             {o.note && <span className="text-[11px] text-[var(--text-muted)] leading-relaxed">{o.note}</span>}
           </button>

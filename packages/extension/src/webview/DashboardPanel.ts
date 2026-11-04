@@ -49,7 +49,8 @@ import {
   findBlender, setBlenderPath, blenderStatus, BLENDER_DOWNLOAD_URL,
   listModels, agreeModelBrief, saveModelBriefEdits, BRIEF_FIELDS,
   findGimp, setGimpPath, gimpStatus, GIMP_DOWNLOAD_URL,
-  listImageWork, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, IMAGE_BRIEF_FIELDS,
+  listImageWork, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS,
+  brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, type BrandKitRecord,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -172,6 +173,8 @@ const CONNECTION_SECRETS: Record<string, string[]> = {
 const VIDEO_POLL_CEILING_MS = 45 * 60 * 1000;
 
 export class DashboardPanel {
+  /** The open project. AvaViewProvider owns it; brand kits follow it. */
+  static projectRoot: string | undefined;
   public static currentPanel: DashboardPanel | undefined;
   private static readonly viewType = 'ava-supernova.dashboard';
 
@@ -345,11 +348,18 @@ export class DashboardPanel {
         new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'gimp')), '*/brief.json'),
       );
       imageBriefs.onDidChange(reload); imageBriefs.onDidCreate(reload); imageBriefs.onDidDelete(reload);
-      // Versions she puts on the stage with design_show_options.
+      // Versions she puts on the stage, and the files she marks final.
       const imageOptions = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'gimp')), '*/options.json'),
+        new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'gimp')), '*/{options,finals}.json'),
       );
       imageOptions.onDidChange(reload); imageOptions.onDidCreate(reload); imageOptions.onDidDelete(reload);
+      // Brand kits: one file, shared with the IDE and changed by Ava's tool.
+      const kitsFile = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(vscode.Uri.file(AVA_HOME), 'brand-kits.json'),
+      );
+      const kitsChanged = () => { void this.postBrandKits(); };
+      kitsFile.onDidChange(kitsChanged); kitsFile.onDidCreate(kitsChanged);
+      this.disposables.push(kitsFile);
       this.disposables.push(watcher, briefs, imageBriefs, imageOptions, { dispose: () => { if (timer) clearTimeout(timer); } });
     }
 
@@ -2024,10 +2034,62 @@ export class DashboardPanel {
         await this.loadImageWork();
         break;
 
+      case 'brand_kits_connect':
+        await importBrandKits(msg.kits, msg.activeId);
+        await this.postBrandKits();
+        break;
+
+      case 'brand_kit_save':
+        await saveBrandKit(msg.kit as BrandKitRecord);
+        await this.postBrandKits();
+        break;
+
+      case 'brand_kit_delete':
+        await deleteBrandKit(msg.id);
+        await this.postBrandKits();
+        break;
+
+      case 'brand_kit_logo_from_library': {
+        const items = await readLocalCreative(this.getUserDataDir());
+        const item = items.find((i) => i.id === msg.assetId);
+        if (!item) break;
+        // A file inside a folder asset must really be inside that folder.
+        const folder = msg.file ? modelFolder(this.getUserDataDir(), item) : null;
+        const source = msg.file && folder ? path.resolve(folder, msg.file) : item.absolutePath;
+        if (msg.file && (!folder || !source.startsWith(path.resolve(folder) + path.sep))) break;
+        const kit = await setBrandLogoFromFile(msg.kitId, 'primary', source);
+        if (!kit) vscode.window.showErrorMessage('That file could not be used as a logo.');
+        await this.postBrandKits();
+        break;
+      }
+
+      case 'brand_kit_link':
+        {
+          const project = msg.project ?? DashboardPanel.projectRoot;
+          if (project) await (msg.link ? linkBrandKit : unlinkBrandKit)(msg.id, project);
+        }
+        await this.postBrandKits();
+        break;
+
+      case 'brand_kit_agree':
+        await agreeBrandKit(msg.id);
+        await this.postBrandKits();
+        break;
+
+      case 'brand_kit_set_active':
+        await setActiveBrandKit(msg.id);
+        await this.postBrandKits();
+        break;
+
       case 'delete_design_work':
         // His button, after the room's own are-you-sure.
         await deleteDesignWork(msg.tool, msg.slug);
         await Promise.all([this.loadLocalCreative(), this.loadModels(), this.loadImageWork()]);
+        break;
+
+      case 'remove_image_final':
+        await removeImageFinal(msg.slug, msg.file);
+        await Promise.all([this.loadImageWork(), this.loadLocalCreative()]);
         break;
 
       case 'pick_image_option':
@@ -3147,6 +3209,7 @@ export class DashboardPanel {
   private async loadLocalCreative(): Promise<void> {
     try {
       const items = await readLocalCreativeSized(this.getUserDataDir());
+      const finals = new Map(await Promise.all(items.filter((it) => it.kind === 'gimp').map(async (it) => [it.id, await readImageFinals(it.id.replace(/^gimp_/, ''))] as const)));
       const assets = items.map((it) => {
         const uri = this.panel.webview.asWebviewUri(vscode.Uri.file(it.absolutePath)).toString();
         const base = {
@@ -3165,7 +3228,7 @@ export class DashboardPanel {
           const sheet = `${uri}?v=${stamp}`;
           return {
             ...base, url: sheet, thumbnail_url: sheet,
-            model: { files: it.files, gimp_version: it.gimpVersion, image_count: it.imageCount, updated_at: it.updatedAt },
+            model: { files: it.files, gimp_version: it.gimpVersion, image_count: it.imageCount, updated_at: it.updatedAt, finals: finals.get(it.id) },
           };
         }
         if (it.kind !== 'model') return base;
@@ -3227,6 +3290,7 @@ export class DashboardPanel {
             preview_url: entry && existsSync(entry.absolutePath) ? uri(entry.absolutePath, v) : undefined,
             image_count: entry?.imageCount,
             references: w.references,
+            finals: w.finals.map((file) => ({ file, url: uri(path.join(AVA_HOME, 'creative', 'gimp', w.slug, file), v) })),
             options: w.options ? {
               question: w.options.question,
               items: w.options.options.map((o) => ({
@@ -3246,6 +3310,14 @@ export class DashboardPanel {
     } catch (err) {
       this.log(`[Creative] Could not list GIMP work: ${err instanceof Error ? err.message : String(err)}`);
       this.post({ type: 'image_work_listed', models: [] });
+    }
+  }
+
+  private async postBrandKits(): Promise<void> {
+    try {
+      this.post({ type: 'brand_kits', ...(await brandKitsForApps(DashboardPanel.projectRoot)) });
+    } catch (err) {
+      this.log(`[Creative] Could not read the brand kits: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

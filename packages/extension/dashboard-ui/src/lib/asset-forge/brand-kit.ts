@@ -3,11 +3,20 @@
  * Multiple named kits, one active; switch the active kit and design AND posts
  * come out on that brand. See BRAND_KITS_PLAN.md.
  *
- * Storage: localStorage today (already local). Moving to a shared local file
- * `~/.ava/brand-kits.json` (host/Tauri) so the same kits are seen across the
- * extension, IDE, and hub on one machine — same home as memory. All local; the
- * cloud (Supabase) kit is being retired.
+ * Storage: one local file, `~/.ava/brand-kits.json`, owned by core, so the
+ * extension, the IDE and Ava's tools all see the same kits. Identical in the
+ * extension and the IDE.
  */
+
+export type PieceState = 'not_made' | 'in_progress' | 'agreed';
+export interface PieceDef { id: string; label: string; room: string }
+/** The kinds and their pieces, from the store, so there is one list. */
+export interface KitShapes {
+  kinds: Array<{ id: string; label: string }>;
+  pieces: Record<string, PieceDef[]>;
+  corePieces: PieceDef[];
+  projects: Array<{ path: string; name: string }>;
+}
 
 export interface BrandKit {
   id: string;
@@ -50,6 +59,24 @@ export interface BrandKit {
   defaultVoiceId?: string;
   musicPrompt?: string;
 
+  // ── Projects ──
+  /** Project paths this kit belongs to. A project has one kit. */
+  projects?: string[];
+
+  // ── Its shape ──
+  /** What the project is. It decides which pieces the kit asks for. */
+  kind?: string;
+  pieces?: Record<string, { state: PieceState; note?: string }>;
+  fonts?: { heading?: string; body?: string; ui?: string };
+  pairings?: Array<{ ink: string; on: string; use?: string }>;
+  imageStyle?: string;
+  visualDo?: string[];
+  visualDont?: string[];
+  /** 'proposed' while it waits for them to agree it. */
+  status?: 'proposed';
+  reasoning?: string;
+  proposedFor?: string;
+
   createdAt: number;
   updatedAt: number;
 }
@@ -75,36 +102,136 @@ export function defaultKit(): BrandKit {
   };
 }
 
-export function loadKits(): BrandKit[] {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    const kits = raw ? (JSON.parse(raw) as BrandKit[]) : [];
-    return Array.isArray(kits) && kits.length ? kits : [defaultKit()];
-  } catch {
-    return [defaultKit()];
+// ── The shared store ─────────────────────────────────────────────────────────
+// The kits live in ~/.ava/brand-kits.json. This file is the app's live view of
+// them. Reads stay synchronous for the Studio; changes go to the store, and the
+// store's answer arrives through applyStoreKits. What was in localStorage is
+// offered to the store once, then left untouched as a backup.
+export type KitChange =
+  | { op: 'save'; kit: BrandKit }
+  | { op: 'delete'; id: string }
+  | { op: 'set_active'; id: string };
+
+let store: { kits: BrandKit[]; activeId: string | null } | null = null;
+/** The open project, as the store compares it. */
+let project: { key: string; path: string } | null = null;
+export const kitProject = () => project;
+let shapes: KitShapes = { kinds: [], pieces: {}, corePieces: [], projects: [] };
+export const kitShapes = () => shapes;
+/** The pieces a kit asks for: its kind's, then the ones every kit has. */
+export const kitPieces = (kit: BrandKit): PieceDef[] => [...(kit.kind ? shapes.pieces[kit.kind] ?? [] : []), ...shapes.corePieces];
+let send: ((change: KitChange) => void) | null = null;
+
+function signalKitChange(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('ava-kit-changed'));
+}
+
+/** Last seen from the store, so the Studio opens on the truth. Without it, the
+ *  first paint read the frozen localStorage backup: deleted kits appeared for a
+ *  moment, until the store's answer arrived. */
+const VIEW_KEY = 'ava-forge-brand-kits-view';
+
+function rememberView(): void {
+  if (!store) return;
+  const write = (kits: BrandKit[]) => localStorage.setItem(VIEW_KEY, JSON.stringify({ kits, activeId: store!.activeId }));
+  try { write(store.kits); } catch {
+    // Logos can be too big for localStorage; the store's answer brings them back.
+    try { write(store.kits.map(k => ({ ...k, logo: undefined }))); } catch { /* the store's answer still arrives */ }
   }
 }
 
-export function saveKits(kits: BrandKit[]): void {
-  localStorage.setItem(STORE_KEY, JSON.stringify(kits));
+function remembered(): { kits: BrandKit[]; activeId: string | null } | null {
+  try {
+    const raw = localStorage.getItem(VIEW_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function localKits(): BrandKit[] {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    const kits = raw ? (JSON.parse(raw) as BrandKit[]) : [];
+    return Array.isArray(kits) ? kits : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Connect to the store: offers what localStorage holds, and routes changes. */
+export function connectKitStore(connect: (kits: BrandKit[], activeId: string | null) => void, onChange: (change: KitChange) => void): void {
+  send = onChange;
+  let activeId: string | null = null;
+  try { activeId = localStorage.getItem(ACTIVE_KEY); } catch { /* none */ }
+  connect(localKits(), activeId);
+}
+
+/** The store's kits arrived. A kit edited here more recently keeps that edit:
+ *  a store reply can land after the next keystroke. */
+export function applyStoreKits(kits: BrandKit[], activeId: string | null, openProject: { key: string; path: string } | null = null, kitShapes: KitShapes | null = null): void {
+  project = openProject;
+  if (kitShapes) shapes = kitShapes;
+  const mine = store?.kits ?? [];
+  store = {
+    kits: kits.map(k => {
+      const local = mine.find(m => m.id === k.id);
+      return local && local.updatedAt > k.updatedAt ? local : k;
+    }),
+    activeId,
+  };
+  rememberView();
+  signalKitChange();
+}
+
+/** The real kits, or null until the store has answered. For showing a list:
+ *  loadKits fills in a default so a generator always has colours to use, which
+ *  must never appear as a kit, and nothing older than the store may either. */
+export const storeKits = (): BrandKit[] | null => store?.kits ?? null;
+
+/** Whether a kit belongs to the open project. */
+export function linkedHere(kit: BrandKit): boolean {
+  if (!project) return false;
+  const key = project.key;
+  return (kit.projects ?? []).some(p => {
+    const full = p.replace(/\\/g, '/').replace(/\/+$/, '');
+    return full === key || full.toLowerCase() === key;
+  });
+}
+
+export function loadKits(): BrandKit[] {
+  if (store) return store.kits.length ? store.kits : [defaultKit()];
+  const seen = remembered();
+  if (seen) return seen.kits.length ? seen.kits : [defaultKit()];
+  const kits = localKits();
+  return kits.length ? kits : [defaultKit()];
 }
 
 export function activeKit(): BrandKit {
   const kits = loadKits();
-  const id = localStorage.getItem(ACTIVE_KEY);
+  let id = store?.activeId ?? remembered()?.activeId ?? null;
+  if (!store && !id) {
+    try { id = localStorage.getItem(ACTIVE_KEY); } catch { /* none */ }
+  }
   return kits.find(k => k.id === id) ?? kits[0];
 }
 
 export function setActiveKit(id: string): void {
-  localStorage.setItem(ACTIVE_KEY, id);
+  if (store) store = { ...store, activeId: id };
+  else localStorage.setItem(ACTIVE_KEY, id);
+  send?.({ op: 'set_active', id });
+  signalKitChange();
 }
 
 export function upsertKit(kit: BrandKit): BrandKit[] {
-  const kits = loadKits();
+  const kits = [...loadKits()];
   const i = kits.findIndex(k => k.id === kit.id);
   const next = { ...kit, updatedAt: Date.now() };
   if (i >= 0) kits[i] = next; else kits.push(next);
-  saveKits(kits);
+  if (store) store = { ...store, kits };
+  else localStorage.setItem(STORE_KEY, JSON.stringify(kits));
+  send?.({ op: 'save', kit: next });
+  signalKitChange();
   return kits;
 }
 
@@ -124,12 +251,15 @@ export function createKit(name: string): BrandKit {
   return kit;
 }
 
-/** Delete a kit. Never leaves zero kits (falls back to a fresh default). If the
- *  deleted kit was active, the first remaining kit becomes active. */
+/** Delete a kit. If it was active, the first remaining kit becomes active. */
 export function deleteKit(id: string): BrandKit[] {
   const remaining = loadKits().filter(k => k.id !== id);
-  const next = remaining.length ? remaining : [defaultKit()];
-  saveKits(next);
-  if (localStorage.getItem(ACTIVE_KEY) === id) setActiveKit(next[0].id);
-  return next;
+  if (store) {
+    store = { kits: remaining, activeId: store.activeId === id ? remaining[0]?.id ?? null : store.activeId };
+  } else {
+    localStorage.setItem(STORE_KEY, JSON.stringify(remaining));
+  }
+  send?.({ op: 'delete', id });
+  signalKitChange();
+  return remaining.length ? remaining : [defaultKit()];
 }

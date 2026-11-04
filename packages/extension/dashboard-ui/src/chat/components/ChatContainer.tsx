@@ -56,7 +56,7 @@ interface ChatContainerProps {
    *  Drives the room-aware greeting, starter chips and heading so the Design
    *  Architect reflects the active Open-Canvas view (Video / Voiceover) instead
    *  of always greeting about icons. Defaults to 'icon'. */
-  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp';
+  designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit';
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed
@@ -174,7 +174,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
  * Date is appended in conversational form ("Tuesday") rather than full
  * ISO so it reads like a human picking up a conversation.
  */
-function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' = 'icon'): string {
+function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit' = 'icon'): string {
   const now = new Date();
   const h = now.getHours();
   const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -240,7 +240,7 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
  * chips with prefix-coloured tokens so the modes are recognisable on
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
-function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' }) {
+function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit' }) {
   useLocale();
   const isHealth = lane === 'health';
   const isLearning = lane === 'learning';

@@ -911,9 +911,9 @@ function PreviewModal({
           // Turn and zoom the model itself; Ava's preview render is the poster.
           <LazyModelViewer src={rawCreative.model.glb_url} poster={item.thumbnail} alt={item.title} />
         ) : isFolderAsset && item.thumbnail ? (
-          <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20 p-4" />
+          <img src={item.thumbnail} alt={item.title} className={`max-h-[50vh] object-contain ${isGimp ? 'ava-checker mx-auto block max-w-full' : 'w-full bg-black/20 p-4'}`} />
         ) : isImage && item.thumbnail ? (
-          <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20" />
+          <img src={item.thumbnail} alt={item.title} className={`max-h-[50vh] object-contain ${isGimp ? 'ava-checker mx-auto block max-w-full' : 'w-full bg-black/20'}`} />
         ) : isVideo && mediaSrc ? (
           <MediaPlayer src={mediaSrc} kind="video" />
         ) : isAudio && mediaSrc ? (

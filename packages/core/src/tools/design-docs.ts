@@ -131,7 +131,7 @@ def doc(f):
 CLASSES = [('Gimp.Image', Gimp.Image), ('Gimp.Layer', Gimp.Layer), ('Gimp.Drawable', Gimp.Drawable), ('Gimp.Item', Gimp.Item),
            ('Gimp.TextLayer', Gimp.TextLayer), ('Gimp.Selection', Gimp.Selection), ('Gimp.Path', Gimp.Path), ('Gimp', Gimp)]
 # GObject signatures give types only: set_opacity(opacity:float) cannot tell you
-# the scale is 0-100, and that one fact cost her 15 runs. GIMP's procedure
+# the scale is 0-100, and that one fact cost her about 12 runs. GIMP's procedure
 # database has the description and the real range of every argument.
 def pdb_info(query):
     parts = query.split('.')

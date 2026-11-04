@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode, type
 import type { ExtToDashboardMessage, ChatModel } from '../types/messages';
 import { PenNib } from '@phosphor-icons/react';
 import { post } from '../App';
+import { KitLibraryPicker } from '../components/KitLibraryPicker';
+import { NewKitDialog, type KnownProject } from '../components/NewKitDialog';
 import { TTS_VOICE_CATALOGUE, TTS_VOICES, TTS_VOICE_SPEEDS, TTS_VOICE_VOLUMES, voiceSpeechRate, voiceVolume } from '@ava/core/creative';
 
 import { Chat } from './Chat';
@@ -12,7 +14,7 @@ import { Select } from '../components/Select';
 import { tt, useLocale } from '../i18n';
 import { buildShapeSvg, svgToPngDataUrl } from '../lib/asset-forge/icon-svg';
 import { searchShapes, getShape, type ShapeHit } from '../lib/asset-forge/shape-library';
-import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, type BrandKit } from '../lib/asset-forge/brand-kit';
+import { activeKit, loadKits, upsertKit, setActiveKit, createKit, deleteKit, connectKitStore, applyStoreKits, kitProject, kitPieces, kitShapes, linkedHere, storeKits, type BrandKit, type PieceState } from '../lib/asset-forge/brand-kit';
 import { MATERIALS, armatureSvg, composeIconPrompt, ICON_NEGATIVE, withBrandDirection } from '../lib/asset-forge/generate';
 import { buildLettermark } from '../lib/asset-forge/logo/lettermark';
 import { typesetWordmark } from '../lib/asset-forge/logo/wordmark';
@@ -619,6 +621,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const [panelKit, setPanelKit] = useState<BrandKit | null>(null);  // kit shown in the right drawer
   const [panelOpen, setPanelOpen] = useState(false);                // drawer slid in?
   const [confirmDelete, setConfirmDelete] = useState<BrandKit | null>(null); // kit pending delete-confirm
+  const [pickingLogo, setPickingLogo] = useState(false);            // choosing the logo from the Library
   // Edit the kit in the drawer — persist live; keep the active copy in sync if it's the one.
   const saveKit = (patch: Partial<BrandKit>) => {
     if (!panelKit) return;
@@ -634,40 +637,85 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
     reader.readAsDataURL(file);
   };
   const openKit = (id: string) => { setPanelKit(loadKits().find(k => k.id === id) ?? null); setPanelOpen(true); };
-  const addKit = () => { setPanelKit(createKit('New brand')); setPanelOpen(true); };
+  // A new kit starts by choosing its project, then with Ava or blank.
+  const [newKitOpen, setNewKitOpen] = useState(false);
+  const addKit = () => setNewKitOpen(true);
+  const kitWithAva = (project: KnownProject | null) => {
+    setNewKitOpen(false);
+    setDockOpen(true);
+    window.dispatchEvent(new CustomEvent('ava-design-say', { detail: { text: project ? `Let's make a brand kit for my project "${project.name}" (${project.path}).` : "Let's make a new brand kit." } }));
+  };
+  const kitBlank = (project: KnownProject | null) => {
+    setNewKitOpen(false);
+    const made = createKit('New brand');
+    setPanelKit(made);
+    setPanelOpen(true);
+    if (project) post({ type: 'brand_kit_link', id: made.id, link: true, project: project.path });
+  };
+  // Agreeing is their click. Ava hears once it's really done, and a kit she has
+  // just proposed comes forward by itself.
+  const agreeKit = (id: string) => { pendingAgree.current = id; post({ type: 'brand_kit_agree', id }); };
+  const pendingAgree = useRef<string | null>(null);
+  const seenProposals = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const onChange = () => {
+      const kits = loadKits();
+      const waiting = kits.filter(k => k.status === 'proposed');
+      if (seenProposals.current) {
+        const fresh = waiting.find(k => !seenProposals.current!.has(k.id));
+        if (fresh) { setPanelKit(fresh); setPanelOpen(true); }
+      }
+      seenProposals.current = new Set(kits.map(k => k.id));
+      if (pendingAgree.current) {
+        const done = kits.find(k => k.id === pendingAgree.current);
+        if (done && done.status !== 'proposed') {
+          pendingAgree.current = null;
+          window.dispatchEvent(new CustomEvent('ava-design-say', { detail: { text: `I've agreed the "${done.name}" kit.` } }));
+        }
+      }
+    };
+    window.addEventListener('ava-kit-changed', onChange);
+    return () => window.removeEventListener('ava-kit-changed', onChange);
+  }, []);
   const closePanel = () => setPanelOpen(false);
   const makeActiveId = (id: string) => { setActiveKit(id); setKit(activeKit()); };
   const doDelete = (id: string) => { deleteKit(id); if (panelKit?.id === id) setPanelOpen(false); setKit(activeKit()); setConfirmDelete(null); };
+  // The shared store. Its answers, and changes from Ava or the other app, land
+  // here; the kit open in the drawer follows unless it was just deleted.
+  useEffect(() => {
+    const onKits = (e: MessageEvent) => {
+      if (e.data?.type !== 'brand_kits') return;
+      applyStoreKits(e.data.kits as BrandKit[], e.data.activeId as string | null, e.data.project ?? null, { kinds: e.data.kinds, pieces: e.data.pieces, corePieces: e.data.corePieces, projects: e.data.projects ?? [] });
+      setKit(activeKit());
+      setPanelKit((open) => {
+        if (!open) return open;
+        const fresh = loadKits().find(k => k.id === open.id);
+        if (!fresh) { setPanelOpen(false); return open; }
+        return fresh.updatedAt > open.updatedAt ? fresh : open;
+      });
+    };
+    window.addEventListener('message', onKits);
+    connectKitStore(
+      (kits, activeId) => post({ type: 'brand_kits_connect', kits, activeId }),
+      (change) => post(change.op === 'save' ? { type: 'brand_kit_save', kit: change.kit } : change.op === 'delete' ? { type: 'brand_kit_delete', id: change.id } : { type: 'brand_kit_set_active', id: change.id }),
+    );
+    return () => window.removeEventListener('message', onKits);
+  }, []);
   const KIT_INP = 'w-full bg-[rgba(255,255,255,0.03)] border border-[var(--border-card)] rounded px-2.5 py-1.5 text-[12.5px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]';
   const KIT_LBL = 'text-[11px] text-[var(--text-muted)] block mb-1.5';
   const KIT_BTN_PRIMARY = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-white transition hover:brightness-110';
   const KIT_BTN_GHOST = 'px-2.5 py-1 rounded-md text-[11px] border border-[var(--border-card)] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]';
-  // Reopens where you left it. This was hardcoded to 'icon', so a reload always
-  // dropped you into Icon — worst for Video, which is the lane you deliberately
-  // walk away from because it takes minutes to render.
-  const [view, setView] = useState<ViewId>(() => {
-    try {
-      const saved = localStorage.getItem('ava-design-studio-view');
-      // 'brandkit' is a real view but lives outside the groups, so it needs
-      // naming here or leaving on it would silently reopen on Icon.
-      const known = saved === 'brandkit'
-        || DESIGN_GROUPS.some(g => g.items.some(i => i.id === saved));
-      return saved && known ? (saved as ViewId) : 'icon';
-    } catch {
-      return 'icon';  // storage disabled — not worth failing the page over
-    }
-  });
+  // Always the same place on entry: Video, on the Open Canvas. Every room is one
+  // click away, so a fixed start beats trying to remember the last one.
+  const [view, setView] = useState<ViewId>('video');
   // Without a Qwen key the image, video, voice and icon lanes can't make
-  // anything, so a saved view on one of them opens on Logo instead.
+  // anything, so the Studio opens on Logo instead.
   const needsQwen = (id: ViewId) => !hasQwenKey && QWEN_VIEWS.includes(id);
   useEffect(() => { if (needsQwen(view)) setView('logo'); }, [hasQwenKey, view]);  // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    try { localStorage.setItem('ava-design-studio-view', view); } catch { /* not important enough to throw */ }
-  }, [view]);
   // Which room the Design Architect chat should reflect. The Open-Canvas Video
   // and Voiceover views map to their own rooms; everything else is the icon
   // studio (greeting / chips / heading / persona all follow this).
-  const designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : view === 'image' ? 'image' : view === 'logo' ? 'logo' : view === 'model' ? 'model' : view === 'gimp' ? 'gimp' : 'icon';
+  const designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : view === 'image' ? 'image' : view === 'logo' ? 'logo' : view === 'model' ? 'model' : view === 'gimp' ? 'gimp' : view === 'brandkit' ? 'brandkit' : 'icon';
   // The model on the 3D room's stage — its brief goes to Ava with every turn.
   const [activeModel, setActiveModel] = useState<DesignModelSummary | null>(null);
   const [designBusy, setDesignBusy] = useState(false);
@@ -819,7 +867,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       const status = b.status === 'agreed' ? 'brief AGREED by them' : `brief waiting for their agreement${b.edited_by_person ? ' — THEY EDITED IT, work from their version' : ''}`;
       const art = activeModel.references?.length ? ` · their art in references/: ${activeModel.references.join(', ')}` : '';
       const waiting = activeModel.options ? ` · OPTIONS ON THE STAGE waiting for their pick: ${activeModel.options.question}` : '';
-      return `${roster} ${head} · ${status}${art}${waiting} · ${b.fields.map((f) => `${f.label}: ${f.value}`).join(' · ')}`;
+      const finals = activeModel.finals?.length ? ` · marked final: ${activeModel.finals.map((f) => f.file).join(', ')}` : '';
+      return `${roster} ${head} · ${status}${art}${finals}${waiting} · ${b.fields.map((f) => `${f.label}: ${f.value}`).join(' · ')}`;
+    }
+    if (view === 'brandkit') {
+      const names = (storeKits() ?? []).map(k => `"${k.name}"${k.status === 'proposed' ? ' (proposed, waiting for them)' : ''}`).join(', ');
+      return `Their kits: ${names || 'none yet'}.${panelKit && panelOpen ? ` Open in the panel: "${panelKit.name}" [${panelKit.id}].` : ''}`;
     }
     if (view !== 'logo') return undefined;
     const bits = [
@@ -836,7 +889,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       `wordmark colour: ${logoWordColour}`,
     ].filter(Boolean);
     return bits.join(' · ');
-  }, [view, activeModel, roomWork, logoForm, logoTagline, logoMarkType, logoMark, logoContainer, logoSpec, logoStyle, logoColour, logoSecondary, logoWordColour, logoFontId, kit.styleTags]);
+  }, [view, activeModel, roomWork, panelKit, panelOpen, kit, logoForm, logoTagline, logoMarkType, logoMark, logoContainer, logoSpec, logoStyle, logoColour, logoSecondary, logoWordColour, logoFontId, kit.styleTags]);
   // Register the bundled wordmark fonts (from bytes) when the Logo room opens, so
   // the font picker previews each name in its own typeface.
   useEffect(() => { if (view === 'logo') void registerWordmarkFonts(); }, [view]);
@@ -1329,54 +1382,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         return;
       }
       if (m.command === 'brand_kit') {
-        const a = String(args.action || 'read');
+        // Everything else in design_brand_kit goes straight to the store. Assigning
+        // what's on the canvas is the one action only the canvas can do. A designed
+        // LOGO on the board takes priority; otherwise a fresh image or icon.
         const targetId = typeof args.kit_id === 'string' ? args.kit_id : undefined;
         const find = (id?: string): BrandKit => (id ? loadKits().find(k => k.id === id) : undefined) ?? activeKit();
-        // Fold any provided fields onto a base kit (only the ones passed change).
-        const withFields = (base: BrandKit): BrandKit => ({
-          ...base,
-          name: typeof args.name === 'string' && args.name.trim() ? args.name.trim() : base.name,
-          tagline: typeof args.tagline === 'string' ? args.tagline : base.tagline,
-          positioning: typeof args.positioning === 'string' ? args.positioning : base.positioning,
-          palette: { ...base.palette, ...(args.palette as Partial<BrandKit['palette']> | undefined ?? {}) },
-          styleTags: Array.isArray(args.styleTags) ? (args.styleTags as unknown[]).map(String) : base.styleTags,
-          voice: typeof args.voice === 'string' ? args.voice : base.voice,
-          doRules: Array.isArray(args.doRules) ? (args.doRules as unknown[]).map(String) : base.doRules,
-          dontRules: Array.isArray(args.dontRules) ? (args.dontRules as unknown[]).map(String) : base.dontRules,
-          defaultHashtags: Array.isArray(args.defaultHashtags) ? (args.defaultHashtags as unknown[]).map(String) : base.defaultHashtags,
-          defaultLink: typeof args.defaultLink === 'string' ? args.defaultLink : base.defaultLink,
-        });
-
-        if (a === 'list') {
-          const activeId = activeKit().id;
-          reply(true, { kits: loadKits().map(k => ({ id: k.id, name: k.name, active: k.id === activeId })) });
-        } else if (a === 'create') {
-          const created = withFields(createKit(typeof args.name === 'string' ? args.name : 'New brand'));
-          upsertKit(created);
-          setKit(activeKit());
-          reply(true, created);
-        } else if (a === 'set_active') {
-          if (targetId) setActiveKit(targetId);
-          const k = activeKit();
-          setKit(k);
-          reply(true, k);
-        } else if (a === 'delete') {
-          const name = find(targetId).name;
-          if (targetId) deleteKit(targetId);
-          setKit(activeKit());
-          if (panelKit && targetId && panelKit.id === targetId) closePanel(); // she deleted the kit we had open
-          reply(true, { name, deleted: true });
-        } else if (a === 'rename' || a === 'update') {
-          const next = withFields(find(targetId));
-          upsertKit(next);
-          if (next.id === activeKit().id) setKit(next);
-          if (panelKit && panelKit.id === next.id) setPanelKit(next); // live-refresh the open drawer
-          reply(true, next);
-        } else if (a === 'set_logo') {
-          // Assign what's on the canvas as this kit's logo. A designed LOGO (the
-          // variant currently on the board) takes priority; otherwise a fresh
-          // image/icon. This is why picking a candidate then "set it as the logo"
-          // now works — the logo system is a valid canvas asset, not just images.
+        {
           const slot = (['primary', 'mark', 'light', 'dark'] as const).find(s => s === args.slot) ?? 'primary';
           let asset: string | null = null;
           if (logoSystem) {
@@ -1392,8 +1403,6 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           if (next.id === activeKit().id) setKit(next);
           if (panelKit && panelKit.id === next.id) setPanelKit(next);
           reply(true, { name: next.name, slot });
-        } else {
-          reply(true, find(targetId));
         }
         return;
       }
@@ -1712,24 +1721,40 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
               <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt('ext.studio.brand_kits','Brand Kits')}</h2>
               <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-4">{tt('ext.studio.brand_kits_sub','Multiple brands, one active. The active kit is what every icon, image, and post comes out on. Click a kit to edit it.')}</p>
               <div className="grid gap-3 max-w-[760px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))' }}>
-                {loadKits().map(k => (
+                {(storeKits() ?? []).map(k => (
                   <div key={k.id} onClick={() => openKit(k.id)}
-                    className={`rounded-xl border p-3.5 cursor-pointer transition flex flex-col ${k.id === kit.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.06]' : panelOpen && panelKit?.id === k.id ? 'border-[var(--text-muted)]' : 'border-[var(--border-card)] hover:border-[var(--text-muted)]'}`}>
-                    <div className="flex items-center justify-between gap-2 mb-2">
+                    className={`rounded-xl border overflow-hidden cursor-pointer transition flex flex-col ${k.id === kit.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.06]' : panelOpen && panelKit?.id === k.id ? 'border-[var(--text-muted)]' : 'border-[var(--border-card)] hover:border-[var(--text-muted)]'}`}>
+                    {/* The brand first: its logo on its own surface colour, then its colours. */}
+                    <div className="relative h-[120px] flex items-center justify-center p-5" style={{ background: k.palette.surface }}>
+                      {k.status === 'proposed' && (
+                        <span className="absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: 'rgba(240,162,75,0.2)', color: '#f0a24b' }}>{tt('dash.studio.model.proposed', 'Waiting for you')}</span>
+                      )}
+                      {k.logo?.primary
+                        ? <img src={k.logo.primary} alt={k.name} className="max-w-full max-h-full object-contain" />
+                        : <span className="text-[34px] font-semibold" style={{ color: k.palette.primary }}>{k.name.trim().charAt(0).toUpperCase()}</span>}
+                      {k.id === kit.id && (
+                        <span className="absolute top-2 right-2 text-[8.5px] uppercase tracking-wider text-[var(--accent)] border border-[var(--accent)]/40 rounded px-1.5 py-0.5" style={{ background: 'rgba(13,9,22,0.75)' }}>
+                          {tt('ext.studio.kit_active', 'Active')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex h-2.5 shrink-0">
+                      {Object.entries(k.palette).map(([role, c]) => <span key={role} title={`${role} ${c}`} className="flex-1" style={{ background: c }} />)}
+                    </div>
+                    <div className="p-3 flex flex-col flex-1">
                       <span className="text-[13px] text-[var(--text-primary)] truncate">{k.name}</span>
-                      {k.id === kit.id && <span className="text-[8.5px] uppercase tracking-wider text-[var(--accent)] border border-[var(--accent)]/40 rounded px-1.5 py-0.5 shrink-0">Active</span>}
-                    </div>
-                    {k.tagline ? <div className="text-[11px] text-[var(--text-muted)] mb-2.5 truncate">{k.tagline}</div> : <div className="h-[16px]" />}
-                    <div className="flex gap-1 mb-3">
-                      {Object.values(k.palette).map((c, i) => <span key={i} className="w-5 h-5 rounded" style={{ background: c }} />)}
-                    </div>
-                    <div className="flex items-center gap-2 mt-auto">
-                      {k.id !== kit.id && (
-                        <button onClick={e => { e.stopPropagation(); makeActiveId(k.id); }} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>{tt('ext.studio.make_active','Make active')}</button>
+                      <div className="text-[11px] text-[var(--text-muted)] mt-0.5 min-h-[16px] truncate">{k.tagline}</div>
+                      {!!k.projects?.length && (
+                        <div className="text-[10px] text-[var(--text-muted)] mt-1 truncate" title={k.projects.join('\n')}>
+                          {tt('ext.studio.kit_linked_to', 'Linked to')} {k.projects.map(p => p.split(/[\\/]/).filter(Boolean).pop()).join(', ')}
+                        </div>
                       )}
-                      {loadKits().length > 1 && (
-                        <button onClick={e => { e.stopPropagation(); setConfirmDelete(k); }} className={`${KIT_BTN_GHOST} ml-auto`}>Delete</button>
-                      )}
+                      <div className="flex items-center gap-2 mt-2.5">
+                          {k.id !== kit.id && (
+                            <button onClick={e => { e.stopPropagation(); makeActiveId(k.id); }} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>{tt('ext.studio.make_active','Make active')}</button>
+                          )}
+                          <button onClick={e => { e.stopPropagation(); setConfirmDelete(k); }} className={`${KIT_BTN_GHOST} ml-auto`}>Delete</button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1753,9 +1778,33 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                 </div>
 
                 <div className="flex flex-col gap-4">
+                  {panelKit.status === 'proposed' && (
+                    <div className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/[0.06] p-3 flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] text-[var(--text-primary)]">{tt('ext.studio.kit_proposed', 'Ava\u2019s proposal')}</span>
+                        <span className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: 'rgba(240,162,75,0.14)', color: '#f0a24b' }}>{tt('dash.studio.model.proposed', 'Waiting for you')}</span>
+                      </div>
+                      {panelKit.reasoning && <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">{panelKit.reasoning}</p>}
+                      {panelKit.proposedFor && <p className="text-[11px] text-[var(--text-muted)]">{tt('ext.studio.kit_proposed_for', 'For')} {panelKit.proposedFor.split(/[\\/]/).filter(Boolean).pop()}</p>}
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => agreeKit(panelKit.id)} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>{tt('ext.studio.kit_agree', 'Agree this kit')}</button>
+                        <span className="text-[10.5px] text-[var(--text-muted)]">{tt('ext.studio.kit_agree_hint', 'Question it with Ava, or change anything below first.')}</span>
+                      </div>
+                    </div>
+                  )}
                   <div><label className={KIT_LBL}>{tt('ext.studio.brand_name','Brand name')}</label><input value={panelKit.name} onChange={e => saveKit({ name: e.target.value })} className={KIT_INP} /></div>
                   <div><label className={KIT_LBL}>{tt('ext.studio.tagline','Tagline')}</label><input value={panelKit.tagline ?? ''} onChange={e => saveKit({ tagline: e.target.value })} className={KIT_INP} placeholder="one-liner" /></div>
                   <div><label className={KIT_LBL}>{tt('ext.studio.positioning','Positioning')}</label><input value={panelKit.positioning ?? ''} onChange={e => saveKit({ positioning: e.target.value })} className={KIT_INP} placeholder={tt('ext.studio.positioning_ph',"what it is + who it's for")} /></div>
+
+                  <div>
+                    <label className={KIT_LBL}>{tt('ext.studio.kit_kind', 'What is this kit for?')}</label>
+                    <Select
+                      size="sm"
+                      value={panelKit.kind ?? ''}
+                      onChange={v => { if (v) saveKit({ kind: v }); }}
+                      options={[...(panelKit.kind ? [] : [{ value: '', label: tt('ext.studio.kit_kind_pick', 'Choose one') }]), ...kitShapes().kinds.map(k => ({ value: k.id, label: tt(`ext.studio.kit_kind_${k.id}`, k.label) }))]}
+                    />
+                  </div>
 
                   <div>
                     <label className={KIT_LBL}>{tt('dash.studio.brandkit.palette','Palette')}</label>
@@ -1784,11 +1833,27 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                           {panelKit.logo?.primary ? 'Replace' : 'Upload'}
                           <input type="file" accept="image/*" className="hidden" onChange={e => { onLogoFile(e.target.files?.[0]); e.currentTarget.value = ''; }} />
                         </label>
+                        <button onClick={() => setPickingLogo(true)} className={KIT_BTN_GHOST}>{tt('ext.studio.kit_library_button', 'From Library')}</button>
                         {panelKit.logo?.primary && <button onClick={() => saveKit({ logo: { ...panelKit.logo, primary: undefined } })} className={KIT_BTN_GHOST}>Remove</button>}
                       </div>
                     </div>
-                    <p className="text-[10px] text-[var(--text-muted)] mt-1">{tt('ext.studio.logo_upload_hint','Upload one, or ask Ava to set the image she just made as your logo.')}</p>
+                    <p className="text-[10px] text-[var(--text-muted)] mt-1">{tt('ext.studio.logo_upload_hint','Upload one, choose from your Library, or ask Ava to set the image she just made as your logo.')}</p>
                   </div>
+
+                  <div>
+                    <label className={KIT_LBL}>{tt('ext.studio.kit_fonts', 'Fonts')}</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['heading', 'body', 'ui'] as const).map(use => (
+                        <label key={use} className="flex flex-col gap-1 text-[10px] text-[var(--text-muted)]">
+                          <span className="capitalize">{use === 'ui' ? 'UI' : use}</span>
+                          <input value={panelKit.fonts?.[use] ?? ''} onChange={e => saveKit({ fonts: { ...panelKit.fonts, [use]: e.target.value } })} className={KIT_INP} />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div><label className={KIT_LBL}>{tt('ext.studio.kit_image_style', 'Image style')}</label><textarea value={panelKit.imageStyle ?? ''} onChange={e => saveKit({ imageStyle: e.target.value })} rows={2} className={KIT_INP} /></div>
+                  <div><label className={KIT_LBL}>{tt('ext.studio.kit_visual_do', 'Visual do (one per line)')}</label><textarea value={(panelKit.visualDo ?? []).join('\n')} onChange={e => saveKit({ visualDo: e.target.value.split('\n') })} rows={2} className={KIT_INP} /></div>
+                  <div><label className={KIT_LBL}>{tt('ext.studio.kit_visual_dont', 'Visual don\'t (one per line)')}</label><textarea value={(panelKit.visualDont ?? []).join('\n')} onChange={e => saveKit({ visualDont: e.target.value.split('\n') })} rows={2} className={KIT_INP} /></div>
 
                   <div><label className={KIT_LBL}>{tt('ext.studio.voice_tone','Voice / tone (flows into posts)')}</label><textarea value={panelKit.voice ?? ''} onChange={e => saveKit({ voice: e.target.value })} className={`${KIT_INP} h-20 resize-none`} placeholder={tt('ext.studio.voice_ph','First person, punchy, honest, no hype…')} /></div>
                   <div><label className={KIT_LBL}>Do (one per line)</label><textarea value={(panelKit.doRules ?? []).join('\n')} onChange={e => saveKit({ doRules: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })} className={`${KIT_INP} h-16 resize-none`} /></div>
@@ -1796,13 +1861,53 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                   <div><label className={KIT_LBL}>Default hashtags (comma-separated)</label><input value={(panelKit.defaultHashtags ?? []).join(', ')} onChange={e => saveKit({ defaultHashtags: e.target.value.split(',').map(x => x.trim().replace(/^#/, '')).filter(Boolean) })} className={KIT_INP} placeholder="buildinpublic, localfirst" /></div>
                   <div><label className={KIT_LBL}>{tt('ext.studio.default_link','Default link')}</label><input value={panelKit.defaultLink ?? ''} onChange={e => saveKit({ defaultLink: e.target.value })} className={KIT_INP} placeholder="avasupernova.com" /></div>
 
+                  <div>
+                    <label className={KIT_LBL}>{tt('ext.studio.kit_pieces', 'What this kit needs')}</label>
+                    <div className="flex flex-col gap-1">
+                      {kitPieces(panelKit).map(p => {
+                        const state: PieceState = panelKit.pieces?.[p.id]?.state ?? 'not_made';
+                        return (
+                          <div key={p.id} className="flex items-center gap-2 text-[12px] text-[var(--text-secondary)]">
+                            <span className="min-w-0 flex-1 truncate">{tt(`ext.studio.kit_piece_${p.id}`, p.label)}</span>
+                            <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium" style={state === 'agreed' ? { background: 'rgba(52,211,153,0.12)', color: '#34d399' } : state === 'in_progress' ? { background: 'rgba(240,162,75,0.14)', color: '#f0a24b' } : { background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+                              {state === 'agreed' ? tt('ext.studio.kit_state_agreed', 'Agreed') : state === 'in_progress' ? tt('ext.studio.kit_state_in_progress', 'In progress') : tt('ext.studio.kit_state_not_made', 'Not made')}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {kitProject() && (
+                    <div>
+                      <label className={KIT_LBL}>{tt('ext.studio.kit_project', 'This project')}</label>
+                      <div className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--text-secondary)]">{kitProject()!.path.split(/[\\/]/).filter(Boolean).pop()}</span>
+                        <button onClick={() => post({ type: 'brand_kit_link', id: panelKit.id, link: !linkedHere(panelKit) })} className={KIT_BTN_GHOST}>
+                          {linkedHere(panelKit) ? tt('ext.studio.kit_unlink', 'Unlink') : tt('ext.studio.kit_link', 'Link this kit')}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] mt-1">{tt('ext.studio.kit_project_hint', 'A linked kit is used automatically whenever this project is open.')}</p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 pt-1">
                     {panelKit.id !== kit.id && <button onClick={() => makeActiveId(panelKit.id)} className={KIT_BTN_PRIMARY} style={{ background: 'var(--accent)' }}>{tt('ext.studio.make_active','Make active')}</button>}
-                    {loadKits().length > 1 && <button onClick={() => setConfirmDelete(panelKit)} className={`${KIT_BTN_GHOST} ml-auto`}>Delete</button>}
+                    <button onClick={() => setConfirmDelete(panelKit)} className={`${KIT_BTN_GHOST} ml-auto`}>Delete</button>
                   </div>
                 </div>
               </>)}
             </div>
+
+            {newKitOpen && (
+              <NewKitDialog projects={kitShapes().projects} current={kitProject()?.path ?? null} onWithAva={kitWithAva} onBlank={kitBlank} onClose={() => setNewKitOpen(false)} />
+            )}
+
+            {pickingLogo && panelKit && (
+              <KitLibraryPicker
+                onClose={() => setPickingLogo(false)}
+                onPick={(assetId, file) => { post({ type: 'brand_kit_logo_from_library', kitId: panelKit.id, assetId, file }); setPickingLogo(false); }}
+              />
+            )}
 
             {/* Delete confirmation overlay */}
             {confirmDelete && (

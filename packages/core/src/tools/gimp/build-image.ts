@@ -25,6 +25,7 @@ import type { FunctionSchema } from '../../providers/types.js';
 import type { GenerationManager } from '../generation-manager.js';
 import { recordDesignRun } from '../design-checkin.js';
 import { creativeDir, imagesDir, metadataFile, modelSlug } from '../blender/paths.js';
+import { kitForScripts } from '../../brand/brand-kits.js';
 import { briefStore, type BriefRecord } from '../brief-store.js';
 import { findGimp, GIMP_DOWNLOAD_URL } from './find-gimp.js';
 import { GIMP_RUNNER_PY } from './runner-py.js';
@@ -72,10 +73,31 @@ export interface ImageWorkSummary {
   options: ImageOptions | null;
   /** Their own art, in references/, for her to test against. */
   references: string[];
+  /** The finished files. Everything else in the folder is working material. */
+  finals: string[];
 }
 
 const IMAGE_FILE = /\.(png|jpe?g|webp)$/i;
 const MAX_ART_BYTES = 50 * 1024 * 1024;
+
+/** A work makes dozens of tests and comparisons on the way to a few finished
+ *  files. This list is what counts as the work, wherever it is offered. */
+export async function readImageFinals(slug: string): Promise<string[]> {
+  try {
+    const parsed = JSON.parse(await readFile(join(imagesDir(), slug, 'finals.json'), 'utf-8'));
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((f): f is string => typeof f === 'string' && existsSync(join(imagesDir(), slug, f)));
+  } catch { return []; }
+}
+
+const writeFinals = (slug: string, files: string[]) =>
+  writeFile(join(imagesDir(), slug, 'finals.json'), JSON.stringify(files, null, 2), 'utf-8');
+
+/** Their click on the stage: this file isn't final after all. */
+export async function removeImageFinal(slug: string, file: string): Promise<void> {
+  if (modelSlug(slug) !== slug) return;
+  await writeFinals(slug, (await readImageFinals(slug)).filter((f) => f !== file));
+}
 
 export async function readImageOptions(slug: string): Promise<ImageOptions | null> {
   try { return JSON.parse(await readFile(join(imagesDir(), slug, 'options.json'), 'utf-8')) as ImageOptions; }
@@ -129,6 +151,7 @@ export async function listImageWork(): Promise<ImageWorkSummary[]> {
       slug: e.name, name: brief?.name || e.name, brief, built, updatedAt,
       options: options?.status === 'waiting' ? options : null,
       references: await listImageReferences(e.name),
+      finals: await readImageFinals(e.name),
     });
   }
   return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -332,6 +355,8 @@ export class DesignBuildImageTool implements Tool {
       'LOOK: ava_show(image_or_file, crop=(x,y,w,h), on="#hex" or a picture, label="...") brings it back to you at up to 1024px, up to 4 per run; with none, you see the images this run touched. ava_proof(image_or_file, on=("#f4f4f4","#101014"), widths=(256,120,64)) makes the proof sheet: large on each background, plus its real small sizes. Use these and judge by eye; never measure pixels to find out whether something shows. ' +
       'LAYERS: ava_copy_layer(layer, "name", into=other_image), ava_remove(layer), ava_move(layer, to="top"|"bottom", above=other, below=other). ava_merged(image, layers, "name") is a merged copy as one new layer in the same image, originals untouched. ava_glow(image, layers, radius=24.0, opacity=50.0, colour="#hex", name="Glow") is a real switchable glow; call twice for bloom plus halo. ava_pixel(image, x, y) reads the true "#RRGGBB" there. ava_images() lists the saved images. os is predefined. ' +
       'Layer OPACITY IS 0-100: set_opacity(55.0), never 0.55. ' +
+      'BRAND: KIT is the brand kit for this project: KIT.colour("primary"), KIT.font("heading") for ava_text, KIT.logo("mark") for a real file to ava_place, KIT.name. If (not KIT) there is none: ask them. ' +
+      'FINISH: ava_final(image, "name.png", size=(w, h)) makes the finished file in final/: the real thing, shown on the stage and in the Library, and what brand kits offer. Exports are working files; every piece ends with at least one final, once they are happy. ' +
       'TEXT: ava_text(image, "Words", font="Sans-serif Bold", size=96, colour="#hex", x=0, y=0, spacing=0.0) makes a real editable text layer; print(ava_fonts("match")) lists installed fonts (hundreds are available). ' +
       'After your script the tool saves every image you touched as layered .xcf, writes a PNG of each, renders preview.png, and reports every layer with anything that looks wrong. Each run is a new GIMP with nothing open: ava_image is the only way to reach saved work, and ava_image() with no name opens the main image. Write ONLY this step: saved work is reopened, never rebuild it. Keep layers named and separate: the person owns this file and may open it. ' +
       'If you go below the helpers, this is GIMP 3, not 2: image.select_ellipse(op, x, y, w, h) takes separate numbers, not a tuple; ChannelOps is ADD, SUBTRACT, REPLACE, INTERSECT; select all is Gimp.Selection.all(image); a layer\'s name is layer.get_name(). ava_layer layers already have transparency, so never add_alpha. ' +
@@ -412,7 +437,7 @@ export class DesignBuildImageTool implements Tool {
     const runnerPath = join(tmpdir(), `ava-gimp-runner-${runId}.py`);
     const jobPath = join(tmpdir(), `ava-gimp-job-${runId}.json`);
     await writeFile(runnerPath, GIMP_RUNNER_PY, 'utf-8');
-    await writeFile(jobPath, JSON.stringify({ assetDir, name }), 'utf-8');
+    await writeFile(jobPath, JSON.stringify({ assetDir, name, kit: await kitForScripts((context.sharedState?.designProject as (() => string | null | undefined) | undefined)?.()) }), 'utf-8');
 
     const timeoutS = Math.min(MAX_TIMEOUT_S, Math.max(30, Number(args.timeout_seconds) || DEFAULT_TIMEOUT_S));
     // -n: a GIMP the person has open must not swallow the batch. JSON.stringify
@@ -463,6 +488,9 @@ export class DesignBuildImageTool implements Tool {
       `This step: ${result.images.map((i) => `${i.name} ${i.width}×${i.height} (${i.layers} layer${i.layers === 1 ? '' : 's'})`).join(', ')}.`,
       `Files in ${assetDir}: ${result.files.join(', ')}.`,
     ];
+    if (!(await readImageFinals(slug)).length) {
+      lines.push('NO FINAL YET: this work has working files but no finished one, and only a final counts as the work. Keep going until it is right; when they are happy, make it with ava_final(image, "name.png", size=(w, h)). Don\'t leave a piece without one.');
+    }
     if (result.report?.length) lines.push(`The file now:\n${result.report.join('\n')}`);
     if (result.warnings?.length) lines.push(`CHECK THESE:\n${result.warnings.map((w) => `- ${w}`).join('\n')}`);
     if (printed) lines.push(`What the script printed:\n${printed}`);
@@ -490,6 +518,50 @@ export class DesignBuildImageTool implements Tool {
         ...(looks.length ? { base64_image: looks[0], mime_type: 'image/png', more_images: looks.slice(1) } : {}),
       },
     };
+  }
+}
+
+// ── design_mark_final ────────────────────────────────────────────────────────
+
+export class DesignMarkFinalTool implements Tool {
+  readonly name = 'design_mark_final';
+  readonly description = 'Mark which files in a piece of work are the finished ones, after asking the person.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'design_mark_final',
+    description:
+      'Mark files as FINAL: the finished pieces the person will use, which is what the Library and brand kits offer. Tests, comparisons and proof sheets are never final. ' +
+      'ALWAYS ask them first, and only call this once they have said yes. It adds to the list; they can remove any from the stage.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'The name of the work.' },
+        files: { type: 'array', items: { type: 'string' }, description: 'The images, relative to the work, e.g. ["exports/logo-2x.png"].' },
+      },
+      required: ['name', 'files'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+    const name = String(args.name ?? '').trim();
+    const slug = modelSlug(name);
+    const files = Array.isArray(args.files) ? args.files.map(String) : [];
+    if (!slug || !existsSync(join(imagesDir(), slug))) return { success: false, output: `There is no work called "${name}".` };
+    if (!files.length) return { success: false, output: 'Name the files to mark in `files`.' };
+    const root = resolve(imagesDir(), slug);
+    const clean: string[] = [];
+    for (const raw of files) {
+      const file = raw.replace(/\\/g, '/').replace(/^\.\//, '');
+      const full = resolve(root, file);
+      if (!full.startsWith(root + sep) || !IMAGE_FILE.test(file)) return { success: false, output: `"${file}" is not an image inside this work.` };
+      if (!existsSync(full)) return { success: false, output: `There is no file at ${file}. The files are listed in your last run.` };
+      clean.push(file);
+    }
+    const all = [...new Set([...(await readImageFinals(slug)), ...clean])];
+    await writeFinals(slug, all);
+    return { success: true, output: `Marked final: ${clean.join(', ')}. "${name}" now has ${all.length} final file${all.length === 1 ? '' : 's'}.` };
   }
 }
 

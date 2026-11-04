@@ -46,6 +46,8 @@ export const TOOLS: ToolFact[] = [
   { name: 'design_build_image', category: 'media', description: 'Make or change an image or set in GIMP on your own computer — no window, free — keeping layered files you can open yourself.', risk: 'write' },
   { name: 'design_duplicate_image', category: 'media', description: 'Copy a piece of GIMP work to a new name to try an idea without touching the original.', risk: 'write' },
   { name: 'design_show_options', category: 'media', description: 'Put two to four versions on the stage for you to choose between by eye.', risk: 'write' },
+  { name: 'design_mark_final', category: 'media', description: 'Mark which files in a piece of work are finished, after asking you.', risk: 'write' },
+  { name: 'design_propose_kit', category: 'media', description: 'Propose a brand kit for you to question, edit and agree.', risk: 'write' },
   { name: 'design_api_lookup', category: 'media', description: 'Ask the installed Blender or GIMP exactly how a call, node or filter works.', risk: 'safe' },
   { name: 'design_read_docs', category: 'media', description: 'Read a page of the official Blender, GIMP or GEGL documentation.', risk: 'safe' },
   { name: 'detect_language', category: 'system', description: 'Detect the human language of a text snippet from 20+ supported languages.', risk: 'safe' },

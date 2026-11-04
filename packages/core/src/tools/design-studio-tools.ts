@@ -1,3 +1,5 @@
+import { loadFreshDesignContext } from '../agent/design-reinjection.js';
+import { BRAND_KIT_KINDS, knownProjects, projectKey, proposeBrandKit, brandKitSummary, checkPairings, kitPieceDefs, setBrandPiece, type BrandKitKind, type BrandPieceState, createBrandKit, deleteBrandKit, kitForProject, linkBrandKit, listBrandKits, readBrandKit, setActiveBrandKit, unlinkBrandKit, updateBrandKit, type BrandKitFields, type BrandKitRecord } from '../brand/brand-kits.js';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { TTS_VOICES, TTS_VOICE_CATALOGUE } from '../creative/index.js';
@@ -26,6 +28,23 @@ type DesignControl = (
 
 function getControl(context: ToolExecutionContext): DesignControl | undefined {
   return context.sharedState?.designControl as DesignControl | undefined;
+}
+
+/**
+ * The GIMP and Blender rooms make things by hand: the brief, then real files.
+ * Generation is only an aid there, so these makers refuse in those rooms. A
+ * prompt alone didn't hold: on 4 Nov 2026 she answered a logo request in the
+ * GIMP room with the logo generator, and no brief or file ever existed.
+ */
+function headlessRoomRefusal(context: ToolExecutionContext): ToolResult | null {
+  const room = (context.sharedState?.designRoom as (() => string) | undefined)?.();
+  if (room !== 'gimp' && room !== 'model') return null;
+  const maker = room === 'gimp' ? 'GIMP' : 'Blender';
+  const tool = room === 'gimp' ? 'design_propose_image_brief, then design_build_image' : 'design_propose_model_brief, then design_build_model';
+  return {
+    success: false,
+    output: `Not in this room: here the work is made in ${maker}, not generated. Research, propose the brief (${tool}), and make it once they agree. design_generate_image can still supply a layer or a reference if the brief calls for it.`,
+  };
 }
 
 const NO_CANVAS =
@@ -139,6 +158,8 @@ export class DesignGenerateIconTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const refused = headlessRoomRefusal(context);
+    if (refused) return refused;
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
     const shape = (args.shape as string | undefined)?.trim();
@@ -212,6 +233,8 @@ export class DesignGenerateSetTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const refused = headlessRoomRefusal(context);
+    if (refused) return refused;
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
     const shapes = Array.isArray(args.shapes) ? (args.shapes as unknown[]).map(String).map((s) => s.trim()).filter(Boolean) : [];
@@ -255,8 +278,8 @@ export class DesignBrandKitTool implements Tool {
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete', 'set_logo'],
-          description: 'list all kits · read one · create a new kit · update fields · set_active (switch) · rename · delete · set_logo (assign the asset currently on the canvas as this kit\'s logo).',
+          enum: ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete', 'set_logo', 'link_project', 'unlink_project', 'set_piece', 'read_project'],
+          description: 'list all kits · read one · create a new kit · update fields · set_active (switch) · rename · delete · set_logo (assign the asset currently on the canvas as this kit\'s logo) · link_project / unlink_project (tie this kit to the open project, or let it go; ask them first) · read_project (read a project\'s Decisions folder, to learn what it is, before proposing a kit) · set_piece (move a piece of the kit on: not_made, in_progress, agreed; agreed only once they have said so).',
         },
         kit_id: { type: 'string', description: 'Target kit id (from "list"). Omit for read/update/set_logo to mean the ACTIVE kit. Required for set_active / delete / a specific rename.' },
         slot: { type: 'string', enum: ['primary', 'mark', 'light', 'dark'], description: 'For set_logo — which logo slot to assign the current canvas asset to. Defaults to "primary".' },
@@ -271,6 +294,21 @@ export class DesignBrandKitTool implements Tool {
           },
         },
         styleTags: { type: 'array', items: { type: 'string' }, description: 'For update — direction words ("calm", "premium", "playful").' },
+        project: { type: 'string', description: 'For read_project — the project path, as given in their message.' },
+        // ── The kit's shape ──
+        kind: { type: 'string', enum: ['game', 'app', 'website', 'business'], description: 'For create/update — what the project is; it decides which pieces the kit asks for. Ask them for an existing kit; never guess.' },
+        piece: { type: 'string', description: 'For set_piece — the piece id, as listed by "read".' },
+        state: { type: 'string', enum: ['not_made', 'in_progress', 'agreed'], description: 'For set_piece.' },
+        note: { type: 'string', description: 'For set_piece — a short note, optional.' },
+        fonts: { type: 'object', description: 'For update — installed font names by use.', properties: { heading: { type: 'string' }, body: { type: 'string' }, ui: { type: 'string' } } },
+        pairings: {
+          type: 'array',
+          description: 'For update — which colour goes on which. Roles ("primary") or hex. Contrast is worked out for you.',
+          items: { type: 'object', properties: { ink: { type: 'string' }, on: { type: 'string' }, use: { type: 'string' } }, required: ['ink', 'on'] },
+        },
+        imageStyle: { type: 'string', description: 'For update — how images for this brand look.' },
+        visualDo: { type: 'array', items: { type: 'string' }, description: 'For update — visual rules to always follow.' },
+        visualDont: { type: 'array', items: { type: 'string' }, description: 'For update — visual rules to never break.' },
         // ── Identity ──
         tagline: { type: 'string', description: 'For update — the brand tagline / one-liner.' },
         positioning: { type: 'string', description: 'For update — one line: what the brand is + who it\'s for.' },
@@ -286,64 +324,177 @@ export class DesignBrandKitTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const control = getControl(context);
-    if (!control) return { success: false, output: NO_CANVAS };
-
-    const allowed = ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete', 'set_logo'];
+    const allowed = ['list', 'read', 'create', 'update', 'set_active', 'rename', 'delete', 'set_logo', 'link_project', 'unlink_project', 'set_piece', 'read_project'];
     const action = allowed.includes(args.action as string) ? (args.action as string) : 'read';
+    const project = (context.sharedState?.designProject as (() => string | null | undefined) | undefined)?.() ?? null;
+    const named = typeof args.kit_id === 'string' && args.kit_id ? args.kit_id : undefined;
+    const fields: BrandKitFields = {
+      name: args.name as string | undefined,
+      palette: args.palette as BrandKitFields['palette'],
+      styleTags: args.styleTags as string[] | undefined,
+      tagline: args.tagline as string | undefined,
+      positioning: args.positioning as string | undefined,
+      voice: args.voice as string | undefined,
+      doRules: args.doRules as string[] | undefined,
+      dontRules: args.dontRules as string[] | undefined,
+      defaultHashtags: args.defaultHashtags as string[] | undefined,
+      defaultLink: args.defaultLink as string | undefined,
+      kind: args.kind as BrandKitKind | undefined,
+      fonts: args.fonts as BrandKitFields['fonts'],
+      pairings: args.pairings as BrandKitFields['pairings'],
+      imageStyle: args.imageStyle as string | undefined,
+      visualDo: args.visualDo as string[] | undefined,
+      visualDont: args.visualDont as string[] | undefined,
+    };
+    if (fields.kind && !BRAND_KIT_KINDS.some((k) => k.id === fields.kind)) {
+      return { success: false, output: `A kit's kind is one of: ${BRAND_KIT_KINDS.map((k) => k.id).join(', ')}.` };
+    }
 
     try {
-      const res = await control('brand_kit', {
-        action,
-        kit_id: args.kit_id,
-        slot: args.slot,
-        name: args.name,
-        palette: args.palette,
-        styleTags: args.styleTags,
-        tagline: args.tagline,
-        positioning: args.positioning,
-        voice: args.voice,
-        doRules: args.doRules,
-        dontRules: args.dontRules,
-        defaultHashtags: args.defaultHashtags,
-        defaultLink: args.defaultLink,
-      });
-      if (!res.ok) return { success: false, output: res.error || 'Brand kit unavailable.' };
+      // With no kit named, "the kit" is the one in use here, never another brand's.
+      const inUse = await kitForProject(project);
+      const kitId = named ?? inUse.kit?.id;
 
-      // list → a roster of kits with the active one flagged.
-      if (action === 'list') {
-        const kits = (res.data as { kits?: Array<{ id: string; name: string; active?: boolean }> })?.kits ?? [];
-        if (!kits.length) return { success: true, output: 'No brand kits yet — create one with action="create".', metadata: res.data as Record<string, unknown> | undefined };
-        const roster = kits.map(k => `${k.name}${k.active ? ' (active)' : ''}`).join(', ');
-        return { success: true, output: `Brand kits: ${roster}.`, metadata: res.data as Record<string, unknown> | undefined };
+      if (action === 'link_project' || action === 'unlink_project') {
+        if (!project) return { success: false, output: 'No project is open, so there is nothing to link.' };
+        if (!kitId) return { success: false, output: 'Say which kit: this needs a kit_id from "list".' };
+        const done = action === 'link_project' ? await linkBrandKit(kitId, project) : await unlinkBrandKit(kitId, project);
+        if (!done) return { success: false, output: 'There is no kit with that id.' };
+        return { success: true, output: action === 'link_project' ? `Linked — "${done.name}" is now this project's kit.` : `Unlinked — "${done.name}" no longer belongs to this project.` };
       }
 
-      // Everything else returns the affected kit.
-      const kit = res.data as {
-        name?: string; palette?: Record<string, string>; styleTags?: string[];
-        voice?: string; tagline?: string;
-      } | undefined;
-      const pal = kit?.palette ? Object.entries(kit.palette).map(([k, v]) => `${k} ${String(v).toUpperCase()}`).join(', ') : '';
-      const tags = kit?.styleTags?.length ? ` · style: ${kit.styleTags.join(', ')}` : '';
-      const voice = kit?.voice ? ` · voice set` : '';
-      const verb =
-        action === 'create' ? 'Created' :
-        action === 'set_active' ? 'Now active' :
-        action === 'rename' ? 'Renamed' :
-        action === 'delete' ? 'Deleted' :
-        action === 'set_logo' ? 'Logo set' :
-        action === 'update' ? 'Updated' : 'Brand kit';
-      const body = action === 'delete'
-        ? `Deleted "${kit?.name || 'kit'}".`
-        : `"${kit?.name || 'brand'}"${pal ? ': ' + pal : ''}${tags}${voice}.`;
+      if (action === 'read_project') {
+        const wanted = typeof args.project === 'string' && args.project ? args.project : project;
+        if (!wanted) return { success: false, output: 'Say which project: this needs its path.' };
+        // Only somewhere they have opened: this is not a way to read any folder.
+        const known = (await knownProjects(project)).find((p) => projectKey(p.path) === projectKey(wanted));
+        if (!known) return { success: false, output: 'That is not one of their projects.' };
+        const context_ = await loadFreshDesignContext(known.path).catch(() => null);
+        return { success: true, output: context_ ? `From the Decisions folder of "${known.name}":\n\n${context_}` : `"${known.name}" has no Decisions folder to read. Ask them what it is.` };
+      }
+
+      if (action === 'set_piece') {
+        if (!kitId) return { success: false, output: 'Say which kit: this needs a kit_id from "list".' };
+        const target = await readBrandKit(kitId);
+        if (!target) return { success: false, output: 'There is no kit with that id.' };
+        const piece = String(args.piece ?? '');
+        const state = args.state as BrandPieceState;
+        const defs = kitPieceDefs(target.kind);
+        if (!defs.some((d) => d.id === piece)) return { success: false, output: `This kit has no piece "${piece}". It has: ${defs.map((d) => d.id).join(', ')}.` };
+        if (!['not_made', 'in_progress', 'agreed'].includes(state)) return { success: false, output: 'state is not_made, in_progress or agreed.' };
+        await setBrandPiece(kitId, piece, state, typeof args.note === 'string' ? args.note : undefined);
+        return { success: true, output: `"${piece}" is now ${state.replace('_', ' ')} on "${target.name}".` };
+      }
+
+      if (action === 'list') {
+        const { kits, activeId } = await listBrandKits();
+        if (!kits.length) return { success: true, output: 'No brand kits yet — create one with action="create".' };
+        const roster = kits.map((k) => `${k.name}${k.id === activeId ? ' (active)' : ''} [${k.id}]`).join(', ');
+        return { success: true, output: `Brand kits: ${roster}.`, metadata: { kits: kits.map((k) => ({ id: k.id, name: k.name, active: k.id === activeId })) } };
+      }
+
+      // Assigning what's on the canvas is the one action that needs the canvas.
+      if (action === 'set_logo') {
+        const control = getControl(context);
+        if (!control) return { success: false, output: NO_CANVAS };
+        const res = await control('brand_kit', { action, kit_id: args.kit_id, slot: args.slot });
+        if (!res.ok) return { success: false, output: res.error || 'Could not set the logo.' };
+        const made = res.data as { name?: string; slot?: string } | undefined;
+        return { success: true, output: `Logo set — "${made?.name || 'brand'}", ${made?.slot || 'primary'} slot.`, metadata: made as Record<string, unknown> | undefined };
+      }
+
+      if (action === 'delete') {
+        if (!kitId) return { success: false, output: 'Say which kit: delete needs a kit_id from "list".' };
+        const target = await readBrandKit(kitId);
+        if (!target || !(await deleteBrandKit(kitId))) return { success: false, output: 'There is no kit with that id.' };
+        return { success: true, output: `Deleted — "${target.name}".` };
+      }
+
+      let kit: BrandKitRecord | null;
+      if (action === 'create') kit = await createBrandKit(fields);
+      else if (action === 'set_active') {
+        if (!kitId) return { success: false, output: 'Say which kit: set_active needs a kit_id from "list".' };
+        kit = await setActiveBrandKit(kitId);
+      } else if (action === 'update' || action === 'rename') kit = await updateBrandKit(kitId, fields);
+      else if (!kitId) return { success: true, output: brandKitSummary(inUse) };
+      else kit = await readBrandKit(kitId);
+      if (!kit) return { success: false, output: named ? 'There is no kit with that id.' : brandKitSummary(inUse) };
+
+      const pal = Object.entries(kit.palette).map(([k, v]) => `${k} ${String(v).toUpperCase()}`).join(', ');
+      const tags = kit.styleTags?.length ? ` · style: ${kit.styleTags.join(', ')}` : '';
+      const voice = kit.voice ? ' · voice set' : '';
+      const weak = checkPairings(kit).filter((p) => p.verdict === 'too low').map((p) => `${p.ink} on ${p.on} is only ${p.ratio}:1`);
+      const verb = action === 'create' ? 'Created' : action === 'set_active' ? 'Now active' : action === 'rename' ? 'Renamed' : action === 'update' ? 'Updated' : 'Brand kit';
       return {
         success: true,
-        output: `${verb} — ${body}${action === 'set_active' ? ' Design and posts now come out on this brand.' : ''}`,
-        metadata: kit as Record<string, unknown> | undefined,
+        output: `${verb} — "${kit.name}" [${kit.id}]: ${pal}${tags}${voice}.${action === 'set_active' ? ' Design and posts now come out on this brand.' : ''}\n${action === 'read' ? brandKitSummary({ status: 'active', kit }) : ''}${weak.length ? `\nToo low to read: ${weak.join('; ')}.` : ''}`.trim(),
+        metadata: kit as unknown as Record<string, unknown>,
       };
     } catch (err) {
       return { success: false, output: `Brand kit failed: ${err instanceof Error ? err.message : String(err)}` };
     }
+  }
+}
+
+// ── design_propose_kit ───────────────────────────────────────────────────────
+
+export class DesignProposeKitTool implements Tool {
+  readonly name = 'design_propose_kit';
+  readonly description = 'Propose a brand kit for the person to question, edit and agree. Nothing is in use until they agree it.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'design_propose_kit',
+    description:
+      'Put a proposed brand kit in front of the person, after reading the project and researching. Give YOUR point of view on every field, with your reasoning; never hand the questions back. ' +
+      'They question it, may edit it, and agree it in the kit panel: you cannot agree it yourself, and it is used nowhere until they do. Call again with kit_id when the discussion changes it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        kit_id: { type: 'string', description: 'The kit, when revising your proposal. Omit for a new one.' },
+        project: { type: 'string', description: 'The project path this kit is for, as given in their message. Omit if there is none.' },
+        name: { type: 'string', description: 'The brand name.' },
+        kind: { type: 'string', enum: ['game', 'app', 'website', 'business'], description: 'What the project is.' },
+        positioning: { type: 'string', description: 'One line: what it is and who it is for.' },
+        tagline: { type: 'string' },
+        palette: { type: 'object', description: 'All five roles as hex.', properties: { primary: { type: 'string' }, secondary: { type: 'string' }, accent: { type: 'string' }, neutral: { type: 'string' }, surface: { type: 'string' } } },
+        pairings: { type: 'array', description: 'Which colour goes on which. Contrast is worked out for you.', items: { type: 'object', properties: { ink: { type: 'string' }, on: { type: 'string' }, use: { type: 'string' } }, required: ['ink', 'on'] } },
+        fonts: { type: 'object', description: 'Installed font names by use.', properties: { heading: { type: 'string' }, body: { type: 'string' }, ui: { type: 'string' } } },
+        styleTags: { type: 'array', items: { type: 'string' } },
+        imageStyle: { type: 'string', description: 'How images for this brand look.' },
+        visualDo: { type: 'array', items: { type: 'string' } },
+        visualDont: { type: 'array', items: { type: 'string' } },
+        voice: { type: 'string', description: 'How it writes.' },
+        reasoning: { type: 'string', description: 'Why you made these calls, and the one thing you most want them to weigh.' },
+      },
+      required: ['name', 'kind', 'palette', 'reasoning'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+    const reasoning = String(args.reasoning ?? '').trim();
+    if (!reasoning) return { success: false, output: 'Give your reasoning: it is what they question.' };
+    if (!BRAND_KIT_KINDS.some((k) => k.id === args.kind)) return { success: false, output: `A kit's kind is one of: ${BRAND_KIT_KINDS.map((k) => k.id).join(', ')}.` };
+    let project: string | null = null;
+    if (typeof args.project === 'string' && args.project) {
+      const known = (await knownProjects()).find((p) => projectKey(p.path) === projectKey(args.project as string));
+      if (!known) return { success: false, output: 'That is not one of their projects. Use the path from their message.' };
+      project = known.path;
+    }
+    const made = await proposeBrandKit(typeof args.kit_id === 'string' && args.kit_id ? args.kit_id : undefined, {
+      name: args.name as string, kind: args.kind as BrandKitKind, positioning: args.positioning as string | undefined, tagline: args.tagline as string | undefined,
+      palette: args.palette as BrandKitFields['palette'], pairings: args.pairings as BrandKitFields['pairings'], fonts: args.fonts as BrandKitFields['fonts'],
+      styleTags: args.styleTags as string[] | undefined, imageStyle: args.imageStyle as string | undefined,
+      visualDo: args.visualDo as string[] | undefined, visualDont: args.visualDont as string[] | undefined, voice: args.voice as string | undefined,
+    }, reasoning, project);
+    if ('refused' in made) return { success: false, output: made.refused };
+    const weak = checkPairings(made).filter((p) => p.verdict === 'too low').map((p) => `${p.ink} on ${p.on} is only ${p.ratio}:1`);
+    return {
+      success: true,
+      output: `"${made.name}" is in front of them [${made.id}]. Talk them through it in a few lines, and stop: they agree it in the kit panel.${weak.length ? ` Fix before they see it: ${weak.join('; ')}.` : ''}`,
+      metadata: { kit_id: made.id },
+    };
   }
 }
 
@@ -438,6 +589,8 @@ export class DesignGenerateVideoTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const refused = headlessRoomRefusal(context);
+    if (refused) return refused;
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
     const prompt = (args.prompt as string | undefined)?.trim();
@@ -602,6 +755,8 @@ export class DesignGenerateLogoTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const refused = headlessRoomRefusal(context);
+    if (refused) return refused;
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
     const direction = (args.direction as string | undefined)?.trim();
@@ -693,6 +848,8 @@ export class DesignExploreLogosTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const refused = headlessRoomRefusal(context);
+    if (refused) return refused;
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
     const candidates = Array.isArray(args.candidates) ? args.candidates as Record<string, unknown>[] : [];
@@ -799,6 +956,8 @@ export class DesignGenerateVoiceTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const refused = headlessRoomRefusal(context);
+    if (refused) return refused;
     const control = getControl(context);
     if (!control) return { success: false, output: NO_CANVAS };
     const script = (args.script as string | undefined)?.trim();

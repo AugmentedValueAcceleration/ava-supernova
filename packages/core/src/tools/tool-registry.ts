@@ -88,12 +88,12 @@ import {
   DesignGenerateVoiceTool,
   DesignGenerateLogoTool,
   DesignExploreLogosTool,
-  DesignBrandKitTool,
+  DesignBrandKitTool, DesignProposeKitTool,
   DesignSaveTool,
 } from './design-studio-tools.js';
 import { DesignBuildModelTool, DesignDuplicateModelTool } from './blender/build-model.js';
 import { DesignProposeModelBriefTool } from './blender/model-brief.js';
-import { DesignBuildImageTool, DesignDuplicateImageTool, DesignProposeImageBriefTool, DesignShowOptionsTool } from './gimp/build-image.js';
+import { DesignBuildImageTool, DesignDuplicateImageTool, DesignProposeImageBriefTool, DesignShowOptionsTool, DesignMarkFinalTool } from './gimp/build-image.js';
 import { DesignApiLookupTool, DesignReadDocsTool } from './design-docs.js';
 import { DocumentManageTool } from './document-manage.js';
 import { DocumentAuthorTool } from './document-author.js';
@@ -194,7 +194,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // 3D in Blender — free and local, but it runs a script and writes files.
   design_build_model: 'media', design_duplicate_model: 'media', design_propose_model_brief: 'media',
   // 2D in GIMP — the same.
-  design_build_image: 'media', design_duplicate_image: 'media', design_propose_image_brief: 'media', design_show_options: 'media',
+  design_build_image: 'media', design_duplicate_image: 'media', design_propose_image_brief: 'media', design_show_options: 'media', design_mark_final: 'media', design_propose_kit: 'media',
   // Read-only: the installed program and the official docs.
   design_api_lookup: 'media', design_read_docs: 'media',
   // Social Studio's paid outputs. These were in no category at all, so they
@@ -490,6 +490,8 @@ export class ToolRegistry {
       new DesignBuildImageTool(),
       new DesignDuplicateImageTool(),
       new DesignShowOptionsTool(),
+      new DesignProposeKitTool(),
+      new DesignMarkFinalTool(),
       new DesignApiLookupTool(),
       new DesignReadDocsTool(),
       new HealthPlanListTool(),

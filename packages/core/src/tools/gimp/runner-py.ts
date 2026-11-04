@@ -4,6 +4,8 @@
  * Proven on GIMP 3.2.6, 4 Nov 2026: an icon built, reopened and added to, a
  * second image joining the set, and every guard refusal confirmed.
  */
+import { KIT_PY } from '../../brand/kit-py.js';
+
 // prettier-ignore
 export const GIMP_RUNNER_PY = String.raw`# Ava's GIMP runner. Started by design_build_image as:
 #   gimp-console -i --batch-interpreter python-fu-eval -b "exec(open(r'runner.py').read())" --quit
@@ -20,6 +22,7 @@ JOB = json.load(open(os.environ['AVA_GIMP_JOB'], encoding='utf-8'))
 ASSET_DIR = os.path.realpath(JOB['assetDir'])
 STARTED = time.time()
 result = {'ok': False, 'files': [], 'warnings': [], 'images': [], 'report': [], 'looks': []}
+${KIT_PY}
 
 def emit():
     sys.stdout.write('\n@@AVA_RESULT@@' + json.dumps(result) + '\n')
@@ -173,6 +176,26 @@ def ava_export(image, filename, size=None):
     copy.delete()
     print(f'AVA_EXPORT: exports/{filename}')
     return 'exports/' + filename
+
+
+_new_finals = []
+
+def ava_final(image, filename, size=None):
+    """Make a finished file: the real thing, not a test. It goes in final/, shows
+    on the stage and in the Library, and is what brand kits offer. Use it when
+    the piece is done and they are happy. A run that fails adds nothing."""
+    _visible(image)
+    out = os.path.join(ASSET_DIR, 'final')
+    os.makedirs(out, exist_ok=True)
+    copy = image.duplicate()
+    copy.merge_visible_layers(Gimp.MergeType.CLIP_TO_IMAGE)
+    if size:
+        copy.scale(int(size[0]), int(size[1]))
+    Gimp.file_save(Gimp.RunMode.NONINTERACTIVE, copy, _file(os.path.join(out, filename)), None)
+    copy.delete()
+    _new_finals.append('final/' + filename)
+    print(f'AVA_FINAL: final/{filename}')
+    return 'final/' + filename
 
 
 # ── Drawing helpers ──────────────────────────────────────────────────────────
@@ -511,7 +534,7 @@ def ava_proof(what, on=('#f4f4f4', '#808080', '#101014'), widths=(256, 120, 64),
 
 # ── The report after every run ───────────────────────────────────────────────
 # What the file really is, so a mistake shows without guessing: her glow sat at
-# opacity 0.55 of 100 for 15 runs, and opaque layers hid her wordmark for 12.
+# opacity 0.55 of 100 for about 12 runs, and opaque layers hid her wordmark for 12.
 def _report(name, img):
     W, H = img.get_width(), img.get_height()
     lines, warns = [f'{name} ({W}×{H}), top layer first:'], []
@@ -570,9 +593,9 @@ sys.addaudithook(_hook)
 # ── Ava's script ─────────────────────────────────────────────────────────────
 script_path = os.path.join(ASSET_DIR, 'script.py')
 ns = {'__name__': '__main__', '__file__': script_path, 'ASSET_DIR': ASSET_DIR,
-      'Gimp': Gimp, 'Gegl': Gegl, 'Gio': Gio, 'os': os,
+      'Gimp': Gimp, 'Gegl': Gegl, 'Gio': Gio, 'os': os, 'KIT': KIT,
       'ava_copy_layer': ava_copy_layer, 'ava_remove': ava_remove, 'ava_move': ava_move, 'ava_merged': ava_merged,
-      'ava_glow': ava_glow, 'ava_pixel': ava_pixel, 'ava_images': ava_images, 'ava_show': ava_show, 'ava_proof': ava_proof,
+      'ava_glow': ava_glow, 'ava_pixel': ava_pixel, 'ava_images': ava_images, 'ava_show': ava_show, 'ava_proof': ava_proof, 'ava_final': ava_final,
       'ava_image': ava_image, 'ava_layer': ava_layer, 'ava_place': ava_place,
       'ava_filter': ava_filter, 'ava_export': ava_export, 'ava_fill': ava_fill, 'ava_cut': ava_cut,
       'ava_gradient': ava_gradient, 'ava_text': ava_text, 'ava_fonts': ava_fonts}
@@ -618,18 +641,28 @@ try:
         result['warnings'] += warns
     if not saved_any:
         raise RuntimeError(f'Nothing to save: no image here has any layers. Saved images in this work: {ava_images()}. Open one by name, or add a layer.')
-    # Preview: one image as it is, or every image in the folder on a sheet.
-    names = [n for n in ava_images() if os.path.exists(os.path.join(ASSET_DIR, n + '.png'))]
+    # Finals are written last, so a failed run can't add one.
+    finals_path = os.path.join(ASSET_DIR, 'finals.json')
+    try:
+        finals = json.load(open(finals_path, encoding='utf-8'))
+    except Exception:
+        finals = []
+    finals += [f for f in _new_finals if f not in finals]
+    if _new_finals:
+        json.dump(finals, open(finals_path, 'w', encoding='utf-8'), indent=2)
+    # Preview: the finished files once there are any. Until then, every image in
+    # the folder, so the stage and Library show the work and not its tests.
+    shown = [os.path.join(ASSET_DIR, f) for f in finals if os.path.exists(os.path.join(ASSET_DIR, f))]
+    names = shown or [os.path.join(ASSET_DIR, n + '.png') for n in ava_images() if os.path.exists(os.path.join(ASSET_DIR, n + '.png'))]
     cols = (min(len(names), 3) if len(names) <= 6 else 6) or 1
     rows = (len(names) + cols - 1) // cols
     cell = 768 if len(names) == 1 else 512 if len(names) <= 6 else 256
     sheet = Gimp.Image.new(cols * cell, rows * cell, Gimp.ImageBaseType.RGB)
     bg = Gimp.Layer.new(sheet, 'bg', cols * cell, rows * cell, Gimp.ImageType.RGBA_IMAGE, 100, Gimp.LayerMode.NORMAL)
     sheet.insert_layer(bg, None, 0)
-    Gimp.context_set_foreground(Gegl.Color.new('#2a2733'))
-    bg.fill(Gimp.FillType.FOREGROUND)
+    # Left empty on purpose: transparency stays real, so the room can show it.
     for i, n in enumerate(names):
-        lay = Gimp.file_load_layer(Gimp.RunMode.NONINTERACTIVE, sheet, _file(os.path.join(ASSET_DIR, n + '.png')))
+        lay = Gimp.file_load_layer(Gimp.RunMode.NONINTERACTIVE, sheet, _file(n))
         sheet.insert_layer(lay, None, 0)
         w, h = lay.get_width(), lay.get_height()
         k = min((cell - 16) / w, (cell - 16) / h)

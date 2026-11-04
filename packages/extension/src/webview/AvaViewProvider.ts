@@ -28,6 +28,8 @@ import {
   getWorkTalkPrefix,
   getHealthRoomPrefix,
   getDesignStudioPrefix,
+  kitForProject,
+  brandKitSummary,
   type DesignRoom,
   loadFreshDesignContext,
   summariseEquipment,
@@ -495,6 +497,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private async refreshProjectContext(): Promise<void> {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
     this.projectRoot = detectProjectRoot(cwd) ?? undefined;
+    DashboardPanel.projectRoot = this.projectRoot;
 
     // Everything below is local only — user data never goes to the cloud.
     // Matches the IDE.
@@ -853,7 +856,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           : undefined;
         // Remember which Design Studio room the design-lane turn came from so the
         // Design Architect prefix reflects where the operator is standing.
-        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon' || msg.designRoom === 'image' || msg.designRoom === 'logo' || msg.designRoom === 'model' || msg.designRoom === 'gimp') {
+        if (msg.designRoom === 'video' || msg.designRoom === 'voice' || msg.designRoom === 'icon' || msg.designRoom === 'image' || msg.designRoom === 'logo' || msg.designRoom === 'model' || msg.designRoom === 'gimp' || msg.designRoom === 'brandkit') {
           this.activeDesignRoom = msg.designRoom;
         }
         this.activeDesignPanel = typeof msg.designPanel === 'string' && msg.designPanel.trim() ? msg.designPanel.trim() : undefined;
@@ -1954,6 +1957,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // owns the shape library, brand kit, and the shape-as-dial generate path)
       // and resolves with what the canvas did. Absent → the tool says the canvas
       // isn't open rather than pretending. Mirror of generateHealthPlanDays.
+      designRoom: () => this.activeDesignRoom,
+      designProject: () => this.projectRoot ?? null,
       designControl: async (command: string, cargs: Record<string, unknown>) => {
         const panel = DashboardPanel.currentPanel;
         if (!panel) return { ok: false, error: 'The Design Studio isn\'t open. Open it in Creative Studio → Design Studio.' };
@@ -4320,7 +4325,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         try {
           projectContext = this.projectRoot ? await loadFreshDesignContext(this.projectRoot) : null;
         } catch { /* unreadable folder — the prefix handles null */ }
-        prefixed = getDesignStudioPrefix(text || 'Help me design an icon.', undefined, this.activeDesignRoom, this.activeDesignPanel, projectContext);
+        // The kit for this project reaches her every turn. With no kit passed
+        // she only knew it if she looked it up, which is how one brand's colours
+        // landed on another's logo. Unreadable kits fail soft: she is told nothing.
+        const kitSummary = await kitForProject(this.projectRoot).then(brandKitSummary).catch(() => undefined);
+        prefixed = getDesignStudioPrefix(text || 'Help me design an icon.', kitSummary, this.activeDesignRoom, this.activeDesignPanel, projectContext);
         break;
       }
       default:
