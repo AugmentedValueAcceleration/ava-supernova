@@ -177,6 +177,31 @@ export class TfIdfIndex {
   }
 
   /**
+   * Search by how much of the query a document contains, whatever its length.
+   * Each query word counts by its IDF, and a word no document has counts in
+   * full, so a search can't pass on its common words alone. Needs two or more
+   * matching words: a single one is what substring search is for.
+   */
+  searchByCoverage(query: string, minCoverage: number, limit = 10): Array<{ id: string; coverage: number }> {
+    const queryTerms = [...new Set(tokenize(query))];
+    if (queryTerms.length < 2) return [];
+    const rarest = Math.log(1 + this.docCount);
+    const weight = (term: string) => this.idfWeights.get(term) ?? rarest;
+    const total = queryTerms.reduce((sum, term) => sum + weight(term), 0);
+    if (total <= 0) return [];
+
+    const results: Array<{ id: string; coverage: number }> = [];
+    for (const [id, docTf] of this.docVectors) {
+      const found = queryTerms.filter((term) => docTf.has(term));
+      if (found.length < 2) continue;
+      const coverage = found.reduce((sum, term) => sum + weight(term), 0) / total;
+      if (coverage >= minCoverage) results.push({ id, coverage });
+    }
+    results.sort((a, b) => b.coverage - a.coverage);
+    return results.slice(0, limit);
+  }
+
+  /**
    * Find documents similar to a given document (by ID).
    * Useful for conflict/duplicate detection.
    */

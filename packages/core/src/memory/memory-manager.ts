@@ -1,6 +1,6 @@
 import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, basename, dirname } from 'node:path';
+import { join, basename, dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { TfIdfIndex, cosineDense } from './tfidf.js';
 import type { EmbeddingService } from './embedding-service.js';
@@ -72,6 +72,7 @@ interface ProjectRegistryEntry {
 import {
   CONFLICT_THRESHOLD as CONFLICT_TFIDF_THRESHOLD,
   RECALL_THRESHOLD as RECALL_TFIDF_THRESHOLD,
+  RECALL_COVERAGE,
   CONSOLIDATION_THRESHOLD,
   STALE_DAYS as STALE_THRESHOLD_DAYS,
   W_TFIDF, W_RECENCY, W_FREQUENCY,
@@ -117,6 +118,7 @@ export class MemoryManager {
   // Memories are local only — they live on disk under ~/.ava (global) and
   // <project>/.ava (project) and never leave the machine.
   constructor(opts: { globalDir: string; projectRoot?: string; embeddingService?: EmbeddingService }) {
+    MemoryManager.open.add(new WeakRef(this));
     this.globalDir = opts.globalDir;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
     this.embeddingService = opts.embeddingService ?? null;
@@ -807,6 +809,26 @@ export class MemoryManager {
 
         const relevance = this.computeRelevance(score, entry);
         results.push({ entry, scope, relevance, matchType: 'tfidf' });
+        substringMatches.add(entry.id);
+
+        // Update recall stats
+        entry.lastRecalledAt = new Date().toISOString();
+        entry.recallCount++;
+      }
+
+      // Phase 3: Notes holding enough of what was asked. Similarity can't see
+      // these: a long note scores low against a short search even when it is
+      // the right one.
+      for (const { id, coverage } of index.searchByCoverage(opts.query, RECALL_COVERAGE, limit * 2)) {
+        if (substringMatches.has(id)) continue;
+
+        const entry = store.entries.find(e => e.id === id);
+        if (!entry) continue;
+        if (!includeArchived && entry.archived) continue;
+        if (opts.category && entry.category !== opts.category) continue;
+        if (opts.branch && entry.branch && entry.branch !== opts.branch) continue;
+
+        results.push({ entry, scope, relevance: this.computeRelevance(coverage / 2, entry), matchType: 'tfidf' });
 
         // Update recall stats
         entry.lastRecalledAt = new Date().toISOString();
@@ -1022,6 +1044,69 @@ export class MemoryManager {
     }
 
     return true;
+  }
+
+  // Managers in this process each hold their own copy of a project's memory and
+  // write the whole of it back, so a change has to reach every open one.
+  private static open = new Set<WeakRef<MemoryManager>>();
+
+  /** The project this manager belongs to, in a form two paths can be compared by. */
+  private get projectKey(): string | null {
+    return this.projectDir ? resolve(dirname(this.projectDir)).toLowerCase() : null;
+  }
+
+  /**
+   * Archive what a project remembers about something that is gone, in the entries
+   * and the graph, and rebuild the brief. Archived memories are kept, and found
+   * only if asked for by name.
+   */
+  async archiveMatching(matches: (content: string) => boolean): Promise<number> {
+    if (!this.projectDir) return 0;
+    await this.ensureGraphReady();
+    const store = await this.loadProjectStore();
+    const now = new Date().toISOString();
+    let archived = 0;
+    for (const entry of store?.entries ?? []) {
+      if (entry.archived || !matches(entry.content)) continue;
+      entry.archived = true;
+      entry.archivedAt = now;
+      entry.updatedAt = now;
+      archived++;
+    }
+    if (store && archived > 0) {
+      store.lastModified = now;
+      await this.persistStore(this.projectDir, store);
+    }
+    const graph = this.graphProject;
+    if (graph) {
+      let nodes = 0;
+      for (const node of graph.getActiveNodes()) {
+        if (matches(node.content) && graph.archiveNode(node.id, 'manual')) nodes++;
+      }
+      if (nodes > 0) {
+        await graph.save();
+        const procedures = this.proceduralProject?.getAllPatterns() ?? [];
+        this.projectBrainCache = synthesiseProjectBrain(graph, this.projectDir, procedures);
+        await saveProjectBrain(join(this.projectDir, 'memory'), this.projectBrainCache);
+      }
+      archived += nodes;
+    }
+    return archived;
+  }
+
+  /** archiveMatching for a project, whether or not it is open right now. */
+  static async archiveInProject(globalDir: string, projectRoot: string, matches: (content: string) => boolean): Promise<number> {
+    const key = resolve(projectRoot).toLowerCase();
+    const live: MemoryManager[] = [];
+    for (const ref of MemoryManager.open) {
+      const manager = ref.deref();
+      if (!manager) MemoryManager.open.delete(ref);
+      else if (manager.projectKey === key) live.push(manager);
+    }
+    if (live.length === 0) live.push(new MemoryManager({ globalDir, projectRoot }));
+    let archived = 0;
+    for (const manager of live) archived = Math.max(archived, await manager.archiveMatching(matches));
+    return archived;
   }
 
   /**

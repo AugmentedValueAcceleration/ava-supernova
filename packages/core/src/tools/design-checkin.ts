@@ -1,44 +1,78 @@
 /**
- * When Ava should stop and talk (his call, 4 Nov 2026).
+ * When Ava has to stop and talk.
  *
  * The making rooms are powerful because she iterates: build, look, judge, fix.
- * The other half is knowing when to stop. Left alone she will grind: the first
- * barrel took 15 runs with nobody asked, and from the outside that looks like
- * nothing is happening. Working together means pausing at the right moments.
+ * Left alone she grinds: the first barrel took 15 runs, a title logo 12, with
+ * nobody asked. She can't know what they think until they say, and they can't
+ * steer what they aren't shown.
  *
- * This is a nudge in the tool's report, not a stop. Forcing a halt would break
- * a good run; the judgement stays hers, and her guidance says what the pauses
- * are for. It counts real runs since the person last spoke, and runs that
- * failed in a row. Each person's message is a new turn, which resets both.
+ * This began as a nudge after six runs (4 Nov 2026), and she carried on past it.
+ * His call, 7 Nov: a real stop. After three good runs since they last spoke, the
+ * next run is refused until they answer, so this can't be argued with. Saying
+ * anything starts the count again. Each person's message is a new turn, and so
+ * is an answer to ask_user. "Keep going" gives her a longer stretch.
  */
 
 import type { ToolExecutionContext } from './types.js';
 
-/** Runs since they last spoke before she is reminded to show them. */
-export const RUNS_BEFORE_CHECK_IN = 6;
-/** Failures in a row before she is told to stop and say what's wrong. */
+/** Good runs since they last spoke before she has to stop and show them. */
+export const RUNS_BEFORE_CHECK_IN = 3;
+/** The same, when they've told her to carry on without them. */
+export const RUNS_WHEN_TOLD_TO_KEEP_GOING = 10;
+/** Failures in a row before she has to stop and say what's wrong. */
 export const FAILS_BEFORE_STOP = 3;
 
-interface Tally { turn: unknown; runs: number; failsInARow: number }
+const KEEP_GOING = /\b(keep going|carry on|don'?t stop|until (it'?s |they'?re |you'?re )?(done|finished)|finish (it|them|the \w+) off)\b/i;
 
-const tallies = new Map<string, Tally>();
+/** Did they tell her to carry on? Only their words count, not the room's prefix. */
+export function toldToKeepGoing(message: string): boolean {
+  const marker = message.lastIndexOf('## Their request');
+  return KEEP_GOING.test(marker >= 0 ? message.slice(marker) : message);
+}
 
-/** Call after a run that really happened. Returns a line for the report, or null. */
-export function recordDesignRun(context: ToolExecutionContext, work: string, ok: boolean): string | null {
-  const turn = context.sharedState?.designTurnId ?? context.conversationId ?? null;
-  let t = tallies.get(work);
-  if (!t || t.turn !== turn) {
-    t = { turn, runs: 0, failsInARow: 0 };
-    tallies.set(work, t);
+interface Tally { turn: unknown; good: number; failsInARow: number }
+
+// One tally per conversation, across every piece: a new name is not a way round it.
+const tallies = new WeakMap<object, Tally>();
+
+function tallyFor(context: ToolExecutionContext): Tally | null {
+  const shared = context.sharedState;
+  if (!shared?.designTurnId) return null;
+  let tally = tallies.get(shared);
+  if (!tally || tally.turn !== shared.designTurnId) {
+    tally = { turn: shared.designTurnId, good: 0, failsInARow: 0 };
+    tallies.set(shared, tally);
   }
-  t.runs += 1;
-  t.failsInARow = ok ? 0 : t.failsInARow + 1;
+  return tally;
+}
 
-  if (t.failsInARow >= FAILS_BEFORE_STOP) {
-    return `CHECK IN: that is ${t.failsInARow} failed runs in a row. Stop here. Tell them plainly what you are stuck on and what you have tried, and ask how they want to go; don't try a fourth time on your own.`;
+const limitFor = (context: ToolExecutionContext) =>
+  context.sharedState?.designKeepGoing ? RUNS_WHEN_TOLD_TO_KEEP_GOING : RUNS_BEFORE_CHECK_IN;
+
+/** Before a run: why it can't happen yet, or null. */
+export function designRunRefusal(context: ToolExecutionContext): string | null {
+  const tally = tallyFor(context);
+  if (!tally) return null;
+  if (tally.failsInARow >= FAILS_BEFORE_STOP) {
+    return `Not run: that was ${tally.failsInARow} failures in a row. Stop and tell them plainly what you're stuck on and what you've tried, then wait for them.`;
   }
-  if (ok && t.runs >= RUNS_BEFORE_CHECK_IN && t.runs % RUNS_BEFORE_CHECK_IN === 0) {
-    return `CHECK IN: that is ${t.runs} runs since they last said anything. At the next natural stopping point, show them where it stands, say what you think, and ask before going further.`;
+  if (tally.good >= limitFor(context)) {
+    return `Not run: you've done ${tally.good} runs since they last said anything. They can't steer what you don't stop to show them. Stop now: say where it stands and what you think, ask what they'd change, and end your turn. You can carry on once they answer.`;
+  }
+  return null;
+}
+
+/** After a run that really happened. Returns a line for the report, or null. */
+export function recordDesignRun(context: ToolExecutionContext, ok: boolean): string | null {
+  const tally = tallyFor(context);
+  if (!tally) return null;
+  if (ok) { tally.good += 1; tally.failsInARow = 0; } else { tally.failsInARow += 1; }
+
+  if (tally.failsInARow >= FAILS_BEFORE_STOP) {
+    return `STOP: that is ${tally.failsInARow} failed runs in a row. Don't try again. Tell them plainly what you're stuck on and what you've tried, then wait.`;
+  }
+  if (ok && tally.good >= limitFor(context)) {
+    return `STOP: that is ${tally.good} runs since they last said anything, and the next one will be refused. Show them where it stands, say what you think, ask what they'd change, and end your turn.`;
   }
   return null;
 }

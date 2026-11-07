@@ -7,6 +7,7 @@ export type TaskCategory =
   | 'coding'
   | 'vision'
   | 'image_gen'
+  | 'design'
   | 'planning'
   | 'chat'
   | 'long_context'

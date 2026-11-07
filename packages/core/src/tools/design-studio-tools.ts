@@ -1,5 +1,10 @@
+import { existsSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
+import { imagesDir, modelSlug, modelsDir } from './blender/paths.js';
+import { readImageFinals } from './gimp/build-image.js';
 import { loadFreshDesignContext } from '../agent/design-reinjection.js';
-import { BRAND_KIT_KINDS, knownProjects, projectKey, proposeBrandKit, brandKitSummary, checkPairings, kitPieceDefs, setBrandPiece, type BrandKitKind, type BrandPieceState, createBrandKit, deleteBrandKit, kitForProject, linkBrandKit, listBrandKits, readBrandKit, setActiveBrandKit, unlinkBrandKit, updateBrandKit, type BrandKitFields, type BrandKitRecord } from '../brand/brand-kits.js';
+import { missingFonts, missingFontsNote } from './design-fonts.js';
+import { BRAND_KIT_KINDS, saveFileToKit, type BrandLogoSlot, knownProjects, projectKey, proposeBrandKit, brandKitSummary, checkPairings, kitPieceDefs, setBrandPiece, type BrandKitKind, type BrandPieceState, createBrandKit, deleteBrandKit, kitForProject, linkBrandKit, listBrandKits, readBrandKit, setActiveBrandKit, unlinkBrandKit, updateBrandKit, type BrandKitFields, type BrandKitRecord } from '../brand/brand-kits.js';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { TTS_VOICES, TTS_VOICE_CATALOGUE } from '../creative/index.js';
@@ -38,6 +43,12 @@ function getControl(context: ToolExecutionContext): DesignControl | undefined {
  */
 function headlessRoomRefusal(context: ToolExecutionContext): ToolResult | null {
   const room = (context.sharedState?.designRoom as (() => string) | undefined)?.();
+  if (room === 'brandkit') {
+    return {
+      success: false,
+      output: 'Not in this room: a kit\'s pieces are made in their own rooms, not generated here. Tell them which pieces are waiting and let them choose. When they click one on the kit, its room opens and you work on it there.',
+    };
+  }
   if (room !== 'gimp' && room !== 'model') return null;
   const maker = room === 'gimp' ? 'GIMP' : 'Blender';
   const tool = room === 'gimp' ? 'design_propose_image_brief, then design_build_image' : 'design_propose_model_brief, then design_build_model';
@@ -367,7 +378,7 @@ export class DesignBrandKitTool implements Tool {
         const wanted = typeof args.project === 'string' && args.project ? args.project : project;
         if (!wanted) return { success: false, output: 'Say which project: this needs its path.' };
         // Only somewhere they have opened: this is not a way to read any folder.
-        const known = (await knownProjects(project)).find((p) => projectKey(p.path) === projectKey(wanted));
+        const known = (await knownProjects()).find((p) => projectKey(p.path) === projectKey(wanted));
         if (!known) return { success: false, output: 'That is not one of their projects.' };
         const context_ = await loadFreshDesignContext(known.path).catch(() => null);
         return { success: true, output: context_ ? `From the Decisions folder of "${known.name}":\n\n${context_}` : `"${known.name}" has no Decisions folder to read. Ask them what it is.` };
@@ -436,6 +447,58 @@ export class DesignBrandKitTool implements Tool {
   }
 }
 
+// ── design_save_to_kit ───────────────────────────────────────────────────────
+
+export class DesignSaveToKitTool implements Tool {
+  readonly name = 'design_save_to_kit';
+  readonly description = 'Save a finished file into a brand kit as one of its pieces, after asking the person.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+
+  readonly schema: FunctionSchema = {
+    name: 'design_save_to_kit',
+    description:
+      'Save a FINISHED file into the brand kit: it becomes that piece of the kit, and the piece shows Agreed. ALWAYS ask them first and only call this once they have said yes. ' +
+      'GIMP files must be finals (final/...). For a logo, pass logo_slot and it also becomes the kit\'s logo, usable through KIT.logo.',
+    parameters: {
+      type: 'object',
+      properties: {
+        kit_id: { type: 'string', description: 'The kit. Omit for the kit in use here.' },
+        piece: { type: 'string', description: 'The piece id, e.g. "title_logo".' },
+        tool: { type: 'string', enum: ['gimp', 'blender'], description: 'Which room made it.' },
+        work: { type: 'string', description: 'The name of the work.' },
+        file: { type: 'string', description: 'The file, relative to the work, e.g. "final/logo.png".' },
+        logo_slot: { type: 'string', enum: ['primary', 'mark', 'light', 'dark'], description: 'For a logo: which logo this is.' },
+      },
+      required: ['piece', 'tool', 'work', 'file'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const project = (context.sharedState?.designProject as (() => string | null | undefined) | undefined)?.() ?? null;
+    const kitId = typeof args.kit_id === 'string' && args.kit_id ? args.kit_id : (await kitForProject(project)).kit?.id;
+    if (!kitId) return { success: false, output: 'There is no kit in use here. Ask them which kit this belongs to.' };
+    const kit = await readBrandKit(kitId);
+    if (!kit) return { success: false, output: 'There is no kit with that id.' };
+    if (kit.status === 'proposed') return { success: false, output: `"${kit.name}" isn't agreed yet, so nothing can be saved to it.` };
+    const piece = String(args.piece ?? '');
+    const defs = kitPieceDefs(kit.kind);
+    if (!defs.some((d) => d.id === piece)) return { success: false, output: `This kit has no piece "${piece}". It has: ${defs.map((d) => d.id).join(', ')}.` };
+
+    const gimp = args.tool === 'gimp';
+    const slug = modelSlug(String(args.work ?? ''));
+    const root = resolve(gimp ? imagesDir() : modelsDir(), slug);
+    const file = String(args.file ?? '').replace(/\\\\/g, '/').replace(/^\.\//, '');
+    const full = resolve(root, file);
+    if (!slug || !full.startsWith(root + sep) || !existsSync(full)) return { success: false, output: `There is no file at ${file} in that work.` };
+    if (gimp && !(await readImageFinals(slug)).includes(file)) return { success: false, output: `${file} isn't a final. Only finished files go in a kit: make it with ava_final first.` };
+
+    const slot = (['primary', 'mark', 'light', 'dark'] as const).find((s) => s === args.logo_slot) as BrandLogoSlot | undefined;
+    await saveFileToKit(kitId, piece, full, slot);
+    return { success: true, output: `Saved to "${kit.name}": ${defs.find((d) => d.id === piece)?.label} is agreed${slot ? `, and it's the ${slot} logo` : ''}.` };
+  }
+}
+
 // ── design_propose_kit ───────────────────────────────────────────────────────
 
 export class DesignProposeKitTool implements Tool {
@@ -490,9 +553,11 @@ export class DesignProposeKitTool implements Tool {
     }, reasoning, project);
     if ('refused' in made) return { success: false, output: made.refused };
     const weak = checkPairings(made).filter((p) => p.verdict === 'too low').map((p) => `${p.ink} on ${p.on} is only ${p.ratio}:1`);
+    const fontNames = Object.values((args.fonts ?? {}) as Record<string, unknown>).filter((f): f is string => typeof f === 'string');
+    const fontNote = missingFontsNote(await missingFonts(fontNames));
     return {
       success: true,
-      output: `"${made.name}" is in front of them [${made.id}]. Talk them through it in a few lines, and stop: they agree it in the kit panel.${weak.length ? ` Fix before they see it: ${weak.join('; ')}.` : ''}`,
+      output: `"${made.name}" is in front of them [${made.id}]. Talk them through it in a few lines, and stop: they agree it in the kit panel.${fontNote}${weak.length ? ` Fix before they see it: ${weak.join('; ')}.` : ''}`,
       metadata: { kit_id: made.id },
     };
   }

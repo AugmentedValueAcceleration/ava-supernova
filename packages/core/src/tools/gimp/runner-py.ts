@@ -387,6 +387,12 @@ def ava_pixel(image, x, y):
     hex_ = '#%02X%02X%02X' % tuple(int(round(max(0.0, min(1.0, v)) * 255)) for v in (r, g, b))
     return hex_ if a >= 0.999 else hex_ + '%02X' % int(round(a * 255))
 
+_TEST_NAMES = ('test', 'compare', 'comparison', 'thumb', 'proof', 'tmp', 'temp', 'scratch', 'draft', 'check', 'trial')
+
+def _is_test(name):
+    low = name.lower()
+    return any(low == t or low.startswith((t + '-', t + '_', t + ' ')) for t in _TEST_NAMES)
+
 def ava_images():
     """The saved images in this work, by name."""
     return sorted(f[:-4] for f in os.listdir(ASSET_DIR) if f.endswith('.xcf'))
@@ -459,11 +465,15 @@ def _lay_on(img, back):
         bg.scale(W, H, False)
         bg.set_offsets(0, 0)
 
-def ava_proof(what, on=('#f4f4f4', '#808080', '#101014'), widths=(256, 120, 64), label=None):
+def ava_proof(what, on=None, widths=(256, 120, 64), label=None):
     """The proof sheet: the piece, cropped tight, composited large on each
     background, with its real small sizes in true pixels below. on= colours
-    and/or pictures in the work, e.g. ('references/title.png', '#101014'). Hide
-    any backdrop layer first. Saved as exports/proof.png and shown to you."""
+    and/or pictures in the work, e.g. ('references/title.png', '#101014'); with
+    none, the kit's own surface beside plain light and mid, so work is tested
+    where it will live. Hide any backdrop layer first. Saved as
+    exports/proof.png and shown to you."""
+    if on is None:
+        on = (KIT.colour('surface'), '#f4f4f4', '#808080') if KIT else ('#f4f4f4', '#808080', '#101014')
     src = _load(what)
     _visible(src)
     W, H = src.get_width(), src.get_height()
@@ -577,7 +587,7 @@ def ava_text(image, text, font='Sans-serif Bold', size=96, colour='#ffffff', x=0
     f = Gimp.Font.get_by_name(font)
     if f is None:
         near = ava_fonts(font.split()[0])[:12]
-        raise ValueError(f'No font called "{font}". Close matches: {near}')
+        raise ValueError(f'No font called "{font}". Close matches: {near}. If this is the font they agreed, ask them whether you may install it, then use design_install_font.')
     lay = Gimp.TextLayer.new(image, text, f, float(size), Gimp.Unit.pixel())
     image.insert_layer(lay, None, 0)
     lay.set_color(Gegl.Color.new(colour))
@@ -650,10 +660,23 @@ try:
     finals += [f for f in _new_finals if f not in finals]
     if _new_finals:
         json.dump(finals, open(finals_path, 'w', encoding='utf-8'), indent=2)
-    # Preview: the finished files once there are any. Until then, every image in
-    # the folder, so the stage and Library show the work and not its tests.
+        result['newFinals'] = _new_finals
+    # Preview: the finished files once there are any. Until then, the piece being
+    # worked on: what this run touched, leaving out her tests, so the person can
+    # always tell what the focus is. Every image at once told them nothing.
     shown = [os.path.join(ASSET_DIR, f) for f in finals if os.path.exists(os.path.join(ASSET_DIR, f))]
-    names = shown or [os.path.join(ASSET_DIR, n + '.png') for n in ava_images() if os.path.exists(os.path.join(ASSET_DIR, n + '.png'))]
+    if not shown:
+        saved_names = ava_images()
+        pieces = [n for n in saved_names if not _is_test(n)]
+        focus = [n for n in pieces if n in _open] or pieces or saved_names
+        try:
+            chosen = json.load(open(os.path.join(ASSET_DIR, 'main.json'), encoding='utf-8'))
+            if chosen in saved_names:
+                focus = [chosen]
+        except Exception:
+            pass
+        shown = [os.path.join(ASSET_DIR, n + '.png') for n in focus if os.path.exists(os.path.join(ASSET_DIR, n + '.png'))]
+    names = shown
     cols = (min(len(names), 3) if len(names) <= 6 else 6) or 1
     rows = (len(names) + cols - 1) // cols
     cell = 768 if len(names) == 1 else 512 if len(names) <= 6 else 256

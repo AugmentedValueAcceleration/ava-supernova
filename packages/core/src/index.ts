@@ -618,7 +618,9 @@ export { findGimp, setGimpPath, gimpStatus, GIMP_DOWNLOAD_URL } from './tools/gi
 export type { GimpInstall } from './tools/gimp/find-gimp.js';
 export { deleteDesignWork } from './tools/blender/paths.js';
 export { brandKitsFile, brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, kitForProject, brandKitSummary, type BrandKitRecord } from './brand/brand-kits.js';
-export { contrastRatio, agreeBrandKit } from './brand/brand-kits.js';
-export { readImageBrief, agreeImageBrief, saveImageBriefEdits, listImageWork, pickImageOption, addImageReference, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS } from './tools/gimp/build-image.js';
+export { contrastRatio, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile } from './brand/brand-kits.js';
+export { toolRequestInWords } from './tools/tool-request-words.js';
+export { fontChoices, installFontTheyChose } from './tools/design-fonts.js';
+export { readImageHistory, restoreImageStep, chooseImageMain, keepImageVersion, deleteImageVersion, readImageBrief, agreeImageBrief, saveImageBriefEdits, listImageWork, pickImageOption, addImageReference, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS } from './tools/gimp/build-image.js';
 export type { ImageBrief, ImageWorkSummary, ImageOption, ImageOptions } from './tools/gimp/build-image.js';
 export { imagesDir } from './tools/blender/paths.js';

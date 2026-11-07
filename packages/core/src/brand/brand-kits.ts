@@ -15,10 +15,14 @@
  */
 
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { AVA_HOME } from '../core/constants.js';
+import { projectsHome } from '../projects/project-data.js';
+import { MemoryManager } from '../memory/memory-manager.js';
+import { creativeDir, metadataFile } from '../tools/blender/paths.js';
+import { readImageFinals } from '../tools/gimp/build-image.js';
 
 export interface BrandKitPalette {
   primary: string; secondary: string; accent: string; neutral: string; surface: string;
@@ -33,7 +37,8 @@ export const BRAND_KIT_KINDS: Array<{ id: BrandKitKind; label: string }> = [
 
 /** Where a piece gets made. 'kit' means with Ava, right on the kit. */
 export type BrandPieceRoom = 'gimp' | 'blender' | 'kit';
-export interface BrandPieceDef { id: string; label: string; room: BrandPieceRoom }
+/** `slot`: this piece IS that logo, so it holds one picture. */
+export interface BrandPieceDef { id: string; label: string; room: BrandPieceRoom; slot?: BrandLogoSlot }
 
 /** Every kit has these, whatever the project. */
 const CORE_PIECES: BrandPieceDef[] = [
@@ -46,7 +51,7 @@ const CORE_PIECES: BrandPieceDef[] = [
 
 export const BRAND_KIT_PIECES: Record<BrandKitKind, BrandPieceDef[]> = {
   game: [
-    { id: 'title_logo', label: 'Title logo', room: 'gimp' },
+    { id: 'title_logo', label: 'Title logo', room: 'gimp', slot: 'primary' },
     { id: 'splash', label: 'Splash screen', room: 'gimp' },
     { id: 'hud_colours', label: 'HUD colours', room: 'kit' },
     { id: 'ui_fonts', label: 'UI fonts', room: 'kit' },
@@ -61,7 +66,7 @@ export const BRAND_KIT_PIECES: Record<BrandKitKind, BrandPieceDef[]> = {
     { id: 'store_images', label: 'Store images', room: 'gimp' },
   ],
   website: [
-    { id: 'logo', label: 'Logo', room: 'gimp' },
+    { id: 'logo', label: 'Logo', room: 'gimp', slot: 'primary' },
     { id: 'favicon', label: 'Favicon', room: 'gimp' },
     { id: 'web_fonts', label: 'Web fonts', room: 'kit' },
     { id: 'hero_style', label: 'Hero image style', room: 'gimp' },
@@ -78,7 +83,7 @@ export const BRAND_KIT_PIECES: Record<BrandKitKind, BrandPieceDef[]> = {
 export const kitPieceDefs = (kind?: BrandKitKind): BrandPieceDef[] => [...(kind ? BRAND_KIT_PIECES[kind] : []), ...CORE_PIECES];
 
 export type BrandPieceState = 'not_made' | 'in_progress' | 'agreed';
-export interface BrandKitPiece { state: BrandPieceState; note?: string }
+export interface BrandKitPiece { state: BrandPieceState; note?: string; files?: string[] }
 export interface BrandKitFonts { heading?: string; body?: string; ui?: string }
 /** A colour on a colour, for one use. Roles ("primary") or hex. */
 export interface BrandKitPairing { ink: string; on: string; use?: string }
@@ -116,6 +121,8 @@ export interface BrandKitRecord {
   reasoning?: string;
   /** The project a proposed kit will link to once agreed. */
   proposedFor?: string;
+  /** To the apps only: a kit's saved files by their path in the kit. */
+  fileMap?: Record<string, string>;
   createdAt: number;
   updatedAt: number;
 }
@@ -162,12 +169,19 @@ function change<T>(fn: (store: KitFile) => Promise<T> | T): Promise<T> {
 const EXT_FOR_TYPE: Record<string, string> = { 'image/svg+xml': '.svg', 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' };
 const TYPE_FOR_EXT: Record<string, string> = { '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
 
-/** A data URL becomes a file in the kit's folder. Anything else is left as it is. */
-async function logoToFile(kitId: string, slot: string, value: string): Promise<string> {
+/** The picture in a data URL, or null if it's anything else. */
+function pictureFromDataUrl(value: string): { ext: string; bytes: Buffer } | null {
   const m = /^data:([\w/+.-]+)(;base64)?,([\s\S]*)$/.exec(value);
   const ext = m && EXT_FOR_TYPE[m[1]];
-  if (!m || !ext) return value;
-  const bytes = m[2] ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]), 'utf-8');
+  if (!m || !ext) return null;
+  return { ext, bytes: m[2] ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]), 'utf-8') };
+}
+
+/** A data URL becomes a file in the kit's folder. Anything else is left as it is. */
+async function logoToFile(kitId: string, slot: string, value: string): Promise<string> {
+  const picture = pictureFromDataUrl(value);
+  if (!picture) return value;
+  const { ext, bytes } = picture;
   const dir = join(kitFolder(kitId), 'logos');
   await mkdir(dir, { recursive: true });
   const name = `${slot.replace(/\W/g, '')}${ext}`;
@@ -207,13 +221,20 @@ async function logoAsDataUrl(kit: BrandKitRecord, slot: BrandLogoSlot): Promise<
 /** Kits as the apps want them: logos ready to show. */
 async function forApps(kits: BrandKitRecord[]): Promise<BrandKitRecord[]> {
   return Promise.all(kits.map(async (kit) => {
-    if (!kit.logo) return kit;
+    const fileMap: Record<string, string> = {};
+    for (const piece of Object.values(kit.pieces ?? {})) {
+      for (const file of piece.files ?? []) {
+        const full = join(kitFolder(kit.id), file);
+        if (existsSync(full)) fileMap[file] = full;
+      }
+    }
+    if (!kit.logo) return { ...kit, fileMap };
     const logo: BrandKitRecord['logo'] = {};
     for (const slot of Object.keys(kit.logo) as BrandLogoSlot[]) {
       const url = await logoAsDataUrl(kit, slot);
       if (url) logo[slot] = url;
     }
-    return { ...kit, logo };
+    return { ...kit, logo, fileMap };
   }));
 }
 
@@ -225,20 +246,30 @@ export async function listBrandKits(): Promise<{ kits: BrandKitRecord[]; activeI
   return { kits, activeId: live.some((k) => k.id === activeId) ? activeId : live[0]?.id ?? null };
 }
 
-/** Projects this computer has opened, newest first, once each. */
-export async function knownProjects(open?: string | null): Promise<Array<{ path: string; name: string }>> {
-  let saved: Array<{ path?: string; name?: string; lastUsed?: string }> = [];
+/** Their projects folder. A kit links only to projects that live there. */
+async function projectsFolder(): Promise<string> {
+  if (process.env.AVA_PROJECTS_DIR) return process.env.AVA_PROJECTS_DIR;
+  let configured: string | undefined;
   try {
-    const parsed = JSON.parse(await readFile(join(brandKitsHome(), 'projects.json'), 'utf-8'));
-    if (Array.isArray(parsed)) saved = parsed;
-  } catch { /* none yet */ }
-  const newest = [...saved].sort((a, b) => (b.lastUsed ?? '').localeCompare(a.lastUsed ?? ''));
-  const out = new Map<string, { path: string; name: string }>();
-  if (open) out.set(projectKey(open), { path: open, name: basename(open) });
-  for (const p of newest) {
-    if (p.path && !out.has(projectKey(p.path))) out.set(projectKey(p.path), { path: p.path, name: p.name || basename(p.path) });
-  }
-  return [...out.values()];
+    const settings = JSON.parse(await readFile(join(AVA_HOME, 'settings.json'), 'utf-8'));
+    configured = settings?.preferences?.projectsHome;
+  } catch { /* the default folder */ }
+  return projectsHome(configured);
+}
+
+/** The projects a kit can link to: the folders in their projects folder. */
+export async function knownProjects(): Promise<Array<{ path: string; name: string }>> {
+  const root = await projectsFolder();
+  const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
+  return entries.filter((e) => e.isDirectory() && !e.name.startsWith('.')).map((e) => ({ path: join(root, e.name), name: e.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** A project that a kit can belong to. Anything else isn't a project here, so
+ *  the kit picked by hand applies, as it does with nothing open. */
+async function inProjectsFolder(project: string): Promise<boolean> {
+  const key = projectKey(project);
+  return (await knownProjects()).some((p) => projectKey(p.path) === key);
 }
 
 const fontList = (k: BrandKitRecord) => Object.entries(k.fonts ?? {}).filter(([, f]) => f).map(([use, f]) => `${f} (${use})`).join(', ');
@@ -264,7 +295,7 @@ export type KitForProject =
  */
 export async function kitForProject(project?: string | null): Promise<KitForProject> {
   const { kits, activeId } = await listBrandKits();
-  if (project) {
+  if (project && await inProjectsFolder(project)) {
     const key = projectKey(project);
     const linked = kits.find((k) => belongsTo(k, key));
     if (linked) return { status: 'linked', kit: linked };
@@ -277,9 +308,10 @@ export async function kitForProject(project?: string | null): Promise<KitForProj
 /** What the apps show: in a linked project, its kit is the one in use. */
 export async function brandKitsForApps(project?: string | null): Promise<{ kits: BrandKitRecord[]; activeId: string | null; project: { key: string; path: string } | null; kinds: typeof BRAND_KIT_KINDS; pieces: typeof BRAND_KIT_PIECES; corePieces: BrandPieceDef[]; projects: Array<{ path: string; name: string }> }> {
   const { kits, activeId } = await listBrandKits();
-  const key = project ? projectKey(project) : null;
+  const local = project && await inProjectsFolder(project) ? project : null;
+  const key = local ? projectKey(local) : null;
   const linked = key ? kits.find((k) => belongsTo(k, key)) : undefined;
-  return { kits: await forApps(kits), activeId: linked?.id ?? activeId, project: project && key ? { key, path: project } : null, kinds: BRAND_KIT_KINDS, pieces: BRAND_KIT_PIECES, corePieces: CORE_PIECES, projects: await knownProjects(project) };
+  return { kits: await forApps(kits), activeId: linked?.id ?? activeId, project: local && key ? { key, path: local } : null, kinds: BRAND_KIT_KINDS, pieces: BRAND_KIT_PIECES, corePieces: CORE_PIECES, projects: await knownProjects() };
 }
 
 /** The kit as it goes into a Blender or GIMP script, or null if there is none. */
@@ -323,7 +355,7 @@ export function checkPairings(kit: BrandKitRecord): Array<BrandKitPairing & { ra
 
 /** Where a kit stands: every piece it asks for, with its state. */
 export function kitPieceStates(kit: BrandKitRecord): Array<BrandPieceDef & BrandKitPiece> {
-  return kitPieceDefs(kit.kind).map((d) => ({ ...d, state: kit.pieces?.[d.id]?.state ?? 'not_made', note: kit.pieces?.[d.id]?.note }));
+  return kitPieceDefs(kit.kind).map((d) => ({ ...d, state: kit.pieces?.[d.id]?.state ?? 'not_made', note: kit.pieces?.[d.id]?.note, files: kit.pieces?.[d.id]?.files }));
 }
 
 /** The kit in words, for Ava's context every turn. */
@@ -331,7 +363,7 @@ export function brandKitSummary(found: KitForProject): string {
   if (found.status === 'unlinked') {
     return `No brand kit is linked to this project, so there is no kit in use here. ` +
       `${found.others.length ? `Their other kits (${found.others.join(', ')}) belong to other work: never use one by default. ` : ''}` +
-      `Before anything brand-bound, ask whether to link one of those or make a new one for this project; link with design_brand_kit once they say.`;
+      `Before anything brand-bound, ask whether to link one of those or make a new one for this project; link with design_brand_kit once they say. Any brand in your memory for this project is history, not a kit: don't design from it unless they bring it up.`;
   }
   if (found.status === 'none') return 'They have no brand kits yet. If this work needs one, offer to make it.';
   const k = found.kit;
@@ -346,11 +378,13 @@ export function brandKitSummary(found: KitForProject): string {
     k.visualDo?.length ? `Visually always: ${k.visualDo.join('; ')}.` : '',
     k.visualDont?.length ? `Visually never: ${k.visualDont.join('; ')}.` : '',
     ...checkPairings(k).map((p) => `Pairing: ${p.ink} on ${p.on}${p.use ? ` for ${p.use}` : ''} — ${p.ratio ?? '?'}:1, ${p.verdict}.`),
-    k.kind ? `A ${k.kind} kit. Pieces: ${kitPieceStates(k).map((p) => `${p.label} (${p.state.replace('_', ' ')})`).join(', ')}.` : 'This kit has no kind yet: ask them whether it is for a game, an app, a website or a business. Never guess.',
+    k.kind ? `A ${k.kind} kit. Pieces: ${kitPieceStates(k).map((p) => `${p.label} (${p.state.replace('_', ' ')}; ${p.room === 'gimp' ? 'GIMP room' : p.room === 'blender' ? 'Blender room' : 'Brand Kits'})`).join(', ')}.` : 'This kit has no kind yet: ask them whether it is for a game, an app, a website or a business. Never guess.',
+    ...kitPieceStates(k).filter((p) => p.note).map((p) => `Notes on ${p.label}: ${p.note}`),
+    ...kitPieceStates(k).filter((p) => p.files?.length).map((p) => `${p.label} files: ${p.files!.map((f) => join(kitFolder(k.id), f)).join(', ')}`),
     k.voice ? `Voice: ${k.voice}` : '',
     k.doRules?.length ? `Always: ${k.doRules.join('; ')}.` : '',
     k.dontRules?.length ? `Never: ${k.dontRules.join('; ')}.` : '',
-    `Design from this. In Blender and GIMP scripts use KIT.colour("primary"), KIT.rgba("primary") in Blender, and KIT.logo("mark") rather than typing colours or paths.`,
+    `Design from this. The kit is the record, so never copy it into memory. In Blender and GIMP scripts use KIT.colour("primary"), KIT.rgba("primary") in Blender, and KIT.logo("mark") rather than typing colours or paths.`,
   ];
   return lines.filter(Boolean).join('\n');
 }
@@ -400,7 +434,40 @@ export function setBrandPiece(id: string, piece: string, state: BrandPieceState,
   return change((store) => {
     const kit = store.kits.find((k) => k.id === id);
     if (!kit) return null;
-    kit.pieces = { ...kit.pieces, [piece]: { state, ...(note ? { note } : {}) } };
+    kit.pieces = { ...kit.pieces, [piece]: { ...kit.pieces?.[piece], state, ...(note ? { note } : {}) } };
+    kit.updatedAt = Date.now();
+    return kit;
+  });
+}
+
+/** A finished file joins the kit: a copy in the kit's own folder, so it survives
+ *  the work being deleted. The piece is agreed; with a slot, it's that logo too. */
+export function saveFileToKit(id: string, piece: string, source: string, slot?: BrandLogoSlot, byHand = false): Promise<BrandKitRecord | null> {
+  return change(async (store) => {
+    const kit = store.kits.find((k) => k.id === id);
+    if (!kit || !existsSync(source)) return null;
+    const dir = join(kitFolder(id), 'pieces', piece.replace(/\W/g, '_'));
+    await mkdir(dir, { recursive: true });
+    const before = kit.pieces?.[piece];
+    // Someone choosing a logo is replacing the one there. Everything else
+    // collects, and two files can share a name without one losing the other.
+    const replaced = byHand && slot ? before?.files ?? [] : [];
+    for (const old of replaced) await rm(join(kitFolder(id), old), { force: true });
+    const name = byHand ? freeName(dir, basename(source)) : basename(source);
+    await copyFile(source, join(dir, name));
+    const file = `pieces/${piece.replace(/\W/g, '_')}/${name}`;
+    const kept = (before?.files ?? []).filter((f) => f !== file && !replaced.includes(f));
+    kit.pieces = { ...kit.pieces, [piece]: { ...before, state: 'agreed', files: [...kept, file] } };
+    if (slot) {
+      const ext = extname(source).toLowerCase().replace('.jpeg', '.jpg');
+      if (TYPE_FOR_EXT[ext]) {
+        const logos = join(kitFolder(id), 'logos');
+        await mkdir(logos, { recursive: true });
+        for (const other of Object.keys(TYPE_FOR_EXT)) if (other !== ext) await rm(join(logos, `${slot}${other}`), { force: true });
+        await copyFile(source, join(logos, `${slot}${ext}`));
+        kit.logo = { ...kit.logo, [slot]: `logos/${slot}${ext}` };
+      }
+    }
     kit.updatedAt = Date.now();
     return kit;
   });
@@ -409,7 +476,8 @@ export function setBrandPiece(id: string, piece: string, state: BrandPieceState,
 /** A whole kit from an app's editor, created if it is new. Logos become files. */
 export function saveBrandKit(kit: BrandKitRecord): Promise<BrandKitRecord> {
   return change(async (store) => {
-    const next = await withLogoFiles(kit);
+    const { fileMap: _shownOnly, ...stored } = kit;
+    const next = await withLogoFiles(stored);
     const i = store.kits.findIndex((k) => k.id === kit.id);
     if (i >= 0) store.kits[i] = next;
     else store.kits.push(next);
@@ -437,6 +505,70 @@ export function proposeBrandKit(id: string | undefined, fields: BrandKitFields, 
 
 /** Their click. The only way a proposed kit goes live: it links to its project,
  *  and whatever it already holds counts as agreed. */
+function freeName(dir: string, name: string): string {
+  const ext = extname(name);
+  const stem = basename(name, ext);
+  let free = name;
+  for (let n = 2; existsSync(join(dir, free)); n++) free = `${stem}-${n}${ext}`;
+  return free;
+}
+
+/** The piece they're setting, if this kit has it and has been agreed. */
+function pieceToSet(kit: BrandKitRecord | null | undefined, piece: string): BrandPieceDef | null {
+  if (!kit || kit.status === 'proposed') return null;
+  return kitPieceDefs(kit.kind).find((d) => d.id === piece) ?? null;
+}
+
+/** They chose a picture from their Library for a piece. */
+export async function addPieceFromLibrary(id: string, piece: string, source: string): Promise<BrandKitRecord | null> {
+  const def = pieceToSet(await readBrandKit(id), piece);
+  const ext = extname(source).toLowerCase().replace('.jpeg', '.jpg');
+  if (!def || !isLibraryFile(source) || !TYPE_FOR_EXT[ext]) return null;
+  return saveFileToKit(id, piece, source, def.slot, true);
+}
+
+/** They uploaded a picture from their computer for a piece. */
+export async function addPieceUpload(id: string, piece: string, name: string, dataUrl: string): Promise<BrandKitRecord | null> {
+  const def = pieceToSet(await readBrandKit(id), piece);
+  const picture = pictureFromDataUrl(dataUrl);
+  if (!def || !picture) return null;
+  const stem = basename(name, extname(name)).replace(/[^\w -]/g, '').trim() || 'upload';
+  const holding = join(kitFolder(id), `incoming-${randomUUID().slice(0, 8)}`);
+  await mkdir(holding, { recursive: true });
+  try {
+    const file = join(holding, `${stem}${picture.ext}`);
+    await writeFile(file, picture.bytes);
+    return await saveFileToKit(id, piece, file, def.slot, true);
+  } finally {
+    await rm(holding, { recursive: true, force: true });
+  }
+}
+
+/** Takes a picture off a piece, or the logo off a logo piece. With nothing left
+ *  on it the piece is not made. Only the kit's copy goes: the Library keeps its own. */
+export function removePieceFile(id: string, piece: string, file?: string): Promise<BrandKitRecord | null> {
+  return change(async (store) => {
+    const kit = store.kits.find((k) => k.id === id);
+    const def = pieceToSet(kit, piece);
+    if (!kit || !def) return null;
+    const before = kit.pieces?.[piece];
+    const all = before?.files ?? [];
+    const going = def.slot ? all : all.filter((f) => f === file);
+    if (!def.slot && !going.length) return null;
+    for (const old of going) await rm(join(kitFolder(id), old), { force: true });
+    if (def.slot) {
+      const logoFile = brandLogoPath(kit, def.slot);
+      if (logoFile) await rm(logoFile, { force: true });
+      if (kit.logo) delete kit.logo[def.slot];
+    }
+    const files = all.filter((f) => !going.includes(f));
+    const state = files.length || before?.note ? before?.state ?? 'not_made' : 'not_made';
+    kit.pieces = { ...kit.pieces, [piece]: { ...before, state, files } };
+    kit.updatedAt = Date.now();
+    return kit;
+  });
+}
+
 export function agreeBrandKit(id: string): Promise<BrandKitRecord | null> {
   return change((store) => {
     const kit = store.kits.find((k) => k.id === id);
@@ -461,7 +593,8 @@ export function agreeBrandKit(id: string): Promise<BrandKitRecord | null> {
 }
 
 /** Link a kit to a project. A project has one kit, so any other kit lets go of it. */
-export function linkBrandKit(id: string, project: string): Promise<BrandKitRecord | null> {
+export async function linkBrandKit(id: string, project: string): Promise<BrandKitRecord | null> {
+  if (!(await inProjectsFolder(project))) return null;
   return change((store) => {
     const key = projectKey(project);
     const target = store.kits.find((k) => k.id === id);
@@ -494,6 +627,41 @@ export function setActiveBrandKit(id: string): Promise<BrandKitRecord | null> {
   });
 }
 
+/** Pictures in the Library to choose from: what's marked final, or a work's main
+ *  image if nothing is yet. `everything` adds its tests and comparisons. */
+export async function kitLibraryChoices(everything = false): Promise<Array<{ key: string; title: string; path: string }>> {
+  let items: Array<Record<string, unknown>> = [];
+  try {
+    const parsed = JSON.parse(await readFile(metadataFile(), 'utf-8'));
+    if (Array.isArray(parsed)) items = parsed;
+  } catch { return []; }
+  const picture = /\.(png|jpe?g|webp|svg)$/i;
+  const out: Array<{ key: string; title: string; path: string }> = [];
+  for (const it of items) {
+    const title = String(it.title || 'Untitled');
+    const id = String(it.id ?? '');
+    if (it.kind === 'gimp' && typeof it.absoluteFolder === 'string') {
+      const folder = it.absoluteFolder;
+      const finals = await readImageFinals(id.replace(/^gimp_/, ''));
+      const all = Array.isArray(it.files) ? it.files.map(String) : [];
+      const files = everything ? [...new Set([...finals, ...all])] : finals.length ? finals : all.filter((f) => !f.includes('/'));
+      for (const file of files) {
+        if (!picture.test(file) || file === 'preview.png') continue;
+        out.push({ key: `${id}:${file}`, title: `${title} · ${file.split('/').pop()}`, path: join(folder, file) });
+      }
+    } else if (typeof it.absolutePath === 'string' && picture.test(it.absolutePath) && existsSync(it.absolutePath)) {
+      out.push({ key: id, title, path: it.absolutePath });
+    }
+  }
+  return out;
+}
+
+/** Only files in the Library, for a path that came through the app. */
+export function isLibraryFile(path: string): boolean {
+  const root = resolve(creativeDir());
+  return resolve(path).startsWith(root + sep);
+}
+
 /** A file already on this computer becomes one of a kit's logos: a copy, so the
  *  kit keeps it even if the original is deleted from the Library. */
 export function setBrandLogoFromFile(id: string, slot: BrandLogoSlot, source: string): Promise<BrandKitRecord | null> {
@@ -507,20 +675,42 @@ export function setBrandLogoFromFile(id: string, slot: BrandLogoSlot, source: st
       if (other !== ext) await rm(join(dir, `${slot}${other}`), { force: true });
     }
     await copyFile(source, join(dir, `${slot}${ext}`));
-    store.kits[i] = { ...store.kits[i], logo: { ...store.kits[i].logo, [slot]: `logos/${slot}${ext}` }, updatedAt: Date.now() };
+    const piece = kitPieceDefs(store.kits[i].kind).find((d) => d.slot === slot);
+    const pieces = piece ? { ...store.kits[i].pieces, [piece.id]: { ...store.kits[i].pieces?.[piece.id], state: 'agreed' as const } } : store.kits[i].pieces;
+    store.kits[i] = { ...store.kits[i], logo: { ...store.kits[i].logo, [slot]: `logos/${slot}${ext}` }, pieces, updatedAt: Date.now() };
     return store.kits[i];
   });
 }
 
 /** Delete a kit and its files. Only after the person has asked for it. */
-export function deleteBrandKit(id: string): Promise<boolean> {
-  return change(async (store) => {
-    if (!store.kits.some((k) => k.id === id)) return false;
+export async function deleteBrandKit(id: string): Promise<boolean> {
+  let gone: BrandKitRecord | undefined;
+  const deleted = await change(async (store) => {
+    gone = store.kits.find((k) => k.id === id);
+    if (!gone) return false;
     store.kits = store.kits.filter((k) => k.id !== id);
     if (store.activeId === id) store.activeId = store.kits[0]?.id ?? null;
     await rm(kitFolder(id), { recursive: true, force: true });
     return true;
   });
+  if (deleted && gone) await forgetBrandKit(gone);
+  return deleted;
+}
+
+/**
+ * A deleted kit is deleted so they can start again, so what its projects remember
+ * about it is archived: still there, but never carried into the next design. The
+ * kit is gone either way, so a failure here doesn't undo the delete.
+ */
+async function forgetBrandKit(kit: BrandKitRecord): Promise<void> {
+  const name = kit.name.toLowerCase();
+  const aboutKit = (content: string) => {
+    const text = content.toLowerCase();
+    return text.includes(kit.id.toLowerCase()) || (text.includes('brand kit') && text.includes(name));
+  };
+  for (const project of kit.projects ?? []) {
+    await MemoryManager.archiveInProject(dirname(brandKitsFile()), project, aboutKit).catch(() => 0);
+  }
 }
 
 /**

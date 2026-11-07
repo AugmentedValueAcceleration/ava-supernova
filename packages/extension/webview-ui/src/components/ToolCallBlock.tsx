@@ -128,16 +128,18 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
               >
                 {t('tool.allow')}
               </button>
-              <button
-                className="px-3 py-1 rounded-md text-xs font-medium bg-transparent
-                           border border-[var(--color-accent)] text-[var(--color-accent)]
-                           hover:bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)]
-                           cursor-pointer transition"
-                onClick={() => onConfirmation(toolCall.confirmationId!, true, true)}
-                title={t('tool.always_allow_category_tip')}
-              >
-                {t('tool.always_allow')}
-              </button>
+              {toolCall.name !== 'design_install_font' && (
+                <button
+                  className="px-3 py-1 rounded-md text-xs font-medium bg-transparent
+                             border border-[var(--color-accent)] text-[var(--color-accent)]
+                             hover:bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)]
+                             cursor-pointer transition"
+                  onClick={() => onConfirmation(toolCall.confirmationId!, true, true)}
+                  title={t('tool.always_allow_category_tip')}
+                >
+                  {t('tool.always_allow')}
+                </button>
+              )}
               <button
                 className="px-3 py-1 rounded-md text-xs font-medium bg-transparent ml-auto
                            border border-[color-mix(in_srgb,currentColor_18%,transparent)]

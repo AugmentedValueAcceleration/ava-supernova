@@ -48,6 +48,7 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   // image_gen orchestrates the generate_image tool call to Wan — no agentic
   // depth needed at this layer, but it should see a reference image.
   image_gen:    { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — orchestrates generate_image tool calls and sees reference images', fallbackModelId: 'qwen3.7-plus' },
+  design:       { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — Creative Studio turns, as before they had their own seat', fallbackModelId: 'qwen3.7-plus' },
   // computer_use route retired alongside the Holo3 integration.
   planning:     { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — 1M context for architecture + planning depth', fallbackModelId: 'qwen3.5-plus' },
   // Chat = direct conversational response, on the same model that

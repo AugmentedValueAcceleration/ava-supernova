@@ -19,6 +19,19 @@ export const MERGE_THRESHOLD = 0.7;
 /** Recall — minimum score to include in search results */
 export const RECALL_THRESHOLD = 0.25;
 
+/**
+ * Recall — the share of a search's meaning a memory must contain to count, when
+ * at least two of its words are there. Rarer words carry more weight.
+ *
+ * Similarity alone can't see a long note: a few words against hundreds scores
+ * about 0.05 even when the note is exactly the one wanted, so most multi-word
+ * searches found nothing. Measured 6 Nov 2026 on 599 real memories, 8 real and
+ * 5 nonsense searches across two stores: 0.5 found more for 4 of the 16 real
+ * runs, 0.4 for 5 and 0.3 for 7, and none let nonsense through. 0.4 was chosen
+ * for its margin: a small sample, and nonsense came close at 0.3.
+ */
+export const RECALL_COVERAGE = 0.4;
+
 /** Consolidation grouping — looser than merge for initial clustering */
 export const CONSOLIDATION_THRESHOLD = 0.35;
 

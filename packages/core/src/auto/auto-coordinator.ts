@@ -34,13 +34,14 @@ import { resolveVisionDescriber } from '../agent/vision-bridge.js';
 const ORCHESTRATED_CATEGORIES = new Set<TaskCategory>(['planning', 'security', 'brainstorm', 'teach']);
 
 // Categories the coordinator handles directly (no agent spawn)
-const DIRECT_CATEGORIES = new Set<TaskCategory>(['chat', 'image_gen', 'vision']);
+const DIRECT_CATEGORIES = new Set<TaskCategory>(['chat', 'image_gen', 'design', 'vision']);
 
 // Map task categories to mode names for conductor/system prompt
 const CATEGORY_TO_MODE: Record<string, string> = {
   coding: 'work',
   vision: 'work',
   image_gen: 'work',
+  design: 'work',
   planning: 'plan',
   chat: 'chat',
   long_context: 'work',

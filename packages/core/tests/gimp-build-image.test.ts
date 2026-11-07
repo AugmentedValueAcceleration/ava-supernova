@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -21,8 +21,10 @@ import {
 } from '../src/tools/gimp/build-image.js';
 import { findGimp, setGimpPath } from '../src/tools/gimp/find-gimp.js';
 import { deleteDesignWork } from '../src/tools/blender/paths.js';
-import { createBrandKit, linkBrandKit } from '../src/brand/brand-kits.js';
-import { recordDesignRun } from '../src/tools/design-checkin.js';
+import { createBrandKit, linkBrandKit, readBrandKit } from '../src/brand/brand-kits.js';
+import { DesignSaveToKitTool } from '../src/tools/design-studio-tools.js';
+import { designRunRefusal, recordDesignRun, RUNS_WHEN_TOLD_TO_KEEP_GOING, toldToKeepGoing } from '../src/tools/design-checkin.js';
+import { DesignRestoreImageTool } from '../src/tools/gimp/build-image.js';
 
 const BRIEF = Object.fromEntries(IMAGE_BRIEF_FIELDS.map(([k]) => [k, `the ${k}`]));
 const proposeBrief = (name: string) => new DesignProposeImageBriefTool().execute({ name, ...BRIEF, reasoning: 'because' });
@@ -81,27 +83,65 @@ describe('GIMP 2 habits get a plain hint', () => {
   });
 });
 
-describe('when to check in', () => {
-  const ctx = (turn: string) => ({ cwd: '.', sharedState: { designTurnId: turn } });
+describe('when she has to stop', () => {
+  const room = () => {
+    const sharedState: Record<string, unknown> = { designTurnId: 't1' };
+    return { cwd: '.', sharedState } as never as Parameters<typeof recordDesignRun>[0];
+  };
+  const good = (ctx: Parameters<typeof recordDesignRun>[0], times: number) => { for (let i = 0; i < times; i++) recordDesignRun(ctx, true); };
 
-  it('nudges after six runs with no word from them, and a new message resets it', () => {
-    for (let i = 1; i <= 5; i++) expect(recordDesignRun(ctx('t1'), 'w1', true)).toBeNull();
-    expect(recordDesignRun(ctx('t1'), 'w1', true)).toContain('6 runs since they last said anything');
-    expect(recordDesignRun(ctx('t2'), 'w1', true)).toBeNull();
+  it('stops after three good runs, and the next is refused', () => {
+    const ctx = room();
+    expect(designRunRefusal(ctx)).toBeNull();
+    expect(recordDesignRun(ctx, true)).toBeNull();
+    expect(recordDesignRun(ctx, true)).toBeNull();
+    expect(recordDesignRun(ctx, true)).toContain('STOP');
+    expect(designRunRefusal(ctx)).toContain('Not run');
   });
 
-  it('says stop after three failures in a row; a success clears it', () => {
-    recordDesignRun(ctx('t3'), 'w2', false);
-    recordDesignRun(ctx('t3'), 'w2', false);
-    expect(recordDesignRun(ctx('t3'), 'w2', true)).toBeNull();
-    recordDesignRun(ctx('t3'), 'w2', false);
-    recordDesignRun(ctx('t3'), 'w2', false);
-    expect(recordDesignRun(ctx('t3'), 'w2', false)).toContain("don't try a fourth time");
+  it('anything they say starts the count again', () => {
+    const ctx = room();
+    good(ctx, 3);
+    ctx.sharedState!.designTurnId = 't2';
+    expect(designRunRefusal(ctx)).toBeNull();
   });
 
-  it('counts each piece of work on its own', () => {
-    for (let i = 1; i <= 5; i++) recordDesignRun(ctx('t4'), 'a', true);
-    expect(recordDesignRun(ctx('t4'), 'b', true)).toBeNull();
+  it('a different name is not a way round it: the count is the conversation', () => {
+    const ctx = room();
+    good(ctx, 3);
+    expect(designRunRefusal(ctx)).toContain('Not run');
+  });
+
+  it('three failures in a row stop her too, and a success clears them', () => {
+    const ctx = room();
+    recordDesignRun(ctx, false);
+    recordDesignRun(ctx, false);
+    expect(recordDesignRun(ctx, true)).toBeNull();
+    recordDesignRun(ctx, false);
+    recordDesignRun(ctx, false);
+    expect(recordDesignRun(ctx, false)).toContain("Don't try again");
+    expect(designRunRefusal(ctx)).toContain('failures in a row');
+  });
+
+  it('being told to keep going gives her longer, not for ever', () => {
+    const ctx = room();
+    ctx.sharedState!.designKeepGoing = true;
+    good(ctx, RUNS_WHEN_TOLD_TO_KEEP_GOING - 1);
+    expect(designRunRefusal(ctx)).toBeNull();
+    good(ctx, 1);
+    expect(designRunRefusal(ctx)).toContain('Not run');
+  });
+
+  it('only their own words count as keep going', () => {
+    expect(toldToKeepGoing('Looks good, keep going')).toBe(true);
+    expect(toldToKeepGoing("carry on until it's done")).toBe(true);
+    expect(toldToKeepGoing('Make the gold warmer')).toBe(false);
+    expect(toldToKeepGoing('Keep going when stuck is a rule.\n## Their request\nMake it warmer')).toBe(false);
+  });
+
+  it('with no conversation to count against, nothing is held up', () => {
+    expect(designRunRefusal({ cwd: '.' })).toBeNull();
+    expect(recordDesignRun({ cwd: '.' }, true)).toBeNull();
   });
 });
 
@@ -374,6 +414,25 @@ ava_export(img, "a.png"); ava_export(img, "b.png")
     expect(existsSync(join(dir, 'gimp'))).toBe(true);
   });
 
+  it('every step is saved, and going back really changes the file', async () => {
+    await proposeBrief('Steps');
+    await agreeImageBrief('steps');
+    const first = await tool.execute({ name: 'Steps', description: 'The base', script: 'img = ava_image("s", 64, 64)\nava_layer(img, "A", fill="#ffffff")' }, { cwd: '.' });
+    expect(first.output).toContain('Saved as step 1.');
+    const second = await tool.execute({ name: 'Steps', script: 'img = ava_image("s")\nava_layer(img, "B", fill="#000000")' }, { cwd: '.' });
+    expect(second.output).toContain('Saved as step 2.');
+    expect(second.output).toContain('2 layers');
+
+    const back = await new DesignRestoreImageTool().execute({ name: 'Steps', step: 1 });
+    expect(back.success, back.output).toBe(true);
+    expect(back.metadata?.base64_image).toBeTruthy();
+    const after = await tool.execute({ name: 'Steps', script: 'ava_layer(ava_image("s"), "C", fill="#ff0000")' }, { cwd: '.' });
+    expect(after.success, after.output).toBe(true);
+    expect(after.output).toContain('2 layers');
+    const history = (await listImageWork()).find((w) => w.slug === 'steps')!.history;
+    expect(history.map((h) => [h.number, h.label])).toEqual([[1, 'The base'], [2, 'Step 2'], [3, 'Back to step 1'], [4, 'Step 4']]);
+  }, 120_000);
+
   it('only marked files are final, and they can take one back off', async () => {
     await proposeBrief('Finals');
     await agreeImageBrief('finals');
@@ -428,6 +487,25 @@ ava_export(img, "later-test.png")
     expect(await readImageFinals('ending')).toEqual(['final/logo.png']);
   }, 120_000);
 
+  it('the stage shows the piece being worked on, not her tests', async () => {
+    await proposeBrief('Focus');
+    await agreeImageBrief('focus');
+    const folder = join(dir, 'gimp', 'focus');
+    const size = async () => PNG.sync.read(await readFile(join(folder, 'preview.png')));
+    const made = await tool.execute({ name: 'Focus', script: `
+main = ava_image("focus-logo", 300, 100)
+ava_layer(main, "A", fill="#ffffff")
+for name in ("test-a", "compare-b", "thumb-c"):
+    ava_layer(ava_image(name, 100, 100), "B", fill="#ff0000")
+` }, { cwd: '.' });
+    expect(made.success, made.output).toBe(true);
+    // One image gets the 768 cell; the old sheet of four was 1536 wide.
+    expect((await size()).width).toBe(768);
+    const touchedTest = await tool.execute({ name: 'Focus', script: 'ava_layer(ava_image("test-a"), "C", fill="#00ff00")' }, { cwd: '.' });
+    expect(touchedTest.success, touchedTest.output).toBe(true);
+    expect((await size()).width).toBe(768);
+  }, 120_000);
+
   it('the preview keeps real transparency, so the room can show it', async () => {
     await proposeBrief('Clear');
     await agreeImageBrief('clear');
@@ -446,7 +524,9 @@ ava_fill(ava_layer(img, "A"), dict(rect=(20, 20, 24, 24)), "#ff0000")
     await proposeBrief('Kitted');
     await agreeImageBrief('kitted');
     process.env.AVA_BRAND_KITS_DIR = dir;
-    const project = join(dir, 'Some Game');
+    process.env.AVA_PROJECTS_DIR = join(dir, 'projects');
+    const project = join(dir, 'projects', 'Some Game');
+    await mkdir(project, { recursive: true });
     const kit = await createBrandKit({ name: 'Dawn', palette: { primary: '#3D52D8' } });
     const ctx = { cwd: '.', sharedState: { designProject: () => project } };
     const script = `
@@ -467,6 +547,38 @@ if KIT:
     const missing = await tool.execute({ name: 'Kitted', script: 'ava_image("k"); KIT.logo("mark")' }, ctx);
     expect(missing.output).toContain('no "mark" logo');
     delete process.env.AVA_BRAND_KITS_DIR;
+    delete process.env.AVA_PROJECTS_DIR;
+  }, 120_000);
+
+  it('a final can go to the kit, only a final, and the proof tests on the kit', async () => {
+    await proposeBrief('Piece');
+    await agreeImageBrief('piece');
+    process.env.AVA_BRAND_KITS_DIR = dir;
+    process.env.AVA_PROJECTS_DIR = join(dir, 'projects');
+    const project = join(dir, 'projects', 'Kit Game');
+    await mkdir(project, { recursive: true });
+    const kit = await createBrandKit({ name: 'Dawn', kind: 'game', palette: { surface: '#102030' } });
+    await linkBrandKit(kit.id, project);
+    const ctx = { cwd: '.', sharedState: { designProject: () => project } };
+    const res = await tool.execute({ name: 'Piece', script: `
+img = ava_image("logo", 200, 100)
+ava_fill(ava_layer(img, "A"), dict(rect=(20, 20, 160, 60)), "#ffffff")
+ava_export(img, "test.png")
+ava_proof(img)
+ava_final(img, "logo.png")
+` }, ctx);
+    expect(res.success, res.output).toBe(true);
+    expect(res.output).toContain('ask whether to save it to the kit');
+    expect(res.output).toContain('Title logo [title_logo]');
+    const proof = PNG.sync.read(await readFile(join(dir, 'gimp', 'piece', 'exports', 'proof.png')));
+    expect([...proof.data.subarray(0, 3)]).toEqual([0x10, 0x20, 0x30]);
+    const save = new DesignSaveToKitTool();
+    const base = { piece: 'title_logo', tool: 'gimp', work: 'Piece' };
+    expect((await save.execute({ ...base, file: 'exports/test.png' }, ctx)).output).toContain("isn't a final");
+    expect((await save.execute({ ...base, file: 'final/logo.png', logo_slot: 'primary' }, ctx)).output).toContain('Title logo is agreed');
+    expect((await readBrandKit(kit.id))?.logo?.primary).toBe('logos/primary.png');
+    delete process.env.AVA_BRAND_KITS_DIR;
+    delete process.env.AVA_PROJECTS_DIR;
   }, 120_000);
 
   it('their art comes in by their own pick, and only images', async () => {

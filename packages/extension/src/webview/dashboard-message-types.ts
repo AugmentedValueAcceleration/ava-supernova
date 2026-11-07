@@ -1517,6 +1517,11 @@ export interface DesignModelSummary {
   references?: string[];
   /** GIMP work: the finished files. */
   finals?: Array<{ file: string; url: string }>;
+  /** GIMP work: the separate designs, and the one they chose. */
+  versions?: Array<{ name: string; url: string }>;
+  main?: string | null;
+  /** GIMP work: every step so far, oldest first. */
+  history?: Array<{ number: number; label: string; url?: string }>;
   brief: null | {
     status: 'proposed' | 'agreed';
     edited_by_person?: boolean;
@@ -1726,6 +1731,9 @@ export type ExtToDashboardMessage =
   | { type: 'models_listed'; models: DesignModelSummary[] }
   | { type: 'image_work_listed'; models: DesignModelSummary[] }
   | { type: 'image_art_added'; slug: string; file: string }
+  | { type: 'brand_kit_library'; requestId: string; choices: unknown[] }
+  | { type: 'brand_kit_fonts'; requestId: string; installed: string[] | null; google: string[] }
+  | { type: 'brand_kit_font_installed'; requestId: string; ok: boolean; message: string }
   | { type: 'brand_kits'; kits: unknown[]; activeId: string | null; project: { key: string; path: string } | null; kinds: unknown[]; pieces: unknown; corePieces: unknown[]; projects: unknown[] }
   | { type: 'gimp_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
   | { type: 'blender_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
@@ -2217,6 +2225,8 @@ export type DashboardToExtMessage =
   | { type: 'agree_image_brief'; slug: string }
   | { type: 'save_image_brief'; slug: string; fields: Record<string, string> }
   | { type: 'pick_image_option'; slug: string; index: number }
+  | { type: 'restore_image_step'; slug: string; number: number }
+  | { type: 'image_version'; action: 'main' | 'keep' | 'delete'; slug: string; name: string }
   | { type: 'remove_image_final'; slug: string; file: string }
   | { type: 'delete_design_work'; tool: 'blender' | 'gimp'; slug: string }
   | { type: 'brand_kits_connect'; kits: unknown; activeId: string | null }
@@ -2224,7 +2234,14 @@ export type DashboardToExtMessage =
   | { type: 'brand_kit_delete'; id: string }
   | { type: 'brand_kit_link'; id: string; link: boolean; project?: string }
   | { type: 'brand_kit_agree'; id: string }
-  | { type: 'brand_kit_logo_from_library'; kitId: string; assetId: string; file?: string }
+  | { type: 'brand_kit_piece'; id: string; piece: string; state: 'not_made' | 'in_progress' | 'agreed' }
+  | { type: 'brand_kit_logo_from_library'; kitId: string; path: string }
+  | { type: 'brand_kit_piece_library'; kitId: string; piece: string; path: string }
+  | { type: 'brand_kit_piece_upload'; kitId: string; piece: string; name: string; dataUrl: string }
+  | { type: 'brand_kit_piece_remove'; kitId: string; piece: string; file?: string }
+  | { type: 'brand_kit_library'; requestId: string; everything: boolean }
+  | { type: 'brand_kit_fonts'; requestId: string }
+  | { type: 'brand_kit_font_install'; requestId: string; family: string }
   | { type: 'brand_kit_set_active'; id: string }
   | { type: 'add_image_art'; slug: string }
   | { type: 'open_work_in_gimp'; id: string }

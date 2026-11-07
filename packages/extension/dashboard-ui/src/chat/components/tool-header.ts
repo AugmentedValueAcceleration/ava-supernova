@@ -32,6 +32,8 @@ export function getToolHeader(name: string, argsJson: string | undefined): ToolH
   const filePath = shortenPath(args.file_path as string | undefined);
 
   switch (name) {
+    case 'design_install_font':
+      return { verb: 'Install font', target: String(args.family ?? '') };
     // File ops (canonical + aliased)
     case 'file_read':
     case 'read':

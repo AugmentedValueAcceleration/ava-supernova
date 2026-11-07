@@ -49,8 +49,8 @@ import {
   findBlender, setBlenderPath, blenderStatus, BLENDER_DOWNLOAD_URL,
   listModels, agreeModelBrief, saveModelBriefEdits, BRIEF_FIELDS,
   findGimp, setGimpPath, gimpStatus, GIMP_DOWNLOAD_URL,
-  listImageWork, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS,
-  brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, type BrandKitRecord,
+  listImageWork, restoreImageStep, chooseImageMain, keepImageVersion, deleteImageVersion, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS,
+  brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -350,7 +350,7 @@ export class DashboardPanel {
       imageBriefs.onDidChange(reload); imageBriefs.onDidCreate(reload); imageBriefs.onDidDelete(reload);
       // Versions she puts on the stage, and the files she marks final.
       const imageOptions = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'gimp')), '*/{options,finals}.json'),
+        new vscode.RelativePattern(vscode.Uri.file(path.join(AVA_HOME, 'creative', 'gimp')), '*/{options,finals,history,main}.json'),
       );
       imageOptions.onDidChange(reload); imageOptions.onDidCreate(reload); imageOptions.onDidDelete(reload);
       // Brand kits: one file, shared with the IDE and changed by Ava's tool.
@@ -2050,16 +2050,45 @@ export class DashboardPanel {
         break;
 
       case 'brand_kit_logo_from_library': {
-        const items = await readLocalCreative(this.getUserDataDir());
-        const item = items.find((i) => i.id === msg.assetId);
-        if (!item) break;
-        // A file inside a folder asset must really be inside that folder.
-        const folder = msg.file ? modelFolder(this.getUserDataDir(), item) : null;
-        const source = msg.file && folder ? path.resolve(folder, msg.file) : item.absolutePath;
-        if (msg.file && (!folder || !source.startsWith(path.resolve(folder) + path.sep))) break;
-        const kit = await setBrandLogoFromFile(msg.kitId, 'primary', source);
+        const kit = isLibraryFile(msg.path) ? await setBrandLogoFromFile(msg.kitId, 'primary', msg.path) : null;
         if (!kit) vscode.window.showErrorMessage('That file could not be used as a logo.');
         await this.postBrandKits();
+        break;
+      }
+
+      case 'brand_kit_fonts':
+        this.post({ type: 'brand_kit_fonts', requestId: msg.requestId, ...(await fontChoices()) });
+        break;
+
+      case 'brand_kit_font_install':
+        this.post({ type: 'brand_kit_font_installed', requestId: msg.requestId, ...(await installFontTheyChose(msg.family)) });
+        break;
+
+      case 'brand_kit_piece_library': {
+        const kit = await addPieceFromLibrary(msg.kitId, msg.piece, msg.path);
+        if (!kit) vscode.window.showErrorMessage('That file could not be added to the kit.');
+        await this.postBrandKits();
+        break;
+      }
+
+      case 'brand_kit_piece_upload': {
+        const kit = await addPieceUpload(msg.kitId, msg.piece, msg.name, msg.dataUrl);
+        if (!kit) vscode.window.showErrorMessage('That file could not be added to the kit. Use a PNG, JPG, WebP or SVG.');
+        await this.postBrandKits();
+        break;
+      }
+
+      case 'brand_kit_piece_remove':
+        await removePieceFile(msg.kitId, msg.piece, msg.file);
+        await this.postBrandKits();
+        break;
+
+      case 'brand_kit_library': {
+        const choices = await kitLibraryChoices(msg.everything);
+        this.post({
+          type: 'brand_kit_library', requestId: msg.requestId,
+          choices: choices.map((c) => ({ ...c, src: this.panel.webview.asWebviewUri(vscode.Uri.file(c.path)).toString() })),
+        });
         break;
       }
 
@@ -2068,6 +2097,11 @@ export class DashboardPanel {
           const project = msg.project ?? DashboardPanel.projectRoot;
           if (project) await (msg.link ? linkBrandKit : unlinkBrandKit)(msg.id, project);
         }
+        await this.postBrandKits();
+        break;
+
+      case 'brand_kit_piece':
+        await setBrandPiece(msg.id, msg.piece, msg.state);
         await this.postBrandKits();
         break;
 
@@ -2089,6 +2123,18 @@ export class DashboardPanel {
 
       case 'remove_image_final':
         await removeImageFinal(msg.slug, msg.file);
+        await Promise.all([this.loadImageWork(), this.loadLocalCreative()]);
+        break;
+
+      case 'image_version':
+        if (msg.action === 'main') await chooseImageMain(msg.slug, msg.name);
+        else if (msg.action === 'keep') await keepImageVersion(msg.slug, msg.name);
+        else await deleteImageVersion(msg.slug, msg.name);
+        await Promise.all([this.loadImageWork(), this.loadLocalCreative()]);
+        break;
+
+      case 'restore_image_step':
+        await restoreImageStep(msg.slug, msg.number);
         await Promise.all([this.loadImageWork(), this.loadLocalCreative()]);
         break;
 
@@ -3280,13 +3326,20 @@ export class DashboardPanel {
         type: 'image_work_listed',
         models: work.map((w) => {
           const entry = items.find((i) => i.id === `gimp_${w.slug}`);
-          const v = entry?.updatedAt || w.updatedAt;
+          // Going back rewrites preview.png at the same path, so the step counts.
+          const v = `${entry?.updatedAt || w.updatedAt}.${w.history.at(-1)?.number ?? 0}`;
           return {
             slug: w.slug,
             name: entry?.title || w.name,
             built: w.built,
             updated_at: w.updatedAt,
             creative_id: entry?.id,
+            versions: w.versions.map((name) => ({ name, url: uri(path.join(AVA_HOME, 'creative', 'gimp', w.slug, `${name}.png`), v) })),
+            main: w.main,
+            history: w.history.map((s) => ({
+              number: s.number, label: s.label,
+              url: s.preview ? uri(path.join(AVA_HOME, 'creative', 'gimp', w.slug, s.preview), s.at) : undefined,
+            })),
             preview_url: entry && existsSync(entry.absolutePath) ? uri(entry.absolutePath, v) : undefined,
             image_count: entry?.imageCount,
             references: w.references,
@@ -3315,7 +3368,16 @@ export class DashboardPanel {
 
   private async postBrandKits(): Promise<void> {
     try {
-      this.post({ type: 'brand_kits', ...(await brandKitsForApps(DashboardPanel.projectRoot)) });
+      const shown = await brandKitsForApps(DashboardPanel.projectRoot);
+      const webview = this.panel.webview;
+      this.post({
+        type: 'brand_kits',
+        ...shown,
+        kits: shown.kits.map((k) => ({
+          ...k,
+          fileMap: Object.fromEntries(Object.entries(k.fileMap ?? {}).map(([file, full]) => [file, webview.asWebviewUri(vscode.Uri.file(full)).toString()])),
+        })),
+      });
     } catch (err) {
       this.log(`[Creative] Could not read the brand kits: ${err instanceof Error ? err.message : String(err)}`);
     }

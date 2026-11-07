@@ -215,6 +215,13 @@ export function App() {
   const pageRef = useRef(page);
   useEffect(() => { pageRef.current = page; }, [page]);
 
+  // A page asking to go elsewhere, such as the Library opening a design in its room.
+  useEffect(() => {
+    const go = (e: Event) => { const p = (e as CustomEvent).detail as Page; if (p) setPagePersistRef.current(p); };
+    window.addEventListener('ava-navigate-dashboard', go);
+    return () => window.removeEventListener('ava-navigate-dashboard', go);
+  }, []);
+  const setPagePersistRef = useRef<(p: Page) => void>(() => {});
   const setPagePersist = (p: Page) => {
     setPage(p);
     localStorage.setItem('ava-dashboard-page', p);
@@ -225,6 +232,7 @@ export function App() {
       setArticleLoading(false);
     }
   };
+  setPagePersistRef.current = setPagePersist;
   const [connections, setConnections] = useState<ConnectionStatus>({
     github: false,
     email: false,

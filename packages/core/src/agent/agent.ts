@@ -62,6 +62,7 @@ import {
 } from './error-loop-detector.js';
 import { runFreshEyesReview, buildFreshEyesContext } from './fresh-eyes.js';
 import { randomUUID } from 'node:crypto';
+import { toldToKeepGoing } from '../tools/design-checkin.js';
 import { appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AVA_HOME } from '../core/constants.js';
@@ -524,13 +525,13 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   design: new Set([
     'design_find_shape', 'design_generate_icon', 'design_generate_set',
     'design_generate_video', 'design_generate_image', 'design_generate_voice',
-    'design_generate_logo', 'design_explore_logos', 'design_brand_kit', 'design_propose_kit', 'design_save',
+    'design_generate_logo', 'design_explore_logos', 'design_brand_kit', 'design_propose_kit', 'design_save_to_kit', 'design_save',
     // 3D in headless Blender — free, local, guarded (Design Studio 3D plan, 3 Nov 2026).
     'design_propose_model_brief', 'design_build_model', 'design_duplicate_model',
     // 2D in headless GIMP — the same pattern (Phase 4, 4 Nov 2026).
     'design_propose_image_brief', 'design_build_image', 'design_duplicate_image', 'design_show_options', 'design_mark_final',
     // Her sources of truth: the installed program, and the official docs.
-    'design_api_lookup', 'design_read_docs',
+    'design_api_lookup', 'design_read_docs', 'design_fonts', 'design_install_font', 'design_restore_image',
     'memory_save', 'memory_recall', 'memory_update',
     // Journal — Ava reflects on the person + their taste in her own voice
     'journal_write',
@@ -1665,8 +1666,9 @@ export class Agent {
     if (this.toolContext.sharedState) {
       (this.toolContext.sharedState as Record<string, unknown>).recallTranscript = [...messages];
       // One run() is one thing the person said; the making rooms count their
-      // steps against it to know when to check in (design-checkin.ts).
+      // steps against it to know when to stop (design-checkin.ts).
       (this.toolContext.sharedState as Record<string, unknown>).designTurnId = randomUUID();
+      (this.toolContext.sharedState as Record<string, unknown>).designKeepGoing = toldToKeepGoing(this.findLatestNonMetaUserMessage(messages) ?? '');
     }
 
     // ─── Stop-command detection ────────────────────────────────────────────

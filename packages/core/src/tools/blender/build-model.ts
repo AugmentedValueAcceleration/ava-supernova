@@ -33,7 +33,7 @@ import { randomUUID } from 'node:crypto';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from '../types.js';
 import type { FunctionSchema } from '../../providers/types.js';
 import type { GenerationManager } from '../generation-manager.js';
-import { recordDesignRun } from '../design-checkin.js';
+import { designRunRefusal, recordDesignRun } from '../design-checkin.js';
 import { creativeDir, modelsDir, metadataFile, modelSlug } from './paths.js';
 import { kitForScripts } from '../../brand/brand-kits.js';
 import { readModelBrief, formatModelBrief } from './model-brief.js';
@@ -223,6 +223,8 @@ export class DesignBuildModelTool implements Tool {
    * start, so a refusal (no brief, a blocked script) never appears as a job.
    */
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const wait = designRunRefusal(context);
+    if (wait) return { success: false, output: wait };
     const jobs = context.sharedState?.generationManager as GenerationManager | undefined;
     let jobId: string | undefined;
     const started = (name: string, slug: string, assetDir: string) => {
@@ -236,7 +238,7 @@ export class DesignBuildModelTool implements Tool {
         if (res.success) jobs?.complete(jobId);
         else jobs?.fail(jobId, res.output.split('\n')[0]);
         // Runs Blender/GIMP actually made. A refusal is not a run.
-        const checkIn = recordDesignRun(context, `blender:${String(args.name ?? '')}`, res.success);
+        const checkIn = recordDesignRun(context, res.success);
         if (checkIn) res.output += `\n\n${checkIn}`;
       }
       return res;

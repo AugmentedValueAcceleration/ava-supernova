@@ -92,6 +92,9 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // image_gen orchestrates a generate_image tool call to Wan — no agentic
   // depth needed at this layer, but it should see a reference image.
   image_gen:    { modelId: 'qwen3.8-flash',               reason: 'Qwen 3.8 Flash — orchestrates generate_image tool calls and sees reference images', fallbackModelId: 'qwen3.7-plus' },
+  // Design work is mostly code: write a script, read the error, fix it. His call
+  // 7 Nov 2026, a trial: the Builder's model, which can also see the picture.
+  design:       { modelId: 'deepseek-flash',              reason: 'DeepSeek V4.1 Flash — the Builder, writes and fixes the design scripts and sees the work', fallbackModelId: 'qwen3.8-flash' },
   // computer_use route retired alongside the Holo3 integration.
   // Planning is Architect + Researcher territory — Architect is Qwen 3.6
   // Plus per the map, but planning leans heavily on Researcher's

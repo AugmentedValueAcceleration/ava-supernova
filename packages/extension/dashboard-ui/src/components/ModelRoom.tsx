@@ -46,15 +46,23 @@ export function roomRoster(names: string[]): string {
     : 'This room is EMPTY right now: no briefs, no files, nothing on disk.';
 }
 
-export function ModelRoom({ tool = 'blender', busy = false, onActiveModel, onRoster }: { tool?: keyof typeof ROOMS; busy?: boolean; onActiveModel: (m: DesignModelSummary | null) => void; onRoster?: (names: string[]) => void }) {
+export function ModelRoom({ tool = 'blender', busy = false, startFresh = false, onActiveModel, onRoster }: { tool?: keyof typeof ROOMS; busy?: boolean; startFresh?: boolean; onActiveModel: (m: DesignModelSummary | null) => void; onRoster?: (names: string[]) => void }) {
   const room = ROOMS[tool];
   const [models, setModels] = useState<DesignModelSummary[] | null>(null);
-  const [picked, setPicked] = useState<string | null>(null);
+  // A design opened from the Library comes straight to the stage.
+  const [picked, setPicked] = useState<string | null>(() => {
+    if (tool !== 'gimp') return null;
+    try {
+      const slug = sessionStorage.getItem('ava-open-work');
+      sessionStorage.removeItem('ava-open-work');
+      return slug;
+    } catch { return null; }
+  });
 
   // The stage is cleared by New brief, and stays clear until a new piece of
   // work appears. A slug we have not seen comes forward by itself, even if an
   // older piece was picked in the dropdown: that pick used to stick and hide it.
-  const [fresh, setFresh] = useState(false);
+  const [fresh, setFresh] = useState(startFresh);
   const known = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (!models) { known.current = null; return; }
@@ -88,7 +96,52 @@ export function ModelRoom({ tool = 'blender', busy = false, onActiveModel, onRos
     return models.find((m) => m.slug === picked) ?? models[0];
   }, [models, picked, fresh]);
   useEffect(() => { onActiveModel(active); }, [active, onActiveModel]);
+  // A step they've clicked to look at. Only the look: nothing changes until
+  // they choose to go back to it.
+  const [viewing, setViewing] = useState<number | null>(null);
+  // A design they've clicked: what to do with it is their choice, on this tile.
+  const [choosing, setChoosing] = useState<string | null>(null);
+  const [confirmingVersion, setConfirmingVersion] = useState(false);
+  useEffect(() => { setConfirmingVersion(false); }, [choosing]);
+  useEffect(() => { setViewing(null); }, [active?.slug, active?.history?.length]);
+  const latestStep = active?.history?.at(-1)?.number;
+  const latestLabel = active?.history?.at(-1)?.label;
+  const lookingAt = viewing !== null && viewing !== latestStep ? active?.history?.find((s) => s.number === viewing) : undefined;
+  const version = active?.versions?.find((v) => v.name === choosing);
+  const versionLetter = (name: string) => String.fromCharCode(65 + (active?.versions?.findIndex((v) => v.name === name) ?? 0));
+  const onVersion = (action: 'main' | 'keep' | 'delete', name: string) => {
+    post({ type: 'image_version', action, slug: active!.slug, name });
+    setChoosing(null);
+    if (action === 'main') sayToAva(`I've chosen design ${versionLetter(name)}, "${name}", as the main design.`);
+  };
+  const goBack = (number: number) => {
+    post({ type: 'restore_image_step', slug: active!.slug, number });
+    sayToAva(`I've gone back to step ${number}. Carry on from there.`);
+  };
   useEffect(() => { if (models) onRoster?.(models.map((m) => m.name)); }, [models, onRoster]);
+  // A brief waiting for them: slide the chat down so the card has the room.
+  // Agreeing sends a message to Ava, and that brings the chat back up.
+  const waiting = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!models) return;
+    const before = waiting.current;
+    const proposed = models.filter((m) => m.brief?.status === 'proposed');
+    waiting.current = new Set(proposed.map((m) => JSON.stringify(m.brief)));
+    if (!before) return;
+    // Same name re-proposed is the same slug, so nothing else notices: bring it
+    // to the stage here, or the piece already showing stays in its place.
+    const changed = proposed.find((m) => !before.has(JSON.stringify(m.brief)));
+    if (!changed) return;
+    setPicked(changed.slug);
+    setFresh(false);
+    window.dispatchEvent(new CustomEvent('ava-design-card'));
+  }, [models]);
+  // The file watcher can miss a change, so ask again each time she finishes.
+  const wasBusy = useRef(busy);
+  useEffect(() => {
+    if (wasBusy.current && !busy) post({ type: room.list });
+    wasBusy.current = busy;
+  }, [busy, room]);
 
   return (
     <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
@@ -181,7 +234,7 @@ export function ModelRoom({ tool = 'blender', busy = false, onActiveModel, onRos
         </div>
       ) : (
         <div className="flex-1 min-h-0 grid gap-4 overflow-hidden" style={{ gridTemplateColumns: 'minmax(280px, 380px) 1fr' }}>
-          <BriefCard key={active.slug + (active.brief?.status ?? '')} model={active} agreeType={room.agree} saveType={room.save} />
+          <BriefCard key={active.slug + (active.brief?.status ?? '') + (active.brief?.fields ?? []).map((f) => f.value).join('|')} model={active} agreeType={room.agree} saveType={room.save} />
           <div className="min-h-0 flex flex-col rounded-xl border border-[var(--border-card)] overflow-hidden">
             {tool === 'gimp' && active.options ? (
               <OptionsStage
@@ -191,8 +244,45 @@ export function ModelRoom({ tool = 'blender', busy = false, onActiveModel, onRos
                   sayToAva(`I pick "${label}".`);
                 }}
               />
+            ) : version ? (
+              <div className="relative flex-1 min-h-0 bg-black/20">
+                <img src={version.url} alt={version.name} className="ava-checker absolute inset-4 m-auto max-w-[calc(100%-2rem)] max-h-[calc(100%-2rem)] object-contain" />
+                <div className="absolute inset-x-3 top-3 flex flex-wrap items-center gap-2 rounded-lg bg-black/70 px-3 py-2">
+                  <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--text-primary)]">{versionLetter(version.name)}: {version.name}</span>
+                  {confirmingVersion ? (
+                    <>
+                      <span className="text-[12px] text-[var(--text-secondary)]">{tt('dash.studio.version_delete_sure', 'Delete this design for good?')}</span>
+                      <button onClick={() => setConfirmingVersion(false)} className="rounded-lg border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">{tt('library.cancel', 'Cancel')}</button>
+                      <button onClick={() => onVersion('delete', version.name)} className="rounded-lg border border-red-500/60 bg-red-500/15 px-3 py-1 text-xs font-medium text-red-400 transition hover:bg-red-500/25">{tt('library.delete', 'Delete')}</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => setChoosing(null)} className="rounded-lg border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">{tt('dash.studio.step_latest', 'Back to latest')}</button>
+                      <button disabled={busy} onClick={() => setConfirmingVersion(true)} className="rounded-lg border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed">{tt('library.delete', 'Delete')}</button>
+                      {active.main !== version.name && <button disabled={busy} onClick={() => onVersion('keep', version.name)} className="rounded-lg border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed">{tt('dash.studio.version_keep', 'Keep for later')}</button>}
+                      {active.main !== version.name && <button disabled={busy} onClick={() => onVersion('main', version.name)} className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20 disabled:opacity-40 disabled:cursor-not-allowed">{tt('dash.studio.version_main', 'Make this the main one')}</button>}
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : lookingAt?.url ? (
+              <div className="relative flex-1 min-h-0 bg-black/20">
+                <img src={lookingAt.url} alt={lookingAt.label} className="ava-checker absolute inset-4 m-auto max-w-[calc(100%-2rem)] max-h-[calc(100%-2rem)] object-contain" />
+                <div className="absolute inset-x-3 top-3 flex flex-wrap items-center gap-2 rounded-lg bg-black/70 px-3 py-2">
+                  <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--text-primary)]">{tt('dash.studio.step', 'Step {n}').replace('{n}', String(lookingAt.number))}: {lookingAt.label}</span>
+                  <button onClick={() => setViewing(null)} className="rounded-lg border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+                    {tt('dash.studio.step_latest', 'Back to latest')}
+                  </button>
+                  <button disabled={busy} onClick={() => goBack(lookingAt.number)} className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20 disabled:opacity-40 disabled:cursor-not-allowed">
+                    {tt('dash.studio.step_restore', 'Go back to this')}
+                  </button>
+                </div>
+              </div>
             ) : active.built && tool === 'gimp' && active.preview_url ? (
               <div className="relative flex-1 min-h-0 bg-black/20">
+                <span className="absolute left-3 top-3 z-10 max-w-[calc(100%-1.5rem)] truncate rounded-md bg-black/70 px-2 py-1 text-[11px] text-[var(--text-primary)]">
+                  {active.finals?.length ? tt('dash.studio.showing_final', 'Finished') : tt('dash.studio.working_on', 'Working on')}: {active.name}{latestLabel ? ` · ${latestLabel}` : ''}
+                </span>
                 <img src={active.preview_url} alt={active.name} className="ava-checker absolute inset-4 m-auto max-w-[calc(100%-2rem)] max-h-[calc(100%-2rem)]" />
               </div>
             ) : active.built && active.glb_url ? (
@@ -205,6 +295,29 @@ export function ModelRoom({ tool = 'blender', busy = false, onActiveModel, onRos
                     ? tt('dash.studio.model.not_built_agreed', 'The brief is agreed — Ava can start building. Each step appears here.')
                     : tt('dash.studio.model.not_built_brief', 'Once you agree the brief, Ava builds it here, step by step.')}
                 </p>
+              </div>
+            )}
+            {tool === 'gimp' && (active.versions?.length ?? 0) > 1 && (
+              <div className="shrink-0 flex items-center gap-2 overflow-x-auto border-t border-[var(--border-card)] px-3 py-2">
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{tt('dash.studio.versions', 'Designs')}</span>
+                {active.versions!.map((v, i) => (
+                  <button key={v.name} title={v.name} onClick={() => { setViewing(null); setChoosing(v.name); }}
+                    className={`relative shrink-0 h-12 w-16 overflow-hidden rounded border transition ${choosing === v.name || active.main === v.name ? 'border-[var(--accent)]' : 'border-[var(--border-card)] hover:border-[var(--text-muted)]'}`}>
+                    <img src={v.url} alt={v.name} className="ava-checker h-full w-full object-contain" />
+                    <span className="absolute left-0 top-0 rounded-br bg-black/80 px-1 text-[10px] text-[var(--text-primary)]">{String.fromCharCode(65 + i)}{active.main === v.name ? ' ★' : ''}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {tool === 'gimp' && !!active.history?.length && (
+              <div className="shrink-0 flex items-center gap-2 overflow-x-auto border-t border-[var(--border-card)] px-3 py-2">
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{tt('dash.studio.history', 'History')}</span>
+                {active.history.map((s) => (
+                  <button key={s.number} title={`${tt('dash.studio.step', 'Step {n}').replace('{n}', String(s.number))}: ${s.label}`} onClick={() => { setChoosing(null); setViewing(s.number); }}
+                    className={`relative shrink-0 h-10 w-10 overflow-hidden rounded border transition ${(viewing ?? latestStep) === s.number ? 'border-[var(--accent)]' : 'border-[var(--border-card)] hover:border-[var(--text-muted)]'}`}>
+                    {s.url ? <img src={s.url} alt={s.label} className="ava-checker h-full w-full object-contain" /> : <span className="text-[10px] text-[var(--text-muted)]">{s.number}</span>}
+                  </button>
+                ))}
               </div>
             )}
             {tool === 'gimp' && active.built && (

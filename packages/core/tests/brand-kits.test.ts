@@ -4,17 +4,19 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { tmpdir } from 'node:os';
+import { getDesignStudioPrefix } from '../src/agent/system-prompt.js';
+import { MemoryManager } from '../src/memory/memory-manager.js';
 import {
   brandKitsFile, brandKitsForApps, brandLogoPath, createBrandKit, deleteBrandKit, importBrandKits, listBrandKits,
-  agreeBrandKit, knownProjects, brandKitSummary, checkPairings, contrastRatio, kitForProject, kitForScripts, kitPieceStates, linkBrandKit, unlinkBrandKit,
+  agreeBrandKit, isLibraryFile, kitLibraryChoices, knownProjects, saveFileToKit, brandKitSummary, checkPairings, contrastRatio, kitForProject, kitForScripts, kitPieceStates, linkBrandKit, unlinkBrandKit,
   readBrandKit, saveBrandKit, setActiveBrandKit, setBrandLogoFromFile, updateBrandKit, type BrandKitRecord,
 } from '../src/brand/brand-kits.js';
 import {
-  DesignBrandKitTool, DesignProposeKitTool, DesignExploreLogosTool, DesignGenerateIconTool, DesignGenerateLogoTool, DesignGenerateSetTool,
+  DesignBrandKitTool, DesignProposeKitTool, DesignSaveToKitTool, DesignExploreLogosTool, DesignGenerateIconTool, DesignGenerateLogoTool, DesignGenerateSetTool,
   DesignGenerateVideoTool, DesignGenerateVoiceTool, DesignGenerateImageTool,
 } from '../src/tools/design-studio-tools.js';
 
@@ -23,13 +25,20 @@ const old = (id: string, name: string, extra: Partial<BrandKitRecord> = {}): Bra
   ({ id, name, palette, styleTags: [], createdAt: 1, updatedAt: 1, ...extra });
 const SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg"/>');
 
+const PROJECTS = join(tmpdir(), `ava-kit-projects-${process.pid}`);
+for (const name of ['Game One', 'Game Two', 'Dawn Project']) mkdirSync(join(PROJECTS, name), { recursive: true });
+mkdirSync(join(PROJECTS, '.hidden'), { recursive: true });
+writeFileSync(join(PROJECTS, 'notes.txt'), 'not a project');
+
 let dir: string;
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'ava-kits-'));
   process.env.AVA_BRAND_KITS_DIR = dir;
+  process.env.AVA_PROJECTS_DIR = PROJECTS;
 });
 afterEach(async () => {
   delete process.env.AVA_BRAND_KITS_DIR;
+  delete process.env.AVA_PROJECTS_DIR;
   await rm(dir, { recursive: true, force: true });
 });
 
@@ -137,8 +146,8 @@ describe('changing kits', () => {
 });
 
 describe('a kit belongs to its project', () => {
-  const A = join(tmpdir(), 'Game One');
-  const B = join(tmpdir(), 'Game Two');
+  const A = join(PROJECTS, 'Game One');
+  const B = join(PROJECTS, 'Game Two');
 
   it('in a project, only its own kit is used, never the active one', async () => {
     const dawn = await createBrandKit({ name: 'Dawn', palette: { primary: '#0000ff' } });
@@ -220,7 +229,7 @@ describe('a kit shaped by what the project is', () => {
   it('a kit with no kind is asked about, not guessed', async () => {
     const kit = await createBrandKit({ name: 'Old' });
     expect(brandKitSummary({ status: 'active', kit })).toContain('Never guess');
-    expect(brandKitSummary({ status: 'active', kit: { ...kit, kind: 'game' } })).toContain('Title logo (not made)');
+    expect(brandKitSummary({ status: 'active', kit: { ...kit, kind: 'game' } })).toContain('Title logo (not made; GIMP room)');
   });
 
   it('works out contrast, by role or hex', () => {
@@ -244,19 +253,20 @@ describe('a kit shaped by what the project is', () => {
     const weak = await run({ action: 'update', pairings: [{ ink: '#aaaaaa', on: '#bbbbbb' }] });
     expect(weak.output).toContain('Too low to read');
     expect((await run({ action: 'read' })).output).toContain('Pieces:');
+    expect((await run({ action: 'read' })).output).toContain('; GIMP room)');
   });
 
   it('what she can reach in scripts', async () => {
-    await saveBrandKit(old('a', 'One', { projects: ['/tmp/x'], fonts: { heading: 'Space Grotesk' } }));
-    expect((await kitForScripts('/tmp/x'))?.fonts.heading).toBe('Space Grotesk');
+    await saveBrandKit(old('a', 'One', { projects: [join(PROJECTS, 'Game One')], fonts: { heading: 'Space Grotesk' } }));
+    expect((await kitForScripts(join(PROJECTS, 'Game One')))?.fonts.heading).toBe('Space Grotesk');
   });
 });
 
 describe('a kit made with Ava', () => {
   const propose = new DesignProposeKitTool();
   const args = { name: 'Dawn', kind: 'game', palette: { primary: '#3D52D8' }, reasoning: 'Because', pairings: [{ ink: 'primary', on: 'surface' }], fonts: { heading: 'Space Grotesk' }, voice: 'Calm' };
-  const project = join(tmpdir(), 'Dawn Project');
-  const known = async () => writeFile(join(dir, 'projects.json'), JSON.stringify([{ path: project, name: 'Dawn Project', lastUsed: '2026-11-04' }]), 'utf-8');
+  const project = join(PROJECTS, 'Dawn Project');
+  const known = async () => {};
 
   it('a proposal is used nowhere until they agree it', async () => {
     await known();
@@ -307,14 +317,80 @@ describe('a kit made with Ava', () => {
     expect((await tool.execute({ action: 'read_project', project }, { cwd: '.' })).output).toContain('no Decisions folder');
   });
 
-  it('lists projects newest first, once each, with the open one on top', async () => {
-    await writeFile(join(dir, 'projects.json'), JSON.stringify([
-      { path: 'C:/old', name: 'old', lastUsed: '2026-01-01' }, { path: 'C:/new', name: 'new', lastUsed: '2026-06-01' }, { path: 'c:/NEW', name: 'new', lastUsed: '2026-02-01' },
+  it('offers only the folders in their projects folder', async () => {
+    expect((await knownProjects()).map((p) => p.name)).toEqual(['Dawn Project', 'Game One', 'Game Two']);
+  });
+
+  it('a project elsewhere cannot be linked, and uses the kit picked by hand', async () => {
+    const elsewhere = join(tmpdir(), 'Some Repo');
+    const kit = await createBrandKit({ name: 'Mine' });
+    expect(await linkBrandKit(kit.id, elsewhere)).toBeNull();
+    expect((await readBrandKit(kit.id))?.projects).toBeUndefined();
+    expect((await kitForProject(elsewhere)).status).toBe('active');
+    expect((await brandKitsForApps(elsewhere)).project).toBeNull();
+  });
+});
+
+describe('saving finished work to a kit', () => {
+  const save = new DesignSaveToKitTool();
+
+  it('copies the file in, so it outlives the work, and agrees the piece', async () => {
+    const kit = await createBrandKit({ name: 'Game', kind: 'game' });
+    const source = join(dir, 'title.png');
+    await writeFile(source, 'picture', 'utf-8');
+    const saved = (await saveFileToKit(kit.id, 'title_logo', source, 'primary'))!;
+    expect(saved.pieces?.title_logo).toEqual({ state: 'agreed', files: ['pieces/title_logo/title.png'] });
+    expect(saved.logo?.primary).toBe('logos/primary.png');
+    await rm(source);
+    expect(await readFile(brandLogoPath(saved, 'primary')!, 'utf-8')).toBe('picture');
+    expect(await saveFileToKit(kit.id, 'title_logo', source)).toBeNull();
+  });
+
+  it('refuses a kit not agreed, a piece it lacks, and missing files', async () => {
+    const proposed = await new DesignProposeKitTool().execute({ name: 'P', kind: 'game', palette: {}, reasoning: 'Why' });
+    const base = { piece: 'title_logo', tool: 'gimp', work: 'nothing', file: 'final/x.png' };
+    expect((await save.execute({ ...base, kit_id: proposed.metadata?.kit_id }, { cwd: '.' })).output).toContain("isn't agreed");
+    const kit = await createBrandKit({ name: 'App', kind: 'app' });
+    expect((await save.execute({ ...base, kit_id: kit.id }, { cwd: '.' })).output).toContain('no piece');
+    expect((await save.execute({ ...base, piece: 'app_icon', kit_id: kit.id }, { cwd: '.' })).output).toContain('no file');
+    expect((await save.execute(base, { cwd: '.', sharedState: { designProject: () => join(PROJECTS, 'Game Two') } })).output).toContain('no kit in use');
+  });
+});
+
+describe('choosing a logo from the Library', () => {
+  let creative: string;
+  beforeEach(async () => {
+    creative = await mkdtemp(join(tmpdir(), 'ava-creative-'));
+    process.env.AVA_CREATIVE_DIR = creative;
+    const work = join(creative, 'gimp', 'logo');
+    await mkdir(join(work, 'final'), { recursive: true });
+    await mkdir(join(work, 'exports'), { recursive: true });
+    for (const f of ['main.png', 'preview.png', 'final/logo.png', 'exports/test.png']) await writeFile(join(work, f), 'x', 'utf-8');
+    await writeFile(join(creative, 'pic.png'), 'x', 'utf-8');
+    await writeFile(join(creative, 'clip.mp4'), 'x', 'utf-8');
+    await writeFile(join(creative, 'metadata.json'), JSON.stringify([
+      { id: 'gimp_logo', kind: 'gimp', title: 'Logo', absoluteFolder: work, files: ['main.png', 'preview.png', 'exports/test.png'] },
+      { id: 'i1', kind: 'image', title: 'Pic', absolutePath: join(creative, 'pic.png') },
+      { id: 'v1', kind: 'video', title: 'Clip', absolutePath: join(creative, 'clip.mp4') },
     ]), 'utf-8');
-    const names = (await knownProjects(join(tmpdir(), 'Open'))).map((p) => p.name);
-    expect(names[0]).toBe('Open');
-    expect(names).toContain('new');
-    expect(names.indexOf('new')).toBeLessThan(names.indexOf('old'));
+  });
+  afterEach(async () => {
+    delete process.env.AVA_CREATIVE_DIR;
+    await rm(creative, { recursive: true, force: true });
+  });
+
+  it('shows the main image until a work has finals, then only finals', async () => {
+    expect((await kitLibraryChoices()).map((c) => c.title)).toEqual(['Logo · main.png', 'Pic']);
+    await writeFile(join(creative, 'gimp', 'logo', 'finals.json'), JSON.stringify(['final/logo.png']), 'utf-8');
+    expect((await kitLibraryChoices()).map((c) => c.title)).toEqual(['Logo · logo.png', 'Pic']);
+    const all = (await kitLibraryChoices(true)).map((c) => c.title);
+    expect(all).toContain('Logo · test.png');
+    expect(all).not.toContain('Logo · preview.png');
+  });
+
+  it('only accepts paths inside the Library', () => {
+    expect(isLibraryFile(join(creative, 'pic.png'))).toBe(true);
+    expect(isLibraryFile(join(creative, '..', 'elsewhere.png'))).toBe(false);
   });
 });
 
@@ -345,6 +421,31 @@ describe('design_brand_kit with no studio open', () => {
   });
 });
 
+describe('deleting a kit', () => {
+  it('archives what its project remembers, and nothing else', async () => {
+    const project = join(PROJECTS, 'Forgetful');
+    mkdirSync(project, { recursive: true });
+    const kit = await createBrandKit({ name: 'Forgetful', projects: [project] });
+    const memory = new MemoryManager({ globalDir: dir, projectRoot: project });
+    await memory.saveEntry({ scope: 'project', category: 'decision', content: `## Forgetful brand kit, agreed [${kit.id}]: amber on black` });
+    await memory.saveEntry({ scope: 'project', category: 'decision', content: 'The game uses headless Blender for props' });
+
+    expect(await deleteBrandKit(kit.id)).toBe(true);
+
+    const store = await memory.loadProjectStore();
+    expect(store!.entries.find((e) => e.content.includes('amber'))?.archived).toBe(true);
+    expect(store!.entries.find((e) => e.content.includes('Blender'))?.archived).toBeFalsy();
+    expect((await memory.recall({ query: 'amber', scope: 'project' })).length).toBe(0);
+    expect((await memory.recall({ query: 'amber', scope: 'project', includeArchived: true })).length).toBe(1);
+  });
+
+  it('tells her a kit is its own record', async () => {
+    const kit = await createBrandKit({ name: 'Record' });
+    expect(brandKitSummary({ status: 'active', kit })).toContain('never copy it into memory');
+    expect(getDesignStudioPrefix('New kit.', undefined, 'brandkit')).toContain('never save what\'s in it to memory');
+  });
+});
+
 describe('the GIMP and Blender rooms make things by hand', () => {
   const inRoom = (room: string, control: () => Promise<unknown>) => ({ cwd: '.', sharedState: { designRoom: () => room, designControl: control } });
   const makers: Array<[string, { execute(a: Record<string, unknown>, c: never): Promise<{ success: boolean; output: string }> }]> = [
@@ -362,6 +463,26 @@ describe('the GIMP and Blender rooms make things by hand', () => {
     const blender = await tool.execute({ prompt: 'x', direction: 'x', brand_name: 'x' }, inRoom('model', control) as never);
     expect(blender.output).toContain('made in Blender');
     expect(reached).toBe(false);
+  });
+
+  it.each(makers)('%s refuses in the Brand Kits room too', async (_name, tool) => {
+    let reached = false;
+    const control = async () => { reached = true; return { ok: true }; };
+    const r = await tool.execute({ prompt: 'x', direction: 'x', brand_name: 'x' }, inRoom('brandkit', control) as never);
+    expect(r.success).toBe(false);
+    expect(r.output).toContain('their own rooms');
+    expect(reached).toBe(false);
+  });
+
+  it('has her stop after a kit is agreed and leave the choice of piece to them', () => {
+    const p = getDesignStudioPrefix('I have agreed the kit.', undefined, 'brandkit');
+    expect(p).toContain('The choice is theirs');
+    expect(p).not.toContain('design_generate_logo,');
+    expect(p).not.toContain('design_propose_image_brief,');
+  });
+
+  it('asks for their vision before the brief when a kit piece starts', () => {
+    expect(getDesignStudioPrefix('Make the title logo.', undefined, 'gimp')).toContain('begin with their vision before any brief');
   });
 
   it('they still work in their own rooms', async () => {

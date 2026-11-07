@@ -3,7 +3,7 @@ import type { TaskCategory } from './types.js';
 /**
  * Aurora mode — Mistral only, two models (his call, 2 Nov 2026).
  *
- *   - Mistral Large 4 — Coordinator, Builder, coding, planning, security,
+ *   - Mistral Large 4 — Coordinator, Builder, coding, design, planning, security,
  *                       teaching, image reading and long context. Mistral's
  *                       flagship since 6 Oct 2026: 1M context, reasoning,
  *                       native image input; 61.7% on DeepSWE v1.1 by
@@ -56,6 +56,9 @@ export const AURORA_ROUTES: Record<TaskCategory, AuroraRouteEntry> = {
   // ── Volume → Small 4, Large 4 above it ──
   // image_gen orchestrates a generate_image tool call — depth not required.
   image_gen:    { modelId: 'mistral-small-4', reason: 'Mistral Small 4 — orchestrates generate_image tool calls; sees reference images', fallbackModelId: 'mistral-large-4' },
+  // Design work is mostly code plus judging the picture. His call 7 Nov 2026, a
+  // trial: Mistral's coder, which also has the vision encoder and 1M context.
+  design:       { modelId: 'mistral-large-4', reason: 'Mistral Large 4 — writes and fixes the design scripts and sees the work, 1M context', fallbackModelId: 'mistral-small-4' },
   chat:         { modelId: 'mistral-small-4', reason: 'Mistral Small 4 — fast, reasoning, sees images',                             fallbackModelId: 'mistral-large-4' },
   brainstorm:   { modelId: 'mistral-small-4', reason: 'Mistral Small 4 — breadth and speed for ideation',                           fallbackModelId: 'mistral-large-4' },
 };

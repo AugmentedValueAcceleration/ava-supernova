@@ -88,9 +88,11 @@ import {
   DesignGenerateVoiceTool,
   DesignGenerateLogoTool,
   DesignExploreLogosTool,
-  DesignBrandKitTool, DesignProposeKitTool,
+  DesignBrandKitTool, DesignProposeKitTool, DesignSaveToKitTool,
   DesignSaveTool,
 } from './design-studio-tools.js';
+import { DesignFontsTool, DesignInstallFontTool } from './design-fonts.js';
+import { DesignRestoreImageTool } from './gimp/build-image.js';
 import { DesignBuildModelTool, DesignDuplicateModelTool } from './blender/build-model.js';
 import { DesignProposeModelBriefTool } from './blender/model-brief.js';
 import { DesignBuildImageTool, DesignDuplicateImageTool, DesignProposeImageBriefTool, DesignShowOptionsTool, DesignMarkFinalTool } from './gimp/build-image.js';
@@ -194,7 +196,8 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // 3D in Blender — free and local, but it runs a script and writes files.
   design_build_model: 'media', design_duplicate_model: 'media', design_propose_model_brief: 'media',
   // 2D in GIMP — the same.
-  design_build_image: 'media', design_duplicate_image: 'media', design_propose_image_brief: 'media', design_show_options: 'media', design_mark_final: 'media', design_propose_kit: 'media',
+  design_fonts: 'media', design_install_font: 'media', design_restore_image: 'media',
+  design_build_image: 'media', design_duplicate_image: 'media', design_propose_image_brief: 'media', design_show_options: 'media', design_mark_final: 'media', design_propose_kit: 'media', design_save_to_kit: 'media',
   // Read-only: the installed program and the official docs.
   design_api_lookup: 'media', design_read_docs: 'media',
   // Social Studio's paid outputs. These were in no category at all, so they
@@ -491,6 +494,10 @@ export class ToolRegistry {
       new DesignDuplicateImageTool(),
       new DesignShowOptionsTool(),
       new DesignProposeKitTool(),
+      new DesignSaveToKitTool(),
+      new DesignFontsTool(),
+      new DesignRestoreImageTool(),
+      new DesignInstallFontTool(),
       new DesignMarkFinalTool(),
       new DesignApiLookupTool(),
       new DesignReadDocsTool(),
@@ -699,6 +706,10 @@ export class ToolRegistry {
     // user must see the card before history is rewritten.
     if (tool.name === 'git_commit' && args && args.amend === true) return true;
 
+    // Installing a font changes their computer, so they always see it first,
+    // even with design tools set to run on their own.
+    if (tool.name === 'design_install_font') return true;
+
     // task_manage WRITING to the user's personal list prompts; reading it does
     // not. Its own comment has said this since it was written — "list/complete
     // prompts are mild friction, create/update/delete prompts are the whole
@@ -791,6 +802,9 @@ export class ToolRegistry {
         }
         // Handler provided a custom result string (e.g., plan approval with context)
         if (typeof result === 'string') {
+          // Answering her counts as them speaking, so the making rooms' count
+          // of runs since they last spoke starts again (design-checkin.ts).
+          if (resolvedName === 'ask_user' && context.sharedState) context.sharedState.designTurnId = Symbol('answered');
           approvalMethod = permission === 'first_time' ? 'first-time' : 'user-approved';
           this.emitAudit(name, category, tool.riskLevel, approvalMethod, 'success', argsSummary, args, result);
           return { success: true, output: result };

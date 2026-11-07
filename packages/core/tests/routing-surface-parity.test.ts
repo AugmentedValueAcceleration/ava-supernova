@@ -90,6 +90,8 @@ describe('Supernova — DeepSeek on the user\'s key', () => {
       // Images — reading them and generating them — on Qwen 3.8 Flash.
       expect(modelFor(r, 'vision')).toBe('qwen3.8-flash');
       expect(modelFor(r, 'image_gen')).toBe('qwen3.8-flash');
+      // Creative Studio turns are mostly code, so they go with the Builder.
+      expect(modelFor(r, 'design')).toBe(`deepseek-flash${suffix}`);
     });
   }
 });
@@ -287,7 +289,7 @@ describe('the live fleets never leave their own providers (his call, 2 Nov 2026)
   // user can hold, no seat may land anywhere else: Maestro's coordinator used
   // to be Kimi K3 for anyone with a Moonshot key.
   const everyKey = byok('qwen', 'deepseek', 'kimi', 'mistral', 'zhipu', 'tencent', 'nvidia', 'xiaomi', 'minimax');
-  const categories = ['coding', 'vision', 'image_gen', 'planning', 'chat', 'long_context', 'teach', 'security', 'brainstorm'] as const;
+  const categories = ['coding', 'vision', 'image_gen', 'design', 'planning', 'chat', 'long_context', 'teach', 'security', 'brainstorm'] as const;
   const fleet = (mode: RoutingMode) => {
     const reg = new ProviderRegistry();
     const avail = new Set<string>();

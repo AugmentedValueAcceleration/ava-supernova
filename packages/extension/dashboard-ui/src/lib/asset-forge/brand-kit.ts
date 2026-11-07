@@ -9,7 +9,7 @@
  */
 
 export type PieceState = 'not_made' | 'in_progress' | 'agreed';
-export interface PieceDef { id: string; label: string; room: string }
+export interface PieceDef { id: string; label: string; room: string; slot?: string }
 /** The kinds and their pieces, from the store, so there is one list. */
 export interface KitShapes {
   kinds: Array<{ id: string; label: string }>;
@@ -66,7 +66,7 @@ export interface BrandKit {
   // ── Its shape ──
   /** What the project is. It decides which pieces the kit asks for. */
   kind?: string;
-  pieces?: Record<string, { state: PieceState; note?: string }>;
+  pieces?: Record<string, { state: PieceState; note?: string; files?: string[] }>;
   fonts?: { heading?: string; body?: string; ui?: string };
   pairings?: Array<{ ink: string; on: string; use?: string }>;
   imageStyle?: string;
@@ -76,6 +76,8 @@ export interface BrandKit {
   status?: 'proposed';
   reasoning?: string;
   proposedFor?: string;
+  /** Sent by the host: a kit's saved files, by their path in the kit. */
+  fileMap?: Record<string, string>;
 
   createdAt: number;
   updatedAt: number;
@@ -188,6 +190,19 @@ export function applyStoreKits(kits: BrandKit[], activeId: string | null, openPr
  *  loadKits fills in a default so a generator always has colours to use, which
  *  must never appear as a kit, and nothing older than the store may either. */
 export const storeKits = (): BrandKit[] | null => store?.kits ?? null;
+
+/** WCAG contrast between two #rrggbb colours, 1 to 21. */
+export function contrastOf(a: string, b: string): number {
+  const lum = (hex: string) => {
+    const [r, g, b2] = [1, 3, 5].map((i) => {
+      const s = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b2;
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return Math.round(((hi + 0.05) / (lo + 0.05)) * 10) / 10;
+}
 
 /** Whether a kit belongs to the open project. */
 export function linkedHere(kit: BrandKit): boolean {

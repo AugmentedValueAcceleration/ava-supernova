@@ -97,7 +97,8 @@ export function synthesiseProjectBrain(
 ): ProjectBrain {
   const nodes = graph.getActiveNodes();
   const stats = graph.getStats();
-  const projectName = basename(projectRoot) || 'Unknown Project';
+  // Callers hand in the project's .ava folder; the name is the folder above it.
+  const projectName = (basename(projectRoot) === '.ava' ? basename(dirname(projectRoot)) : basename(projectRoot)) || 'Unknown Project';
 
   // ── Group by category, take top 3 per by confidence ────────────────
   const byCategory = new Map<string, MemoryNode[]>();

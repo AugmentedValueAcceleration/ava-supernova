@@ -1083,6 +1083,10 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
       if (msg.type === 'conversation_loaded') {
         justLoadedRef.current = true;
+        // The Studio's chat sits closed, so a design chat they asked for would
+        // load out of sight. Next tick: a restore waiting for this room arrives
+        // as it mounts, before the Studio is listening.
+        if (lane === 'design') window.setTimeout(() => window.dispatchEvent(new CustomEvent('ava-design-new')), 0);
       }
 
       if (msg.type === 'focus_input') {

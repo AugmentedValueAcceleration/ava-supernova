@@ -23,9 +23,9 @@ import { randomUUID } from 'node:crypto';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from '../types.js';
 import type { FunctionSchema } from '../../providers/types.js';
 import type { GenerationManager } from '../generation-manager.js';
-import { recordDesignRun } from '../design-checkin.js';
+import { designRunRefusal, recordDesignRun } from '../design-checkin.js';
 import { creativeDir, imagesDir, metadataFile, modelSlug } from '../blender/paths.js';
-import { kitForScripts } from '../../brand/brand-kits.js';
+import { kitForProject, kitForScripts, kitPieceStates } from '../../brand/brand-kits.js';
 import { briefStore, type BriefRecord } from '../brief-store.js';
 import { findGimp, GIMP_DOWNLOAD_URL } from './find-gimp.js';
 import { GIMP_RUNNER_PY } from './runner-py.js';
@@ -75,7 +75,16 @@ export interface ImageWorkSummary {
   references: string[];
   /** The finished files. Everything else in the folder is working material. */
   finals: string[];
+  /** Every step so far, oldest first, so they can look back and return to one. */
+  history: ImageStep[];
+  /** The separate designs in this work, leaving out her tests, by image name. */
+  versions: string[];
+  /** The one they chose as the main design. */
+  main: string | null;
 }
+
+/** One step of the work, saved so they can return to it. */
+export interface ImageStep { number: number; label: string; at: string; preview: string | null }
 
 const IMAGE_FILE = /\.(png|jpe?g|webp)$/i;
 const MAX_ART_BYTES = 50 * 1024 * 1024;
@@ -134,6 +143,133 @@ export async function addImageReference(slug: string, source: string): Promise<{
 }
 
 
+// ── History ──────────────────────────────────────────────────────────────────
+// Each step saves over the same .xcf, so without this "I preferred it before"
+// means redoing it by hand. After every run the images and preview are copied to
+// history/<number>/. Going back copies them home and counts as a step itself, so
+// nothing later is lost and they can go forward again. Exports and finals are
+// separate files and stay as they are.
+
+const HISTORY_KEEP = 20;
+const historyFile = (slug: string) => join(imagesDir(), slug, 'history.json');
+const stepFolder = (slug: string, number: number) => join(imagesDir(), slug, 'history', String(number));
+
+export async function readImageHistory(slug: string): Promise<ImageStep[]> {
+  try {
+    const parsed = JSON.parse(await readFile(historyFile(slug), 'utf-8'));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+const imagesIn = async (dir: string) =>
+  (await readdir(dir, { withFileTypes: true }).catch(() => [])).filter((e) => e.isFile() && e.name.endsWith('.xcf')).map((e) => e.name);
+
+export async function recordImageStep(slug: string, label: string): Promise<ImageStep | null> {
+  const dir = join(imagesDir(), slug);
+  const images = await imagesIn(dir);
+  if (images.length === 0) return null;
+  const steps = await readImageHistory(slug);
+  const number = (steps.at(-1)?.number ?? 0) + 1;
+  const folder = stepFolder(slug, number);
+  await mkdir(folder, { recursive: true });
+  for (const file of images) await copyFile(join(dir, file), join(folder, file));
+  const hasPreview = existsSync(join(dir, 'preview.png'));
+  if (hasPreview) await copyFile(join(dir, 'preview.png'), join(folder, 'preview.png'));
+  const step: ImageStep = {
+    number, label: label.trim().slice(0, 80) || `Step ${number}`, at: new Date().toISOString(),
+    preview: hasPreview ? `history/${number}/preview.png` : null,
+  };
+  steps.push(step);
+  while (steps.length > HISTORY_KEEP) {
+    const oldest = steps.shift()!;
+    await rm(stepFolder(slug, oldest.number), { recursive: true, force: true });
+  }
+  await writeFile(historyFile(slug), JSON.stringify(steps, null, 2), 'utf-8');
+  return step;
+}
+
+/** Put the work back as it was at a step. Null if there is no such step. */
+export async function restoreImageStep(slug: string, number: number): Promise<ImageStep | null> {
+  const step = (await readImageHistory(slug)).find((s) => s.number === number);
+  if (!step) return null;
+  const dir = join(imagesDir(), slug);
+  const folder = stepFolder(slug, number);
+  const saved = await imagesIn(folder);
+  if (saved.length === 0) return null;
+  for (const file of await imagesIn(dir)) {
+    if (!saved.includes(file)) await rm(join(dir, file), { force: true });
+  }
+  for (const file of saved) await copyFile(join(folder, file), join(dir, file));
+  if (existsSync(join(folder, 'preview.png'))) await copyFile(join(folder, 'preview.png'), join(dir, 'preview.png'));
+  await recordImageStep(slug, `Back to step ${number}`);
+  return step;
+}
+
+// ── Versions ─────────────────────────────────────────────────────────────────
+// When she makes several designs, what happens to each is theirs to decide, by
+// clicking the design itself: on a sheet of unlabelled pictures, "the one on the
+// right" meant a different file to her than it did to them, and the wrong one
+// went into the kit.
+
+const TEST_IMAGE = /^(test|compare|comparison|thumb|proof|tmp|temp|scratch|draft|check|trial)([-_ ]|$)/i;
+const mainFile = (slug: string) => join(imagesDir(), slug, 'main.json');
+
+export async function listImageVersions(slug: string): Promise<string[]> {
+  const dir = join(imagesDir(), slug);
+  return (await imagesIn(dir)).map((f) => f.slice(0, -4)).filter((n) => !TEST_IMAGE.test(n) && existsSync(join(dir, `${n}.png`))).sort();
+}
+
+export async function readImageMain(slug: string): Promise<string | null> {
+  try {
+    const name = JSON.parse(await readFile(mainFile(slug), 'utf-8'));
+    return typeof name === 'string' && (await listImageVersions(slug)).includes(name) ? name : null;
+  } catch { return null; }
+}
+
+/** Their choice of main design. It goes on the stage and stays there. */
+export async function chooseImageMain(slug: string, name: string): Promise<boolean> {
+  if (!(await listImageVersions(slug)).includes(name)) return false;
+  const dir = join(imagesDir(), slug);
+  await writeFile(mainFile(slug), JSON.stringify(name), 'utf-8');
+  if (!(await readImageFinals(slug)).length) await copyFile(join(dir, `${name}.png`), join(dir, 'preview.png'));
+  return true;
+}
+
+/**
+ * Keep a design for later: it becomes its own piece of work, with the same brief,
+ * so it shows in the Library and can be opened and carried on with. It leaves
+ * this work, so what is left here is what they're deciding between.
+ */
+export async function keepImageVersion(slug: string, name: string): Promise<string | null> {
+  if (!(await listImageVersions(slug)).includes(name)) return null;
+  const title = name.replace(/[-_]+/g, ' ').trim();
+  let kept = title;
+  for (let n = 2; existsSync(join(imagesDir(), modelSlug(kept))); n++) kept = `${title} ${n}`;
+  const to = modelSlug(kept);
+  const from = join(imagesDir(), slug);
+  const dir = join(imagesDir(), to);
+  await mkdir(dir, { recursive: true });
+  await copyFile(join(from, `${name}.xcf`), join(dir, `${name}.xcf`));
+  await copyFile(join(from, `${name}.png`), join(dir, `${name}.png`));
+  await copyFile(join(from, `${name}.png`), join(dir, 'preview.png'));
+  await writeFile(join(dir, 'finals.json'), JSON.stringify([`${name}.png`]), 'utf-8');
+  const brief = await readImageBrief(slug);
+  if (brief) await store.write(to, { ...brief, name: kept });
+  await upsertLibraryEntry({ slug: to, name: kept, files: [`${name}.xcf`, `${name}.png`, 'preview.png'], gimpVersion: '', imageCount: 1 });
+  await deleteImageVersion(slug, name);
+  return kept;
+}
+
+export async function deleteImageVersion(slug: string, name: string): Promise<boolean> {
+  if (!(await listImageVersions(slug)).includes(name)) return false;
+  const dir = join(imagesDir(), slug);
+  const wasMain = (await readImageMain(slug)) === name;
+  await rm(join(dir, `${name}.xcf`), { force: true });
+  await rm(join(dir, `${name}.png`), { force: true });
+  if (wasMain) await rm(mainFile(slug), { force: true });
+  return true;
+}
+
 /** Every piece of work — including one with a brief and nothing made yet. */
 export async function listImageWork(): Promise<ImageWorkSummary[]> {
   const out: ImageWorkSummary[] = [];
@@ -152,6 +288,9 @@ export async function listImageWork(): Promise<ImageWorkSummary[]> {
       options: options?.status === 'waiting' ? options : null,
       references: await listImageReferences(e.name),
       finals: await readImageFinals(e.name),
+      history: await readImageHistory(e.name),
+      versions: await listImageVersions(e.name),
+      main: await readImageMain(e.name),
     });
   }
   return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -301,7 +440,7 @@ async function upsertLibraryEntry(m: { slug: string; name: string; description?:
 interface RunnerResult {
   ok: boolean; files: string[]; warnings: string[]; error?: string; seconds?: number;
   images: Array<{ name: string; width: number; height: number; layers: number }>;
-  report?: string[]; looks?: Array<{ file: string; label: string }>;
+  report?: string[]; looks?: Array<{ file: string; label: string }>; newFinals?: string[];
 }
 
 function runGimp(exe: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, timeoutMs: number, signal?: AbortSignal):
@@ -374,6 +513,8 @@ export class DesignBuildImageTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const wait = designRunRefusal(context);
+    if (wait) return { success: false, output: wait };
     const jobs = context.sharedState?.generationManager as GenerationManager | undefined;
     let jobId: string | undefined;
     const started = (name: string, slug: string, assetDir: string) => {
@@ -387,7 +528,7 @@ export class DesignBuildImageTool implements Tool {
         if (res.success) jobs?.complete(jobId);
         else jobs?.fail(jobId, res.output.split('\n')[0]);
         // Runs Blender/GIMP actually made. A refusal is not a run.
-        const checkIn = recordDesignRun(context, `gimp:${String(args.name ?? '')}`, res.success);
+        const checkIn = recordDesignRun(context, res.success);
         if (checkIn) res.output += `\n\n${checkIn}`;
       }
       return res;
@@ -483,13 +624,19 @@ export class DesignBuildImageTool implements Tool {
       files: result.files, gimpVersion: gimp.version, imageCount: xcfCount,
     }).catch(() => { /* the work is saved either way */ });
 
+    const saved = await recordImageStep(slug, typeof args.description === 'string' ? args.description : '').catch(() => null);
     const lines = [
-      `Done on "${name}" in ${result.seconds ?? '?'}s with GIMP ${gimp.version}. ${xcfCount} image${xcfCount === 1 ? '' : 's'} in this work.`,
+      `Done on "${name}" in ${result.seconds ?? '?'}s with GIMP ${gimp.version}. ${xcfCount} image${xcfCount === 1 ? '' : 's'} in this work.${saved ? ` Saved as step ${saved.number}.` : ''}`,
       `This step: ${result.images.map((i) => `${i.name} ${i.width}×${i.height} (${i.layers} layer${i.layers === 1 ? '' : 's'})`).join(', ')}.`,
       `Files in ${assetDir}: ${result.files.join(', ')}.`,
     ];
     if (!(await readImageFinals(slug)).length) {
       lines.push('NO FINAL YET: this work has working files but no finished one, and only a final counts as the work. Keep going until it is right; when they are happy, make it with ava_final(image, "name.png", size=(w, h)). Don\'t leave a piece without one.');
+    }
+    if (result.newFinals?.length) {
+      const inUse = await kitForProject((context.sharedState?.designProject as (() => string | null | undefined) | undefined)?.());
+      const open = inUse.kit ? kitPieceStates(inUse.kit).filter((p) => p.state !== 'agreed' && p.room !== 'kit') : [];
+      if (inUse.kit && open.length) lines.push(`KIT: if this is one of "${inUse.kit.name}"'s pieces (${open.map((p) => `${p.label} [${p.id}]`).join(', ')}), ask whether to save it to the kit, then call design_save_to_kit once they say yes.`);
     }
     if (result.report?.length) lines.push(`The file now:\n${result.report.join('\n')}`);
     if (result.warnings?.length) lines.push(`CHECK THESE:\n${result.warnings.map((w) => `- ${w}`).join('\n')}`);
@@ -517,6 +664,46 @@ export class DesignBuildImageTool implements Tool {
         work: slug, folder: assetDir, files: result.files, gimpVersion: gimp.version,
         ...(looks.length ? { base64_image: looks[0], mime_type: 'image/png', more_images: looks.slice(1) } : {}),
       },
+    };
+  }
+}
+
+// ── design_restore_image ─────────────────────────────────────────────────────
+
+export class DesignRestoreImageTool implements Tool {
+  readonly name = 'design_restore_image';
+  readonly description = 'Put a piece of GIMP work back as it was at an earlier step, when they ask.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+  readonly schema: FunctionSchema = {
+    name: 'design_restore_image',
+    description:
+      'Put a piece of work back to an earlier step, when they say they preferred it. The steps are numbered in each ' +
+      'run\'s report and on the strip in the room. Later steps stay in the history, so they can go forward again. ' +
+      'Exports and finals are not changed.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'The name of the work.' },
+        step: { type: 'number', description: 'The step to go back to.' },
+      },
+      required: ['name', 'step'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+    const slug = modelSlug(String(args.name ?? ''));
+    const number = Number(args.step);
+    const steps = slug ? await readImageHistory(slug) : [];
+    const step = await restoreImageStep(slug, number).catch(() => null);
+    if (!step) {
+      return { success: false, output: `There is no step ${args.step} on "${args.name}". Steps here: ${steps.map((s) => s.number).join(', ') || 'none yet'}.` };
+    }
+    const preview = await readFile(join(imagesDir(), slug, 'preview.png')).catch(() => null);
+    return {
+      success: true,
+      output: `"${args.name}" is back as it was at step ${number} (${step.label}). Later steps are still in the history. LOOK at it and carry on from here.`,
+      metadata: { work: slug, ...(preview ? { base64_image: preview.toString('base64'), mime_type: 'image/png' } : {}) },
     };
   }
 }

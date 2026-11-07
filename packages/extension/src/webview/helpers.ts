@@ -1,6 +1,7 @@
 // Pure helpers extracted from AvaViewProvider to reduce the monolith surface area.
 // None of these functions hold state; they take their inputs explicitly.
 
+import { toolRequestInWords } from '@ava/core';
 import * as vscode from 'vscode';
 import { AVA_HOME, ProviderError } from '@ava/core';
 import type { Message, PermissionMode } from '@ava/core';
@@ -81,28 +82,7 @@ export function deriveErrorInfo(error: unknown): { message: string; code: string
 
 /** Short one-liner for a tool call — used in confirmation prompts + audit log. */
 export function formatToolSummary(toolName: string, args: Record<string, unknown>): string {
-  switch (toolName) {
-    case 'bash':
-      return `Execute: ${String(args.command ?? '').slice(0, 100)}`;
-    case 'file_write':
-      return `Write to ${args.file_path}`;
-    case 'file_edit':
-      return `Edit ${args.file_path}`;
-    case 'present_plan':
-      return `Plan: ${String(args.title ?? 'Untitled')}`;
-    case 'ask_user':
-      return String(args.question ?? 'Question');
-    case 'list_directory':
-      return `List ${args.path}`;
-    case 'web_search':
-      return `Search: ${String(args.query ?? '').slice(0, 80)}`;
-    case 'git_status':
-      return `git ${args.command}${args.args ? ' ' + String(args.args).slice(0, 60) : ''}`;
-    case 'http_request':
-      return `${args.method ?? 'GET'} ${String(args.url ?? '').slice(0, 80)}`;
-    default:
-      return `${toolName}: ${JSON.stringify(args).slice(0, 100)}`;
-  }
+  return toolRequestInWords(toolName, args);
 }
 
 // ── UI message projection ──────────────────────────────────────────────────

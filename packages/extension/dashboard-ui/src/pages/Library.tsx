@@ -1025,6 +1025,15 @@ function PreviewModal({
             {isGimp && rawCreative.id && (
               <>
                 <button
+                  onClick={() => {
+                    try { sessionStorage.setItem('ava-open-work', rawCreative.id!.replace(/^gimp_/, '')); } catch { /* opens on the latest */ }
+                    window.dispatchEvent(new CustomEvent('ava-navigate-dashboard', { detail: 'creative-studio' }));
+                  }}
+                  className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20"
+                >
+                  {tt('library.gimp.open_in_room', 'Open in GIMP room')}
+                </button>
+                <button
                   onClick={() => post({ type: 'open_work_in_gimp', id: rawCreative.id! })}
                   className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
                 >

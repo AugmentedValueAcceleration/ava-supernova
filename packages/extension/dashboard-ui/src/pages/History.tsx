@@ -399,13 +399,17 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
     // Conversations dropped a workout plan into the code chat while the health
     // room went on showing something else. The entry already knows its surface
     // — it is what the room filter tabs above are built on.
-    const page = ({
+    //
+    // Typed as Page so a wrong name fails the build. It was cast before, which
+    // let 'creative' through: no such page, so a design chat opened a blank screen.
+    const rooms: Record<ConversationSurface, Page> = {
+      main: 'chat',
       health: 'health',
       learning: 'learning-room',
-      design: 'creative',
-      social: 'creative',
-    } as const)[(conv.surface ?? 'main') as 'health' | 'learning' | 'design' | 'social'] ?? 'chat';
-    onNavigate(page as Parameters<typeof onNavigate>[0]);
+      design: 'creative-studio',
+      social: 'creative-studio',
+    };
+    onNavigate(rooms[conv.surface ?? 'main']);
   };
 
   const deleteConversation = (id: string) => {

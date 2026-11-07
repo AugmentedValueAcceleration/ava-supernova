@@ -98,7 +98,15 @@ export function classifyTask(
     }
   }
 
-  // 2. Vision — images attached
+  // 2. The Creative Studio. Her work there is writing and fixing scripts, then
+  // judging the picture. Every turn carries the room's long prefix, whose words
+  // used to trip the image-generation check below and send the whole thing to
+  // that fleet's lightest seat. Each fleet names its design model instead.
+  if (text.trimStart().startsWith('[Design Studio]')) {
+    return { category: 'design', reason: 'Creative Studio turn' };
+  }
+
+  // 3. Vision — images attached
   if (hasImages) {
     return { category: 'vision', reason: 'Image content detected in message' };
   }
