@@ -38,7 +38,8 @@ export class CheckPostsTool implements Tool {
         'Look at the posts that ACTUALLY EXIST, rather than the ones you meant to write. '
         + 'Call it whenever the answer depends on what was really created: when the operator asks '
         + 'whether something went out, when he says a post is missing, before telling him a piece '
-        + 'of work is done, and before planning a day so you know what has already been said. '
+        + 'of work is done, and before suggesting anything so you know what has already been said today. '
+        + 'Each post shows its every-day marker and the feature it promoted, his Landed mark and your verdict. '
         + 'If a post you tried to write is not in the list, it was NOT written — say so plainly and '
         + 'do not explain it away. Being wrong about this is worse than being slow: he is learning '
         + 'marketing from you, so a confident wrong answer becomes something he believes for months.',
@@ -104,13 +105,31 @@ export class CheckPostsTool implements Tool {
 
     const text = posts.filter(p => p.kind === 'text');
     const video = posts.filter(p => p.kind === 'video');
-    const line = (p: ExistingPost) =>
-      `  • ${p.platform}${p.title ? ` — ${p.title}` : ''}${p.subject ? ` (about: ${p.subject})` : ''}`
-      + `${p.status && p.status !== 'draft' ? ` [${p.status}]` : ''}`;
+    const line = (p: ExistingPost) => {
+      const marks = [
+        sinceDays > 1 ? (p.localDay || p.createdAt.slice(0, 10)) : null,
+        p.daily ? `every day: ${p.daily}` : null,
+        p.feature ? `feature: ${p.feature}` : null,
+        p.status && p.status !== 'draft' ? p.status : null,
+        p.landed === true ? 'he marked it LANDED' : p.landed === false ? 'he marked it DID NOT LAND' : null,
+      ].filter(Boolean);
+      return `  • ${p.platform}${p.title ? ` — ${p.title}` : ''}${p.subject ? ` (about: ${p.subject})` : ''}`
+        + `${marks.length ? ` [${marks.join(' · ')}]` : ''}`
+        + `${p.verdict ? `\n      your verdict: ${p.verdict}` : ''}`
+        + `\n      id: ${p.id}`;
+    };
 
     const parts = [`${posts.length} post${posts.length === 1 ? '' : 's'} exist ${window}:`];
     if (text.length) parts.push(`\nText (${text.length}):\n${text.map(line).join('\n')}`);
     if (video.length) parts.push(`\nVideo (${video.length}):\n${video.map(line).join('\n')}`);
+    // The two counts the room runs on (8 Nov 2026) — read off the markers the
+    // posts carry, never estimated from their titles.
+    const dailies = [...new Set(posts.map(p => p.daily).filter((d): d is string => !!d))];
+    const features = [...new Set(posts.map(p => p.feature).filter((f): f is string => !!f))];
+    parts.push(
+      `\nEvery-day posts in this window: ${dailies.length ? dailies.join(', ') : 'none'}.`
+      + ` Features promoted in this window: ${features.length ? features.join(', ') : 'none'}.`,
+    );
     parts.push(
       '\nThis is the whole list. Anything you expected that is not here was not written — '
       + 'say that plainly rather than accounting for it.',

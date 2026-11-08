@@ -547,20 +547,21 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // brand's public presence. Coding / file / shell tools are deliberately OUT —
   // this room ships posts, it doesn't touch the codebase.
   social: new Set([
-    'research_post', 'propose_hooks', 'write_post', 'post_performance', 'suggest_beats',
+    'research_post', 'propose_hooks', 'write_post', 'post_performance',
     // The brief for each post, agreed before it is written. Not a producing
     // tool, so it stays available in a talking turn — which is where a brief
     // is discussed.
     'propose_brief',
-    // The day plan. She and the operator agree the day together, so she
-    // needs to read it (items may already be carried from yesterday),
-    // write what was agreed, and tick what she can verify. Registering
-    // the tools was not enough on its own — see write_video_post below,
-    // which sat unusable in exactly this way while she correctly reported
-    // it was not in her toolset. This Set is the real gate.
-    'day_plan_read', 'day_plan_write', 'day_plan_item_status',
-    // Her own verdict on her own work — always given (operator, 20 Oct).
-    'day_plan_review',
+    // Her verdict on her own posts once they are out — always given
+    // (operator, 20 Oct). It lives on the post now.
+    //
+    // 8 Nov 2026 — the day plan left this room: suggest_beats and
+    // day_plan_read / write / item_status / review. "We never plan out
+    // anything, it's all done on demand." The tools stay registered and the
+    // day_plan_items rows stay in the database; the room just stops offering
+    // a plan, because a plan written at breakfast is what made the posts
+    // read as pre-written.
+    'review_post',
     // Short-form video — the Video Posts room. Registering the tool in the
     // builtins was not enough: this Set is the real gate, and while it was
     // missing she reported "write_video_post isn't in my toolset" and pointed
@@ -864,6 +865,12 @@ export const CHANGING_TOOLS: Set<string> = new Set([
   'apply_plan', 'env_write', 'database_query', 'remove_background',
   'test_run', 'test_generate', 'doc_generate', 'verify_change', 'benchmark',
 ]);
+
+/** A room's allowlist, read-only — for tests and for anything that needs to
+ *  SAY what a room offers rather than guess it. Null for an unscoped mode. */
+export function modeAllowedTools(mode: string): ReadonlySet<string> | null {
+  return MODE_ALLOWED_TOOLS[mode] ?? null;
+}
 
 /** Whether a mode id is a talking variant (`social:talking`, `work:talking`). */
 export function isTalkingMode(mode: string | null | undefined): boolean {

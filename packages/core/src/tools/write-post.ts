@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput, MODERATION_GUIDANCE, UNTAGGED_PLATFORMS, tagsIn } from '../social/index.js';
+import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput, MODERATION_GUIDANCE, UNTAGGED_PLATFORMS, tagsIn, DAILY_PARAM_DESCRIPTION, FEATURE_PARAM_DESCRIPTION, postMarker } from '../social/index.js';
 
 /**
  * Emit a finished social post to the Social Studio canvas — one call per post.
@@ -36,6 +36,8 @@ export class WritePostTool implements Tool {
         variant: { type: 'string', description: 'Optional variant label when writing multiple versions of the same post (e.g. "punchy", "deeper", "hopeful").' },
         hashtags: { type: 'array', items: { type: 'string' }, description: 'The hashtags you chose for this post (the same ones present in content), so the UI can show them as an editable chip row. Pulled from research_post and kept within the platform tag policy. Omit for platforms that take no tags (e.g. blog).' },
         tag_note: { type: 'string', description: 'One short line on why these tags — e.g. "#buildinpublic + #aitools for reach, #localfirst niche". Shown under the chips.' },
+        daily: { type: 'string', description: DAILY_PARAM_DESCRIPTION },
+        feature: { type: 'string', description: FEATURE_PARAM_DESCRIPTION },
       },
       required: ['platform', 'content'],
     },
@@ -124,6 +126,8 @@ export class WritePostTool implements Tool {
       variant: ((args.variant as string | undefined)?.trim()) || null,
       hashtags,
       tagNote: ((args.tag_note as string | undefined)?.trim()) || null,
+      daily: postMarker(args.daily, 40) ?? null,
+      feature: postMarker(args.feature) ?? null,
     };
 
     try {

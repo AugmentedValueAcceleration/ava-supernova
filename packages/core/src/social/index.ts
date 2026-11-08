@@ -36,6 +36,22 @@ export interface SocialPostInput {
    * row survived inside a recency window, and then came round again.
    */
   subject?: string | null;
+  /**
+   * Set when this post IS one of his every-day posts — the id from his list
+   * ("discord", "star_repo"). 8 Nov 2026: the Posts room stopped planning the
+   * day, and the plan's beats were the only thing that carried this. Without
+   * it on the post, "has the Discord post gone out today?" can only be
+   * answered from her memory, which is the question check_posts exists to
+   * stop her answering that way.
+   */
+  daily?: string | null;
+  /**
+   * Set when this post promotes one of OUR features — its name, the same
+   * wording every time ("Talk mode", "Design Studio 3D"). Two to three of
+   * these go out a day and never the same feature twice in a row (his call,
+   * 8 Nov 2026), so both the count and the repeat check need it recorded.
+   */
+  feature?: string | null;
 }
 
 /** What the store returns after a post is written. */
@@ -64,6 +80,16 @@ export interface ExistingPost {
   status?: string;
   /** Text post or video post — the two come from different sinks. */
   kind: 'text' | 'video';
+  /** The every-day item this post was, when it was one. */
+  daily?: string;
+  /** The feature it promoted, when it promoted one. */
+  feature?: string;
+  /** His local day (YYYY-MM-DD) when it was written. Absent on old posts. */
+  localDay?: string;
+  /** HIS mark — did it land? null/undefined = not judged yet. */
+  landed?: boolean | null;
+  /** HER verdict on her own work, when she has given one. */
+  verdict?: string;
 }
 
 export interface PostStore {
@@ -86,6 +112,14 @@ export interface PostStore {
    * principle one level up.
    */
   list?(opts?: { sinceDays?: number }): Promise<ExistingPost[]>;
+
+  /**
+   * Her verdict on posts that went out, by the ids `list` gives back. Moved
+   * here from the day plan (8 Nov 2026): the plan is gone, the posts are the
+   * record, so the judgement sits beside his Landed mark on the post itself.
+   * Returns how many were recorded. Optional — a host without it says so.
+   */
+  review?(ids: string[], verdict: string): Promise<number>;
 }
 
 /**
@@ -164,6 +198,13 @@ export interface VideoPostInput {
    * report back that she had.
    */
   recipe?: string;
+  /** What the video is about — the same field text posts file (8 Nov 2026:
+   *  it was required by the tool and then dropped before the store). */
+  subject?: string;
+  /** Every-day item this video is, when it is one. See SocialPostInput. */
+  daily?: string;
+  /** The feature it promotes, when it promotes one. See SocialPostInput. */
+  feature?: string;
 }
 
 /** What the surface reports back — the finished parts, not a job to poll. */
@@ -442,6 +483,10 @@ export interface PostBrief {
   mustLand: string;
   /** Her reasoning for the brief as a whole — what she weighed and rejected. */
   reasoning: string;
+  /** The every-day item this post is, when it is one ("discord"). */
+  daily?: string;
+  /** The feature this post promotes, when it promotes one. */
+  feature?: string;
 }
 
 /** Surface-injected sink for a proposed brief → `brief` SSE, rendered as a card. */
@@ -681,4 +726,28 @@ export interface DailyItem {
  */
 export interface BeatStore {
   suggest(beats: Beat[]): Promise<void>;
+}
+
+// ─── The two markers a post carries (8 Nov 2026) ────────────────────────────
+//
+// Shared by write_post, write_video_post and propose_brief so the three say
+// the same thing — a marker described differently in each place gets set in
+// one and forgotten in the others.
+
+export const DAILY_PARAM_DESCRIPTION =
+  'ONLY when this post IS one of his every-day posts: its id from his list ("discord", "star_repo"). '
+  + 'It is how anyone can tell later that today\'s Discord post went out — leave it off and the record '
+  + 'says it did not. Never set it on any other post.';
+
+export const FEATURE_PARAM_DESCRIPTION =
+  'ONLY when this post promotes one of OUR features: the feature\'s plain name, worded the same way every '
+  + 'time ("Talk mode", "Design Studio 3D", "Local memory"). It counts toward the two to three feature posts '
+  + 'a day and stops the same feature being pushed twice running. Leave it off for news, conversation and '
+  + 'every-day posts.';
+
+/** A marker as recorded: trimmed, non-empty, short — or nothing. */
+export function postMarker(v: unknown, max = 60): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const t = v.trim().slice(0, max);
+  return t || undefined;
 }

@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput, MODERATION_GUIDANCE, tagsIn } from '../social/index.js';
+import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput, MODERATION_GUIDANCE, tagsIn, DAILY_PARAM_DESCRIPTION, FEATURE_PARAM_DESCRIPTION, postMarker } from '../social/index.js';
 
 /** Every video carries the link. Lower-case for the idempotency check; the
  *  appended form is the same string, so it reads as written. */
@@ -260,6 +260,8 @@ export class WriteVideoPostTool implements Tool {
           type: 'string',
           description: 'For a FOOD video: the name of a dish we already have a photograph of. CHECK FIRST with find_recipe — naming a dish we do not have is REFUSED, not generated, because a plausible stranger plate filed among our own photographs is one careless caption away from being posted as ours. Naming a real one puts OUR hero photograph in as the OPENING SHOT, so the first frame is genuinely the food and cannot misrepresent it. Use this for anything about a recipe. Your first entry in `shots` is then a description of that photograph rather than a request — it is not generated, so write the rest of the storyboard to follow on from it.',
         },
+        daily: { type: 'string', description: DAILY_PARAM_DESCRIPTION },
+        feature: { type: 'string', description: FEATURE_PARAM_DESCRIPTION },
       },
       required: ['posts', 'subject', 'shot'],
     },
@@ -763,6 +765,9 @@ export class WriteVideoPostTool implements Tool {
       // picture, which is the most obviously broken thing a short can do.
       duration: clipDuration,
       recipe: ((args.recipe as string | undefined)?.trim()) || undefined,
+      subject,
+      ...(postMarker(args.daily, 40) ? { daily: postMarker(args.daily, 40) } : {}),
+      ...(postMarker(args.feature) ? { feature: postMarker(args.feature) } : {}),
       ...(onScreenCaptions.length ? { onScreenCaptions } : {}),
     };
 

@@ -15,7 +15,7 @@
 
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import type { BriefStore, PostBrief } from '../social/index.js';
+import { DAILY_PARAM_DESCRIPTION, FEATURE_PARAM_DESCRIPTION, postMarker, type BriefStore, type PostBrief } from '../social/index.js';
 
 const FIELDS: Array<[keyof PostBrief, string]> = [
   ['argues', 'what it argues'],
@@ -44,13 +44,15 @@ export class ProposeBriefTool implements Tool {
     parameters: {
       type: 'object',
       properties: {
-        subject: { type: 'string', description: 'The story, as it stands on the plan.' },
+        subject: { type: 'string', description: 'The story, in a few plain words — what this post is about.' },
         argues: { type: 'string', description: 'What this post ARGUES — its point, in one sentence. Not its topic.' },
         audience: { type: 'string', description: 'Who it is for, specifically enough to picture one person. "Developers" is a category; "a backend dev who tried an agent once, got burned, and stopped" is a reader.' },
         angle: { type: 'string', description: 'The way in — what makes THAT reader stop scrolling and care.' },
         form: { type: 'string', description: 'The shape — single post, thread, clip, piece to camera, still — and why that form suits this idea.' },
         mustLand: { type: 'string', description: 'The ONE line the post has to land. Everything else serves it.' },
         reasoning: { type: 'string', description: 'Why this brief: what you weighed, what you rejected and why. This is the part he learns from — teach the thinking, not only the conclusion.' },
+        daily: { type: 'string', description: DAILY_PARAM_DESCRIPTION + ' Set here, it is carried to the writing turn for you.' },
+        feature: { type: 'string', description: FEATURE_PARAM_DESCRIPTION + ' Set here, it is carried to the writing turn for you.' },
       },
       required: ['subject', 'argues', 'audience', 'angle', 'form', 'mustLand', 'reasoning'],
     },
@@ -74,6 +76,8 @@ export class ProposeBriefTool implements Tool {
       form: str('form'),
       mustLand: str('mustLand'),
       reasoning: str('reasoning'),
+      ...(postMarker(args.daily, 40) ? { daily: postMarker(args.daily, 40) } : {}),
+      ...(postMarker(args.feature) ? { feature: postMarker(args.feature) } : {}),
     };
 
     // A brief with a hole in it is the vague brief this replaces. Say which
