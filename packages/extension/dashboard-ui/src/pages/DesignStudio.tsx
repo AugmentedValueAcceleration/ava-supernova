@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode, type CSSProperties } from 'react';
+import { useLibraryFolders, folderContextLine } from './LibraryFolders';
 import type { ExtToDashboardMessage, ChatModel } from '../types/messages';
 import { PenNib } from '@phosphor-icons/react';
 import { post } from '../App';
@@ -28,7 +29,7 @@ import { ModelRoom, roomRoster } from '../components/ModelRoom';
 import type { DesignModelSummary } from '../types/messages';
 import { toWebp } from '../lib/compress';
 
-type GenOutcome = { ok: boolean; dataUrl?: string; error?: string };
+type GenOutcome = { ok: boolean; dataUrl?: string; error?: string; model?: string };
 
 /**
  * Design Studio — the user-facing home for guided asset generation, ported from
@@ -719,6 +720,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   const designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit' = view === 'video' ? 'video' : view === 'voice' ? 'voice' : view === 'image' ? 'image' : view === 'logo' ? 'logo' : view === 'model' ? 'model' : view === 'gimp' ? 'gimp' : view === 'brandkit' ? 'brandkit' : 'icon';
   // The model on the 3D room's stage — its brief goes to Ava with every turn.
   const [activeModel, setActiveModel] = useState<DesignModelSummary | null>(null);
+  // Library folders: when the piece on the stage is in one, Ava is told so (Phase 3).
+  const { folders: libraryFolders, plans: libraryPlans } = useLibraryFolders();
   const [designBusy, setDesignBusy] = useState(false);
   const [roomWork, setRoomWork] = useState<string[]>([]);
   // A kit piece was just opened: its room starts on a clean stage.
@@ -828,12 +831,14 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // Latest generated PNG, read by design_save / set auto-save without stale closures.
   const genResultRef = useRef<string | null>(null);
   useEffect(() => { genResultRef.current = genResult; }, [genResult]);
+  // Which AI model made the picture on the canvas, so a later Save records it.
+  const genModelRef = useRef<string | undefined>(undefined);
 
   // ── Image lane resolver — shares the `asset_forge_result` message with the
   // icon lane, so route by a flag. pendingImageRef is set true while a free-form
   // image gen is in flight; the shared listener below hands that result to the
   // image lane (imageResolverRef) instead of the icon lane.
-  type ImageOutcome = { ok: boolean; dataUrl?: string; error?: string };
+  type ImageOutcome = { ok: boolean; dataUrl?: string; error?: string; model?: string };
   const imageResolverRef = useRef<((r: ImageOutcome) => void) | null>(null);
   const pendingImageRef = useRef(false);
   const lastImageTitleRef = useRef('Image'); // names the "Download a copy" file for the current image
@@ -882,7 +887,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       const waiting = activeModel.options ? ` · OPTIONS ON THE STAGE waiting for their pick: ${activeModel.options.question}` : '';
       const finals = activeModel.finals?.length ? ` · marked final: ${activeModel.finals.map((f) => f.file).join(', ')}` : '';
       const designs = (activeModel.versions?.length ?? 0) > 1 ? ` · designs on their tiles: ${activeModel.versions!.map((d, i) => `${String.fromCharCode(65 + i)} = ${d.name}`).join(', ')}${activeModel.main ? ` · THEIR MAIN DESIGN: ${activeModel.main}` : ''}` : '';
-      return `${roster} ${head} · ${status}${art}${finals}${designs}${waiting} · ${b.fields.map((f) => `${f.label}: ${f.value}`).join(' · ')}`;
+      return `${roster} ${head} · ${status}${art}${finals}${designs}${waiting}${folderContextLine(libraryFolders, activeModel.creative_id, libraryPlans)} · ${b.fields.map((f) => `${f.label}: ${f.value}`).join(' · ')}`;
     }
     if (view === 'brandkit') {
       const names = (storeKits() ?? []).map(k => `"${k.name}"${k.status === 'proposed' ? ' (proposed, waiting for them)' : ''}`).join(', ');
@@ -903,7 +908,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       `wordmark colour: ${logoWordColour}`,
     ].filter(Boolean);
     return bits.join(' · ');
-  }, [view, activeModel, roomWork, openKit, kit, logoForm, logoTagline, logoMarkType, logoMark, logoContainer, logoSpec, logoStyle, logoColour, logoSecondary, logoWordColour, logoFontId, kit.styleTags]);
+  }, [view, activeModel, libraryFolders, libraryPlans, roomWork, openKit, kit, logoForm, logoTagline, logoMarkType, logoMark, logoContainer, logoSpec, logoStyle, logoColour, logoSecondary, logoWordColour, logoFontId, kit.styleTags]);
   // Register the bundled wordmark fonts (from bytes) when the Logo room opens, so
   // the font picker previews each name in its own typeface.
   useEffect(() => { if (view === 'logo') void registerWordmarkFonts(); }, [view]);
@@ -922,7 +927,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // canvas AND resolve whatever generation is awaiting (button or tool).
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      const m = e.data as { type?: string; success?: boolean; dataUrl?: string; error?: string };
+      const m = e.data as { type?: string; success?: boolean; dataUrl?: string; error?: string; model?: string };
       if (!m || m.type !== 'asset_forge_result') return;
       // Route to the free-form image lane when an image gen is in flight (it
       // reuses this same message, but full-frame — no matte, its own stage).
@@ -934,17 +939,17 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const resolveImg = imageResolverRef.current;
         if (resolveImg) {
           imageResolverRef.current = null;
-          resolveImg(ok ? { ok: true, dataUrl: m.dataUrl } : { ok: false, error: m.error || 'Image generation failed' });
+          resolveImg(ok ? { ok: true, dataUrl: m.dataUrl, model: m.model } : { ok: false, error: m.error || 'Image generation failed' });
         }
         return;
       }
-      if (m.success && m.dataUrl) { setGenResult(m.dataUrl); setDockOpen(false); } // icon's ready → slide the chat down, reveal it on the canvas
+      if (m.success && m.dataUrl) { genModelRef.current = m.model; setGenResult(m.dataUrl); setDockOpen(false); } // icon's ready → slide the chat down, reveal it on the canvas
       else setGenError(m.error || 'Generation failed');
       setGenStatus(null);
       const resolve = genResolverRef.current;
       if (resolve) {
         genResolverRef.current = null;
-        resolve(m.success && m.dataUrl ? { ok: true, dataUrl: m.dataUrl } : { ok: false, error: m.error || 'Generation failed' });
+        resolve(m.success && m.dataUrl ? { ok: true, dataUrl: m.dataUrl, model: m.model } : { ok: false, error: m.error || 'Generation failed' });
       }
     };
     window.addEventListener('message', handler);
@@ -1038,7 +1043,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
       const title = deriveMediaTitle(prompt, 'Image');
       lastImageTitleRef.current = title;
       imageResolverRef.current = (r) => {
-        if (r.ok && r.dataUrl) saveToLibrary(r.dataUrl, title, 'image');
+        if (r.ok && r.dataUrl) saveToLibrary(r.dataUrl, title, 'image', r.model);
         resolve(r);
       };
       pendingImageRef.current = true;
@@ -1219,10 +1224,12 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   // failure, so a save never breaks. Tagged with the active view's design type
   // (icon / image / logo / …) so the Library sorts it into the bucket it was made
   // in. Defaults to the current canvas — every save happens while its lane is active.
-  const saveToLibrary = async (dataUrl: string, title: string, designType: ViewId = view) => {
+  // `aiModel` is the model that generated it (from the host's result), for the
+  // making record. Every picture saved here was generated.
+  const saveToLibrary = async (dataUrl: string, title: string, designType: ViewId = view, aiModel?: string) => {
     const encoded = await toWebp(dataUrl, designType === 'image' ? 0.9 : 1.0);
     const ext = encoded.startsWith('data:image/webp') ? 'webp' : 'png';
-    post({ type: 'save_creative_to_disk', url: encoded, filename: `${title}.${ext}`, assetType: 'image', designType, prompt: title } as any);
+    post({ type: 'save_creative_to_disk', url: encoded, filename: `${title}.${ext}`, assetType: 'image', designType, prompt: title, origin: 'generated', aiModel } as any);
   };
   // Save the WHOLE logo system to the Library — every variant, kept as SVG (true
   // vector), under a shared group id so the Library shows them as ONE logo card.
@@ -1238,6 +1245,8 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         assetType: 'image',
         designType: 'logo',
         prompt: `${brand} logo — ${a.label}`,
+        // Built by code from shapes and fonts, not generated as a picture.
+        origin: 'composed',
       } as any);
     }
   };
@@ -1284,7 +1293,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const out = await runGeneration(resolved, look, col);
         if (out.ok && out.dataUrl) {
           // Auto-save to the Library, like every other lane (the set already does).
-          saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-'), 'icon');
+          saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-'), 'icon', out.model);
           reply(true, { label: resolved.label, material: artDir ? 'custom-direction' : mat.label });
         } else reply(false, undefined, out.error || 'Generation failed.');
         return;
@@ -1303,7 +1312,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
           if (!resolved) { failed.push(s); continue; }
           setShapeId(resolved.id);
           const out = await runGeneration(resolved, look, col);
-          if (out.ok && out.dataUrl) { made++; saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-'), 'icon'); }
+          if (out.ok && out.dataUrl) { made++; saveToLibrary(out.dataUrl, `${resolved.label}-${mat.label}`.toLowerCase().replace(/\s+/g, '-'), 'icon', out.model); }
           else failed.push(resolved.label);
         }
         reply(true, { made, failed });
@@ -1486,7 +1495,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
         const title = (typeof args.title === 'string' && args.title.trim())
           ? args.title.trim()
           : `${(getShape(shapeId)?.label ?? 'icon')}-${material.label}`.toLowerCase().replace(/\s+/g, '-');
-        await saveToLibrary(url, title);
+        await saveToLibrary(url, title, view, genModelRef.current);
         reply(true, { title });
         return;
       }

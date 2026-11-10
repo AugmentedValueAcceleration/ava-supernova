@@ -178,6 +178,9 @@ importers:
       exceljs:
         specifier: '>=4.0.0'
         version: 4.4.0
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       glob:
         specifier: ^13.0.6
         version: 13.0.6
@@ -509,8 +512,8 @@ importers:
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@project-ava-supernova/core':
-        specifier: 0.2.175
-        version: 0.2.175(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
+        specifier: 0.2.177
+        version: 0.2.177(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@supabase/ssr':
         specifier: ^0.6.0
         version: 0.6.1(@supabase/supabase-js@2.97.0)
@@ -2124,8 +2127,8 @@ packages:
       react: '>= 16.8'
       react-dom: '>= 16.8'
 
-  '@project-ava-supernova/core@0.2.175':
-    resolution: {integrity: sha512-t/nuOHa+8Qxy05eHNeAMoN2oNR5Qx5RVw5uEZzYK7lnuHZiXWv2L9bvBgS0mA33H8s6TvyReWI8OIVOb40lPZA==}
+  '@project-ava-supernova/core@0.2.177':
+    resolution: {integrity: sha512-sS1a05vqX4FojNpHYdLtJgMPMEQO9HVg+jTbxmUn1YfnnMNJHZq2aDqp3VTAMNhovnfnExb51TzlL2f65tO5OA==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -7595,7 +7598,7 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  '@project-ava-supernova/core@0.2.175(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+  '@project-ava-supernova/core@0.2.177(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
     dependencies:
       '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
       glob: 13.0.6

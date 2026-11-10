@@ -1,6 +1,6 @@
 {
   "name": "@ava/core",
-  "version": "0.2.177",
+  "version": "0.2.178",
   "description": "Core engine for Ava Supernova — agent, providers, tools, config",
   "type": "module",
   "main": "./dist/index.js",
@@ -224,6 +224,7 @@
   },
   "dependencies": {
     "@napi-rs/wasm-runtime": "1.2.6",
+    "fflate": "^0.8.3",
     "glob": "^13.0.6",
     "jpeg-js": "0.4.4",
     "marked": "^17.0.3",

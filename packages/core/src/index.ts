@@ -594,6 +594,22 @@ export { qwenTts, qwenImage, findDashscopeImageUrl, TTS_MODEL, buildWanRequest, 
 export type { TtsOptions, QwenImageOptions, WanRequestInput, WanStatus } from './creative/dashscope.js';
 // Keyless image work on the user's own machine — background removal, logo vectorising (BYOK plan, 1 Nov 2026).
 export { removeWhiteBackground, vectorizeLogo, matteWhite, decodeImage, encodePng, bytesFromDataUrl } from './creative/image-local.js';
+export { readFolders, createFolder, renameFolder, moveFolder, deleteFolder, addToFolder, removeFromFolder, setMemberPick, setFolderNote, findFolder, folderPath, missingFiles, foldersFile, MAX_FOLDER_NAME, MAX_FOLDER_DEPTH, MAX_FOLDER_NOTE } from './creative/library-folders.js';
+export type { LibraryFolder, FolderMember, FolderResult, PackPlan, PlanItem } from './creative/library-folders.js';
+export { proposePackPlan, agreePackPlan, editPlanItem, deletePackPlan, startPlanItem, fileLinkedWork, MAX_PLAN_ITEMS } from './creative/library-folders.js';
+export { planStatuses, planProgressLine } from './creative/pack-plan-status.js';
+export type { PlanItemState } from './creative/pack-plan-status.js';
+export { uploadToLibrary, UPLOAD_KINDS } from './creative/library-upload.js';
+export { exportFolder, previewFolderExport, safeName } from './creative/folder-export.js';
+export { STORE_PROFILES } from './creative/store-profiles.js';
+export type { StoreId, StoreProfile } from './creative/store-profiles.js';
+export type { ExportResult, ExportPlanSummary, ExportWarning, ExportProgress } from './creative/folder-export.js';
+export type { UploadOutcome } from './creative/library-upload.js';
+export { readMaking, makingFile } from './tools/making-record.js';
+export { readModelHistory, restoreModelStep } from './tools/blender/model-history.js';
+export type { ModelStep } from './tools/blender/model-history.js';
+export { touchLibraryEntry } from './tools/blender/build-model.js';
+export type { MakingEvent } from './tools/making-record.js';
 export type { RawImage } from './creative/image-local.js';
 // Web search on a key the caller supplies — the user's own Brave key, or the server's (BYOK plan, 1 Nov 2026).
 export { braveSearch } from './search/brave.js';

@@ -68,6 +68,7 @@ import { join } from 'node:path';
 import { AVA_HOME } from '../core/constants.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
 import { PNG } from 'pngjs';
+import { personsWords } from '../tools/making-record.js';
 
 // ─── Image downsampling ────────────────────────────────────────────────────
 // Screenshots at native resolution are the single biggest token sink in
@@ -532,6 +533,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'design_propose_image_brief', 'design_build_image', 'design_duplicate_image', 'design_show_options', 'design_mark_final',
     // Her sources of truth: the installed program, and the official docs.
     'design_api_lookup', 'design_read_docs', 'design_fonts', 'design_install_font', 'design_restore_image',
+    // Library folders: see a pack, file work into it, keep its style note (Phase 3, 9 Nov 2026).
+    'design_folder', 'design_restore_model',
     'memory_save', 'memory_recall', 'memory_update',
     // Journal — Ava reflects on the person + their taste in her own voice
     'journal_write',
@@ -1676,6 +1679,10 @@ export class Agent {
       // steps against it to know when to stop (design-checkin.ts).
       (this.toolContext.sharedState as Record<string, unknown>).designTurnId = randomUUID();
       (this.toolContext.sharedState as Record<string, unknown>).designKeepGoing = toldToKeepGoing(this.findLatestNonMetaUserMessage(messages) ?? '');
+      // The making record (making-record.ts) writes which AI model acted and
+      // what the person asked for. Set by the agent, never by her.
+      (this.toolContext.sharedState as Record<string, unknown>).designModel = { id: this.model.id, name: this.model.name, provider: this.model.provider };
+      (this.toolContext.sharedState as Record<string, unknown>).designAsk = personsWords(this.findLatestNonMetaUserMessage(messages));
     }
 
     // ─── Stop-command detection ────────────────────────────────────────────
@@ -3042,9 +3049,10 @@ export class Agent {
                   { type: 'image_url' as const, image_url: {
                     url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${resizedBase64}`,
                   }},
-                  ...((result.metadata.more_images as string[] | undefined) ?? []).map((b64) => ({
+                  ...((result.metadata.more_images as string[] | undefined) ?? []).map((b64, i) => ({
                     type: 'image_url' as const,
-                    image_url: { url: `data:${(result.metadata!.mime_type as string) || 'image/png'};base64,${downsampleScreenshotBase64(b64)}` },
+                    // more_mime_types: a tool showing pictures of different kinds (design_folder) labels each one.
+                    image_url: { url: `data:${(result.metadata!.more_mime_types as string[] | undefined)?.[i] || (result.metadata!.mime_type as string) || 'image/png'};base64,${downsampleScreenshotBase64(b64)}` },
                   })),
                 ],
               },
@@ -3678,9 +3686,9 @@ export class Agent {
             { type: 'image_url' as const, image_url: {
               url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${result.metadata.base64_image}`,
             }},
-            ...((result.metadata.more_images as string[] | undefined) ?? []).map((b64) => ({
+            ...((result.metadata.more_images as string[] | undefined) ?? []).map((b64, i) => ({
               type: 'image_url' as const,
-              image_url: { url: `data:${(result.metadata!.mime_type as string) || 'image/png'};base64,${b64}` },
+              image_url: { url: `data:${(result.metadata!.more_mime_types as string[] | undefined)?.[i] || (result.metadata!.mime_type as string) || 'image/png'};base64,${b64}` },
             })),
           ],
         },

@@ -39,6 +39,10 @@ class _Kit:
         logos = self._need().get('logos') or {}
         if slot not in logos:
             raise ValueError(f'The kit has no "{slot}" logo. It has: {sorted(logos) or "none yet"}')
+        # The making record lists what was brought into the work: a kit logo is.
+        if slot not in KIT_LOGOS_USED:
+            KIT_LOGOS_USED.append(slot)
         return logos[slot]
+KIT_LOGOS_USED = []
 KIT = _Kit(JOB.get('kit'))
 `;

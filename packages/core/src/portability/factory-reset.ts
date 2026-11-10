@@ -104,7 +104,7 @@ const MEMORY_GLOBAL = ['procedures.json', 'self-improvement.json'] as const;
 const HISTORY_ACCOUNT = ['history', 'journal', 'tasks', 'learning.json', 'health'] as const;
 
 /** Personalisation — who Ava thinks you are, and who she is. */
-const PROFILE_ACCOUNT = ['personality.json', 'general.json', 'config', 'creative/metadata.json'] as const;
+const PROFILE_ACCOUNT = ['personality.json', 'general.json', 'config', 'creative/metadata.json', 'creative/folders.json'] as const;
 
 /**
  * The categories, in the order the dialog shows them: cheapest to lose first,

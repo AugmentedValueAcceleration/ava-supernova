@@ -5,8 +5,12 @@
  *
  * design_fonts checks. design_install_font installs, for this user only and with
  * no admin rights, and always asks first: the registry prompts for it by name,
- * whatever their permission settings. Only Google Fonts, all of which are openly
- * licensed, so nothing she installs carries a licence for them to worry about.
+ * whatever their permission settings. Only Google Fonts: all free to use, but
+ * NOT all one licence — about 1,900 families are OFL, 44 are Apache 2.0 and 5
+ * are the Ubuntu Font Licence (google/fonts, 9 Nov 2026). That matters once a
+ * font FILE ships in something sold: its licence text must go with it, and
+ * Unity refuses Apache licences that require attribution. The making record
+ * looks each font's licence up (making-record.ts, fontLicences).
  * GIMP sees a font in that folder on its next run, with no restart (tested on
  * GIMP 3.2.6 on Windows, 6 Nov 2026).
  */

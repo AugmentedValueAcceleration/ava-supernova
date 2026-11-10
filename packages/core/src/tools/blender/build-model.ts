@@ -37,6 +37,9 @@ import { designRunRefusal, recordDesignRun } from '../design-checkin.js';
 import { creativeDir, modelsDir, metadataFile, modelSlug } from './paths.js';
 import { kitForScripts } from '../../brand/brand-kits.js';
 import { readModelBrief, formatModelBrief } from './model-brief.js';
+import { appendMaking, avaContext, beforeChange, fontLicences, sourcesNow } from '../making-record.js';
+import { fileLinkedWork } from '../../creative/library-folders.js';
+import { recordModelStep, restoreModelStep, readModelHistory } from './model-history.js';
 
 export { modelsDir, modelSlug } from './paths.js';
 import { findBlender, BLENDER_DOWNLOAD_URL } from './find-blender.js';
@@ -128,6 +131,7 @@ interface RunnerResult {
   ok: boolean; files: string[]; warnings: string[]; error?: string;
   objects?: number; triangles?: number; size_m?: number[];
   preview?: 'hers' | 'auto'; preview_camera?: 'auto'; seconds?: number;
+  fonts?: string[]; images_used?: string[]; kit_logos?: string[];
 }
 
 function runBlender(exe: string, args: string[], cwd: string, timeoutMs: number, signal?: AbortSignal):
@@ -293,12 +297,15 @@ export class DesignBuildModelTool implements Tool {
     const hadModel = existsSync(blendPath);
     const continuing = hadModel && args.start_fresh !== true;
     await mkdir(assetDir, { recursive: true });
+    // Before anything changes: start the record, or note hand edits since the last step.
+    await beforeChange(assetDir, 'blender');
     await writeFile(join(assetDir, 'script.py'), script, 'utf-8');
 
     // Keep every step's script beside the model, so what ran is always visible.
     const scriptsDir = join(assetDir, 'scripts');
     await mkdir(scriptsDir, { recursive: true });
-    await writeFile(join(scriptsDir, `${new Date().toISOString().replace(/[:.]/g, '-')}.py`), script, 'utf-8');
+    const scriptFile = `scripts/${new Date().toISOString().replace(/[:.]/g, '-')}.py`;
+    await writeFile(join(assetDir, scriptFile), script, 'utf-8');
 
     const runId = randomUUID();
     const runnerPath = join(tmpdir(), `ava-blender-runner-${runId}.py`);
@@ -359,9 +366,26 @@ export class DesignBuildModelTool implements Tool {
       files: result.files, blenderVersion: blender.version, triangles: result.triangles, sizeM: result.size_m,
     }).catch(() => { /* the model is saved either way; the Library catches up on the next run */ });
 
+    // Every step is saved, with its picture, so they can go back to it (the GIMP room's strip).
+    const saved = await recordModelStep(slug, typeof args.description === 'string' ? args.description : '').catch(() => null);
+
+    // A pack plan that names this model files it into its place in the pack.
+    await fileLinkedWork('blender', slug);
+
+    // The making record: written here, by the tool, never by her.
+    const who = avaContext(context);
+    await appendMaking(assetDir, {
+      event: 'step', by: 'ava', ai: who.ai, ask: who.ask, tool: 'blender', app: `Blender ${blender.version}`,
+      description: typeof args.description === 'string' ? args.description : null,
+      script: scriptFile, historyStep: saved?.number ?? null, start: continuing ? 'continued' : hadModel ? 'new_canvas' : 'empty_scene',
+      files: result.files, fonts: await fontLicences(result.fonts ?? []),
+      imagesUsed: result.images_used ?? [], kitLogos: result.kit_logos ?? [],
+      sources: await sourcesNow(assetDir, 'blender'),
+    });
+
     const how = continuing ? 'on top of the saved model' : hadModel ? 'on a new canvas (the previous version is in versions/)' : 'from an empty scene';
     const lines = [
-      `Built "${name}" ${how} in ${result.seconds ?? '?'}s with Blender ${blender.version}.`,
+      `Built "${name}" ${how} in ${result.seconds ?? '?'}s with Blender ${blender.version}.${saved ? ` Saved as step ${saved.number}.` : ''}`,
       `${result.objects ?? 0} mesh objects, ${result.triangles ?? 0} triangles, overall size ${fmtSize(result.size_m)} (X × Y × Z, Z is up).`,
       `Files in ${assetDir}: ${result.files.join(', ')}.`,
     ];
@@ -414,7 +438,7 @@ export class DesignDuplicateModelTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
     const fromName = String(args.from ?? '').trim();
     const toName = String(args.to ?? '').trim();
     const from = modelSlug(fromName);
@@ -427,10 +451,19 @@ export class DesignDuplicateModelTool implements Tool {
     if (existsSync(dst)) return { success: false, output: `A model called "${toName}" already exists. Pick another name.` };
 
     // The model as it stands now — not its history, which belongs to the original.
-    await cp(src, dst, { recursive: true, filter: (p) => !/[\\/](versions|scripts)([\\/]|$)/.test(p.slice(src.length)) });
+    // Its making record DOES travel: the copy was made the same way, up to here.
+    await beforeChange(src, 'blender');
+    // Its own history starts fresh: the original's steps name the original's files.
+    await cp(src, dst, { recursive: true, filter: (p) => !/[\\/](versions|scripts|history)([\\/]|$)|[\\/]history\.json$/.test(p.slice(src.length)) });
     for (const ext of ['blend', 'glb', 'fbx']) {
       if (existsSync(join(dst, `${from}.${ext}`))) await rename(join(dst, `${from}.${ext}`), join(dst, `${to}.${ext}`));
     }
+    const who = avaContext(context);
+    await appendMaking(dst, {
+      event: 'copied_from', by: 'ava', ai: who.ai, ask: who.ask, tool: 'blender', from: fromName,
+      note: 'The lines above belong to the original; its step scripts stay with it.',
+      sources: await sourcesNow(dst, 'blender'),
+    });
     // The copy carries the original's brief (and its agreement) under its own name.
     const brief = await readModelBrief(to);
     if (brief) {
@@ -456,4 +489,54 @@ export class DesignDuplicateModelTool implements Tool {
       metadata: { model: to, folder: dst },
     };
   }
+}
+
+// ── design_restore_model ─────────────────────────────────────────────────────
+
+export class DesignRestoreModelTool implements Tool {
+  readonly name = 'design_restore_model';
+  readonly description = 'Put a 3D model back as it was at an earlier step, when they ask.';
+  readonly riskLevel: ToolRiskLevel = 'write';
+  readonly requiresConfirmation = false;
+  readonly schema: FunctionSchema = {
+    name: 'design_restore_model',
+    description:
+      'Put a model back to an earlier step, when they say they preferred it. The steps are numbered in each run\'s report and on the strip in the room. ' +
+      'The .blend, .glb, preview and that step\'s baked textures all come back. Later steps stay in the history, so they can go forward again.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'The model\'s name.' },
+        step: { type: 'number', description: 'The step to go back to.' },
+      },
+      required: ['name', 'step'],
+    },
+  };
+
+  async execute(args: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
+    const slug = modelSlug(String(args.name ?? ''));
+    const number = Number(args.step);
+    const steps = slug ? await readModelHistory(slug) : [];
+    const step = slug ? await restoreModelStep(slug, number, { by: 'ava', ...avaContext(context) }).catch(() => null) : null;
+    if (!step) {
+      return { success: false, output: `There is no step ${args.step} on "${args.name}". Steps here: ${steps.map((s) => s.number).join(', ') || 'none yet'}.` };
+    }
+    // The Library entry's time moves, so viewers show the model as it now is.
+    await touchLibraryEntry(slug).catch(() => {});
+    const preview = await readFile(join(modelsDir(), slug, 'preview.png')).catch(() => null);
+    return {
+      success: true,
+      output: `"${args.name}" is back as it was at step ${number} (${step.label}). Later steps are still in the history. LOOK at it and carry on from here; the next run opens this.`,
+      metadata: { model: slug, ...(preview ? { base64_image: preview.toString('base64'), mime_type: 'image/png' } : {}) },
+    };
+  }
+}
+
+/** A going-back changes the files without a build: move the entry's time so every view refreshes. */
+export async function touchLibraryEntry(slug: string): Promise<void> {
+  const items = JSON.parse(await readFile(metadataFile(), 'utf-8')) as Array<Record<string, unknown>>;
+  const entry = items.find((i) => i.id === `model_${slug}`);
+  if (!entry) return;
+  entry.updatedAt = new Date().toISOString();
+  await writeFile(metadataFile(), JSON.stringify(items, null, 2), 'utf-8');
 }

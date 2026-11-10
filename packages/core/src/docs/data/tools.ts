@@ -50,6 +50,8 @@ export const TOOLS: ToolFact[] = [
   { name: 'design_propose_kit', category: 'media', description: 'Propose a brand kit for you to question, edit and agree.', risk: 'write' },
   { name: 'design_save_to_kit', category: 'media', description: 'Save a finished file into a brand kit, after asking you.', risk: 'write' },
   { name: 'design_restore_image', category: 'media', description: 'Put a piece of GIMP work back as it was at an earlier step.', risk: 'write' },
+  { name: 'design_restore_model', category: 'media', description: 'Put a 3D model back as it was at an earlier step, textures and all.', risk: 'write' },
+  { name: 'design_folder', category: 'media', description: 'See a Library folder and its finished pieces, file work into it when asked, and keep its style note once they agree it.', risk: 'write' },
   { name: 'design_fonts', category: 'media', description: 'Check which fonts are really installed on your computer.', risk: 'safe' },
   { name: 'design_install_font', category: 'media', description: 'Install an openly licensed Google Font for your user, after you approve it.', risk: 'write' },
   { name: 'design_api_lookup', category: 'media', description: 'Ask the installed Blender or GIMP exactly how a call, node or filter works.', risk: 'safe' },

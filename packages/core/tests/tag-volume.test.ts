@@ -4,8 +4,8 @@ import { describe, it, expect } from 'vitest';
 import { blueskyTagVolume, blueskyTagsFor, measureTags, bandFor, type TagFetch } from '../src/social/tag-volume.js';
 
 const NOW = Date.parse('2026-11-01T12:00:00Z');
-const postsOver = (n: number, hours: number) => ({
-  posts: Array.from({ length: n }, (_, i) => ({ indexedAt: new Date(NOW - (i / Math.max(n - 1, 1)) * hours * 3_600_000).toISOString() })),
+const postsOver = (n: number, hours: number, at = NOW) => ({
+  posts: Array.from({ length: n }, (_, i) => ({ indexedAt: new Date(at - (i / Math.max(n - 1, 1)) * hours * 3_600_000).toISOString() })),
 });
 
 describe('tag volume', () => {
@@ -33,8 +33,10 @@ describe('tag volume', () => {
 
   it('measures busiest first and leaves out what it could not measure', async () => {
     const get: TagFetch = async (url) => {
-      if (url.includes('busy')) return postsOver(100, 6);
-      if (url.includes('quiet')) return postsOver(3, 24 * 30);
+      // measureTags reads the real clock, so these posts are anchored to it
+      // (fixed to NOW, the test went stale as the days passed).
+      if (url.includes('busy')) return postsOver(100, 6, Date.now());
+      if (url.includes('quiet')) return postsOver(3, 24 * 30, Date.now());
       throw new Error('down');
     };
     const m = await measureTags(['#quiet', 'busy', 'broken'], get);

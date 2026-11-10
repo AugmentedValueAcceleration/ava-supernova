@@ -83,9 +83,28 @@ def _hook(event, args):
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 _open = {}   # name -> Gimp.Image she touched this run
+_placed = []  # files brought in with ava_place, for the making record
+result['fonts'] = {}
 
 def _file(path):
     return Gio.File.new_for_path(path)
+
+def _fonts_in(img):
+    """Every font used by a text layer in the saved image, inside groups too:
+    hers or ones the person typed by hand. For the making record."""
+    found = set()
+    def walk(layers):
+        for l in layers:
+            try:
+                if l.is_group():
+                    walk(l.get_children())
+                elif l.is_text_layer():
+                    t = l if hasattr(l, 'get_font') else Gimp.Item.get_by_id(l.get_id())
+                    found.add(t.get_font().get_name())
+            except Exception:
+                found.add('?')
+    walk(img.get_layers())
+    return sorted(found)
 
 def _safe_name(name):
     n = ''.join(c if c.isalnum() or c in '-_' else '-' for c in str(name))
@@ -142,6 +161,11 @@ def ava_place(image, path, name=None):
     generated reference, another piece of the set. 'path' inside ASSET_DIR."""
     full = path if os.path.isabs(path) else os.path.join(ASSET_DIR, path)
     lay = Gimp.file_load_layer(Gimp.RunMode.NONINTERACTIVE, image, _file(full))
+    # The making record lists what was brought in. A kit logo is named by KIT.
+    inside = os.path.normcase(os.path.abspath(full)).startswith(os.path.normcase(os.path.abspath(ASSET_DIR)) + os.sep)
+    rel = os.path.relpath(full, ASSET_DIR).replace(os.sep, '/') if inside else os.path.basename(full)
+    if rel not in _placed:
+        _placed.append(rel)
     if name:
         lay.set_name(name)
     image.insert_layer(lay, None, 0)
@@ -649,6 +673,7 @@ try:
         lines, warns = _report(name, img)
         result['report'] += lines
         result['warnings'] += warns
+        result['fonts'][name] = _fonts_in(img)
     if not saved_any:
         raise RuntimeError(f'Nothing to save: no image here has any layers. Saved images in this work: {ava_images()}. Open one by name, or add a layer.')
     # Finals are written last, so a failed run can't add one.
@@ -708,6 +733,8 @@ try:
     ex = os.path.join(ASSET_DIR, 'exports')
     if os.path.isdir(ex):
         result['files'] += ['exports/' + f for f in sorted(os.listdir(ex))]
+    result['placed'] = _placed
+    result['kit_logos'] = list(KIT_LOGOS_USED)
     result['ok'] = True
     result['seconds'] = round(time.time() - STARTED, 1)
 except BaseException as e:

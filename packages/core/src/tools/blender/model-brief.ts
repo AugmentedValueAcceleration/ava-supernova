@@ -19,10 +19,11 @@
 import { existsSync } from 'node:fs';
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Tool, ToolResult, ToolRiskLevel } from '../types.js';
+import type { Tool, ToolExecutionContext, ToolResult, ToolRiskLevel } from '../types.js';
 import type { FunctionSchema } from '../../providers/types.js';
 import { modelsDir, modelSlug } from './paths.js';
 import { briefStore, type BriefRecord } from '../brief-store.js';
+import { readModelHistory, type ModelStep } from './model-history.js';
 
 export interface ModelBriefFields {
   what: string;        // what it is
@@ -52,11 +53,11 @@ export const BRIEF_FIELDS: Array<[keyof ModelBriefFields, string, string]> = [
   ['purpose', 'Purpose', 'their own project, or for sale (a marketplace has stricter checks)'],
 ];
 
-const store = briefStore<ModelBrief>(modelsDir, () => BRIEF_FIELDS.map(([k]) => k));
+const store = briefStore<ModelBrief>(modelsDir, () => BRIEF_FIELDS.map(([k]) => k), 'blender');
 
 export const briefPath = store.path;
 export const readModelBrief = store.read;
-const writeBrief = store.write;
+
 /** His button on the card. The ONLY way a brief becomes agreed. */
 export const agreeModelBrief = store.agree;
 /** His edits on the card. Saving changes keeps it agreed only if nothing moved. */
@@ -68,6 +69,8 @@ export interface ModelSummary {
   brief: ModelBrief | null;
   built: boolean;
   updatedAt: string;
+  /** Every saved step, oldest first, so they can look back and return to one. */
+  history: ModelStep[];
 }
 
 /** Every model folder — including ones with a brief and nothing built yet. */
@@ -82,7 +85,7 @@ export async function listModels(): Promise<ModelSummary[]> {
     const mtime = (await stat(built ? blend : dir).catch(() => null))?.mtime ?? new Date(0);
     const briefTime = brief?.agreedAt || brief?.proposedAt;
     const updatedAt = briefTime && new Date(briefTime) > mtime ? briefTime : mtime.toISOString();
-    out.push({ slug: e.name, name: brief?.name || e.name, brief, built, updatedAt });
+    out.push({ slug: e.name, name: brief?.name || e.name, brief, built, updatedAt, history: await readModelHistory(e.name) });
   }
   return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
@@ -120,7 +123,7 @@ export class DesignProposeModelBriefTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
     const str = (k: string) => (typeof args[k] === 'string' ? (args[k] as string).trim() : '');
     const name = str('name');
     const slug = modelSlug(name);
@@ -140,7 +143,7 @@ export class DesignProposeModelBriefTool implements Tool {
       status: 'proposed',
       proposedAt: new Date().toISOString(),
     };
-    await writeBrief(slug, brief);
+    await store.propose(slug, brief, context);
 
     const wasAgreed = previous?.status === 'agreed';
     return {

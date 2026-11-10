@@ -27,6 +27,8 @@ import { designRunRefusal, recordDesignRun } from '../design-checkin.js';
 import { creativeDir, imagesDir, metadataFile, modelSlug } from '../blender/paths.js';
 import { kitForProject, kitForScripts, kitPieceStates } from '../../brand/brand-kits.js';
 import { briefStore, type BriefRecord } from '../brief-store.js';
+import { appendMaking, avaContext, beforeChange, fontLicences, sourcesNow, type MakingAi } from '../making-record.js';
+import { fileLinkedWork } from '../../creative/library-folders.js';
 import { findGimp, GIMP_DOWNLOAD_URL } from './find-gimp.js';
 import { GIMP_RUNNER_PY } from './runner-py.js';
 
@@ -50,7 +52,7 @@ export const IMAGE_BRIEF_FIELDS: Array<[string, string, string]> = [
 
 export interface ImageBrief extends BriefRecord { [field: string]: unknown }
 
-const store = briefStore<ImageBrief>(imagesDir, () => IMAGE_BRIEF_FIELDS.map(([k]) => k));
+const store = briefStore<ImageBrief>(imagesDir, () => IMAGE_BRIEF_FIELDS.map(([k]) => k), 'gimp');
 export const readImageBrief = store.read;
 export const agreeImageBrief = store.agree;
 export const saveImageBriefEdits = store.saveEdits;
@@ -105,8 +107,17 @@ const writeFinals = (slug: string, files: string[]) =>
 /** Their click on the stage: this file isn't final after all. */
 export async function removeImageFinal(slug: string, file: string): Promise<void> {
   if (modelSlug(slug) !== slug) return;
-  await writeFinals(slug, (await readImageFinals(slug)).filter((f) => f !== file));
+  const finals = await readImageFinals(slug);
+  if (!finals.includes(file)) return;
+  await writeFinals(slug, finals.filter((f) => f !== file));
+  const dir = join(imagesDir(), slug);
+  await beforeChange(dir, 'gimp');
+  await appendMaking(dir, { event: 'final_removed', by: 'person', tool: 'gimp', file });
 }
+
+/** Who did something that more than one hand can do: her tool, or their button. */
+export type Actor = { by: 'ava'; ai: MakingAi | null; ask: string | null } | { by: 'person' };
+const PERSON: Actor = { by: 'person' };
 
 export async function readImageOptions(slug: string): Promise<ImageOptions | null> {
   try { return JSON.parse(await readFile(join(imagesDir(), slug, 'options.json'), 'utf-8')) as ImageOptions; }
@@ -120,6 +131,9 @@ export async function pickImageOption(slug: string, index: number): Promise<Imag
   const option = current?.status === 'waiting' ? current.options[index] : undefined;
   if (!current || !option) return null;
   await writeFile(join(imagesDir(), slug, 'options.json'), JSON.stringify({ ...current, status: 'picked', picked: index }, null, 2), 'utf-8');
+  const dir = join(imagesDir(), slug);
+  await beforeChange(dir, 'gimp');
+  await appendMaking(dir, { event: 'option_picked', by: 'person', tool: 'gimp', question: current.question, label: option.label, file: option.file });
   return option;
 }
 
@@ -139,7 +153,33 @@ export async function addImageReference(slug: string, source: string): Promise<{
   await mkdir(dir, { recursive: true });
   const base = (basename(source).replace(/[^\w.-]+/g, '-').replace(/^[.-]+/, '')) || 'art.png';
   await copyFile(source, join(dir, base));
+  const work = join(imagesDir(), slug);
+  await beforeChange(work, 'gimp');
+  await appendMaking(work, { event: 'brought_in', by: 'person', tool: 'gimp', file: `references/${base}`, original: basename(source), ...(await libraryOrigin(source)) });
   return { ok: true, file: `references/${base}` };
+}
+
+/**
+ * Where a file they brought in came from, when the Library knows. Open Canvas
+ * records how each picture was made from 9 Nov 2026: 'generated' with the AI
+ * model, or 'composed' (built by code from shapes and fonts, like a logo).
+ * Anything saved earlier says it is unknown, rather than assuming either way.
+ */
+async function libraryOrigin(source: string): Promise<Record<string, unknown>> {
+  try {
+    const items = JSON.parse(await readFile(metadataFile(), 'utf-8')) as Array<Record<string, unknown>>;
+    const norm = (p: string) => resolve(p).toLowerCase();
+    const hit = items.find((i) => typeof i.absolutePath === 'string' && norm(i.absolutePath) === norm(source));
+    if (!hit) return { fromLibrary: false };
+    if (hit.kind === 'gimp' || hit.kind === 'model') return { fromLibrary: true, libraryKind: hit.kind };
+    const made = hit.origin === 'generated' || hit.origin === 'composed' || hit.origin === 'uploaded' ? hit.origin : 'unknown';
+    return {
+      fromLibrary: true, libraryKind: hit.kind, libraryTitle: hit.title ?? null, made,
+      aiModel: made === 'generated' ? (hit.aiModel as string | undefined) ?? null : null,
+      aiProvider: made === 'generated' ? (hit.aiProvider as string | undefined) ?? null : null,
+      prompt: hit.prompt ?? null,
+    };
+  } catch { return {}; }
 }
 
 
@@ -189,19 +229,21 @@ export async function recordImageStep(slug: string, label: string): Promise<Imag
 }
 
 /** Put the work back as it was at a step. Null if there is no such step. */
-export async function restoreImageStep(slug: string, number: number): Promise<ImageStep | null> {
+export async function restoreImageStep(slug: string, number: number, who: Actor = PERSON): Promise<ImageStep | null> {
   const step = (await readImageHistory(slug)).find((s) => s.number === number);
   if (!step) return null;
   const dir = join(imagesDir(), slug);
   const folder = stepFolder(slug, number);
   const saved = await imagesIn(folder);
   if (saved.length === 0) return null;
+  await beforeChange(dir, 'gimp');
   for (const file of await imagesIn(dir)) {
     if (!saved.includes(file)) await rm(join(dir, file), { force: true });
   }
   for (const file of saved) await copyFile(join(folder, file), join(dir, file));
   if (existsSync(join(folder, 'preview.png'))) await copyFile(join(folder, 'preview.png'), join(dir, 'preview.png'));
   await recordImageStep(slug, `Back to step ${number}`);
+  await appendMaking(dir, { ...who, event: 'restored', tool: 'gimp', step: number, label: step.label, sources: await sourcesNow(dir, 'gimp') });
   return step;
 }
 
@@ -231,6 +273,8 @@ export async function chooseImageMain(slug: string, name: string): Promise<boole
   if (!(await listImageVersions(slug)).includes(name)) return false;
   const dir = join(imagesDir(), slug);
   await writeFile(mainFile(slug), JSON.stringify(name), 'utf-8');
+  await beforeChange(dir, 'gimp');
+  await appendMaking(dir, { event: 'main_chosen', by: 'person', tool: 'gimp', name });
   if (!(await readImageFinals(slug)).length) await copyFile(join(dir, `${name}.png`), join(dir, 'preview.png'));
   return true;
 }
@@ -248,7 +292,10 @@ export async function keepImageVersion(slug: string, name: string): Promise<stri
   const to = modelSlug(kept);
   const from = join(imagesDir(), slug);
   const dir = join(imagesDir(), to);
+  await beforeChange(from, 'gimp');
   await mkdir(dir, { recursive: true });
+  // The kept design was made the same way as the work it leaves, up to here.
+  if (existsSync(join(from, 'making.jsonl'))) await copyFile(join(from, 'making.jsonl'), join(dir, 'making.jsonl'));
   await copyFile(join(from, `${name}.xcf`), join(dir, `${name}.xcf`));
   await copyFile(join(from, `${name}.png`), join(dir, `${name}.png`));
   await copyFile(join(from, `${name}.png`), join(dir, 'preview.png'));
@@ -256,18 +303,30 @@ export async function keepImageVersion(slug: string, name: string): Promise<stri
   const brief = await readImageBrief(slug);
   if (brief) await store.write(to, { ...brief, name: kept });
   await upsertLibraryEntry({ slug: to, name: kept, files: [`${name}.xcf`, `${name}.png`, 'preview.png'], gimpVersion: '', imageCount: 1 });
-  await deleteImageVersion(slug, name);
+  await removeVersionFiles(slug, name);
+  await appendMaking(dir, {
+    event: 'copied_from', by: 'person', tool: 'gimp', from: (await readImageBrief(slug))?.name ?? slug, version: name,
+    note: 'Kept as its own work. The lines above belong to the work it came from.', sources: await sourcesNow(dir, 'gimp'),
+  });
+  await appendMaking(from, { event: 'version_kept', by: 'person', tool: 'gimp', name, to: kept, sources: await sourcesNow(from, 'gimp') });
   return kept;
 }
 
 export async function deleteImageVersion(slug: string, name: string): Promise<boolean> {
   if (!(await listImageVersions(slug)).includes(name)) return false;
   const dir = join(imagesDir(), slug);
+  await beforeChange(dir, 'gimp');
+  await removeVersionFiles(slug, name);
+  await appendMaking(dir, { event: 'version_deleted', by: 'person', tool: 'gimp', name, sources: await sourcesNow(dir, 'gimp') });
+  return true;
+}
+
+async function removeVersionFiles(slug: string, name: string): Promise<void> {
+  const dir = join(imagesDir(), slug);
   const wasMain = (await readImageMain(slug)) === name;
   await rm(join(dir, `${name}.xcf`), { force: true });
   await rm(join(dir, `${name}.png`), { force: true });
   if (wasMain) await rm(mainFile(slug), { force: true });
-  return true;
 }
 
 /** Every piece of work — including one with a brief and nothing made yet. */
@@ -319,7 +378,7 @@ export class DesignProposeImageBriefTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
     const str = (k: string) => (typeof args[k] === 'string' ? (args[k] as string).trim() : '');
     const name = str('name');
     const slug = modelSlug(name);
@@ -329,13 +388,13 @@ export class DesignProposeImageBriefTool implements Tool {
     if (missing.length) return { success: false, output: `The brief is missing: ${missing.join(', ')}. A hole here is filled by guesswork when it is made.` };
 
     const wasAgreed = (await readImageBrief(slug))?.status === 'agreed';
-    await store.write(slug, {
+    await store.propose(slug, {
       name,
       ...Object.fromEntries(IMAGE_BRIEF_FIELDS.map(([k]) => [k, str(k)])),
       reasoning: str('reasoning'),
       status: 'proposed',
       proposedAt: new Date().toISOString(),
-    } as ImageBrief);
+    } as ImageBrief, context);
     return {
       success: true,
       output: `Brief for "${name}" is on the card${wasAgreed ? ' — it changed, so it needs agreeing again before the next step' : ''}. Talk them through your reasoning, change it where they have a point. They agree it on the card; nothing is made until they do.`,
@@ -441,6 +500,7 @@ interface RunnerResult {
   ok: boolean; files: string[]; warnings: string[]; error?: string; seconds?: number;
   images: Array<{ name: string; width: number; height: number; layers: number }>;
   report?: string[]; looks?: Array<{ file: string; label: string }>; newFinals?: string[];
+  fonts?: Record<string, string[]>; placed?: string[]; kit_logos?: string[];
 }
 
 function runGimp(exe: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, timeoutMs: number, signal?: AbortSignal):
@@ -571,8 +631,11 @@ export class DesignBuildImageTool implements Tool {
 
     const assetDir = join(imagesDir(), slug);
     await mkdir(join(assetDir, 'scripts'), { recursive: true });
+    // Before anything changes: start the record, or note hand edits since the last step.
+    await beforeChange(assetDir, 'gimp');
     await writeFile(join(assetDir, 'script.py'), script, 'utf-8');
-    await writeFile(join(assetDir, 'scripts', `${new Date().toISOString().replace(/[:.]/g, '-')}.py`), script, 'utf-8');
+    const scriptFile = `scripts/${new Date().toISOString().replace(/[:.]/g, '-')}.py`;
+    await writeFile(join(assetDir, scriptFile), script, 'utf-8');
 
     const runId = randomUUID();
     const runnerPath = join(tmpdir(), `ava-gimp-runner-${runId}.py`);
@@ -625,6 +688,21 @@ export class DesignBuildImageTool implements Tool {
     }).catch(() => { /* the work is saved either way */ });
 
     const saved = await recordImageStep(slug, typeof args.description === 'string' ? args.description : '').catch(() => null);
+
+    // A pack plan that names this work files it into its place in the pack.
+    await fileLinkedWork('gimp', slug);
+
+    // The making record: written here, by the tool, never by her.
+    const who = avaContext(context);
+    await appendMaking(assetDir, {
+      event: 'step', by: 'ava', ai: who.ai, ask: who.ask, tool: 'gimp', app: `GIMP ${gimp.version}`,
+      description: typeof args.description === 'string' ? args.description : null,
+      script: scriptFile, historyStep: saved?.number ?? null,
+      images: result.images.map((i) => i.name), files: result.files, newFinals: result.newFinals ?? [],
+      fonts: await fontLicences(Object.values(result.fonts ?? {}).flat()),
+      fontsByImage: result.fonts ?? {}, placed: result.placed ?? [], kitLogos: result.kit_logos ?? [],
+      sources: await sourcesNow(assetDir, 'gimp'),
+    });
     const lines = [
       `Done on "${name}" in ${result.seconds ?? '?'}s with GIMP ${gimp.version}. ${xcfCount} image${xcfCount === 1 ? '' : 's'} in this work.${saved ? ` Saved as step ${saved.number}.` : ''}`,
       `This step: ${result.images.map((i) => `${i.name} ${i.width}×${i.height} (${i.layers} layer${i.layers === 1 ? '' : 's'})`).join(', ')}.`,
@@ -691,11 +769,11 @@ export class DesignRestoreImageTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
     const slug = modelSlug(String(args.name ?? ''));
     const number = Number(args.step);
     const steps = slug ? await readImageHistory(slug) : [];
-    const step = await restoreImageStep(slug, number).catch(() => null);
+    const step = await restoreImageStep(slug, number, { by: 'ava', ...avaContext(context) }).catch(() => null);
     if (!step) {
       return { success: false, output: `There is no step ${args.step} on "${args.name}". Steps here: ${steps.map((s) => s.number).join(', ') || 'none yet'}.` };
     }
@@ -731,7 +809,7 @@ export class DesignMarkFinalTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
     const name = String(args.name ?? '').trim();
     const slug = modelSlug(name);
     const files = Array.isArray(args.files) ? args.files.map(String) : [];
@@ -748,6 +826,9 @@ export class DesignMarkFinalTool implements Tool {
     }
     const all = [...new Set([...(await readImageFinals(slug)), ...clean])];
     await writeFinals(slug, all);
+    const who = avaContext(context);
+    await beforeChange(root, 'gimp');
+    await appendMaking(root, { event: 'marked_final', by: 'ava', ai: who.ai, ask: who.ask, tool: 'gimp', files: clean });
     return { success: true, output: `Marked final: ${clean.join(', ')}. "${name}" now has ${all.length} final file${all.length === 1 ? '' : 's'}.` };
   }
 }
@@ -788,7 +869,7 @@ export class DesignShowOptionsTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
     const name = String(args.name ?? '').trim();
     const slug = modelSlug(name);
     const question = String(args.question ?? '').trim();
@@ -807,6 +888,9 @@ export class DesignShowOptionsTool implements Tool {
     }
     const record: ImageOptions = { question, options, status: 'waiting', proposedAt: new Date().toISOString() };
     await writeFile(join(root, 'options.json'), JSON.stringify(record, null, 2), 'utf-8');
+    const who = avaContext(context);
+    await beforeChange(root, 'gimp');
+    await appendMaking(root, { event: 'options_shown', by: 'ava', ai: who.ai, ask: who.ask, tool: 'gimp', question, options });
     return { success: true, output: `${options.length} options are on the stage for "${name}". Stop here and wait: tell them in a line or two what you'd pick and why, then end your turn. Their click comes back as their next message.` };
   }
 }
@@ -832,7 +916,7 @@ export class DesignDuplicateImageTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
     const fromName = String(args.from ?? '').trim();
     const toName = String(args.to ?? '').trim();
     const from = modelSlug(fromName);
@@ -844,12 +928,20 @@ export class DesignDuplicateImageTool implements Tool {
     if (!existsSync(src)) return { success: false, output: `There is no work called "${fromName}".` };
     if (existsSync(dst)) return { success: false, output: `Work called "${toName}" already exists. Pick another name.` };
 
+    // Its making record travels with it: the copy was made the same way, up to here.
+    await beforeChange(src, 'gimp');
     await cp(src, dst, { recursive: true, filter: (p) => !/[\\/](versions|scripts)([\\/]|$)/.test(p.slice(src.length)) });
     const brief = await readImageBrief(to);
     if (brief) {
       brief.name = toName;
       await store.write(to, brief);
     }
+    const who = avaContext(context);
+    await appendMaking(dst, {
+      event: 'copied_from', by: 'ava', ai: who.ai, ask: who.ask, tool: 'gimp', from: fromName,
+      note: 'The lines above belong to the original; its step scripts stay with it.',
+      sources: await sourcesNow(dst, 'gimp'),
+    });
     const files = (await readdir(dst, { withFileTypes: true })).filter((e) => e.isFile() && e.name !== 'brief.json').map((e) => e.name);
     if (existsSync(join(dst, 'preview.png'))) {
       await upsertLibraryEntry({ slug: to, name: toName, files, gimpVersion: '', imageCount: files.filter((f) => f.endsWith('.xcf')).length }).catch(() => {});

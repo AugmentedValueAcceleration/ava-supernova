@@ -5,6 +5,7 @@ import type { DesignModelSummary } from '../types/messages';
 
 import { LazyModelViewer } from './LazyModelViewer';
 import { Select } from './Select';
+import { FolderPicker, PlanChip, useLibraryFolders } from '../pages/LibraryFolders';
 
 // ─── The Blender (Headless) room's stage ───────────────────────────────────────
 //
@@ -47,6 +48,8 @@ export function roomRoster(names: string[]): string {
 }
 
 export function ModelRoom({ tool = 'blender', busy = false, startFresh = false, onActiveModel, onRoster }: { tool?: keyof typeof ROOMS; busy?: boolean; startFresh?: boolean; onActiveModel: (m: DesignModelSummary | null) => void; onRoster?: (names: string[]) => void }) {
+  // The Library folders this piece can be filed into (Phase 3).
+  const { folders: libraryFolders, plans: libraryPlans } = useLibraryFolders();
   const room = ROOMS[tool];
   const [models, setModels] = useState<DesignModelSummary[] | null>(null);
   // A design opened from the Library comes straight to the stage.
@@ -115,7 +118,7 @@ export function ModelRoom({ tool = 'blender', busy = false, startFresh = false, 
     if (action === 'main') sayToAva(`I've chosen design ${versionLetter(name)}, "${name}", as the main design.`);
   };
   const goBack = (number: number) => {
-    post({ type: 'restore_image_step', slug: active!.slug, number });
+    post(tool === 'gimp' ? { type: 'restore_image_step', slug: active!.slug, number } : { type: 'restore_model_step', slug: active!.slug, number });
     sayToAva(`I've gone back to step ${number}. Carry on from there.`);
   };
   useEffect(() => { if (models) onRoster?.(models.map((m) => m.name)); }, [models, onRoster]);
@@ -309,7 +312,7 @@ export function ModelRoom({ tool = 'blender', busy = false, startFresh = false, 
                 ))}
               </div>
             )}
-            {tool === 'gimp' && !!active.history?.length && (
+            {!!active.history?.length && (
               <div className="shrink-0 flex items-center gap-2 overflow-x-auto border-t border-[var(--border-card)] px-3 py-2">
                 <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{tt('dash.studio.history', 'History')}</span>
                 {active.history.map((s) => (
@@ -357,6 +360,9 @@ export function ModelRoom({ tool = 'blender', busy = false, startFresh = false, 
                 >
                   {tt('library.model.open_folder', 'Open folder')}
                 </button>
+                {/* Which Library folders (packs) this piece is in — file it without leaving the room. */}
+                <FolderPicker folders={libraryFolders} itemRef={`creative:${active.creative_id}`} />
+                <PlanChip folders={libraryFolders} plans={libraryPlans} creativeId={active.creative_id} />
                 <span className="ml-auto text-[11px] text-[var(--text-muted)]">
                   {[typeof active.image_count === 'number' ? `${active.image_count} image${active.image_count === 1 ? '' : 's'}` : '',
                     active.references?.length ? tt('dash.studio.art_count', 'Your art: {count}').replace('{count}', String(active.references.length)) : '',

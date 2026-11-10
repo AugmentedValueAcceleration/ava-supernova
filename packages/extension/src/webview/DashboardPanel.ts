@@ -50,6 +50,9 @@ import {
   listModels, agreeModelBrief, saveModelBriefEdits, BRIEF_FIELDS,
   findGimp, setGimpPath, gimpStatus, GIMP_DOWNLOAD_URL,
   listImageWork, restoreImageStep, chooseImageMain, keepImageVersion, deleteImageVersion, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS,
+  // Library folders + their own uploads (Library folders and packs, Phase 1).
+  readFolders, createFolder, renameFolder, moveFolder, deleteFolder, addToFolder, removeFromFolder, setMemberPick, missingFiles, uploadToLibrary, UPLOAD_KINDS,
+  exportFolder, previewFolderExport, setFolderNote, STORE_PROFILES, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
@@ -1955,6 +1958,102 @@ export class DashboardPanel {
         await this.loadLibraryFiles();
         break;
 
+      // ── Library folders (names, never disk folders: files never move) ──────
+      case 'restore_model_step':
+        // Their click on the strip: the model as it was at that step, textures and all.
+        if (await restoreModelStep(msg.slug, Number(msg.number)).catch(() => null)) {
+          await touchLibraryEntry(msg.slug).catch(() => {});
+        }
+        await this.loadModels();
+        await this.loadLocalCreative();
+        break;
+
+      case 'folders_load':
+        await this.postFolders();
+        break;
+      case 'folder_create': {
+        // `add`: work to put straight in it, from a card's "new folder".
+        const made = await createFolder(msg.name, msg.parentId ?? null);
+        if (made.ok && msg.add?.length) await addToFolder(made.value.id, msg.add);
+        await this.postFolders(made);
+        break;
+      }
+      case 'folder_rename':
+        await this.postFolders(await renameFolder(msg.id, msg.name));
+        break;
+      case 'folder_move':
+        await this.postFolders(await moveFolder(msg.id, msg.parentId ?? null));
+        break;
+      case 'folder_delete':
+        await this.postFolders(await deleteFolder(msg.id));
+        break;
+      case 'folder_add':
+        await this.postFolders(await addToFolder(msg.id, msg.items));
+        break;
+      case 'folder_remove':
+        await this.postFolders(await removeFromFolder(msg.id, msg.refs));
+        break;
+      // Pack plans: only their clicks agree, edit or delete one.
+      case 'plan_agree':
+        await this.postFolders(await agreePackPlan(msg.id));
+        break;
+      case 'plan_item':
+        await this.postFolders(await editPlanItem(msg.id, msg.itemId ?? null, msg.fields ?? null));
+        break;
+      case 'plan_delete':
+        await this.postFolders(await deletePackPlan(msg.id));
+        break;
+      case 'folder_note':
+        await this.postFolders(await setFolderNote(msg.id, msg.note));
+        break;
+      case 'folder_pick':
+        await this.postFolders(await setMemberPick(msg.id, msg.ref, msg.pick));
+        break;
+      // ── Download a folder as a real folder (Phase 2) ──────────────────────
+      case 'folder_export_preview':
+        this.post({ type: 'folder_export_preview', id: msg.id, summary: await previewFolderExport(msg.id), stores: STORE_PROFILES } as never);
+        break;
+      case 'folder_export': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
+          openLabel: msg.zip ? 'Save the zip here' : 'Download here',
+        });
+        if (!picked?.[0]) { this.post({ type: 'folder_export_result', id: msg.id, cancelled: true } as never); break; }
+        const res = await exportFolder(msg.id, picked[0].fsPath, {
+          zip: !!msg.zip,
+          record: msg.record !== false,
+          store: (msg.store || undefined) as StoreId | undefined,
+          onProgress: (done, total, label) => this.post({ type: 'folder_export_progress', id: msg.id, done, total, label } as never),
+        });
+        if (res.ok && res.path) this.exportedPaths.add(res.path);
+        this.post({ type: 'folder_export_result', id: msg.id, ...res } as never);
+        break;
+      }
+      case 'folder_export_reveal':
+        // Only a folder or zip a download here just wrote: never an arbitrary path.
+        if (msg.path && this.exportedPaths.has(msg.path)) {
+          await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(msg.path)).then(undefined, () => {});
+        }
+        break;
+
+      case 'library_upload': {
+        // Their own files: copied into the Library, recorded as theirs.
+        const exts = Object.keys(UPLOAD_KINDS);
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: true,
+          openLabel: 'Add to Library',
+          filters: { 'Images, video, audio and 3D models': exts },
+        });
+        if (!picked?.length) break;
+        const results = await uploadToLibrary(picked.map((u) => u.fsPath));
+        const added = results.filter((r) => r.ok && r.id).map((r) => ({ ref: `creative:${r.id}` }));
+        if (msg.folderId && added.length) await addToFolder(msg.folderId, added);
+        await this.loadLocalCreative();
+        await this.postFolders();
+        this.post({ type: 'library_upload_result', results: results.map((r) => ({ name: path.basename(r.source), ok: r.ok, error: r.error })) } as never);
+        break;
+      }
+
       case 'load_local_creative':
         await this.loadLocalCreative();
         break;
@@ -2412,6 +2511,11 @@ export class DashboardPanel {
             prompt: msg.prompt ?? '',
             title: msg.filename ?? '',
             id: msg.id,   // logo variants pass a shared-prefix id so the Library groups them
+            // How it was made, for the making record. Only the two origins the
+            // canvas can know; anything else is left unknown rather than guessed.
+            made: msg.origin === 'generated' || msg.origin === 'composed'
+              ? { origin: msg.origin, aiModel: msg.aiModel, aiProvider: msg.aiModel ? 'qwen' : undefined }
+              : undefined,
           });
           if (saved) {
             this.log(`[Creative] Saved ${kind} locally (${saved.path})`);
@@ -3252,6 +3356,21 @@ export class DashboardPanel {
   /** Load the account-scoped LOCAL creative gallery (~/.ava/users/<id>/creative)
    *  and post it to the Assets tab. Local-first — no cloud fetch. Binaries are
    *  served to the webview via asWebviewUri (AVA_HOME is in localResourceRoots). */
+  /** Folders and zips a download wrote this session — the only paths its "Show" may reveal. */
+  private readonly exportedPaths = new Set<string>();
+
+  /** Every folder, after any change; a refused change carries its reason. */
+  private async postFolders(res?: { ok: boolean; error?: string }): Promise<void> {
+    try {
+      const folders = await readFolders();
+      const missing = Object.fromEntries(folders.map((f) => [f.id, missingFiles(f)]).filter(([, m]) => (m as string[]).length));
+      const plans = await planStatuses(folders).catch(() => ({}));
+      this.post({ type: 'library_folders', folders, missing, plans, ...(res && !res.ok ? { error: res.error } : {}) } as never);
+    } catch (err) {
+      this.post({ type: 'library_folders', folders: [], missing: {}, error: err instanceof Error ? err.message : String(err) } as never);
+    }
+  }
+
   private async loadLocalCreative(): Promise<void> {
     try {
       const items = await readLocalCreativeSized(this.getUserDataDir());
@@ -3268,6 +3387,7 @@ export class DashboardPanel {
           url: uri,
           thumbnail_url: it.kind === 'image' ? uri : undefined,
           created_at: it.createdAt,
+          origin: it.origin,
         };
         if (it.kind === 'gimp') {
           const stamp = encodeURIComponent(it.updatedAt || it.createdAt);
@@ -3278,6 +3398,11 @@ export class DashboardPanel {
           };
         }
         if (it.kind !== 'model') return base;
+        // A model they uploaded without Blender here has no picture: no thumbnail,
+        // so the card shows its kind rather than a broken image.
+        if (it.hasPreview === false) {
+          return { ...base, thumbnail_url: undefined, model: { files: it.files, updated_at: it.updatedAt } };
+        }
         // Every rebuild rewrites preview.png and the .glb at the SAME path, so
         // the webview would keep showing the cached first build. The version
         // stamp makes each build a new URL.
@@ -3405,7 +3530,8 @@ export class DashboardPanel {
         type: 'models_listed',
         models: models.map((m) => {
           const entry = items.find((i) => i.id === `model_${m.slug}`);
-          const v = entry?.updatedAt || m.updatedAt;
+          // Going back rewrites the model at the same paths, so the step counts.
+          const v = `${entry?.updatedAt || m.updatedAt}.${m.history.at(-1)?.number ?? 0}`;
           return {
             slug: m.slug,
             name: entry?.title || m.name,
@@ -3416,6 +3542,11 @@ export class DashboardPanel {
             glb_url: entry?.glb ? uri(path.join(this.getUserDataDir(), 'creative', entry.glb), v) : undefined,
             triangles: entry?.triangles,
             size_m: entry?.sizeM,
+            // Every saved step, with its picture: the same strip as the GIMP room.
+            history: m.history.map((s) => ({
+              number: s.number, label: s.label,
+              url: s.preview ? uri(path.join(AVA_HOME, 'creative', 'blender', m.slug, s.preview), s.at) : undefined,
+            })),
             brief: m.brief ? {
               status: m.brief.status,
               edited_by_person: m.brief.editedByPerson,
@@ -5105,7 +5236,7 @@ export class DashboardPanel {
         }
       } catch { /* keep the raw url */ }
 
-      this.post({ type: 'asset_forge_result', success: true, dataUrl, rawUrl: gen.url } as any);
+      this.post({ type: 'asset_forge_result', success: true, dataUrl, rawUrl: gen.url, model: gen.model } as any);
     } catch (err) {
       this.post({ type: 'asset_forge_result', success: false, error: err instanceof Error ? err.message : 'Generation failed' } as any);
     }
@@ -5138,11 +5269,12 @@ export class DashboardPanel {
    * watched and then lost. Video saves here instead; nothing else changes.
    */
   private async saveCreativeLocally(
-    url: string, title: string, prompt: string, designType: string, kind: CreativeKind = 'video',
+    url: string, title: string, prompt: string, designType: string, kind: CreativeKind = 'video', aiModel?: string,
   ): Promise<void> {
     try {
       const saved = await saveLocalCreative(this.getUserDataDir(), {
         url, kind, designType, prompt, title,
+        made: { origin: 'generated', ...(aiModel ? { aiModel, aiProvider: 'qwen' } : {}) },
       });
       if (saved) {
         this.log(`[Creative] Saved ${kind} locally (${saved.path})`);
@@ -5192,7 +5324,7 @@ export class DashboardPanel {
     });
     try {
       // 1) Submit — DashScope accepts the job (X-DashScope-Async) and hands back a task id.
-      const { taskId } = await wanSubmit(apiKey, {
+      const { taskId, model: videoModel } = await wanSubmit(apiKey, {
         prompt: body.prompt, duration: body.duration, resolution: body.resolution, aspect: body.aspect,
       });
       // Accepted and queued at Wan. The bar advances on STAGE, never on a
@@ -5210,7 +5342,7 @@ export class DashboardPanel {
           // Save it HERE. This used to hang off the canvas's resolver ref, so a
           // clip that rendered while the page re-rendered was watched and then
           // quietly lost.
-          void this.saveCreativeLocally(url, title || body.prompt, body.prompt, 'video');
+          void this.saveCreativeLocally(url, title || body.prompt, body.prompt, 'video', 'video', videoModel);
           // And answer the tool HERE, for the same reason. A duplicate reply
           // from the canvas afterwards is harmless - handleDesignToolResult
           // no-ops once the request is gone.
@@ -5278,7 +5410,7 @@ export class DashboardPanel {
         } catch { /* fall back to the raw url */ }
       }
       this.post({ type: 'asset_forge_voice_result', success: true, url: audioUrl } as any);
-      void this.saveCreativeLocally(audioUrl, title || body.text.slice(0, 60), body.text, 'voice', 'voice');
+      void this.saveCreativeLocally(audioUrl, title || body.text.slice(0, 60), body.text, 'voice', 'voice', data.model);
       if (designRequestId) this.handleDesignToolResult(designRequestId, { ok: true, data: { voice: body.voice } });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Voice generation failed';

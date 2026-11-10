@@ -390,6 +390,19 @@ try:
     _tex = os.path.join(ASSET_DIR, 'textures')
     if os.path.isdir(_tex):
         result['files'] += ['textures/' + f for f in sorted(os.listdir(_tex))]
+    # For the making record: fonts and pictures in the SAVED model, whoever put
+    # them there (her script or the person by hand), and kit logos she used.
+    try:
+        result['fonts'] = sorted({(f.name if f.filepath in ('', '<builtin>') else
+                                   os.path.basename(bpy.path.abspath(f.filepath)))
+                                  + ('|builtin' if f.filepath in ('', '<builtin>') else '')
+                                  for f in bpy.data.fonts if f.users})
+        result['images_used'] = sorted({os.path.basename(bpy.path.abspath(i.filepath)) for i in bpy.data.images
+                                        if i.users and i.filepath and i.source == 'FILE'
+                                        and os.path.dirname(os.path.normcase(os.path.abspath(bpy.path.abspath(i.filepath)))) != os.path.normcase(os.path.abspath(_tex))})
+    except Exception as e:
+        result['warnings'].append(f'Could not list fonts and pictures for the making record: {e}')
+    result['kit_logos'] = list(KIT_LOGOS_USED)
 except BaseException as e:
     result['error'] = 'The script ran, but saving or exporting failed:\n' + \
         ''.join(traceback.format_exception(type(e), e, e.__traceback__)[-8:])

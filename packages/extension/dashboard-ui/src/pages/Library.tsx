@@ -15,6 +15,7 @@ import { LazyModelViewer } from '../components/LazyModelViewer';
 // exportable and what it is called without either keeping its own list.
 import { canExport, targetsFor, TARGET_LABELS, type ExportFormat } from '@ava/core/authoring/formats';
 import { exportOptionsFor, originalExt, transcodeImage, withExt, type ExportFormat as ImageExportFormat, type ExportOption as ImageExportOption } from '../lib/image-export';
+import { useLibraryFolders, useFolderSidebar, FoldersView, FolderButton, FolderDropBar, FolderSidebar, FolderGlyph, fileRef, DRAG_WORK, type FolderItem, type FolderRef } from './LibraryFolders';
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -151,6 +152,15 @@ function modelSizeLabel(size?: number[]): string | null {
   return size && size.length === 3 ? `${size.map((n) => +n.toFixed(2)).join(' × ')} m` : null;
 }
 
+/** What a folder keeps for this card: the Library entry, the logo system, or the project file. */
+function refFor(item: UnifiedItem, projectRoot: string): FolderRef | null {
+  if (item.id.startsWith('creative:')) return item.id;
+  if (item.logoGroup) return `logo:${item.id.replace(/^local:/, '')}`;
+  const p = (item.raw as Partial<LibraryImage>).path;
+  if (item.id.startsWith('local:') && p && projectRoot) return fileRef(`${projectRoot.replace(/[\\/]+$/, '')}/${p}`);
+  return null;
+}
+
 function unifyLocalImage(img: LibraryImage, projectRoot: string): UnifiedItem {
   const kind = localFileKind(img);
   return {
@@ -223,6 +233,12 @@ export function Library({
   const [docType, setDocType] = useState<DocTypeFilter>('all');
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [selected, setSelected] = useState<UnifiedItem | null>(null);
+  // Library folders: names that point at work. Shared with the IDE through core.
+  const { folders, missing, plans, error: folderError, clearError: clearFolderError, uploadNote, clearUploadNote } = useLibraryFolders();
+  const [dragging, setDragging] = useState(false);
+  // A folder tile in All was clicked: open the Folders view at it.
+  const [folderToOpen, setFolderToOpen] = useState<string | null>(null);
+  const [sidebarOpen, toggleSidebar] = useFolderSidebar();
 
   // Re-read the creative gallery when the user switches into the Assets tab.
   useEffect(() => {
@@ -299,6 +315,42 @@ export function Library({
     () => ALL_DESIGN_GROUPS.find(x => x.label === assetGroup)?.items ?? [],
     [assetGroup],
   );
+
+  // Every card, by the reference a folder keeps, for the Folders view.
+  const folderItems = useMemo(() => {
+    const map = new Map<FolderRef, FolderItem>();
+    for (const item of allAssetItems) {
+      const ref = refFor(item, projectRoot);
+      if (!ref) continue;
+      const raw = item.raw as Partial<CreativeAsset>;
+      const parts = item.logoGroup
+        ? item.logoGroup.variants.map((v) => ({ key: v.variant, label: v.label }))
+        : raw.model?.finals?.length ? raw.model.finals.map((f) => ({ key: f, label: f.split('/').pop() ?? f })) : undefined;
+      map.set(ref, {
+        ref, title: item.title, parts,
+        card: <AssetCard item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />,
+      });
+    }
+    return map;
+  }, [allAssetItems, projectRoot, selected]);
+
+  /** A card that can be dragged to a folder, with its folder button. */
+  const withFolders = (item: UnifiedItem, node: React.ReactNode) => {
+    const ref = refFor(item, projectRoot);
+    if (!ref) return <div key={item.id}>{node}</div>;
+    return (
+      <div
+        key={item.id}
+        className="group relative"
+        draggable
+        onDragStart={(e) => { e.dataTransfer.setData(DRAG_WORK, ref); e.dataTransfer.effectAllowed = 'copy'; setDragging(true); }}
+        onDragEnd={() => setDragging(false)}
+      >
+        {node}
+        <FolderButton folders={folders} itemRef={ref} />
+      </div>
+    );
+  };
 
   const assetItems = useMemo(() => allAssetItems.filter(it => {
     const et = effectiveType(it);
@@ -397,9 +449,30 @@ export function Library({
                   {g === 'all' ? t('dash.library.all') : g}
                 </button>
               ))}
+              <span className="mx-1.5 h-4 w-px self-center bg-[var(--border-card)]" aria-hidden />
+              <button
+                onClick={() => { setFolderToOpen(null); selectAssetGroup('folders'); }}
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-medium border-b-2 transition ${
+                  assetGroup === 'folders'
+                    ? 'border-[var(--accent)] text-[var(--accent)]'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                <FolderGlyph size={12} />{tt('library.folders.title', 'Folders')}
+                {folders.length ? <span className="opacity-60">{folders.length}</span> : null}
+              </button>
             </div>
             <div className="ml-auto mb-1 flex items-center gap-2">
-              <ViewToggle mode={viewMode} onChange={setViewMode} />
+              {assetGroup !== 'folders' && <ViewToggle mode={viewMode} onChange={setViewMode} />}
+              {assetGroup !== 'folders' && (
+                <button
+                  onClick={() => post({ type: 'library_upload' } as never)}
+                  title={tt('library.folders.upload_title', 'Copy your own files into the Library. They are recorded as your work.')}
+                  className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                >
+                  {tt('library.folders.upload', 'Upload')}
+                </button>
+              )}
               <button
                 onClick={() => post({ type: 'open_creative_folder' })}
                 title={t('library.open_save_folder.title')}
@@ -414,7 +487,7 @@ export function Library({
               chips). Live types are clickable and show a count once they hold
               assets; SOON / NEXT types show dashed + badged as promotion of
               what's coming. Hidden only on the aggregate "All" group. */}
-          {assetGroup !== 'all' && (
+          {assetGroup !== 'all' && assetGroup !== 'folders' && (
             <div className="mb-4 flex flex-wrap items-center gap-1.5">
               <button
                 onClick={() => setAssetType('all')}
@@ -486,7 +559,42 @@ export function Library({
               nothing is in flight. While loading, the pill above carries
               the visual weight; we don't want to flash "No assets yet"
               for a fraction of a second before thumbnails appear. */}
-          {assetItems.length === 0 && !assetsLoading && (
+          {assetGroup === 'folders' && (
+            <FoldersView
+              key={folderToOpen ?? 'top'}
+              initialOpenId={folderToOpen}
+              plans={plans}
+              folders={folders}
+              missing={missing}
+              error={folderError}
+              onClearError={clearFolderError}
+              items={folderItems}
+              uploadNote={uploadNote}
+              onClearUploadNote={clearUploadNote}
+            />
+          )}
+
+          {/* Your folders down the side, beside the work, on every tab but Folders. */}
+          {assetGroup !== 'folders' && (
+          <div className="flex items-start gap-4">
+          <FolderSidebar
+            folders={folders}
+            open={sidebarOpen}
+            onToggle={toggleSidebar}
+            onOpenFolder={(id) => { setFolderToOpen(id); selectAssetGroup('folders'); }}
+          />
+          <div className="min-w-0 flex-1">
+
+          {/* While a card is dragged with the sidebar folded away: drop it on a folder here. */}
+          {dragging && !sidebarOpen && assetGroup !== 'folders' && <FolderDropBar folders={folders} onDone={() => setDragging(false)} />}
+          {assetGroup !== 'folders' && uploadNote && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-2 text-xs text-[var(--text-primary)]">
+              <span className="flex-1">{uploadNote}</span>
+              <button onClick={clearUploadNote} className="text-[var(--text-muted)]" aria-label="Close">✕</button>
+            </div>
+          )}
+
+          {assetGroup !== 'folders' && assetItems.length === 0 && !assetsLoading && (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{hasImagesFolder ? '\u{1F3A8}' : '\u{1F4C1}'}</div>
               <p className="text-sm font-medium text-[var(--text-primary)]">{t('library.no_assets')}</p>
@@ -499,7 +607,7 @@ export function Library({
           {/* Skeleton grid while the first gallery read is in
               flight and nothing has arrived yet — keeps the page's
               shape instead of an empty void under the pill. */}
-          {assetItems.length === 0 && assetsLoading && (
+          {assetGroup !== 'folders' && assetItems.length === 0 && assetsLoading && (
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
               {Array.from({ length: 10 }).map((_, i) => (
                 <Skeleton key={i} height={120} radius={12} />
@@ -507,20 +615,23 @@ export function Library({
             </div>
           )}
 
-          {assetItems.length > 0 && (
+          {assetGroup !== 'folders' && assetItems.length > 0 && (
             viewMode === 'grid' ? (
               <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
-                {assetItems.map(item => (
-                  <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+                {assetItems.map(item => withFolders(item,
+                  <AssetCard item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />,
                 ))}
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                {assetItems.map(item => (
-                  <AssetRow key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+                {assetItems.map(item => withFolders(item,
+                  <AssetRow item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />,
                 ))}
               </div>
             )
+          )}
+          </div>
+          </div>
           )}
         </div>
       )}

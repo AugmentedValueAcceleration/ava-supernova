@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput, MODERATION_GUIDANCE, tagsIn, DAILY_PARAM_DESCRIPTION, FEATURE_PARAM_DESCRIPTION, postMarker } from '../social/index.js';
+import { VIDEO_CAPTION_LIMITS, type VideoPostStore, type VideoPostInput, MODERATION_GUIDANCE, tagsIn, tagProblems, DAILY_PARAM_DESCRIPTION, FEATURE_PARAM_DESCRIPTION, postMarker } from '../social/index.js';
 
 /** Every video carries the link. Lower-case for the idempotency check; the
  *  appended form is the same string, so it reads as written. */
@@ -448,6 +448,10 @@ export class WriteVideoPostTool implements Tool {
           `No hashtags on: ${untagged.join(', ')}. Every video caption always carries tags (the operator's rule). ` +
           'Pick them from research for THIS subject, within each platform\'s tag policy, and call write_video_post again.',
       };
+    }
+    const tagIssues = finished.flatMap((v) => tagProblems(v.hashtags ?? [], v.caption).map((p) => `${v.platform}: ${p}`));
+    if (tagIssues.length > 0) {
+      return { success: false, output: `Fix these tags and call write_video_post again: ${tagIssues.join(' ')}` };
     }
     const ytMissingTitle = finished.filter((v) => v.platform === 'youtube' && !(v.title || '').trim());
     if (ytMissingTitle.length > 0) {

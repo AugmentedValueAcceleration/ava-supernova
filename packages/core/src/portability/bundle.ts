@@ -52,6 +52,7 @@ export const ACCOUNT_DATA_PATHS: readonly string[] = [
                             // 28 Jul is swept without touching this list.
   // Creative metadata only (binaries go via large-file transfer)
   'creative/metadata.json',
+  'creative/folders.json',  // Library folders (names only; the work is in metadata + binaries)
   // Personalisation
   'personality.json',
   'general.json',           // GeneralProfile — name, pronouns, body basics

@@ -1469,6 +1469,32 @@ export interface StorageReclaim { label: string; bytes: number; paths: string[] 
 export interface StorageScan { totalBytes: number; categories: StorageCategory[]; reclaim: StorageReclaim[] }
 
 /** A Creative Studio asset in the local creative gallery. */
+/** A Library folder: a name holding pointers to work, never a disk folder.
+ *  ref = creative:<id> | logo:<group> | file:<absolute path>; pick = part of a work. */
+export interface LibraryFolderInfo {
+  id: string;
+  name: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  members: Array<{ ref: string; pick?: string[]; addedAt: string }>;
+  /** One line on how everything in it looks. Theirs; Ava reads it before every brief. */
+  note?: string;
+  /** The pack plan, pinned inside the folder (never a real subfolder). */
+  plan?: PackPlanInfo;
+}
+
+export type PlanItemStateInfo = 'planned' | 'started' | 'in_progress' | 'made';
+export interface PackPlanInfo {
+  title: string;
+  reasoning: string;
+  status: 'proposed' | 'agreed';
+  proposedAt: string;
+  agreedAt?: string;
+  editedByPerson?: boolean;
+  items: Array<{ id: string; name: string; what: string; tool: 'gimp' | 'blender' | 'other'; folder?: string; work?: { tool: 'gimp' | 'blender'; slug: string; name: string } }>;
+}
+
 export interface CreativeAsset {
   id: string;
   type?: string;            // legacy column, historical values ('image' | 'post' | etc.)
@@ -1481,6 +1507,9 @@ export interface CreativeAsset {
   thumbnail_url?: string | null;
   source?: string | null;      // e.g. "Creative Studio", "Chat"
   created_at: string;
+  /** How it was made: an AI model generated it, code composed it (logos), or
+   *  it is their own upload. Absent on anything saved before 9 Nov 2026. */
+  origin?: 'generated' | 'composed' | 'uploaded';
   /** Present on 3D models (asset_type 'model') — one asset that is a whole
    *  folder built in Blender. `glb_url` feeds the Library's 3D viewer. */
   model?: {
@@ -1728,6 +1757,9 @@ export type ExtToDashboardMessage =
   | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string; hasFolder?: boolean }
   | { type: 'library_image_deleted'; path: string }
   | { type: 'local_creative_loaded'; assets: CreativeAsset[] }
+  // Library folders: every folder after any change; `error` when a change was refused.
+  | { type: 'library_folders'; folders: LibraryFolderInfo[]; missing: Record<string, string[]>; plans?: Record<string, Record<string, PlanItemStateInfo>>; error?: string }
+  | { type: 'library_upload_result'; results: Array<{ name: string; ok: boolean; error?: string }> }
   | { type: 'models_listed'; models: DesignModelSummary[] }
   | { type: 'image_work_listed'; models: DesignModelSummary[] }
   | { type: 'image_art_added'; slug: string; file: string }
@@ -2202,11 +2234,29 @@ export type DashboardToExtMessage =
   | { type: 'open_docs' }
   // Creative Studio — persist a generated asset URL to disk under the
   // user's project root. Host downloads the URL and writes the bytes.
-  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; designType?: string; prompt?: string; id?: string }
+  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; designType?: string; prompt?: string; id?: string; origin?: 'generated' | 'composed'; aiModel?: string }
   // Creative Studio — "Download a copy": export a generated asset (data: URL or
   // remote) to a location the user picks via the native Save dialog.
   | { type: 'save_asset_copy'; url: string; filename: string }
   | { type: 'load_local_creative' }
+  // Library folders (Phase 1 of Library folders and packs). Every change answers with library_folders.
+  | { type: 'restore_model_step'; slug: string; number: number }
+  | { type: 'folders_load' }
+  | { type: 'folder_create'; name: string; parentId?: string | null; add?: Array<{ ref: string; pick?: string[] }> }
+  | { type: 'folder_rename'; id: string; name: string }
+  | { type: 'folder_move'; id: string; parentId: string | null }
+  | { type: 'folder_delete'; id: string }
+  | { type: 'folder_add'; id: string; items: Array<{ ref: string; pick?: string[] }> }
+  | { type: 'folder_remove'; id: string; refs: string[] }
+  | { type: 'folder_pick'; id: string; ref: string; pick: string[] }
+  | { type: 'folder_note'; id: string; note: string }
+  | { type: 'plan_agree'; id: string }
+  | { type: 'plan_item'; id: string; itemId?: string | null; fields?: { name?: string; what?: string; tool?: string; folder?: string } | null }
+  | { type: 'plan_delete'; id: string }
+  | { type: 'library_upload'; folderId?: string }
+  | { type: 'folder_export_preview'; id: string }
+  | { type: 'folder_export'; id: string; zip?: boolean; record?: boolean; store?: string }
+  | { type: 'folder_export_reveal'; path: string }
   | { type: 'delete_local_creative'; id: string }
   | { type: 'rename_local_creative'; id: string; title: string }
   | { type: 'use_creative_in_project'; id: string }

@@ -48,15 +48,28 @@ export interface LocalCreativeItem {
   // shape, its folder under creative/gimp/.
   imageCount?: number;
   gimpVersion?: string;
+  // ── How it was made, for the making record (Library folders and packs plan,
+  // 9 Nov 2026). 'generated' = an AI model made it (aiModel names which);
+  // 'composed' = built by code from shapes and fonts, as the Logo room does.
+  // Absent on anything saved before 9 Nov: unknown, and said so, never guessed.
+  // 'uploaded' = their own file, brought in with Upload (core's library-upload).
+  origin?: 'generated' | 'composed' | 'uploaded';
+  aiModel?: string;
+  aiProvider?: string;
+  hasPreview?: boolean;
 }
+
+/** How a saved asset was made. See LocalCreativeItem.origin. */
+export interface CreativeOrigin { origin: 'generated' | 'composed'; aiModel?: string; aiProvider?: string }
 
 /** The model's folder, but ONLY if it really sits inside this creative dir —
  *  a hand-edited metadata.json must never point a delete somewhere else. */
 export function modelFolder(scopedDir: string, item: LocalCreativeItem): string | null {
   if ((item.kind !== 'model' && item.kind !== 'gimp') || !item.absoluteFolder) return null;
-  const root = resolve(join(creativeDir(scopedDir), item.kind === 'gimp' ? 'gimp' : 'blender')) + sep;
+  // A model they uploaded has its own folder under uploads/ (core's library-upload).
+  const roots = item.kind === 'gimp' ? ['gimp'] : ['blender', 'uploads'];
   const folder = resolve(item.absoluteFolder);
-  return folder.toLowerCase().startsWith(root.toLowerCase()) ? folder : null;
+  return roots.some((r) => folder.toLowerCase().startsWith((resolve(join(creativeDir(scopedDir), r)) + sep).toLowerCase())) ? folder : null;
 }
 
 async function folderBytes(dir: string): Promise<number> {
@@ -152,7 +165,7 @@ export async function readLocalCreativeSized(scopedDir: string): Promise<LocalCr
  *  Returns the stored item, or null on failure. */
 export async function saveLocalCreative(
   scopedDir: string,
-  args: { url: string; kind: CreativeKind; prompt?: string; title?: string; id?: string; designType?: string },
+  args: { url: string; kind: CreativeKind; prompt?: string; title?: string; id?: string; designType?: string; made?: CreativeOrigin },
 ): Promise<LocalCreativeItem | null> {
   try {
     const kind = (KIND_DIR[args.kind] ? args.kind : 'image') as CreativeKind;
@@ -191,6 +204,7 @@ export async function saveLocalCreative(
       title: args.title ?? '',
       createdAt: new Date().toISOString(),
       bytes: bytes.length,
+      ...(args.made ? { origin: args.made.origin, ...(args.made.aiModel ? { aiModel: args.made.aiModel } : {}), ...(args.made.aiProvider ? { aiProvider: args.made.aiProvider } : {}) } : {}),
     };
     const items = await readLocalCreative(scopedDir);
     await writeLocalCreative(scopedDir, [item, ...items.filter((i) => i.id !== id)]);

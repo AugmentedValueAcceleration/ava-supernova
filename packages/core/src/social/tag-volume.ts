@@ -73,6 +73,33 @@ export async function blueskyTagVolume(tag: string, get: TagFetch = defaultFetch
   return Math.round((times.length / days) * 10) / 10;
 }
 
+/**
+ * Uses a day on Mastodon (mastodon.social's view of the fediverse), averaged
+ * over the last week from its public tag history. Free, no key. A second
+ * open signal beside Bluesky, strongest for developer, open-source and
+ * Blender crowds (10 Nov 2026). Null when it could not be read.
+ */
+export async function mastodonTagVolume(tag: string, get: (url: string) => Promise<unknown> = defaultJson): Promise<number | null> {
+  const bare = tag.replace(/^#/, '');
+  const res = await get(`https://mastodon.social/api/v1/tags/${encodeURIComponent(bare)}`).catch(() => null) as
+    { history?: { uses?: string }[] } | null;
+  if (!res) return null;
+  const days = (res.history ?? []).slice(0, 7);
+  if (!days.length) return 0;
+  return Math.round((days.reduce((n, d) => n + Number(d.uses ?? 0), 0) / days.length) * 10) / 10;
+}
+
+const defaultJson = async (url: string): Promise<unknown> => {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'ava-supernova-research' } });
+    return res.ok ? await res.json() : null;
+  } finally {
+    clearTimeout(t);
+  }
+};
+
 export function bandFor(perDay: number): MeasuredTag['band'] {
   return perDay >= 50 ? 'reach' : perDay >= 1 ? 'niche' : 'quiet';
 }

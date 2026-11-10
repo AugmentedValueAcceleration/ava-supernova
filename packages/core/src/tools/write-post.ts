@@ -1,6 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput, MODERATION_GUIDANCE, UNTAGGED_PLATFORMS, tagsIn, DAILY_PARAM_DESCRIPTION, FEATURE_PARAM_DESCRIPTION, postMarker } from '../social/index.js';
+import { POST_HARD_LIMITS, REDDIT_TITLE_LIMIT, type PostStore, type SocialPostInput, MODERATION_GUIDANCE, UNTAGGED_PLATFORMS, tagsIn, tagProblems, DAILY_PARAM_DESCRIPTION, FEATURE_PARAM_DESCRIPTION, postMarker } from '../social/index.js';
 
 /**
  * Emit a finished social post to the Social Studio canvas — one call per post.
@@ -52,7 +52,12 @@ export class WritePostTool implements Tool {
       };
     }
 
-    const platform = ((args.platform as string | undefined) || 'post').trim();
+    const platform = ((args.platform as string | undefined) || '').trim();
+    // A call with no platform used to be filed as "post" and land as a stray
+    // extra card (10 Nov 2026: Qwen Flash dropped the field on a set of three).
+    if (!platform) {
+      return { success: false, output: 'write_post needs `platform` (tweet, bluesky, linkedin, facebook, …). Nothing was written; call it again with the platform.' };
+    }
     const content = ((args.content as string | undefined) || '').trim();
     if (!content || content.length < 2) {
       return { success: false, output: 'write_post requires non-empty content.' };
@@ -118,6 +123,33 @@ export class WritePostTool implements Tool {
       };
     }
 
+    const problems = UNTAGGED_PLATFORMS.has(platform) ? [] : tagProblems(hashtags, content);
+    if (problems.length) {
+      return {
+        success: false,
+        output: `Fix these tags and call write_post again: ${problems.join(' ')}`,
+      };
+    }
+
+    // The same post twice (10 Nov 2026: one LinkedIn post was written three
+    // times on 4 Nov, and in testing a whole set was written twice with the
+    // subject reworded). A second post for the same PLATFORM in this session
+    // within ten minutes is refused unless it is a named other version. On the
+    // website every turn starts a fresh session, so "write another one for X"
+    // in his next message still works.
+    const variantArg = ((args.variant as string | undefined)?.trim()) || '';
+    const recent = (context.sharedState?.recentPostWrites as Map<string, number> | undefined) ?? new Map<string, number>();
+    if (context.sharedState) context.sharedState.recentPostWrites = recent;
+    const dupKey = `${platform}|${variantArg.toLowerCase()}`;
+    const last = recent.get(dupKey);
+    if (last && Date.now() - last < 10 * 60_000) {
+      return {
+        success: false,
+        output: `You already wrote the ${platform} post a moment ago, and it is on his screen. ` +
+          'Do not write it again. If he asked for another version, pass a `variant` name.',
+      };
+    }
+
     const post: SocialPostInput = {
       platform,
       content,
@@ -132,6 +164,7 @@ export class WritePostTool implements Tool {
 
     try {
       const written = await store.write(post);
+      recent.set(dupKey, Date.now());
       const label = post.variant ? ` (${post.variant})` : '';
       return {
         success: true,

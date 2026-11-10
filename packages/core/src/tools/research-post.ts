@@ -2,7 +2,7 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel, ToolOutputT
 import type { FunctionSchema } from '../providers/types.js';
 import { PLATFORM_TAG_POLICY } from '../social/index.js';
 import { resolveWebSearch } from './web-search.js';
-import { blueskyTagsFor, measureTags, type TagFetch } from '../social/tag-volume.js';
+import { blueskyTagsFor, measureTags, mastodonTagVolume, type TagFetch } from '../social/tag-volume.js';
 
 /**
  * Ground a post in the present BEFORE drafting: how the subject is being framed
@@ -15,14 +15,14 @@ import { blueskyTagsFor, measureTags, type TagFetch } from '../social/tag-volume
 export class ResearchPostTool implements Tool {
   readonly name = 'research_post';
   readonly description =
-    'Research what is CURRENTLY landing for a subject before drafting a post — how it is being framed right now + candidate hashtags in use + the platform tag policy. Call before write_post when given a subject.';
+    'Research what is CURRENTLY landing for a subject before drafting a post — how it is being framed right now, MEASURED tag use on Bluesky and Mastodon, and the platform tag policy. Call before write_post when given a subject.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly outputTrust: ToolOutputTrust = 'untrusted';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'research_post',
-    description: 'Research what is CURRENTLY landing for a subject BEFORE you draft a post. Returns how the topic is being framed right now (Reddit / Hacker News / open web), candidate hashtags actually in use (split so you choose reach vs niche), and the target platform\'s tag policy. ALWAYS call this before write_post when the operator gives you a subject — it grounds your angle and tags in the present instead of guessing. It also returns MEASURED tags: how many posts a day really carry each candidate on Bluesky (the only platform with free tag data) — reach ≥50/day, niche 1-50, quiet <1. Pick from those within the platform tag policy: a mix of reach and niche, never a quiet tag. Filter everything through the brand voice.',
+    description: 'Research what is CURRENTLY landing for a subject BEFORE you draft a post. Returns how the topic is being framed right now (Reddit, Hacker News, open web), the platform’s tag policy, and MEASURED tags: posts a day on Bluesky and uses a day on Mastodon for the tags people really put on this subject, plus any tags you pass in `tags` to check (for example from the tag library in his template). Bands on Bluesky: reach 50+/day, niche 1-50, quiet under 1, which nobody reads. Pick tags for THIS post’s subject and audience from the measured ones, never a quiet one, never by habit.',
     parameters: {
       type: 'object',
       properties: {
@@ -31,6 +31,11 @@ export class ResearchPostTool implements Tool {
           type: 'string',
           enum: ['tweet', 'linkedin', 'thread', 'bluesky', 'eurosky', 'facebook', 'reddit', 'tiktok', 'youtube', 'instagram', 'blog'],
           description: 'Target platform — shapes the tag policy returned. Defaults to tweet.',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags you are considering (up to 6), to be measured alongside the ones found for the subject.',
         },
       },
       required: ['subject'],
@@ -73,7 +78,12 @@ export class ResearchPostTool implements Tool {
       // volume. Best effort: if Bluesky is unreachable the harvest still stands.
       const tagFetch = context.sharedState?.tagFetch as TagFetch | undefined;
       const fromBluesky = await blueskyTagsFor(subject, tagFetch).catch(() => [] as string[]);
-      const measured = await measureTags([...fromBluesky.slice(0, 6), ...ranked.slice(0, 6)], tagFetch).catch(() => []);
+      // Her own candidates first, then what Bluesky users actually tag this
+      // subject with. The web harvest is NOT offered as tags any more: it is
+      // mostly "best hashtags" spam pages (10 Nov 2026). It is only measured.
+      const asked = Array.isArray(args.tags) ? (args.tags as unknown[]).map(t => String(t).replace(/^#/, '').trim()).filter(Boolean).slice(0, 6) : [];
+      const measured = await measureTags([...asked, ...fromBluesky.slice(0, 5), ...ranked.slice(0, 3)], tagFetch).catch(() => []);
+      const masto = await Promise.all(measured.map(m => mastodonTagVolume(m.tag).catch(() => null)));
 
       const discussion = all
         .filter(r => r.snippet)
@@ -86,13 +96,14 @@ export class ResearchPostTool implements Tool {
           subject,
           platform,
           tag_policy: PLATFORM_TAG_POLICY[platform] || PLATFORM_TAG_POLICY.tweet,
-          candidate_reach_tags: ranked.slice(0, 3),
-          candidate_niche_tags: ranked.slice(3, 8),
-          measured_tags: measured.map(m => ({ tag: `#${m.tag}`, bluesky_posts_per_day: m.perDay, band: m.band })),
+          measured_tags: measured.map((m, i) => ({
+            tag: `#${m.tag}`, bluesky_posts_per_day: m.perDay, band: m.band,
+            ...(masto[i] !== null ? { mastodon_uses_per_day: masto[i] } : {}),
+          })),
           current_discussion: discussion,
           note: measured.length
-            ? 'measured_tags are REAL Bluesky volume (posts/day). Prefer them: a mix of reach and niche within the tag policy, never a quiet one. Other platforms publish no tag data, so this is a guide to what people genuinely use, not a guarantee for X or TikTok. Say which tags you picked and why in tag_note.'
-            : 'Bluesky could not be measured just now, so these tags are harvested from current discussion, not measured. Choose reach vs niche within the tag policy; filter everything through the brand voice.',
+            ? 'These are REAL measurements (Bluesky posts a day, Mastodon uses a day). Pick tags for this post’s subject and audience, within the tag policy, never a quiet one. X, LinkedIn, TikTok, Instagram and Facebook publish no free tag data, so treat these as the best guide to what people really use. CamelCase, no hyphens. Say which tags you picked and why in tag_note.'
+            : 'Tags could not be measured just now. Use the tag library in his template if it is in your context, and say in tag_note that the tags are unmeasured.',
         }),
       };
     } catch (err) {
