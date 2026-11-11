@@ -72,6 +72,70 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 523,
+    version: '0.111.0',
+    platform: 'extension',
+    toolCount: 90,
+    publishedAt: '2026-11-11 15:00:00+00',
+    title: `I make things with you in GIMP and Blender`,
+    body: `The Creative Studio has grown up. As well as generating images, video and voiceovers, I now make work by hand, in real design programs on your own computer, and keep it organised so you can use it, ship it or sell it.
+
+**2D in GIMP.** Icon sets, game UI, sprites, textures and web graphics, made step by step in GIMP with its window closed. You keep layered files you can open and change yourself. I look at every result, close up and at its real small sizes, show you options side by side, and test against your own art when you add it. GIMP 3 is free, and I find it on my own.
+
+**3D in Blender.** Game-ready models built in Blender on your computer, shown in a 3D view you can turn and zoom. I bake the look into real textures, so a model does not arrive flat in Unity, Unreal or Godot, and I export it as .glb and .fbx. Blender is free too.
+
+**The brief comes first.** In both rooms I research the piece and put a brief in front of you: what it is, where it is going, its sizes and its style. You question it, change it and agree it, and nothing is made until you do. Only you can agree it. Every step is saved, so you can always go back, and I stop to check in with you rather than running on.
+
+**Brand kits, one per project.** A kit holds a project's look and voice: colours with contrast checks, fonts you can install in a click, a logo, image style and rules. Link it to a project and everything I make there follows it, inside GIMP and Blender too. I can propose a whole kit from what your project is; it waits for your agreement before it is used anywhere. Kits now live in your Ava folder, so the Ava IDE sees the same ones.
+
+**Folders and packs.** Gather work from any Library tab into folders. Plan a whole pack with me, piece by piece, and keep a style note so piece forty matches piece one. Upload your own files to sit beside mine. Download a folder ready for your game engine, or prepared for a store such as the Unity Asset Store, Fab, itch.io, Gumroad or Superhive, with a How-this-was-made.txt record of which AI did what and what you did. Prepared for a store never means approved by it, and declaring AI use is always yours to do: I never do it for you.
+
+**Use in project** now copies finished files only, into the place your engine looks: Assets in Unity, Content in Unreal, assets in Godot.
+
+**Also:** permission requests are in plain English; I find the right memory more reliably; design work has its own model (DeepSeek V4.1 Flash in Supernova, Mistral Large 4 in Aurora); and opening a design chat from Usage no longer shows a blank page.
+
+New guides on avasupernova.com walk through all of it. Our updated Terms of Service, which take effect on 11 December 2026, cover selling what you make.`,
+    highlights: [
+      'Make 2D work in GIMP and 3D models in Blender, free, on your computer.',
+      'The brief comes first: nothing is made until you agree it.',
+      'Brand kits linked to projects, and folders that download ready for your engine or a store.',
+      'Every step saved, and a record of how each piece was made.',
+    ],
+  },
+  {
+    migration: 524,
+    version: '0.56.0',
+    platform: 'ide',
+    toolCount: 103,
+    publishedAt: '2026-11-11 15:00:00+00',
+    title: `Free on your own keys, and I make things with you in GIMP and Blender`,
+    body: `This is a big one: two changes at once.
+
+**I am free for everyone, on your own keys.** There are no accounts, no plans and no credits any more, and nothing is held back. Add a key from any provider I support (Qwen, DeepSeek, Moonshot, Zhipu, Mistral, MiniMax, Xiaomi, Tencent or NVIDIA) and you pay them directly, at their rates. I test every key before I save it. Or point me at Ollama or LM Studio, and nothing leaves your machine at all.
+
+**One you, in both apps.** Your keys live in your system's keychain, shared with the VS Code extension, and everything about you (your name, your profile, my personality, your settings) lives in your Ava folder. Welcome once, and both apps know you.
+
+**Three fleets.** **Maestro** on Qwen, **Supernova** on DeepSeek and Qwen, and **Aurora** on Mistral, where Mistral Large 4 does the deep work and Mistral Small 4 handles chat. If a fleet is missing a key, I say which one.
+
+**2D in GIMP and 3D in Blender.** The Creative Studio now makes work by hand, in real design programs on your computer with their windows closed. Icon sets, game UI, sprites and textures as layered GIMP files; game-ready Blender models with baked textures, exported as .glb and .fbx, in a 3D view you can turn. Both programs are free, and I find them on my own.
+
+**The brief comes first.** I research each piece and put a brief in front of you. You question it, change it and agree it; nothing is made until you do, and only you can agree it. Every step is saved so you can go back, and I check in with you rather than running on.
+
+**Brand kits, one per project.** Colours with contrast checks, fonts you can install in a click, a logo, image style and rules. Link a kit to a project and everything I make there follows it. Kits are shared with the extension.
+
+**Folders and packs.** Gather work into folders, plan a whole pack with me, upload your own files, and download a folder ready for your engine or prepared for a store such as the Unity Asset Store, Fab, itch.io, Gumroad or Superhive, with a record of how each piece was made. Prepared for a store never means approved by it, and declaring AI use is always yours to do. Use in project copies finished files only, into Assets in Unity, Content in Unreal or assets in Godot.
+
+**Also:** Talk mode no longer stops on a refused tool; permission requests are in plain English; I find the right memory more reliably; and design work has its own model in Supernova and Aurora.
+
+**Help is a person away:** our Discord, or support@avasupernova.com for anything private. If I am useful to you, you can help keep me free at avasupernova.com/support-ava. It unlocks nothing; everything is already yours.`,
+    highlights: [
+      'Free and open source: no accounts, plans or credits, on your own keys.',
+      'Keys and everything about you shared with the VS Code extension.',
+      'Make 2D work in GIMP and 3D models in Blender; the brief comes first.',
+      'Brand kits per project, and folders that download ready for your engine or a store.',
+    ],
+  },
+  {
     migration: 521,
     version: '0.110.1',
     platform: 'extension',

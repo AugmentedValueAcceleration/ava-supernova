@@ -159,6 +159,8 @@ Ava ships with a **Creative Studio** that generates real assets and integrates t
 | **Video** | Short clips with synchronised audio |
 | **Voice** | Voiceovers and narration — same voice, any of 19 languages |
 | **Background removal** | Cut out subjects from existing images |
+| **2D in GIMP** | Icon sets, game UI, sprites, textures and web graphics — made in GIMP on your computer, as layered files you can open yourself |
+| **3D in Blender** | Game-ready models built in Blender on your computer, with baked textures, exported as .glb and .fbx |
 
 **Logos and icons are built, not guessed.** Ava composes them from geometric primitives and real fonts into clean, resolution-independent SVG — so a mark stays razor-sharp at any size and drops straight into your favicon or JSX. She'll show you **several directions and let you pick** the one that fits.
 
@@ -168,7 +170,11 @@ Ava ships with a **Creative Studio** that generates real assets and integrates t
 
 **The integration is the point.** When Ava designs a logo, she can drop it into your `public/` folder and reference it in your JSX. When she generates a hero video, she can wire it into your landing page. **The Creative Studio isn't a separate app — it's a tool Ava uses in the middle of building your project.**
 
-Every asset is tracked in the **Library** tab — grid or list view, filter by type, preview, copy paths, and reuse across projects. A full logo system saves as one grouped card, so all its variants stay together.
+**In the GIMP and Blender rooms the brief comes first.** Ava researches it and puts it on the stage; you question it, change it and agree it, and nothing is made until you do. She works in steps, looks at every result herself, and checks in with you. Every step is saved, so you can go back. GIMP 3 and Blender are free and run on your machine.
+
+**Brand kits** hold each project's look and voice — colours, fonts and pairings, logo, image style and rules. Link a kit to a project and everything Ava makes for it follows the kit.
+
+Every asset is tracked in the **Library** tab — grid or list view, filter by type, preview, copy paths, and reuse across projects. A full logo system saves as one grouped card, so all its variants stay together. **Folders** gather a set together, Ava can plan a whole pack with you piece by piece, and a folder downloads ready for your game engine or prepared for a store (Unity Asset Store, Fab, itch.io, Gumroad, Superhive), with a record of how each piece was made. Declaring AI use to a store stays yours to do.
 
 </details>
 
@@ -313,7 +319,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 ## Tools
 
-**70+ tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning. Each mode carries the tools its work needs.
+**90+ tools**, grouped for the work you actually do. Ava decides which to use, runs them, reads the results, and keeps reasoning. Each mode carries the tools its work needs.
 
 | Category | Tools |
 |---|---|
@@ -322,6 +328,8 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
 | **Web & research** | `web_search`, `http_request`, `browser`, `weather`, `news`, `release_notes`, `paper_fetch_full_text` |
 | **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `browse_library`, `open_design_studio` |
+| **2D & 3D rooms** *(GIMP, Blender)* | `design_propose_image_brief`, `design_build_image`, `design_duplicate_image`, `design_restore_image`, `design_show_options`, `design_mark_final`, `design_propose_model_brief`, `design_build_model`, `design_duplicate_model`, `design_restore_model`, `design_api_lookup`, `design_read_docs` |
+| **Brand kits, fonts & folders** | `design_propose_kit`, `design_save_to_kit`, `design_fonts`, `design_install_font`, `design_folder` |
 | **Office & Authoring** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update` |
 | **Tasks & Planning** | `todo_write`, `task_manage`, `task_suggest`, `brainstorm_session` |

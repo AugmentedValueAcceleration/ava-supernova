@@ -212,14 +212,14 @@ async function plan(folderId: string): Promise<{ root: LibraryFolder; ops: Op[];
       return;
     }
 
-    // A model they uploaded: their files as they are, in its own folder.
+    // A model they uploaded: their files exactly as they are, in its own
+    // folder. Names are KEPT: a .gltf names its .bin and textures, and an .obj
+    // its .mtl, so a renamed side file is a missing one.
     if (item.kind === 'model' && item.absoluteFolder) {
       const dir = join(at, claim(used, name));
-      const inner = new Set<string>();
-      for (const e of await readdir(item.absoluteFolder, { withFileTypes: true }).catch(() => [])) {
-        if (!e.isFile() || e.name === 'preview.png') continue;
-        const ext = extname(e.name).toLowerCase();
-        ops.push({ kind: 'copy', from: join(item.absoluteFolder, e.name), to: join(dir, claim(inner, name, ext)) });
+      for (const rel of await listFiles(item.absoluteFolder)) {
+        if (rel === 'preview.png') continue;
+        ops.push({ kind: 'copy', from: join(item.absoluteFolder, rel), to: join(dir, rel) });
       }
       return;
     }
@@ -292,7 +292,7 @@ sys.stdout.write('\n@@AVA_EXPORT@@' + json.dumps(report) + '\n')
 sys.stdout.flush()
 `;
 
-async function exportModel(op: Extract<Op, { kind: 'model' }>, dest: string, blenderPath: string | null, warnings: ExportWarning[]): Promise<string[]> {
+export async function exportModel(op: { label: string; folder: string; slug: string; to: string; name: string }, dest: string, blenderPath: string | null, warnings: ExportWarning[]): Promise<string[]> {
   const out = join(dest, op.to);
   await mkdir(out, { recursive: true });
   const written: string[] = [];
@@ -314,6 +314,10 @@ async function exportModel(op: Extract<Op, { kind: 'model' }>, dest: string, ble
   if (!blenderPath) {
     await copyFile(blend, join(out, `${op.name}.blend`));
     written.push(join(out, `${op.name}.blend`));
+    // No Blender to export a fresh .fbx — but an .fbx made at build time
+    // carries its textures inside, so it is still a working model file.
+    const builtFbx = join(op.folder, `${op.slug}.fbx`);
+    if (existsSync(builtFbx)) { await copyFile(builtFbx, join(out, `${op.name}.fbx`)); written.push(join(out, `${op.name}.fbx`)); }
     return written;
   }
   const script = join(tmpdir(), `ava-export-${randomUUID()}.py`);

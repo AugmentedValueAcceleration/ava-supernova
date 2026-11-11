@@ -32,6 +32,18 @@ export const TROUBLESHOOTING_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'The provider says you are out of quota' },
       { type: 'paragraph', text: "What you see: an error from the AI provider about quota, billing or payment — from Alibaba it often says \"Arrearage\", which means the account has an unpaid bill." },
       { type: 'paragraph', text: "That message comes from your provider, not from Ava — Ava has no allowance or credits of her own. Open the provider's console (Model Studio for Qwen), check the billing page and settle or top up there. Everything works again as soon as the provider does." },
+
+      { type: 'heading', level: 3, text: 'Ava cannot find Blender or GIMP' },
+      { type: 'paragraph', text: 'What you see: in the 3D or 2D room, Ava says Blender or GIMP is not installed, or she cannot find it.' },
+      { type: 'paragraph', text: 'Both are free: Blender from blender.org, GIMP from gimp.org. GIMP must be version 3 or newer. Ava looks in the usual install places on her own. If yours is somewhere else, open Settings, General, find "Blender (3D models)" or "GIMP (2D images)", click Choose… and pick blender.exe, or gimp.exe from GIMP\'s bin folder. The setting is shared by the extension and the IDE, and works from the next run with no restart.' },
+
+      { type: 'heading', level: 3, text: 'Ava will not start building' },
+      { type: 'paragraph', text: 'What you see: in the GIMP or Blender room, Ava says nothing was made.' },
+      { type: 'paragraph', text: 'Nothing is made until you agree the brief on the stage — click "Agree the brief" when it is right. If the brief is agreed, she may be stopping to check in: after three good steps since you last spoke, she waits for you. Reply, or say "keep going" to let her do up to ten.' },
+
+      { type: 'heading', level: 3, text: 'A 3D model looks flat and grey in a game engine' },
+      { type: 'paragraph', text: 'What you see: the model looks right in Blender but plain in Unity, Godot, Unreal or the Library\'s 3D view.' },
+      { type: 'paragraph', text: 'Its look is still a live Blender material, which does not export. Ask Ava to bake it: she turns the look into texture images that every engine can read. Both her build report and the folder download warn you when a model is not baked yet.' },
     ],
   },
   {

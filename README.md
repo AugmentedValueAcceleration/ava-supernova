@@ -2,7 +2,7 @@
   <h1 align="center">Ava Supernova</h1>
   <p align="center">
     <strong>The open-source AI coding agent that works for everyone — not just the people who can afford it.</strong><br/>
-    80+ tools · 7 modes · 24 specialist personas · frontier open-weight models from every major lab · a Creative Studio that builds real assets into your project.<br/>
+    100+ tools · 7 modes · 24 specialist personas · frontier open-weight models from every major lab · a Creative Studio that builds real assets into your project.<br/>
     <strong>Free and open source. Your keys. Your machine. Your work.</strong>
   </p>
   <p align="center">
@@ -141,7 +141,7 @@ On first launch, Ava runs a short setup: pick a provider and paste your key (or 
 
 ## Tools
 
-**80+ tools.** Ava decides which to use, runs them, reads the results, and keeps reasoning. Each mode carries the tools its work needs.
+**100+ tools.** Ava decides which to use, runs them, reads the results, and keeps reasoning. Each mode carries the tools its work needs.
 
 | Category | Tools |
 |---|---|
@@ -150,6 +150,8 @@ On first launch, Ava runs a short setup: pick a provider and paste your key (or 
 | **Git** | `git_status`, `git_diff`, `git_commit`, `git_create_pr`, `rollback` |
 | **Web & research** | `web_search`, `http_request`, `browser`, `news`, `weather`, `release_notes`, `paper_fetch_full_text` |
 | **Creative Studio** | `design_generate_logo`, `design_explore_logos`, `design_generate_icon`, `design_generate_image`, `design_generate_set`, `design_generate_video`, `design_generate_voice`, `design_brand_kit`, `design_find_shape`, `design_save`, `remove_background`, `browse_library`, `open_design_studio` |
+| **2D & 3D rooms** *(GIMP, Blender)* | `design_propose_image_brief`, `design_build_image`, `design_duplicate_image`, `design_restore_image`, `design_show_options`, `design_mark_final`, `design_propose_model_brief`, `design_build_model`, `design_duplicate_model`, `design_restore_model`, `design_api_lookup`, `design_read_docs` |
+| **Brand kits, fonts & folders** | `design_propose_kit`, `design_save_to_kit`, `design_fonts`, `design_install_font`, `design_folder` |
 | **Documents & tasks** | `document_author`, `document_manage`, `email_draft`, `report_generate`, `doc_generate`, `todo_write`, `task_manage`, `task_suggest`, `journal_write` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update` |
 | **Learning** | `learning_create`, `learning_teach`, `learning_progress`, `open_learning_room` |
@@ -164,10 +166,11 @@ On first launch, Ava runs a short setup: pick a provider and paste your key (or 
 Ava designs whole brand identities and wires them straight into your project — a logo into `public/`, a hero clip into your landing page.
 
 - **Logos & icons** are **constructed as true vectors (SVG), not pixels** — composed from geometric primitives and real fonts on your own machine, so they stay razor-sharp at any size. A logo brief yields a full system: primary, stacked, symbol, wordmark, monochrome and favicon. Ava shows several directions and lets you pick.
-- **Brand kits** tie it together — set your name, palette and fonts once, and every asset inherits them.
+- **2D work in GIMP and 3D models in Blender**, made by Ava on your own computer with the window closed — icon sets, game UI, sprites and textures as layered GIMP files; game-ready models with baked textures, exported as .glb and .fbx. **The brief comes first**: Ava researches it, you agree it, and nothing is made until you do. Every step is saved, so you can always go back. GIMP 3 and Blender are free.
+- **Brand kits** hold a project's look and voice — colours, fonts and pairings, logo, image style, rules. Link a kit to a project and everything Ava makes for it follows the kit, inside GIMP and Blender too.
 - **Images & video** run on **Wan**, **voiceovers** on **Qwen3-TTS** (Alibaba's models) — on your own Qwen key.
 - **Background removal and logo vectorising** run on your machine, free.
-- Every asset is tracked in the **Library** — grid or list view, filter by type, preview, reuse across projects.
+- Every asset is tracked in the **Library** — grid or list view, filter by type, preview, reuse across projects. **Folders** gather a set together, Ava can plan a whole pack with you piece by piece, and a folder downloads ready for your game engine or prepared for a store (Unity Asset Store, Fab, itch.io, Gumroad, Superhive), with a `How-this-was-made.txt` record of which AI did what. Declaring AI use to a store stays yours to do.
 
 ## Privacy
 

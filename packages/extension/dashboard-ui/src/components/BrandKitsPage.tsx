@@ -98,7 +98,7 @@ function Sheet({ kit, actions, onBack, onEdit, onDelete, onPickPiece }: { kit: B
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <button onClick={onBack} style={{ ...button(), border: 'none', paddingLeft: 0 }}>← {tt('dash.studio.brandkit.title', 'Brand Kits')}</button>
+        <button onClick={onBack} style={{ ...button(), border: 'none', paddingLeft: 0 }}>← {tt('ext.studio.brand_kits', 'Brand Kits')}</button>
         <span style={{ flex: 1 }} />
         {!active && kit.status !== 'proposed' && <button onClick={() => setActiveKit(kit.id)} style={button()}>{tt('ext.studio.make_active', 'Make active')}</button>}
         <button onClick={onEdit} style={button()}>{tt('dash.studio.model.edit', 'Edit')}</button>

@@ -8,8 +8,9 @@
 // machine, account-scoped (~/.ava/users/<id>/creative/), so it travels with the
 // local data export and never touches a bucket.
 
-import { writeFile, readFile, mkdir, rm, stat, readdir, cp } from 'node:fs/promises';
+import { writeFile, readFile, mkdir, rm, stat, readdir } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
+import { copyWorkToProject, projectAssetDir } from '@ava/core';
 
 export type CreativeKind = 'image' | 'video' | 'music' | 'voice' | 'sfx';
 
@@ -247,23 +248,27 @@ export async function copyCreativeToProject(
   scopedDir: string,
   id: string,
   projectRoot: string,
-): Promise<{ relPath: string; absPath: string } | null> {
+): Promise<{ relPath: string; absPath: string; warnings: string[] } | null> {
   const items = await readLocalCreative(scopedDir);
   const item = items.find((i) => i.id === id);
   if (!item || !projectRoot) return null;
 
-  const PREFERRED = ['public', join('src', 'assets'), 'assets', 'static', 'images'];
-  let destDir: string | null = null;
-  for (const candidate of PREFERRED) {
-    try {
-      const s = await stat(join(projectRoot, candidate));
-      if (s.isDirectory()) { destDir = join(projectRoot, candidate); break; }
-    } catch { /* not there — try the next */ }
+  // Models and GIMP work are folders. Core copies their FINISHED files only,
+  // made the way a folder download makes them, into the place the project's
+  // engine looks (Unity Assets/, Unreal Content/, Godot assets/) — never Ava's
+  // briefs, scripts, history or tests, and never a .blend that still points
+  // at textures in ~/.ava. Shared with the IDE.
+  if (modelFolder(scopedDir, item)) {
+    const r = await copyWorkToProject({ id: item.id, kind: item.kind, title: item.title, absoluteFolder: item.absoluteFolder }, projectRoot);
+    if (!r.ok || !r.relPath || !r.absPath) throw new Error(r.error ?? 'Nothing could be copied.');
+    return { relPath: r.relPath, absPath: r.absPath, warnings: r.warnings.map((w) => w.message) };
   }
-  if (!destDir) {
-    destDir = join(projectRoot, 'images');
-    await mkdir(destDir, { recursive: true });
-  }
+
+  // One file. Same destination rules: the engine's folder, else the
+  // project's own convention (public/, src/assets/, assets/, static/,
+  // images/). Deliberately NOT <project>/.ava/creative — that's gitignored,
+  // so the asset would work locally and vanish for everyone else.
+  const { dir: destDir } = await projectAssetDir(projectRoot);
 
   // Name it after the user's title where we can — that's the name they gave it
   // — but keep the original extension, and never clobber an existing file.
@@ -285,26 +290,12 @@ export async function copyCreativeToProject(
     }
   }
 
-  // A model is a folder: copy what an engine or a teammate needs (the .blend,
-  // the exports, textures, the preview) — not its version history or scripts.
-  const folder = modelFolder(scopedDir, item);
-  if (folder) {
-    const slug = folder.split(/[\\/]/).pop() || 'model';
-    let name = slug; let k = 2;
-    for (;;) {
-      try { await stat(join(destDir, name)); name = `${slug}-${k++}`; } catch { break; }
-    }
-    const absDir = join(destDir, name);
-    await cp(folder, absDir, { recursive: true, filter: (p) => !/[\\/](versions|scripts|\.tmp)([\\/]|$)/.test(p.slice(folder.length)) });
-    return { relPath: absDir.slice(projectRoot.length + 1).replace(/\\/g, '/'), absPath: absDir };
-  }
-
   const absPath = join(destDir, filename);
   const data = await readFile(item.absolutePath);
   await writeFile(absPath, data);
 
   const relPath = absPath.slice(projectRoot.length + 1).replace(/\\/g, '/');
-  return { relPath, absPath };
+  return { relPath, absPath, warnings: [] };
 }
 
 /** Delete a stored asset (file + metadata entry). Best-effort. */

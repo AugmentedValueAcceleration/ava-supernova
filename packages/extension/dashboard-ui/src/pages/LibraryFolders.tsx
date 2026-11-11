@@ -106,7 +106,7 @@ export function useLibraryFolders() {
   const [uploadNote, setUploadNote] = useState<string | null>(null);
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      const m = e.data as { type?: string; folders?: LibraryFolderInfo[]; missing?: Record<string, string[]>; plans?: PlanStates; error?: string; results?: Array<{ name: string; ok: boolean; error?: string }> };
+      const m = e.data as { type?: string; folders?: LibraryFolderInfo[]; missing?: Record<string, string[]>; plans?: PlanStates; error?: string; results?: Array<{ name: string; ok: boolean; error?: string; note?: string }> };
       if (m?.type === 'library_folders') {
         setFolders(m.folders ?? []);
         setMissing(m.missing ?? {});
@@ -119,6 +119,8 @@ export function useLibraryFolders() {
         setUploadNote([
           added ? tt('library.folders.uploaded', '{n} added to the Library.').replace('{n}', String(added)) : '',
           ...failed.map((r) => `${r.name}: ${r.error ?? tt('library.folders.upload_failed', 'not added')}`),
+          // Added, but a side file it uses (a .gltf's textures, an .obj's .mtl) could not come with it.
+          ...m.results.filter((r) => r.ok && r.note).map((r) => r.note as string),
         ].filter(Boolean).join(' '));
       }
     };
@@ -520,6 +522,10 @@ function DownloadPanel({ folderId, onClose }: { folderId: string; onClose: () =>
   const [record, setRecord] = useState(true);
   // Prepared for a store (Phase 5): '' is a plain download.
   const [stores, setStores] = useState<StoreInfo[]>([]);
+  // Store names are their owners' trademarks; shown whenever a store is chosen
+  // (Unity's trademark guidelines ask for it; Terms of Service 10.8). English
+  // on purpose, like the terms themselves.
+  const [trademark, setTrademark] = useState('');
   const [store, setStore] = useState('');
   const chosen = stores.find((s) => s.id === store);
   const zipOnly = store === 'gumroad';
@@ -529,7 +535,7 @@ function DownloadPanel({ folderId, onClose }: { folderId: string; onClose: () =>
     const onMessage = (e: MessageEvent) => {
       const m = e.data as { type?: string; id?: string } & Record<string, unknown>;
       if (m?.id !== folderId) return;
-      if (m.type === 'folder_export_preview') { setSummary((m.summary as ExportSummary | null) ?? null); setStores((m.stores as StoreInfo[]) ?? []); }
+      if (m.type === 'folder_export_preview') { setSummary((m.summary as ExportSummary | null) ?? null); setStores((m.stores as StoreInfo[]) ?? []); setTrademark(typeof m.trademark === 'string' ? m.trademark : ''); }
       if (m.type === 'folder_export_progress') setProgress({ done: Number(m.done), total: Number(m.total), label: String(m.label ?? '') });
       if (m.type === 'folder_export_result') { setProgress(null); setResult(m.cancelled ? null : (m as ExportOutcome)); }
     };
@@ -587,6 +593,7 @@ function DownloadPanel({ folderId, onClose }: { folderId: string; onClose: () =>
                 {tt('library.export.yours', 'Declaring AI use is yours to do: Ava never does it for you. Read the store’s current rules before you submit. This is not legal advice.')}{' '}
                 <button type="button" onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/guides/selling-what-you-make' })} className="cursor-pointer border-none bg-transparent p-0 text-[var(--accent)] hover:underline">{tt('library.export.guide', 'What each store allows')}</button>
               </p>
+              {trademark && <p className="text-[10px] leading-snug text-[var(--text-muted)] opacity-80">{trademark}</p>}
             </div>
           )}
           {!chosen && stores.some((s) => s.status === 'blocked') && (

@@ -2,7 +2,9 @@
  * Store-ready downloads (Library folders and packs plan, Phase 5).
  *
  * Choose a store, and the download is PREPARED for it and CHECKED against its
- * rules — the rules read on the stores' own pages on 7 Nov 2026 (see the plan).
+ * rules — the rules read on the stores' own pages on 7 Nov 2026 and re-read
+ * at the source on 11 Nov 2026 (seller agreements, AI policies, trademark rules;
+ * see the plan's "Store rules checked at the source").
  * Checks report problems and let the person decide; nothing is hidden.
  *
  * Wording rules: "prepared for Fab", never "approved" — only the store
@@ -40,27 +42,38 @@ export interface StoreProfile {
 export const STORE_PROFILES: StoreProfile[] = [
   { id: 'unity', name: 'Unity Asset Store', status: 'ready',
     summary: 'One root folder, .fbx and .png, the .blend files zipped as source, Third-Party Notices, and a checklist of what is left to do in Unity.',
-    note: 'Unity requires AI-generated content to be disclosed in its "AI description" field, in plain terms. That is yours to write; How-this-was-made.txt has the facts.' },
+    note: 'Unity requires anything made with the aid of AI to be disclosed in its "AI description" field: naming the AI tools, and every change you made, in plain terms. That is yours to write; How-this-was-made.txt has the facts.' },
   { id: 'fab', name: 'Fab (3D)', status: 'ready',
     summary: 'One zip per format (FBX, GLB, Blend), names with underscores, a scale check against a 1.92 m human, and a 1920 × 1080 gallery image.',
-    note: 'Fab requires products to say whether generative AI tools were used. Treat scripted Blender work by an AI as yes, and declare it.' },
+    note: 'Fab requires products made with generative AI to be tagged "CreatedWithAI", and counts AI that aids the creation. Treat scripted Blender work by an AI as yes, and tag it.' },
   { id: 'itch', name: 'itch.io', status: 'ready',
     summary: 'Your folders as they are, with a License.txt for you to fill in.',
-    note: 'itch.io requires AI use to be declared on the page, and treats mass-produced AI pages as spam.' },
+    note: 'itch.io requires asset pages to answer its AI Disclosure section, strictly, even for AI output you edited afterwards; untagged pages are delisted. It treats mass-produced AI pages as spam.' },
   { id: 'gumroad', name: 'Gumroad', status: 'ready',
     summary: 'Your folders as they are, zipped, with a License.txt for you to fill in.',
-    note: 'Gumroad has no AI rule of its own, but you must hold the rights to what you sell. Saying how it was made is still the honest thing to do.' },
+    note: 'Gumroad has no AI rule of its own, but you must hold the rights to what you sell, and must not misrepresent its authorship or licence. Saying how it was made is the safe course.' },
   { id: 'superhive', name: 'Superhive (Blender Market)', status: 'ready',
-    summary: 'Each .blend packed with its textures inside, and a check that object names are in English.',
-    note: 'Superhive does not take AI-only work or prompt-only models, but allows tools where a person decides — and may ask for evidence. How-this-was-made.txt is that evidence.' },
+    summary: 'Each .blend packed with its textures inside, and a check for English names and Blender default names (Cube.001, Material.004).',
+    note: 'Superhive does not take fully AI-generated products. It allows tools where a person makes the decisions, and AI-assisted models with serious documented work — and may ask for evidence. How-this-was-made.txt is that evidence.' },
   { id: 'godot', name: 'Godot (for your own game)', status: 'target',
     summary: 'Just the .glb models and finished images, ready to drop into a Godot project.',
     note: 'Not a store: the Godot Asset Store has no paid assets yet.' },
   { id: 'turbosquid', name: 'TurboSquid', status: 'blocked',
-    summary: '', note: 'TurboSquid bans AI-generated work: sellers promise none was used. This pack cannot be sold there.' },
-  { id: 'envato', name: 'Envato (GraphicRiver, 3DOcean)', status: 'blocked',
-    summary: '', note: 'Envato bans AI as the main part of an item, and new author accounts are closed.' },
+    summary: '', note: 'TurboSquid does not permit models developed using AI tools, and sellers promise their work is not the product of AI. This pack cannot be sold there.' },
+  { id: 'envato', name: 'Envato (GraphicRiver, 3DOcean, Elements)', status: 'blocked',
+    summary: '', note: 'Envato does not allow AI-generated content as an item or as the main part of one, and new authors join by invitation only.' },
 ];
+
+/**
+ * Store names are their owners' trademarks, used here only to describe what a
+ * download is laid out for. Unity's trademark guidelines ask for a notice like
+ * this wherever its marks appear; the Download panel shows it whenever a store
+ * is chosen, and the checklists carry it. (Terms of Service 10.8.)
+ */
+export const STORE_TRADEMARK_NOTICE =
+  'Unity and Unity Asset Store are trademarks or registered trademarks of Unity Technologies or its affiliates in the U.S. and elsewhere. '
+  + 'Fab and Unreal Engine are trademarks of Epic Games, Inc. itch.io, Gumroad, Superhive, TurboSquid, Envato and Godot are trademarks of their owners. '
+  + 'Ava Supernova is not sponsored by, endorsed by or affiliated with any of them.';
 
 export interface StoreContext {
   root: string;
@@ -196,8 +209,13 @@ async function convertToPng(ctx: StoreContext, files: string[]): Promise<string[
 
 async function forUnity(ctx: StoreContext): Promise<void> {
   const files = await walk(ctx.root);
-  // No .glb in a Unity package.
-  for (const f of files.filter((f) => /\.glb$/i.test(f))) await rm(f, { force: true });
+  // No .glb in a Unity package — unless it is the only model file there is.
+  // Without Blender (and no build-time .fbx) a model has no .fbx, and deleting
+  // its .glb would leave the pack with no model at all.
+  for (const f of files.filter((f) => /\.glb$/i.test(f))) {
+    if (existsSync(f.slice(0, -4) + '.fbx')) { await rm(f, { force: true }); continue; }
+    ctx.warn(basename(f, extname(f)), 'There is no .fbx for this model, so its .glb was kept. Unity only reads .glb with its glTF package; install Blender and download again to get an .fbx.');
+  }
   // Lossless images only.
   await convertToPng(ctx, files.filter((f) => /\.(webp|jpe?g|gif)$/i.test(f) && !/[\\/]textures[\\/]/i.test(f)));
   // Source files zipped, with "source" in the name (2.2.b).
@@ -216,10 +234,12 @@ async function forUnity(ctx: StoreContext): Promise<void> {
     fonts.length ? 'Fonts used in this package (text in images is part of the picture; no font file is included unless listed as a file below):' : 'No fonts or other third-party components were recorded for this package.',
     ...fonts.map((f) => `- ${f.name}: ${f.licence === 'OFL' ? 'SIL Open Font License 1.1' : f.licence === 'Apache-2.0' ? 'Apache License 2.0' : f.licence === 'UFL' ? 'Ubuntu Font Licence 1.0' : 'licence not known — check it'}`),
     '',
-    'Check this list before you submit: add anything else you brought in.',
+    'Check this list before you submit: add anything else you brought in, each with its licence file.',
+    'Unity does not accept material under licences that require attribution or open-source release',
+    '(for example Apache 2.0, GPL, LGPL, or Creative Commons licences that require attribution).',
     '',
   ].join('\n'), 'utf-8');
-  if (apache.length) ctx.warn('Fonts', `${apache.map((f) => f.name).join(', ')} ${apache.length === 1 ? 'is' : 'are'} Apache 2.0. Unity refuses Apache licences that require attribution: check with Unity before relying on it, or use an OFL font.`);
+  if (apache.length) ctx.warn('Fonts', `${apache.map((f) => f.name).join(', ')} ${apache.length === 1 ? 'is' : 'are'} Apache 2.0. Unity's guidelines do not accept Apache 2.0, attribution-required Creative Commons, GPL or LGPL material: use an OFL font instead.`);
   if (unknownFonts.length) ctx.warn('Fonts', `The licence of ${unknownFonts.map((f) => f.name).join(', ')} isn't known. Check it before you submit.`);
 
   // What a listing needs, and what is left to do in Unity.
@@ -254,13 +274,18 @@ async function forUnity(ctx: StoreContext): Promise<void> {
     '- Make prefabs, and add colliders to static models.',
     '- Check each model: 1 unit = 1 metre, pivot at the bottom centre, positive Z forward.',
     '- Build a demo scene that shows every asset (required for 3D and 2D).',
-    '- Render your marketing images in the Unity Editor, or say which other software you used.',
-    '- Upload with Unity\'s Asset Store Publishing Tools.',
+    '- Render the icon, card and cover images (and any video) in the Unity Editor: Unity requires it, so a render from Blender cannot be one of them.',
+    '- Upload with Unity\'s Asset Store Tools package (it must not sit inside your package folder).',
+    '- Publishers under 6 months on the store can submit 5 packages a month; after that, 20.',
     '',
-    'AI DISCLOSURE',
-    '- Unity requires AI-generated content to be disclosed in the "AI description" field: which AI tools, and what was generated, in plain terms, without marketing language.',
-    '- How-this-was-made.txt has the facts to write it from. Do not use words like "hand drawn" or "painted" for AI-assisted work.',
-    '- New publishers can submit 5 packages a month.',
+    'AI DISCLOSURE (Unity Submission Guidelines 1.6)',
+    '- Anything made with the aid of AI, completely or in part, must be disclosed in the "AI description" field.',
+    '- Name the specific AI tools used, say what was generated, and describe every change you made that adds value. Plain terms, no marketing language.',
+    '- How-this-was-made.txt has the facts to write it from.',
+    '- Do not use words that suggest work by hand, such as "hand drawn", "drawn" or "painted", anywhere in the listing.',
+    '- Write the description yourself: Unity can reject one written purely by AI.',
+    '',
+    STORE_TRADEMARK_NOTICE,
     '',
   ].join('\n'), 'utf-8');
 }
@@ -285,7 +310,7 @@ async function renameTree(dir: string, rename_: (n: string) => string): Promise<
 
 async function forFab(ctx: StoreContext): Promise<void> {
   const twoD = ctx.pieces.filter((p) => !(p.item?.kind === 'model'));
-  if (twoD.length) ctx.warn('2D pieces', `Fab's file formats are 3D and engine formats; whether it takes loose 2D files (${twoD.map((p) => p.label).join(', ')}) is not confirmed. They are in the 2D zip; check with Fab before relying on it.`);
+  if (twoD.length) ctx.warn('2D pieces', `Fab does not take loose image files as a product: its 2D categories expect Unreal Engine, UEFN or Unity projects. ${twoD.map((p) => p.label).join(', ')} ${twoD.length === 1 ? 'is' : 'are'} in the 2D zip, which can only go along as an additional file on a 3D listing.`);
   for (const m of ctx.models) {
     const size = m.sizeM?.length === 3 ? Math.max(...m.sizeM) : undefined;
     if (size !== undefined && (size > 1.92 * 50 || size < 0.01)) ctx.warn(m.label, `It is ${size.toFixed(2)} m at its largest. Fab asks for assets scaled to a 1.92 m human: check that this is its real size.`);
@@ -324,6 +349,7 @@ async function forFab(ctx: StoreContext): Promise<void> {
     ...made.map((z) => `- ${z}: upload this one under its own file type on Fab.`),
     `- ${fabName(ctx.topName)}_gallery.jpg: every piece in a grid on a plain background, 1920 × 1080.`,
     '- Folder and file names use English letters, numbers and underscores. Texture files keep their names, because the models link them by name.',
+    '- This checklist and the gallery image are for you, not part of the product: do not put them in a product zip.',
     '',
     'SCALE (Fab: relative to a 1.92 m human)',
     ...(ctx.models.length ? ctx.models.map((m) => `- ${m.label}: ${m.sizeM?.length === 3 ? `${m.sizeM.map((n) => +n.toFixed(2)).join(' × ')} m` : 'size not recorded'}`) : ['- No 3D models.']),
@@ -332,9 +358,12 @@ async function forFab(ctx: StoreContext): Promise<void> {
     '- Make sure there are no visual defects in any model.',
     '- Write the listing in your own words, and add more gallery images if you want them.',
     '- Payouts start at $100, and you must provide and watch a support channel.',
+    '- Fab\'s own licence (its EULA) covers your buyers, and a licence file of your own does not override it. Fab also refuses material under GPL-style licences.',
     '',
-    'AI DISCLOSURE',
-    '- Fab requires products to say whether generative AI tools were used. Ava Supernova scripted this work, so declare it. How-this-was-made.txt has the facts.',
+    'AI DISCLOSURE (Fab Distribution Agreement 18(k))',
+    '- Tag the product "CreatedWithAI": Fab requires it when a material part was made with generative AI, and counts AI that aids the creation. Ava Supernova scripted this work, so tag it. How-this-was-made.txt has the facts.',
+    '',
+    STORE_TRADEMARK_NOTICE,
     '',
   ].join('\n'), 'utf-8');
 }
@@ -390,7 +419,14 @@ async function licenceTemplate(ctx: StoreContext, store: string): Promise<void> 
     '[Write your licence here]',
     '',
     'Fonts and anything you brought in keep their own licences: see How-this-was-made.txt.',
-    `${store} asks sellers to be clear about how their work was made; How-this-was-made.txt has the facts.`,
+    '',
+    ...(store === 'itch.io'
+      ? ['Before you publish on itch.io: answer the AI Disclosure section on the project\'s edit page',
+         '(it is required for asset pages, even for AI output you edited afterwards), and say how AI was',
+         'used in the description too. itch.io gives buyers its own licence as well as yours.']
+      : ['Before you publish on Gumroad: you must hold the rights to everything you sell, you cannot',
+         'resell what you did not create, and you must not misrepresent its authorship or licence.']),
+    'How-this-was-made.txt has the facts.',
     '',
   ].join('\n'), 'utf-8');
   ctx.warn('Licence', 'License.txt is a template: write your licence in it before you upload.');
@@ -403,14 +439,20 @@ import bpy, sys, json
 blend = sys.argv[sys.argv.index('--') + 1]
 bpy.ops.wm.open_mainfile(filepath=blend)
 bpy.context.preferences.filepaths.save_version = 0  # no .blend1 backup left in the download
-bad = [o.name for o in bpy.data.objects if any(ord(c) > 127 for c in o.name)]
+import re
+DEFAULT = re.compile(r'^(Cube|Sphere|UVSphere|Icosphere|Cylinder|Cone|Plane|Torus|Circle|Grid|Suzanne|Monkey|Mesh|Material|Armature|Bone|Camera|Light|Empty|Text|BezierCurve|BezierCircle|NurbsPath|Scene)(\.\d{3})?$')
+names = [('object', o.name) for o in bpy.data.objects] + [('mesh', m.name) for m in bpy.data.meshes] \
+      + [('material', m.name) for m in bpy.data.materials if m.users] + [('armature', a.name) for a in bpy.data.armatures] \
+      + [('bone', b.name) for a in bpy.data.armatures for b in a.bones] + [('scene', sc.name) for sc in bpy.data.scenes]
+bad = [n for _, n in names if any(ord(c) > 127 for c in n)]
+defaults = sorted({k + ' ' + n for k, n in names if DEFAULT.match(n)})
 try:
     bpy.ops.file.pack_all()
     bpy.ops.wm.save_mainfile(compress=True)
     ok = True
 except Exception as e:
     ok = False
-print('@@AVA_PACK@@' + json.dumps({'ok': ok, 'bad': bad}))
+print('@@AVA_PACK@@' + json.dumps({'ok': ok, 'bad': bad, 'defaults': defaults}))
 `;
 
 async function forSuperhive(ctx: StoreContext): Promise<void> {
@@ -420,9 +462,10 @@ async function forSuperhive(ctx: StoreContext): Promise<void> {
   for (const b of blends) {
     const out = await runBlender(ctx.blender, PACK_PY, [b]);
     const at = out.lastIndexOf('@@AVA_PACK@@');
-    const r = at >= 0 ? JSON.parse(out.slice(at + 12).split(/\r?\n/)[0]) as { ok: boolean; bad: string[] } : { ok: false, bad: [] };
+    const r = at >= 0 ? JSON.parse(out.slice(at + 12).split(/\r?\n/)[0]) as { ok: boolean; bad: string[]; defaults?: string[] } : { ok: false, bad: [] };
     if (!r.ok) ctx.warn(basename(b), 'Couldn\'t pack its textures into the .blend.');
-    if (r.bad.length) ctx.warn(basename(b), `Object names that aren't in English letters: ${r.bad.join(', ')}. Superhive asks for English object names.`);
+    if (r.bad.length) ctx.warn(basename(b), `Names that aren't in English letters: ${r.bad.join(', ')}. Superhive asks for logical English names on every part.`);
+    if (r.defaults?.length) ctx.warn(basename(b), `Blender's default names are still in it (${r.defaults.slice(0, 8).join(', ')}${r.defaults.length > 8 ? ` and ${r.defaults.length - 8} more` : ''}). Superhive does not accept default names: ask Ava to give every part a logical English name, then download again.`);
   }
 }
 

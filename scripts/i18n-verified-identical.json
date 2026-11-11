@@ -43,7 +43,12 @@
         "dash.studio.voice.emotion_neutral": "Neutral",
         "dash.studio.voice.emotion_warm": "Warm",
         "dash.studio.voice.pace_normal": "Normal",
-        "dash.studio.voice.vol_normal": "Normal"
+        "dash.studio.voice.vol_normal": "Normal",
+        "ext.studio.kit_logo": "Logo",
+        "health.browse.sort.name": "A–Z",
+        "dash.studio.asset.model": "Blender (Headless)",
+        "dash.studio.asset.gimp": "GIMP (Headless)",
+        "library.plan.tile": "Plan"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -66,7 +71,9 @@
         "health.browse.cardio": "Cardio",
         "dash.studio.voice.emotion_neutral": "Neutral",
         "dash.studio.voice.pace_normal": "Normal",
-        "dash.studio.voice.vol_normal": "Normal"
+        "dash.studio.voice.vol_normal": "Normal",
+        "health.browse.sort.name": "A–Z",
+        "library.plan.tile": "Plan"
       },
       "fr": {
         "health.plans.n_cook": "{n} min",
@@ -107,13 +114,20 @@
         "dash.studio.voice.script": "Script",
         "dash.studio.voice.pace_normal": "Normal",
         "dash.studio.voice.vol_normal": "Normal",
-        "dash.studio.voice.volume": "Volume"
+        "dash.studio.voice.volume": "Volume",
+        "ext.studio.kit_logo": "Logo",
+        "health.browse.group.collections": "Collections",
+        "health.browse.group.cuisine": "Cuisine",
+        "health.browse.sort.name": "A–Z",
+        "library.gimp.images": "Images",
+        "library.model.triangles": "Triangles"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "health.browse.sort.name": "A–Z"
       },
       "id": {
         "learning.room.tab.ava": "Ava",
@@ -133,7 +147,12 @@
         "ide.papers.primer_url": "URL: {url}",
         "dash.nav.studio_jobs": "Studio",
         "dash.studio.voice.pace_normal": "Normal",
-        "dash.studio.voice.volume": "Volume"
+        "dash.studio.voice.volume": "Volume",
+        "ext.studio.kit_logo": "Logo",
+        "ext.studio.kit_font_ui_name": "Font",
+        "dash.studio.model.pick": "Model",
+        "health.browse.sort.name": "A–Z",
+        "dash.studio.finals": "Final"
       },
       "it": {
         "health.plans.n_cook": "{n} min",
@@ -165,13 +184,16 @@
         "ide.papers.primer_url": "URL: {url}",
         "health.browse.cardio": "Cardio",
         "dash.nav.studio_jobs": "Studio",
-        "dash.studio.voice.volume": "Volume"
+        "dash.studio.voice.volume": "Volume",
+        "health.browse.sort.name": "A–Z"
       },
       "ja": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "ext.studio.kit_font_ui": "UI",
+        "health.browse.sort.name": "A–Z"
       },
       "ko": {
         "learning.room.tab.ava": "Ava",
@@ -221,7 +243,13 @@
         "doc.recent": "Recent",
         "dash.nav.studio_jobs": "Studio",
         "dash.studio.voice.emotion_warm": "Warm",
-        "dash.studio.voice.volume": "Volume"
+        "dash.studio.voice.volume": "Volume",
+        "ext.studio.kit_logo": "Logo",
+        "dash.studio.model.pick": "Model",
+        "health.browse.sort.name": "A–Z",
+        "library.plan.tile": "Plan",
+        "dash.studio.asset.model": "Blender (Headless)",
+        "dash.studio.asset.gimp": "GIMP (Headless)"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -233,7 +261,11 @@
         "dash.perm.cat.system": "System",
         "ide.papers.primer_url": "URL: {url}",
         "health.starters.when": "Start",
-        "dash.nav.studio_jobs": "Studio"
+        "dash.nav.studio_jobs": "Studio",
+        "ext.studio.kit_logo": "Logo",
+        "dash.studio.model.pick": "Model",
+        "health.browse.sort.name": "A–Z",
+        "library.plan.tile": "Plan"
       },
       "pt": {
         "health.plans.n_cook": "{n} min",
@@ -259,7 +291,8 @@
         "health.browse.cardio": "Cardio",
         "dash.studio.voice.pace_normal": "Normal",
         "dash.studio.voice.vol_normal": "Normal",
-        "dash.studio.voice.volume": "Volume"
+        "dash.studio.voice.volume": "Volume",
+        "health.browse.sort.name": "A–Z"
       },
       "ru": {
         "learning.room.tab.ava": "Ava",
@@ -271,7 +304,8 @@
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "health.browse.sort.name": "A–Z"
       },
       "tr": {
         "learning.room.tab.ava": "Ava",
@@ -289,7 +323,9 @@
         "dash.studio.asset.avatar": "Avatar",
         "dash.docs.type.md": "Markdown",
         "dash.studio.voice.pace_normal": "Normal",
-        "dash.studio.voice.vol_normal": "Normal"
+        "dash.studio.voice.vol_normal": "Normal",
+        "dash.studio.model.pick": "Model",
+        "ext.studio.kit_logo": "Logo"
       },
       "uk": {
         "learning.room.tab.ava": "Ava",
@@ -298,19 +334,22 @@
         "ide.papers.primer_url": "URL: {url}"
       },
       "vi": {
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "health.browse.sort.name": "A–Z"
       },
       "zh-CN": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "health.browse.sort.name": "A–Z"
       },
       "zh-TW": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "health.browse.sort.name": "A–Z"
       }
     },
     "companion": {

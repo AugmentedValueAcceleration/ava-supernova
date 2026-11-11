@@ -16,7 +16,7 @@ import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
-import { basename, extname, join } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, normalize } from 'node:path';
 import { creativeDir, metadataFile, modelSlug } from '../tools/blender/paths.js';
 import { findBlender } from '../tools/blender/find-blender.js';
 
@@ -29,7 +29,7 @@ export const UPLOAD_KINDS: Record<string, 'image' | 'video' | 'music' | 'model'>
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024;
 const PREVIEW_TIMEOUT_MS = 120_000;
 
-export interface UploadOutcome { source: string; ok: boolean; id?: string; error?: string }
+export interface UploadOutcome { source: string; ok: boolean; id?: string; error?: string; /** Said, not hidden: a side file that could not come with it. */ note?: string }
 
 const uploadsDir = () => join(creativeDir(), 'uploads');
 
@@ -84,6 +84,11 @@ async function uploadOne(source: string): Promise<UploadOutcome> {
   await mkdir(folder, { recursive: true });
   const fileName = `${slug}.${ext}`;
   await copyFile(source, join(folder, fileName));
+  // A .gltf names its .bin and textures, an .obj its .mtl (which names its
+  // textures), and an .fbx may keep textures in a <name>.fbm folder. Copied
+  // alone, they arrive without them. Side files keep their own names and
+  // places, because the model finds them by name.
+  const missed = await copySideFiles(source, ext, folder);
   const preview = await renderPreview(join(folder, fileName), join(folder, 'preview.png')).catch(() => false);
   const id = `upload_${slug}`;
   await addEntry({
@@ -97,7 +102,61 @@ async function uploadOne(source: string): Promise<UploadOutcome> {
     files: preview ? [fileName, 'preview.png'] : [fileName],
     bytes: size, hasPreview: preview, ...common,
   });
-  return { source, ok: true, id };
+  return { source, ok: true, id, ...(missed.length ? { note: `${basename(source)}: ${missed.length === 1 ? 'one file it uses' : `${missed.length} files it uses`} could not come with it (${missed.slice(0, 3).join(', ')}${missed.length > 3 ? ', …' : ''}). Put ${missed.length === 1 ? 'it' : 'them'} beside the model and upload again, or use a .glb or .blend, which carry everything inside.` } : {}) };
+}
+
+// ── Side files: what a model file names ──────────────────────────────────────
+
+/** A reference that can be copied keeping its place: relative, and inside the model's own folder. */
+function safeRef(ref: string): string | null {
+  if (!ref || /^[a-z]+:/i.test(ref) || isAbsolute(ref)) return null;
+  const n = normalize(ref);
+  return n.startsWith('..') ? null : n;
+}
+
+async function copyRef(from: string, ref: string, to: string, missed: string[]): Promise<void> {
+  const rel = safeRef(ref);
+  if (!rel) { if (!/^data:/i.test(ref)) missed.push(ref); return; }
+  const src = join(dirname(from), rel);
+  if (!existsSync(src)) { missed.push(ref); return; }
+  await mkdir(dirname(join(to, rel)), { recursive: true });
+  await copyFile(src, join(to, rel));
+}
+
+async function copySideFiles(source: string, ext: string, folder: string): Promise<string[]> {
+  const missed: string[] = [];
+  try {
+    if (ext === 'gltf') {
+      const g = JSON.parse(await readFile(source, 'utf-8')) as { buffers?: Array<{ uri?: string }>; images?: Array<{ uri?: string }> };
+      for (const r of [...(g.buffers ?? []), ...(g.images ?? [])]) if (r.uri) await copyRef(source, decodeURIComponent(r.uri), folder, missed);
+    } else if (ext === 'obj') {
+      const text = await readFile(source, 'utf-8');
+      for (const line of text.split(/\r?\n/)) {
+        const m = /^\s*mtllib\s+(.+?)\s*$/.exec(line);
+        if (!m) continue;
+        const mtl = m[1];
+        await copyRef(source, mtl, folder, missed);
+        const mtlPath = join(dirname(source), safeRef(mtl) ?? '');
+        if (!safeRef(mtl) || !existsSync(mtlPath)) continue;
+        // Texture lines end with the file, after any options (-bm 1 …).
+        for (const t of (await readFile(mtlPath, 'utf-8')).split(/\r?\n/)) {
+          const tm = /^\s*(map_\w+|bump|disp|decal|refl|norm)\s+(.+?)\s*$/i.exec(t);
+          if (!tm) continue;
+          const parts = tm[2].split(/\s+/);
+          const file = parts[parts.length - 1];
+          const relToMtl = join(dirname(safeRef(mtl)!), file);
+          await copyRef(source, relToMtl, folder, missed);
+        }
+      }
+    } else if (ext === 'fbx') {
+      const fbm = join(dirname(source), `${basename(source, extname(source))}.fbm`);
+      if (existsSync(fbm)) {
+        const { cp } = await import('node:fs/promises');
+        await cp(fbm, join(folder, basename(fbm)), { recursive: true });
+      }
+    }
+  } catch { /* an unreadable model file: it still came in; the preview will say if it is broken */ }
+  return [...new Set(missed)];
 }
 
 // ── A preview for an uploaded model, when Blender is here ────────────────────

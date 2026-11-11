@@ -52,7 +52,7 @@ import {
   listImageWork, restoreImageStep, chooseImageMain, keepImageVersion, deleteImageVersion, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS,
   // Library folders + their own uploads (Library folders and packs, Phase 1).
   readFolders, createFolder, renameFolder, moveFolder, deleteFolder, addToFolder, removeFromFolder, setMemberPick, missingFiles, uploadToLibrary, UPLOAD_KINDS,
-  exportFolder, previewFolderExport, setFolderNote, STORE_PROFILES, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
+  exportFolder, previewFolderExport, setFolderNote, STORE_PROFILES, STORE_TRADEMARK_NOTICE, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
@@ -2011,7 +2011,7 @@ export class DashboardPanel {
         break;
       // ── Download a folder as a real folder (Phase 2) ──────────────────────
       case 'folder_export_preview':
-        this.post({ type: 'folder_export_preview', id: msg.id, summary: await previewFolderExport(msg.id), stores: STORE_PROFILES } as never);
+        this.post({ type: 'folder_export_preview', id: msg.id, summary: await previewFolderExport(msg.id), stores: STORE_PROFILES, trademark: STORE_TRADEMARK_NOTICE } as never);
         break;
       case 'folder_export': {
         const picked = await vscode.window.showOpenDialog({
@@ -2050,7 +2050,7 @@ export class DashboardPanel {
         if (msg.folderId && added.length) await addToFolder(msg.folderId, added);
         await this.loadLocalCreative();
         await this.postFolders();
-        this.post({ type: 'library_upload_result', results: results.map((r) => ({ name: path.basename(r.source), ok: r.ok, error: r.error })) } as never);
+        this.post({ type: 'library_upload_result', results: results.map((r) => ({ name: path.basename(r.source), ok: r.ok, error: r.error, note: r.note })) } as never);
         break;
       }
 
@@ -2358,6 +2358,9 @@ export class DashboardPanel {
             break;
           }
           this.log(`[Creative] Copied asset ${msg.id} -> ${copied.relPath}`);
+          // What could not be made the ideal way (no Blender, so no .fbx) is
+          // said, not hidden.
+          for (const w of copied.warnings) vscode.window.showWarningMessage(w);
           // Refresh the project-files view so it shows up immediately.
           await this.loadLibraryFiles();
           const action = await vscode.window.showInformationMessage(

@@ -294,6 +294,33 @@ describe.skipIf(!blender)('prepared for a store', () => {
     const gum = await exportFolder((await props()).id, out('gumroad'), { store: 'gumroad' });
     expect(gum.path!.endsWith('.zip')).toBe(true);
     const blocked = await exportFolder((await props()).id, out('ts'), { store: 'turbosquid' as never });
-    expect(blocked).toMatchObject({ ok: false, error: expect.stringContaining('bans AI-generated work') });
+    expect(blocked).toMatchObject({ ok: false, error: expect.stringContaining('does not permit models developed using AI tools') });
   }, 300_000);
+});
+
+describe('Use in project (11 Nov): a built model, the way the engine wants it', () => {
+  it.skipIf(!blender)('Unity gets .fbx + textures only; Godot just the .glb; working files never', async () => {
+    const { copyWorkToProject } = await import('../src/creative/project-copy.js');
+    const dir = await makeModel('cart', true);
+    await mkdir(join(dir, 'scripts'), { recursive: true });
+    await writeFile(join(dir, 'scripts', 'step.py'), '# Ava');
+    await writeFile(join(dir, 'brief.json'), '{}');
+    const item = { id: 'model_cart', kind: 'model', title: 'Hand Cart', absoluteFolder: dir };
+
+    const unity = join(scratch, 'UnityGame');
+    await mkdir(join(unity, 'ProjectSettings'), { recursive: true });
+    await writeFile(join(unity, 'ProjectSettings', 'ProjectVersion.txt'), 'm_EditorVersion: 6000.0');
+    await mkdir(join(unity, 'Assets'));
+    const u = await copyWorkToProject(item, unity);
+    expect(u.ok).toBe(true);
+    expect(u.relPath).toBe('Assets/Hand-Cart');
+    expect(await tree(join(unity, 'Assets', 'Hand-Cart'))).toEqual(['Hand-Cart.fbx', 'textures/cart_basecolor.png']);
+
+    const godot = join(scratch, 'GodotGame');
+    await mkdir(godot, { recursive: true });
+    await writeFile(join(godot, 'project.godot'), '');
+    const g = await copyWorkToProject(item, godot);
+    expect(g.relPath).toBe('assets/Hand-Cart');
+    expect(await tree(join(godot, 'assets', 'Hand-Cart'))).toEqual(['Hand-Cart.glb']);
+  }, 120_000);
 });

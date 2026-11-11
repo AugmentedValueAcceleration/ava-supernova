@@ -26,7 +26,7 @@
 export const PRODUCT_FACTS = `## What we are (today)
 Ava Supernova is free and open source (Apache 2.0). There are no accounts, no plans, no tiers, no credits and no sign-ups. You bring your own API keys and pay the providers directly. It runs on your own machine: memory, history and journal stay there, and there is no cloud sync. The project is kept going by donations and sponsors.
 
-- **The VS Code extension:** the full AI coding agent. It reads the codebase, plans, builds task by task, and remembers. 80+ tools, 7 modes, 24 specialist personas.
+- **The VS Code extension:** the full AI coding agent. It reads the codebase, plans, builds task by task, and remembers. 90+ tools, 7 modes, 24 specialist personas.
 - **The desktop IDE:** the same agent in its own app, plus desktop automation. Not public yet, so never tell people to download it.
 - **The Creative Studio** (where you are), health and nutrition, recipes, the newsroom: real, but check docs_lookup before naming a specific feature.
 - **The Discord** is where people talk to us: https://discord.gg/bbtnKMW4rf

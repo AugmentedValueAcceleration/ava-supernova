@@ -271,15 +271,17 @@ export class DesignGenerateSetTool implements Tool {
 export class DesignBrandKitTool implements Tool {
   readonly name = 'design_brand_kit';
   readonly description =
-    'Manage the user\'s brand kits — multiple named identities, one active. Each kit carries Look (palette + style) AND Voice (tone, do/don\'t, hashtags). List, read, create, switch the active kit, update, rename, or delete. The active kit is what design AND posts come out on.';
+    'Manage the user\'s brand kits — multiple named identities, each belonging to its projects. Inside a linked project, that project\'s kit is the one in use; with no project open, the active kit is. Each kit carries Look (palette + style) AND Voice (tone, do/don\'t, hashtags). List, read, create, link to a project, update, rename, or delete (they always confirm a delete).';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'design_brand_kit',
     description:
-      'The user\'s brand kits — MULTIPLE named identities (e.g. one per business), ONE active. The active kit ' +
-      'is what design and posts come out on, so read it before generating. Each kit holds Look (palette + style ' +
+      'The user\'s brand kits — MULTIPLE named identities (e.g. one per business or game). Each kit BELONGS TO ' +
+      'its projects: inside a linked project that kit is the one in use (it is in your context every turn), and a ' +
+      'project with no kit has none — ask whether to link one or make one, never borrow another. The ACTIVE kit ' +
+      'is only the fallback when no project is open. Each kit holds Look (palette + style ' +
       'words + logo) and Voice (tone, do/don\'t rules, default hashtags/link). Actions: "list" all kits; "read" ' +
       'a kit (the active one, or a given kit_id); "create" a new kit; "set_active" to switch which kit is in use; ' +
       '"update" a kit\'s fields; "rename"; "delete". A standing brand colour belongs in a kit; a one-off colour ' +

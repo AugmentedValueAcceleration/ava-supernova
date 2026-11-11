@@ -715,6 +715,11 @@ export class ToolRegistry {
     // even with design tools set to run on their own.
     if (tool.name === 'design_install_font') return true;
 
+    // Deleting a brand kit removes it and its saved files for good, so they
+    // always see it first. The store's own note says "only after the person
+    // has asked", and until 11 Nov 2026 nothing but the prompt enforced that.
+    if (tool.name === 'design_brand_kit' && args && args.action === 'delete') return true;
+
     // task_manage WRITING to the user's personal list prompts; reading it does
     // not. Its own comment has said this since it was written — "list/complete
     // prompts are mild friction, create/update/delete prompts are the whole
