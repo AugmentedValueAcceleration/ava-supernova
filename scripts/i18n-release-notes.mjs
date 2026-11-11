@@ -94,7 +94,7 @@ const RELEASES = [
 
 **Also:** permission requests are in plain English; I find the right memory more reliably; design work has its own model (DeepSeek V4.1 Flash in Supernova, Mistral Large 4 in Aurora); and opening a design chat from Usage no longer shows a blank page.
 
-New guides on avasupernova.com walk through all of it. Our updated Terms of Service, which take effect on 11 December 2026, cover selling what you make.`,
+New guides on avasupernova.com walk through all of it. Our Terms of Service have been updated to cover selling what you make.`,
     highlights: [
       'Make 2D work in GIMP and 3D models in Blender, free, on your computer.',
       'The brief comes first: nothing is made until you agree it.',
