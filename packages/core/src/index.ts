@@ -606,7 +606,10 @@ export { copyWorkToProject, projectAssetDir, detectEngine } from './creative/pro
 export { healthRoomPlanDirective } from './health/room-directives.js';
 export type { PlanReview } from './tools/health-plan-create.js';
 export type { WizardPlanType } from './health/room-directives.js';
-export { checkRecipe, checkExercise, checkPlanItems, fetchSafetyFacts, loadSafetyProfile, screenPlanDays, hasHardRules, safetyProfileFrom, sameAllergen, refersToSame, DIET_FLAGS } from './health/safety.js';
+// Renamed at the root: `checkExercise` is already the exercise LIBRARY's
+// checker (./exercises), which the website uses. An explicit export silently
+// wins over `export *`, so 0.2.180 shipped the plan-safety one in its place.
+export { checkRecipe as checkRecipeSafety, checkExercise as checkExerciseSafety, checkPlanItems, fetchSafetyFacts, loadSafetyProfile, screenPlanDays, hasHardRules, safetyProfileFrom, sameAllergen, refersToSame, DIET_FLAGS } from './health/safety.js';
 export type { SafetyProfile, SafetyResult, SafetyVerdict, RecipeFacts, ExerciseFacts, SafetyFacts, PlanSafetyReport, PlanScreen } from './health/safety.js';
 export type { ProjectEngine, ProjectCopyResult, WorkToCopy } from './creative/project-copy.js';
 export type { StoreId, StoreProfile } from './creative/store-profiles.js';
