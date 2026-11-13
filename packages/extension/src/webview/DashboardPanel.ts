@@ -53,7 +53,7 @@ import {
   // Library folders + their own uploads (Library folders and packs, Phase 1).
   readFolders, createFolder, renameFolder, moveFolder, deleteFolder, addToFolder, removeFromFolder, setMemberPick, missingFiles, uploadToLibrary, UPLOAD_KINDS,
   exportFolder, previewFolderExport, setFolderNote, STORE_PROFILES, STORE_TRADEMARK_NOTICE,
-  loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipe, checkExercise, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
+  loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipeSafety, checkExerciseSafety, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
@@ -1685,8 +1685,8 @@ export class DashboardPanel {
           }
           const facts = await fetchSafetyFacts({ recipes: msg.recipes, exercises: msg.exercises, level });
           const unknown = (slug: string) => ({ slug, verdict: 'warn', reasons: ['not found in the library, so not checked against your rules'], unverified: [] });
-          for (const slug of msg.recipes) results[slug] = facts.recipes[slug] ? checkRecipe(facts.recipes[slug], profile) : unknown(slug);
-          for (const slug of msg.exercises) results[slug] = facts.exercises[slug] ? checkExercise(facts.exercises[slug], profile) : unknown(slug);
+          for (const slug of msg.recipes) results[slug] = facts.recipes[slug] ? checkRecipeSafety(facts.recipes[slug], profile) : unknown(slug);
+          for (const slug of msg.exercises) results[slug] = facts.exercises[slug] ? checkExerciseSafety(facts.exercises[slug], profile) : unknown(slug);
           this.post({ type: 'health_safety_result', results, checked: true, rules: true } as never);
         } catch {
           this.post({ type: 'health_safety_result', results: {}, checked: false, rules: true });
