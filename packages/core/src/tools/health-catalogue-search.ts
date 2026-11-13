@@ -1,5 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipe, checkExercise, type SafetyResult } from '../health/safety.js';
 
 /**
  * Search the exercise or recipe catalogue by query. Returns the canonical
@@ -156,7 +157,11 @@ export class HealthCatalogueSearchTool implements Tool {
     const path = kind === 'exercise' ? '/api/health/exercises' : '/api/health/recipes';
     const url = new URL(`${apiBase}${path}`);
     if (query) url.searchParams.set('q', query);
-    url.searchParams.set('limit', String(limit));
+    // Their hard rules (Part 1, 11 Nov 2026): results that break them are left
+    // out, so ask for more than we show and trim after the check.
+    const { profile: safety, level } = await loadSafetyProfile();
+    const screening = hasHardRules(safety);
+    url.searchParams.set('limit', String(screening ? Math.min(MAX_LIMIT, limit * 3) : limit));
     if (category) {
       // Endpoint param names differ — exercises filter by workout_type,
       // recipes by course.
@@ -184,12 +189,42 @@ export class HealthCatalogueSearchTool implements Tool {
         recipes?: RecipeSummary[];
         total?: number;
       };
-      const results = kind === 'exercise' ? (data.exercises ?? []) : (data.recipes ?? []);
+      let results = kind === 'exercise' ? (data.exercises ?? []) : (data.recipes ?? []);
+
+      // Screen against their allergies, diets, injuries and kit — in code, on
+      // their computer; only slugs leave it. A hidden result is counted and
+      // explained, never silently dropped.
+      let safetyLine = '';
+      const cautions = new Map<string, SafetyResult>();
+      if (screening && results.length) {
+        try {
+          const slugs = results.map((r) => r.slug);
+          const facts = await fetchSafetyFacts(kind === 'exercise' ? { exercises: slugs, level } : { recipes: slugs, level },
+            context.sharedState?.fetchImpl as typeof fetch | undefined);
+          const hidden: SafetyResult[] = [];
+          const unverified = new Set<string>();
+          results = results.filter((r) => {
+            const f = kind === 'exercise' ? facts.exercises[r.slug] : facts.recipes[r.slug];
+            if (!f) return true;
+            const v = kind === 'exercise' ? checkExercise(f as never, safety) : checkRecipe(f as never, safety);
+            v.unverified.forEach((a) => unverified.add(a));
+            if (v.verdict === 'blocked') { hidden.push(v); return false; }
+            if (v.verdict === 'warn') cautions.set(r.slug, v);
+            return true;
+          });
+          const why = [...new Set(hidden.flatMap((h) => h.reasons))].slice(0, 4).join('; ');
+          if (hidden.length) safetyLine += `\n${hidden.length} left out because they break their hard rules (${why}).`;
+          if (unverified.size) safetyLine += `\nNot checkable for ${[...unverified].join(', ')}: the library cannot confirm a dish is free from ${unverified.size === 1 ? 'it' : 'them'} — say so, never call it clear.`;
+        } catch {
+          safetyLine = '\nNOT CHECKED against their allergies, diet, injuries and kit (the safety check could not be reached). Do not offer these as safe; health_plan_create will check before saving.';
+        }
+      }
+      results = results.slice(0, limit);
 
       if (results.length === 0) {
         return {
           success: true,
-          output: `No ${kind === 'exercise' ? 'exercises' : 'recipes'} found for ${criteria}. You can fall back to a free-text entry (no ref) if nothing in the library fits, but try a different query or filter first.`,
+          output: `No ${kind === 'exercise' ? 'exercises' : 'recipes'} found for ${criteria}.${safetyLine} You can fall back to a free-text entry (no ref) if nothing in the library fits, but try a different query or filter first.`,
           metadata: { kind, count: 0, slugs: [] },
         };
       }
@@ -201,7 +236,8 @@ export class HealthCatalogueSearchTool implements Tool {
           if (e.workout_type) tags.push(e.workout_type);
           if (e.exercise_type) tags.push(e.exercise_type);
           if (typeof e.difficulty === 'number') tags.push(`difficulty ${e.difficulty}`);
-          return `${i + 1}. ${e.name}  ·  slug: \`${e.slug}\`${tags.length ? `  ·  ${tags.join(' · ')}` : ''}`;
+          const care = cautions.get(e.slug);
+          return `${i + 1}. ${e.name}  ·  slug: \`${e.slug}\`${tags.length ? `  ·  ${tags.join(' · ')}` : ''}${care ? `  ·  ⚠ ${care.reasons.join('; ')}${care.alternatives?.length ? ` (easier: ${care.alternatives.map((a) => a.slug).join(', ')})` : ''}` : ''}`;
         }
         const m = row as RecipeSummary;
         const tags: string[] = [];
@@ -217,7 +253,7 @@ export class HealthCatalogueSearchTool implements Tool {
         success: true,
         output:
           `Found ${results.length} ${kind === 'exercise' ? 'exercise' : 'recipe'}${results.length === 1 ? '' : 's'} for ${criteria}${more}:\n` +
-          lines.join('\n') +
+          lines.join('\n') + safetyLine +
           `\n\nPass the slug as \`ref.slug\` on the relevant ${kind === 'exercise' ? '`training[]`' : '`meals[]`'} entry when calling health_plan_create or health_plan_update_day.`,
         metadata: {
           kind,

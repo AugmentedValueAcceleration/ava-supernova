@@ -56,16 +56,11 @@ import type {
   HealthRecipeDetail,
   HealthTaxonomies,
   HealthProfile,
+  ShoppingState,
+  HealthSafetyVerdict,
   GeneralProfile,
   HealthPlan,
   HealthPlanSummary,
-  HealthExerciseSubmissionPayload,
-  HealthRecipeSubmissionPayload,
-  HealthSubmissionStatus,
-  HealthExerciseDraft,
-  HealthRecipeDraft,
-  HealthGenerateExerciseIntake,
-  HealthGenerateRecipeIntake,
   CreativeAsset,
   StorageScan,
   PersonalityData,
@@ -397,6 +392,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   // Health profile — local-first goals + constraints + schedule (body basics
   // moved to the general profile).
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
+  // ~/.ava/health/shopping.json — trolley ticks and cupboard staples (13 Nov 2026).
+  const [shoppingState, setShoppingState] = useState<ShoppingState | null>(null);
   // General profile — account-level identity + body basics, shown under the
   // Account "{name}'s profile" tab. Reusable beyond health.
   const [generalProfile, setGeneralProfile] = useState<GeneralProfile | null>(null);
@@ -412,6 +409,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   // full plan currently open in the editor. Loaded on dashboard mount.
   const [healthPlans, setHealthPlans] = useState<HealthPlanSummary[]>([]);
   const [healthPlanOpen, setHealthPlanOpen] = useState<HealthPlan | null>(null);
+  // Library items checked against their hard rules (Part 1, 11 Nov 2026).
+  // Verdicts accumulate by slug; `checked: false` = the last check could not run.
+  const [healthSafety, setHealthSafety] = useState<{ results: Record<string, HealthSafetyVerdict>; checked: boolean; rules: boolean }>({ results: {}, checked: true, rules: false });
   // Full data for active, dated plans — feeds the Command Center Today/Week view.
   const [activeHealthPlans, setActiveHealthPlans] = useState<HealthPlan[]>([]);
   // Catalog search results for the plan editor's "+ Add" picker — kept
@@ -428,17 +428,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   // Picker pagination — total catalogue count for the current filter.
   const [planExerciseTotal, setPlanExerciseTotal] = useState(0);
   const [planRecipeTotal, setPlanRecipeTotal] = useState(0);
-  const [healthSubmissionResult, setHealthSubmissionResult] = useState<
-    { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null
-  >(null);
-  const [healthSubmissionInflight, setHealthSubmissionInflight] = useState(false);
-  // Ava-assisted draft generation — kind drives which form gets pre-filled,
-  // inflight gates the spinner step, error surfaces inline. Cleared when
-  // the user accepts the draft (transitions to form) or cancels.
-  const [healthExerciseDraft, setHealthExerciseDraft] = useState<HealthExerciseDraft | null>(null);
-  const [healthRecipeDraft, setHealthRecipeDraft] = useState<HealthRecipeDraft | null>(null);
-  const [healthDraftInflight, setHealthDraftInflight] = useState(false);
-  const [healthDraftError, setHealthDraftError] = useState<string | null>(null);
   // Roadmap — fetched from /api/roadmap via the host, single source
   // of truth shared with the public web roadmap, the IDE Roadmap
   // page, and the Hub admin editor.
@@ -505,6 +494,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     post({ type: 'load_health_taxonomies' });
   }, []);
   const handleSaveHealthProfile = useCallback((profile: HealthProfile) => {
+    // Their rules changed: every earlier verdict is stale. Clear them so the
+    // wizard asks again against the new rules.
+    setHealthSafety({ results: {}, checked: true, rules: false });
     // Optimistic update — the host echoes back the saved state and
     // we'll reconcile if the echo differs.
     setHealthProfile(profile);
@@ -601,38 +593,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   const handleLoadPlanRecipeDetail = useCallback((slug: string) => {
     post({ type: 'load_plan_recipe_detail', slug });
   }, []);
-  const handleSubmitHealthExercise = useCallback((payload: HealthExerciseSubmissionPayload) => {
-    setHealthSubmissionInflight(true);
-    setHealthSubmissionResult(null);
-    post({ type: 'submit_health_exercise', payload });
-  }, []);
-  const handleSubmitHealthRecipe = useCallback((payload: HealthRecipeSubmissionPayload) => {
-    setHealthSubmissionInflight(true);
-    setHealthSubmissionResult(null);
-    post({ type: 'submit_health_recipe', payload });
-  }, []);
-  const handleClearHealthSubmissionResult = useCallback(() => {
-    setHealthSubmissionResult(null);
-  }, []);
-  const handleGenerateHealthExerciseDraft = useCallback((intake: HealthGenerateExerciseIntake) => {
-    setHealthDraftInflight(true);
-    setHealthDraftError(null);
-    setHealthExerciseDraft(null);
-    post({ type: 'generate_health_exercise_draft', intake });
-  }, []);
-  const handleGenerateHealthRecipeDraft = useCallback((intake: HealthGenerateRecipeIntake) => {
-    setHealthDraftInflight(true);
-    setHealthDraftError(null);
-    setHealthRecipeDraft(null);
-    post({ type: 'generate_health_recipe_draft', intake });
-  }, []);
-  const handleClearHealthDraft = useCallback(() => {
-    setHealthExerciseDraft(null);
-    setHealthRecipeDraft(null);
-    setHealthDraftError(null);
-    setHealthDraftInflight(false);
-  }, []);
-
   const handleReadPaperWithAva = useCallback((paper: LibraryPaper) => {
     post({ type: 'read_paper_with_ava', paper });
     // Switch the dashboard to the Chat page so the user lands on the
@@ -1220,6 +1180,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'curated_plan_failed':
         setCuratedDetailLoading(false);
         break;
+      case 'shopping_state_loaded':
+        setShoppingState(msg.state);
+        break;
       case 'health_profile_loaded':
         setHealthProfile(msg.profile);
         break;
@@ -1242,6 +1205,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         break;
       case 'health_plan_loaded':
         setHealthPlanOpen(msg.plan);
+        break;
+      case 'health_safety_result':
+        setHealthSafety(prev => ({ results: { ...prev.results, ...msg.results }, checked: msg.checked, rules: msg.rules }));
         break;
       case 'health_plan_saved':
         setHealthPlans(msg.plans);
@@ -1278,34 +1244,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         if (rec) setPlanRecipeDetails(prev => ({ ...prev, [msg.slug]: rec }));
         break;
       }
-      case 'health_submission_result':
-        setHealthSubmissionInflight(false);
-        setHealthSubmissionResult({
-          kind: msg.kind,
-          ok: msg.ok,
-          error: msg.error,
-          status: msg.submission?.status,
-          submissionName: msg.submission?.name,
-        });
-        break;
-      case 'health_exercise_draft_generated':
-        setHealthDraftInflight(false);
-        if (msg.ok && msg.draft) {
-          setHealthExerciseDraft(msg.draft);
-          setHealthDraftError(null);
-        } else {
-          setHealthDraftError(msg.error ?? 'Generation failed');
-        }
-        break;
-      case 'health_recipe_draft_generated':
-        setHealthDraftInflight(false);
-        if (msg.ok && msg.draft) {
-          setHealthRecipeDraft(msg.draft);
-          setHealthDraftError(null);
-        } else {
-          setHealthDraftError(msg.error ?? 'Generation failed');
-        }
-        break;
       case 'roadmap_loaded':
         // Empty themes = network/upstream failure; the Roadmap surface
         // shows an "empty roadmap" state, not a broken loader.
@@ -1472,6 +1410,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     // Health + general profiles — local-first host round-trips (no network).
     // Loaded once per dashboard mount so the profile tabs open instantly.
     post({ type: 'load_health_profile' });
+    post({ type: 'load_shopping_state' });
     post({ type: 'load_general_profile' });
     // Today's daily plan — same local-first storage. Date computed
     // here in the webview so the host doesn't have to know what
@@ -1834,24 +1773,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             onLoadRecipeDetail={handleLoadHealthRecipeDetail}
             taxonomies={healthTaxonomies}
             onLoadTaxonomies={handleLoadHealthTaxonomies}
-            healthSubmissions={{
-              taxonomies: healthTaxonomies,
-              inflight: healthSubmissionInflight,
-              result: healthSubmissionResult
-                ? { kind: healthSubmissionResult.kind, ok: healthSubmissionResult.ok, error: healthSubmissionResult.error, submissionName: healthSubmissionResult.submissionName }
-                : null,
-              onSubmitExercise: handleSubmitHealthExercise,
-              onSubmitRecipe: handleSubmitHealthRecipe,
-              onClearResult: handleClearHealthSubmissionResult,
-              onRetryTaxonomies: handleLoadHealthTaxonomies,
-              exerciseDraft: healthExerciseDraft,
-              recipeDraft: healthRecipeDraft,
-              draftInflight: healthDraftInflight,
-              draftError: healthDraftError,
-              onGenerateExerciseDraft: handleGenerateHealthExerciseDraft,
-              onGenerateRecipeDraft: handleGenerateHealthRecipeDraft,
-              onClearDraft: handleClearHealthDraft,
-            }}
             healthPlans={{
               plans: healthPlans,
               fullPlans: activeHealthPlans,
@@ -1871,6 +1792,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
               recipeDetails: planRecipeDetails,
               onLoadExerciseDetail: handleLoadPlanExerciseDetail,
               onLoadRecipeDetail: handleLoadPlanRecipeDetail,
+              safety: { ...healthSafety, onCheck: (recipes: string[], exercises: string[]) => post({ type: 'health_safety_check', recipes, exercises }) },
+              onSaveProfile: handleSaveHealthProfile,
             }}
             onAskAvaPlan={(type) => {
               // Same page now — just move to the Ava tab and seed her with the
@@ -1881,6 +1804,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             }}
             healthProfile={healthProfile}
             onSaveHealthProfile={handleSaveHealthProfile}
+            shopping={shoppingState}
+            onSaveShopping={(next: ShoppingState) => { setShoppingState(next); post({ type: 'save_shopping_state', state: next }); }}
             trainingLog={{
               sessions: trainingSessions,
               open: openSession,

@@ -6,13 +6,13 @@ import { Select } from '../components/Select';
 // from a plan or the day view reads identically to the library, with the full
 // schema (skill levels, full nutrition, diets, equipment, per-step technique).
 import { ExerciseDetailBody, RecipeDetailBody } from './Health';
-import { ShoppingListSheet } from '../components/ShoppingListSheet';
 import { PrepSheet } from '../components/PrepSheet';
 import { fillDayMeta } from '../lib/plan-meal-meta';
-import { StartersSheet } from '../components/StartersSheet';
 import { DuplicateSheet } from '../components/DuplicateSheet';
 import { AssistSheet, dayDate, type DayProposal } from '../components/AssistSheet';
 import { LogSessionSheet, seedFrom as seedSessionFrom } from '../components/LogSessionSheet';
+import { PlanWizard, type PlanWizardSafety } from '../components/PlanWizard';
+import { post } from '../App';
 import type { GymSession, GymExercise } from '../../../../core/dist/health/session-types.js';
 import type {
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
@@ -109,30 +109,56 @@ export interface HealthPlansProps {
     /** Exercise pictures for the open plan, keyed by slug. */
     thumbnails?: Record<string, string | null>;
   };
+  /** Library items checked against their hard rules (core health/safety). */
+  safety?: PlanWizardSafety;
+  /** Rules edited in the new-plan wizard are saved straight to the profile. */
+  onSaveProfile?: (p: HealthProfile) => void;
+  /** Opens the Shopping tab — on one plan, or the whole week (null). */
+  onOpenShopping?: (planId: string | null) => void;
 }
 
 export function HealthPlans({
   plans, fullPlans, planOpen, onOpenPlan, onSavePlan, onDeletePlan, onClosePlan,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
-  onAskAva, healthProfile = null, curated, dayAssist, trainingLog,
+  onAskAva, healthProfile = null, curated, dayAssist, trainingLog, safety, onSaveProfile, onOpenShopping,
 }: HealthPlansProps) {
   useLocale();
   const [setupOpen, setSetupOpen] = useState(false);
 
   return (
     <>
-      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} healthProfile={healthProfile} trainingLog={trainingLog}
+      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} onOpenShopping={onOpenShopping} trainingLog={trainingLog}
         onSavePlan={onSavePlan}
         exerciseResults={exerciseResults} recipeResults={recipeResults} catalogSearching={catalogSearching} onSearchExercises={onSearchExercises} onSearchRecipes={onSearchRecipes} />
-      {(setupOpen || planOpen) && (
-        <PlanOverlay
-          planOpen={planOpen}
-        curated={curated}
-        dayAssist={dayAssist}
-          onCancelSetup={() => setSetupOpen(false)}
+      {/* New plan: the full-page wizard (11 Nov 2026). The old drawer's "Build
+          myself" saved a blank draft and never opened anything. */}
+      {setupOpen && !planOpen && (
+        <PlanWizard
+          healthProfile={healthProfile}
+          onSaveProfile={onSaveProfile}
+          onCancel={() => setSetupOpen(false)}
           onCreate={onSavePlan}
           onAskAva={onAskAva ? (type) => { setSetupOpen(false); onAskAva(type); } : undefined}
+          exerciseResults={exerciseResults}
+          recipeResults={recipeResults}
+          catalogSearching={catalogSearching}
+          onSearchExercises={onSearchExercises}
+          onSearchRecipes={onSearchRecipes}
+          recipeDetails={recipeDetails}
+          onLoadRecipeDetail={onLoadRecipeDetail}
+          exerciseDetails={exerciseDetails}
+          onLoadExerciseDetail={onLoadExerciseDetail}
+          safety={safety}
+          curated={curated}
+          onOpenSafety={() => post({ type: 'open_url', url: 'https://avasupernova.com/health/safety' } as never)}
+        />
+      )}
+      {planOpen && (
+        <PlanOverlay
+          planOpen={planOpen}
+          dayAssist={dayAssist}
+          onOpenShopping={onOpenShopping}
           onClose={() => { onClosePlan(); setSetupOpen(false); }}
           onSave={onSavePlan}
           onDelete={onDeletePlan}
@@ -160,14 +186,11 @@ export function HealthPlans({
  * it scrolls.
  */
 function PlanOverlay({
-  planOpen, onCancelSetup, onCreate, onAskAva, onClose, onSave, onDelete,
+  planOpen, onClose, onSave, onDelete,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
-  exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, healthProfile, curated, dayAssist,
+  exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, healthProfile, dayAssist, onOpenShopping,
 }: {
-  planOpen: HealthPlan | null;
-  onCancelSetup: () => void;
-  onCreate: (plan: HealthPlan) => void;
-  onAskAva?: (type: HealthPlanType) => void;
+  planOpen: HealthPlan;
   onClose: () => void;
   onSave: (plan: HealthPlan) => void;
   onDelete: (id: string) => void;
@@ -183,8 +206,8 @@ function PlanOverlay({
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
   healthProfile?: HealthProfile | null;
-  curated?: HealthPlansProps['curated'];
   dayAssist?: HealthPlansProps['dayAssist'];
+  onOpenShopping?: (planId: string | null) => void;
 }) {
   return (
     /* A DRAWER, matching the calendar's day view.
@@ -195,12 +218,11 @@ function PlanOverlay({
        Full height rather than max-h — a plan runs to eighty-four days, and a
        panel that shrink-wraps its content resizes as you move between them. */
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-[2px]"
-      onClick={planOpen ? onClose : onCancelSetup}
+      onClick={onClose}
       style={{ animation: 'ava-fade-in 160ms ease-out' }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{ animation: 'ava-slide-in-right 220ms cubic-bezier(0.32, 0.72, 0, 1)' }}
-        className={`flex h-full w-full flex-col overflow-hidden border-l border-[var(--accent)]/25 bg-gradient-to-b from-[#100d1a] to-[#150f22] shadow-[-24px_0_60px_rgba(0,0,0,0.5)] ${planOpen ? 'max-w-[860px]' : 'max-w-[720px]'}`}>
-        {planOpen ? (
+        className="flex h-full w-full max-w-[860px] flex-col overflow-hidden border-l border-[var(--accent)]/25 bg-gradient-to-b from-[#100d1a] to-[#150f22] shadow-[-24px_0_60px_rgba(0,0,0,0.5)]">
           <PlanBuilder
             plan={planOpen}
             onClose={onClose}
@@ -219,10 +241,8 @@ function PlanOverlay({
             onLoadRecipeDetail={onLoadRecipeDetail}
             healthProfile={healthProfile}
             dayAssist={dayAssist}
+          onOpenShopping={onOpenShopping}
           />
-        ) : (
-          <PlanSetup onCancel={onCancelSetup} onCreate={onCreate} onAskAva={onAskAva} curated={curated} healthProfile={healthProfile} />
-        )}
       </div>
     </div>
   );
@@ -239,7 +259,6 @@ const PLAN_TYPE_META: Record<HealthPlanType, { accent: string; tint: string }> =
   combined: { accent: '#34d399',       tint: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300' },
 };
 const planTypeLabel = (type: HealthPlanType): string => t(`health.plans.type.${type}`);
-const planTypeBlurb = (type: HealthPlanType): string => t(`health.plans.type.${type}.blurb`);
 
 const PLAN_STATUS_META: Record<HealthPlanStatus, { cls: string }> = {
   draft:     { cls: 'bg-[var(--border)] text-[var(--text-muted)]' },
@@ -250,7 +269,13 @@ const PLAN_STATUS_META: Record<HealthPlanStatus, { cls: string }> = {
 const planStatusLabel = (status: HealthPlanStatus): string => t(`health.plans.status.${status}`);
 const mealSlotLabel = (slot: HealthPlanMeal['slot']): string => t(`health.plans.slot.${slot}`);
 
-const DURATION_PRESETS: number[] = [1, 7, 28, 56, 84];
+// Plans are 1, 3 or 7 days — the same lengths the wizard and Ava offer
+// (core health-plan-create enforces it). An older, longer plan keeps its
+// length: it is added to the list for that plan rather than silently cut.
+const DURATION_PRESETS: number[] = [1, 3, 7];
+function durationOptions(current: number): number[] {
+  return DURATION_PRESETS.includes(current) ? DURATION_PRESETS : [...DURATION_PRESETS, current];
+}
 
 const editInput =
   'rounded border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1 text-[12px] ' +
@@ -261,8 +286,8 @@ const weekdayInitial = (dow: number): string => t(`health.plans.weekday_initial.
 
 function durationLabel(days: number): string {
   if (days <= 1) return t('health.plans.duration.day_one');
-  const weeks = Math.round(days / 7);
-  return weeks === 1 ? t('health.plans.duration.week_one') : t('health.plans.duration.weeks', { n: weeks });
+  if (days < 14 || days % 7 !== 0) return t('health.plans.duration.days', { n: days });
+  return t('health.plans.duration.weeks', { n: days / 7 });
 }
 
 function ymd(d: Date): string {
@@ -293,24 +318,6 @@ function defaultDay(dayIndex: number): HealthPlanDay {
 }
 function isEmptyDay(d: HealthPlanDay): boolean {
   return d.kind === 'rest' && d.training.length === 0 && d.meals.length === 0 && !d.title && !d.notes;
-}
-
-function blankPlan(type: HealthPlanType, durationDays: number): HealthPlan {
-  return {
-    schema_version: 1,
-    id: newId('plan'),
-    type,
-    title: t('health.plans.new_plan_title', { type: planTypeLabel(type).toLowerCase() }),
-    goal: null,
-    source: 'manual',
-    status: 'draft',
-    duration_days: durationDays,
-    start_date: todayISO(),
-    profile_snapshot: null,
-    days: [],
-    created_at: new Date().toISOString(),
-    updated_at: null,
-  };
 }
 
 // ── Nutrition derivation ─────────────────────────────────────────────
@@ -386,7 +393,7 @@ function dayTotals(day: HealthPlanDay, recipeDetails: Record<string, HealthRecip
  *  month grid sized to one page) and Programs (the plan list) — so the
  *  list is never stacked under the calendar forcing a scroll. */
 function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete,
-  onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes, healthProfile, trainingLog }: {
+  onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes, onOpenShopping, trainingLog }: {
   plans: HealthPlanSummary[];
   /** Full (dated) plans with their days — drives the per-day content shown in
    *  the calendar cells AND the day view. Summaries alone can only draw a dot. */
@@ -406,7 +413,7 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   catalogSearching: boolean;
   onSearchExercises: PlanSearch;
   onSearchRecipes: PlanSearch;
-  healthProfile?: HealthProfile | null;
+  onOpenShopping?: (planId: string | null) => void;
   trainingLog?: HealthPlansProps['trainingLog'];
 }) {
   // A clicked calendar day opens the DAY view (what's on that date across every
@@ -428,7 +435,6 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
     [plans],
   );
 
-  const [weekShopping, setWeekShopping] = useState(false);
   // Dates with a session that has something recorded in it. A session opened
   // and left empty is NOT logged — it would put a tick on a day nothing
   // happened, which is the one thing this marker must never do.
@@ -512,7 +518,7 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
           {(fullPlans ?? []).some(p => p.start_date && p.days.some(d => d.meals.length > 0)) && (
             <button
               type="button"
-              onClick={() => setWeekShopping(true)}
+              onClick={() => onOpenShopping?.(null)}
               className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition cursor-pointer hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]"
             >
               {t('health.shopping.open')}
@@ -527,16 +533,6 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
           </button>
         </div>
       </div>
-
-      {weekShopping && (
-        <ShoppingListSheet
-          plan={null}
-          allPlans={(fullPlans ?? []).filter(p => p.status !== 'archived')}
-          profile={healthProfile ?? null}
-          onClose={() => setWeekShopping(false)}
-          onLoadRecipeDetail={onLoadRecipeDetail}
-        />
-      )}
 
       {/* Inner tabs */}
       <div className="flex items-center gap-1 border-b border-[var(--border)]">
@@ -1309,155 +1305,11 @@ function PlanCard({ plan, onOpen, onDelete }: {
 // ── Overlay phase: Setup ─────────────────────────────────────────────
 // Fills the overlay panel — header / scrolling body / footer.
 
-function PlanSetup({ onCancel, onCreate, onAskAva, curated, healthProfile }: {
-  onCancel: () => void;
-  onCreate: (plan: HealthPlan) => void;
-  onAskAva?: (type: HealthPlanType) => void;
-  curated?: HealthPlansProps['curated'];
-  healthProfile?: HealthProfile | null;
-}) {
-  const [type, setType] = useState<HealthPlanType | null>(null);
-  const [duration, setDuration] = useState<number>(28);
-  const [shelfOpen, setShelfOpen] = useState(false);
-
-  return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--accent)]/14 px-6 py-4">
-        <div>
-          <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{t('health.plans.new_plan_title_short')}</h2>
-          <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{t('health.plans.setup_subtitle')}</p>
-        </div>
-        <button type="button" onClick={onCancel}
-          className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
-          {t('health.plans.cancel')}
-        </button>
-      </div>
-
-      <div className="space-y-5 overflow-y-auto px-6 py-5">
-        <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('health.plans.type_label')}</div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {(['fitness', 'meal', 'combined'] as HealthPlanType[]).map(ty => {
-              const m = PLAN_TYPE_META[ty];
-              const on = type === ty;
-              return (
-                <button
-                  key={ty}
-                  type="button"
-                  onClick={() => setType(ty)}
-                  className={`rounded-lg border px-4 py-4 text-left transition cursor-pointer ${
-                    on ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border)] hover:border-[var(--accent)]/40'
-                  }`}
-                >
-                  <div className="mb-2 h-[3px] w-10 rounded" style={{ background: m.accent }} aria-hidden />
-                  <div className="text-[13px] font-medium text-[var(--text-primary)]">{planTypeLabel(ty)}</div>
-                  <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{planTypeBlurb(ty)}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('health.plans.length_label')}</div>
-          <div className="flex flex-wrap gap-2">
-            {DURATION_PRESETS.map(days => (
-              <button
-                key={days}
-                type="button"
-                onClick={() => setDuration(days)}
-                className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition cursor-pointer ${
-                  duration === days
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/40'
-                }`}
-              >
-                {durationLabel(days)}
-              </button>
-            ))}
-          </div>
-          {onAskAva && <p className="mt-1.5 text-[10px] italic text-[var(--text-muted)]">{t('health.plans.length_ava_note')}</p>}
-        </div>
-
-        {/* The two doors — proper cards with a description each, so the choice
-            reads clearly and the panel doesn't sprawl into empty space. Dimmed
-            until a type is chosen. */}
-        <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('health.plans.how_label')}</div>
-          <div className={`grid grid-cols-1 gap-3 ${onAskAva ? 'sm:grid-cols-2' : ''}`}>
-            {/* Manual door — build it yourself, day by day. */}
-            <button
-              type="button"
-              disabled={!type}
-              onClick={() => { if (type) onCreate(blankPlan(type, duration)); }}
-              className={`rounded-lg border px-4 py-3 text-left transition ${
-                type
-                  ? 'border-[var(--accent)]/40 bg-[var(--accent)]/5 hover:border-[var(--accent)]/70 hover:bg-[var(--accent)]/10 cursor-pointer'
-                  : 'border-[var(--border)] cursor-not-allowed opacity-50'
-              }`}
-            >
-              <div className="text-[13px] font-medium text-[var(--text-primary)]">{onAskAva ? t('health.plans.build_myself') : t('health.plans.start_building')}</div>
-              <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{t('health.plans.build_myself_desc')}</div>
-            </button>
-
-            {/* Ava door — hand the type to Ava in the focused health room. */}
-            {onAskAva && (
-              <button
-                type="button"
-                disabled={!type}
-                onClick={() => { if (type) onAskAva(type); }}
-                className={`rounded-lg border px-4 py-3 text-left transition ${
-                  type
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/15 hover:bg-[var(--accent)]/25 cursor-pointer'
-                    : 'border-[var(--border)] cursor-not-allowed opacity-50'
-                }`}
-              >
-                <div className="text-[13px] font-medium text-[var(--accent)]">{t('health.plans.ask_ava')}</div>
-                <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{t('health.plans.ask_ava_hint')}</div>
-              </button>
-            )}
-          </div>
-          {!type && <p className="mt-2 text-[10px] italic text-[var(--text-muted)]">{t('health.plans.pick_type_first')}</p>}
-
-          {/* The third door, and the fastest one. Deliberately NOT gated on
-              picking a type or a length first: a starter already declares its
-              own, so asking for both up front would be two questions guarding
-              a shelf that answers them. */}
-          {curated && (
-            <button
-              type="button"
-              onClick={() => setShelfOpen(true)}
-              className="mt-3 w-full cursor-pointer rounded-lg border border-[var(--border)] bg-transparent px-4 py-3 text-left transition hover:border-[var(--accent)]/40"
-            >
-              <div className="text-[13px] font-medium text-[var(--text-primary)]">{t('health.starters.open')}</div>
-              <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{t('health.starters.subtitle')}</div>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {shelfOpen && curated && (
-        <StartersSheet
-          plans={curated.plans}
-          loading={curated.loading}
-          error={curated.error}
-          detail={curated.detail}
-          detailLoading={curated.detailLoading}
-          profile={healthProfile ?? null}
-          onLoad={curated.onLoad}
-          onLoadDetail={curated.onLoadDetail}
-          onStart={(plan, id) => { curated.onStart(plan, id); onCancel(); }}
-          onClose={() => setShelfOpen(false)}
-        />
-      )}
-    </div>
-  );
-}
 
 // ── Overlay phase: Builder ───────────────────────────────────────────
 
 function PlanBuilder({
-  plan, onClose, onSave, onDelete, healthProfile, dayAssist,
+  plan, onClose, onSave, onDelete, healthProfile, dayAssist, onOpenShopping,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
 }: {
@@ -1478,6 +1330,7 @@ function PlanBuilder({
   onLoadRecipeDetail: (slug: string) => void;
   healthProfile?: HealthProfile | null;
   dayAssist?: HealthPlansProps['dayAssist'];
+  onOpenShopping?: (planId: string | null) => void;
 }) {
   const [draft, setDraft] = useState<HealthPlan>(plan);
   const [selectedDay, setSelectedDay] = useState<number>(1);
@@ -1667,7 +1520,7 @@ function PlanBuilder({
             value={String(draft.duration_days)}
             onChange={(v) => setDuration(Number(v))}
             size="sm"
-            options={DURATION_PRESETS.map(days => ({ value: String(days), label: durationLabel(days) }))}
+            options={durationOptions(draft.duration_days).map(days => ({ value: String(days), label: durationLabel(days) }))}
           />
         </div>
         <input
@@ -1794,7 +1647,7 @@ function PlanBuilder({
             </button>
             <button
               type="button"
-              onClick={() => setSheet('shopping')}
+              onClick={() => onOpenShopping?.(draft.id)}
               className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] transition cursor-pointer hover:bg-[var(--accent)]/20"
             >
               {t('health.shopping.open')}
@@ -1803,15 +1656,6 @@ function PlanBuilder({
         )}
       </div>
 
-      {sheet === 'shopping' && (
-        <ShoppingListSheet
-          plan={draft}
-          allPlans={[draft]}
-          profile={healthProfile ?? null}
-          onClose={() => setSheet(null)}
-          onLoadRecipeDetail={onLoadRecipeDetail}
-        />
-      )}
       {sheet === 'prep' && <PrepSheet plan={draft} profile={healthProfile ?? null} onClose={() => setSheet(null)} />}
       {assisting && dayAssist && (
         <AssistSheet

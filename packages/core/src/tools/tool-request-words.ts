@@ -36,6 +36,7 @@ export function toolRequestInWords(toolName: string, args: Record<string, unknow
     case 'git_commit': return `Save your changes to Git${args.message ? `: ${short(args.message, 80)}` : ''}`;
     case 'git_create_pr': return `Open a pull request${args.title ? `: ${short(args.title, 80)}` : ''}`;
     case 'present_plan': return `Plan: ${short(args.title ?? 'Untitled')}`;
+    case 'health_plan_create': return `${args.status === 'active' ? 'Start' : 'Save as a draft'} the plan "${short(args.title ?? 'Untitled', 80)}"`;
     case 'ask_user': return short(args.question ?? 'Question', 200);
     default: return `Use its "${toolWords(toolName)}" tool`;
   }

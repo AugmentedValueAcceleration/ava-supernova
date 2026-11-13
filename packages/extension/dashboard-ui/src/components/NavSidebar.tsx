@@ -120,7 +120,6 @@ export function NavSidebar({
   providerKeys,
   aiName,
   selectedJournalDate,
-  onSelectJournalDate,
   taskDates,
   onLoadTaskDates,
   healthPlans,
@@ -355,14 +354,6 @@ export function NavSidebar({
         taskDates={taskDates || []}
         healthPlans={healthPlans || []}
         selectedDate={selectedJournalDate}
-        onDayClick={(iso) => {
-          // Set the planner-wide selected date BEFORE navigating so
-          // both Tasks and Journal land on the day the operator
-          // clicked. Previously the iso was thrown away and Tasks
-          // always showed today; the calendar felt unclickable.
-          if (onSelectJournalDate) onSelectJournalDate(iso);
-          handleNavigate('planner');
-        }}
         onRefresh={onLoadTaskDates}
       />
 
@@ -719,7 +710,6 @@ function TaskCalendar({
   taskDates,
   healthPlans,
   selectedDate,
-  onDayClick,
   onRefresh,
 }: {
   taskDates: string[];
@@ -729,7 +719,6 @@ function TaskCalendar({
    *  the calendar felt unclickable because only "today" was styled
    *  and clicking any other day produced no visible change. */
   selectedDate?: string;
-  onDayClick: (date: string) => void;
   onRefresh?: () => void;
 }) {
   useLocale();
@@ -749,7 +738,10 @@ function TaskCalendar({
   const planMarks = useMemo(() => {
     const map = new Map<string, { training: boolean; meals: boolean; rest: boolean }>();
     for (const p of healthPlans) {
-      if (!p.start_date) continue;
+      // Only what is actually planned (13 Nov 2026): an active plan's days that
+      // hold training or meals. A draft is an idea, not a plan, and 17 empty
+      // drafts were dotting four weeks of the calendar with nothing in them.
+      if (!p.start_date || p.status !== 'active') continue;
       const start = new Date(`${p.start_date}T00:00:00`);
       if (isNaN(start.getTime())) continue;
       const training = p.type === 'fitness' || p.type === 'combined';
@@ -762,7 +754,10 @@ function TaskCalendar({
         const prev = map.get(key) ?? { training: false, meals: false, rest: false };
         // A rest day in a fitness plan is marked as rest, not as training.
         const isRest = training && restDays.has(i + 1);
-        map.set(key, { training: prev.training || (training && !isRest), meals: prev.meals || meals, rest: prev.rest || isRest });
+        const hasTraining = p.training_days ? p.training_days.includes(i + 1) : training && !isRest;
+        const hasMeals = p.meal_days ? p.meal_days.includes(i + 1) : meals;
+        if (!hasTraining && !hasMeals && !isRest) continue;
+        map.set(key, { training: prev.training || hasTraining, meals: prev.meals || hasMeals, rest: prev.rest || isRest });
       }
     }
     return map;
@@ -853,10 +848,12 @@ function TaskCalendar({
               ? 'var(--accent)'
               : 'var(--text-secondary)';
           return (
-            <button
+            // A glance at what is planned, not a way in (operator, 13 Nov
+            // 2026): clicking a day used to open the Planner, often on the
+            // Journal. The page you are on stays put.
+            <span
               key={day}
-              onClick={() => onDayClick(iso)}
-              className="relative flex flex-col items-center justify-center border-none cursor-pointer transition"
+              className="relative flex flex-col items-center justify-center"
               style={{
                 width: 22, height: 22, borderRadius: '50%',
                 background,
@@ -875,7 +872,7 @@ function TaskCalendar({
                   ))}
                 </span>
               )}
-            </button>
+            </span>
           );
         })}
       </div>

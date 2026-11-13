@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef, useCallback, useState } from 'react';
+import { useReducer, useEffect, useRef, useCallback, useState, type ReactNode } from 'react';
 import type {
   ExtToDashboardMessage,
   ChatState,
@@ -360,6 +360,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
               summary: action.summary,
               ...(action.isAskUser ? { isAskUser: true } : {}),
               ...(action.profileField ? { profileField: action.profileField } : {}),
+              ...(action.planReview ? { planReview: action.planReview } : {}),
             },
           };
           return next;
@@ -377,6 +378,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
               summary: action.summary,
               ...(action.isAskUser ? { isAskUser: true } : {}),
               ...(action.profileField ? { profileField: action.profileField } : {}),
+              ...(action.planReview ? { planReview: action.planReview } : {}),
             },
           },
         ];
@@ -941,6 +943,9 @@ export interface ChatPageProps {
   /** Whether Ava's turn on this lane is running, gaps between her tools
    *  included. The Design Studio locks Delete on it. */
   onBusyChange?: (busy: boolean) => void;
+  /** Health lane: shows Ava's plan full-page before it is saved (PlanReview).
+   *  `decide` answers the permission card: save, change (their words), or no. */
+  renderPlanReview?: (r: { review: unknown; decide: (approved: boolean, reason?: string) => void }) => ReactNode;
 }
 
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
@@ -967,7 +972,7 @@ function QuestionReply({ onAnswer }: { onAnswer: (text: string) => void }) {
   );
 }
 
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', designPanel, announcement, suppressAutoFocus, onActivity, onBusyChange }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main', courseId, hideHeader, hideMessages, onComposerFocus, designRoom = 'icon', designPanel, announcement, suppressAutoFocus, onActivity, onBusyChange, renderPlanReview }: ChatPageProps) {
   // Per-room thread key — for learning it includes the course id, so each course
   // has its own saved conversation. 'main' never persists (always-mounted).
   const roomKey = lane === 'main' ? '' : `${lane}${courseId ? ':' + courseId : ''}`;
@@ -1375,8 +1380,22 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
   const lastError = state.messages.filter(m => m.role === 'error').at(-1);
 
+  // Ava's plan waiting on their say-so (health_plan_create's card, with the plan).
+  let pendingPlan: { confirmationId: string; review: unknown } | null = null;
+  if (renderPlanReview) {
+    for (const m of state.messages) for (const e of m.events ?? []) {
+      if (e.kind === 'tool_call' && e.toolCall.name === 'health_plan_create' && e.toolCall.status === 'pending_confirmation' && e.toolCall.confirmationId && e.toolCall.planReview) {
+        pendingPlan = { confirmationId: e.toolCall.confirmationId, review: e.toolCall.planReview };
+      }
+    }
+  }
+
   return (
     <SecretsProvider>
+      {pendingPlan && renderPlanReview?.({
+        review: pendingPlan.review,
+        decide: (approved, reason) => handleConfirmation(pendingPlan!.confirmationId, approved, undefined, undefined, reason),
+      })}
       <div className={`relative flex flex-row ${hideMessages ? '' : 'h-full'}`}>
         {/* Main chat column. When the conversation is hidden (Design Studio's
             collapsed dock), size to the composer only — no full-height stretch,

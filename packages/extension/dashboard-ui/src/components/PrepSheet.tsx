@@ -16,7 +16,7 @@
 import { useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { weekPrep, shortDuration, type PrepDay, type CookOnce } from '../../../../core/dist/health/prep.js';
-import { Sheet } from './ShoppingListSheet';
+import { Sheet } from './Sheet';
 import type { HealthPlan, HealthProfile } from '../types/messages';
 
 export function PrepSheet({ plan, profile, onClose }: {

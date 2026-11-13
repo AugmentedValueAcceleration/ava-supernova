@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+
+// Pin the health profile to none, so the hard-rules screen (Part 1) never
+// reads the real ~/.ava profile of whoever runs the tests.
+process.env.AVA_HEALTH_DIR = require('node:path').join(require('node:os').tmpdir(), 'ava-no-health-profile');
 import { HealthCatalogueSearchTool } from '../src/tools/health-catalogue-search.js';
 
 /**

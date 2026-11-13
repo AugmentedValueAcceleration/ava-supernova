@@ -687,6 +687,9 @@ export class ToolRegistry {
     if (
       tool.name === 'present_plan' || tool.name === 'ask_user' || tool.name === 'switch_mode'
       || tool.name === 'health_profile_ask' || tool.name === 'task_suggest'
+      // A new health plan is SHOWN to them before it is saved (12 Nov 2026);
+      // "always allow" on its category must not skip the look.
+      || tool.name === 'health_plan_create'
     ) return true;
 
     // Tools that handle approval inside their own execute() (desktop-safety-gate
@@ -777,11 +780,18 @@ export class ToolRegistry {
     let approvalMethod: AuditLogEntry['approvalMethod'] = 'auto';
 
     if (this.needsConfirmation(tool, args) && this.confirmationHandler) {
+      // A call that cannot work never reaches the person (Tool.precheck).
+      let review: unknown;
+      if (tool.precheck) {
+        const pre = await tool.precheck(args, context);
+        if (!pre.ok) return { success: false, output: pre.output };
+        review = pre.review;
+      }
       try {
         // Pass the toolCallId from the execution context so UI hosts can
         // attach the confirmation card to the exact tool call instance
         // instead of guessing by name (which races for parallel calls).
-        const result = await this.confirmationHandler(name, args, context.toolCallId);
+        const result = await this.confirmationHandler(name, args, context.toolCallId, review);
 
         // Denied WITH the user's own words. Checked BEFORE the string branch
         // below, and deliberately shaped as an object, because that branch
@@ -797,9 +807,11 @@ export class ToolRegistry {
             // The tool did NOT run. The reason is the user redirecting, not a
             // result — say both, so the model adapts instead of retrying the
             // identical call.
-            output: reason
-              ? `Tool "${name}" was denied by the user. They said: "${reason}"\nDo NOT retry this exact call. Use what they said to decide what to do instead, and ask if it is unclear.`
-              : `Tool "${name}" was denied by the user.`,
+            output: tool.deniedMessage
+              ? tool.deniedMessage(reason || null)
+              : reason
+                ? `Tool "${name}" was denied by the user. They said: "${reason}"\nDo NOT retry this exact call. Use what they said to decide what to do instead, and ask if it is unclear.`
+                : `Tool "${name}" was denied by the user.`,
           };
         }
 
@@ -807,7 +819,7 @@ export class ToolRegistry {
           this.emitAudit(name, category, tool.riskLevel, 'denied', 'denied', argsSummary, args);
           return {
             success: false,
-            output: `Tool "${name}" was denied by the user.`,
+            output: tool.deniedMessage ? tool.deniedMessage(null) : `Tool "${name}" was denied by the user.`,
           };
         }
         // Handler provided a custom result string (e.g., plan approval with context)

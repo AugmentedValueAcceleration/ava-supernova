@@ -189,6 +189,10 @@ export interface HealthPlanSummary {
    *  holds summaries mark rest days differently from training days —
    *  without it every day of a fitness plan wore the training dot. */
   rest_days?: number[];
+  /** Days that actually have training / meals in them (13 Nov 2026). The
+   *  sidebar calendar marks only these, so an empty plan shows nothing. */
+  training_days?: number[];
+  meal_days?: number[];
 }
 
 /** Input to `HealthPlanStore.create` — the tool's argument shape. The

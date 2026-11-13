@@ -1,5 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { screenPlanDays } from '../health/safety.js';
 import type {
   HealthPlanStore,
   HealthPlanCreateInput,
@@ -149,6 +150,53 @@ export class HealthPlanCreateTool implements Tool {
     },
   };
 
+  /**
+   * Before they are asked: the plan is checked against their hard rules, so a
+   * plan that breaks one goes back to Ava to fix and is never put in front of
+   * them. What passes is handed to the preview — the whole plan, plus what is
+   * worth knowing (12 Nov 2026: "so they can view each day").
+   */
+  async precheck(args: Record<string, unknown>, context: ToolExecutionContext): Promise<
+    { ok: true; review: PlanReview } | { ok: false; output: string }
+  > {
+    const invalid = validateCreateArgs(args);
+    if (invalid) return { ok: false, output: invalid };
+    const days = daysFrom(args);
+    const review: PlanReview = {
+      type: args.type as HealthPlanType,
+      title: String(args.title).trim(),
+      duration_days: args.duration_days as number,
+      status: args.status as HealthPlanStatus,
+      start_date: typeof args.start_date === 'string' ? args.start_date : null,
+      days: days ?? [],
+      cautions: [], unverified: [], unknown: [],
+      unchecked: [...new Set((days ?? []).flatMap((d) => [
+        ...(d.training ?? []).filter((e) => !e.ref?.slug).map((e) => e.name),
+        ...(d.meals ?? []).filter((m) => !m.ref?.slug).map((m) => m.name),
+      ]))],
+    };
+    if (days?.length) {
+      const screen = await screenPlanDays(days, { fetchImpl: context.sharedState?.fetchImpl as typeof fetch | undefined });
+      if (!screen.ok) return { ok: false, output: `${screen.message}\n(They have not seen this plan: it was stopped before it reached them.)` };
+      const r = screen.report;
+      if (r) {
+        review.cautions = r.warnings.map((w) => ({ slug: w.slug, name: w.name ?? w.slug, reasons: w.reasons, alternatives: w.alternatives ?? [] }));
+        review.unverified = r.unverified;
+        review.unknown = r.unknown;
+      }
+    }
+    return { ok: true, review };
+  }
+
+  deniedMessage(reason: string | null): string {
+    return reason
+      ? `Nothing was saved. They looked at the plan and asked for changes: "${reason}"\n` +
+        'Make exactly those changes (health_catalogue_search for any swap), keep everything else as it was, ' +
+        'and call health_plan_create again with the WHOLE revised plan — they will see it again before it is saved. ' +
+        'Say in one short line what you changed. If what they asked is unclear, ask first.'
+      : 'Nothing was saved: they chose not to keep this plan. Do not save it another way. Ask, briefly, what they would like instead.';
+  }
+
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const store = context.sharedState?.healthPlanStore as HealthPlanStore | undefined;
     if (!store) {
@@ -218,6 +266,17 @@ export class HealthPlanCreateTool implements Tool {
       start_date = d;
     }
 
+    // Their hard rules — allergens, diets, injuries, kit — checked in code
+    // before anything is saved (Part 1, 11 Nov 2026). Until now a plan built
+    // here was checked only by a line in the prompt. Safety lives in
+    // core/src/health/safety.ts; a breach refuses the whole save.
+    let safetyNote = '';
+    if (days?.length) {
+      const screen = await screenPlanDays(days, { fetchImpl: context.sharedState?.fetchImpl as typeof fetch | undefined });
+      if (!screen.ok) return { success: false, output: screen.message };
+      safetyNote = screen.message;
+    }
+
     const input: HealthPlanCreateInput = { type, title, goal, duration_days, status, days, start_date };
 
     try {
@@ -235,6 +294,7 @@ export class HealthPlanCreateTool implements Tool {
           `with plan_id=${created.id} to fill them.`,
         );
       }
+      if (safetyNote) parts.push(`\n${safetyNote}`);
       return {
         success: true,
         output: parts.join(' '),
@@ -251,6 +311,40 @@ export class HealthPlanCreateTool implements Tool {
       return { success: false, output: `Failed to create plan: ${msg}` };
     }
   }
+}
+
+// ─── The preview's shape, and the checks both paths share ────────────────────
+
+/** What the person sees before the plan is saved (both apps' PlanReview). */
+export interface PlanReview {
+  type: HealthPlanType;
+  title: string;
+  duration_days: number;
+  status: HealthPlanStatus;
+  start_date: string | null;
+  days: HealthPlanDay[];
+  cautions: Array<{ slug: string; name: string; reasons: string[]; alternatives: Array<{ slug: string; name: string }> }>;
+  /** Allergens the library cannot confirm a dish is free from. */
+  unverified: string[];
+  /** Library slugs that were not found, so not checked. */
+  unknown: string[];
+  /** Written in without a library entry, so not checked. */
+  unchecked: string[];
+}
+
+function validateCreateArgs(args: Record<string, unknown>): string | null {
+  const type = args.type;
+  if (typeof type !== 'string' || !['fitness', 'meal', 'combined'].includes(type)) return 'Missing or invalid `type` (must be fitness | meal | combined).';
+  if (typeof args.title !== 'string' || !args.title.trim()) return 'Missing required field: `title`.';
+  if (typeof args.duration_days !== 'number' || ![1, 3, 7].includes(args.duration_days)) return 'Invalid `duration_days` — must be 1, 3 or 7.';
+  if (typeof args.status !== 'string' || !['draft', 'active'].includes(args.status)) return 'Missing or invalid `status` (must be `draft` or `active`). Ask the user explicitly — there is no default.';
+  return null;
+}
+
+function daysFrom(args: Record<string, unknown>): HealthPlanDay[] | undefined {
+  if (!Array.isArray(args.days)) return undefined;
+  const days = (args.days as unknown[]).map((d) => normaliseDay(d)).filter((d): d is HealthPlanDay => d !== null);
+  return days.length ? days : undefined;
 }
 
 // ─── Day-shape normalisers ───────────────────────────────────────────────────

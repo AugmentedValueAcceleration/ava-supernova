@@ -24,6 +24,13 @@ const LEVELS: SkillLevel[] = ['beginner', 'intermediate', 'expert'];
  * Refusals are instructions, not scolding: she adds the line or fixes the step
  * and re-calls in the same turn.
  */
+/** A first-person claim of something lived: a memory, a taste, a family.
+ *  Opinion ("I love how...") is fine and does not match. */
+export function inventedExperience(text: string): string | null {
+  const m = text.match(/\b(I remember|I recall|I still recall|the first time I|when I was (?:a |young|little)|I grew up|growing up,? I|I['’]ve (?:always )?(?:cooked|made|eaten|tasted|spent|stood|watched|seen)|I (?:cooked|tasted|ate|learned to|first learned|first made|first tasted|visited|travelled|traveled|watched|stood)|my (?:grand(?:mother|father|ma|pa)|mother|mum|mom|father|dad|aunt|uncle|nan|nonna|abuela|family|childhood|kitchen))\b/i);
+  return m ? m[0] : null;
+}
+
 export class WriteRecipeTool implements Tool {
   readonly name = 'write_recipe';
   readonly description =
@@ -46,8 +53,8 @@ export class WriteRecipeTool implements Tool {
         },
         cuisine_slug: { type: 'string', description: 'Deprecated — use cuisines. A single cuisine slug.' },
         origin_country: { type: 'string' },
-        course: { type: 'string', enum: ['main', 'starter', 'dessert', 'breakfast', 'side', 'snack'] },
-        overview: { type: 'string', description: 'What the dish is and why it matters. No breathless food-blog throat-clearing.' },
+        course: { type: 'string', enum: ['main', 'starter', 'dessert', 'breakfast', 'side', 'snack', 'sauce', 'condiment'], description: 'sauce = sauces, marinades and stocks (nutrition shown per 100 g); condiment = spice blends, relishes, dressings, pastes (per tablespoon). Neither has servings that matter.' },
+        overview: { type: 'string', description: 'What the dish is and why it matters, in your own voice and TRUE: origins, how it is eaten, what makes it work, what to watch for. Your view is welcome ("I love how..."); a claimed experience is not: no memories, no tasting, no "the first time I", no family. Only ingredients this recipe uses. No breathless food-blog throat-clearing.' },
         source_attribution: { type: 'string', description: 'Where the recipe is adapted from, if anywhere specific.' },
         cost_tier: { type: 'string', enum: ['budget', 'moderate', 'special'], description: 'Rough cost to make.' },
         hero_image_prompt: { type: 'string', description: 'The subject of the hero photograph — the finished dish, plated honestly.' },
@@ -57,9 +64,9 @@ export class WriteRecipeTool implements Tool {
           items: {
             type: 'object',
             properties: {
-              name: { type: 'string', description: 'Singular, no quantity in the name.' },
+              name: { type: 'string', description: 'Singular, no quantity in the name, no prep words (put "minced" in notes). British first with the American in brackets where the word differs: fresh coriander (cilantro), aubergine (eggplant), plain flour (all-purpose flour), double cream (heavy cream). Rice, pasta, noodles and lentils: plain = DRY weight, say "cooked" if they go in cooked. Beans: "dried" or "tinned (canned)".' },
               quantity: { type: 'number' },
-              unit: { type: 'string' },
+              unit: { type: 'string', description: 'g, kg, ml, l, tsp, tbsp, or for counted things piece / clove / slice / sprig / leaf / stalk / pinch / can.' },
               notes: { type: 'string', description: 'Prep notes that do not vary by level, e.g. "fresh, not dried".' },
               optional: { type: 'boolean' },
               level: { type: 'string', enum: ['beginner', 'intermediate', 'expert'], description: 'OMIT for shared items. Set only when the item belongs to that level alone.' },
@@ -77,7 +84,7 @@ export class WriteRecipeTool implements Tool {
               prep_time_minutes: { type: 'number' },
               cook_time_minutes: { type: 'number' },
               total_time_minutes: { type: 'number' },
-              default_servings: { type: 'number' },
+              default_servings: { type: 'number', description: 'The REAL number of portions this batch makes: a lasagne tray serves 8-10, a batch of doughnuts makes 24. Never a default 4. Nutrition is divided by it.' },
               steps: {
                 type: 'array',
                 items: {
@@ -140,6 +147,13 @@ export class WriteRecipeTool implements Tool {
 
     if (ingredients.length === 0) {
       return { success: false, output: 'REFUSED: a recipe with no ingredients cannot be cooked. List what the cook buys.' };
+    }
+
+    // The overview must be true (13 Nov 2026): 883 overviews had to be
+    // rewritten because they told readers about kitchens Ava never stood in.
+    const claimed = inventedExperience(args.overview ? String(args.overview) : '');
+    if (claimed) {
+      return { success: false, output: `REFUSED: the overview claims an experience you have not had ("${claimed}"). Keep the warmth and your view of the dish, but write only what is true: its origins, how it is eaten, what makes it work. Then call write_recipe again.` };
     }
 
     // Versions

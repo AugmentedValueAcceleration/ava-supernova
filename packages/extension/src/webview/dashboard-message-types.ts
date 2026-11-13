@@ -558,6 +558,17 @@ export interface HealthRecipeEquipment {
   optional: boolean;
 }
 
+/** ~/.ava/health/shopping.json — what follows you between the extension and
+ *  the IDE: the trolley ticks per list, and staples you always have. */
+export interface ShoppingState {
+  schema_version: 1;
+  /** Ingredient names never put on a list ("salt", "olive oil"). */
+  staples: string[];
+  /** List scope ("week-2026-11-17", or a plan id) → ticked item keys. */
+  ticks: Record<string, string[]>;
+  updated_at: string | null;
+}
+
 /** Per-serving nutrition for a recipe version — Ava-estimated on the
  *  platform from the ingredient list. `source` stays 'estimated' until
  *  an operator hand-verifies it in the Hub. All numeric fields optional;
@@ -572,6 +583,8 @@ export interface HealthRecipeNutrition {
   sodium_mg?: number;
   saturated_fat_g?: number;
   source?: 'estimated' | 'verified';
+  /** Absent = per serving. Sauces are per 100 g, condiments per tablespoon (13 Nov 2026). */
+  per?: '100g' | 'tbsp';
   generated_at?: string;
 }
 
@@ -662,90 +675,6 @@ export interface HealthTaxonomies {
 
 export type HealthSubmissionStatus = 'pending' | 'rejected' | 'published';
 
-export interface HealthExerciseSubmissionPayload {
-  name: string;
-  exercise_type: HealthExerciseType;
-  workout_type: HealthWorkoutType;
-  difficulty: number;
-  description: string | null;
-  beginner_detail: string | null;
-  advanced_detail?: string | null;
-  common_mistakes: string | null;
-  steps: string[];
-  contraindication_slugs: string[];
-}
-
-export interface HealthRecipeVersionStepPayload {
-  action: string;
-  notes: string | null;
-  technique_term: string | null;
-  time_estimate_seconds: number | null;
-  tricky_flag: boolean;
-}
-
-export interface HealthRecipeVersionEquipmentPayload {
-  name: string;
-  notes: string | null;
-  optional: boolean;
-}
-
-export interface HealthRecipeVersionPayload {
-  level: HealthRecipeSkillLevel;
-  description: string | null;
-  prep_time_minutes: number | null;
-  cook_time_minutes: number | null;
-  total_time_minutes: number | null;
-  default_servings: number | null;
-  steps: HealthRecipeVersionStepPayload[];
-  equipment: HealthRecipeVersionEquipmentPayload[];
-  diet_slugs: string[];
-  dietary_flag_slugs: string[];
-}
-
-export interface HealthRecipeSubmissionPayload {
-  name: string;
-  cuisine_slug: string | null;
-  course: string | null;
-  origin_country: string | null;
-  overview: string | null;
-  ingredients: Array<{
-    name: string;
-    quantity: number | null;
-    unit: string | null;
-    optional: boolean;
-    notes: string | null;
-  }>;
-  allergen_slugs: string[];
-  /** Skill-level versions. Empty array = no versions persisted (operator
-   *  composes them post-approval). Ava-drafted submissions produce 3
-   *  versions (beginner / intermediate / expert); manual submissions
-   *  produce 0-3 depending on what the submitter fills in. */
-  versions: HealthRecipeVersionPayload[];
-}
-
-export interface HealthMySubmissionExercise {
-  id: string;
-  slug: string;
-  name: string;
-  status: HealthSubmissionStatus;
-  submitted_at: string | null;
-  reviewed_at: string | null;
-  review_notes: string | null;
-  exercise_type: string;
-  workout_type: string;
-}
-
-export interface HealthMySubmissionRecipe {
-  id: string;
-  slug: string;
-  name: string;
-  status: HealthSubmissionStatus;
-  submitted_at: string | null;
-  reviewed_at: string | null;
-  review_notes: string | null;
-  course: string | null;
-}
-
 /**
  * Health Profile — the operator's body stats, goals, constraints,
  * and schedule. Drives the Health Dashboard's morning brief,
@@ -753,6 +682,15 @@ export interface HealthMySubmissionRecipe {
  *
  * Stored locally — works fully for BYOK / no-account users.
  */
+/** One library item's verdict against their hard rules (core health/safety). */
+export interface HealthSafetyVerdict {
+  slug: string;
+  verdict: 'ok' | 'warn' | 'blocked';
+  reasons: string[];
+  unverified: string[];
+  alternatives?: Array<{ slug: string; name: string }>;
+}
+
 export interface HealthProfile {
   schema_version: 1;
   updated_at: string | null;
@@ -890,11 +828,6 @@ export interface HealthDailyPlan {
   items: HealthDailyPlanItem[];
   log: HealthDailyLog;
   updated_at: string | null;
-}
-
-export interface HealthMySubmissions {
-  exercises: HealthMySubmissionExercise[];
-  recipes: HealthMySubmissionRecipe[];
 }
 
 /**
@@ -1124,63 +1057,10 @@ export interface HealthPlanSummary {
    *  holds summaries mark rest days differently from training days —
    *  without it every day of a fitness plan wore the training dot. */
   rest_days?: number[];
-}
-
-// ─── Ava-assisted generation (community submission drafts) ─────────────────
-
-export interface HealthGenerateExerciseIntake {
-  prompt: string;
-  goal?: string;
-  equipment?: string;
-  level?: string;
-  /** When true, Ava picks a concept herself — empty prompt is allowed and
-   *  the server switches to a creative-bias prompt that avoids names
-   *  already in the catalog. */
-  surprise?: boolean;
-}
-
-export interface HealthGenerateRecipeIntake {
-  prompt: string;
-  cuisine_hint?: string;
-  course_hint?: string;
-  dietary?: string;
-  surprise?: boolean;
-}
-
-/** Draft returned by /api/health/generate/exercise — same shape as the
- *  manual submission payload so the form can be pre-filled from it. */
-export interface HealthExerciseDraft {
-  name: string;
-  exercise_type: HealthExerciseType;
-  workout_type: HealthWorkoutType;
-  difficulty: number;
-  description: string;
-  beginner_detail: string;
-  advanced_detail?: string;
-  common_mistakes: string;
-  steps: string[];
-  contraindication_slugs: string[];
-}
-
-/** Draft returned by /api/health/generate/recipe — same shape as the
- *  manual submission payload (modulo `quantity: number | null` matching
- *  what the form's number input accepts). Includes the full per-skill-
- *  level versions structure so the review form can render every level. */
-export interface HealthRecipeDraft {
-  name: string;
-  cuisine_slug: string | null;
-  course: string | null;
-  origin_country: string | null;
-  overview: string;
-  ingredients: Array<{
-    name: string;
-    quantity: number | null;
-    unit: string | null;
-    optional: boolean;
-    notes: string | null;
-  }>;
-  allergen_slugs: string[];
-  versions: HealthRecipeVersionPayload[];
+  /** Days that actually have training / meals in them (13 Nov 2026). The
+   *  sidebar calendar marks only these, so an empty plan shows nothing. */
+  training_days?: number[];
+  meal_days?: number[];
 }
 
 // ─── Release Notes ──────────────────────────────────────────────────────────
@@ -1249,6 +1129,8 @@ export interface ToolCallDisplay {
   /** health_profile_ask — structured profile-field card payload (goal cards,
    *  chips, number box). The webview resolves the control from HEALTH_PROFILE_FIELDS. */
   profileField?: { field: string; question: string; currentValue?: unknown };
+  /** health_plan_create — the whole plan, already checked (core PlanReview). */
+  planReview?: unknown;
 }
 
 /**
@@ -1679,8 +1561,8 @@ export type ExtToDashboardMessage =
       unverifiable_allergens?: string[];
       error?: string;
     }
-  | { type: 'health_submission_result'; kind: 'exercise' | 'recipe'; ok: boolean; error?: string; submission?: { id: string; slug: string; name: string; status: HealthSubmissionStatus } }
   | { type: 'health_profile_loaded'; profile: HealthProfile }
+  | { type: 'shopping_state_loaded'; state: ShoppingState }
   | { type: 'health_profile_saved'; profile: HealthProfile }
   | { type: 'general_profile_loaded'; profile: GeneralProfile | null }
   | { type: 'general_profile_saved'; profile: GeneralProfile }
@@ -1691,6 +1573,9 @@ export type ExtToDashboardMessage =
   | { type: 'health_plan_loaded'; plan: HealthPlan | null }
   | { type: 'active_health_plans_loaded'; plans: HealthPlan[] }
   | { type: 'health_plan_saved'; plan: HealthPlan; plans: HealthPlanSummary[] }
+  /** Verdicts for library items against their hard rules (Part 1, 11 Nov 2026).
+   *  `checked: false` = the check could not run: show results as NOT checked. */
+  | { type: 'health_safety_result'; results: Record<string, HealthSafetyVerdict>; checked: boolean; rules: boolean }
   | { type: 'health_plan_deleted'; id: string; plans: HealthPlanSummary[] }
   // Catalog search for the plan editor's "+ Add" picker — separate from
   // the Health page's grid state so the two never collide. `seq` drops
@@ -1703,8 +1588,6 @@ export type ExtToDashboardMessage =
   | { type: 'plan_exercise_detail_loaded'; slug: string; exercise: HealthExerciseDetail | null }
   | { type: 'plan_recipe_detail_loaded'; slug: string; recipe: HealthRecipeDetail | null }
   | { type: 'health_morning_brief_generated'; ok: boolean; brief?: string; error?: string }
-  | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
-  | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
   /**
    * The verdict on one open answer, keyed by the step that asked for it.
    *
@@ -1805,7 +1688,7 @@ export type ExtToDashboardMessage =
   | { type: 'stream_end' }
   | { type: 'tool_call_start'; toolCall: { id: string; name: string; arguments: string } }
   | { type: 'tool_call_end'; toolCallId: string; result: string; success: boolean }
-  | { type: 'tool_confirmation_request'; confirmationId: string; toolCallId?: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean; profileField?: { field: string; question: string; currentValue?: unknown } }
+  | { type: 'tool_confirmation_request'; confirmationId: string; toolCallId?: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean; profileField?: { field: string; question: string; currentValue?: unknown }; planReview?: unknown }
   | { type: 'category_permissions'; permissions: Record<string, string>; mode: string }
   | { type: 'audit_log'; entries: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }>; findings?: unknown[] }
   | { type: 'audit_findings'; findings: unknown[] }
@@ -2096,9 +1979,9 @@ export type DashboardToExtMessage =
   | { type: 'load_health_exercise_detail'; slug: string; locale?: string }
   | { type: 'load_health_recipe_detail'; slug: string; locale?: string }
   | { type: 'load_health_taxonomies' }
-  | { type: 'submit_health_exercise'; payload: HealthExerciseSubmissionPayload }
-  | { type: 'submit_health_recipe'; payload: HealthRecipeSubmissionPayload }
   | { type: 'load_health_profile' }
+  | { type: 'load_shopping_state' }
+  | { type: 'save_shopping_state'; state: ShoppingState }
   | { type: 'save_health_profile'; profile: HealthProfile }
   | { type: 'load_general_profile' }
   | { type: 'save_general_profile'; profile: GeneralProfile }
@@ -2109,6 +1992,8 @@ export type DashboardToExtMessage =
   | { type: 'load_health_plan'; id: string }
   | { type: 'load_active_health_plans' }
   | { type: 'save_health_plan'; plan: HealthPlan }
+  /** Check library items against their hard rules. Slugs only leave the machine. */
+  | { type: 'health_safety_check'; recipes: string[]; exercises: string[] }
   | { type: 'delete_health_plan'; id: string }
   // Catalog search for the plan editor's "+ Add" picker.
   | { type: 'search_plan_exercises'; q: string; offset?: number; workoutType?: string; seq: number }
@@ -2116,8 +2001,6 @@ export type DashboardToExtMessage =
   | { type: 'load_plan_exercise_detail'; slug: string }
   | { type: 'load_plan_recipe_detail'; slug: string }
   | { type: 'generate_health_morning_brief'; date: string }
-  | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
-  | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }
   | { type: 'load_roadmap' }
   | { type: 'load_task_dates' }
   | { type: 'save_avatar'; data: string; mimeType: string }

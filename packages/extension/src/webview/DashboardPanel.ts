@@ -52,7 +52,8 @@ import {
   listImageWork, restoreImageStep, chooseImageMain, keepImageVersion, deleteImageVersion, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS,
   // Library folders + their own uploads (Library folders and packs, Phase 1).
   readFolders, createFolder, renameFolder, moveFolder, deleteFolder, addToFolder, removeFromFolder, setMemberPick, missingFiles, uploadToLibrary, UPLOAD_KINDS,
-  exportFolder, previewFolderExport, setFolderNote, STORE_PROFILES, STORE_TRADEMARK_NOTICE, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
+  exportFolder, previewFolderExport, setFolderNote, STORE_PROFILES, STORE_TRADEMARK_NOTICE,
+  loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipe, checkExercise, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
@@ -90,8 +91,6 @@ import type {
   HealthDailyPlan,
   HealthPlan,
   HealthPlanSummary,
-  HealthExerciseDraft,
-  HealthRecipeDraft,
   ReleaseNote,
   RoadmapTheme,
 } from './dashboard-message-types.js';
@@ -1533,116 +1532,6 @@ export class DashboardPanel {
         break;
       }
 
-      case 'submit_health_exercise':
-      case 'submit_health_recipe': {
-        const kind = msg.type === 'submit_health_exercise' ? 'exercise' : 'recipe';
-        try {
-          // Auth optional — BYOK / no-account users contribute anonymously
-          // via the device-id pseudonym (X-Ava-Device, already attached by
-          // apiFetch). Signed-in users get full attribution.
-          this.log(`[health] submit ${kind} `);
-          const res = await apiFetch(`/health/submissions/${kind}`, {
-            method: 'POST',
-            body: msg.payload,
-            timeoutMs: 15000,
-          });
-          if (!res.ok) {
-            const errorMsg = (res.data as { error?: string } | string | null)
-              && typeof res.data === 'object'
-              ? (res.data as { error?: string }).error ?? `HTTP ${res.status}`
-              : `HTTP ${res.status}`;
-            this.log(`[health] submit ${kind} failed: ${errorMsg}`);
-            this.post({ type: 'health_submission_result', kind, ok: false, error: errorMsg });
-            break;
-          }
-          const sub = (res.data as { submission?: { id: string; slug: string; name: string; status: 'pending' | 'rejected' | 'published' } }).submission;
-          this.post({ type: 'health_submission_result', kind, ok: true, submission: sub });
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          this.log(`[health] submit ${kind} error: ${errorMsg}`);
-          this.post({ type: 'health_submission_result', kind, ok: false, error: errorMsg });
-        }
-        break;
-      }
-
-      case 'generate_health_exercise_draft':
-      case 'generate_health_recipe_draft': {
-        const kind = msg.type === 'generate_health_exercise_draft' ? 'exercise' : 'recipe';
-        try {
-          // The user's own Qwen key via X-BYOK-* headers — the server proxies
-          // the call on their key.
-          const byokProvider = await this.secrets.get('ava-supernova.provider.qwen.apiKey').then(k => k ? 'qwen' : null);
-          const byokKey = byokProvider ? await this.secrets.get(`ava-supernova.provider.${byokProvider}.apiKey`) : null;
-          const extraHeaders: Record<string, string> = {};
-          if (byokProvider && byokKey) {
-            extraHeaders['X-BYOK-Provider'] = byokProvider;
-            extraHeaders['X-BYOK-Key'] = byokKey;
-          }
-          if (!byokKey) {
-            this.post({
-              type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
-              ok: false,
-              error: 'Ava generation needs your Qwen key — add it in Settings.',
-            });
-            break;
-          }
-          this.log(`[health] generate ${kind} draft (byok:${byokProvider})`);
-          const res = await apiFetch(`/health/generate/${kind}`, {
-            method: 'POST',
-            body: msg.intake,
-            extraHeaders,
-            // Three full skill versions × steps + equipment + diets + flags
-            // can push the recipe generation well past 120s. Aligned with the
-            // recipe route's 300s maxDuration (Vercel Pro ceiling) so neither
-            // side gives up first. Exercise drafts will finish much sooner —
-            // they don't need this much headroom, but using the same timeout
-            // keeps the message handler simple.
-            timeoutMs: 300000,
-          });
-          if (!res.ok) {
-            // Format error so the operator sees the actual reason, not
-            // just "HTTP 0". `res.data` is a string for network / timeout
-            // failures and an object with `error` for server-emitted
-            // failures.
-            const errorMsg = res.data && typeof res.data === 'object' && 'error' in res.data
-              ? String((res.data as { error?: string }).error ?? `HTTP ${res.status}`)
-              : typeof res.data === 'string' && res.data
-                ? `HTTP ${res.status} — ${res.data}`
-                : `HTTP ${res.status}`;
-            this.log(`[health] generate ${kind} failed: ${errorMsg}`);
-            this.post({
-              type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
-              ok: false,
-              error: errorMsg,
-            });
-            break;
-          }
-          const draft = (res.data as { draft?: HealthExerciseDraft | HealthRecipeDraft }).draft;
-          if (!draft) {
-            this.post({
-              type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
-              ok: false,
-              error: 'Generation returned no draft',
-            });
-            break;
-          }
-          if (kind === 'exercise') {
-            this.post({ type: 'health_exercise_draft_generated', ok: true, draft: draft as HealthExerciseDraft });
-          } else {
-            this.post({ type: 'health_recipe_draft_generated', ok: true, draft: draft as HealthRecipeDraft });
-          }
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          this.log(`[health] generate ${kind} error: ${errorMsg}`);
-          this.post({
-            type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
-            ok: false,
-            error: errorMsg,
-          });
-        }
-        break;
-      }
-
       case 'grade_open_answer': {
         // Graded on the model the USER chose, by the view provider, which is
         // the only place that holds both the selection and the keys.
@@ -1694,6 +1583,16 @@ export class DashboardPanel {
           this.log(`[classroom] grade error: ${error}`);
           this.post({ type: 'open_answer_graded', stepId: msg.stepId, ok: false, error });
         }
+        break;
+      }
+
+      case 'load_shopping_state': {
+        this.post({ type: 'shopping_state_loaded', state: healthStore.readShopping(this.healthDir()) });
+        break;
+      }
+
+      case 'save_shopping_state': {
+        await healthStore.writeShopping(this.healthDir(), msg.state);
         break;
       }
 
@@ -1767,6 +1666,31 @@ export class DashboardPanel {
         const plans = await this.saveHealthPlan(msg.plan);
         const saved = this.getHealthPlan(msg.plan.id);
         if (saved) this.post({ type: 'health_plan_saved', plan: saved, plans });
+        break;
+      }
+
+      case 'health_safety_check': {
+        // Their hard rules against what the library is showing (Part 1).
+        // Profile read here, on their machine; only slugs go to the server.
+        try {
+          // EVERY slug asked about gets an answer, so the screen never has to
+          // guess: no rules → ok; not found in the library → not checked.
+          const { profile, level } = await loadSafetyProfile();
+          const results: Record<string, unknown> = {};
+          const ok = (slug: string) => ({ slug, verdict: 'ok', reasons: [], unverified: [] });
+          if (!hasHardRules(profile)) {
+            for (const slug of [...msg.recipes, ...msg.exercises]) results[slug] = ok(slug);
+            this.post({ type: 'health_safety_result', results, checked: true, rules: false } as never);
+            break;
+          }
+          const facts = await fetchSafetyFacts({ recipes: msg.recipes, exercises: msg.exercises, level });
+          const unknown = (slug: string) => ({ slug, verdict: 'warn', reasons: ['not found in the library, so not checked against your rules'], unverified: [] });
+          for (const slug of msg.recipes) results[slug] = facts.recipes[slug] ? checkRecipe(facts.recipes[slug], profile) : unknown(slug);
+          for (const slug of msg.exercises) results[slug] = facts.exercises[slug] ? checkExercise(facts.exercises[slug], profile) : unknown(slug);
+          this.post({ type: 'health_safety_result', results, checked: true, rules: true } as never);
+        } catch {
+          this.post({ type: 'health_safety_result', results: {}, checked: false, rules: true });
+        }
         break;
       }
 
@@ -4881,6 +4805,8 @@ export class DashboardPanel {
           id: p.id, type: p.type, title: p.title, status: p.status,
           duration_days: p.duration_days, start_date: p.start_date, source: p.source, updated_at: p.updated_at,
           rest_days: p.days.filter((d) => d.kind === 'rest').map((d) => d.day_index),
+          training_days: p.days.filter((d) => (d.training ?? []).length > 0).map((d) => d.day_index),
+          meal_days: p.days.filter((d) => (d.meals ?? []).length > 0).map((d) => d.day_index),
         });
       }
     }

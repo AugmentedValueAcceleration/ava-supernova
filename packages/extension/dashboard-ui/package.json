@@ -13,6 +13,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "lucide": "^1.23.0",
     "opentype.js": "^2.0.0",
+    "qrcode-generator": "2.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^9.1.0",

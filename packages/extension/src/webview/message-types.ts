@@ -68,6 +68,8 @@ export type ExtToWebviewMessage =
        *  chips, number box) instead of the plain ask_user text box. The webview
        *  resolves the control/options from the shared HEALTH_PROFILE_FIELDS registry. */
       profileField?: { field: string; question: string; currentValue?: unknown };
+      /** health_plan_create — the whole plan, already checked, for the preview. */
+      planReview?: unknown;
     }
   | {
       type: 'usage';

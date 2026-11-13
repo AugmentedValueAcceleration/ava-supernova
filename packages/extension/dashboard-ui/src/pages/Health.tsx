@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, type ReactNode, type ComponentProps } from 'react';
+import { ShoppingPage } from '../components/ShoppingPage';
+import { PlanReview, type PlanReviewData } from '../components/PlanReview';
 import { useTabTransition } from '../lib/useTabTransition';
 import { TabSpinner } from '../components/TabSpinner';
 import { ContentRating, type RatingVerdict } from '../components/ContentRating';
 import { StarterShelf, StarterDetailBody } from '../components/StartersSheet';
 import { planFromCurated } from '../../../../core/dist/health/starters.js';
-import type { HealthPlan } from '../types/messages';
+import type { HealthPlan, ShoppingState } from '../types/messages';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { Chat } from './Chat';
@@ -12,11 +14,6 @@ import type { ExtToDashboardMessage } from '../types/messages';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
 import { HealthPlans } from './HealthPlans';
-import { HealthSubmissionModal } from './HealthSubmissionModal';
-
-/** Exactly what the modal needs, minus the bits this page owns. */
-type HealthSubmissionsBundle =
-  Omit<ComponentProps<typeof HealthSubmissionModal>, 'open' | 'onClose'>;
 import { HealthProfilePage } from './HealthProfilePage';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
@@ -90,7 +87,7 @@ const courseLabel = (course: string): string => t(`health.browse.course.${course
  * library you build from next, the profile behind it, and Ava last because she
  * is reached from everywhere.
  */
-type Tab = 'plans' | 'starters' | 'exercises' | 'recipes' | 'profile' | 'ava';
+type Tab = 'plans' | 'shopping' | 'starters' | 'exercises' | 'recipes' | 'profile' | 'ava';
 /** Card layout for the browse grids. Persisted + shared across both tabs. */
 type View = 'grid' | 'list';
 const VIEW_KEY = 'ava-health-view';
@@ -122,11 +119,6 @@ interface Props {
   // Recipe/exercise taxonomies — used by the browse filters.
   taxonomies: HealthTaxonomies | null;
   onLoadTaxonomies: () => void;
-  /** Everything HealthSubmissionModal needs. It lived under Account until
-   *  2026-08-10, reached through "My submissions" — which meant contributing an
-   *  exercise required going to account settings to do it. It belongs beside
-   *  the catalogue you noticed the gap in. */
-  healthSubmissions: HealthSubmissionsBundle;
 
   // ── Plans and profile, now rendered here rather than under Account ──────
   /** The whole HealthPlans prop bundle, passed through untouched. */
@@ -154,6 +146,9 @@ interface Props {
   // once on mount so a later plain visit lands on the default tab.
   initialTab: Tab | null;
   onConsumeInitialTab: () => void;
+  /** ~/.ava/health/shopping.json — ticks and cupboard staples (Shopping tab). */
+  shopping: ShoppingState | null;
+  onSaveShopping: (next: ShoppingState) => void;
 }
 
 export function Health({
@@ -177,13 +172,13 @@ export function Health({
   onLoadRecipeDetail,
   taxonomies,
   onLoadTaxonomies,
-  healthSubmissions,
   healthPlans, onAskAvaPlan,
   healthProfile, onSaveHealthProfile, curated, dayAssist, trainingLog,
   onRegisterHealthChatDispatch,
   userName,
   userAvatarUrl,
   initialTab,
+  shopping, onSaveShopping,
   onConsumeInitialTab,
 }: Props) {
   useLocale();
@@ -194,6 +189,8 @@ export function Health({
   // here stays immediate because it is also called from the initialTab sync
   // effect and from inside other handlers, where a deferred state change would
   // be a behaviour change on paths that expect it to land at once.
+  /** A plan's "Shopping list" button opens the Shopping tab on that plan. */
+  const [shoppingPlanId, setShoppingPlanId] = useState<string | null>(null);
   const { current: tab, pending: pendingTab, switchTo: switchTab, setNow: setTab } =
     useTabTransition<Tab>(() => initialTab ?? 'plans');
   /** A card opened from the Ready-made tab, shown as its full week. */
@@ -201,7 +198,6 @@ export function Health({
   /** An exercise opened from inside a plan. Separate from the Exercises
    *  tab's own slug so backing out returns to the PLAN, not the catalogue. */
   const [starterExerciseSlug, setStarterExerciseSlug] = useState<string | null>(null);
-  const [contributeOpen, setContributeOpen] = useState(false);
   // Grid/list view — shared across both browse tabs, persisted across sessions.
   const [view, setView] = useState<View>(() => {
     try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid'; } catch { return 'grid'; }
@@ -373,28 +369,19 @@ export function Health({
               {t('health.browse.summary', { exercises: exercisesError ? '—' : exercisesTotal, recipes: recipesError ? '—' : recipesTotal })}
             </p>
           </div>
-          {/* The "Your plans →" and "Edit your profile →" escape hatches into
-              Account are gone: both are tabs on this page now. And so is
-              contributing — you notice a missing exercise while looking at the
-              exercises, not while reading your account settings. */}
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setContributeOpen(true)}
-              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition cursor-pointer"
-            >
-              {t('health.submit.contribute_title')}
-            </button>
-          </div>
+          {/* Contribute is gone (11 Nov 2026): with no accounts there is no
+              library contribution path we offer. The form still exists as
+              dead code until the Phase 8 clean-up. */}
         </div>
 
         {/* Top tabs — canonical dashboard style (border-b-2 + --accent var,
             matches Settings/Planner/History/Overview). */}
         <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
-          {(['plans', 'starters', 'exercises', 'recipes', 'profile', 'ava'] as Tab[]).map((tabKey) => {
+          {(['plans', 'shopping', 'starters', 'exercises', 'recipes', 'profile', 'ava'] as Tab[]).map((tabKey) => {
             const isActive = tab === tabKey;
             const label =
               tabKey === 'plans' ? t('health.browse.tab.plans') :
+              tabKey === 'shopping' ? tt('health.browse.tab.shopping', 'Shopping') :
               tabKey === 'starters' ? t('health.browse.tab.starters') :
               tabKey === 'exercises' ? t('health.browse.tab.exercises') :
               tabKey === 'recipes' ? t('health.browse.tab.recipes') :
@@ -421,7 +408,7 @@ export function Health({
       {/* Content area. The Ava room AND an open detail page need a full-bleed,
           non-scrolling region (they own their own scroll); the catalogue grids
           keep the padded, scrolling layout. */}
-      <div className={`flex-1 min-h-0 ${(tab === 'ava' || (tab === 'exercises' && modalExerciseSlug) || (tab === 'recipes' && modalRecipeSlug) || (tab === 'starters' && (starterOpenId || starterExerciseSlug))) ? 'overflow-hidden' : 'overflow-y-auto px-6 py-5'}`}>
+      <div className={`flex-1 min-h-0 ${(tab === 'ava' || (tab === 'exercises' && modalExerciseSlug) || (tab === 'recipes' && modalRecipeSlug) || (tab === 'starters' && (starterOpenId || starterExerciseSlug))) ? 'overflow-hidden' : tab === 'shopping' ? 'overflow-y-auto' : 'overflow-y-auto px-6 py-5'}`}>
         {/* Ava Health & Fitness room — ALWAYS mounted (hidden off-tab) so its
             conversation survives switching between the other Health tabs. Its
             own lane: sends tag surface:'health', host events tagged lane:'health'
@@ -444,14 +431,23 @@ export function Health({
               isActive={tab === 'ava'}
               userName={userName}
               userAvatarUrl={userAvatarUrl}
+              renderPlanReview={({ review, decide }) => (
+                <PlanReview
+                  review={review as PlanReviewData}
+                  kitchenLevel={healthProfile?.kitchen?.level ?? null}
+                  exerciseDetails={healthPlans.exerciseDetails as Record<string, unknown>}
+                  recipeDetails={healthPlans.recipeDetails as never}
+                  onLoadExerciseDetail={healthPlans.onLoadExerciseDetail}
+                  onLoadRecipeDetail={healthPlans.onLoadRecipeDetail}
+                  onSave={() => decide(true)}
+                  onChange={(text) => decide(false, text)}
+                  onDiscard={() => decide(false)}
+                  onOpenSafety={() => post({ type: 'open_url', url: 'https://avasupernova.com/health/safety' })}
+                />
+              )}
             />
           </div>
         </div>
-        <HealthSubmissionModal
-          {...healthSubmissions}
-          open={contributeOpen}
-          onClose={() => { setContributeOpen(false); healthSubmissions.onClearDraft(); }}
-        />
 
         {/* Ready-made plans: their own tab, so they are a thing people know
             exists rather than something found by pressing "New plan". */}
@@ -519,7 +515,20 @@ export function Health({
           // Household for the shopping list, cooking budget for the prep plan.
           // Plans carry profile_snapshot: null on this surface, so the live
           // profile is the only source there is.
-          <HealthPlans {...healthPlans} onAskAva={onAskAvaPlan} healthProfile={healthProfile} curated={curated} dayAssist={dayAssist} trainingLog={trainingLog} />
+          <HealthPlans {...healthPlans} onAskAva={onAskAvaPlan} healthProfile={healthProfile} curated={curated} dayAssist={dayAssist} trainingLog={trainingLog}
+            onOpenShopping={(planId) => { setShoppingPlanId(planId); switchTab('shopping'); }} />
+        )}
+        {tab === 'shopping' && (
+          <ShoppingPage
+            plans={(healthPlans.fullPlans ?? []) as HealthPlan[]}
+            profile={healthProfile}
+            recipeDetails={healthPlans.recipeDetails as Record<string, HealthRecipeDetail | undefined>}
+            onLoadRecipeDetail={healthPlans.onLoadRecipeDetail}
+            initialPlanId={shoppingPlanId}
+            shopping={shopping}
+            onSaveShopping={onSaveShopping}
+            onOpenUrl={(url) => post({ type: 'open_url', url })}
+          />
         )}
         {tab === 'profile' && (
           <HealthProfilePage
@@ -1353,6 +1362,12 @@ export function RecipeDetailBody({ r, rating }: { r: HealthRecipeDetail; rating?
   const v = r.versions.find((vv) => vv.level === level) || r.versions[0];
   const st = r.storage;
   const nut = v?.nutrition ?? null;
+  // Sauces, marinades and condiments go INTO something — no "serves", and
+  // their figures are per 100 g / per tablespoon. One without that basis
+  // still carries an old per-serving guess, so it is not shown.
+  const isTopping = r.course === 'sauce' || r.course === 'condiment';
+  const showNut = !!nut && (!isTopping || !!nut.per);
+  const nutPer = nut?.per === '100g' ? t('health.browse.per_100g_est') : nut?.per === 'tbsp' ? t('health.browse.per_tbsp_est') : t('health.browse.per_serving_est');
   const cuisineLine = (r.cuisines && r.cuisines.length ? r.cuisines.join(' · ') : r.cuisine_name) || '';
 
   const shared = r.ingredients.filter((ing) => !ing.level);
@@ -1409,7 +1424,7 @@ export function RecipeDetailBody({ r, rating }: { r: HealthRecipeDetail; rating?
                 {v.prep_time_minutes != null && <span>{t('health.browse.prep')} <strong className="text-vscode-foreground">{v.prep_time_minutes}m</strong></span>}
                 {v.cook_time_minutes != null && <span>{t('health.browse.cook')} <strong className="text-vscode-foreground">{v.cook_time_minutes}m</strong></span>}
                 {v.total_time_minutes != null && <span>{t('health.browse.total')} <strong className="text-vscode-foreground">{v.total_time_minutes}m</strong></span>}
-                {v.default_servings != null && <span>{t('health.browse.serves')} <strong className="text-vscode-foreground">{v.default_servings}</strong></span>}
+                {v.default_servings != null && !isTopping && <span>{t('health.browse.serves')} <strong className="text-vscode-foreground">{v.default_servings}</strong></span>}
                 {st?.keeps_fridge_days != null && <span>{t('health.storage.fridge')} <strong className="text-vscode-foreground">{st.keeps_fridge_days}d</strong></span>}
                 {st?.keeps_freezer_months != null && <span>{t('health.storage.freezer')} <strong className="text-vscode-foreground">{st.keeps_freezer_months}mo</strong></span>}
               </div>
@@ -1475,10 +1490,10 @@ export function RecipeDetailBody({ r, rating }: { r: HealthRecipeDetail; rating?
               </section>
             )}
 
-            {nut && EXT_NUTRITION.some(([k]) => typeof nut[k] === 'number') && (
+            {showNut && nut && EXT_NUTRITION.some(([k]) => typeof nut[k] === 'number') && (
               <section>
                 <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">
-                  {t('health.browse.nutrition')} <span className="normal-case tracking-normal text-vscode-descriptionForeground/70">· {t('health.browse.per_serving_est')}</span>
+                  {t('health.browse.nutrition')} <span className="normal-case tracking-normal text-vscode-descriptionForeground/70">· {nutPer}</span>
                 </h3>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-vscode-descriptionForeground">
                   {EXT_NUTRITION.map(([k, label]) => typeof nut[k] === 'number' && (

@@ -40,7 +40,7 @@ async function atomicWriteSerialized(path: string, data: string): Promise<void> 
   }
 }
 import type * as vscode from 'vscode';
-import type { HealthProfile, HealthDailyPlan, HealthPlan } from './dashboard-message-types.js';
+import type { HealthProfile, HealthDailyPlan, HealthPlan, ShoppingState } from './dashboard-message-types.js';
 import type { GymSession, GymExercise } from '@ava/core/health';
 
 const PROFILE_KEY = 'ava.healthProfile';
@@ -118,6 +118,22 @@ export function readProfile(healthDir: string): HealthProfile | null {
   const p = readJson<HealthProfile>(profilePath(healthDir));
   return p && p.schema_version === 1 ? normaliseSections(p) : null;
 }
+// ── Shopping (13 Nov 2026) ── ticks and "already in the cupboard" staples,
+// kept in ~/.ava so they follow you between the extension and the IDE.
+const shoppingPath = (healthDir: string) => join(healthDir, 'shopping.json');
+export function readShopping(healthDir: string): ShoppingState {
+  const s = readJson<ShoppingState>(shoppingPath(healthDir));
+  return s && s.schema_version === 1
+    ? { schema_version: 1, staples: Array.isArray(s.staples) ? s.staples : [], ticks: s.ticks && typeof s.ticks === 'object' ? s.ticks : {}, updated_at: s.updated_at ?? null }
+    : { schema_version: 1, staples: [], ticks: {}, updated_at: null };
+}
+export async function writeShopping(healthDir: string, state: ShoppingState): Promise<void> {
+  // A trip's ticks matter for weeks, not forever: keep the 26 most recent.
+  const ticks = Object.fromEntries(Object.entries(state.ticks ?? {}).slice(-26));
+  await mkdir(healthDir, { recursive: true });
+  await atomicWriteSerialized(shoppingPath(healthDir), JSON.stringify({ ...state, schema_version: 1, ticks, updated_at: new Date().toISOString() }, null, 2));
+}
+
 export async function writeProfile(healthDir: string, profile: HealthProfile): Promise<void> {
   await mkdir(healthDir, { recursive: true });
   await atomicWriteSerialized(profilePath(healthDir), JSON.stringify(profile, null, 2));

@@ -48,7 +48,11 @@
         "health.browse.sort.name": "A–Z",
         "dash.studio.asset.model": "Blender (Headless)",
         "dash.studio.asset.gimp": "GIMP (Headless)",
-        "library.plan.tile": "Plan"
+        "library.plan.tile": "Plan",
+        "health.wizard.r.training": "Training",
+        "health.wizard.sum.plan": "Plan",
+        "health.wizard.training": "Training",
+        "health.wizard.type.fitness": "Fitness"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -73,7 +77,8 @@
         "dash.studio.voice.pace_normal": "Normal",
         "dash.studio.voice.vol_normal": "Normal",
         "health.browse.sort.name": "A–Z",
-        "library.plan.tile": "Plan"
+        "library.plan.tile": "Plan",
+        "health.wizard.sum.plan": "Plan"
       },
       "fr": {
         "health.plans.n_cook": "{n} min",
@@ -120,7 +125,9 @@
         "health.browse.group.cuisine": "Cuisine",
         "health.browse.sort.name": "A–Z",
         "library.gimp.images": "Images",
-        "library.model.triangles": "Triangles"
+        "library.model.triangles": "Triangles",
+        "health.wizard.r.allergies": "Allergies",
+        "health.wizard.sum.plan": "Plan"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
@@ -249,7 +256,11 @@
         "health.browse.sort.name": "A–Z",
         "library.plan.tile": "Plan",
         "dash.studio.asset.model": "Blender (Headless)",
-        "dash.studio.asset.gimp": "GIMP (Headless)"
+        "dash.studio.asset.gimp": "GIMP (Headless)",
+        "health.wizard.r.training": "Training",
+        "health.wizard.sum.plan": "Plan",
+        "health.wizard.training": "Training",
+        "health.wizard.type.fitness": "Fitness"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -265,7 +276,8 @@
         "ext.studio.kit_logo": "Logo",
         "dash.studio.model.pick": "Model",
         "health.browse.sort.name": "A–Z",
-        "library.plan.tile": "Plan"
+        "library.plan.tile": "Plan",
+        "health.wizard.sum.plan": "Plan"
       },
       "pt": {
         "health.plans.n_cook": "{n} min",
@@ -325,7 +337,8 @@
         "dash.studio.voice.pace_normal": "Normal",
         "dash.studio.voice.vol_normal": "Normal",
         "dash.studio.model.pick": "Model",
-        "ext.studio.kit_logo": "Logo"
+        "ext.studio.kit_logo": "Logo",
+        "health.wizard.sum.plan": "Plan"
       },
       "uk": {
         "learning.room.tab.ava": "Ava",

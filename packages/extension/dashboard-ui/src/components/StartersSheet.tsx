@@ -16,10 +16,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { Icon } from './Icon';
-import { Sheet } from './ShoppingListSheet';
 import { DateField } from './DateField';
-import { planFromCurated, orderForProfile, shapeOf, weekdayNumbers } from '../../../../core/dist/health/starters.js';
-import type { CuratedPlanSummary, CuratedPlanDetail, HealthPlan, HealthProfile } from '../types/messages';
+import { orderForProfile, shapeOf, weekdayNumbers } from '../../../../core/dist/health/starters.js';
+import type { CuratedPlanSummary, CuratedPlanDetail, HealthProfile } from '../types/messages';
 
 /** YYYY-MM-DD in LOCAL terms. NOT toISOString().slice(0,10) — that renders the
  *  instant in UTC, so local midnight comes back as yesterday east of Greenwich
@@ -49,137 +48,6 @@ function durationLabel(days: number): string {
   if (days === 1) return t('health.starters.single_session');
   if (days === 7) return t('health.starters.one_week');
   return `${days} ${t('health.starters.days')}`;
-}
-
-export function StartersSheet({
-  plans, loading, error, detail, detailLoading, profile,
-  onLoad, onLoadDetail, onStart, onClose, initialOpenId = null,
-}: {
-  plans: CuratedPlanSummary[];
-  loading: boolean;
-  error: string | null;
-  /** The open template, in full. Nobody starts a plan they have not seen. */
-  detail: CuratedPlanDetail | null;
-  detailLoading: boolean;
-  profile: HealthProfile | null;
-  onLoad: () => void;
-  onLoadDetail: (id: string) => void;
-  /** Saves the copy and reports the start. The caller owns id generation and
-   *  persistence, which keeps the copy rules themselves pure. */
-  onStart: (plan: HealthPlan, curatedId: string) => void;
-  onClose: () => void;
-  /** Opened straight onto this template — a card on the shelf leads to the
-   *  plan it shows, not back to a list of all of them. */
-  initialOpenId?: string | null;
-}) {
-  useLocale();
-  const [openId, setOpenId] = useState<string | null>(initialOpenId);
-  const [starting, setStarting] = useState(false);
-
-  useEffect(() => { if (!plans.length && !loading && !error) onLoad(); }, [plans.length, loading, error, onLoad]);
-
-  // Their stated goal first — NOT a filter. Somebody whose profile says muscle
-  // gain should still see the recovery week, because the reason they need it
-  // may be the reason they stopped training.
-  const ordered = useMemo(
-    () => orderForProfile(plans, profile?.goals?.primary ?? null),
-    [plans, profile],
-  );
-
-  const open = openId && detail?.id === openId ? detail : null;
-
-  // ── One template, in full ───────────────────────────────────────────────
-  if (openId) {
-    return (
-      <Sheet
-        title={t('health.starters.title')}
-        subtitle={null}
-        onClose={onClose}
-      >
-        <button
-          type="button"
-          onClick={() => setOpenId(null)}
-          className="mb-3 cursor-pointer border-none bg-transparent text-[11px] text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-        >
-          ← {t('health.starters.back')}
-        </button>
-
-        <StarterDetailBody
-          open={open}
-          detailLoading={detailLoading}
-          profile={profile}
-          starting={starting}
-          onStart={(placements) => {
-            if (!open || starting) return;
-            setStarting(true);
-            const plan = planFromCurated(open, {
-              id: `plan${Date.now()}${Math.floor(Math.random() * 1000)}`,
-              // start_date is derived from the earliest placement; this is the
-              // fallback for a template with nothing placeable in it.
-              startDate: placements[0]?.date ?? localYmd(new Date()),
-              placements,
-            });
-            onStart(plan as unknown as HealthPlan, open.id);
-            onClose();
-          }}
-        />
-      </Sheet>
-    );
-  }
-
-  // ── The shelf ───────────────────────────────────────────────────────────
-  return (
-    <Sheet title={t('health.starters.title')} subtitle={t('health.starters.subtitle')} onClose={onClose}>
-      {loading ? (
-        <div className="py-10 text-center text-[12px] text-[var(--text-muted)]">{t('health.starters.loading')}</div>
-      ) : error ? (
-        <div className="py-10 text-center">
-          <p className="text-[12px] text-[var(--text-muted)]">{t('health.starters.failed')}</p>
-          <button type="button" onClick={onLoad}
-            className="mt-2 cursor-pointer border-none bg-transparent text-[11px] text-[var(--accent)]">
-            {t('health.starters.retry')}
-          </button>
-        </div>
-      ) : !ordered.length ? (
-        <div className="py-10 text-center text-[12px] text-[var(--text-muted)]">{t('health.starters.empty')}</div>
-      ) : (
-        <ul className="space-y-2">
-          {ordered.map(p => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => { setOpenId(p.id); onLoadDetail(p.id); }}
-                className="flex w-full cursor-pointer gap-3 rounded-lg border border-[var(--border)] bg-transparent p-3 text-left transition hover:border-[var(--accent)]/40"
-              >
-                {p.cover_image_url && (
-                  <img src={p.cover_image_url} alt=""
-                    className="h-14 w-14 shrink-0 rounded-lg border border-[var(--border)] object-cover" />
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-medium text-[var(--text-primary)]">{p.title}</span>
-                  {p.summary && <span className="mt-0.5 block text-[11px] leading-relaxed text-[var(--text-muted)]">{p.summary}</span>}
-                  <span className="mt-1.5 flex flex-wrap gap-1.5">
-                    {[
-                      durationLabel(p.duration_days),
-                      p.days_per_week ? `${p.days_per_week}/wk` : null,
-                      p.level,
-                      // start_count is NOT shown. It exists to order the shelf,
-                      // and the route that collects it says so in as many words:
-                      // "it cannot be a vanity number shown to users". The
-                      // companion does not show it either.
-                    ].filter(Boolean).map(bit => (
-                      <span key={bit as string} className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{bit}</span>
-                    ))}
-                  </span>
-                </span>
-                <Icon.fitness size={14} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Sheet>
-  );
 }
 
 /**

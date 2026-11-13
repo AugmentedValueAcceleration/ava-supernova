@@ -16,7 +16,7 @@
 
 import { useState, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
-import { Sheet } from './ShoppingListSheet';
+import { Sheet } from './Sheet';
 import type { HealthPlanDay, HealthPlanExercise } from '../types/messages';
 import type { GymSession, GymExercise, GymSet } from '../../../../core/dist/health/session-types.js';
 

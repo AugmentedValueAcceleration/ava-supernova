@@ -15,7 +15,7 @@
 
 import { useState } from 'react';
 import { t, useLocale } from '../i18n';
-import { Sheet } from './ShoppingListSheet';
+import { Sheet } from './Sheet';
 import type { HealthPlan, HealthPlanDay, HealthPlanType } from '../types/messages';
 
 /** Openers for the things people actually want, so nobody faces a blank box.

@@ -41,6 +41,8 @@ function toSummary(p: HealthPlan): HealthPlanSummary {
     source: p.source,
     updated_at: p.updated_at,
     rest_days: p.days.filter((d) => d.kind === 'rest').map((d) => d.day_index),
+    training_days: p.days.filter((d) => (d.training ?? []).length > 0).map((d) => d.day_index),
+    meal_days: p.days.filter((d) => (d.meals ?? []).length > 0).map((d) => d.day_index),
   };
 }
 

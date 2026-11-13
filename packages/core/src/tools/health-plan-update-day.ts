@@ -2,6 +2,7 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import type { HealthPlanStore, HealthPlanDay } from '../health/index.js';
 import { normaliseDay } from './health-plan-create.js';
+import { screenPlanDays } from '../health/safety.js';
 
 /**
  * Update or fill one day of an existing health plan. Used after
@@ -118,6 +119,10 @@ export class HealthPlanUpdateDayTool implements Tool {
         };
       }
 
+      // Their hard rules, checked in code before the day is saved (Part 1).
+      const screen = await screenPlanDays([day], { fetchImpl: context.sharedState?.fetchImpl as typeof fetch | undefined });
+      if (!screen.ok) return { success: false, output: screen.message };
+
       const result = await store.updateDay(plan_id, day);
       if (!result) return { success: false, output: `Plan not found: ${plan_id}` };
 
@@ -127,7 +132,7 @@ export class HealthPlanUpdateDayTool implements Tool {
       if (day.meals.length > 0) parts.push(`${day.meals.length} meal${day.meals.length === 1 ? '' : 's'}`);
       return {
         success: true,
-        output: parts.join(' · '),
+        output: parts.join(' · ') + (screen.message ? `\n${screen.message}` : ''),
         metadata: { plan_id: result.plan_id, day_index: result.day_index },
       };
     } catch (err) {

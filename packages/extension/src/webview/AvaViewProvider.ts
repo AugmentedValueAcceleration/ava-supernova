@@ -110,6 +110,7 @@ import {
 import { localeStringsFor } from './locale-strings.js';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
+import { healthRoomPlanDirective } from '@ava/core';
 import { ExtensionHealthPlanStore } from './health-plan-store-impl.js';
 import { migrateHealthFromGlobalState, readProfile, writeProfile, emptyHealthProfile, listPlanIds, readPlan, readAllSessions } from './health-file-store.js';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
@@ -1769,7 +1770,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (Object.keys(savedCatPerms).length) this.toolRegistry.setCategoryPermissions(savedCatPerms as never);
 
     this.toolRegistry.setConfirmationHandler(
-      (toolName, args, toolCallId) => this.requestConfirmation(toolName, args, toolCallId),
+      (toolName, args, toolCallId, review) => this.requestConfirmation(toolName, args, toolCallId, review),
     );
 
     // Substitute {{secret:id}} handles with values from the working set just
@@ -3137,7 +3138,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * chat shows the user a short clean label instead of the raw directive.
    */
   private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode, surface?: 'main' | 'health' | 'learning' | 'design', courseId?: string): Promise<void> {
-    const built = buildPaletteDirective(tool, action);
+    // Ask Ava from the plan wizard arrives already IN the health room. The
+    // palette's version tells her to open that room; this one is for inside
+    // it, shared with the IDE (core health/room-directives).
+    const built = tool === 'plans' && surface === 'health' && (action === 'meal' || action === 'fitness' || action === 'combined')
+      ? healthRoomPlanDirective(action)
+      : buildPaletteDirective(tool, action);
     if (!built) {
       this.log(`handlePaletteIntent: unknown palette intent "${tool}.${action}" — ignored`);
       return;
@@ -4488,6 +4494,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     toolName: string,
     args: Record<string, unknown>,
     toolCallId?: string,
+    review?: unknown,
   ): Promise<ToolConfirmationDecision> {
     // Core ToolRegistry.needsConfirmation() already handles category-based permission checks.
     // If we reach here, the tool genuinely needs user confirmation.
@@ -4521,6 +4528,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         toolDescription,
         ...(toolName === 'ask_user' ? { isAskUser: true } : {}),
         ...(toolName === 'health_profile_ask' ? { profileField: this.buildProfileFieldPayload(args) } : {}),
+        // The whole plan, checked, for the full-page preview (PlanReview).
+        ...(toolName === 'health_plan_create' && review ? { planReview: review } : {}),
       });
     });
   }

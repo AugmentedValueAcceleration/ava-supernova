@@ -117,6 +117,21 @@ export interface Tool {
    * cannot (his call, 2 Nov 2026). Read through sharedState.getProviderKey.
    */
   readonly requiresProviderKey?: string;
+  /**
+   * Runs BEFORE the permission card, only when one is about to be shown. A
+   * failure goes straight back to the model and the person never sees a card
+   * for a call that could not have worked. `review` travels with the card, so
+   * the person decides on what will actually happen (health_plan_create: the
+   * whole plan, already checked against their hard rules — 12 Nov 2026).
+   */
+  precheck?(args: Record<string, unknown>, context: ToolExecutionContext): Promise<
+    { ok: true; review?: unknown } | { ok: false; output: string }
+  >;
+  /**
+   * What the model reads when the person declines, in place of the generic
+   * "was denied". `reason` is their own words, or null for a plain no.
+   */
+  deniedMessage?(reason: string | null): string;
   execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult>;
 }
 
@@ -190,4 +205,6 @@ export type ToolConfirmationHandler = (
   toolName: string,
   args: Record<string, unknown>,
   toolCallId?: string,
+  /** The tool's precheck review, for the card to show (see Tool.precheck). */
+  review?: unknown,
 ) => Promise<ToolConfirmationDecision>;

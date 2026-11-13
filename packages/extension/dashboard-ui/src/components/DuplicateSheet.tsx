@@ -12,7 +12,7 @@
 
 import { useState, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
-import { Sheet } from './ShoppingListSheet';
+import { Sheet } from './Sheet';
 import { Select } from './Select';
 import {
   duplicateDay, duplicateWeek, weekCount, daysInWeek, progressDays,
