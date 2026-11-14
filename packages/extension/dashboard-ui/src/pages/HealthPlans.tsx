@@ -1302,10 +1302,6 @@ function PlanCard({ plan, onOpen, onDelete }: {
   );
 }
 
-// ── Overlay phase: Setup ─────────────────────────────────────────────
-// Fills the overlay panel — header / scrolling body / footer.
-
-
 // ── Overlay phase: Builder ───────────────────────────────────────────
 
 function PlanBuilder({
