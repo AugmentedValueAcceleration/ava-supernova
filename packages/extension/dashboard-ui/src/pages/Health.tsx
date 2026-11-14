@@ -5,6 +5,7 @@ import { useTabTransition } from '../lib/useTabTransition';
 import { TabSpinner } from '../components/TabSpinner';
 import { ContentRating, type RatingVerdict } from '../components/ContentRating';
 import { StarterShelf, StarterDetailBody } from '../components/StartersSheet';
+import { SendItemToPhone, SendToPhoneButton, type PhoneItem } from '../components/SendItemToPhone';
 import { planFromCurated } from '../../../../core/dist/health/starters.js';
 import { libraryFit, slugsToCheck, orderByPreference, profileHasHardRules, starterFit, type FitVerdict, type FitView, type StarterFit } from '../../../../core/dist/health/library-fit.js';
 import type { HealthPlan, ShoppingState } from '../types/messages';
@@ -516,7 +517,7 @@ export function Health({
         {/* An exercise opened from inside a plan: the same page the Exercises
             tab shows, with back returning to the plan you were reading. */}
         {tab === 'starters' && starterExerciseSlug ? (
-          <DetailPageView onBack={() => setStarterExerciseSlug(null)} backLabel={t('health.starters.back_to_plan')}>
+          <DetailPageView onBack={() => setStarterExerciseSlug(null)} backLabel={t('health.starters.back_to_plan')} phone={exerciseDetail && exerciseDetail.slug === starterExerciseSlug ? { kind: 'exercise', slug: exerciseDetail.slug, name: exerciseDetail.name } : null}>
             {exerciseDetail && exerciseDetail.slug === starterExerciseSlug
               ? <ExerciseDetailBody ex={exerciseDetail} rating={contentRatings[`exercise:${exerciseDetail.id}`]} />
               : <div className="flex h-full items-center justify-center p-8">{detailLoading ? <LoadingCard label={t('health.browse.loading_exercise')} /> : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}</div>}
@@ -603,7 +604,7 @@ export function Health({
         )}
         {tab === 'exercises' && (
           modalExerciseSlug ? (
-            <DetailPageView onBack={() => setModalExerciseSlug(null)} backLabel={t('health.browse.tab.exercises')}>
+            <DetailPageView onBack={() => setModalExerciseSlug(null)} backLabel={t('health.browse.tab.exercises')} phone={exerciseDetail && exerciseDetail.slug === modalExerciseSlug ? { kind: 'exercise', slug: exerciseDetail.slug, name: exerciseDetail.name } : null}>
               {exerciseDetail && exerciseDetail.slug === modalExerciseSlug
                 ? <ExerciseDetailBody ex={exerciseDetail} rating={contentRatings[`exercise:${exerciseDetail.id}`]} />
                 : <div className="flex h-full items-center justify-center p-8">{detailLoading ? <LoadingCard label={t('health.browse.loading_exercise')} /> : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}</div>}
@@ -630,7 +631,7 @@ export function Health({
         )}
         {tab === 'recipes' && (
           modalRecipeSlug ? (
-            <DetailPageView onBack={() => setModalRecipeSlug(null)} backLabel={t('health.browse.tab.recipes')}>
+            <DetailPageView onBack={() => setModalRecipeSlug(null)} backLabel={t('health.browse.tab.recipes')} phone={recipeDetail && recipeDetail.slug === modalRecipeSlug ? { kind: 'recipe', slug: recipeDetail.slug, name: recipeDetail.name } : null} cookingLevel={healthProfile?.kitchen?.level ?? null}>
               {recipeDetail && recipeDetail.slug === modalRecipeSlug
                 ? <RecipeDetailBody r={recipeDetail} rating={contentRatings[`recipe:${recipeDetail.id}`]} />
                 : <div className="flex h-full items-center justify-center p-8">{detailLoading ? <LoadingCard label={t('health.browse.loading_recipe')} /> : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}</div>}
@@ -1208,10 +1209,11 @@ function Pagination({
 /** Full-page detail view inside the Health tab — a back bar over the detail
  *  body, which owns its own scroll. Replaces the old modal overlay for a
  *  page-style UX (navigate in, "← Back"). */
-function DetailPageView({ onBack, backLabel, children }: { onBack: () => void; backLabel: string; children: ReactNode }) {
+function DetailPageView({ onBack, backLabel, children, phone, cookingLevel }: { onBack: () => void; backLabel: string; children: ReactNode; phone?: PhoneItem | null; cookingLevel?: string | null }) {
+  const [sending, setSending] = useState(false);
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-none border-b border-[var(--border)] px-6 py-2.5">
+      <div className="flex flex-none items-center gap-2 border-b border-[var(--border)] px-6 py-2.5">
         <button
           type="button"
           onClick={onBack}
@@ -1219,8 +1221,15 @@ function DetailPageView({ onBack, backLabel, children }: { onBack: () => void; b
         >
           ← {backLabel}
         </button>
+        <span className="flex-1" />
+        {/* Send to phone (Part 5b): nobody takes their computer to the stove or the gym. */}
+        {phone && <SendToPhoneButton onClick={() => setSending(true)} />}
       </div>
       <div className="min-h-0 flex-1">{children}</div>
+      {phone && sending && (
+        <SendItemToPhone item={phone} cookingLevel={cookingLevel} onClose={() => setSending(false)}
+          onOpenUrl={(url) => post({ type: 'open_url', url } as never)} />
+      )}
     </div>
   );
 }

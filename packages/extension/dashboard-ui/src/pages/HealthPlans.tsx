@@ -11,6 +11,7 @@ import { fillDayMeta } from '../lib/plan-meal-meta';
 import { DuplicateSheet } from '../components/DuplicateSheet';
 import { AssistSheet, dayDate, type DayProposal } from '../components/AssistSheet';
 import { LogSessionSheet, seedFrom as seedSessionFrom } from '../components/LogSessionSheet';
+import { SendWorkoutToPhone, GymButton } from '../components/SendItemToPhone';
 import { PlanWizard, type PlanWizardSafety } from '../components/PlanWizard';
 import { post } from '../App';
 import type { GymSession, GymExercise } from '../../../../core/dist/health/session-types.js';
@@ -803,6 +804,7 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   // The one plan day this date belongs to, and whether it has been logged.
   // Meals are not logged here — eating is tracked elsewhere and a food diary
   // is a different feature with a different failure mode.
+  const [gym, setGym] = useState(false);
   const loggableDay = useMemo(() => {
     for (const p of plans) {
       const d = planDayForDate(p, dateKey);
@@ -972,6 +974,11 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
 
   const anything = sections.some(s => s.items.length > 0);
 
+  const gymDialog = gym && loggableDay ? (
+    <SendWorkoutToPhone planId={loggableDay.plan.id} day={loggableDay.day} date={dateKey}
+      onClose={() => setGym(false)} onOpenUrl={(url) => post({ type: 'open_url', url } as never)} />
+  ) : null;
+
   if (logging && trainingLog && loggableDay) {
     return (
       <LogSessionSheet
@@ -1031,6 +1038,11 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
                   : t('health.log.open')}
               </button>
             )}
+            {/* Take it to the gym (Part 5b): the day's training on the phone, ticked off set by set. */}
+            {loggableDay && !editing && (
+              <GymButton onClick={() => setGym(true)} className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] cursor-pointer" />
+            )}
+            {gymDialog}
             {covered && (
               <button type="button" onClick={() => (editing ? exitEdit() : enterEdit())} className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 cursor-pointer">
                 {editing ? tt('health.plans.done', 'Done') : tt('health.plans.edit', 'Edit')}

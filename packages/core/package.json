@@ -154,6 +154,11 @@
       "require": "./dist/health/library-fit.js",
       "types": "./dist/health/library-fit.d.ts"
     },
+    "./health/share-workout": {
+      "import": "./dist/health/share-workout.js",
+      "require": "./dist/health/share-workout.js",
+      "types": "./dist/health/share-workout.d.ts"
+    },
     "./health/share-list": {
       "import": "./dist/health/share-list.js",
       "require": "./dist/health/share-list.js",

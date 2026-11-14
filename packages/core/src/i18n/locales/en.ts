@@ -4928,6 +4928,25 @@ export const enStrings = {
   'health.profile.prefer.title': 'Prefer',
   // ── Added from tt() fallbacks ──
   'health.profile.never.diet_link': 'What do these mean?',
+  // ── Added from tt() fallbacks ──
+  'health.phone.close': 'Close',
+  'health.phone.cook_body': 'Opens {name} on your phone. Tap Cook it for one step at a time, with the screen kept on.',
+  'health.phone.cook_body_level': 'Opens {name} on your phone at {level}, your cooking level. Tap Cook it for one step at a time, with the screen kept on.',
+  'health.phone.cook_title': 'Cook it from your phone',
+  'health.phone.copied': 'Copied',
+  'health.phone.copy': 'Copy link',
+  'health.phone.ex_body': 'Opens {name} on your phone: how to do it step by step, and the common mistakes to avoid.',
+  'health.phone.ex_title': 'Take it to the gym',
+  'health.phone.private': 'Just its public page. Nothing about you is in the link.',
+  'health.phone.qr': 'QR code for this page',
+  'health.phone.send': 'Send to phone',
+  'health.phone.whatsapp': 'Send to WhatsApp',
+  // ── Added from tt() fallbacks ──
+  'health.phone.gym': 'Take it to the gym',
+  'health.phone.gym_body': '{title} opens on your phone: tick each set, rest timer between them. Works with no signal once it is open.',
+  'health.phone.gym_private': 'The session travels inside the code itself. Nothing is sent to us.',
+  'health.phone.gym_title': 'Take today\\u2019s session to the gym',
+  'health.phone.training': 'Training',
 };
 
 export type StringKey = keyof typeof enStrings;
