@@ -101,6 +101,7 @@ import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js
 import { planRefs } from '@ava/core/health/library-fit';
 import { buildForYou, applyForYouAction } from '@ava/core/health/for-you';
 import { decodeResults, sessionFromResults } from '@ava/core/health/share-results';
+import { progressionAfterSession, lastTimesForDay, applyProgression } from '@ava/core/health/progression';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { exportDocument } from '@ava/core/authoring';
@@ -1455,8 +1456,9 @@ export class DashboardPanel {
         const results = await decodeResults(String(msg.payload ?? ''));
         if (!results) { this.post({ type: 'results_saved', ok: false } as never); return; }
         try {
-          await healthStore.writeSession(this.healthDir(), sessionFromResults(results));
-          this.post({ type: 'results_saved', ok: true } as never);
+          const session = sessionFromResults(results);
+          await healthStore.writeSession(this.healthDir(), session);
+          this.post({ type: 'results_saved', ok: true, progression: this.progressionFor(session) } as never);
         } catch (err) {
           this.log(`[health] save results failed: ${err instanceof Error ? err.message : String(err)}`);
           this.post({ type: 'results_saved', ok: false } as never);
@@ -1588,6 +1590,26 @@ export class DashboardPanel {
         if (!session?.id) return;
         await healthStore.writeSession(this.healthDir(), session);
         this.post({ type: 'training_session_saved', id: session.id });
+        return;
+      }
+      // ── Progression from the log (Part 6): offered, never applied unasked ──
+      case 'load_progression': {
+        this.post({ type: 'progression_loaded', progression: this.progressionFor(msg.session as GymSession) } as never);
+        return;
+      }
+      case 'load_last_times': {
+        const plan = this.getHealthPlan(msg.planId);
+        const rows = plan ? lastTimesForDay(plan as never, msg.dayIndex, healthStore.readAllSessions(this.healthDir()), msg.date) : {};
+        this.post({ type: 'last_times_loaded', planId: msg.planId, dayIndex: msg.dayIndex, rows } as never);
+        return;
+      }
+      case 'apply_progression': {
+        const plan = this.getHealthPlan(msg.planId);
+        if (plan) {
+          await this.saveHealthPlan(applyProgression(plan as never, msg.fromDay, msg.choices) as never);
+          this.post({ type: 'active_health_plans_loaded', plans: this.getActiveHealthPlans() });
+        }
+        this.post({ type: 'progression_applied', ok: !!plan } as never);
         return;
       }
       case 'delete_training_session': {
@@ -4881,6 +4903,15 @@ export class DashboardPanel {
 
   /** Read a single plan by id. Returns null when missing or from an
    *  unknown schema version. */
+  /** "Saved. Next time?" for a session logged against a plan day; null when nothing to offer. */
+  private progressionFor(session: GymSession | null | undefined): { planId: string; fromDay: number; rows: unknown[] } | null {
+    if (!session?.plan_id || session.day_index == null) return null;
+    const plan = this.getHealthPlan(session.plan_id);
+    if (!plan) return null;
+    const rows = progressionAfterSession(plan as never, session);
+    return rows.length ? { planId: plan.id, fromDay: session.day_index + 1, rows } : null;
+  }
+
   private getHealthPlan(id: string): HealthPlan | null {
     return healthStore.readPlan(this.healthDir(), id);
   }

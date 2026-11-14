@@ -13,6 +13,7 @@ import { Memory } from './pages/Memory';
 import { History } from './pages/History';
 import { Library } from './pages/Library';
 import { ResultsImport } from './components/ResultsImport';
+import { NextTimeDialog } from './components/NextTime';
 import { Chat } from './pages/Chat';
 import { Planner } from './pages/Planner';
 // LearningLibrary is no longer rendered directly — it's composed inside
@@ -61,6 +62,7 @@ import type {
   HealthSafetyVerdict,
   ForYouResult,
   SharedResults,
+  ProgressionOffer,
   GeneralProfile,
   HealthPlan,
   HealthPlanSummary,
@@ -414,10 +416,15 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   /** Results from the phone (Health Part 6): the "Add this session?" screen,
    *  or the "Add from phone" paste box when results is null. */
   const [resultsUi, setResultsUi] = useState<{ results: SharedResults | null; payload: string | null; failed?: boolean; saving?: boolean; saved?: boolean } | null>(null);
+  /** "Saved. Next time?" — progression from the log, offered after a session is saved. */
+  const [nextTime, setNextTime] = useState<{ offer: ProgressionOffer; busy?: boolean } | null>(null);
   useEffect(() => {
     const open = () => setResultsUi({ results: null, payload: null });
     window.addEventListener('ava-add-from-phone', open);
-    return () => window.removeEventListener('ava-add-from-phone', open);
+    // "Step up…" on the plan day opens the same dialog, one row.
+    const step = (e: Event) => setNextTime({ offer: (e as CustomEvent<ProgressionOffer>).detail });
+    window.addEventListener('ava-next-time', step);
+    return () => { window.removeEventListener('ava-add-from-phone', open); window.removeEventListener('ava-next-time', step); };
   }, []);
   /** A dish or exercise to open when the Health page next shows (For you → Make this). */
   const [healthOpenItem, setHealthOpenItem] = useState<{ kind: 'recipe' | 'exercise'; slug: string } | null>(null);
@@ -1186,6 +1193,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'results_saved':
         setResultsUi((prev) => (prev ? { ...prev, saving: false, saved: msg.ok, failed: !msg.ok } : prev));
         if (msg.ok) post({ type: 'load_active_health_plans' });
+        // Something to step up → the saved screen becomes "Saved. Next time?".
+        if (msg.ok && msg.progression) { setResultsUi(null); setNextTime({ offer: msg.progression }); }
+        break;
+      case 'progression_loaded':
+        if (msg.progression) setNextTime({ offer: msg.progression });
+        break;
+      case 'progression_applied':
+        setNextTime(null);
         break;
       case 'for_you_loaded':
         setForYou(msg.result);
@@ -2007,6 +2022,13 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
           onCheck={(text) => post({ type: 'decode_results', text })}
           onSave={() => { if (resultsUi.payload) { setResultsUi({ ...resultsUi, saving: true }); post({ type: 'save_results', payload: resultsUi.payload }); } }}
           onClose={() => setResultsUi(null)} />
+      )}
+      {nextTime && (
+        <NextTimeDialog rows={nextTime.offer.rows} busy={nextTime.busy}
+          title={nextTime.offer.title}
+          note={nextTime.offer.note}
+          onApply={(choices) => { setNextTime({ ...nextTime, busy: true }); post({ type: 'apply_progression', planId: nextTime.offer.planId, fromDay: nextTime.offer.fromDay, choices }); }}
+          onClose={() => setNextTime(null)} />
       )}
     </div>
   );

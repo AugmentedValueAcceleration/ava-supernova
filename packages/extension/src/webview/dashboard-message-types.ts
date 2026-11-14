@@ -687,6 +687,10 @@ export type { ForYouResult, ForYouAction, ForYouPick, ForYouExtra } from '@ava/c
 import type { ForYouResult, ForYouAction } from '@ava/core/health/for-you';
 import type { SharedResults } from '@ava/core/health/share-results';
 export type { SharedResults } from '@ava/core/health/share-results';
+import type { ProgressionChoice, ProgressionRow } from '@ava/core/health/progression';
+export type { ProgressionChoice, ProgressionRow } from '@ava/core/health/progression';
+/** "Saved. Next time?" / "Step up": the rows, and where Update applies from. */
+export interface ProgressionOffer { planId: string; fromDay: number; rows: ProgressionRow[]; title?: string; note?: string }
 
 export interface HealthSafetyVerdict {
   slug: string;
@@ -1582,7 +1586,10 @@ export type ExtToDashboardMessage =
    *  `checked: false` = the check could not run: show results as NOT checked. */
   | { type: 'for_you_loaded'; result: ForYouResult | null }
   | { type: 'results_import'; results: SharedResults | null; payload: string | null }
-  | { type: 'results_saved'; ok: boolean }
+  | { type: 'results_saved'; ok: boolean; progression?: ProgressionOffer | null }
+  | { type: 'progression_loaded'; progression: ProgressionOffer | null }
+  | { type: 'last_times_loaded'; planId: string; dayIndex: number; rows: Record<string, ProgressionRow> }
+  | { type: 'progression_applied'; ok: boolean }
   | { type: 'for_you_applied'; ok: boolean }
   | { type: 'curated_plan_refs_loaded'; refs: Record<string, { recipes: string[]; exercises: string[] }> }
   | { type: 'health_safety_result'; results: Record<string, HealthSafetyVerdict>; checked: boolean; rules: boolean }
@@ -1985,6 +1992,9 @@ export type DashboardToExtMessage =
   | { type: 'load_for_you' }
   | { type: 'decode_results'; text: string }
   | { type: 'save_results'; payload: string }
+  | { type: 'load_progression'; session: unknown }
+  | { type: 'load_last_times'; planId: string; dayIndex: number; date: string }
+  | { type: 'apply_progression'; planId: string; fromDay: number; choices: ProgressionChoice[] }
   | { type: 'apply_for_you'; action: ForYouAction }
   | { type: 'load_curated_plan'; id: string }
   /** Fire-and-forget: the only signal we get about which starters work.

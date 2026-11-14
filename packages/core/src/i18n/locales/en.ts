@@ -4972,6 +4972,26 @@ export const enStrings = {
   'health.results.saved': 'Saved to your training log. Ava will see it next time you plan together.',
   'health.results.title': 'Add this session to your training log?',
   'health.results.where': 'Saved on this computer, in your training log, beside the plan day it came from. It follows you between the extension and the IDE.',
+  // ── Added from tt() fallbacks ──
+  'health.next.above': 'above plan',
+  'health.next.as_planned': 'as planned',
+  'health.next.heavier': 'Heavier',
+  'health.next.keep': 'Keep it',
+  'health.next.last_time': 'Last time, {date}:',
+  'health.next.leave': 'Leave my plan as it is',
+  'health.next.more_rep': 'One more rep',
+  'health.next.more_set': 'One more set',
+  'health.next.note': 'Changes the rest of this plan, wherever these exercises come up. Days already done are not touched.',
+  'health.next.note_day': 'Changes this day and the rest of the plan. Days already done are not touched.',
+  'health.next.short': '{done} of {target} sets',
+  'health.next.stays': 'stays as it is',
+  'health.next.step_up': 'Step up…',
+  'health.next.step_up_title': 'Step up',
+  'health.next.stepped': 'you stepped this up',
+  'health.next.sub': 'From what you did last time. You choose — Ava never steps you up on her own.',
+  'health.next.ticked': 'Done — no sets recorded',
+  'health.next.title': 'Saved. Next time?',
+  'health.next.update': 'Update my plan',
 };
 
 export type StringKey = keyof typeof enStrings;

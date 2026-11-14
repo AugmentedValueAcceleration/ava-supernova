@@ -154,6 +154,11 @@
       "require": "./dist/health/library-fit.js",
       "types": "./dist/health/library-fit.d.ts"
     },
+    "./health/progression": {
+      "import": "./dist/health/progression.js",
+      "require": "./dist/health/progression.js",
+      "types": "./dist/health/progression.d.ts"
+    },
     "./health/share-results": {
       "import": "./dist/health/share-results.js",
       "require": "./dist/health/share-results.js",

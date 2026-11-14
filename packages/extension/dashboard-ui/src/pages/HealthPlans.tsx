@@ -13,6 +13,8 @@ import { AssistSheet, dayDate, type DayProposal } from '../components/AssistShee
 import { LogSessionSheet, seedFrom as seedSessionFrom } from '../components/LogSessionSheet';
 import { SendWorkoutToPhone, GymButton, SendMealToPhone, KitchenButton } from '../components/SendItemToPhone';
 import { AddFromPhoneButton } from '../components/ResultsImport';
+import { LastTimeLine } from '../components/NextTime';
+import type { ProgressionRow } from '../../../../core/dist/health/progression.js';
 import { PlanWizard, type PlanWizardSafety } from '../components/PlanWizard';
 import { post } from '../App';
 import type { GymSession, GymExercise } from '../../../../core/dist/health/session-types.js';
@@ -844,6 +846,32 @@ function HealthDayView({ cookingLevel, dateKey, plans, exerciseDetails, recipeDe
     () => (trainingLog?.sessions ?? []).find(s => s.date === dateKey) ?? null,
     [trainingLog?.sessions, dateKey],
   );
+  // "Last time" under each exercise (Part 6, progression from the log). Read
+  // from the log by the host; refreshed when a session is saved or a step applied.
+  const [lastTimes, setLastTimes] = useState<Record<string, ProgressionRow>>({});
+  const ltPlan = loggableDay?.plan.id ?? null;
+  const ltDay = loggableDay?.day.day_index ?? null;
+  useEffect(() => {
+    if (!ltPlan || ltDay == null) { setLastTimes({}); return; }
+    const ask = () => post({ type: 'load_last_times', planId: ltPlan, dayIndex: ltDay, date: dateKey } as never);
+    const on = (e: MessageEvent) => {
+      const m = e.data as { type?: string; planId?: string; dayIndex?: number; rows?: Record<string, ProgressionRow> } | null;
+      if (m?.type === 'last_times_loaded' && m.planId === ltPlan && m.dayIndex === ltDay) setLastTimes(m.rows ?? {});
+      else if (m?.type === 'progression_applied' || m?.type === 'training_session_saved') ask();
+    };
+    window.addEventListener('message', on);
+    ask();
+    return () => window.removeEventListener('message', on);
+  }, [ltPlan, ltDay, dateKey]);
+  // Step up one exercise from this day on — the same "Next time?" dialog, one row.
+  const stepUp = (row: ProgressionRow) => {
+    if (!ltPlan || ltDay == null) return;
+    window.dispatchEvent(new CustomEvent('ava-next-time', { detail: {
+      planId: ltPlan, fromDay: ltDay, rows: [row],
+      title: `${tt('health.next.step_up_title', 'Step up')}: ${row.name}`,
+      note: tt('health.next.note_day', 'Changes this day and the rest of the plan. Days already done are not touched.'),
+    } }));
+  };
   const [editing, setEditing] = useState(false);
   const [working, setWorking] = useState<HealthPlan[]>([]);
   // Add / swap happens INLINE inside a section (no second overlay): a compact
@@ -1012,7 +1040,11 @@ function HealthDayView({ cookingLevel, dateKey, plans, exerciseDetails, recipeDe
             ? trainingLog.open as never
             : null
         }
-        onSave={(s) => trainingLog.onSave(s)}
+        onSave={(s) => {
+          trainingLog.onSave(s);
+          // Logged by hand: the same "Saved. Next time?" as a session from the phone.
+          post({ type: 'load_progression', session: s } as never);
+        }}
         onClose={() => setLogging(false)}
       />
     );
@@ -1165,10 +1197,16 @@ function HealthDayView({ cookingLevel, dateKey, plans, exerciseDetails, recipeDe
                           )}
                         </div>
                       ) : (
-                        <button key={item.id} type="button" disabled={!item.slug} onClick={() => openItem(item)} title={item.planTitle} className="group flex items-center gap-3 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/30 p-2 text-left transition enabled:hover:border-[var(--accent)]/50 enabled:hover:bg-[var(--accent)]/5 disabled:cursor-default cursor-pointer">
-                          <AgendaCardInner item={item} icon={section.icon} accent={section.accent} />
-                          <span className="shrink-0 self-center text-[14px] leading-none text-[var(--accent)] opacity-0 transition group-hover:opacity-100">›</span>
-                        </button>
+                        <div key={item.id} className="flex flex-col gap-1">
+                          <button type="button" disabled={!item.slug} onClick={() => openItem(item)} title={item.planTitle} className="group flex items-center gap-3 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/30 p-2 text-left transition enabled:hover:border-[var(--accent)]/50 enabled:hover:bg-[var(--accent)]/5 disabled:cursor-default cursor-pointer">
+                            <AgendaCardInner item={item} icon={section.icon} accent={section.accent} />
+                            <span className="shrink-0 self-center text-[14px] leading-none text-[var(--accent)] opacity-0 transition group-hover:opacity-100">›</span>
+                          </button>
+                          {item.kind === 'exercise' && item.slug && item.planId === ltPlan && lastTimes[item.slug] && (
+                            <LastTimeLine row={lastTimes[item.slug]}
+                              onStepUp={dateKey >= todayISO() ? () => stepUp(lastTimes[item.slug!]) : undefined} />
+                          )}
+                        </div>
                       )
                     ))}
                   </div>
