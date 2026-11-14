@@ -72,6 +72,76 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 525,
+    version: '0.112.0',
+    platform: 'extension',
+    toolCount: 90,
+    publishedAt: '2026-11-14 22:00:00+00',
+    title: `Health plans that fit you, follow you to the gym, and step up when you're ready`,
+    body: `Health & Nutrition has been rebuilt around you: your rules first, your phone in the gym and the kitchen, and what you actually did feeding what comes next.
+
+**Your rules are kept everywhere.** Your profile now shows **Never** (allergies, diet, injuries, kit) apart from **Prefer** (likes, dislikes, cooking time). I check every recipe and exercise against your Never list before it goes into a plan, whoever adds it. Something that breaks a rule is refused with the reason; an exercise that needs care is marked, with an easier version. If the library can't confirm an allergen, I say so rather than quietly clearing it. Only the names of recipes and exercises go to the library; your profile stays on your computer.
+
+**A new way to make a plan.** One step-by-step guide for every plan: meals, training or both; build it yourself, ask me, or start from a ready-made plan. When I build one, you see every day before anything is saved, and you can ask me to change something first.
+
+**The library fits you.** Recipes, exercises and ready-made plans show what fits your rules, with a switch to see everything. **For you** on the Health page offers three ideas for today. Swap a meal in or add one to today, with a preview first. No plan needed just to try something.
+
+**Shopping has its own tab.** The week across your plans, in the order you walk the shop. Mark what's already in the cupboard and it stays off every list. Send the list to your phone with a QR code or WhatsApp.
+
+**Take it with you.** Send any recipe or exercise to your phone. **Take it to the gym** puts the day's workout on your phone, with sets, a rest timer and no signal needed. **Take it to the kitchen** opens cook mode, with timers and the screen kept on.
+
+**What you did comes back.** When you finish at the gym, press **Send it to Ava**. Open the link on your computer, check what you did against the plan, and save it to your training log. Your results travel inside the link and never pass through our server.
+
+**You choose when to step up.** After a session I ask **Next time?**: keep it, one more rep, one more set, or heavier. Each plan day shows how it went last time. I never step you up on my own.
+
+**Also:** bodyweight exercises are always available now, whatever kit you list.`,
+    highlights: [
+      'Your Never list is checked on everything that goes into a plan.',
+      'Plans that fit you, and three ideas for today.',
+      'Your workout and recipes on your phone, results back to your log.',
+      'You choose when to step up; I never do it on my own.',
+    ],
+  },
+  {
+    migration: 526,
+    version: '0.57.0',
+    platform: 'ide',
+    toolCount: 103,
+    publishedAt: '2026-11-14 22:00:00+00',
+    title: `Free on your own keys, making things in GIMP and Blender, and health plans that fit you`,
+    body: `A big one: three changes since the last release.
+
+**I am free for everyone, on your own keys.** There are no accounts, no plans and no credits any more, and nothing is held back. Add a key from any provider I support and you pay them directly, at their rates. I test every key before I save it. Or point me at Ollama or LM Studio, and nothing leaves your machine at all. Your keys live in your system's keychain and everything about you lives in your Ava folder, shared with the VS Code extension: welcome once, and both apps know you. Three fleets: **Maestro** on Qwen, **Supernova** on DeepSeek and Qwen, and **Aurora** on Mistral.
+
+**I make things with you in GIMP and Blender.** The Creative Studio now makes work by hand, in real design programs on your computer: icon sets, game UI, sprites and textures as layered GIMP files, and game-ready Blender models exported as .glb and .fbx. The brief comes first, and nothing is made until you agree it. Brand kits per project, folders and packs that download ready for your engine or a store, and a record of how each piece was made.
+
+**Health & Nutrition, rebuilt around you.**
+
+**Your rules are kept everywhere.** Your profile now shows **Never** (allergies, diet, injuries, kit) apart from **Prefer** (likes, dislikes, cooking time). I check every recipe and exercise against your Never list before it goes into a plan, whoever adds it. Something that breaks a rule is refused with the reason; an exercise that needs care is marked, with an easier version. If the library can't confirm an allergen, I say so rather than quietly clearing it. Only the names of recipes and exercises go to the library; your profile stays on your computer.
+
+**A new way to make a plan.** One step-by-step guide for every plan: meals, training or both; build it yourself, ask me, or start from a ready-made plan. When I build one, you see every day before anything is saved, and you can ask me to change something first.
+
+**The library fits you.** Recipes, exercises and ready-made plans show what fits your rules, with a switch to see everything. **For you** on the Health page offers three ideas for today. Swap a meal in or add one to today, with a preview first. No plan needed just to try something.
+
+**Shopping has its own tab.** The week across your plans, in the order you walk the shop. Mark what's already in the cupboard and it stays off every list. Send the list to your phone with a QR code or WhatsApp.
+
+**Take it with you.** Send any recipe or exercise to your phone. **Take it to the gym** puts the day's workout on your phone, with sets, a rest timer and no signal needed. **Take it to the kitchen** opens cook mode, with timers and the screen kept on.
+
+**What you did comes back.** When you finish at the gym, press **Send it to Ava**. Open the link on your computer, check what you did against the plan, and save it to your training log. Your results travel inside the link and never pass through our server.
+
+**You choose when to step up.** After a session I ask **Next time?**: keep it, one more rep, one more set, or heavier. Each plan day shows how it went last time. I never step you up on my own.
+
+**Also:** bodyweight exercises are always available, whatever kit you list; Talk mode no longer stops on a refused tool; and permission requests are in plain English.
+
+**Help is a person away:** our Discord, or support@avasupernova.com for anything private.`,
+    highlights: [
+      'Free and open source: no accounts, plans or credits, on your own keys.',
+      'Make 2D work in GIMP and 3D models in Blender; the brief comes first.',
+      'Health plans that keep your rules, with your workout on your phone.',
+      'You choose when to step up; I never do it on my own.',
+    ],
+  },
+  {
     migration: 523,
     version: '0.111.0',
     platform: 'extension',
