@@ -148,6 +148,12 @@ interface Props {
   initialTab: Tab | null;
   /** What each ready-made plan contains (load_curated_plan_refs), for "fits you". */
   starterRefs?: Record<string, { recipes: string[]; exercises: string[] }>;
+  /** Open this dish or exercise on arrival (For you → Make this / How to do it). */
+  openItem?: { kind: 'recipe' | 'exercise'; slug: string } | null;
+  onConsumeOpenItem?: () => void;
+  /** Open the new-plan wizard with this on day 1 (For you → Start a plan with it). */
+  wizardSeed?: { kind: 'recipe' | 'exercise'; slug: string; name: string; course?: string | null } | null;
+  onConsumeWizardSeed?: () => void;
   onConsumeInitialTab: () => void;
   /** ~/.ava/health/shopping.json — ticks and cupboard staples (Shopping tab). */
   shopping: ShoppingState | null;
@@ -184,6 +190,7 @@ export function Health({
   shopping, onSaveShopping,
   onConsumeInitialTab,
   starterRefs,
+  openItem, onConsumeOpenItem, wizardSeed, onConsumeWizardSeed,
 }: Props) {
   useLocale();
   // Lands on Plans, not the catalogue: the section is named after the thing
@@ -405,6 +412,13 @@ export function Health({
     setModalRecipeSlug(slug);
     onLoadRecipeDetail(slug);
   };
+  // Arriving from For you with something to open.
+  useEffect(() => {
+    if (!openItem) return;
+    if (openItem.kind === 'recipe') openRecipe(openItem.slug); else openExercise(openItem.slug);
+    onConsumeOpenItem?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openItem]);
 
   return (
     <div className="flex h-full flex-col">
@@ -564,7 +578,7 @@ export function Health({
           // Household for the shopping list, cooking budget for the prep plan.
           // Plans carry profile_snapshot: null on this surface, so the live
           // profile is the only source there is.
-          <HealthPlans {...healthPlans} onAskAva={onAskAvaPlan} healthProfile={healthProfile} curated={curated} dayAssist={dayAssist} trainingLog={trainingLog}
+          <HealthPlans {...healthPlans} onAskAva={onAskAvaPlan} wizardSeed={wizardSeed} onConsumeWizardSeed={onConsumeWizardSeed} healthProfile={healthProfile} curated={curated} dayAssist={dayAssist} trainingLog={trainingLog}
             onOpenShopping={(planId) => { setShoppingPlanId(planId); switchTab('shopping'); }} />
         )}
         {tab === 'shopping' && (

@@ -52,7 +52,8 @@
         "health.wizard.r.training": "Training",
         "health.wizard.sum.plan": "Plan",
         "health.wizard.training": "Training",
-        "health.wizard.type.fitness": "Fitness"
+        "health.wizard.type.fitness": "Fitness",
+        "health.foryou.training": "Training"
       },
       "es": {
         "health.plans.n_cook": "{n} min",

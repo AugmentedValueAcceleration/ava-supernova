@@ -851,27 +851,29 @@ function TaskCalendar({
             // A glance at what is planned, not a way in (operator, 13 Nov
             // 2026): clicking a day used to open the Planner, often on the
             // Journal. The page you are on stays put.
-            <span
-              key={day}
-              className="relative flex flex-col items-center justify-center"
-              style={{
-                width: 22, height: 22, borderRadius: '50%',
-                background,
-                color,
-                fontSize: 9,
-                fontWeight: isSelected || isToday ? 500 : 300,
-                outline: isToday && !isSelected ? '1px solid color-mix(in srgb, var(--accent) 50%, transparent)' : 'none',
-                outlineOffset: -1,
-              }}
-            >
-              {day}
-              {dots.length > 0 && (
-                <span className="absolute flex" style={{ bottom: 1, gap: 1 }}>
-                  {dots.map((c, di) => (
-                    <span key={di} style={{ width: 3, height: 3, borderRadius: '50%', background: isSelected ? '#fff' : c }} />
-                  ))}
-                </span>
-              )}
+            // The number alone in a centred circle; the dots sit UNDER it, so
+            // they never push the number off centre (14 Nov 2026).
+            <span key={day} className="flex flex-col items-center" style={{ gap: 2 }}>
+              <span
+                className="flex items-center justify-center"
+                style={{
+                  width: 22, height: 22, borderRadius: '50%',
+                  background,
+                  color,
+                  fontSize: 9,
+                  fontWeight: isSelected || isToday ? 500 : 300,
+                  outline: isToday && !isSelected ? '1px solid color-mix(in srgb, var(--accent) 50%, transparent)' : 'none',
+                  outlineOffset: -1,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {day}
+              </span>
+              <span className="flex justify-center" style={{ gap: 2, height: 4 }} aria-hidden>
+                {dots.map((c, di) => (
+                  <span key={di} style={{ width: 4, height: 4, borderRadius: '50%', background: c }} />
+                ))}
+              </span>
             </span>
           );
         })}

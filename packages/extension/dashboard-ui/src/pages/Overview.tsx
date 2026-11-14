@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type ComponentProps } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
@@ -112,6 +112,8 @@ interface OverviewProps {
   onOpenArticle?: (slug: string) => void;
   // Command Center health tab — active plans for the Today / This-week glance.
   activeHealthPlans: HealthPlan[];
+  forYou?: ComponentProps<typeof HealthDashboard>['forYou'];
+  forYouHandlers?: ComponentProps<typeof HealthDashboard>['forYouHandlers'];
   // Trust nudges from the audit engine (auto-approve-failing, retry loops,
   // dangerous-succeeded) — surfaced here so users see them without opening
   // the audit tab. Computed host-side; localised at render.
@@ -152,6 +154,8 @@ export function Overview({
   articleLoading,
   onOpenArticle,
   activeHealthPlans,
+  forYou,
+  forYouHandlers,
   auditFindings,
   tasksLoaded,
   journalLoaded,
@@ -342,7 +346,7 @@ export function Overview({
 
       {/* ── Health tab — Today / This week glance from active plans ───── */}
       {tab === 'health' && (
-        <HealthDashboard activePlans={activeHealthPlans} />
+        <HealthDashboard activePlans={activeHealthPlans} forYou={forYou} forYouHandlers={forYouHandlers} />
       )}
 
     </div>

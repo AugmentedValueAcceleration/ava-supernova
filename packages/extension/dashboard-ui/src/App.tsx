@@ -58,6 +58,7 @@ import type {
   HealthProfile,
   ShoppingState,
   HealthSafetyVerdict,
+  ForYouResult,
   GeneralProfile,
   HealthPlan,
   HealthPlanSummary,
@@ -406,6 +407,12 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   // navigates here wanting a specific tab; Health consumes it once on
   // mount then clears it so a later sidebar visit lands on the default.
   const [healthInitialTab, setHealthInitialTab] = useState<'plans' | 'exercises' | 'recipes' | 'profile' | 'ava' | null>(null);
+  /** "For you" (Health Part 4): undefined while loading, null when it could not be built. */
+  const [forYou, setForYou] = useState<ForYouResult | null | undefined>(undefined);
+  /** A dish or exercise to open when the Health page next shows (For you → Make this). */
+  const [healthOpenItem, setHealthOpenItem] = useState<{ kind: 'recipe' | 'exercise'; slug: string } | null>(null);
+  /** "Start a plan with it": the wizard opens with this on day 1. */
+  const [wizardSeed, setWizardSeed] = useState<{ kind: 'recipe' | 'exercise'; slug: string; name: string; course?: string | null } | null>(null);
   const [learningInitialTab, setLearningInitialTab] = useState<'courses' | 'my-learning' | 'ava' | null>(null);
   // Multi-week Plans — the library (lightweight summaries) plus the one
   // full plan currently open in the editor. Loaded on dashboard mount.
@@ -1163,6 +1170,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         // without the caller having to know which range is on screen.
         post({ type: 'load_training_sessions', from: '2000-01-01', to: '2100-01-01' });
         break;
+      case 'for_you_loaded':
+        setForYou(msg.result);
+        break;
       case 'curated_plan_refs_loaded':
         setCuratedRefs(prev => ({ ...prev, ...msg.refs }));
         break;
@@ -1713,7 +1723,12 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             />
           );
         }
-        return <Overview connections={connections} onNavigate={setPagePersist} sessionStats={sessionStatsData} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={memories} memoryTotal={memoryTotal} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
+        return <Overview connections={connections} onNavigate={setPagePersist} sessionStats={sessionStatsData} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={memories} memoryTotal={memoryTotal} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} forYou={forYou} forYouHandlers={{
+          onOpenItem: (kind, slug) => { setHealthOpenItem({ kind, slug }); setHealthInitialTab(kind === 'recipe' ? 'recipes' : 'exercises'); setPagePersist('health'); },
+          onStartPlan: (seed) => { setWizardSeed(seed); setHealthInitialTab('plans'); setPagePersist('health'); },
+          onProfile: () => { setHealthInitialTab('profile'); setPagePersist('health'); },
+          onOpenPlans: () => { setHealthInitialTab('plans'); setPagePersist('health'); },
+        }} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'memory':
         return <Memory memories={memories} serverTotal={memoryTotal} serverHasMore={memoryHasMore} loaded={isLoaded('memories')} />;
       case 'history':
@@ -1837,6 +1852,10 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
               onStart: handleStartCuratedPlan,
             }}
             starterRefs={curatedRefs}
+            openItem={healthOpenItem}
+            onConsumeOpenItem={() => setHealthOpenItem(null)}
+            wizardSeed={wizardSeed}
+            onConsumeWizardSeed={() => setWizardSeed(null)}
             onRegisterHealthChatDispatch={registerHealthChatDispatch}
             userName={firstName}
             userAvatarUrl={avatarDataUrl || null}

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { t, useLocale } from '../i18n';
 import { WeeklyPlanView } from './WeeklyPlanView';
-import type { HealthPlan } from '../types/messages';
+import { ForYou, type ForYouHandlers } from '../components/ForYou';
+import type { HealthPlan, ForYouResult } from '../types/messages';
 
 /**
  * The Command Center "Health" tab — a glance at what's on today / this week,
@@ -28,9 +29,12 @@ function longDate(): string {
 interface Props {
   /** Full data for active, dated plans — host-loaded (load_active_health_plans). */
   activePlans: HealthPlan[];
+  /** "For you" (Health Part 4): undefined while loading, null when it could not be built. */
+  forYou?: ForYouResult | null;
+  forYouHandlers?: ForYouHandlers;
 }
 
-export function HealthDashboard({ activePlans }: Props) {
+export function HealthDashboard({ activePlans, forYou, forYouHandlers }: Props) {
   useLocale();
   const [innerTab, setInnerTab] = useState<'today' | 'week'>('today');
 
@@ -45,6 +49,8 @@ export function HealthDashboard({ activePlans }: Props) {
         <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{longDate()}</div>
         <h1 className="mt-1 text-[20px] font-light text-[var(--text-primary)]">{t(greetingKey())}.</h1>
       </header>
+
+      {forYouHandlers && <div className="mt-5"><ForYou result={forYou} h={forYouHandlers} /></div>}
 
       <div className="mt-5 mb-6 flex gap-1 border-b border-[var(--border)]">
         <button onClick={() => setInnerTab('today')} className={tabCls(innerTab === 'today')}>{t('health.week.today')}</button>

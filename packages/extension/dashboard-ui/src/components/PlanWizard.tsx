@@ -85,6 +85,9 @@ export interface PlanWizardProps<P extends WizardProfile = WizardProfile> {
   /** The finished plan (a full HealthPlan, structurally). */
   onCreate: (plan: never) => void;
   onAskAva?: (type: PlanType) => void;
+  /** Opened from "Start a plan with it" (For you, Health Part 4): the plan
+   *  begins as meals or training to match, with this already on day 1. */
+  seed?: { kind: 'exercise' | 'recipe'; slug: string; name: string; course?: string | null } | null;
   /** Open the Health & Fitness Safety page (each app opens links its own way). */
   onOpenSafety: () => void;
   exerciseResults: ExerciseRow[];
@@ -299,7 +302,7 @@ export function PlanWizard<P extends WizardProfile>(props: PlanWizardProps<P>) {
   useLocale();
   const { healthProfile, onSaveProfile, onCancel, onCreate, onAskAva, safety, curated, onOpenSafety } = props;
   const [step, setStep] = useState(1);
-  const [type, setType] = useState<PlanType>('combined');
+  const [type, setType] = useState<PlanType>(() => (props.seed ? (props.seed.kind === 'recipe' ? 'meal' : 'fitness') : 'combined'));
   const [start, setStart] = useState<Start>('self');
   const [length, setLength] = useState<1 | 3 | 7>(7);
   const [startDate, setStartDate] = useState(ymd(new Date()));
@@ -394,6 +397,35 @@ export function PlanWizard<P extends WizardProfile>(props: PlanWizardProps<P>) {
     return safety.results[slug] ?? 'pending';
   };
   const asVerdict = (v: ReturnType<typeof verdictOf>) => (v && typeof v === 'object' ? v : null);
+
+  // "Start a plan with it": put the chosen dish or exercise on day 1 once its
+  // verdict is in. It came from For you, so it already fits; it is checked
+  // again here all the same, and a breach is said, never added.
+  const seeded = useRef(false);
+  useEffect(() => {
+    const sd = props.seed;
+    if (!sd || seeded.current || !days.length) return;
+    if (safety && !safety.results[sd.slug]) {
+      if (safety.checked) { if (sd.kind === 'recipe') safety.onCheck([sd.slug], []); else safety.onCheck([], [sd.slug]); }
+      return;
+    }
+    seeded.current = true;
+    const vo = safety ? safety.results[sd.slug] : null;
+    if (vo && vo.verdict === 'blocked') { setNotice(`${sd.name} — ${vo.reasons.join('; ')}. ${tt('health.wizard.swap', 'Swap it for something that fits.')}`); return; }
+    const mealSlot: Slot = sd.course === 'breakfast' ? 'breakfast' : sd.course === 'snack' || sd.course === 'dessert' ? 'snack' : 'dinner';
+    setDays((prev) => prev.map((d, i) => {
+      if (i !== 0) return d;
+      if (sd.kind === 'exercise') {
+        const ex: WizardExercise = { id: newId('ex'), ref: { kind: 'exercise', slug: sd.slug }, name: sd.name, sets: 3, reps: '10', weight: null, rest_seconds: 60, tempo: null, notes: vo && vo.verdict === 'warn' ? vo.reasons.join('; ') : null };
+        return { ...d, kind: 'training' as const, training: [...d.training, ex] };
+      }
+      const meal: WizardMeal = { id: newId('ml'), slot: mealSlot, ref: { kind: 'recipe', slug: sd.slug }, name: sd.name, servings: 1, calories: null, protein_g: null, carbs_g: null, fat_g: null, cook_time_minutes: null, notes: null };
+      return { ...d, meals: [...d.meals, meal] };
+    }));
+    if (sd.kind === 'recipe' && !props.recipeDetails[sd.slug]) props.onLoadRecipeDetail(sd.slug);
+    setNotice(tt('health.wizard.seeded', '{name} is on day 1. Build the rest around it.').replace('{name}', sd.name));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.seed, days.length, safety?.results, safety?.checked]);
 
   const addItem = (kind: 'exercise' | 'recipe', slug: string, name: string, base?: Partial<WizardExercise>, opts: { course?: string | null; confirmed?: boolean } = {}) => {
     // A dish that is not for this meal (a breakfast into dinner) asks first.

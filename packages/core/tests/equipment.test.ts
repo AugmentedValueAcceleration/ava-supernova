@@ -173,3 +173,11 @@ describe('ownedEquipmentSlugs', () => {
     expect(ownedEquipmentSlugs(['dumbbells', 'bench'])).toEqual(['dumbbells', 'bench']);
   });
 });
+
+describe('bodyweight is always available (14 Nov 2026)', () => {
+  it('listing dumbbells without "bodyweight" still allows bodyweight moves', () => {
+    expect(canPerformWithEquipment(['bodyweight'], ['dumbbells'])).toBe(true);
+    expect(canPerformWithEquipment(['bodyweight', 'pull_up_bar'], ['dumbbells'])).toBe(false);
+    expect(missingEquipmentNames(['bodyweight', 'pull_up_bar'], ['dumbbells'])).toEqual(['Pull-up bar']);
+  });
+});

@@ -683,6 +683,9 @@ export type HealthSubmissionStatus = 'pending' | 'rejected' | 'published';
  * Stored locally — works fully for BYOK / no-account users.
  */
 /** One library item's verdict against their hard rules (core health/safety). */
+export type { ForYouResult, ForYouAction, ForYouPick, ForYouExtra } from '@ava/core/health/for-you';
+import type { ForYouResult, ForYouAction } from '@ava/core/health/for-you';
+
 export interface HealthSafetyVerdict {
   slug: string;
   verdict: 'ok' | 'warn' | 'blocked';
@@ -1575,6 +1578,8 @@ export type ExtToDashboardMessage =
   | { type: 'health_plan_saved'; plan: HealthPlan; plans: HealthPlanSummary[] }
   /** Verdicts for library items against their hard rules (Part 1, 11 Nov 2026).
    *  `checked: false` = the check could not run: show results as NOT checked. */
+  | { type: 'for_you_loaded'; result: ForYouResult | null }
+  | { type: 'for_you_applied'; ok: boolean }
   | { type: 'curated_plan_refs_loaded'; refs: Record<string, { recipes: string[]; exercises: string[] }> }
   | { type: 'health_safety_result'; results: Record<string, HealthSafetyVerdict>; checked: boolean; rules: boolean }
   | { type: 'health_plan_deleted'; id: string; plans: HealthPlanSummary[] }
@@ -1973,6 +1978,8 @@ export type DashboardToExtMessage =
   | { type: 'delete_training_session'; id: string }
   | { type: 'load_curated_plans' }
   | { type: 'load_curated_plan_refs'; ids: string[] }
+  | { type: 'load_for_you' }
+  | { type: 'apply_for_you'; action: ForYouAction }
   | { type: 'load_curated_plan'; id: string }
   /** Fire-and-forget: the only signal we get about which starters work.
    *  Never allowed to fail a start. */

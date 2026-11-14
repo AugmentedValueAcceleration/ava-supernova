@@ -99,6 +99,7 @@ import type { GymSession } from '@ava/core/health';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
 import { planRefs } from '@ava/core/health/library-fit';
+import { buildForYou, applyForYouAction } from '@ava/core/health/for-you';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { exportDocument } from '@ava/core/authoring';
@@ -1417,6 +1418,35 @@ export class DashboardPanel {
           this.log(`[health] curated plans failed: ${error}`);
           this.post({ type: 'curated_plans_failed', error });
         }
+        return;
+      }
+      case 'load_for_you': {
+        // "For you" on the command centre's Health tab (Health Part 4). Built
+        // here, where the profile lives; only library slugs leave the machine.
+        try {
+          const d = new Date();
+          const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const result = await buildForYou({ profile: this.getHealthProfile() as never, activePlans: this.getActiveHealthPlans() as never, today });
+          this.post({ type: 'for_you_loaded', result });
+        } catch (err) {
+          this.log(`[health] for you failed: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'for_you_loaded', result: null });
+        }
+        return;
+      }
+      case 'apply_for_you': {
+        // "Add to today" / "Swap it in": one change to one day of one plan.
+        const plan = this.getHealthPlan(msg.action.planId);
+        if (plan) {
+          await this.saveHealthPlan(applyForYouAction(plan as never, msg.action) as never);
+          this.post({ type: 'active_health_plans_loaded', plans: this.getActiveHealthPlans() });
+        }
+        this.post({ type: 'for_you_applied', ok: !!plan });
+        try {
+          const d = new Date();
+          const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          this.post({ type: 'for_you_loaded', result: await buildForYou({ profile: this.getHealthProfile() as never, activePlans: this.getActiveHealthPlans() as never, today }) });
+        } catch { /* the old card stays */ }
         return;
       }
       case 'load_curated_plan_refs': {

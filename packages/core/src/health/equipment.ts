@@ -231,6 +231,12 @@ export function ownedEquipmentSlugs(values: readonly string[] | null | undefined
  * An empty PROFILE list means "not stated", never "owns nothing" — filtering on
  * it would leave a beginner with almost nothing. An empty EXERCISE list means
  * the exercise needs nothing, so anyone can do it.
+ *
+ * `bodyweight` is always available. The library tags bodyweight moves with it
+ * as if it were kit, so until 14 Nov 2026 someone who listed "dumbbells" and
+ * not "bodyweight" had every bodyweight exercise refused as "needs kit you
+ * have not listed (Bodyweight)" — in the wizard, the library tabs, Ava's plans
+ * and the website's generator. Everyone has a body.
  */
 export function canPerformWithEquipment(
   exerciseEquipment: readonly string[] | null | undefined,
@@ -240,7 +246,7 @@ export function canPerformWithEquipment(
   if (need.length === 0) return true;
   const have = ownedEquipmentSlugs(ownedSlugs);
   if (have.length === 0) return true;
-  return need.every((n) => have.includes(n));
+  return need.every((n) => n === 'bodyweight' || have.includes(n));
 }
 
 /** What is missing for this exercise, as display names, for telling someone why. */
@@ -252,5 +258,5 @@ export function missingEquipmentNames(
   if (need.length === 0) return [];
   const have = ownedEquipmentSlugs(ownedSlugs);
   if (have.length === 0) return [];
-  return need.filter((n) => !have.includes(n)).map(equipmentName);
+  return need.filter((n) => n !== 'bodyweight' && !have.includes(n)).map(equipmentName);
 }

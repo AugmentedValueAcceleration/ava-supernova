@@ -70,6 +70,9 @@ export interface HealthPlansProps {
    *  (catalogue-aware, profile-loaded) instead of the manual builder.
    *  Omitted on surfaces that only offer manual building. */
   onAskAva?: (type: HealthPlanType) => void;
+  /** Opens the wizard with this on day 1 (For you → Start a plan with it). */
+  wizardSeed?: { kind: 'recipe' | 'exercise'; slug: string; name: string; course?: string | null } | null;
+  onConsumeWizardSeed?: () => void;
   /** For the shopping list (household) and the prep plan (cooking-time
    *  budget). Optional so a caller that has no profile still renders. */
   healthProfile?: HealthProfile | null;
@@ -121,10 +124,18 @@ export function HealthPlans({
   plans, fullPlans, planOpen, onOpenPlan, onSavePlan, onDeletePlan, onClosePlan,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
-  onAskAva, healthProfile = null, curated, dayAssist, trainingLog, safety, onSaveProfile, onOpenShopping,
+  onAskAva, healthProfile = null, curated, dayAssist, trainingLog, safety, onSaveProfile, onOpenShopping, wizardSeed, onConsumeWizardSeed,
 }: HealthPlansProps) {
   useLocale();
   const [setupOpen, setSetupOpen] = useState(false);
+  const [seed, setSeed] = useState<typeof wizardSeed>(null);
+  useEffect(() => {
+    if (!wizardSeed) return;
+    setSeed(wizardSeed);
+    setSetupOpen(true);
+    onConsumeWizardSeed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wizardSeed]);
 
   return (
     <>
@@ -137,8 +148,9 @@ export function HealthPlans({
         <PlanWizard
           healthProfile={healthProfile}
           onSaveProfile={onSaveProfile}
-          onCancel={() => setSetupOpen(false)}
-          onCreate={onSavePlan}
+          onCancel={() => { setSetupOpen(false); setSeed(null); }}
+          onCreate={(p) => { setSeed(null); onSavePlan(p); }}
+          seed={seed}
           onAskAva={onAskAva ? (type) => { setSetupOpen(false); onAskAva(type); } : undefined}
           exerciseResults={exerciseResults}
           recipeResults={recipeResults}
