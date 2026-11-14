@@ -128,7 +128,8 @@
         "library.gimp.images": "Images",
         "library.model.triangles": "Triangles",
         "health.wizard.r.allergies": "Allergies",
-        "health.wizard.sum.plan": "Plan"
+        "health.wizard.sum.plan": "Plan",
+        "health.profile.never.allergies": "Allergies"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",

@@ -4910,6 +4910,24 @@ export const enStrings = {
   'health.foryou.p.swap_title': 'Swap tonight’s dinner?',
   'health.foryou.p.tap_one': 'Tap the exercise it replaces. It keeps that one’s sets and reps.',
   'health.foryou.p.today_meals': 'Today’s meals',
+  // ── Added from tt() fallbacks ──
+  'health.profile.about.body': 'How Ava shapes a plan around you.',
+  'health.profile.about.title': 'About you',
+  'health.profile.never.allergies': 'Allergies',
+  'health.profile.never.allergies_hint': 'Fish, sesame, mustard and a few others can only be checked from the ingredients. Ava will say so when that is all there is.',
+  'health.profile.never.body': 'Ava keeps to these everywhere: plans she builds, the wizard, the library, For you. Anything that breaks one is never offered. Checked on this computer.',
+  'health.profile.never.diet': 'Diet',
+  'health.profile.never.injuries_hint': 'Exercises to avoid are left out. Ones to take care with stay, marked, with an easier version.',
+  'health.profile.never.kit': 'Kit you have',
+  'health.profile.never.kit_hint': 'Bodyweight is always included. Leave this empty and nothing is filtered by kit.',
+  'health.profile.never.title': 'Never',
+  'health.profile.prefer.body': 'Ava leans this way: what you like comes first, what you dislike comes last. Nothing is hidden for these.',
+  'health.profile.prefer.cuisines': 'Favourite cuisines',
+  'health.profile.prefer.dislikes': 'Foods you\'d rather not',
+  'health.profile.prefer.likes': 'Foods you like',
+  'health.profile.prefer.title': 'Prefer',
+  // ── Added from tt() fallbacks ──
+  'health.profile.never.diet_link': 'What do these mean?',
 };
 
 export type StringKey = keyof typeof enStrings;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
+import { post } from '../App';
 import type { HealthProfile, HealthTaxonomies } from '../types/messages';
 import { Section, FieldGrid, Field, NumberInput, TimeInput, PickerChips, inputCls } from './ProfilePrimitives';
 import { CookingTimeGrid, type CookTime, type MealCook } from '../components/CookingTimeGrid';
@@ -110,6 +111,109 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
     <div className="w-full space-y-8 pb-12">
       <Intro />
 
+      {/* Never — the hard rules (Health Part 2, mockup approved 14 Nov 2026).
+          Kept apart from preferences so people can see which answers are
+          guarantees: anything that breaks one is never offered, anywhere. */}
+      <RuleSection kind="never" title={tt('health.profile.never.title', 'Never')}
+        body={tt('health.profile.never.body', 'Ava keeps to these everywhere: plans she builds, the wizard, the library, For you. Anything that breaks one is never offered. Checked on this computer.')}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Field label={tt('health.profile.never.allergies', 'Allergies')} hint={tt('health.profile.never.allergies_hint', 'Fish, sesame, mustard and a few others can only be checked from the ingredients. Ava will say so when that is all there is.')}>
+          <PickerChips
+            selected={draft.constraints.allergens ?? []}
+            options={(taxonomies?.allergens ?? []).map(a => ({ slug: a.slug, label: a.name }))}
+            onToggle={slug => {
+              const exists = (draft.constraints.allergens ?? []).includes(slug);
+              const next = exists
+                ? (draft.constraints.allergens ?? []).filter(s => s !== slug)
+                : [...draft.constraints.allergens, slug];
+              patchConstraints({ allergens: next });
+            }}
+            emptyHint={t('health.profile.allergens_loading')}
+          />
+        </Field>
+        <Field label={tt('health.profile.never.diet', 'Diet')}>
+          <PickerChips
+            selected={draft.constraints.dietary ?? []}
+            options={DEFAULT_DIETARY_OPTIONS.map(o => ({ slug: o.slug, label: t(o.labelKey) }))}
+            onToggle={slug => {
+              const exists = (draft.constraints.dietary ?? []).includes(slug);
+              const next = exists
+                ? (draft.constraints.dietary ?? []).filter(s => s !== slug)
+                : [...draft.constraints.dietary, slug];
+              patchConstraints({ dietary: next });
+            }}
+          />
+          <button type="button" onClick={() => post({ type: 'open_url', url: 'https://avasupernova.com/guides/diets-explained' } as never)}
+            className="mt-2 cursor-pointer border-none bg-transparent p-0 text-[11px] text-[var(--accent)] hover:underline">
+            {tt('health.profile.never.diet_link', 'What do these mean?')}
+          </button>
+        </Field>
+        <Field label={t('health.profile.injuries')} hint={tt('health.profile.never.injuries_hint', 'Exercises to avoid are left out. Ones to take care with stay, marked, with an easier version.')}>
+          <textarea
+            rows={2}
+            value={(draft.constraints.injuries ?? []).join('\n')}
+            onChange={e => patchConstraints({ injuries: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
+            placeholder={t('health.profile.injuries_placeholder')}
+            className={`${inputCls} resize-y font-[inherit]`}
+          />
+        </Field>
+        <Field label={tt('health.profile.never.kit', 'Kit you have')} hint={tt('health.profile.never.kit_hint', 'Bodyweight is always included. Leave this empty and nothing is filtered by kit.')}>
+          <PickerChips
+            selected={draft.constraints.equipment_available ?? []}
+            options={DEFAULT_EQUIPMENT_OPTIONS.map(o => ({ slug: o.slug, label: t(o.labelKey) }))}
+            onToggle={slug => {
+              const exists = (draft.constraints.equipment_available ?? []).includes(slug);
+              const next = exists
+                ? (draft.constraints.equipment_available ?? []).filter(s => s !== slug)
+                : [...draft.constraints.equipment_available, slug];
+              patchConstraints({ equipment_available: next });
+            }}
+          />
+        </Field>
+        </div>
+      </RuleSection>
+
+      {/* Prefer — steers, never hides. */}
+      <RuleSection kind="prefer" title={tt('health.profile.prefer.title', 'Prefer')}
+        body={tt('health.profile.prefer.body', 'Ava leans this way: what you like comes first, what you dislike comes last. Nothing is hidden for these.')}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Field label={tt('health.profile.prefer.likes', 'Foods you like')}>
+          <textarea
+            rows={2}
+            value={food.likes.join('\n')}
+            onChange={e => patchFood({ likes: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
+            placeholder={t('health.profile.likes_placeholder')}
+            className={`${inputCls} resize-y font-[inherit]`}
+          />
+        </Field>
+        <Field label={tt('health.profile.prefer.dislikes', 'Foods you\'d rather not')}>
+          <textarea
+            rows={2}
+            value={food.dislikes.join('\n')}
+            onChange={e => patchFood({ dislikes: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
+            placeholder={t('health.profile.dislikes_placeholder')}
+            className={`${inputCls} resize-y font-[inherit]`}
+          />
+        </Field>
+        <Field label={tt('health.profile.prefer.cuisines', 'Favourite cuisines')}>
+          <PickerChips
+            selected={food.cuisines}
+            options={CUISINE_OPTIONS.map(o => ({ slug: o.slug, label: o.label }))}
+            onToggle={slug => {
+              const exists = food.cuisines.includes(slug);
+              patchFood({ cuisines: exists ? food.cuisines.filter(s => s !== slug) : [...food.cuisines, slug] });
+            }}
+          />
+        </Field>
+        </div>
+      </RuleSection>
+
+      {/* About you — how Ava shapes a plan. */}
+      <div>
+        <h2 className="text-[15px] font-medium text-[var(--text-primary)]">{tt('health.profile.about.title', 'About you')}</h2>
+        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{tt('health.profile.about.body', 'How Ava shapes a plan around you.')}</p>
+      </div>
+
       {/* Goals */}
       <Section title={t('health.profile.goals')} subtitle={t('health.profile.goals_subtitle')}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -140,66 +244,6 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
             placeholder={t('health.profile.weekly_focus_placeholder')}
             maxLength={120}
             className={inputCls}
-          />
-        </Field>
-      </Section>
-
-      {/* Constraints */}
-      <Section title={t('health.profile.constraints')} subtitle={t('health.profile.constraints_subtitle')}>
-        <Field label={t('health.profile.allergens')}>
-          <PickerChips
-            selected={draft.constraints.allergens ?? []}
-            options={(taxonomies?.allergens ?? []).map(a => ({ slug: a.slug, label: a.name }))}
-            onToggle={slug => {
-              const exists = (draft.constraints.allergens ?? []).includes(slug);
-              const next = exists
-                ? (draft.constraints.allergens ?? []).filter(s => s !== slug)
-                : [...draft.constraints.allergens, slug];
-              patchConstraints({ allergens: next });
-            }}
-            emptyHint={t('health.profile.allergens_loading')}
-          />
-        </Field>
-        <Field label={t('health.profile.dietary')}>
-          <PickerChips
-            selected={draft.constraints.dietary ?? []}
-            options={DEFAULT_DIETARY_OPTIONS.map(o => ({ slug: o.slug, label: t(o.labelKey) }))}
-            onToggle={slug => {
-              const exists = (draft.constraints.dietary ?? []).includes(slug);
-              const next = exists
-                ? (draft.constraints.dietary ?? []).filter(s => s !== slug)
-                : [...draft.constraints.dietary, slug];
-              patchConstraints({ dietary: next });
-            }}
-          />
-        </Field>
-        <Field label={t('health.profile.equipment')}>
-          <PickerChips
-            selected={draft.constraints.equipment_available ?? []}
-            options={DEFAULT_EQUIPMENT_OPTIONS.map(o => ({ slug: o.slug, label: t(o.labelKey) }))}
-            onToggle={slug => {
-              const exists = (draft.constraints.equipment_available ?? []).includes(slug);
-              const next = exists
-                ? (draft.constraints.equipment_available ?? []).filter(s => s !== slug)
-                : [...draft.constraints.equipment_available, slug];
-              patchConstraints({ equipment_available: next });
-            }}
-          />
-        </Field>
-        <Field label={t('health.profile.injuries')}>
-          <textarea
-            rows={2}
-            value={(draft.constraints.injuries ?? []).join('\n')}
-            onChange={e => patchConstraints({ injuries: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
-            placeholder={t('health.profile.injuries_placeholder')}
-            className={`${inputCls} resize-y font-[inherit]`}
-          />
-        </Field>
-        <Field label={t('health.profile.minutes_per_day')}>
-          <NumberInput
-            value={draft.constraints.minutes_per_day_target}
-            onChange={v => patchConstraints({ minutes_per_day_target: v })}
-            placeholder="45"
           />
         </Field>
       </Section>
@@ -253,6 +297,13 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
             })}
           </div>
         </Field>
+        <Field label={t('health.profile.minutes_per_day')} className="mt-3">
+          <NumberInput
+            value={draft.constraints.minutes_per_day_target}
+            onChange={v => patchConstraints({ minutes_per_day_target: v })}
+            placeholder="45"
+          />
+        </Field>
       </Section>
 
       {/* Kitchen — household size drives servings and therefore every quantity
@@ -299,38 +350,6 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
             {t('health.profile.minutes_fill_action')}
           </button>
         </div>
-      </Section>
-
-      {/* Food & taste — steers meal plans toward what you enjoy. */}
-      <Section title={t('health.profile.food_taste')} subtitle={t('health.profile.food_taste_subtitle')}>
-        <Field label={t('health.profile.likes')}>
-          <textarea
-            rows={2}
-            value={food.likes.join('\n')}
-            onChange={e => patchFood({ likes: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
-            placeholder={t('health.profile.likes_placeholder')}
-            className={`${inputCls} resize-y font-[inherit]`}
-          />
-        </Field>
-        <Field label={t('health.profile.dislikes')}>
-          <textarea
-            rows={2}
-            value={food.dislikes.join('\n')}
-            onChange={e => patchFood({ dislikes: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
-            placeholder={t('health.profile.dislikes_placeholder')}
-            className={`${inputCls} resize-y font-[inherit]`}
-          />
-        </Field>
-        <Field label={t('health.profile.cuisines')}>
-          <PickerChips
-            selected={food.cuisines}
-            options={CUISINE_OPTIONS.map(o => ({ slug: o.slug, label: o.label }))}
-            onToggle={slug => {
-              const exists = food.cuisines.includes(slug);
-              patchFood({ cuisines: exists ? food.cuisines.filter(s => s !== slug) : [...food.cuisines, slug] });
-            }}
-          />
-        </Field>
       </Section>
 
       {/* Schedule */}
@@ -473,5 +492,30 @@ function Intro() {
         {t('health.profile.intro_blurb')}
       </p>
     </div>
+  );
+}
+
+/**
+ * Never (green, a shield) and Prefer (blue, a heart): the two kinds of answer
+ * kept visibly apart, so nobody mistakes a guarantee for a nudge or the other
+ * way round. Mirrors the wizard's split.
+ */
+function RuleSection({ kind, title, body, children }: { kind: 'never' | 'prefer'; title: string; body: string; children: React.ReactNode }) {
+  const never = kind === 'never';
+  return (
+    <section className="rounded-xl border p-5" style={{ borderColor: never ? '#5f8f5a' : '#5a5f8f', background: never ? 'rgba(166,227,161,0.06)' : 'rgba(137,180,250,0.06)' }}>
+      <div className="mb-4 flex items-start gap-3">
+        {never ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a6e3a1" strokeWidth="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#89b4fa" strokeWidth="2" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" /></svg>
+        )}
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{title}</h2>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--text-secondary)]">{body}</p>
+        </div>
+      </div>
+      {children}
+    </section>
   );
 }
