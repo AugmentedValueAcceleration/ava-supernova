@@ -4686,4 +4686,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': '세션은 코드 내부에서 직접 처리됩니다. 우리에게 아무것도 전송되지 않습니다.',
   'health.phone.gym_title': '오늘의 세션을 헬스장으로 가져가기',
   'health.phone.training': '훈련',
+  'health.phone.kitchen': '주방으로 가져가세요',
+  'health.phone.which': '무엇을 요리 중이신가요?',
 };

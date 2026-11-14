@@ -4666,4 +4666,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'Сесія відбувається всередині самого коду. Нічого не надсилається нам.',
   'health.phone.gym_title': 'Візьміть сьогоднішню сесію в зал',
   'health.phone.training': 'Тренування',
+  'health.phone.kitchen': 'Занесіть на кухню',
+  'health.phone.which': 'Яку страву ви готуєте?',
 };

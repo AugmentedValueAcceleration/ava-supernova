@@ -4686,4 +4686,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'Тренировка остаётся внутри самого кода. Ничего не отправляется нам.',
   'health.phone.gym_title': 'Взять сегодняшнюю тренировку в зал',
   'health.phone.training': 'Тренировка',
+  'health.phone.kitchen': 'Отнесите на кухню',
+  'health.phone.which': 'Что вы готовите?',
 };

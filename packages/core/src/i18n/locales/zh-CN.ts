@@ -4666,4 +4666,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': '会话仅在代码内部流转。不会向我们发送任何内容。',
   'health.phone.gym_title': '将今天’s 训练带去健身房',
   'health.phone.training': '训练',
+  'health.phone.kitchen': '带去厨房',
+  'health.phone.which': '正在做哪道菜？',
 };

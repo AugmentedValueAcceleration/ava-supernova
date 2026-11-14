@@ -4666,4 +4666,6 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'Sesja pozostaje wewnątrz samego kodu. Nic nie jest wysyłane do nas.',
   'health.phone.gym_title': 'Zabierz dzisiejszy trening na siłownię',
   'health.phone.training': 'Trening',
+  'health.phone.kitchen': 'Zanieś to do kuchni',
+  'health.phone.which': 'Które danie gotujesz?',
 };

@@ -4686,4 +4686,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'Seans kodun içinde gerçekleşir. Hiçbir şey bize gönderilmez.',
   'health.phone.gym_title': 'Bugünkü seansı spor salonuna götür',
   'health.phone.training': 'Antrenman',
+  'health.phone.kitchen': 'Mutfağa götür',
+  'health.phone.which': 'Hangisini pişiriyorsun?',
 };

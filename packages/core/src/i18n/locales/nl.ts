@@ -4686,4 +4686,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'De sessie verloopt volledig in de code zelf. Er wordt niets naar ons verzonden.',
   'health.phone.gym_title': 'Neem de sessie van vandaag\\u2019 mee naar de sportschool',
   'health.phone.training': 'Training',
+  'health.phone.kitchen': 'Neem het mee naar de keuken',
+  'health.phone.which': 'Welke ga je koken?',
 };

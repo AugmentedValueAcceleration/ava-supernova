@@ -4687,4 +4687,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': '訓練內容僅存於程式碼內部。不會有任何資料傳送給我們。',
   'health.phone.gym_title': '將今天的訓練帶去健身房',
   'health.phone.training': '訓練',
+  'health.phone.kitchen': '拿去廚房',
+  'health.phone.which': '你在煮哪道菜？',
 };

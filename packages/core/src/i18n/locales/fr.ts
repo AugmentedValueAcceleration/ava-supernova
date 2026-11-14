@@ -4682,4 +4682,6 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'La séance voyage à l\'intérieur du code lui-même. Rien n\'est envoyé vers nous.',
   'health.phone.gym_title': 'Emmenez la séance d\'aujourd\\u2019hui à la salle de sport',
   'health.phone.training': 'Entraînement',
+  'health.phone.kitchen': 'Apportez-le à la cuisine',
+  'health.phone.which': 'Lequel cuisinez-vous ?',
 };

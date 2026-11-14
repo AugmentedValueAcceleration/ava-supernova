@@ -11,7 +11,7 @@ import { fillDayMeta } from '../lib/plan-meal-meta';
 import { DuplicateSheet } from '../components/DuplicateSheet';
 import { AssistSheet, dayDate, type DayProposal } from '../components/AssistSheet';
 import { LogSessionSheet, seedFrom as seedSessionFrom } from '../components/LogSessionSheet';
-import { SendWorkoutToPhone, GymButton } from '../components/SendItemToPhone';
+import { SendWorkoutToPhone, GymButton, SendMealToPhone, KitchenButton } from '../components/SendItemToPhone';
 import { PlanWizard, type PlanWizardSafety } from '../components/PlanWizard';
 import { post } from '../App';
 import type { GymSession, GymExercise } from '../../../../core/dist/health/session-types.js';
@@ -140,7 +140,7 @@ export function HealthPlans({
 
   return (
     <>
-      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} onOpenShopping={onOpenShopping} trainingLog={trainingLog}
+      <BasePlansTab cookingLevel={healthProfile?.kitchen?.level ?? null} plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} onOpenShopping={onOpenShopping} trainingLog={trainingLog}
         onSavePlan={onSavePlan}
         exerciseResults={exerciseResults} recipeResults={recipeResults} catalogSearching={catalogSearching} onSearchExercises={onSearchExercises} onSearchRecipes={onSearchRecipes} />
       {/* New plan: the full-page wizard (11 Nov 2026). The old drawer's "Build
@@ -405,8 +405,10 @@ function dayTotals(day: HealthPlanDay, recipeDetails: Record<string, HealthRecip
 /** The Plans tab itself. Never an overlay. Two inner tabs: Calendar (a
  *  month grid sized to one page) and Programs (the plan list) — so the
  *  list is never stacked under the calendar forcing a scroll. */
-function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete,
+function BasePlansTab({ cookingLevel, plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete,
   onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes, onOpenShopping, trainingLog }: {
+  /** Their cooking level, so "Take it to the kitchen" opens a recipe at it. */
+  cookingLevel?: string | null;
   plans: HealthPlanSummary[];
   /** Full (dated) plans with their days — drives the per-day content shown in
    *  the calendar cells AND the day view. Summaries alone can only draw a dot. */
@@ -630,6 +632,7 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
 
       {dayKey && (
         <HealthDayView
+          cookingLevel={cookingLevel}
           dateKey={dayKey}
           plans={fullPlans ?? []}
           exerciseDetails={exerciseDetails}
@@ -680,8 +683,9 @@ function planDayForDate(plan: HealthPlan, dateKey: string): HealthPlanDay | null
 interface DayAgendaItem { id: string; kind: 'exercise' | 'recipe'; slug?: string; title: string; meta?: string; slot?: string; thumb?: string | null; planId: string; planTitle: string; itemId: string; dayIndex: number }
 interface DayAgendaSection { key: string; label: string; icon: React.ReactNode; accent: string; items: DayAgendaItem[] }
 
-function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onClose, onNewPlan, trainingLog,
+function HealthDayView({ cookingLevel, dateKey, plans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onClose, onNewPlan, trainingLog,
   onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes }: {
+  cookingLevel?: string | null;
   dateKey: string;
   plans: HealthPlan[];
   exerciseDetails: Record<string, HealthExerciseDetail>;
@@ -805,6 +809,17 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   // Meals are not logged here — eating is tracked elsewhere and a food diary
   // is a different feature with a different failure mode.
   const [gym, setGym] = useState(false);
+  const [kitchen, setKitchen] = useState(false);
+  // The day's recipes, for "Take it to the kitchen" (meals without a library recipe have no page).
+  const kitchenMeals = useMemo(() => {
+    const out: Array<{ slot: string; name: string; slug: string }> = [];
+    for (const p of plans) {
+      const d = planDayForDate(p, dateKey);
+      for (const m of d?.meals ?? []) if (m.ref?.slug) out.push({ slot: m.slot, name: m.name, slug: m.ref.slug });
+    }
+    const order = ['breakfast', 'lunch', 'snack', 'dinner'];
+    return out.sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot));
+  }, [plans, dateKey]);
   const loggableDay = useMemo(() => {
     for (const p of plans) {
       const d = planDayForDate(p, dateKey);
@@ -1043,6 +1058,13 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
               <GymButton onClick={() => setGym(true)} className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] cursor-pointer" />
             )}
             {gymDialog}
+            {kitchenMeals.length > 0 && !editing && (
+              <KitchenButton onClick={() => setKitchen(true)} className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] cursor-pointer" />
+            )}
+            {kitchen && (
+              <SendMealToPhone meals={kitchenMeals} cookingLevel={cookingLevel} onClose={() => setKitchen(false)}
+                onOpenUrl={(url) => post({ type: 'open_url', url } as never)} />
+            )}
             {covered && (
               <button type="button" onClick={() => (editing ? exitEdit() : enterEdit())} className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 cursor-pointer">
                 {editing ? tt('health.plans.done', 'Done') : tt('health.plans.edit', 'Edit')}

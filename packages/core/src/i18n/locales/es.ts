@@ -4658,4 +4658,6 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'La sesión viaja dentro del propio código. Nada se nos envía.',
   'health.phone.gym_title': 'Lleva la sesión de hoy al gimnasio',
   'health.phone.training': 'Entrenamiento',
+  'health.phone.kitchen': 'Llévalo a la cocina',
+  'health.phone.which': '¿Cuál estás cocinando?',
 };

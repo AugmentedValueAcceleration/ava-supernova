@@ -4947,6 +4947,9 @@ export const enStrings = {
   'health.phone.gym_private': 'The session travels inside the code itself. Nothing is sent to us.',
   'health.phone.gym_title': 'Take today\\u2019s session to the gym',
   'health.phone.training': 'Training',
+  // ── Added from tt() fallbacks ──
+  'health.phone.kitchen': 'Take it to the kitchen',
+  'health.phone.which': 'Which one are you cooking?',
 };
 
 export type StringKey = keyof typeof enStrings;

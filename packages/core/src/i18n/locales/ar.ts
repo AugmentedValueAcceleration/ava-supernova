@@ -4686,4 +4686,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'الجلسة تسير داخل الكود نفسه. لا يُرسل إلينا أي شيء.',
   'health.phone.gym_title': 'أخذ جلسة اليوم’ إلى الصالة',
   'health.phone.training': 'التدريب',
+  'health.phone.kitchen': 'أحضرها إلى المطبخ',
+  'health.phone.which': 'أيّ واحد تطبخ؟',
 };

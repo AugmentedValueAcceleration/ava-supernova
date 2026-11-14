@@ -56,7 +56,10 @@ export function PhoneQrDialog({ title, body, url, waText, privacy, onClose, onOp
   }, [onClose]);
   const qr = useMemo(() => {
     if (!url) return null;
-    const q = qrcode(0, 'M');
+    // 'L': a screen is not a scuffed label, and the lower level keeps the code
+    // less dense. With a 4-module quiet zone at 300 px a 7-exercise session is
+    // about 4 px a module, which phones read (14 Nov: 208 px and 'M' did not).
+    const q = qrcode(0, 'L');
     q.addData(url, 'Byte');
     q.make();
     const n = q.getModuleCount();
@@ -74,11 +77,11 @@ export function PhoneQrDialog({ title, body, url, waText, privacy, onClose, onOp
           <button type="button" onClick={onClose} aria-label={tt('health.phone.close', 'Close')} style={{ background: 'transparent', border: 'none', color: '#9b8caa', fontSize: 18, cursor: 'pointer' }}>×</button>
         </div>
         {qr ? (
-          <svg role="img" aria-label={tt('health.phone.qr', 'QR code for this page')} viewBox={`-2 -2 ${qr.n + 4} ${qr.n + 4}`} width="208" height="208" shapeRendering="crispEdges" style={{ background: '#fff', borderRadius: 10 }}>
+          <svg role="img" aria-label={tt('health.phone.qr', 'QR code for this page')} viewBox={`-4 -4 ${qr.n + 8} ${qr.n + 8}`} width="300" height="300" shapeRendering="crispEdges" style={{ background: '#fff', borderRadius: 10, maxWidth: '100%', height: 'auto' }}>
             <path d={qr.d} fill="#111" />
           </svg>
         ) : (
-          <div style={{ width: 208, height: 208, borderRadius: 10, background: 'rgba(255,255,255,0.06)' }} aria-hidden />
+          <div style={{ width: 300, height: 300, maxWidth: '100%', borderRadius: 10, background: 'rgba(255,255,255,0.06)' }} aria-hidden />
         )}
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: '#c9c3d6', textAlign: 'center' }}>{body}</p>
         <div style={{ display: 'flex', gap: 8, alignSelf: 'stretch' }}>
@@ -150,6 +153,57 @@ export function GymButton({ onClick, style, className }: { onClick: () => void; 
   return (
     <button type="button" onClick={onClick} style={style} className={className}>
       {tt('health.phone.gym', 'Take it to the gym')}
+    </button>
+  );
+}
+
+/** "Take it to the kitchen": a day's recipes. One goes straight to its code;
+ *  several ask which one first (his ask, 14 Nov 2026). */
+export function SendMealToPhone({ meals, cookingLevel, onClose, onOpenUrl }: {
+  meals: Array<{ slot: string; name: string; slug: string }>;
+  cookingLevel?: string | null;
+  onClose: () => void;
+  onOpenUrl: (url: string) => void;
+}) {
+  useLocale();
+  const [pick, setPick] = useState<number | null>(meals.length === 1 ? 0 : null);
+  useEffect(() => {
+    if (pick != null) return;
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [onClose, pick]);
+  if (pick != null) {
+    const m = meals[pick];
+    return <SendItemToPhone item={{ kind: 'recipe', slug: m.slug, name: m.name }} cookingLevel={cookingLevel} onClose={onClose} onOpenUrl={onOpenUrl} />;
+  }
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div role="dialog" aria-modal="true" aria-label={tt('health.phone.which', 'Which one are you cooking?')} onClick={(e) => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 420, borderRadius: 14, border, background: 'linear-gradient(135deg,#100d1a,#181327)', padding: 22, display: 'flex', flexDirection: 'column', gap: 10, color: '#cdd6f4' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+          <h2 style={{ margin: 0, flex: 1, fontSize: 15, fontWeight: 600 }}>{tt('health.phone.which', 'Which one are you cooking?')}</h2>
+          <button type="button" onClick={onClose} aria-label={tt('health.phone.close', 'Close')} style={{ background: 'transparent', border: 'none', color: '#9b8caa', fontSize: 18, cursor: 'pointer' }}>×</button>
+        </div>
+        {meals.map((m, i) => (
+          <button key={`${m.slug}:${i}`} type="button" onClick={() => setPick(i)}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 52, borderRadius: 10, border, background: 'transparent', color: '#cdd6f4', padding: '0 14px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+            <span style={{ width: 72, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24' }}>{t(`health.plans.slot.${m.slot}`)}</span>
+            <span style={{ flex: 1, fontSize: 13 }}>{m.name}</span>
+            <span aria-hidden style={{ color: '#9b8caa' }}>›</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The button for a day with meals. */
+export function KitchenButton({ onClick, style, className }: { onClick: () => void; style?: CSSProperties; className?: string }) {
+  useLocale();
+  return (
+    <button type="button" onClick={onClick} style={style} className={className}>
+      {tt('health.phone.kitchen', 'Take it to the kitchen')}
     </button>
   );
 }

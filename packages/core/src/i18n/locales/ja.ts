@@ -4688,4 +4688,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'セッションはコードそのものの中で完結します。何も私たちに送信されません。',
   'health.phone.gym_title': '今日のセッションをジムに持っていこう',
   'health.phone.training': 'トレーニング',
+  'health.phone.kitchen': 'キッチンに持っていきましょう',
+  'health.phone.which': 'どの料理を作っていますか？',
 };

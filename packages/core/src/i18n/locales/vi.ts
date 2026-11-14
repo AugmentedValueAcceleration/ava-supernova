@@ -4686,4 +4686,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'Buổi tập diễn ra bên trong chính mã nguồn. Không có gì được gửi đến chúng tôi.',
   'health.phone.gym_title': 'Mang buổi tập hôm nay đến phòng tập',
   'health.phone.training': 'Tập luyện',
+  'health.phone.kitchen': 'Mang vào bếp',
+  'health.phone.which': 'Bạn đang nấu món nào?',
 };

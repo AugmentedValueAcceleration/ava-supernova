@@ -4686,4 +4686,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'เซสชันเดินทางอยู่ในโค้ดเอง ไม่มีอะไรถูกส่งมาหาเรา',
   'health.phone.gym_title': 'นำเซสชันวันนี้ไปยิม',
   'health.phone.training': 'การฝึก',
+  'health.phone.kitchen': 'นำไปที่ห้องครัว',
+  'health.phone.which': 'คุณกำลังทำอาหารอะไรอยู่?',
 };

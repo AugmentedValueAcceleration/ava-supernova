@@ -4686,4 +4686,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'सत्र कोड के अंदर ही रहता है। कुछ भी हमें भेजा नहीं जाता।',
   'health.phone.gym_title': 'आज के सत्र को जिम में ले जाएं',
   'health.phone.training': 'प्रशिक्षण',
+  'health.phone.kitchen': 'इसे रसोई में ले जाएं',
+  'health.phone.which': 'आप क्या बना रहे हैं?',
 };

@@ -4684,4 +4684,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'health.phone.gym_private': 'Sesi berjalan di dalam kode itu sendiri. Tidak ada yang dikirim kepada kami.',
   'health.phone.gym_title': 'Bawa sesi hari ini ke gim',
   'health.phone.training': 'Latihan',
+  'health.phone.kitchen': 'Bawa ke dapur',
+  'health.phone.which': 'Yang mana yang sedang kamu masak?',
 };
