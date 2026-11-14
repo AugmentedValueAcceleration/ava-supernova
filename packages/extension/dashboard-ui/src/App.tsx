@@ -12,6 +12,7 @@ import { Overview } from './pages/Overview';
 import { Memory } from './pages/Memory';
 import { History } from './pages/History';
 import { Library } from './pages/Library';
+import { ResultsImport } from './components/ResultsImport';
 import { Chat } from './pages/Chat';
 import { Planner } from './pages/Planner';
 // LearningLibrary is no longer rendered directly — it's composed inside
@@ -59,6 +60,7 @@ import type {
   ShoppingState,
   HealthSafetyVerdict,
   ForYouResult,
+  SharedResults,
   GeneralProfile,
   HealthPlan,
   HealthPlanSummary,
@@ -409,6 +411,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   const [healthInitialTab, setHealthInitialTab] = useState<'plans' | 'exercises' | 'recipes' | 'profile' | 'ava' | null>(null);
   /** "For you" (Health Part 4): undefined while loading, null when it could not be built. */
   const [forYou, setForYou] = useState<ForYouResult | null | undefined>(undefined);
+  /** Results from the phone (Health Part 6): the "Add this session?" screen,
+   *  or the "Add from phone" paste box when results is null. */
+  const [resultsUi, setResultsUi] = useState<{ results: SharedResults | null; payload: string | null; failed?: boolean; saving?: boolean; saved?: boolean } | null>(null);
+  useEffect(() => {
+    const open = () => setResultsUi({ results: null, payload: null });
+    window.addEventListener('ava-add-from-phone', open);
+    return () => window.removeEventListener('ava-add-from-phone', open);
+  }, []);
   /** A dish or exercise to open when the Health page next shows (For you → Make this). */
   const [healthOpenItem, setHealthOpenItem] = useState<{ kind: 'recipe' | 'exercise'; slug: string } | null>(null);
   /** "Start a plan with it": the wizard opens with this on day 1. */
@@ -1169,6 +1179,13 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         // Refresh the window around today so the day drawer's marker updates
         // without the caller having to know which range is on screen.
         post({ type: 'load_training_sessions', from: '2000-01-01', to: '2100-01-01' });
+        break;
+      case 'results_import':
+        setResultsUi({ results: msg.results, payload: msg.payload, failed: !msg.results });
+        break;
+      case 'results_saved':
+        setResultsUi((prev) => (prev ? { ...prev, saving: false, saved: msg.ok, failed: !msg.ok } : prev));
+        if (msg.ok) post({ type: 'load_active_health_plans' });
         break;
       case 'for_you_loaded':
         setForYou(msg.result);
@@ -1984,6 +2001,12 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
             });
           }}
         />
+      )}
+      {resultsUi && (
+        <ResultsImport results={resultsUi.results} failed={resultsUi.failed} saving={resultsUi.saving} saved={resultsUi.saved}
+          onCheck={(text) => post({ type: 'decode_results', text })}
+          onSave={() => { if (resultsUi.payload) { setResultsUi({ ...resultsUi, saving: true }); post({ type: 'save_results', payload: resultsUi.payload }); } }}
+          onClose={() => setResultsUi(null)} />
       )}
     </div>
   );

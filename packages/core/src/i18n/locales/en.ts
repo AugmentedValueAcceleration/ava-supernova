@@ -4950,6 +4950,28 @@ export const enStrings = {
   // ── Added from tt() fallbacks ──
   'health.phone.kitchen': 'Take it to the kitchen',
   'health.phone.which': 'Which one are you cooking?',
+  // ── Added from tt() fallbacks ──
+  'health.results.above': 'above plan',
+  'health.results.add_from_phone': 'Add from phone',
+  'health.results.bad': 'That link does not hold a session Ava can read. Send it again from your phone.',
+  'health.results.check': 'Check it',
+  'health.results.did': 'You did',
+  'health.results.done': 'Done',
+  'health.results.exercise': 'Exercise',
+  'health.results.from_phone': 'from your phone',
+  'health.results.mins': '{n} min',
+  'health.results.n_short': '{n} sets short',
+  'health.results.not_now': 'Not now',
+  'health.results.not_ticked': 'not ticked',
+  'health.results.one_short': 'one set short',
+  'health.results.paste_help': 'On your phone, finish the session and choose Send it to Ava. Then paste the link here.',
+  'health.results.paste_label': 'The link from your phone',
+  'health.results.paste_title': 'Add a session from your phone',
+  'health.results.planned': 'Planned',
+  'health.results.save': 'Save to my log',
+  'health.results.saved': 'Saved to your training log. Ava will see it next time you plan together.',
+  'health.results.title': 'Add this session to your training log?',
+  'health.results.where': 'Saved on this computer, in your training log, beside the plan day it came from. It follows you between the extension and the IDE.',
 };
 
 export type StringKey = keyof typeof enStrings;

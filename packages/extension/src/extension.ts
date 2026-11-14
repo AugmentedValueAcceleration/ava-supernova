@@ -167,6 +167,17 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
   viewProvider.setTaskManager(taskManager);
   viewProvider.setJournalManager(journalManager);
 
+  // Results from the phone (Health Part 6): avasupernova.com/log opens
+  // vscode://augmentedvalueacceleration.ava-supernova/log#<results>. The
+  // results are in the fragment; the host checks them and Ava asks before
+  // anything is saved.
+  context.subscriptions.push(vscode.window.registerUriHandler({
+    handleUri(uri: vscode.Uri) {
+      if (uri.path.replace(/\/+$/, '') !== '/log' || !uri.fragment) return;
+      DashboardPanel.importResults(context.extensionUri, context, viewProvider, uri.fragment);
+    },
+  }));
+
   /** Open the unified panel (dashboard + chat in one editor tab) */
   const openUnifiedPanel = () => {
     DashboardPanel.show(context.extensionUri, context, viewProvider);

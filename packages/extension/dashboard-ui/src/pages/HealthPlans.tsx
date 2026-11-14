@@ -12,6 +12,7 @@ import { DuplicateSheet } from '../components/DuplicateSheet';
 import { AssistSheet, dayDate, type DayProposal } from '../components/AssistSheet';
 import { LogSessionSheet, seedFrom as seedSessionFrom } from '../components/LogSessionSheet';
 import { SendWorkoutToPhone, GymButton, SendMealToPhone, KitchenButton } from '../components/SendItemToPhone';
+import { AddFromPhoneButton } from '../components/ResultsImport';
 import { PlanWizard, type PlanWizardSafety } from '../components/PlanWizard';
 import { post } from '../App';
 import type { GymSession, GymExercise } from '../../../../core/dist/health/session-types.js';
@@ -539,6 +540,9 @@ function BasePlansTab({ cookingLevel, plans, fullPlans, exerciseDetails, recipeD
               {t('health.shopping.open')}
             </button>
           )}
+          {/* Add from phone (Part 6): paste the link the phone sent, when it could not open Ava itself. */}
+          <AddFromPhoneButton onClick={() => window.dispatchEvent(new Event('ava-add-from-phone'))}
+            className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] cursor-pointer" />
           <button
             type="button"
             onClick={onNew}

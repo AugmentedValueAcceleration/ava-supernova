@@ -685,6 +685,8 @@ export type HealthSubmissionStatus = 'pending' | 'rejected' | 'published';
 /** One library item's verdict against their hard rules (core health/safety). */
 export type { ForYouResult, ForYouAction, ForYouPick, ForYouExtra } from '@ava/core/health/for-you';
 import type { ForYouResult, ForYouAction } from '@ava/core/health/for-you';
+import type { SharedResults } from '@ava/core/health/share-results';
+export type { SharedResults } from '@ava/core/health/share-results';
 
 export interface HealthSafetyVerdict {
   slug: string;
@@ -1579,6 +1581,8 @@ export type ExtToDashboardMessage =
   /** Verdicts for library items against their hard rules (Part 1, 11 Nov 2026).
    *  `checked: false` = the check could not run: show results as NOT checked. */
   | { type: 'for_you_loaded'; result: ForYouResult | null }
+  | { type: 'results_import'; results: SharedResults | null; payload: string | null }
+  | { type: 'results_saved'; ok: boolean }
   | { type: 'for_you_applied'; ok: boolean }
   | { type: 'curated_plan_refs_loaded'; refs: Record<string, { recipes: string[]; exercises: string[] }> }
   | { type: 'health_safety_result'; results: Record<string, HealthSafetyVerdict>; checked: boolean; rules: boolean }
@@ -1979,6 +1983,8 @@ export type DashboardToExtMessage =
   | { type: 'load_curated_plans' }
   | { type: 'load_curated_plan_refs'; ids: string[] }
   | { type: 'load_for_you' }
+  | { type: 'decode_results'; text: string }
+  | { type: 'save_results'; payload: string }
   | { type: 'apply_for_you'; action: ForYouAction }
   | { type: 'load_curated_plan'; id: string }
   /** Fire-and-forget: the only signal we get about which starters work.

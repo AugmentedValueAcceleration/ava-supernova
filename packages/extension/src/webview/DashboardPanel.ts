@@ -100,6 +100,7 @@ import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
 import { planRefs } from '@ava/core/health/library-fit';
 import { buildForYou, applyForYouAction } from '@ava/core/health/for-you';
+import { decodeResults, sessionFromResults } from '@ava/core/health/share-results';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { exportDocument } from '@ava/core/authoring';
@@ -280,6 +281,24 @@ export class DashboardPanel {
 
   /** Show the welcome once the webview signals ready (for freshly-opened panels). */
   private welcomeTourQueued = false;
+  /** Results from the phone waiting for a freshly-opened panel to be ready. */
+  private resultsQueued: string | null = null;
+
+  /** A results link opened Ava (Health Part 6): show "Add this session?". */
+  public static importResults(extensionUri: vscode.Uri, context: vscode.ExtensionContext, viewProvider: AvaViewProvider | undefined, payload: string): void {
+    const existed = !!DashboardPanel.currentPanel;
+    DashboardPanel.show(extensionUri, context, viewProvider);
+    const p = DashboardPanel.currentPanel;
+    if (!p) return;
+    if (existed) void p.sendResults(payload);
+    else p.resultsQueued = payload;
+  }
+
+  /** Check a results link and hand it to the screen; a bad one says so. */
+  private async sendResults(text: string): Promise<void> {
+    const results = await decodeResults(text);
+    this.post({ type: 'results_import', results, payload: results ? (text.includes('#') ? text.slice(text.indexOf('#') + 1) : text).trim() : null } as never);
+  }
   private announcementTimer: ReturnType<typeof setInterval> | null = null;
 
   /** Fetch the hub-set announcement messages (same feed as the website banner)
@@ -447,6 +466,11 @@ export class DashboardPanel {
         if (this.welcomeTourQueued) {
           this.welcomeTourQueued = false;
           this.post({ type: 'show_welcome' });
+        }
+        if (this.resultsQueued) {
+          const payload = this.resultsQueued;
+          this.resultsQueued = null;
+          void this.sendResults(payload);
         }
         // Also initialise the chat engine
         if (this.viewProvider) {
@@ -1417,6 +1441,25 @@ export class DashboardPanel {
           const error = err instanceof Error ? err.message : String(err);
           this.log(`[health] curated plans failed: ${error}`);
           this.post({ type: 'curated_plans_failed', error });
+        }
+        return;
+      }
+      case 'decode_results': {
+        // "Add from phone" — a link pasted by hand, the same check as a link opened.
+        await this.sendResults(String(msg.text ?? ''));
+        return;
+      }
+      case 'save_results': {
+        // Into the training log, beside the plan day it came from. Ava reads
+        // the log in the Health room (summariseTrainingLog).
+        const results = await decodeResults(String(msg.payload ?? ''));
+        if (!results) { this.post({ type: 'results_saved', ok: false } as never); return; }
+        try {
+          await healthStore.writeSession(this.healthDir(), sessionFromResults(results));
+          this.post({ type: 'results_saved', ok: true } as never);
+        } catch (err) {
+          this.log(`[health] save results failed: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'results_saved', ok: false } as never);
         }
         return;
       }
