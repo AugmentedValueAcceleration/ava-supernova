@@ -98,6 +98,7 @@ import * as healthStore from './health-file-store.js';
 import type { GymSession } from '@ava/core/health';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 import { readLearnerProfile, writeLearnerProfile } from './learner-file-store.js';
+import { planRefs } from '@ava/core/health/library-fit';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
 import { exportDocument } from '@ava/core/authoring';
@@ -1416,6 +1417,23 @@ export class DashboardPanel {
           this.log(`[health] curated plans failed: ${error}`);
           this.post({ type: 'curated_plans_failed', error });
         }
+        return;
+      }
+      case 'load_curated_plan_refs': {
+        // What each ready-made plan contains, so the shelf can say "fits you"
+        // or "needs a swap" (Health Part 3). Library data only; the person's
+        // rules stay here — the shelf asks health_safety_check about the slugs.
+        const refs: Record<string, { recipes: string[]; exercises: string[] }> = {};
+        await Promise.all((msg.ids ?? []).slice(0, 24).map(async (id) => {
+          try {
+            const raw = await httpGetJson(
+              `https://avasupernova.com/api/health/curated-plans?id=${encodeURIComponent(id)}`,
+            ) as { plan?: CuratedPlanDetail } | CuratedPlanDetail | null;
+            const plan = (raw && 'plan' in (raw as object) ? (raw as { plan?: CuratedPlanDetail }).plan : raw as CuratedPlanDetail) ?? null;
+            if (plan?.id) refs[id] = planRefs(plan.days ?? []);
+          } catch { /* that card simply shows no marker */ }
+        }));
+        this.post({ type: 'curated_plan_refs_loaded', refs });
         return;
       }
       case 'load_curated_plan': {

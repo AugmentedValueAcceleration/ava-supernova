@@ -139,6 +139,11 @@
       "require": "./dist/health/aisles.js",
       "types": "./dist/health/aisles.d.ts"
     },
+    "./health/library-fit": {
+      "import": "./dist/health/library-fit.js",
+      "require": "./dist/health/library-fit.js",
+      "types": "./dist/health/library-fit.d.ts"
+    },
     "./health/share-list": {
       "import": "./dist/health/share-list.js",
       "require": "./dist/health/share-list.js",

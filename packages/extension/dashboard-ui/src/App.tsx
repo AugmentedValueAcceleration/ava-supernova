@@ -372,6 +372,8 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
   // than in the sheet so reopening it does not refetch a shelf that has not
   // changed, and so a start survives the sheet closing.
   const [curatedPlans, setCuratedPlans] = useState<CuratedPlanSummary[]>([]);
+  /** What each ready-made plan contains, for the shelf's "fits you" marker. */
+  const [curatedRefs, setCuratedRefs] = useState<Record<string, { recipes: string[]; exercises: string[] }>>({});
   const [curatedLoading, setCuratedLoading] = useState(false);
   const [curatedError, setCuratedError] = useState<string | null>(null);
   const [curatedDetail, setCuratedDetail] = useState<CuratedPlanDetail | null>(null);
@@ -1161,6 +1163,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         // without the caller having to know which range is on screen.
         post({ type: 'load_training_sessions', from: '2000-01-01', to: '2100-01-01' });
         break;
+      case 'curated_plan_refs_loaded':
+        setCuratedRefs(prev => ({ ...prev, ...msg.refs }));
+        break;
       case 'curated_plans_loaded':
         setCuratedPlans(msg.plans);
         setCuratedLoading(false);
@@ -1831,6 +1836,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
               onLoadDetail: handleLoadCuratedPlan,
               onStart: handleStartCuratedPlan,
             }}
+            starterRefs={curatedRefs}
             onRegisterHealthChatDispatch={registerHealthChatDispatch}
             userName={firstName}
             userAvatarUrl={avatarDataUrl || null}

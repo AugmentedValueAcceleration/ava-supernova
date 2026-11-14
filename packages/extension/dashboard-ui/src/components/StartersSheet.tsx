@@ -14,10 +14,11 @@
 // IDE. This file shows the shelf and asks.
 
 import { useState, useEffect, useMemo } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { Icon } from './Icon';
 import { DateField } from './DateField';
 import { orderForProfile, shapeOf, weekdayNumbers } from '../../../../core/dist/health/starters.js';
+import type { StarterFit } from '../../../../core/dist/health/library-fit.js';
 import type { CuratedPlanSummary, CuratedPlanDetail, HealthProfile } from '../types/messages';
 
 /** YYYY-MM-DD in LOCAL terms. NOT toISOString().slice(0,10) — that renders the
@@ -58,12 +59,14 @@ function durationLabel(days: number): string {
  * are browsing or committing, and two copies of them is how they drift.
  */
 export function StarterShelf({
-  plans, loading, error, profile, onOpen, onLoad,
+  plans, loading, error, profile, onOpen, onLoad, fits,
 }: {
   plans: CuratedPlanSummary[];
   loading: boolean;
   error: string | null;
   profile: HealthProfile | null;
+  /** "Fits you" / "needs a swap" per plan id (Health Part 3). Absent: no rules, no marker. */
+  fits?: Record<string, StarterFit>;
   onOpen: (id: string) => void;
   onLoad: () => void;
 }) {
@@ -110,6 +113,7 @@ export function StarterShelf({
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col p-2.5">
                   <span className="block truncate text-[12px] font-medium text-[var(--text-primary)]">{p.title}</span>
+                  <StarterFitLine fit={fits?.[p.id]} />
                   <span className="mt-1 flex flex-wrap gap-1">
                     {[
                       durationLabel(p.duration_days),
@@ -450,5 +454,25 @@ export function StarterDetailBody({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * One line under a ready-made plan's title: does it fit their rules?
+ * Only said once every item has been checked; a plan with a "take care"
+ * exercise still fits (it is something to do differently, not never).
+ */
+function StarterFitLine({ fit }: { fit?: StarterFit }) {
+  if (!fit || fit.state === 'pending') return null;
+  const look = fit.state === 'fits'
+    ? { fg: '#a6e3a1', text: fit.cautions.length ? tt('health.fit.starter_fits_care', 'Fits you · {n} to take care with').replace('{n}', String(fit.cautions.length)) : tt('health.fit.starter_fits', 'Fits you') }
+    : fit.state === 'swap'
+      ? { fg: '#f38ba8', text: tt('health.fit.starter_swap', 'Needs a swap · {n} not for you').replace('{n}', String(fit.blocked.length)) }
+      : { fg: 'var(--text-muted)', text: tt('health.fit.starter_unchecked', 'Not checked against your rules') };
+  return (
+    <span className="mt-1 flex items-center gap-1 text-[10px]" style={{ color: look.fg }}>
+      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: look.fg }} aria-hidden />
+      {look.text}
+    </span>
   );
 }

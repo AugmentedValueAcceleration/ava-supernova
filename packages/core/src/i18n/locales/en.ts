@@ -4847,6 +4847,23 @@ export const enStrings = {
   'input.placeholder.working': 'Add something — she picks it up at the next step',
   'input.send_while_working': 'Send — she picks it up at the next step',
   'tool.deny_reason_placeholder': 'Not this? Tell Ava why, or what to do instead',
+  // ── Added from tt() fallbacks ──
+  'health.fit.checking_n': 'Checking {n}…',
+  'health.fit.failed': 'Could not check these against your rules just now, so nothing here is marked. Press refresh to try again.',
+  'health.fit.hidden_n': '{n} on this page don\'t fit.',
+  'health.fit.mark_blocked': 'Doesn\'t fit',
+  'health.fit.mark_warn': 'Take care',
+  'health.fit.no_rules': 'Tell Ava your allergies, diet, injuries and kit, and this list shows only what fits you.',
+  'health.fit.none_on_page': 'Nothing on this page fits your rules. Try the next page, or show everything.',
+  'health.fit.only_fits': 'Only what fits me',
+  'health.fit.set_rules': 'Set them in Profile',
+  'health.fit.show_all': 'Show everything',
+  'health.fit.showing_all': 'Showing everything. Anything that doesn\'t fit your rules is marked.',
+  'health.fit.showing_fits': 'Showing what fits your rules.',
+  'health.fit.starter_fits': 'Fits you',
+  'health.fit.starter_fits_care': 'Fits you · {n} to take care with',
+  'health.fit.starter_swap': 'Needs a swap · {n} not for you',
+  'health.fit.starter_unchecked': 'Not checked against your rules',
 };
 
 export type StringKey = keyof typeof enStrings;

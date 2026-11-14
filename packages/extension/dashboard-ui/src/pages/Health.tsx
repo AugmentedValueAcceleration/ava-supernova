@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode, type ComponentProps } from 'react';
+import { useState, useEffect, useRef, useMemo, type ReactNode, type ComponentProps } from 'react';
 import { ShoppingPage } from '../components/ShoppingPage';
 import { PlanReview, type PlanReviewData } from '../components/PlanReview';
 import { useTabTransition } from '../lib/useTabTransition';
@@ -6,6 +6,7 @@ import { TabSpinner } from '../components/TabSpinner';
 import { ContentRating, type RatingVerdict } from '../components/ContentRating';
 import { StarterShelf, StarterDetailBody } from '../components/StartersSheet';
 import { planFromCurated } from '../../../../core/dist/health/starters.js';
+import { libraryFit, slugsToCheck, orderByPreference, profileHasHardRules, starterFit, type FitVerdict, type FitView, type StarterFit } from '../../../../core/dist/health/library-fit.js';
 import type { HealthPlan, ShoppingState } from '../types/messages';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
@@ -145,6 +146,8 @@ interface Props {
   // tab (e.g. the Health Dashboard's "Set your goals" pointer). Consumed
   // once on mount so a later plain visit lands on the default tab.
   initialTab: Tab | null;
+  /** What each ready-made plan contains (load_curated_plan_refs), for "fits you". */
+  starterRefs?: Record<string, { recipes: string[]; exercises: string[] }>;
   onConsumeInitialTab: () => void;
   /** ~/.ava/health/shopping.json — ticks and cupboard staples (Shopping tab). */
   shopping: ShoppingState | null;
@@ -180,6 +183,7 @@ export function Health({
   initialTab,
   shopping, onSaveShopping,
   onConsumeInitialTab,
+  starterRefs,
 }: Props) {
   useLocale();
   // Lands on Plans, not the catalogue: the section is named after the thing
@@ -206,6 +210,50 @@ export function Health({
     setView(next);
     try { localStorage.setItem(VIEW_KEY, next); } catch { /* localStorage unavailable */ }
   };
+  // ── "The library fits you" (Part 3, 14 Nov 2026) ─────────────────────
+  // Recipes and Exercises open showing only what fits their hard rules, with
+  // one switch to see everything. The check runs on this machine (the same
+  // health_safety_check the wizard uses); only slugs leave it.
+  const rules = profileHasHardRules(healthProfile);
+  const safety = healthPlans.safety;
+  const [fitsOnly, setFitsOnly] = useState(true);
+  const askedFit = useRef(new Set<string>());
+  // A profile save clears the verdicts, so ask again from scratch.
+  useEffect(() => { if (safety && Object.keys(safety.results).length === 0) askedFit.current.clear(); }, [safety?.results]);
+  useEffect(() => {
+    if (!rules || !safety) return;
+    const fresh = (slugs: string[]) => slugs.filter((x) => !safety.results[x] && !askedFit.current.has(x));
+    const ex = tab === 'exercises' ? fresh(slugsToCheck(exercises, safety)) : [];
+    const rec = tab === 'recipes' ? fresh(slugsToCheck(recipes, safety)) : [];
+    const refs = tab === 'starters' && starterRefs ? Object.values(starterRefs) : [];
+    const planRec = fresh([...new Set(refs.flatMap((r) => r.recipes))]);
+    const planEx = fresh([...new Set(refs.flatMap((r) => r.exercises))]);
+    if (!ex.length && !rec.length && !planRec.length && !planEx.length) return;
+    [...ex, ...rec, ...planRec, ...planEx].forEach((x) => askedFit.current.add(x));
+    safety.onCheck([...rec, ...planRec], [...ex, ...planEx]);
+  }, [rules, safety, tab, exercises, recipes, starterRefs]);
+  // The ready-made plans' contents, fetched once the shelf has its cards.
+  const starterIds = (curated?.plans ?? []).map((p) => p.id).join(',');
+  useEffect(() => {
+    if (tab !== 'starters' || !rules || !starterIds) return;
+    const missing = starterIds.split(',').filter((id) => !starterRefs?.[id]);
+    if (missing.length) post({ type: 'load_curated_plan_refs', ids: missing });
+    // starterRefs left out on purpose: a plan whose fetch failed is not retried in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, rules, starterIds]);
+  const fitState = { results: safety?.results ?? {}, checked: safety?.checked ?? true };
+  const exerciseFit = libraryFit(exercises, fitState, { rules, fitsOnly });
+  const orderedRecipes = useMemo(() => orderByPreference(recipes, healthProfile), [recipes, healthProfile]);
+  const recipeFit = libraryFit(orderedRecipes, fitState, { rules, fitsOnly });
+  const starterFits: Record<string, StarterFit> | undefined = rules && starterRefs
+    ? Object.fromEntries(Object.entries(starterRefs).map(([id, r]) => [id, starterFit(r, fitState)]))
+    : undefined;
+  const retryFit = () => askedFit.current.clear();
+  const fitFor = (v: FitView<unknown>): GridFit => ({
+    bar: <FitBar rules={rules} fitsOnly={fitsOnly} view={v} onToggle={() => setFitsOnly((x) => !x)} onProfile={() => switchTab('profile')} />,
+    verdicts: rules ? fitState.results : {},
+  });
+
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
   // Structured recipe filters. Collections + course are the always-on Tier-1
@@ -505,6 +553,7 @@ export function Health({
               loading={curated.loading}
               error={curated.error}
               profile={healthProfile}
+              fits={starterFits}
               onLoad={curated.onLoad}
               onOpen={(id) => { setStarterOpenId(id); curated.onLoadDetail(id); }}
             />
@@ -547,7 +596,8 @@ export function Health({
             </DetailPageView>
           ) : (
             <ExercisesGrid
-              items={exercises}
+              items={exerciseFit.shown}
+              fit={fitFor(exerciseFit)}
               total={exercisesTotal}
               offset={exercisesOffset}
               filter={exerciseFilter}
@@ -558,7 +608,7 @@ export function Health({
               onOpen={openExercise}
               search={exerciseSearch}
               onSearch={setExerciseSearch}
-              onRefresh={() => goExercisesPage(0)}
+              onRefresh={() => { retryFit(); goExercisesPage(0); }}
               view={view}
               onView={changeView}
             />
@@ -573,7 +623,8 @@ export function Health({
             </DetailPageView>
           ) : (
           <RecipesGrid
-            items={recipes}
+            items={recipeFit.shown}
+            fit={fitFor(recipeFit)}
             total={recipesTotal}
             offset={recipesOffset}
             filter={recipeFilter}
@@ -598,7 +649,7 @@ export function Health({
             onOpen={openRecipe}
             search={recipeSearch}
             onSearch={setRecipeSearch}
-            onRefresh={() => goRecipesPage(0)}
+            onRefresh={() => { retryFit(); goRecipesPage(0); }}
             view={view}
             onView={changeView}
           />
@@ -682,7 +733,7 @@ function ViewToggle({ view, onView }: { view: View; onView: (v: View) => void })
 
 // ── Exercise card (grid + list variants) ───────────────────────────────
 
-function ExerciseCard({ ex, view, onOpen }: { ex: HealthExerciseSummary; view: View; onOpen: (slug: string) => void }) {
+function ExerciseCard({ ex, view, onOpen, fit }: { ex: HealthExerciseSummary; view: View; onOpen: (slug: string) => void; fit?: FitVerdict }) {
   const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
   const pending = ex.status && ex.status !== 'published';
   const thumb = ex.thumbnail_url
@@ -702,6 +753,7 @@ function ExerciseCard({ ex, view, onOpen }: { ex: HealthExerciseSummary; view: V
             <h3 className="truncate text-[13px] font-light leading-tight">{ex.name}</h3>
             <div className="mt-1 flex items-center gap-2"><Dots value={ex.difficulty} accent={accent} /><span className="text-[10px] capitalize text-vscode-descriptionForeground">{exerciseTypeLabel(ex.exercise_type)}</span></div>
           </div>
+          <FitMark fit={fit} />
           {pending && <SubmissionStatusBadge status={ex.status!} />}
         </button>
       </li>
@@ -713,6 +765,7 @@ function ExerciseCard({ ex, view, onOpen }: { ex: HealthExerciseSummary; view: V
         <div className="relative aspect-[3/2] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
           {thumb}
           <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accent }} />
+          <FitMark fit={fit} floating />
           {pending && <SubmissionStatusBadge status={ex.status!} />}
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-2">
@@ -734,8 +787,15 @@ function ExerciseCard({ ex, view, onOpen }: { ex: HealthExerciseSummary; view: V
 
 // ── Exercises grid ─────────────────────────────────────────────────────
 
+/** The "fits you" line above a grid, and each card's verdict. */
+interface GridFit {
+  bar: ReactNode;
+  verdicts: Record<string, FitVerdict>;
+}
+
 interface ExercisesGridProps {
   items: HealthExerciseSummary[];
+  fit?: GridFit;
   total: number;
   offset: number;
   filter: 'all' | HealthWorkoutType;
@@ -764,7 +824,7 @@ function CardRating({ average }: { average?: number | null }) {
   );
 }
 
-function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: ExercisesGridProps) {
+function ExercisesGrid({ items, fit, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: ExercisesGridProps) {
   if (loading && items.length === 0 && !search) {
     return (
       <ul className={browseLayoutClass(view)}>
@@ -796,20 +856,24 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
           </FilterChip>
         ))}
       </FilterRow>
+      {!error && fit?.bar}
 
       {items.length === 0 ? (
         error ? (
           <HealthLoadError noun={t('health.browse.noun.exercises')} onRetry={onRefresh} />
         ) : (
-          <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
-            {search ? t('health.browse.no_exercises_match_q', { q: search }) : t('health.browse.no_exercises_match')}
-          </div>
+          <>
+            <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
+              {total > 0 ? tt('health.fit.none_on_page', 'Nothing on this page fits your rules. Try the next page, or show everything.') : search ? t('health.browse.no_exercises_match_q', { q: search }) : t('health.browse.no_exercises_match')}
+            </div>
+            {total > 0 && <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />}
+          </>
         )
       ) : (
         <>
           <ul className={browseLayoutClass(view)}>
             {items.map((ex) => (
-              <ExerciseCard key={ex.id} ex={ex} view={view} onOpen={onOpen} />
+              <ExerciseCard key={ex.id} ex={ex} view={view} onOpen={onOpen} fit={fit?.verdicts[ex.slug]} />
             ))}
           </ul>
           <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />
@@ -840,7 +904,7 @@ function FromScratchBadge({ floating }: { floating?: boolean }) {
   );
 }
 
-function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; onOpen: (slug: string) => void }) {
+function RecipeCard({ r, view, onOpen, fit }: { r: HealthRecipeSummary; view: View; onOpen: (slug: string) => void; fit?: FitVerdict }) {
   const pending = r.status && r.status !== 'published';
   // Footer shows what isn't already on the image (cuisine sits on the photo).
   const footer = r.course || r.origin_country || r.cuisine_name || '';
@@ -861,6 +925,7 @@ function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; o
               {r.from_scratch && <FromScratchBadge />}
             </div>
           </div>
+          <FitMark fit={fit} />
           {pending && <SubmissionStatusBadge status={r.status!} />}
         </button>
       </li>
@@ -872,6 +937,7 @@ function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; o
         <div className="relative aspect-[3/2] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
           {thumb}
           {r.from_scratch && <FromScratchBadge floating />}
+          <FitMark fit={fit} floating />
           {pending && <SubmissionStatusBadge status={r.status!} />}
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-2">
@@ -891,6 +957,7 @@ function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; o
 // ── Recipes grid ───────────────────────────────────────────────────────
 
 interface RecipesGridProps {
+  fit?: GridFit;
   items: HealthRecipeSummary[];
   total: number;
   offset: number;
@@ -921,7 +988,7 @@ interface RecipesGridProps {
   onView: (v: View) => void;
 }
 
-function RecipesGrid({ items, total, offset, filter, onFilter, taxonomies, collections, diets, flags, cuisines, maxTime, sort, onToggleCollection, onToggleDiet, onToggleFlag, onToggleCuisine, onMaxTime, onSort, onClearFilters, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: RecipesGridProps) {
+function RecipesGrid({ items, fit, total, offset, filter, onFilter, taxonomies, collections, diets, flags, cuisines, maxTime, sort, onToggleCollection, onToggleDiet, onToggleFlag, onToggleCuisine, onMaxTime, onSort, onClearFilters, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: RecipesGridProps) {
   const tier2Count = collections.size + diets.size + flags.size + cuisines.size + (maxTime != null ? 1 : 0) + (sort !== 'curated' ? 1 : 0);
 
   if (loading && items.length === 0 && !search) {
@@ -995,19 +1062,24 @@ function RecipesGrid({ items, total, offset, filter, onFilter, taxonomies, colle
         )}
       </div>
 
+      {!error && fit?.bar}
+
       {items.length === 0 ? (
         error ? (
           <HealthLoadError noun={t('health.browse.noun.recipes')} onRetry={onRefresh} />
         ) : (
-          <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
-            {search ? t('health.browse.no_recipes_match_q', { q: search }) : t('health.browse.no_recipes_match')}
-          </div>
+          <>
+            <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
+              {total > 0 ? tt('health.fit.none_on_page', 'Nothing on this page fits your rules. Try the next page, or show everything.') : search ? t('health.browse.no_recipes_match_q', { q: search }) : t('health.browse.no_recipes_match')}
+            </div>
+            {total > 0 && <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />}
+          </>
         )
       ) : (
         <>
           <ul className={browseLayoutClass(view)}>
             {items.map((r) => (
-              <RecipeCard key={r.id} r={r} view={view} onOpen={onOpen} />
+              <RecipeCard key={r.id} r={r} view={view} onOpen={onOpen} fit={fit?.verdicts[r.slug]} />
             ))}
           </ul>
           <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />
@@ -1541,6 +1613,69 @@ function LoadingCard({ label }: { label: string }) {
 
 function FilterRow({ children }: { children: React.ReactNode }) {
   return <div className="mb-5 flex flex-wrap gap-0.5 border-b border-[var(--border)]">{children}</div>;
+}
+
+/**
+ * The line above the Recipes and Exercises grids (Part 3): what is being
+ * shown against their rules, and the one switch. Says nothing it cannot
+ * stand behind: "checking" while verdicts are on their way, and plainly
+ * "not checked" when the check could not run.
+ */
+function FitBar({ rules, fitsOnly, view, onToggle, onProfile }: {
+  rules: boolean; fitsOnly: boolean; view: FitView<unknown>; onToggle: () => void; onProfile: () => void;
+}) {
+  const link = 'cursor-pointer border-none bg-transparent p-0 text-[11px] font-medium text-[var(--accent)] hover:underline';
+  if (!rules) {
+    return (
+      <div className="mb-3 text-[11px] text-[var(--text-muted)]">
+        {tt('health.fit.no_rules', 'Tell Ava your allergies, diet, injuries and kit, and this list shows only what fits you.')}{' '}
+        <button type="button" onClick={onProfile} className={link}>{tt('health.fit.set_rules', 'Set them in Profile')}</button>
+      </div>
+    );
+  }
+  if (view.failed) {
+    return (
+      <div className="mb-3 rounded-md border px-3 py-2 text-[11px]" style={{ borderColor: 'rgba(249,226,175,0.45)', background: 'rgba(249,226,175,0.10)', color: '#f9e2af' }}>
+        {tt('health.fit.failed', 'Could not check these against your rules just now, so nothing here is marked. Press refresh to try again.')}
+      </div>
+    );
+  }
+  const parts: string[] = [];
+  if (fitsOnly) {
+    parts.push(tt('health.fit.showing_fits', 'Showing what fits your rules.'));
+    if (view.hidden > 0) parts.push(tt('health.fit.hidden_n', '{n} on this page don\'t fit.').replace('{n}', String(view.hidden)));
+    if (view.pending > 0) parts.push(tt('health.fit.checking_n', 'Checking {n}…').replace('{n}', String(view.pending)));
+  } else {
+    parts.push(tt('health.fit.showing_all', 'Showing everything. Anything that doesn\'t fit your rules is marked.'));
+  }
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--text-secondary)]">
+      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: fitsOnly ? '#a6e3a1' : 'var(--text-muted)' }} aria-hidden />
+      <span>{parts.join(' ')}</span>
+      <button type="button" onClick={onToggle} className={link}>
+        {fitsOnly ? tt('health.fit.show_all', 'Show everything') : tt('health.fit.only_fits', 'Only what fits me')}
+      </button>
+    </div>
+  );
+}
+
+/** A card's verdict against their rules. Nothing for a plain fit. */
+function FitMark({ fit, floating }: { fit?: FitVerdict; floating?: boolean }) {
+  if (!fit || fit.verdict === 'ok') return null;
+  const blocked = fit.verdict === 'blocked';
+  const label = blocked ? tt('health.fit.mark_blocked', "Doesn't fit") : tt('health.fit.mark_warn', 'Take care');
+  const colour = blocked
+    ? { bg: 'rgba(243,139,168,0.92)', fg: '#1e1e2e' }
+    : { bg: 'rgba(249,226,175,0.92)', fg: '#1e1e2e' };
+  return (
+    <span
+      title={fit.reasons.join(' · ')}
+      className={`${floating ? 'absolute right-1.5 top-1.5 z-[2]' : 'flex-shrink-0'} rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide shadow-sm`}
+      style={{ background: colour.bg, color: colour.fg }}
+    >
+      {label}
+    </span>
+  );
 }
 
 function SubmissionStatusBadge({ status }: { status: HealthSubmissionStatus }) {

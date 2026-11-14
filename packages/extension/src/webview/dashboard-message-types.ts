@@ -1575,6 +1575,7 @@ export type ExtToDashboardMessage =
   | { type: 'health_plan_saved'; plan: HealthPlan; plans: HealthPlanSummary[] }
   /** Verdicts for library items against their hard rules (Part 1, 11 Nov 2026).
    *  `checked: false` = the check could not run: show results as NOT checked. */
+  | { type: 'curated_plan_refs_loaded'; refs: Record<string, { recipes: string[]; exercises: string[] }> }
   | { type: 'health_safety_result'; results: Record<string, HealthSafetyVerdict>; checked: boolean; rules: boolean }
   | { type: 'health_plan_deleted'; id: string; plans: HealthPlanSummary[] }
   // Catalog search for the plan editor's "+ Add" picker — separate from
@@ -1971,6 +1972,7 @@ export type DashboardToExtMessage =
   | { type: 'save_training_session'; session: unknown }
   | { type: 'delete_training_session'; id: string }
   | { type: 'load_curated_plans' }
+  | { type: 'load_curated_plan_refs'; ids: string[] }
   | { type: 'load_curated_plan'; id: string }
   /** Fire-and-forget: the only signal we get about which starters work.
    *  Never allowed to fail a start. */
