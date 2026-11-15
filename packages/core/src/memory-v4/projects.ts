@@ -86,6 +86,23 @@ export class ProjectRegistry {
     return record;
   }
 
+  /**
+   * A project known only by name so far (its memories arrived before its
+   * folder was opened here). It gets a stable id from its name; addPath joins
+   * it to a folder later. Caller holds the lock.
+   */
+  async ensureByName(name: string): Promise<ProjectRecord> {
+    const projects = await this.all();
+    const existing = projects.find((p) => p.name.toLowerCase() === name.toLowerCase());
+    if (existing) return existing;
+    const hash = createHash('sha1').update(`name:${name.toLowerCase()}`).digest('hex').slice(0, 6);
+    const record: ProjectRecord = { id: `${slugFor(name).slice(0, 40)}-${hash}`, name, paths: [], links: [] };
+    while (projects.some((p) => p.id === record.id)) record.id = `${record.id}x`;
+    projects.push(record);
+    await this.save(projects);
+    return record;
+  }
+
   /** Point another path (the project moved) at an existing project. Caller holds the lock. */
   async addPath(id: string, path: string): Promise<boolean> {
     const projects = await this.all();

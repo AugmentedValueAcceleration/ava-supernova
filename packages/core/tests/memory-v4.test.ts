@@ -137,6 +137,13 @@ describe('changing and deleting', () => {
     expect(hits.map((h) => h.fact.id)).toEqual([res!.fact.id]);
   });
 
+  it('history ends on the day the new version became true', async () => {
+    const { fact: old } = await mem.addFact({ text: 'No Charge cost for flight yet.', from: '2026-10-25' });
+    const res = await mem.replaceFact(old.id, { text: 'Flight drains 20 Charge per second.', from: '2026-10-26' });
+    expect(res!.previous.until).toBe('2026-10-26');
+    expect(res!.previous.from).toBe('2026-10-25');
+  });
+
   it('edits a fact in place without making history', async () => {
     const { fact } = await mem.addFact({ text: 'Dislikes bodl type.' });
     const edited = await mem.editFact(fact.id, { text: 'Dislikes bold type.' });

@@ -57,6 +57,11 @@ export interface NewFact {
   quote?: string;
   from?: string;
   tags?: string[];
+  /**
+   * Set when the person has already confirmed it (e.g. approved on the
+   * migration review page): an inferred fact with this is a fact, not pending.
+   */
+  confirmed?: string;
 }
 
 export interface Thread {

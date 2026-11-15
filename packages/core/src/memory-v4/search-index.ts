@@ -107,8 +107,8 @@ export class SearchIndex {
   }
 
   /**
-   * Ranked matches, each with a score in 0–1 (relative to the best possible
-   * score for this query), the share of the query's weight it covers, and
+   * Ranked matches, each with a score relative to a typical full match (about
+   * 1; a short fact repeating the words can go higher), the share of the query's weight it covers, and
    * that weight itself (how rare the matched words are).
    */
   search(query: string, limit = 10): Array<{ id: string; score: number; coverage: number; weight: number }> {
@@ -131,7 +131,7 @@ export class SearchIndex {
         covered += weights[i];
         score += weights[i] * ((f * (K1 + 1)) / (f + K1 * (1 - B + B * (len / avg))));
       });
-      if (score > 0) out.push({ id, score: Math.min(1, score / ideal), coverage: covered / totalWeight, weight: covered });
+      if (score > 0) out.push({ id, score: score / ideal, coverage: covered / totalWeight, weight: covered });
     }
     return out.sort((a, b) => b.score - a.score).slice(0, limit);
   }

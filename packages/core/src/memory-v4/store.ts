@@ -235,9 +235,10 @@ export class AvaMemory {
         source,
         quote: input.quote?.trim() || undefined,
         from: input.from ?? today(),
+        confirmed: input.confirmed,
         tags: input.tags,
         text,
-        state: source === 'inferred' ? 'pending' : 'fact',
+        state: source === 'inferred' && !input.confirmed ? 'pending' : 'fact',
       };
       await this.put(fact);
       return { fact, created: true };
@@ -282,11 +283,12 @@ export class AvaMemory {
         quote: input.quote?.trim() || undefined,
         from: input.from ?? today(),
         replaces: previous.id,
+        confirmed: input.confirmed,
         tags: input.tags ?? previous.tags,
         text,
-        state: source === 'inferred' ? 'pending' : 'fact',
+        state: source === 'inferred' && !input.confirmed ? 'pending' : 'fact',
       };
-      const retired: Fact = { ...previous, state: 'history', until: today(), supersededBy: fact.id };
+      const retired: Fact = { ...previous, state: 'history', until: fact.from, supersededBy: fact.id };
       await this.put(fact);
       await this.put(retired);
       await this.drop(previous.state, previous.id);
@@ -428,6 +430,11 @@ export class AvaMemory {
     const known = await this.projects.find(path);
     if (known) return known;
     return withLock(this.root, () => this.projects.ensure(path, name));
+  }
+
+  /** A project known only by name (see ProjectRegistry.ensureByName). */
+  async projectNamed(name: string): Promise<ProjectRecord> {
+    return withLock(this.root, () => this.projects.ensureByName(name));
   }
 
   async linkProjects(a: string, b: string): Promise<boolean> {
