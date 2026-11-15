@@ -42,11 +42,11 @@ export async function renderDocument(model: DocModel, target: RenderTarget, opts
     case 'md':
       return renderMarkdown(model);
     case 'docx':
-      if (!opts.loadDocx) throw new Error('docx rendering requires the docx package. Install it with: npm install docx');
+      if (!opts.loadDocx) throw new Error('Word files cannot be made in this build of Ava.');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return renderDocx(model, { loadDocx: opts.loadDocx as () => Promise<any>, baseDir: opts.baseDir });
     case 'pdf':
-      if (!opts.loadPdf) throw new Error('pdf rendering requires the pdfkit package. Install it with: npm install pdfkit');
+      if (!opts.loadPdf) throw new Error('PDFs cannot be made in this build of Ava.');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return renderPdf(model, { loadPdf: opts.loadPdf as () => Promise<any>, baseDir: opts.baseDir });
     // OpenDocument needs no peer — XML in a zip, both from Node's stdlib.

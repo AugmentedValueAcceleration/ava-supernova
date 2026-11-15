@@ -152,7 +152,8 @@ describe('exporting', () => {
     const result = await exportDocument({ sourcePath: src, format: 'docx' });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.error).toMatch(/docx/);
+    expect(result.error).toMatch(/Word files cannot be made/);
+    expect(result.error).not.toMatch(/npm install/);
   });
 
   it('refuses a built document by name, not by crashing on its bytes', async () => {

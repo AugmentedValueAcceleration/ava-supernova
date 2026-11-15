@@ -54,7 +54,7 @@ describe('document_author templates', () => {
   it('from_template produces a finished draft with no leftover tokens', async () => {
     const r = await tool.execute({ action: 'from_template', template: 'proposal', file_path: 'p.md', data: { client: 'Acme', author: 'Sam', company: 'Foo', title: 'Acme Engagement' } }, ctx);
     expect(r.success).toBe(true);
-    const md = await readFile(join(dir, 'p.md'), 'utf-8');
+    const md = await readFile(join(dir, 'documents', 'p.md'), 'utf-8');
     expect(md).not.toContain('{{');
     expect(md).toContain('Acme');
     expect(md).toContain('title: Acme Engagement');
@@ -76,7 +76,7 @@ describe('document_author templates', () => {
 
     const use = await tool.execute({ action: 'from_template', template: 'custom/mine', file_path: 'out.md', data: { title: 'T', who: 'World' } }, ctx);
     expect(use.success).toBe(true);
-    const md = await readFile(join(dir, 'out.md'), 'utf-8');
+    const md = await readFile(join(dir, 'documents', 'out.md'), 'utf-8');
     expect(md).toContain('Hello World');
     expect(md).toContain('title: T');
   });
@@ -86,7 +86,7 @@ describe('document_author templates', () => {
     expect(set.success).toBe(true);
 
     await tool.execute({ action: 'create', file_path: 'd.md', content: '---\ntitle: Doc\n---\n\n# H\n' }, ctx);
-    const md = await readFile(join(dir, 'd.md'), 'utf-8');
+    const md = await readFile(join(dir, 'documents', 'd.md'), 'utf-8');
     expect(md).toContain('brand:');
     expect(md).toContain('0F766E');
     expect(md).toContain('Georgia');

@@ -14,6 +14,8 @@ import { getTemplate, listTemplates, fillTemplate, saveUserTemplate, saveHouseSt
 import type { DocTemplate, TemplateDomain } from './authoring/templates/index.js';
 import type { BrandTokens } from './authoring/doc-model.js';
 import { todayLocal } from '../core/dates.js';
+import { readPdfText, readDocxText, unreadable } from './authoring/read-office.js';
+import { documentPathFor } from './authoring/document-places.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -57,7 +59,7 @@ export class DocumentAuthorTool implements Tool {
           enum: ['create', 'from_template', 'list_templates', 'build', 'read', 'outline', 'edit_section', 'insert_section', 'save_template', 'set_house_style'],
           description: 'create · from_template · list_templates · build (docx/pdf) · read · outline · edit_section (surgical) · insert_section · save_template · set_house_style',
         },
-        file_path: { type: 'string', description: 'Path to the document. For create/from_template/edit/outline use the .md source.' },
+        file_path: { type: 'string', description: 'Path to the document. For create/from_template/edit/outline use the .md source. A bare file name ("proposal.md") is saved in the documents/ folder of the project, where the Library shows it; give a folder only when the person names one.' },
         content: { type: 'string', description: 'Markdown content. create: the whole document. edit_section: the new body of the section. insert_section: the new section. save_template: the template body.' },
         section: { type: 'string', description: 'edit_section: the heading text of the section to replace (e.g. "Pricing").' },
         after: { type: 'string', description: 'insert_section: heading text to insert after. Omit to append at the end.' },
@@ -96,10 +98,12 @@ export class DocumentAuthorTool implements Tool {
   // ── create ─────────────────────────────────────────────────────────────────
 
   private async create(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const filePath = args.file_path as string | undefined;
-    if (!filePath) return { success: false, output: 'Missing required field: file_path' };
+    const given = args.file_path as string | undefined;
+    if (!given) return { success: false, output: 'Missing required field: file_path' };
+    // A bare name goes into the project's documents/ folder, where the Library shows it.
+    const filePath = documentPathFor(given);
     let abs: string;
-    try { abs = validatePath(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
+    try { abs = this.locate(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
     if (existsSync(abs)) return { success: false, output: `File already exists: ${filePath}. Use edit_section/insert_section to change it, or build to export it.` };
 
     let content = (args.content as string | undefined) ?? '';
@@ -121,9 +125,10 @@ export class DocumentAuthorTool implements Tool {
   // ── from_template ────────────────────────────────────────────────────────────
 
   private async fromTemplate(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const filePath = args.file_path as string | undefined;
+    const given = args.file_path as string | undefined;
     const templateId = args.template as string | undefined;
-    if (!filePath || !templateId) return { success: false, output: 'from_template requires file_path and template.' };
+    if (!given || !templateId) return { success: false, output: 'from_template requires file_path and template.' };
+    const filePath = documentPathFor(given);
 
     const tpl = await getTemplate(templateId);
     if (!tpl) {
@@ -132,7 +137,7 @@ export class DocumentAuthorTool implements Tool {
     }
 
     let abs: string;
-    try { abs = validatePath(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
+    try { abs = this.locate(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
     if (existsSync(abs)) return { success: false, output: `File already exists: ${filePath}.` };
 
     const data = (args.data as Record<string, string> | undefined) ?? {};
@@ -176,7 +181,7 @@ export class DocumentAuthorTool implements Tool {
     let body = args.content as string | undefined;
     if (!body && args.file_path) {
       try {
-        const abs = validatePath(args.file_path as string, context.cwd);
+        const abs = this.locate(args.file_path as string, context.cwd);
         if (!existsSync(abs)) return { success: false, output: `File not found: ${String(args.file_path)}` };
         body = await readFile(abs, 'utf-8');
       } catch (e) { return { success: false, output: (e as Error).message }; }
@@ -222,7 +227,7 @@ export class DocumentAuthorTool implements Tool {
     const filePath = args.file_path as string | undefined;
     if (!filePath) return { success: false, output: 'Missing required field: file_path' };
     let abs: string;
-    try { abs = validatePath(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
+    try { abs = this.locate(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
     if (!existsSync(abs)) return { success: false, output: `File not found: ${filePath}` };
 
     const source = await readFile(abs, 'utf-8');
@@ -279,7 +284,7 @@ export class DocumentAuthorTool implements Tool {
     const filePath = args.file_path as string | undefined;
     if (!filePath) return { success: false, output: 'Missing required field: file_path' };
     let abs: string;
-    try { abs = validatePath(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
+    try { abs = this.locate(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
     if (!existsSync(abs)) return { success: false, output: `File not found: ${filePath}` };
     this.trackRead(context, abs);
 
@@ -290,18 +295,15 @@ export class DocumentAuthorTool implements Tool {
     }
     if (ext === '.docx') {
       try {
-        const mammoth = await import('mammoth');
-        const r = await (mammoth as any).extractRawText({ path: abs });
-        return { success: true, output: `${abs}\n\n${r.value.slice(0, 6000)}${r.value.length > 6000 ? '\n… truncated' : ''}` };
-      } catch { return { success: true, output: `${abs} (install mammoth to extract Word text: npm install mammoth)` }; }
+        const r = await readDocxText(abs);
+        return { success: true, output: `${abs}\n\n${r.text.slice(0, 6000)}${r.text.length > 6000 ? '\n… truncated' : ''}` };
+      } catch (e) { return { success: false, output: unreadable('Word', abs, e) }; }
     }
     if (ext === '.pdf') {
       try {
-        const mod = await import('pdf-parse');
-        const pdfParse = (mod as any).default || mod;
-        const data = await pdfParse(await readFile(abs));
-        return { success: true, output: `${abs} (${data.numpages} pages)\n\n${data.text.slice(0, 6000)}${data.text.length > 6000 ? '\n… truncated' : ''}` };
-      } catch { return { success: true, output: `${abs} (install pdf-parse to extract PDF text: npm install pdf-parse)` }; }
+        const r = await readPdfText(await readFile(abs));
+        return { success: true, output: `${abs}${r.pages ? ` (${r.pages} pages)` : ''}\n\n${r.text.slice(0, 6000)}${r.text.length > 6000 ? '\n… truncated' : ''}` };
+      } catch (e) { return { success: false, output: unreadable('PDF', abs, e) }; }
     }
     const raw = await readFile(abs, 'utf-8');
     return { success: true, output: `${abs}\n\n${raw.slice(0, 6000)}` };
@@ -313,7 +315,7 @@ export class DocumentAuthorTool implements Tool {
     const filePath = args.file_path as string | undefined;
     if (!filePath) return { success: false, output: 'Missing required field: file_path' };
     let abs: string;
-    try { abs = validatePath(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
+    try { abs = this.locate(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
     if (!existsSync(abs)) return { success: false, output: `File not found: ${filePath}` };
     const md = await readFile(abs, 'utf-8');
     return { success: true, output: `Outline of ${abs}:\n\n${formatOutline(md)}` };
@@ -329,7 +331,7 @@ export class DocumentAuthorTool implements Tool {
     if (content == null) return { success: false, output: 'edit_section requires content (the new body for the section).' };
 
     let abs: string;
-    try { abs = validatePath(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
+    try { abs = this.locate(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
     if (!existsSync(abs)) return { success: false, output: `File not found: ${filePath}` };
 
     const md = await readFile(abs, 'utf-8');
@@ -353,7 +355,7 @@ export class DocumentAuthorTool implements Tool {
     if (!filePath || !content) return { success: false, output: 'insert_section requires file_path and content (the new section).' };
 
     let abs: string;
-    try { abs = validatePath(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
+    try { abs = this.locate(filePath, context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
     if (!existsSync(abs)) return { success: false, output: `File not found: ${filePath}` };
 
     const md = await readFile(abs, 'utf-8');
@@ -402,6 +404,16 @@ export class DocumentAuthorTool implements Tool {
     if (!pairs.length) return content;
     const line = `brand: { ${pairs.join(', ')} }`;
     return fm[1] + fm[2] + '\n' + line + fm[3] + content.slice(fm[0].length);
+  }
+
+  /** A path as given, or — for a bare name not at the project root — the same
+   *  name in documents/, where create puts it. So "build proposal.md" finds the
+   *  file "create proposal.md" made. */
+  private locate(given: string, cwd: string): string {
+    const direct = validatePath(given, cwd);
+    if (/[\\/]/.test(given.trim()) || existsSync(direct)) return direct;
+    const inDocs = validatePath(documentPathFor(given), cwd);
+    return existsSync(inDocs) ? inDocs : direct;
   }
 
   private today(): string {

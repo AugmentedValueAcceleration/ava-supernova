@@ -59,7 +59,7 @@ describe('document_author tool', () => {
   it('creates a .md and reports an outline', async () => {
     const r = await tool.execute({ action: 'create', file_path: 'doc.md', content: DOC }, ctx);
     expect(r.success).toBe(true);
-    expect(existsSync(join(dir, 'doc.md'))).toBe(true);
+    expect(existsSync(join(dir, 'documents', 'doc.md'))).toBe(true);
     expect(r.output).toContain('Alpha');
   });
 
@@ -74,7 +74,7 @@ describe('document_author tool', () => {
     await tool.execute({ action: 'create', file_path: 'doc.md', content: DOC }, ctx);
     const r = await tool.execute({ action: 'edit_section', file_path: 'doc.md', section: 'Beta', content: 'Updated beta.' }, ctx);
     expect(r.success).toBe(true);
-    const md = await readFile(join(dir, 'doc.md'), 'utf-8');
+    const md = await readFile(join(dir, 'documents', 'doc.md'), 'utf-8');
     expect(md).toContain('Updated beta.');
     expect(md).not.toContain('Beta body.');
     expect(md).toContain('Alpha body.');   // untouched
@@ -93,7 +93,7 @@ describe('document_author tool', () => {
     await tool.execute({ action: 'create', file_path: 'doc.md', content: DOC }, ctx);
     const r = await tool.execute({ action: 'insert_section', file_path: 'doc.md', after: 'Alpha', content: '## Alpha2\nMore.' }, ctx);
     expect(r.success).toBe(true);
-    const md = await readFile(join(dir, 'doc.md'), 'utf-8');
+    const md = await readFile(join(dir, 'documents', 'doc.md'), 'utf-8');
     expect(md.indexOf('Alpha2')).toBeGreaterThan(md.indexOf('Alpha body.'));
     expect(md.indexOf('Alpha2')).toBeLessThan(md.indexOf('## Beta'));
   });
@@ -101,7 +101,7 @@ describe('document_author tool', () => {
   it('appends a section when no anchor is given', async () => {
     await tool.execute({ action: 'create', file_path: 'doc.md', content: DOC }, ctx);
     await tool.execute({ action: 'insert_section', file_path: 'doc.md', content: '## Appendix\nEnd.' }, ctx);
-    const md = await readFile(join(dir, 'doc.md'), 'utf-8');
+    const md = await readFile(join(dir, 'documents', 'doc.md'), 'utf-8');
     expect(md.trimEnd().endsWith('End.')).toBe(true);
   });
 
@@ -115,28 +115,39 @@ describe('document_author tool', () => {
 
     expect(r.success).toBe(false);
     expect(r.output).toMatch(/format/i);
-    expect(existsSync(join(dir, 'doc.docx')), 'no docx written').toBe(false);
-    expect(existsSync(join(dir, 'doc.pdf')), 'no pdf written').toBe(false);
+    expect(existsSync(join(dir, 'documents', 'doc.docx')), 'no docx written').toBe(false);
+    expect(existsSync(join(dir, 'documents', 'doc.pdf')), 'no pdf written').toBe(false);
     // The document itself is untouched — it is the source, not an export.
-    expect(existsSync(join(dir, 'doc.md'))).toBe(true);
+    expect(existsSync(join(dir, 'documents', 'doc.md'))).toBe(true);
   });
 
   it('builds exactly the one format asked for', async () => {
     await tool.execute({ action: 'create', file_path: 'one.md', content: DOC }, ctx);
     const r = await tool.execute({ action: 'build', file_path: 'one.md', format: 'odt' }, ctx);
     expect(r.success).toBe(true);
-    expect(existsSync(join(dir, 'one.odt'))).toBe(true);
-    expect(existsSync(join(dir, 'one.docx')), 'nothing extra').toBe(false);
-    expect(existsSync(join(dir, 'one.pdf')), 'nothing extra').toBe(false);
+    expect(existsSync(join(dir, 'documents', 'one.odt'))).toBe(true);
+    expect(existsSync(join(dir, 'documents', 'one.docx')), 'nothing extra').toBe(false);
+    expect(existsSync(join(dir, 'documents', 'one.pdf')), 'nothing extra').toBe(false);
   });
 
   it('builds docx and pdf from the markdown source', async () => {
     await tool.execute({ action: 'create', file_path: 'doc.md', content: DOC }, ctx);
     const r = await tool.execute({ action: 'build', file_path: 'doc.md', format: 'both' }, ctx);
     expect(r.success).toBe(true);
-    expect(existsSync(join(dir, 'doc.docx'))).toBe(true);
-    expect(existsSync(join(dir, 'doc.pdf'))).toBe(true);
-    const docx = await readFile(join(dir, 'doc.docx'));
+    expect(existsSync(join(dir, 'documents', 'doc.docx'))).toBe(true);
+    expect(existsSync(join(dir, 'documents', 'doc.pdf'))).toBe(true);
+    const docx = await readFile(join(dir, 'documents', 'doc.docx'));
     expect(docx.subarray(0, 2).toString('latin1')).toBe('PK');
+  });
+
+  // 14 Nov 2026: a PDF made in Docs/ was invisible to the Library. New
+  // documents go to documents/ unless a folder is named — and a named folder is kept.
+  it('keeps a folder the person named, and finds a bare name in documents/', async () => {
+    await tool.execute({ action: 'create', file_path: 'Docs/overview.md', content: DOC }, ctx);
+    expect(existsSync(join(dir, 'Docs', 'overview.md'))).toBe(true);
+    await tool.execute({ action: 'create', file_path: 'notes.md', content: DOC }, ctx);
+    const r = await tool.execute({ action: 'outline', file_path: 'notes.md' }, ctx);
+    expect(r.success).toBe(true);
+    expect(r.output).toContain(join('documents', 'notes.md'));
   });
 });

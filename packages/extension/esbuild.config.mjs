@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync, execSync } from 'node:child_process';
 import * as esbuild from 'esbuild';
+import { EXTERNAL, copyPdfkitData } from './scripts/bundle-shared.mjs';
 
 const isWatch = process.argv.includes('--watch');
 const isProduction = process.argv.includes('--production') || process.env.NODE_ENV === 'production';
@@ -11,7 +12,8 @@ const ctx = await esbuild.context({
   entryPoints: ['src/extension.ts'],
   bundle: true,
   outfile: 'dist/extension.js',
-  external: ['vscode', 'playwright', 'playwright-core', 'chromium-bidi', 'docx', 'exceljs', 'pdfkit', 'pdf-parse', 'mammoth', 'jszip', 'screenshot-desktop'],
+  // The document libraries are bundled (see scripts/bundle-shared.mjs).
+  external: EXTERNAL,
   format: 'cjs',
   platform: 'node',
   sourcemap: !isProduction,
@@ -83,6 +85,7 @@ function copyKeyringNative() {
 
 if (isWatch) {
   copyKeyringNative();
+  copyPdfkitData('dist');
   await buildVectorizer();
   await ctx.watch();
   console.log('Watching for changes...');
@@ -96,5 +99,6 @@ if (isWatch) {
 
   await buildVectorizer();
   copyKeyringNative();
+  copyPdfkitData('dist');
   console.log('Extension built successfully.');
 }

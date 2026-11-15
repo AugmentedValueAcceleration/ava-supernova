@@ -309,6 +309,11 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Without it, "start me a new project" can only be answered by building
     // inside whatever project is already open.
     'create_project',
+    // Documents — a design doc or a PDF belongs to the project too (14 Nov
+    // 2026: without these, a request for a PDF here was answered with a
+    // hand-written Python script and the file landed where the Library
+    // could not see it).
+    'document_author', 'document_manage',
     // Search
     'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     // Shell
@@ -400,6 +405,9 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // costs them credits for a thing they have" — a rule she could not follow
     // without the tool.
     'paper_fetch_full_text', 'browse_library',
+    // A letter, a list, a budget — documents are part of ordinary life, not
+    // only of Write mode.
+    'document_author', 'document_manage',
     // todo_write for Ava's own session steps. task_suggest is her DEFAULT for a
     // task-worthy thing she notices (a tap-to-add card); task_manage is for when
     // the user explicitly says "add X to my list" — create directly then.

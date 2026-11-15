@@ -3,709 +3,295 @@ import { existsSync } from 'node:fs';
 import { dirname, extname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { TEMPLATES, getTemplate } from './document-templates.js';
-import type { DocumentContent, SpreadsheetContent, CsvContent, TemplateName } from './document-templates.js';
-import {
-  titleParagraph, headingParagraph, bodyParagraph,
-  bulletParagraph, themedTable, sectionProperties, getStyleProfile,
-  pdfTitle, pdfHeading, pdfBody, pdfBullet, pdfTable,
-  type DocumentStyleProfile,
-} from './document-styling.js';
+import type { SpreadsheetContent, CsvContent } from './document-templates.js';
+import { validatePath } from './security.js';
+import { readPdfText, readDocxText, unreadable } from './authoring/read-office.js';
+import { documentPathFor } from './authoring/document-places.js';
+import { exportDocument, parseCsv } from './authoring/export-document.js';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+/**
+ * Spreadsheets and CSV — ONE job (14 Nov 2026).
+ *
+ * This tool used to make Word and PDF files too, with a second, simpler
+ * engine than document_author's (it dropped bold, tables and callouts), and
+ * it offered a ".docx edit" that rebuilt the file from plain text and threw
+ * its formatting away. Prose documents now belong to document_author alone;
+ * this tool makes and changes spreadsheets, and reads any document so Ava can
+ * use what is in it.
+ */
 export class DocumentManageTool implements Tool {
   readonly name = 'document_manage';
-  readonly description = 'Create, read, edit, and export documents (Word, Excel, PDF, CSV, Markdown)';
+  readonly description = 'Make and change spreadsheets (.xlsx) and CSV files; read any document (Word, PDF, spreadsheet, text).';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'document_manage',
     description:
-      'Create, read, edit, and export documents. Supports Word (.docx), Excel (.xlsx), PDF (.pdf), CSV (.csv), and Markdown (.md). ' +
-      'Use templates for common document types. Optional dependencies: npm install docx exceljs pdfkit for full format support. ' +
-      'CSV and Markdown work with no extra dependencies. ' +
-      'Note: editing a .docx is destructive — the file is recreated from scratch and any custom formatting in the original (fonts, colors, images, complex tables, headers/footers) will be lost. Only text content is preserved. For preserving formatting, edit the document in Word directly.',
+      'Spreadsheets and CSV: create a spreadsheet (.xlsx) or CSV, add rows to one, read one, or export between them. '
+      + 'Also reads the text of any document (.docx, .pdf, .md, .txt). '
+      + 'For prose documents — reports, letters, proposals, Word or PDF files — use document_author instead. '
+      + 'A bare file name ("budget.xlsx") is saved in the project\'s documents/ folder, where the Library shows it.',
     parameters: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
-          enum: ['create', 'edit', 'read', 'export', 'list_templates', 'from_template'],
-          description: 'The action to perform',
+          enum: ['create', 'edit', 'read', 'export'],
+          description: 'create (new spreadsheet / CSV) · edit (add rows) · read (any document) · export (csv ↔ xlsx, or a CSV to ods / pdf / docx)',
         },
-        file_path: {
-          type: 'string',
-          description: 'Path for the document (required for create, edit, read, export)',
-        },
-        format: {
-          type: 'string',
-          enum: ['docx', 'xlsx', 'pdf', 'csv', 'md'],
-          description: 'Document format (auto-detected from file extension if not specified)',
-        },
+        file_path: { type: 'string', description: 'Path of the spreadsheet or document.' },
         content: {
           type: 'object',
-          description: 'Structured content. For docs: { title?, sections: [{ heading?, text?, list?, table?: { headers, rows } }] }. For csv: { headers, rows }. For xlsx: { sheets: [{ name, headers, rows }] }',
+          description: 'xlsx: { sheets: [{ name, headers, rows }] }. csv: { headers, rows }. edit: the rows to add, same shape.',
         },
-        template: {
-          type: 'string',
-          enum: [...TEMPLATES],
-          description: 'Template name for from_template action',
-        },
-        template_data: {
-          type: 'object',
-          description: 'Data to fill the template with',
-        },
-        export_format: {
-          type: 'string',
-          enum: ['docx', 'xlsx', 'pdf', 'csv', 'md'],
-          description: 'Target format for export action',
-        },
-        export_path: {
-          type: 'string',
-          description: 'Output path for export action',
-        },
+        export_format: { type: 'string', enum: ['xlsx', 'csv', 'ods', 'pdf', 'docx'], description: 'export: the format to make.' },
+        export_path: { type: 'string', description: 'export: where to write it (otherwise beside the source).' },
       },
       required: ['action'],
     },
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const action = args.action as string;
-
-    switch (action) {
-      case 'create': return this.handleCreate(args, context);
-      case 'edit': return this.handleEdit(args, context);
-      case 'read': return this.handleRead(args, context);
-      case 'export': return this.handleExport(args, context);
-      case 'list_templates': return this.handleListTemplates();
-      case 'from_template': return this.handleFromTemplate(args, context);
-      default:
-        return { success: false, output: `Unknown action: ${action}` };
+    try {
+      switch (args.action) {
+        case 'create': return await this.handleCreate(args, context);
+        case 'edit': return await this.handleEdit(args, context);
+        case 'read': return await this.handleRead(args, context);
+        case 'export': return await this.handleExport(args, context);
+        default:
+          return { success: false, output: `Unknown action: ${String(args.action)}. For Word or PDF documents use document_author.` };
+      }
+    } catch (e) {
+      return { success: false, output: (e as Error).message };
     }
+  }
+
+  // ── Paths ──────────────────────────────────────────────────────────────────
+
+  /** Inside the project only; a bare name for something NEW goes to documents/. */
+  private target(given: string | undefined, cwd: string, isNew: boolean): string {
+    if (!given) throw new Error('Missing required field: file_path');
+    const direct = validatePath(given, cwd);
+    if (/[\\/]/.test(given.trim())) return direct;
+    const inDocs = validatePath(documentPathFor(given), cwd);
+    if (isNew) return inDocs;
+    return existsSync(direct) ? direct : inDocs;
+  }
+
+  private formatOf(path: string): string {
+    return extname(path).toLowerCase().replace('.', '');
   }
 
   // ── Create ─────────────────────────────────────────────────────────────────
 
   private async handleCreate(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const filePath = args.file_path as string | undefined;
-    if (!filePath) return { success: false, output: 'Missing required field: file_path' };
-
-    const format = this.detectFormat(filePath, args.format as string | undefined);
-    if (!format) return { success: false, output: 'Cannot determine format. Specify format or use a known extension (.docx, .xlsx, .pdf, .csv, .md)' };
-
-    const content = args.content as Record<string, unknown> | undefined;
-    const fullPath = this.resolvePath(filePath, context.cwd);
-
-    await mkdir(dirname(fullPath), { recursive: true });
-
-    switch (format) {
-      case 'csv': return this.createCsv(fullPath, content as unknown as CsvContent);
-      case 'md': return this.createMarkdown(fullPath, content as unknown as DocumentContent);
-      case 'docx': return this.createDocx(fullPath, content as unknown as DocumentContent);
-      case 'xlsx': return this.createXlsx(fullPath, content as unknown as SpreadsheetContent);
-      case 'pdf': return this.createPdf(fullPath, content as unknown as DocumentContent);
-      default: return { success: false, output: `Unsupported format: ${format}` };
+    const fullPath = this.target(args.file_path as string | undefined, context.cwd, true);
+    const format = this.formatOf(fullPath);
+    if (format !== 'xlsx' && format !== 'csv') {
+      return { success: false, output: `document_manage makes spreadsheets (.xlsx) and CSV files. For a ${format ? `.${format}` : ''} document use document_author.` };
     }
+    if (existsSync(fullPath)) return { success: false, output: `File already exists: ${fullPath}. Use edit to add rows.` };
+    await mkdir(dirname(fullPath), { recursive: true });
+    const content = args.content as Record<string, unknown> | undefined;
+    return format === 'csv'
+      ? this.createCsv(fullPath, content as unknown as CsvContent)
+      : this.createXlsx(fullPath, content as unknown as SpreadsheetContent);
   }
 
-  // ── Edit ───────────────────────────────────────────────────────────────────
+  // ── Edit (add rows) ──────────────────────────────────────────────────────────
 
   private async handleEdit(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const filePath = args.file_path as string | undefined;
-    if (!filePath) return { success: false, output: 'Missing required field: file_path' };
-
-    const fullPath = this.resolvePath(filePath, context.cwd);
-    if (!existsSync(fullPath)) return { success: false, output: `File not found: ${filePath}` };
-
-    const format = this.detectFormat(filePath, args.format as string | undefined);
+    const fullPath = this.target(args.file_path as string | undefined, context.cwd, false);
+    if (!existsSync(fullPath)) return { success: false, output: `File not found: ${fullPath}` };
+    const format = this.formatOf(fullPath);
     const content = args.content as Record<string, unknown> | undefined;
-
-    switch (format) {
-      case 'csv': return this.editCsv(fullPath, content as unknown as CsvContent);
-      case 'md': return this.editMarkdown(fullPath, content as unknown as DocumentContent);
-      case 'docx': return this.editDocx(fullPath, content as unknown as DocumentContent);
-      case 'xlsx': return this.editXlsx(fullPath, content as unknown as SpreadsheetContent);
-      case 'pdf': return { success: false, output: 'PDFs cannot be edited directly. Recreate the document or edit the source format.' };
-      default: return { success: false, output: `Unsupported format for editing: ${format}` };
-    }
+    if (format === 'csv') return this.editCsv(fullPath, content as unknown as CsvContent);
+    if (format === 'xlsx') return this.editXlsx(fullPath, content as unknown as SpreadsheetContent);
+    return { success: false, output: `document_manage edits spreadsheets and CSV files. To change a ${format} document use document_author (edit_section).` };
   }
 
-  // ── Read ───────────────────────────────────────────────────────────────────
+  // ── Read (any document) ──────────────────────────────────────────────────────
 
   private async handleRead(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const filePath = args.file_path as string | undefined;
-    if (!filePath) return { success: false, output: 'Missing required field: file_path' };
-
-    const fullPath = this.resolvePath(filePath, context.cwd);
-    if (!existsSync(fullPath)) return { success: false, output: `File not found: ${filePath}` };
-
-    const format = this.detectFormat(filePath, args.format as string | undefined);
-
+    const fullPath = this.target(args.file_path as string | undefined, context.cwd, false);
+    if (!existsSync(fullPath)) return { success: false, output: `File not found: ${fullPath}` };
+    const format = this.formatOf(fullPath);
     switch (format) {
       case 'csv': return this.readCsv(fullPath);
-      case 'md': return this.readMarkdown(fullPath);
-      case 'docx': return this.readDocx(fullPath);
       case 'xlsx': return this.readXlsx(fullPath);
-      case 'pdf': return this.readPdf(fullPath);
-      default: return { success: false, output: `Unsupported format for reading: ${format}` };
+      case 'docx':
+        try {
+          const r = await readDocxText(fullPath);
+          return { success: true, output: `Word document: ${fullPath}\n\n${r.text.slice(0, 6000)}${r.text.length > 6000 ? '\n… truncated' : ''}` };
+        } catch (e) { return { success: false, output: unreadable('Word', fullPath, e) }; }
+      case 'pdf':
+        try {
+          const r = await readPdfText(await readFile(fullPath));
+          return { success: true, output: `PDF: ${fullPath}${r.pages ? ` (${r.pages} pages)` : ''}\n\n${r.text.slice(0, 6000)}${r.text.length > 6000 ? '\n… truncated' : ''}` };
+        } catch (e) { return { success: false, output: unreadable('PDF', fullPath, e) }; }
+      default: {
+        const raw = await readFile(fullPath, 'utf-8');
+        return { success: true, output: `${fullPath}\n\n${raw.slice(0, 6000)}${raw.length > 6000 ? '\n… truncated' : ''}` };
+      }
     }
   }
 
-  // ── Export ─────────────────────────────────────────────────────────────────
+  // ── Export ───────────────────────────────────────────────────────────────────
 
   private async handleExport(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const filePath = args.file_path as string | undefined;
-    const exportFormat = args.export_format as string | undefined;
-    const exportPath = args.export_path as string | undefined;
-
-    if (!filePath) return { success: false, output: 'Missing required field: file_path' };
-    if (!exportFormat) return { success: false, output: 'Missing required field: export_format' };
-
-    const fullPath = this.resolvePath(filePath, context.cwd);
-    if (!existsSync(fullPath)) return { success: false, output: `File not found: ${filePath}` };
-
-    const sourceFormat = this.detectFormat(filePath);
-    const outPath = exportPath
-      ? this.resolvePath(exportPath, context.cwd)
-      : fullPath.replace(new RegExp(`\\.${sourceFormat}$`), `.${exportFormat}`);
-
+    const fullPath = this.target(args.file_path as string | undefined, context.cwd, false);
+    if (!existsSync(fullPath)) return { success: false, output: `File not found: ${fullPath}` };
+    const to = String(args.export_format ?? '');
+    if (!to) return { success: false, output: 'Missing required field: export_format' };
+    const from = this.formatOf(fullPath);
+    const outPath = args.export_path
+      ? validatePath(args.export_path as string, context.cwd)
+      : fullPath.replace(new RegExp(`\\.${from}$`, 'i'), `.${to}`);
     await mkdir(dirname(outPath), { recursive: true });
 
-    // Read source content
-    const readResult = await this.handleRead({ file_path: filePath, format: sourceFormat }, context);
-    if (!readResult.success) return readResult;
-
-    // For MD→DOCX, MD→PDF, CSV→XLSX: parse the source and create in target format
-    if (sourceFormat === 'md' && (exportFormat === 'docx' || exportFormat === 'pdf')) {
-      const raw = await readFile(fullPath, 'utf-8');
-      const content = this.markdownToContent(raw);
-      const createResult = exportFormat === 'docx'
-        ? await this.createDocx(outPath, content)
-        : await this.createPdf(outPath, content);
-      if (createResult.success) {
-        return { success: true, output: `Exported ${filePath} → ${outPath} (${sourceFormat} → ${exportFormat})` };
-      }
-      return createResult;
+    if (from === 'csv' && to === 'xlsx') {
+      const { headers, rows } = parseCsv(await readFile(fullPath, 'utf-8'));
+      const r = await this.createXlsx(outPath, { sheets: [{ name: 'Sheet1', headers, rows }] });
+      return r.success ? { success: true, output: `Exported ${fullPath} → ${outPath} (csv → xlsx)` } : r;
     }
-
-    if (sourceFormat === 'csv' && exportFormat === 'xlsx') {
-      const raw = await readFile(fullPath, 'utf-8');
-      const csvContent = this.parseCsvString(raw);
-      const xlsxContent: SpreadsheetContent = {
-        sheets: [{ name: 'Sheet1', headers: csvContent.headers, rows: csvContent.rows }],
-      };
-      const createResult = await this.createXlsx(outPath, xlsxContent);
-      if (createResult.success) {
-        return { success: true, output: `Exported ${filePath} → ${outPath} (csv → xlsx)` };
-      }
-      return createResult;
+    if (from === 'xlsx' && to === 'csv') {
+      const sheets = await this.xlsxSheets(fullPath);
+      const first = sheets[0] ?? { name: 'Sheet1', headers: [], rows: [] };
+      const r = await this.createCsv(outPath, { headers: first.headers, rows: first.rows });
+      const note = sheets.length > 1 ? ` Only the first sheet (${first.name}) — a CSV holds one table.` : '';
+      return r.success ? { success: true, output: `Exported ${fullPath} → ${outPath} (xlsx → csv).${note}` } : r;
     }
-
-    if (exportFormat === 'md') {
-      // Any → Markdown: use the read output as content
-      await writeFile(outPath, readResult.output, 'utf-8');
-      return { success: true, output: `Exported ${filePath} → ${outPath} (${sourceFormat} → md)` };
+    if (from === 'csv' && (to === 'ods' || to === 'pdf' || to === 'docx')) {
+      const r = await exportDocument({
+        sourcePath: fullPath, format: to, outPath,
+        loadDocx: () => import('docx'),
+        // @ts-expect-error — pdfkit is an optional peer (types may be absent)
+        loadPdf: () => import('pdfkit'),
+      });
+      return r.ok ? { success: true, output: `Exported ${fullPath} → ${r.path} (csv → ${to})` } : { success: false, output: r.error };
     }
-
-    return { success: false, output: `Export from ${sourceFormat} to ${exportFormat} is not supported.` };
+    return { success: false, output: `Export from ${from} to ${to} is not supported here. Spreadsheets: csv ↔ xlsx, or a CSV to ods / pdf / docx. Prose documents export with document_author build.` };
   }
 
-  // ── Templates ──────────────────────────────────────────────────────────────
-
-  private handleListTemplates(): ToolResult {
-    const lines = TEMPLATES.map(t => `- **${t}**`);
-    return {
-      success: true,
-      output: `Available templates:\n${lines.join('\n')}\n\nUse action "from_template" with template name and optional template_data to create a document.`,
-    };
-  }
-
-  private async handleFromTemplate(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const template = args.template as string | undefined;
-    if (!template || !TEMPLATES.includes(template as TemplateName)) {
-      return { success: false, output: `Invalid template. Available: ${TEMPLATES.join(', ')}` };
-    }
-
-    const filePath = args.file_path as string | undefined;
-    if (!filePath) return { success: false, output: 'Missing required field: file_path' };
-
-    const format = this.detectFormat(filePath, args.format as string | undefined) ?? 'md';
-    const templateData = args.template_data as Record<string, unknown> | undefined;
-    const content = getTemplate(template as TemplateName, templateData);
-    // Per-template styling profile (margins, cover page, footer flags) so a
-    // letter actually looks like a letter and an invoice like an invoice.
-    const profile = getStyleProfile(template);
-
-    const fullPath = this.resolvePath(filePath, context.cwd);
-    await mkdir(dirname(fullPath), { recursive: true });
-
-    switch (format) {
-      case 'md': return this.createMarkdown(fullPath, content);
-      case 'csv': {
-        // Convert first table in template to CSV
-        const table = content.sections.find(s => s.table)?.table;
-        if (table) {
-          return this.createCsv(fullPath, { headers: table.headers, rows: table.rows });
-        }
-        return { success: false, output: 'Template has no table data for CSV format.' };
-      }
-      case 'docx': return this.createDocx(fullPath, content, profile);
-      case 'xlsx': {
-        const table = content.sections.find(s => s.table)?.table;
-        if (table) {
-          return this.createXlsx(fullPath, { sheets: [{ name: 'Sheet1', headers: table.headers, rows: table.rows }] });
-        }
-        return { success: false, output: 'Template has no table data for XLSX format.' };
-      }
-      case 'pdf': return this.createPdf(fullPath, content, profile);
-      default: return { success: false, output: `Unsupported format for template: ${format}` };
-    }
-  }
-
-  // ── CSV (native) ───────────────────────────────────────────────────────────
+  // ── CSV ──────────────────────────────────────────────────────────────────────
 
   private async createCsv(filePath: string, content?: CsvContent): Promise<ToolResult> {
     const headers = content?.headers ?? [];
     const rows = content?.rows ?? [];
-    const lines = [headers.map(h => this.csvEscape(h)).join(',')];
-    for (const row of rows) {
-      lines.push(row.map(cell => this.csvEscape(String(cell))).join(','));
-    }
-    await writeFile(filePath, lines.join('\n'), 'utf-8');
+    const lines = [headers.map((h) => this.csvEscape(String(h))).join(',')];
+    for (const row of rows) lines.push(row.map((cell) => this.csvEscape(String(cell ?? ''))).join(','));
+    await writeFile(filePath, lines.join('\n') + '\n', 'utf-8');
     return { success: true, output: `Created CSV: ${filePath} (${rows.length} rows, ${headers.length} columns)` };
   }
 
   private async readCsv(filePath: string): Promise<ToolResult> {
-    const raw = await readFile(filePath, 'utf-8');
-    const parsed = this.parseCsvString(raw);
-    const lines = [parsed.headers.join(' | ')];
-    lines.push(parsed.headers.map(() => '---').join(' | '));
-    for (const row of parsed.rows.slice(0, 50)) {
-      lines.push(row.join(' | '));
-    }
-    const truncated = parsed.rows.length > 50 ? `\n... and ${parsed.rows.length - 50} more rows` : '';
-    return { success: true, output: `CSV: ${filePath} (${parsed.rows.length} rows)\n\n${lines.join('\n')}${truncated}` };
+    const parsed = parseCsv(await readFile(filePath, 'utf-8'));
+    const lines = [parsed.headers.join(' | '), parsed.headers.map(() => '---').join(' | ')];
+    for (const row of parsed.rows.slice(0, 200)) lines.push(row.join(' | '));
+    const more = parsed.rows.length > 200 ? `\n… and ${parsed.rows.length - 200} more rows` : '';
+    return { success: true, output: `CSV: ${filePath} (${parsed.rows.length} rows)\n\n${lines.join('\n')}${more}` };
   }
 
   private async editCsv(filePath: string, content?: CsvContent): Promise<ToolResult> {
-    if (!content) return { success: false, output: 'Missing content for edit. Provide { headers, rows } to append.' };
+    if (!content?.rows?.length) return { success: false, output: 'Nothing to add. Provide { rows: [[…], …] }.' };
     const existing = await readFile(filePath, 'utf-8');
-    const newRows = (content.rows ?? []).map(row => row.map(cell => this.csvEscape(String(cell))).join(','));
-    const updated = existing.trimEnd() + '\n' + newRows.join('\n');
-    await writeFile(filePath, updated, 'utf-8');
-    return { success: true, output: `Appended ${newRows.length} rows to ${filePath}` };
+    const added = content.rows.map((row) => row.map((cell) => this.csvEscape(String(cell ?? ''))).join(','));
+    await writeFile(filePath, existing.replace(/\s+$/, '') + '\n' + added.join('\n') + '\n', 'utf-8');
+    return { success: true, output: `Added ${added.length} rows to ${filePath}` };
   }
 
   private csvEscape(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
+    return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
   }
 
-  private parseCsvString(raw: string): CsvContent {
-    const lines = raw.trim().split('\n');
-    if (lines.length === 0) return { headers: [], rows: [] };
-    const headers = this.parseCsvLine(lines[0]);
-    const rows = lines.slice(1).map(l => this.parseCsvLine(l));
-    return { headers, rows };
-  }
+  // ── XLSX ─────────────────────────────────────────────────────────────────────
 
-  private parseCsvLine(line: string): string[] {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (inQuotes) {
-        if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
-        else if (ch === '"') { inQuotes = false; }
-        else { current += ch; }
-      } else {
-        if (ch === '"') { inQuotes = true; }
-        else if (ch === ',') { result.push(current); current = ''; }
-        else { current += ch; }
-      }
-    }
-    result.push(current);
-    return result;
-  }
-
-  // ── Markdown (native) ──────────────────────────────────────────────────────
-
-  private async createMarkdown(filePath: string, content?: DocumentContent): Promise<ToolResult> {
-    const lines: string[] = [];
-    if (content?.title) lines.push(`# ${content.title}`, '');
-
-    for (const section of content?.sections ?? []) {
-      if (section.heading) lines.push(`## ${section.heading}`, '');
-      if (section.text) lines.push(section.text, '');
-      if (section.list) {
-        for (const item of section.list) lines.push(`- ${item}`);
-        lines.push('');
-      }
-      if (section.table) {
-        lines.push(`| ${section.table.headers.join(' | ')} |`);
-        lines.push(`| ${section.table.headers.map(() => '---').join(' | ')} |`);
-        for (const row of section.table.rows) {
-          lines.push(`| ${row.join(' | ')} |`);
-        }
-        lines.push('');
-      }
-    }
-
-    await writeFile(filePath, lines.join('\n'), 'utf-8');
-    const sectionCount = content?.sections?.length ?? 0;
-    return { success: true, output: `Created Markdown: ${filePath} (${sectionCount} sections)` };
-  }
-
-  private async readMarkdown(filePath: string): Promise<ToolResult> {
-    const raw = await readFile(filePath, 'utf-8');
-    const lineCount = raw.split('\n').length;
-    return { success: true, output: `Markdown: ${filePath} (${lineCount} lines)\n\n${raw.slice(0, 3000)}${raw.length > 3000 ? '\n... truncated' : ''}` };
-  }
-
-  private async editMarkdown(filePath: string, content?: DocumentContent): Promise<ToolResult> {
-    if (!content) return { success: false, output: 'Missing content for edit.' };
-    const existing = await readFile(filePath, 'utf-8');
-    const newContent: string[] = [];
-    for (const section of content.sections ?? []) {
-      if (section.heading) newContent.push(`\n## ${section.heading}\n`);
-      if (section.text) newContent.push(section.text);
-      if (section.list) newContent.push(...section.list.map(i => `- ${i}`));
-    }
-    await writeFile(filePath, existing.trimEnd() + '\n' + newContent.join('\n') + '\n', 'utf-8');
-    return { success: true, output: `Appended ${content.sections.length} sections to ${filePath}` };
-  }
-
-  private markdownToContent(raw: string): DocumentContent {
-    const lines = raw.split('\n');
-    let title: string | undefined;
-    const sections: DocumentContent['sections'] = [];
-    let current: DocumentContent['sections'][0] = {};
-
-    for (const line of lines) {
-      if (line.startsWith('# ') && !title) {
-        title = line.slice(2).trim();
-      } else if (line.startsWith('## ')) {
-        if (current.heading || current.text) sections.push(current);
-        current = { heading: line.slice(3).trim() };
-      } else if (line.startsWith('- ')) {
-        if (!current.list) current.list = [];
-        current.list.push(line.slice(2).trim());
-      } else if (line.trim()) {
-        current.text = (current.text ? current.text + '\n' : '') + line;
-      }
-    }
-    if (current.heading || current.text || current.list) sections.push(current);
-
-    return { title, sections };
-  }
-
-  // ── DOCX (optional: docx package) ──────────────────────────────────────────
-
-  private async createDocx(
-    filePath: string,
-    content?: DocumentContent,
-    profile?: DocumentStyleProfile,
-  ): Promise<ToolResult> {
-    let docx: any;
+  private async loadExcel(): Promise<any> {
     try {
-      docx = await import('docx');
+      const mod: any = await import('exceljs');
+      return mod.default?.Workbook ? mod.default : mod;
     } catch {
-      return { success: false, output: 'docx package is not installed. Install it with: npm install docx' };
+      throw new Error('Spreadsheets cannot be made in this build of Ava. Please report it on our Discord.');
     }
-
-    const { Document, Packer } = docx;
-    const styleProfile = profile ?? getStyleProfile();
-    const children: any[] = [];
-
-    if (content?.title) {
-      children.push(titleParagraph(docx, content.title));
-    }
-
-    for (const section of content?.sections ?? []) {
-      if (section.heading) {
-        children.push(headingParagraph(docx, section.heading, 1));
-      }
-      if (section.text) {
-        for (const para of section.text.split('\n')) {
-          if (para.trim()) children.push(bodyParagraph(docx, para));
-        }
-      }
-      if (section.list) {
-        for (const item of section.list) {
-          children.push(bulletParagraph(docx, item));
-        }
-      }
-      if (section.table) {
-        children.push(themedTable(docx, {
-          headers: section.table.headers,
-          rows: section.table.rows,
-        }));
-      }
-    }
-
-    const doc = new Document({
-      sections: [{
-        properties: sectionProperties(styleProfile),
-        children,
-      }],
-    });
-    const buffer = await Packer.toBuffer(doc);
-    await writeFile(filePath, buffer);
-    return { success: true, output: `Created Word document: ${filePath} (${content?.sections?.length ?? 0} sections, Ava-themed)` };
   }
-
-  private async readDocx(filePath: string): Promise<ToolResult> {
-    let mammoth: any;
-    try {
-      mammoth = await import('mammoth');
-    } catch {
-      // Fallback: just report file exists
-      const raw = await readFile(filePath);
-      return { success: true, output: `Word document: ${filePath} (${raw.length} bytes). Install mammoth for text extraction: npm install mammoth` };
-    }
-
-    const result = await mammoth.extractRawText({ path: filePath });
-    return { success: true, output: `Word document: ${filePath}\n\n${result.value.slice(0, 3000)}${result.value.length > 3000 ? '\n... truncated' : ''}` };
-  }
-
-  private async editDocx(filePath: string, content?: DocumentContent): Promise<ToolResult> {
-    // ⚠ Destructive: the `docx` library is creation-first and has no
-    // round-trip-preserving edit API. We read the existing file as plain
-    // text via `mammoth` (formatting is lost in the read), append new
-    // sections, then RECREATE the file from scratch. This means any
-    // custom formatting in the original — fonts, colors, images, tables
-    // beyond plain text, headers/footers, comments — will be lost.
-    //
-    // For a non-destructive edit, the user should either: (a) keep the
-    // source as Markdown and export to .docx on demand, or (b) accept
-    // the loss and use this tool. A future swap to docx4js or direct
-    // OOXML manipulation would address this; not done yet.
-    const readResult = await this.readDocx(filePath);
-    if (!readResult.success) return readResult;
-
-    // Parse existing text into content structure
-    const existingContent = this.markdownToContent(readResult.output);
-
-    // Merge new sections
-    const merged: DocumentContent = {
-      title: existingContent.title,
-      sections: [...existingContent.sections, ...(content?.sections ?? [])],
-    };
-
-    const result = await this.createDocx(filePath, merged);
-    if (result.success) {
-      return {
-        ...result,
-        output: result.output + '\n\n⚠ Note: editing a .docx recreates the file. Any custom formatting (fonts, colors, images, complex tables, headers/footers) in the original was lost — only text content was preserved. To preserve formatting, edit the document in Word directly.',
-      };
-    }
-    return result;
-  }
-
-  // ── XLSX (optional: exceljs package) ───────────────────────────────────────
 
   private async createXlsx(filePath: string, content?: SpreadsheetContent): Promise<ToolResult> {
-    let ExcelJS: any;
-    try {
-      ExcelJS = await import('exceljs');
-    } catch {
-      return { success: false, output: 'exceljs package is not installed. Install it with: npm install exceljs' };
-    }
-
-    const workbook = new (ExcelJS.default?.Workbook || ExcelJS.Workbook)();
+    const ExcelJS = await this.loadExcel();
+    const workbook = new ExcelJS.Workbook();
+    const sheets = content?.sheets?.length ? content.sheets : [{ name: 'Sheet1', headers: [], rows: [] }];
     let totalRows = 0;
-
-    // If no structured content provided, try to parse plain text content from args
-    const sheets = content?.sheets ?? this.parseTextToSheets(content as unknown as string);
-
     for (const sheet of sheets) {
-      const ws = workbook.addWorksheet(sheet.name);
-      if (sheet.headers.length > 0) {
+      const ws = workbook.addWorksheet(sheet.name || 'Sheet1');
+      if (sheet.headers?.length) {
         const headerRow = ws.addRow(sheet.headers);
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         headerRow.eachCell((cell: any) => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
-          cell.border = {
-            bottom: { style: 'thin', color: { argb: 'FF2F5496' } },
-          };
         });
       }
-      for (const row of sheet.rows) {
-        ws.addRow(row);
-        totalRows++;
-      }
-      // Auto-width columns based on content
+      for (const row of sheet.rows ?? []) { ws.addRow(row); totalRows++; }
       ws.columns?.forEach((col: any) => {
         if (!col) return;
         let maxLen = 10;
-        col.eachCell?.({ includeEmpty: false }, (cell: any) => {
-          const len = String(cell.value ?? '').length;
-          if (len > maxLen) maxLen = len;
-        });
+        col.eachCell?.({ includeEmpty: false }, (cell: any) => { maxLen = Math.max(maxLen, String(cell.value ?? '').length); });
         col.width = Math.min(maxLen + 2, 50);
       });
     }
-
     await workbook.xlsx.writeFile(filePath);
-    return { success: true, output: `Created spreadsheet: ${filePath} (${content?.sheets?.length ?? 1} sheets, ${totalRows} rows)` };
+    return { success: true, output: `Created spreadsheet: ${filePath} (${sheets.length} sheet${sheets.length === 1 ? '' : 's'}, ${totalRows} rows)` };
+  }
+
+  private async xlsxSheets(filePath: string): Promise<Array<{ name: string; headers: string[]; rows: string[][] }>> {
+    const ExcelJS = await this.loadExcel();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    const out: Array<{ name: string; headers: string[]; rows: string[][] }> = [];
+    workbook.eachSheet((sheet: any) => {
+      const rows: string[][] = [];
+      sheet.eachRow({ includeEmpty: false }, (row: any) => {
+        rows.push((row.values as any[]).slice(1).map((v: any) => this.cellText(v)));
+      });
+      out.push({ name: sheet.name, headers: rows[0] ?? [], rows: rows.slice(1) });
+    });
+    return out;
+  }
+
+  /** A cell as text: a formula shows its result and the formula itself. */
+  private cellText(v: any): string {
+    if (v == null) return '';
+    if (v instanceof Date) return v.toISOString().slice(0, 10);
+    if (typeof v === 'object') {
+      if ('formula' in v) return `${v.result ?? ''} (=${v.formula})`;
+      if ('richText' in v) return (v.richText as Array<{ text: string }>).map((t) => t.text).join('');
+      if ('text' in v) return String(v.text);
+    }
+    return String(v);
   }
 
   private async readXlsx(filePath: string): Promise<ToolResult> {
-    let ExcelJS: any;
-    try {
-      ExcelJS = await import('exceljs');
-    } catch {
-      return { success: false, output: 'exceljs package is not installed. Install it with: npm install exceljs' };
-    }
-
-    const workbook = new (ExcelJS.default?.Workbook || ExcelJS.Workbook)();
-    await workbook.xlsx.readFile(filePath);
-
-    const parts: string[] = [];
-    workbook.eachSheet((sheet: any) => {
-      parts.push(`### ${sheet.name}`);
-      const rows: string[] = [];
-      sheet.eachRow({ includeEmpty: false }, (row: any, rowNum: number) => {
-        const values = row.values as any[];
-        // Row values are 1-indexed, skip index 0
-        const cells = values.slice(1).map((v: any) => String(v ?? ''));
-        if (rowNum === 1) {
-          rows.push(cells.join(' | '));
-          rows.push(cells.map(() => '---').join(' | '));
-        } else {
-          rows.push(cells.join(' | '));
-        }
-      });
-      parts.push(rows.join('\n'));
+    const sheets = await this.xlsxSheets(filePath);
+    const parts = sheets.map((s) => {
+      const lines = [s.headers.join(' | '), s.headers.map(() => '---').join(' | '), ...s.rows.slice(0, 200).map((r) => r.join(' | '))];
+      const more = s.rows.length > 200 ? `\n… and ${s.rows.length - 200} more rows` : '';
+      return `### ${s.name}\n${lines.join('\n')}${more}`;
     });
-
     return { success: true, output: `Spreadsheet: ${filePath}\n\n${parts.join('\n\n')}` };
   }
 
   private async editXlsx(filePath: string, content?: SpreadsheetContent): Promise<ToolResult> {
-    let ExcelJS: any;
-    try {
-      ExcelJS = await import('exceljs');
-    } catch {
-      return { success: false, output: 'exceljs package is not installed. Install it with: npm install exceljs' };
-    }
-
-    const workbook = new (ExcelJS.default?.Workbook || ExcelJS.Workbook)();
+    const ExcelJS = await this.loadExcel();
+    const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
-
-    let addedRows = 0;
+    let added = 0;
     for (const sheet of content?.sheets ?? []) {
-      let ws = workbook.getWorksheet(sheet.name);
-      if (!ws) ws = workbook.addWorksheet(sheet.name);
-      for (const row of sheet.rows) {
-        ws.addRow(row);
-        addedRows++;
-      }
+      const ws = workbook.getWorksheet(sheet.name) ?? workbook.addWorksheet(sheet.name);
+      for (const row of sheet.rows ?? []) { ws.addRow(row); added++; }
     }
-
+    if (!added) return { success: false, output: 'Nothing to add. Provide { sheets: [{ name, rows }] }.' };
     await workbook.xlsx.writeFile(filePath);
-    return { success: true, output: `Updated spreadsheet: ${filePath} (added ${addedRows} rows)` };
-  }
-
-  // ── PDF (optional: pdfkit + pdf-parse) ─────────────────────────────────────
-
-  private async createPdf(
-    filePath: string,
-    content?: DocumentContent,
-    _profile?: DocumentStyleProfile,
-  ): Promise<ToolResult> {
-    let PDFDocument: any;
-    try {
-      // @ts-expect-error — pdfkit is an optional peer dependency
-      const pdfkit = await import('pdfkit');
-      PDFDocument = pdfkit.default || pdfkit;
-    } catch {
-      return { success: false, output: 'pdfkit package is not installed. Install it with: npm install pdfkit' };
-    }
-
-    return new Promise<ToolResult>((resolve) => {
-      const doc = new PDFDocument({ margin: 56 }); // ~0.78", a touch tighter than docx defaults
-      const chunks: Buffer[] = [];
-
-      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-      doc.on('end', async () => {
-        const buffer = Buffer.concat(chunks);
-        await writeFile(filePath, buffer);
-        resolve({ success: true, output: `Created PDF: ${filePath} (${content?.sections?.length ?? 0} sections, Ava-themed)` });
-      });
-
-      if (content?.title) {
-        pdfTitle(doc, content.title);
-      }
-
-      for (const section of content?.sections ?? []) {
-        if (section.heading) pdfHeading(doc, section.heading, 1);
-        if (section.text) {
-          for (const para of section.text.split(/\n\n+/)) {
-            if (para.trim()) pdfBody(doc, para.trim());
-          }
-        }
-        if (section.list) {
-          for (const item of section.list) pdfBullet(doc, item);
-          doc.moveDown(0.4);
-        }
-        if (section.table) {
-          pdfTable(doc, { headers: section.table.headers, rows: section.table.rows });
-        }
-      }
-
-      doc.end();
-    });
-  }
-
-  private async readPdf(filePath: string): Promise<ToolResult> {
-    let pdfParse: any;
-    try {
-      const mod = await import('pdf-parse') as any;
-      pdfParse = mod.default || mod;
-    } catch {
-      const raw = await readFile(filePath);
-      return { success: true, output: `PDF: ${filePath} (${raw.length} bytes). Install pdf-parse for text extraction: npm install pdf-parse` };
-    }
-
-    const buffer = await readFile(filePath);
-    const data = await pdfParse(buffer);
-    return { success: true, output: `PDF: ${filePath} (${data.numpages} pages)\n\n${data.text.slice(0, 3000)}${data.text.length > 3000 ? '\n... truncated' : ''}` };
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  private detectFormat(filePath: string, explicit?: string): string | null {
-    if (explicit) return explicit;
-    const ext = extname(filePath).toLowerCase().replace('.', '');
-    if (['docx', 'xlsx', 'pdf', 'csv', 'md'].includes(ext)) return ext;
-    if (ext === 'markdown') return 'md';
-    return null;
-  }
-
-  private resolvePath(filePath: string, cwd: string): string {
-    if (filePath.startsWith('/') || /^[A-Za-z]:/.test(filePath)) return filePath;
-    return `${cwd}/${filePath}`;
-  }
-
-  /**
-   * Parse plain text content into spreadsheet sheets.
-   * Splits by newlines for rows and commas/tabs for columns.
-   * First row is treated as headers.
-   */
-  private parseTextToSheets(rawContent: unknown): Array<{ name: string; headers: string[]; rows: string[][] }> {
-    if (typeof rawContent === 'string' && rawContent.trim()) {
-      const lines = rawContent.trim().split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length === 0) return [{ name: 'Sheet1', headers: [], rows: [] }];
-      const delimiter = lines[0].includes('\t') ? '\t' : ',';
-      const parsed = lines.map(line => line.split(delimiter).map(cell => cell.trim()));
-      const headers = parsed[0];
-      const rows = parsed.slice(1);
-      return [{ name: 'Sheet1', headers, rows }];
-    }
-    return [{ name: 'Sheet1', headers: [], rows: [] }];
+    return { success: true, output: `Updated spreadsheet: ${filePath} (added ${added} rows)` };
   }
 }

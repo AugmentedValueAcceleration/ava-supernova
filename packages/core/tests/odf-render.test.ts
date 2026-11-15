@@ -274,8 +274,8 @@ describe('OpenDocument export', () => {
     });
 
     it('still refuses docx and pdf without their peers', async () => {
-      await expect(renderDocument(model, 'docx')).rejects.toThrow(/docx/);
-      await expect(renderDocument(model, 'pdf')).rejects.toThrow(/pdfkit/);
+      await expect(renderDocument(model, 'docx')).rejects.toThrow(/Word files cannot be made/);
+      await expect(renderDocument(model, 'pdf')).rejects.toThrow(/PDFs cannot be made/);
     });
   });
 });

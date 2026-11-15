@@ -196,9 +196,6 @@ importers:
       mysql2:
         specifier: '>=3.0.0'
         version: 3.19.0(@types/node@25.3.0)
-      pdf-parse:
-        specifier: '>=1.1.0'
-        version: 2.4.5
       pdfkit:
         specifier: '>=0.15.0'
         version: 0.18.0
@@ -214,6 +211,9 @@ importers:
       screenshot-desktop:
         specifier: '>=1.15.0'
         version: 1.15.3
+      unpdf:
+        specifier: 2.1.0
+        version: 2.1.0(@napi-rs/canvas@0.1.80)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -518,8 +518,8 @@ importers:
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@project-ava-supernova/core':
-        specifier: 0.2.179
-        version: 0.2.179(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
+        specifier: 0.2.182
+        version: 0.2.182(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@supabase/ssr':
         specifier: ^0.6.0
         version: 0.6.1(@supabase/supabase-js@2.97.0)
@@ -2133,8 +2133,8 @@ packages:
       react: '>= 16.8'
       react-dom: '>= 16.8'
 
-  '@project-ava-supernova/core@0.2.179':
-    resolution: {integrity: sha512-wegYxOGDcC3V2GCqZ+BQAn/q4agnLnhEJZO5js2X4lbgebdVsl6a0hfi5DzqzMXS1JEE72Dd9ZKktnJRu4K4+g==}
+  '@project-ava-supernova/core@0.2.182':
+    resolution: {integrity: sha512-iC1dU6oPM6H4bf7w91eahBBeRuC2Vo1drk1pDWoJabop9l4I4OtrWLp/97aNmlXFQX09/uYmQk/V1kkgz+9rkw==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -6185,6 +6185,15 @@ packages:
     resolution: {integrity: sha512-CJ1QgKmNg3CwvAv/kOFmtnEN05f0D/cn9QntgNOQlQF9dgvVTHj3t+8JPdjqawCHk7V/KA+fbUqzZ9XWhcqPUg==}
     engines: {node: '>= 4.0.0'}
 
+  unpdf@2.1.0:
+    resolution: {integrity: sha512-G/Hsrm++g0EoubUhV8TDFItq6oQ+FUu9EMvIRtHUwseKXB0iJoCvaLvBGOpYUBqyvggv/XfxhYYtohL2QpE3xQ==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      '@napi-rs/canvas': ^0.1.69 || ^1.0.0
+    peerDependenciesMeta:
+      '@napi-rs/canvas':
+        optional: true
+
   unzipper@0.10.14:
     resolution: {integrity: sha512-ti4wZj+0bQTiX2KmKWuwj7lhV+2n//uXEotUmGuQqrbVZSEGFMbI68+c6JCQ8aAmUWYvtHEz2A8K6wXvueR/6g==}
 
@@ -7359,6 +7368,7 @@ snapshots:
       '@napi-rs/canvas-linux-x64-gnu': 0.1.80
       '@napi-rs/canvas-linux-x64-musl': 0.1.80
       '@napi-rs/canvas-win32-x64-msvc': 0.1.80
+    optional: true
 
   '@napi-rs/keyring-darwin-arm64@2.1.2':
     optional: true
@@ -7607,7 +7617,7 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  '@project-ava-supernova/core@0.2.179(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+  '@project-ava-supernova/core@0.2.182(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
     dependencies:
       '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
       fflate: 0.8.3
@@ -11061,10 +11071,12 @@ snapshots:
     dependencies:
       '@napi-rs/canvas': 0.1.80
       pdfjs-dist: 5.4.296
+    optional: true
 
   pdfjs-dist@5.4.296:
     optionalDependencies:
       '@napi-rs/canvas': 0.1.80
+    optional: true
 
   pdfkit@0.15.2:
     dependencies:
@@ -12118,6 +12130,10 @@ snapshots:
 
   universalify@0.2.0:
     optional: true
+
+  unpdf@2.1.0(@napi-rs/canvas@0.1.80):
+    optionalDependencies:
+      '@napi-rs/canvas': 0.1.80
 
   unzipper@0.10.14:
     dependencies:

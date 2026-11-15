@@ -264,6 +264,7 @@
     "jpeg-js": "0.4.4",
     "marked": "^17.0.3",
     "pngjs": "^7.0.0",
+    "unpdf": "2.1.0",
     "zod": "^4.3.6"
   },
   "peerDependencies": {
@@ -272,7 +273,6 @@
     "exceljs": ">=4.0.0",
     "mammoth": ">=1.6.0",
     "mysql2": ">=3.0.0",
-    "pdf-parse": ">=1.1.0",
     "pdfkit": ">=0.15.0",
     "pg": ">=8.0.0",
     "playwright": ">=1.40.0",
@@ -301,9 +301,6 @@
       "optional": true
     },
     "pdfkit": {
-      "optional": true
-    },
-    "pdf-parse": {
       "optional": true
     },
     "mammoth": {
