@@ -79,7 +79,7 @@ describe('real spreadsheets', () => {
     const file = join(mkdtempSync(join(tmpdir(), 'ava-budget-')), 'budget.xlsx');
     await workbook.xlsx.writeFile(file);
     const [sheet] = await readSheetForView(file);
-    expect(sheet.rows[4][1]).toEqual({ v: '1,400', f: 'SUM(B2:B4)', n: true });
+    expect(sheet.rows[4][1]).toEqual({ v: '£1,400.00', f: 'SUM(B2:B4)', n: true });
   });
 
   it('changing a cell recalculates everything that depends on it', async () => {

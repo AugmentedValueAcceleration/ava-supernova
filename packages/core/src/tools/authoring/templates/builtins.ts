@@ -203,7 +203,9 @@ style: invoice
 ---
 
 **Invoice number:** {{number}}
+
 **Date:** {{date}}
+
 **Due:** [30 days from date]
 
 ## From

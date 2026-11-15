@@ -22,7 +22,7 @@ describe('document_manage spreadsheets', () => {
     expect(r.success, r.output).toBe(true);
     expect(r.output).toContain('1 formula worked out');
     const [sheet] = await readSheetForView(join(cwd, 'documents', 'budget.xlsx'));
-    expect(sheet.rows[3][1]).toEqual({ v: '1,220', f: 'SUM(B2:B3)', n: true });
+    expect(sheet.rows[3][1]).toEqual({ v: '£1,220.00', f: 'SUM(B2:B3)', n: true });
   });
 
   it('adds rows above the totals, and the totals grow to include them', async () => {

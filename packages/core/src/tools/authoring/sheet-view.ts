@@ -39,15 +39,35 @@ export const SHEET_VIEW_LIMITS = { rows: 2000, cols: 60 } as const;
 const fmtNum = (x: number): string =>
   Number.isInteger(x) ? x.toLocaleString('en-GB') : x.toLocaleString('en-GB', { maximumFractionDigits: 6 });
 
-function cellOf(raw: any): ViewCell {
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** A number as its cell format shows it — the formats Ava writes, read as a
+ *  person sees them in Excel (15 Nov 2026: the viewer showed 0.5625 where the
+ *  sheet says 56.3%). Anything else falls back to the plain number. */
+function formatted(x: number, numFmt?: string): string {
+  const f = numFmt ?? '';
+  const cur = /"(.)"#,##0(\.0+)?/.exec(f);
+  if (cur) return `${x < 0 ? '-' : ''}${cur[1]}${Math.abs(x).toLocaleString('en-GB', { minimumFractionDigits: cur[2] ? cur[2].length - 1 : 0, maximumFractionDigits: cur[2] ? cur[2].length - 1 : 0 })}`;
+  const pct = /^0(\.(0+))?%$/.exec(f);
+  if (pct) return `${(x * 100).toFixed(pct[2]?.length ?? 0)}%`;
+  if (f === '#,##0') return Math.round(x).toLocaleString('en-GB');
+  if (f === '#,##0.00') return x.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return fmtNum(x);
+}
+
+const dateText = (d: Date, numFmt?: string): string => (/m{3}/.test(numFmt ?? '')
+  ? `${String(d.getUTCDate()).padStart(2, '0')} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+  : d.toISOString().slice(0, 10));
+
+function cellOf(raw: any, numFmt?: string): ViewCell {
   if (raw == null) return { v: '' };
-  if (typeof raw === 'number') return { v: fmtNum(raw), n: true };
-  if (raw instanceof Date) return { v: raw.toISOString().slice(0, 10) };
+  if (typeof raw === 'number') return { v: formatted(raw, numFmt), n: true };
+  if (raw instanceof Date) return { v: dateText(raw, numFmt) };
   if (typeof raw === 'object') {
     if ('formula' in raw || 'sharedFormula' in raw) {
       const res = raw.result;
       const f = String(raw.formula ?? raw.sharedFormula ?? '');
-      if (typeof res === 'number') return { v: fmtNum(res), f, n: true };
+      if (typeof res === 'number') return { v: formatted(res, numFmt), f, n: true };
       if (res && typeof res === 'object' && 'error' in res) return { v: String(res.error), f };
       return { v: res == null ? '' : String(res), f };
     }
@@ -103,7 +123,7 @@ export async function readSheetForView(path: string): Promise<ViewSheet[]> {
     for (let r = 1; r <= last; r++) {
       const row = ws.getRow(r);
       const cells: ViewCell[] = [];
-      for (let c = 1; c <= width; c++) cells.push(cellOf(row.getCell(c).value));
+      for (let c = 1; c <= width; c++) { const cell = row.getCell(c); cells.push(cellOf(cell.value, cell.numFmt)); }
       rows.push(cells);
     }
     const charts = chartsBySheet.get(String(ws.name));

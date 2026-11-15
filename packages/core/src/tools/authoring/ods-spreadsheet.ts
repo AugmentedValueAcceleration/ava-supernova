@@ -37,24 +37,26 @@ const quoteSheet = (name: string) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? na
 
 /** "SUM(B2:B6)*C3" (Excel) → "of:=SUM([.B2:.B6])*[.C3]" (OpenDocument). */
 export function toOdfFormula(excel: string): string {
+  // "$" marks stay: "C$7" is a fixed row in both formats ([.C$7] in OpenDocument).
+  const REF = String.raw`(\$?[A-Za-z]{1,3}\$?\d+)`;
   const body = excel.replace(/^=/, '')
-    .replace(/(?:'((?:[^']|'')+)'|([A-Za-z_][\w.]*))!\$?([A-Za-z]{1,3})\$?(\d+)(?::\$?([A-Za-z]{1,3})\$?(\d+))?/g,
-      (_m, q, plain, c1, r1, c2, r2) => {
-        const sheet = (q ?? plain).replace(/''/g, "'");
-        const s = `$${quoteSheet(sheet)}`;
-        return c2 ? `[${s}.${c1}${r1}:.${c2}${r2}]` : `[${s}.${c1}${r1}]`;
+    .replace(new RegExp(String.raw`(?:'((?:[^']|'')+)'|([A-Za-z_][\w.]*))!${REF}(?::${REF})?`, 'g'),
+      (_m, q, plain, a, b) => {
+        const s = `$${quoteSheet((q ?? plain).replace(/''/g, "'"))}`;
+        return b ? `[${s}.${a}:.${b}]` : `[${s}.${a}]`;
       })
-    .replace(/(?<![\w.$[])\$?([A-Za-z]{1,3})\$?(\d+):\$?([A-Za-z]{1,3})\$?(\d+)(?![\w(])/g, '[.$1$2:.$3$4]')
-    .replace(/(?<![\w.$[:])\$?([A-Za-z]{1,3})\$?(\d+)(?![\w(\]])/g, '[.$1$2]')
+    .replace(new RegExp(String.raw`(?<![\w.$\[])${REF}:${REF}(?![\w(])`, 'g'), '[.$1:.$2]')
+    .replace(new RegExp(String.raw`(?<![\w.$\[:])${REF}(?![\w(\]])`, 'g'), '[.$1]')
     .replace(/,/g, ';');
   return `of:=${body}`;
 }
 
-/** "of:=SUM([.B2:.B6])" → "SUM(B2:B6)". */
+/** "of:=SUM([.B2:.B6])" → "SUM(B2:B6)"; "$" marks kept. */
 export function fromOdfFormula(odf: string): string {
+  const REF = String.raw`(\$?[A-Z]{1,3}\$?\d+)`;
   return odf.replace(/^(of:)?=/, '')
-    .replace(/\[\$?'?([^\].']*)'?\.([A-Z]{1,3}\d+)(?::\.([A-Z]{1,3}\d+))?\]/g, (_m, sheet, a, b) => `${sheet ? `'${sheet}'!` : ''}${a}${b ? `:${b}` : ''}`)
-    .replace(/\[\.([A-Z]{1,3}\d+)(?::\.([A-Z]{1,3}\d+))?\]/g, (_m, a, b) => `${a}${b ? `:${b}` : ''}`)
+    .replace(new RegExp(String.raw`\[\$'?([^\].']*)'?\.${REF}(?::\.${REF})?\]`, 'g'), (_m, sheet, a, b) => `'${sheet}'!${a}${b ? `:${b}` : ''}`)
+    .replace(new RegExp(String.raw`\[\.${REF}(?::\.${REF})?\]`, 'g'), (_m, a, b) => `${a}${b ? `:${b}` : ''}`)
     .replace(/;/g, ',');
 }
 

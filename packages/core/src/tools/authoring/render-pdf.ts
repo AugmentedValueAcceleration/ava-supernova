@@ -16,7 +16,7 @@ import { installPdfFonts, isMostlyRtl } from './pdf-fonts.js';
 import {
   AVA_TITLE_SIZE_PDF, AVA_H1_SIZE_PDF, AVA_H2_SIZE_PDF, AVA_H3_SIZE_PDF, AVA_H4_SIZE_PDF,
   AVA_BODY_SIZE_PDF, AVA_SUBTITLE_SIZE_PDF, AVA_LINK_COLOR,
-  CALLOUT_COLORS, resolveBrand, getStyleProfile, pdfTable,
+  CALLOUT_COLORS, resolveBrand, getStyleProfile,
   type Brand,
 } from '../document-styling.js';
 
@@ -112,10 +112,7 @@ function renderBlock(block: Block, ctx: PdfCtx, images: Map<string, Buffer>, ind
 
     case 'table':
       doc.moveDown(0.2);
-      pdfTable(doc, {
-        headers: block.headers.map(h => inlineToPlainText(h)),
-        rows: block.rows.map(r => r.map(c => inlineToPlainText(c))),
-      });
+      renderTable(ctx, block);
       doc.moveDown(0.4);
       break;
 
@@ -177,6 +174,90 @@ function renderList(items: ListItem[], ordered: boolean, ctx: PdfCtx, images: Ma
     }
   });
   doc.moveDown(0.2);
+}
+
+/**
+ * A table sized to its content (15 Nov 2026 quality pass: every column used to
+ * get the same width in fixed-height rows, so a long description wrapped over
+ * the row below, numbers sat on the left and a bold total was not bold).
+ * Columns get their natural width, the wide ones share what is left; rows grow
+ * to fit; alignment follows the Markdown (numbers right when unmarked); bold
+ * cells stay bold; a table that runs off the page carries on with its header.
+ */
+function renderTable(ctx: PdfCtx, block: Extract<Block, { type: 'table' }>): void {
+  const { doc, brand } = ctx;
+  const size = AVA_BODY_SIZE_PDF;
+  const padX = 6, padY = 5;
+  const usable = usableWidth(doc);
+  const n = Math.max(block.headers.length, ...block.rows.map((r) => r.length), 1);
+  const text = (cells: Inline[][] | undefined, i: number) => (cells?.[i] ? inlineToPlainText(cells[i]) : '');
+  const isBold = (cells: Inline[][] | undefined, i: number) => !!cells?.[i]?.some((x) => x.type === 'strong');
+  const numeric = (s: string) => /^[\s£$€¥₹%+\-.,\d()]+$/.test(s) && /\d/.test(s);
+  const align: string[] = Array.from({ length: n }, (_, i) => {
+    const a = block.align?.[i];
+    if (a === 'right' || a === 'center' || a === 'left') return a;
+    const body = block.rows.map((r) => text(r, i)).filter(Boolean);
+    return body.length && body.every(numeric) ? 'right' : 'left';
+  });
+
+  // Natural widths, measured in the fonts they will be drawn in.
+  doc.fontSize(size);
+  const natural = Array.from({ length: n }, (_, i) => {
+    doc.font('Helvetica-Bold');
+    let w = doc.widthOfString(text(block.headers, i));
+    for (const r of block.rows) { doc.font(isBold(r, i) ? 'Helvetica-Bold' : 'Helvetica'); w = Math.max(w, doc.widthOfString(text(r, i))); }
+    return Math.max(w + padX * 2 + 2, 36);
+  });
+  const total = natural.reduce((a, b) => a + b, 0);
+  let widths: number[];
+  if (total <= usable) {
+    // Room to spare: share it out by size, so the table spans the page.
+    widths = natural.map((w) => w + ((usable - total) * w) / total);
+  } else {
+    // Too wide: narrow columns keep their width, wide ones share the rest.
+    const fair = usable / n;
+    const small = natural.map((w) => w <= fair);
+    const fixed = natural.reduce((a, w, i) => a + (small[i] ? w : 0), 0);
+    const bigTotal = natural.reduce((a, w, i) => a + (small[i] ? 0 : w), 0) || 1;
+    widths = natural.map((w, i) => (small[i] ? w : ((usable - fixed) * w) / bigTotal));
+  }
+
+  const x0 = doc.page.margins.left;
+  const bottom = () => doc.page.height - doc.page.margins.bottom;
+  const heightOf = (cells: Inline[][] | undefined, bold: (i: number) => boolean) => Math.max(...widths.map((w, i) => {
+    doc.font(bold(i) ? 'Helvetica-Bold' : 'Helvetica').fontSize(size);
+    return doc.heightOfString(text(cells, i) || ' ', { width: w - padX * 2 });
+  })) + padY * 2;
+
+  const drawRow = (cells: Inline[][] | undefined, y: number, h: number, head: boolean, shade: boolean) => {
+    if (head) doc.save().rect(x0, y, usable, h).fill(`#${brand.headingColor}`).restore();
+    else if (shade) doc.save().rect(x0, y, usable, h).fill('#F5F3FF').restore();
+    let x = x0;
+    widths.forEach((w, i) => {
+      doc.font(head || isBold(cells, i) ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).fillColor(head ? '#FFFFFF' : `#${brand.bodyColor}`);
+      doc.text(text(cells, i), x + padX, y + padY, { width: w - padX * 2, align: head ? (align[i] === 'right' ? 'right' : 'left') : align[i] });
+      x += w;
+    });
+    if (!head) doc.save().strokeColor('#D0D0D0').lineWidth(0.5).moveTo(x0, y + h).lineTo(x0 + usable, y + h).stroke().restore();
+  };
+
+  const headH = heightOf(block.headers, () => true);
+  let y = doc.y;
+  if (y + headH * 2 > bottom()) { doc.addPage(); y = doc.y; }
+  if (block.headers.length) { drawRow(block.headers, y, headH, true, false); y += headH; }
+  block.rows.forEach((row, r) => {
+    const h = heightOf(row, (i) => isBold(row, i));
+    if (y + h > bottom()) {
+      doc.addPage();
+      y = doc.y;
+      if (block.headers.length) { drawRow(block.headers, y, headH, true, false); y += headH; }
+    }
+    drawRow(row, y, h, false, r % 2 === 1);
+    y += h;
+  });
+  doc.x = x0;
+  doc.y = y + 6;
+  doc.fillColor(`#${brand.bodyColor}`);
 }
 
 function renderCallout(block: Extract<Block, { type: 'callout' }>, ctx: PdfCtx, images: Map<string, Buffer>, indent: number): void {

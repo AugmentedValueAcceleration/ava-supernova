@@ -17,7 +17,9 @@ function wellFormed(xml: string): boolean {
 describe('formulas between Excel and OpenDocument', () => {
   it('converts both ways', () => {
     expect(toOdfFormula('SUM(B2:B6)')).toBe('of:=SUM([.B2:.B6])');
-    expect(toOdfFormula('=B2*12+$C$3')).toBe('of:=[.B2]*12+[.C3]');
+    expect(toOdfFormula('=B2*12+$C$3')).toBe('of:=[.B2]*12+[.$C$3]');
+    expect(toOdfFormula('C2/C$7')).toBe('of:=[.C2]/[.C$7]');
+    expect(fromOdfFormula('of:=[.C2]/[.C$7]')).toBe('C2/C$7');
     expect(toOdfFormula('ROUND(B2/7, 2)')).toBe('of:=ROUND([.B2]/7; 2)');
     expect(toOdfFormula("'My Sheet'!B2+Totals!A1")).toBe("of:=[$'My Sheet'.B2]+[$Totals.A1]");
     expect(toOdfFormula('LOG10(B2)')).toBe('of:=LOG10([.B2])');

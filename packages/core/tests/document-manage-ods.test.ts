@@ -60,7 +60,7 @@ describe('document_manage .ods', () => {
     const [{ charts }] = readCharts(readFileSync(back));
     expect(charts[0]).toMatchObject({ type: 'column', categories: 'A2:A3' });
     const [fromXlsx] = await readSheetForView(back);
-    expect(fromXlsx.rows[3][1]).toEqual({ v: '1,220', f: 'SUM(B2:B3)', n: true });
+    expect(fromXlsx.rows[3][1]).toEqual({ v: '£1,220.00', f: 'SUM(B2:B3)', n: true });
   });
 
   it('reads an .ods for Ava, formulas beside their results', async () => {
