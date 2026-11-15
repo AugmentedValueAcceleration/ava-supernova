@@ -24,7 +24,8 @@ export { AvaMemory, MemorySession, memoryV4Root, datesIn } from './memory-v4/ind
 export type { Fact, FactKind, FactScope, FactSource, NewFact, Thread, ProjectRecord, RecallArgs, SearchHit as MemorySearchHit } from './memory-v4/index.js';
 export { MemoryRecallV4Tool } from './tools/memory-recall-v4.js';
 export { MemorySaveV4Tool, MemoryUpdateV4Tool, MemoryDeleteV4Tool } from './tools/memory-write-v4.js';
-export { consolidateSession, resolveMemoryModel } from './memory-v4/index.js';
+export { consolidateSession, resolveMemoryModel, memoryPage } from './memory-v4/index.js';
+export type { PageFact, PageOverview, PageOp } from './memory-v4/index.js';
 export type { ConsolidateResult } from './memory-v4/index.js';
 
 // Intent Classifier (Qwen Flash tool-use gate)

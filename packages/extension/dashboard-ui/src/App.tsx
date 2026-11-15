@@ -10,6 +10,8 @@ import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { LazyPage } from './components/LazyPage';
 import { Overview } from './pages/Overview';
 import { Memory } from './pages/Memory';
+import { MemoryV4Page } from './components/MemoryV4Page';
+import { memoryRequest } from './lib/memory-v4';
 import { History } from './pages/History';
 import { Library } from './pages/Library';
 import { ResultsImport } from './components/ResultsImport';
@@ -251,6 +253,9 @@ export function App() {
     loopPreventionEnabled: true,
   });
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
+  // Memory v4: when the host says it is on, the Memory page is "What Ava knows",
+  // and the sidebar shows how many things are waiting for a yes.
+  const [memoryV4, setMemoryV4] = useState<{ on: boolean; pending: number }>({ on: false, pending: 0 });
   const [memoryTotal, setMemoryTotal] = useState(0);
   const [memoryHasMore, setMemoryHasMore] = useState(false);
   const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
@@ -1413,6 +1418,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'generation_progress':
         setGenerationJobs(((msg as any).jobs || []) as GenerationJobLite[]);
         break;
+      case 'memory_v4_status':
+        setMemoryV4({ on: !!(msg as any).on, pending: Number((msg as any).pending) || 0 });
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -1762,7 +1770,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           onOpenPlans: () => { setHealthInitialTab('plans'); setPagePersist('health'); },
         }} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'memory':
-        return <Memory memories={memories} serverTotal={memoryTotal} serverHasMore={memoryHasMore} loaded={isLoaded('memories')} />;
+        return memoryV4.on
+          ? <MemoryV4Page request={memoryRequest} onPendingChange={(n) => setMemoryV4((m) => ({ ...m, pending: n }))} />
+          : <Memory memories={memories} serverTotal={memoryTotal} serverHasMore={memoryHasMore} loaded={isLoaded('memories')} />;
       case 'history':
         return <History sessionStats={sessionStatsData} localAllTime={localAllTimeData} auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
       case 'library':
@@ -1921,6 +1931,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
           without first expanding. CSS order flips it between left/right. */}
       <div style={{ order: sidebarSide === 'left' ? 0 : 2 }}>
         <NavSidebar
+          memoryWaiting={memoryV4.on ? memoryV4.pending : 0}
           currentPage={page}
           onNavigate={setPagePersist}
           userName={generalProfile?.display_name ?? null}

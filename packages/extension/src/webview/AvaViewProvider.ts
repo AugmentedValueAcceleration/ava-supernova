@@ -1185,6 +1185,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (userTurns <= (this.lastReflectedTurns.get(conversation.id) ?? 0)) return 0;
       const r = await consolidateSession({ session: memorySession, messages, provider: this.memoryModel.provider, model: this.memoryModel.model, log: (m) => this.log(m) });
       this.lastReflectedTurns.set(conversation.id, userTurns);
+      if (r) DashboardPanel.refreshMemoryBadge();
       if (r) this.log(`memory tidy-up: ${r.dayLines} day lines, ${r.saved} saved, ${r.waiting} waiting for a yes, ${r.changed} changed, threads +${r.threadsOpened}/-${r.threadsClosed}`);
       return r ? r.saved + r.waiting + r.changed : 0;
     }

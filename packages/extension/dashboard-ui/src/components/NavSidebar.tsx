@@ -55,6 +55,8 @@ interface NavSidebarProps {
   collapsed?: boolean;
   /** Jobs rendering right now, plus anything finished in the last 30s. */
   generationJobs?: GenerationJobLite[];
+  /** Memory v4: things waiting for the person's yes (badge on Memory). */
+  memoryWaiting?: number;
 }
 
 const RAIL_WIDTH = 56;
@@ -132,6 +134,7 @@ export function NavSidebar({
   avatarUrl,
   collapsed,
   generationJobs,
+  memoryWaiting,
 }: NavSidebarProps) {
   useLocale();
 
@@ -246,6 +249,9 @@ export function NavSidebar({
                   rendered here, so this dot is the only way a background render
                   stays visible once the sidebar is tucked away — which is
                   exactly when someone has gone off to work on something else. */}
+              {item.page === 'memory' && memoryWaiting && memoryWaiting > 0 ? (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{memoryWaiting}</span>
+              ) : null}
               {item.page === 'creative-studio' && runningJobs > 0 ? (
                 <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{runningJobs}</span>
               ) : null}
@@ -342,6 +348,7 @@ export function NavSidebar({
             onClick={() => handleNavigate(item.page)}
             comingSoon={item.comingSoon}
             earlyAccess={item.earlyAccess}
+            badge={item.page === 'memory' ? memoryWaiting : undefined}
           />
         ))}
       </div>

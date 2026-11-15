@@ -1453,6 +1453,10 @@ export interface DesignModelSummary {
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
 
 export type ExtToDashboardMessage =
+  /** Memory v4 is on (the Memory page becomes "What Ava knows"), and how many things wait for a yes. */
+  | { type: 'memory_v4_status'; on: boolean; pending: number }
+  /** Reply to a `memory_v4` request: core's memoryPage() result. */
+  | { type: 'memory_v4_result'; requestId: string; result: unknown }
   /**
    * UI strings for ONE language, in reply to request_locale_strings.
    *
@@ -1816,6 +1820,8 @@ export type ExtToDashboardMessage =
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
 export type DashboardToExtMessage =
+  /** The Memory page (memory v4): one op of core's memoryPage(), answered by memory_v4_result. */
+  | { type: 'memory_v4'; requestId: string; op: string; args?: Record<string, unknown> }
   /** "Send me the strings for this language." The dashboard asks rather than
    *  being pushed to, because it owns its own locale choice —
    *  localStorage['ava-dashboard-language'], which can differ from the host's

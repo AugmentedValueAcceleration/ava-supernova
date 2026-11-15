@@ -385,6 +385,16 @@ export class AvaMemory {
     });
   }
 
+  /** Undo a "done" (ticked by mistake). */
+  async reopenThread(id: string): Promise<boolean> {
+    return this.updateThreads((all) => {
+      const t = all.find((x) => x.id === id && x.done);
+      if (!t) return false;
+      t.done = undefined;
+      return true;
+    });
+  }
+
   async deleteThread(id: string): Promise<boolean> {
     return this.updateThreads((all) => {
       const i = all.findIndex((x) => x.id === id);

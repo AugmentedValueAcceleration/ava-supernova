@@ -55,6 +55,7 @@ import {
   exportFolder, previewFolderExport, setFolderNote, STORE_PROFILES, STORE_TRADEMARK_NOTICE,
   loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipeSafety, checkExerciseSafety, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
+  AvaMemory, memoryPage, memoryV4Root, type PageOp,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -459,6 +460,7 @@ export class DashboardPanel {
         const tReady = Date.now();
         this.log(`[health-perf] HOST recv webview_ready at ${tReady}`);
         await this.sendInit();
+        void this.sendMemoryV4Status();
         this.log(`[health-perf] HOST sendInit done ${Date.now() - tReady}ms`);
         // Hub-set announcement ticker — same feed as the website banner. Fetch
         // now and refresh every 10 min so hub updates reach users in-app.
@@ -2748,6 +2750,19 @@ export class DashboardPanel {
         break;
       }
       // ── PDF fonts: the optional bold Chinese/Japanese/Korean pack ──
+      case 'memory_v4': {
+        // The Memory page ("What Ava knows"): one op of core's memoryPage().
+        const m = msg as { requestId: string; op: string; args?: Record<string, unknown> };
+        const mem = this.memoryV4();
+        let result: unknown;
+        try {
+          result = mem ? await memoryPage(mem, m.op as PageOp, m.args ?? {}) : { ok: false, error: 'Memory v4 is not on.' };
+        } catch (err) {
+          result = { ok: false, error: err instanceof Error ? err.message : String(err) };
+        }
+        this.post({ type: 'memory_v4_result', requestId: m.requestId, result } as never);
+        break;
+      }
       case 'pdf_fonts_status': {
         this.post({ type: 'pdf_fonts_state', state: await optionalFontsStatus() } as never);
         break;
@@ -2944,6 +2959,28 @@ export class DashboardPanel {
   }
 
   // ─── Init ──────────────────────────────────────────────────────────────────
+
+  /** Memory v4's store when it is on (AVA_MEMORY_V4_ROOT until the switch-over); otherwise null. */
+  private memoryV4Store: AvaMemory | null = null;
+  private memoryV4(): AvaMemory | null {
+    const root = memoryV4Root();
+    if (!root) return null;
+    if (!this.memoryV4Store || this.memoryV4Store.root !== root) this.memoryV4Store = new AvaMemory({ root });
+    return this.memoryV4Store;
+  }
+
+  /** Tell the page whether memory v4 is on, and how many things wait for a yes (the sidebar badge). */
+  /** After a tidy-up or a save, so the sidebar badge stays right without a visit to the page. */
+  public static refreshMemoryBadge(): void {
+    void DashboardPanel.currentPanel?.sendMemoryV4Status();
+  }
+
+  private async sendMemoryV4Status(): Promise<void> {
+    const mem = this.memoryV4();
+    let pending = 0;
+    try { pending = mem ? (await mem.listFacts('pending')).length : 0; } catch { /* a count is not worth failing over */ }
+    this.post({ type: 'memory_v4_status', on: !!mem, pending } as never);
+  }
 
   private async sendInit(): Promise<void> {
     const connections = await this.getConnectionStatus();
