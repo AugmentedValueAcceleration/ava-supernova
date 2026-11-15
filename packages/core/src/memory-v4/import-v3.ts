@@ -21,8 +21,9 @@ import { join } from 'node:path';
 import type { AvaMemory } from './store.js';
 import type { FactKind, FactScope } from './types.js';
 import { normalizeForMatch } from './fact-file.js';
-import { readIfExists, writeAtomic } from './files.js';
+import { readIfExists, removeIfExists, writeAtomic } from './files.js';
 import { normalizeProjectPath } from './projects.js';
+import { isOldDesktopStep } from '../desktop/learned-steps.js';
 
 const NOISE = [/^the assistant\b/i, /^(discovery|decision|correction):\s/i, /^(recorded and|pushed —|yes —)/i];
 
@@ -32,6 +33,7 @@ interface OldEntry {
   createdAt?: string;
   timestamp?: string;
   archived?: boolean;
+  tags?: string[];
 }
 
 export interface ImportResult {
@@ -56,6 +58,26 @@ function kindFor(category: string | undefined, everywhere: boolean): FactKind {
   if (category === 'person') return 'person';
   if (category === 'preference') return 'preference';
   return everywhere ? 'preference' : 'project';
+}
+
+/**
+ * "Delete all memories" also deletes the old memory's files — the same ones
+ * the import reads (global, and each project the old registry knew) — so
+ * nothing of what they asked to forget is left on disk. Never throws.
+ */
+export async function removeOldMemoryFiles(oldHome: string): Promise<number> {
+  const files = [join(oldHome, 'memory', 'graph.json'), join(oldHome, 'memory.json')];
+  try {
+    const registry = JSON.parse((await readIfExists(join(oldHome, 'projects.json'))) ?? '[]');
+    for (const p of Array.isArray(registry) ? registry : []) {
+      if (p?.path) files.push(join(p.path, '.ava', 'memory.json'), join(p.path, '.ava', 'memory', 'graph.json'));
+    }
+  } catch { /* no registry: global only */ }
+  let removed = 0;
+  for (const f of files) {
+    try { if (await removeIfExists(f)) removed++; } catch { /* in use or gone */ }
+  }
+  return removed;
 }
 
 export function importDone(root: string): boolean {
@@ -117,7 +139,9 @@ export async function importOldMemory(opts: { mem: AvaMemory; oldHome: string; s
     for (const e of entries) {
       const text = String(e.content ?? '').trim();
       const key = normalizeForMatch(text);
-      if (!key || e.archived) continue;
+      // Learned desktop steps are machine know-how, not memories: they go to
+      // desktop/learned-steps.json instead (DesktopLearnedSteps brings them).
+      if (!key || e.archived || isOldDesktopStep(e)) continue;
       if (seen.has(`${scope}|${key}`)) { result.repeatsFolded++; continue; }
       seen.add(`${scope}|${key}`);
       const when = String(e.createdAt ?? e.timestamp ?? '');

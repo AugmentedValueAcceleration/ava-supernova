@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { getDesignStudioPrefix } from '../src/agent/system-prompt.js';
-import { MemoryManager } from '../src/memory/memory-manager.js';
+import { AvaMemory } from '../src/memory-v4/store.js';
 import {
   brandKitsFile, brandKitsForApps, brandLogoPath, createBrandKit, deleteBrandKit, importBrandKits, listBrandKits,
   agreeBrandKit, isLibraryFile, kitLibraryChoices, knownProjects, saveFileToKit, brandKitSummary, checkPairings, contrastRatio, kitForProject, kitForScripts, kitPieceStates, linkBrandKit, unlinkBrandKit,
@@ -422,21 +422,22 @@ describe('design_brand_kit with no studio open', () => {
 });
 
 describe('deleting a kit', () => {
-  it('archives what its project remembers, and nothing else', async () => {
+  it('moves what its project remembers about it to history, and nothing else', async () => {
     const project = join(PROJECTS, 'Forgetful');
     mkdirSync(project, { recursive: true });
     const kit = await createBrandKit({ name: 'Forgetful', projects: [project] });
-    const memory = new MemoryManager({ globalDir: dir, projectRoot: project });
-    await memory.saveEntry({ scope: 'project', category: 'decision', content: `## Forgetful brand kit, agreed [${kit.id}]: amber on black` });
-    await memory.saveEntry({ scope: 'project', category: 'decision', content: 'The game uses headless Blender for props' });
+    const memory = new AvaMemory({ root: join(dir, 'memory') });
+    const scope = `project:${(await memory.projectFor(project, 'Forgetful')).id}` as const;
+    await memory.addFact({ scope, text: `Forgetful brand kit, agreed [${kit.id}]: amber on black` });
+    await memory.addFact({ scope, text: 'The game uses headless Blender for props' });
 
     expect(await deleteBrandKit(kit.id)).toBe(true);
 
-    const store = await memory.loadProjectStore();
-    expect(store!.entries.find((e) => e.content.includes('amber'))?.archived).toBe(true);
-    expect(store!.entries.find((e) => e.content.includes('Blender'))?.archived).toBeFalsy();
-    expect((await memory.recall({ query: 'amber', scope: 'project' })).length).toBe(0);
-    expect((await memory.recall({ query: 'amber', scope: 'project', includeArchived: true })).length).toBe(1);
+    const current = (await memory.listFacts('fact')).map((f) => f.text);
+    expect(current.some((t) => t.includes('amber'))).toBe(false);
+    expect(current.some((t) => t.includes('Blender'))).toBe(true);
+    expect((await memory.listFacts('history')).some((f) => f.text.includes('amber') && !!f.until)).toBe(true);
+    expect(await memory.search('amber', { project: scope.slice(8) })).toHaveLength(0);
   });
 
   it('tells her a kit is its own record', async () => {

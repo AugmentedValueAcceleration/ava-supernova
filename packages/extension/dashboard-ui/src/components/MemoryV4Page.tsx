@@ -300,6 +300,32 @@ function ProjectTools({ project, onMove, onForget }: {
   );
 }
 
+// ── Forget everything ─────────────────────────────────────────────────────
+
+function ForgetEverything({ total, onForget }: { total: number; onForget: () => Promise<void> }) {
+  useLocale();
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div style={{ ...meta, marginTop: 32, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+      {confirm ? (
+        <>
+          <span style={{ color: C.danger }}>
+            {tt('memory.v4.forget_all_confirm', 'Forget everything Ava knows — all {n} facts, the core page, the threads and the days? This cannot be undone.').replace('{n}', String(total))}
+          </span>
+          <button type="button" disabled={busy} style={{ ...btn, color: C.danger, borderColor: 'rgba(248,113,113,0.4)' }}
+            onClick={async () => { setBusy(true); try { await onForget(); } finally { setBusy(false); setConfirm(false); } }}>
+            {tt('memory.v4.forget_for_good', 'Forget for good')}
+          </button>
+          <button type="button" style={btn} onClick={() => setConfirm(false)}>{tt('memory.v4.cancel', 'Cancel')}</button>
+        </>
+      ) : (
+        <button type="button" style={{ ...btn, color: C.danger }} onClick={() => setConfirm(true)}>{tt('memory.v4.forget_all', 'Forget everything')}</button>
+      )}
+    </div>
+  );
+}
+
 // ── The page ──────────────────────────────────────────────────────────────
 
 export function MemoryV4Page({ request, onPendingChange }: {
@@ -519,6 +545,14 @@ export function MemoryV4Page({ request, onPendingChange }: {
             )}
         </>
       )}
+
+      <ForgetEverything total={overview.facts + overview.pending} onForget={async () => {
+        await request('forget_all');
+        setProject(undefined);
+        setThreads(null);
+        setDays(null);
+        changed();
+      }} />
     </div>
   );
 }

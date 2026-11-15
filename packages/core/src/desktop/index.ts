@@ -101,3 +101,7 @@ export type {
   TrajectoryStep,
   Trajectory,
 } from './types.js';
+
+// Learned steps (machine know-how, kept out of Ava's memory)
+export { DesktopLearnedSteps, isOldDesktopStep } from './learned-steps.js';
+export type { LearnedSteps } from './learned-steps.js';

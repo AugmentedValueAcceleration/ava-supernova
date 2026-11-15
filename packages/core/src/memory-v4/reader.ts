@@ -29,11 +29,10 @@ import type { Fact, ProjectRecord } from './types.js';
  * memory, at ~/.ava/memory/ (beside the old graph files, which stay put and
  * are read once by the free import).
  *
- * AVA_MEMORY_V4_ROOT points it somewhere else (a test copy). AVA_MEMORY_V4=off
- * turns it off and falls back to the old memory: an escape hatch, not a mode.
+ * AVA_MEMORY_V4_ROOT points it somewhere else (a test copy). There is no
+ * switch back: the old memory is only ever read once, by the import.
  */
-export function memoryV4Root(): string | null {
-  if (process.env.AVA_MEMORY_V4?.trim().toLowerCase() === 'off') return null;
+export function memoryV4Root(): string {
   const root = process.env.AVA_MEMORY_V4_ROOT?.trim();
   return root ? root : join(AVA_HOME, 'memory');
 }

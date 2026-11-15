@@ -12,8 +12,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { TaskManager } from '../tasks/task-manager.js';
 import type { JournalManager } from '../journal/journal-manager.js';
-import type { MemoryManager } from '../memory/memory-manager.js';
-import type { MemoryEntry } from '../memory/types.js';
+import type { MemorySession } from '../memory-v4/reader.js';
 import type { BriefingData, Briefing, BriefingState, TimeOfDay } from './types.js';
 import { localYmd, todayLocal } from '../core/dates.js';
 
@@ -47,9 +46,9 @@ export class BriefingEngine {
   async generateBriefing(
     taskManager: TaskManager,
     journalManager: JournalManager,
-    memoryManager: MemoryManager,
+    memory?: MemorySession,
   ): Promise<Briefing> {
-    const data = await this.gatherData(taskManager, journalManager, memoryManager);
+    const data = await this.gatherData(taskManager, journalManager, memory);
     const text = this.formatBriefing(data);
 
     // Mark briefing as shown
@@ -69,9 +68,9 @@ export class BriefingEngine {
   async generateBriefingData(
     taskManager: TaskManager,
     journalManager: JournalManager,
-    memoryManager: MemoryManager,
+    memory?: MemorySession,
   ): Promise<BriefingData> {
-    return this.gatherData(taskManager, journalManager, memoryManager);
+    return this.gatherData(taskManager, journalManager, memory);
   }
 
   /** Reset briefing state (for testing or manual refresh). */
@@ -85,7 +84,7 @@ export class BriefingEngine {
   private async gatherData(
     taskManager: TaskManager,
     journalManager: JournalManager,
-    memoryManager: MemoryManager,
+    memory?: MemorySession,
   ): Promise<BriefingData> {
     const now = new Date();
     const today = this.todayDate();
@@ -101,7 +100,7 @@ export class BriefingEngine {
       taskManager.getTodayTasks(),
       taskManager.listTasks(),
       journalManager.getDay(yesterday),
-      this.getRecentMemories(memoryManager),
+      this.getRecentMemories(memory),
     ]);
 
     // Find overdue tasks (due before today, not done/archived)
@@ -135,21 +134,16 @@ export class BriefingEngine {
     };
   }
 
-  private async getRecentMemories(memoryManager: MemoryManager): Promise<MemoryEntry[]> {
+  /** Open threads, newest first: this project's and the ones tied to no project. */
+  private async getRecentMemories(memory?: MemorySession): Promise<Array<{ content: string }>> {
+    if (!memory) return [];
     try {
-      const globalStore = await memoryManager.loadGlobalStore();
-      const projectStore = await memoryManager.loadProjectStore();
-
-      const allEntries = [
-        ...globalStore.entries,
-        ...(projectStore?.entries ?? []),
-      ];
-
-      // Sort by most recently updated, take top 5 non-archived
-      return allEntries
-        .filter(e => !e.archived)
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        .slice(0, 5);
+      const here = memory.project?.id;
+      return (await memory.mem.listThreads())
+        .filter(t => !t.project || t.project === here)
+        .sort((a, b) => b.added.localeCompare(a.added))
+        .slice(0, 5)
+        .map(t => ({ content: t.text }));
     } catch {
       return [];
     }

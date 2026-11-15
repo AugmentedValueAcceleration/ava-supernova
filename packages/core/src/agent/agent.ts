@@ -21,8 +21,6 @@ import { bridgeImagesForTextModel } from './vision-bridge.js';
 import { auditClaims, type ClaimAuditResult } from './claims-auditor.js';
 import { parseJsonForgivingly } from '../utils/json-repair.js';
 import { repairHistory, logRepair } from './repair-history.js';
-import { autoExtractAndSave } from '../memory/auto-extract.js';
-import type { MemoryManager } from '../memory/memory-manager.js';
 import { maybeBuildDesignReinjection, isUIFilePath as isUIFilePathLocal } from './design-reinjection.js';
 import { isStopCommand } from './stop-command.js';
 import {
@@ -2749,10 +2747,8 @@ export class Agent {
           continue;
         }
 
-        // Memory extraction — runs post-turn, extracts genuinely durable
-        // user/project facts (name, preferences, decisions, architecture).
-        // Bounded by the Memory Agent's regex + single LLM call.
-        this.extractMemoriesFromRun(messages, runContext);
+        // Memory: nothing is extracted per turn. The one writer is the
+        // end-of-session tidy-up (memory-v4/consolidate.ts), run by the app.
 
         // Ambient hot-path writers DISABLED.
         // The following used to fire on every turn, each reading the
@@ -3122,54 +3118,7 @@ export class Agent {
     // Dataset capture, procedural observer, graph state save: disabled
     // from the hot path (see the clean-exit branch above for the full
     // rationale).
-    this.extractMemoriesFromRun(messages, runContext);
     return finalHistory();
-  }
-
-  /**
-   * Extract and save memories from a completed run.
-   * Fire-and-forget — never blocks the response.
-   * Errors are logged at debug level so they don't spam the UI but are visible for debugging.
-   */
-  private extractMemoriesFromRun(messages: Message[], runContext: ToolExecutionContext): void {
-    // Memory v4: nothing is extracted per turn. The one writer is the
-    // end-of-session tidy-up (memory-v4/consolidate.ts), run by the surface.
-    if (runContext.sharedState?.memorySession) return;
-    const ma = runContext.sharedState?.memoryAgent as { extractAndSave: (msgs: Message[], cid?: string) => Promise<number> } | undefined;
-    const mm = runContext.sharedState?.memoryManager as MemoryManager | undefined;
-
-    if (ma) {
-      // Memory Agent: single extraction call (regex + LLM reflection)
-      logger.debug('[memory] Running Memory Agent extraction');
-      ma.extractAndSave(messages)
-        .then(saved => {
-          if (saved > 0) logger.info(`[memory] Memory Agent saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
-          else logger.debug('[memory] Memory Agent: 0 memories extracted from this turn');
-        })
-        .catch(err => logger.warn(`[memory] Memory Agent extraction failed: ${err instanceof Error ? err.message : String(err)}`));
-    } else if (mm) {
-      // Legacy fallback (Memory Agent unavailable): regex extraction only.
-      // Previously this ran three additional passes — reflectAndSave
-      // (LLM reflection), trackAndLearn (pattern tracking), and every
-      // 6 user turns analyseAndSave (insights consolidation). Each was a
-      // concurrent writer reading the conversation and deriving memory
-      // from it. Together they (a) quadrupled the per-turn LLM spend on
-      // ambient memory work and (b) produced conversation-shaped memory
-      // entries that fed back into later turns.
-      //
-      // Keeping only autoExtractAndSave here: it's regex-based, bounded,
-      // and the narrowest path. If its heuristics still save conversation
-      // snippets rather than durable facts, that's a follow-up tightening.
-      logger.debug('[memory] Running legacy memory extraction (regex only)');
-      autoExtractAndSave(messages, mm)
-        .then(saved => {
-          if (saved > 0) logger.info(`[memory] Auto-extract saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
-          else logger.debug('[memory] Auto-extract: 0 memories from regex patterns');
-        })
-        .catch(err => logger.warn(`[memory] Auto-extract failed: ${err instanceof Error ? err.message : String(err)}`));
-    } else {
-      logger.debug('[memory] No memoryManager in sharedState — skipping extraction. Is memory wired correctly?');
-    }
   }
 
   private async streamResponse(

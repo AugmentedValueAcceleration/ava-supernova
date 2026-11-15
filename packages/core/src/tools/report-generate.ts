@@ -20,7 +20,7 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import type { TaskManager } from '../tasks/task-manager.js';
 import type { JournalManager } from '../journal/journal-manager.js';
-import type { MemoryManager } from '../memory/memory-manager.js';
+import type { MemorySession } from '../memory-v4/reader.js';
 import { localYmd, todayLocal } from '../core/dates.js';
 
 export class ReportGenerateTool implements Tool {
@@ -97,8 +97,8 @@ export class ReportGenerateTool implements Tool {
       ? await this.gatherJournalData(context.sharedState.journalManager as JournalManager, startDate, endDate)
       : null;
 
-    const decisionData = includeDecisions && context.sharedState?.memoryManager
-      ? await this.gatherDecisionData(context.sharedState.memoryManager as MemoryManager)
+    const decisionData = includeDecisions && context.sharedState?.memorySession
+      ? await this.gatherDecisionData(context.sharedState.memorySession as MemorySession)
       : null;
 
     // One engine for every document (15 Nov 2026): the report is written as
@@ -151,16 +151,17 @@ export class ReportGenerateTool implements Tool {
     }
   }
 
-  private async gatherDecisionData(memoryManager: MemoryManager) {
+  /** The open project's newest facts from memory (what was decided and holds now). */
+  private async gatherDecisionData(session: MemorySession) {
     try {
-      const store = await memoryManager.loadProjectStore();
-      if (!store) return null;
-      const decisions = store.entries
-        .filter(e => e.category === 'decision' && !e.archived)
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      if (!session.project) return null;
+      const scope = `project:${session.project.id}`;
+      const decisions = (await session.mem.listFacts('fact'))
+        .filter(f => f.scope === scope && (f.kind === 'project' || f.kind === 'rule'))
+        .sort((a, b) => b.from.localeCompare(a.from))
         .slice(0, 5);
       if (decisions.length === 0) return null;
-      return decisions.map(d => d.content.split('\n')[0].slice(0, 150));
+      return decisions.map(d => d.text.split('\n')[0].slice(0, 150));
     } catch {
       return null;
     }

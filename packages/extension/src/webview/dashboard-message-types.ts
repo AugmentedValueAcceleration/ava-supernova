@@ -1291,9 +1291,6 @@ export interface ChatState {
    *  model picker in the chat header (mirrors IDE chat). null while a
    *  fresh chat is in progress. */
   conversationTitle: string | null;
-  memoryOpen: boolean;
-  memoryGlobal: MemoryEntryUI[];
-  memoryProject: MemoryEntryUI[];
   tasksOpen: boolean;
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];

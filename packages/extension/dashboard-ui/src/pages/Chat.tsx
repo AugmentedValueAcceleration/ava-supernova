@@ -14,7 +14,6 @@ import type { ImageAttachment } from '../chat/components/InputArea';
 import type { PaletteTool } from '../chat/components/CommandPalette';
 import { Header } from '../chat/components/Header';
 import { providerLabel } from '../chat/components/ModelSelector';
-import { MemoryPanel } from '../chat/components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH, type UpdateTaskInput } from '../chat/components/TasksPanel';
 import { TasksSpine } from '../chat/components/TasksSpine';
 import { DocumentWorkspace, type OpenDocument } from '../chat/components/DocumentWorkspace';
@@ -44,7 +43,6 @@ function stripModePrefix(content: string): string {
 type ChatAction =
   | ExtToDashboardMessage
   | { type: 'close_history' }
-  | { type: 'close_memory' }
   | { type: 'toggle_tasks' }
   | { type: 'close_tasks' }
   | { type: 'set_tasks_width'; width: number }
@@ -637,12 +635,6 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'close_history':
       return { ...state, historyOpen: false };
 
-    case 'memory_content':
-      return { ...state, memoryOpen: true, memoryGlobal: action.global, memoryProject: action.project };
-
-    case 'close_memory':
-      return { ...state, memoryOpen: false };
-
     case 'today_tasks':
       return { ...state, todayTasks: action.tasks };
 
@@ -815,9 +807,6 @@ const initialState: ChatState = {
   historyList: [],
   currentConversationId: null,
   conversationTitle: null,
-  memoryOpen: false,
-  memoryGlobal: [],
-  memoryProject: [],
   tasksOpen: false,
   todayTasks: [],
   allTasks: [],
@@ -1271,7 +1260,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
   // handleCloseHistory removed — slide-over is gone; close_history reducer
   // case kept in case ambient code paths still dispatch it.
 
-  const handleCloseMemory = useCallback(() => { dispatch({ type: 'close_memory' }); }, []);
 
   const handleToggleTasks = useCallback(() => {
     if (!state.tasksOpen) post({ type: 'request_today_tasks' });
@@ -1356,26 +1344,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
   const handleTasksWidthChange = useCallback((width: number) => {
     dispatch({ type: 'set_tasks_width', width });
-  }, []);
-
-  const handleSaveMemory = useCallback((scope: 'global' | 'project', content: string) => {
-    post({ type: 'save_chat_memory', scope, content });
-  }, []);
-
-  const handleClearMemory = useCallback((scope: 'global' | 'project') => {
-    post({ type: 'clear_chat_memory', scope });
-  }, []);
-
-  const handleArchiveMemory = useCallback((scope: 'global' | 'project', id: string) => {
-    post({ type: 'archive_chat_memory', scope, id });
-  }, []);
-
-  const handleRestoreMemory = useCallback((scope: 'global' | 'project', id: string) => {
-    post({ type: 'restore_chat_memory', scope, id });
-  }, []);
-
-  const handleDeleteMemoryEntry = useCallback((scope: 'global' | 'project', id: string) => {
-    post({ type: 'delete_chat_memory_entry', scope, id });
   }, []);
 
   const lastError = state.messages.filter(m => m.role === 'error').at(-1);
@@ -1591,18 +1559,6 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
               instead, matching the IDE chat where History is a top-level
               destination, not a transient slide-over. */}
 
-          {state.memoryOpen && (
-            <MemoryPanel
-              globalEntries={state.memoryGlobal}
-              projectEntries={state.memoryProject}
-              onClose={handleCloseMemory}
-              onSave={handleSaveMemory}
-              onClear={handleClearMemory}
-              onArchive={handleArchiveMemory}
-              onRestore={handleRestoreMemory}
-              onDelete={handleDeleteMemoryEntry}
-            />
-          )}
         </div>
 
         {/* Tasks — always present: full panel when open, thin self-advertising

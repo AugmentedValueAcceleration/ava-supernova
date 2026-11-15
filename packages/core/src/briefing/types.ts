@@ -7,7 +7,6 @@
 
 import type { TaskEntry } from '../tasks/types.js';
 import type { JournalDay } from '../journal/types.js';
-import type { MemoryEntry } from '../memory/types.js';
 
 /** Time-of-day segment for greeting tone. */
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -27,7 +26,8 @@ export interface BriefingData {
   /** Yesterday's journal (user + Ava entries). */
   yesterdayJournal: JournalDay | null;
   /** Recent memory entries (last 5, most relevant). */
-  recentMemories: MemoryEntry[];
+  /** Open threads from memory, newest first (where they left off). */
+  recentMemories: Array<{ content: string }>;
   /** Total active tasks (not archived/done). */
   totalActiveTasks: number;
   /** Tasks completed yesterday. */

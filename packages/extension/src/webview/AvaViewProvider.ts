@@ -10,7 +10,6 @@ import {
   ProviderRegistry,
   GenericProvider,
   HistoryManager,
-  MemoryManager,
   TaskManager,
   migrateGlobalTasksToSubfolder,
   JournalManager,
@@ -43,14 +42,9 @@ import {
   getLanguageName,
   Conductor,
   AutoCoordinator,
-  MemoryAgent,
   MemorySession,
-  MemoryRecallV4Tool,
   AvaMemory,
   ensureOldMemoryImported,
-  MemorySaveV4Tool,
-  MemoryUpdateV4Tool,
-  MemoryDeleteV4Tool,
   consolidateSession,
   resolveMemoryModel,
   memoryV4Root,
@@ -245,7 +239,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private activeDesignPanel: string | undefined;
   private conversation?: Conversation;
   /** Second conversation thread — the focused "Ava Health & Fitness" room.
-   *  Same Ava: shares memoryManager, health profile, tools and model with the
+   *  Same Ava: shares memory, health profile, tools and model with the
    *  main chat, but keeps its OWN message history so health planning never
    *  lands in the main thread (and the health dataset collects clean). The
    *  main chat and this lane both live in the dashboard webview; outbound
@@ -337,17 +331,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * capability surface.
    */
   public readonly secretAccess = new SecretAccess();
-  private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
   private generationManager?: import('@ava/core').GenerationManager;
   private conductor?: Conductor;
   private autoCoordinator?: AutoCoordinator | null;
-  private memoryAgent?: MemoryAgent;
   /**
-   * Memory v4 (one store of plain files). Opt-in through AVA_MEMORY_V4_ROOT
-   * until the switch-over; when open it replaces the old brief in every mode,
-   * Code included, and memory_recall searches it.
+   * Ava's memory (memory v4, ~/.ava/memory): one store of plain files, shared
+   * with the IDE, the CLI and the hub. The old memory is only read once, by
+   * the import.
    */
   private memorySessionReady: Promise<MemorySession | undefined> = Promise.resolve(undefined);
   /** The fleet's own low-cost model for the end-of-session tidy-up (memory v4). */
@@ -560,54 +552,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
 
     // Memory is local only — there is no cloud copy.
-    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, embeddingService: this.resolveEmbeddingService() });
     this.memorySessionReady = this.openMemorySession();
-
-    // ── One-time memory reset for v0.37.0 ─────────────────────────────────
-    // The memory extraction system was fundamentally improved: broadened
-    // patterns, approval capture, design-decision capture, scope guidance,
-    // project knowledge brief. Old memories were extracted under narrow
-    // rules that missed most signals and often mis-scoped project knowledge
-    // to global. A clean start gives every user better recall quality from
-    // day one on the new system. This fires exactly once per extension
-    // install, then sets a flag so it never runs again.
-    const MEMORY_RESET_FLAG = 'ava.memoryResetV037';
-    if (!this.context.globalState.get<boolean>(MEMORY_RESET_FLAG)) {
-      try {
-        this.log('[memory-reset] v0.37.0 one-time memory reset — clearing local memory stores');
-        // Clear both global and project memory stores
-        const fs = await import('node:fs/promises');
-        const path = await import('node:path');
-
-        // Clear account-scoped memory (where most memories live for platform users)
-        const accountDir = this.accountScopedDir;
-        const accountMemPath = path.join(accountDir, 'memory.json');
-        try { await fs.writeFile(accountMemPath, JSON.stringify({ version: 2, entries: [], lastModified: new Date().toISOString() }), 'utf-8'); } catch { /* file may not exist */ }
-
-        // Clear root-level memory (fallback/legacy path)
-        const rootMemPath = path.join(AVA_HOME, 'memory.json');
-        try { await fs.writeFile(rootMemPath, JSON.stringify({ version: 2, entries: [], lastModified: new Date().toISOString() }), 'utf-8'); } catch { /* file may not exist */ }
-
-        // Clear project-scoped memory if a project is open
-        if (this.projectRoot) {
-          const projectMemPath = path.join(this.projectRoot, '.ava', 'memory.json');
-          try { await fs.writeFile(projectMemPath, JSON.stringify({ version: 2, entries: [], lastModified: new Date().toISOString() }), 'utf-8'); } catch { /* file may not exist */ }
-        }
-
-        // Set the flag so this never runs again
-        await this.context.globalState.update(MEMORY_RESET_FLAG, true);
-        this.log('[memory-reset] v0.37.0 memory reset complete — improved extraction system takes over');
-
-        // Show a brief info message so the user knows what happened
-        vscode.window.showInformationMessage(
-          'Ava Supernova — Memory upgraded. Your improved memory system will rebuild as you work.',
-        );
-      } catch (err) {
-        this.log(`[memory-reset] Failed: ${err instanceof Error ? err.message : String(err)}`);
-        // Set the flag even on failure so we don't retry on every session start
-        await this.context.globalState.update(MEMORY_RESET_FLAG, true);
-      }
-    }
 
     // Tasks are local only — there is no cloud copy.
     migrateGlobalTasksToSubfolder(AVA_HOME);
@@ -653,7 +598,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.decisionsState = this.projectRoot
       ? await loadDecisionsState(this.projectRoot)
       : undefined;
-    await this.memoryManager.loadAll(this.projectInstructions);
   }
 
   private async onWorkspaceChanged(): Promise<void> {
@@ -944,24 +888,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'compress_context':
         mapped = { type: 'compress_context' };
         break;
-      case 'request_memory':
-        mapped = { type: 'request_memory' };
-        break;
-      case 'save_chat_memory':
-        mapped = { type: 'save_memory', scope: msg.scope as 'global' | 'project', content: msg.content as string };
-        break;
-      case 'clear_chat_memory':
-        mapped = { type: 'clear_memory', scope: msg.scope as 'global' | 'project' };
-        break;
-      case 'archive_chat_memory':
-        mapped = { type: 'archive_memory', scope: msg.scope as 'global' | 'project', id: msg.id as string };
-        break;
-      case 'restore_chat_memory':
-        mapped = { type: 'restore_memory', scope: msg.scope as 'global' | 'project', id: msg.id as string };
-        break;
-      case 'delete_chat_memory_entry':
-        mapped = { type: 'delete_memory_entry', scope: msg.scope as 'global' | 'project', id: msg.id as string };
-        break;
       case 'list_plan_records':
         mapped = { type: 'list_plan_records' };
         break;
@@ -1178,8 +1104,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const messages = conversation.getMessages();
     const userTurns = messages.filter((m) => m.role === 'user').length;
 
-    // Memory v4: the one writer is the end-of-session tidy-up, on the fleet's
-    // own low-cost model. Same once-per-new-material guard as below.
+    // The one writer is the end-of-session tidy-up, on the fleet's main
+    // model, once per new material.
     const memorySession = await this.memorySessionReady;
     if (memorySession) {
       if (!this.memoryModel) { this.log('memory tidy-up: skipped, no tidy-up model reachable on this fleet'); return 0; }
@@ -1192,23 +1118,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return r ? r.saved + r.waiting + r.changed : 0;
     }
 
-    if (!this.memoryAgent) return 0;
-
-    // Nothing new since the last reflection OF THIS conversation. Idle
-    // reflection plus an explicit new-chat would otherwise pay for the same
-    // transcript twice.
-    if (userTurns <= (this.lastReflectedTurns.get(conversation.id) ?? 0)) return 0;
-    if (userTurns < 2) return 0; // reflectOnSession needs >= 2 user turns
-
-    try {
-      const saved = await this.memoryAgent.reflectOnSession(messages, conversation.id);
-      this.lastReflectedTurns.set(conversation.id, userTurns);
-      if (saved > 0) this.log(`session reflection saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
-      return saved;
-    } catch (err) {
-      this.log(`session reflection failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
-      return 0;
-    }
+    return 0;
   }
 
   /** Cancel any pending idle reflection — a new turn means the session lives. */
@@ -1229,7 +1139,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private scheduleIdleReflection(): void {
     this.cancelIdleReflection();
     const conversation = this.conversation;
-    if (!conversation || !this.memoryAgent) return;
+    if (!conversation) return;
     this.idleReflectTimer = setTimeout(() => {
       this.idleReflectTimer = undefined;
       void this.reflectSession(conversation);
@@ -1244,7 +1154,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    */
   async flushMemoryOnShutdown(timeoutMs = 4000): Promise<void> {
     this.cancelIdleReflection();
-    if (!this.conversation || !this.memoryAgent) return;
+    if (!this.conversation) return;
     await Promise.race([
       this.reflectSession(this.conversation).then(() => undefined),
       new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
@@ -1658,7 +1568,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   /** Check if a daily briefing should be shown and send it to the webview. */
   private async checkAndSendBriefing(): Promise<void> {
-    if (!this.taskManager || !this.journalManager || !this.memoryManager) return;
+    if (!this.taskManager || !this.journalManager) return;
 
     const globalDir = AVA_HOME ?? require('node:path').join(require('node:os').homedir(), '.ava');
     if (!this.briefingEngine) {
@@ -1672,7 +1582,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const briefing = await this.briefingEngine.generateBriefing(
         this.taskManager,
         this.journalManager,
-        this.memoryManager,
+        await this.memorySessionReady,
       );
 
       this.postMessage({
@@ -1694,7 +1604,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   /** Run event detectors and show VS Code notifications for important events. */
   private async runEventDetection(): Promise<void> {
-    if (!this.taskManager || !this.journalManager || !this.memoryManager) return;
+    if (!this.taskManager || !this.journalManager) return;
 
     if (!this.eventDetector) {
       this.eventDetector = new EventDetector();
@@ -1704,7 +1614,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const events = await this.eventDetector.detect({
         taskManager: this.taskManager,
         journalManager: this.journalManager,
-        memoryManager: this.memoryManager,
       });
 
       for (const event of events) {
@@ -1793,15 +1702,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       exclude: [...DESKTOP_TOOL_NAMES],
       allowDesktopMode: false,
     });
-    // Memory v4 on: memory_recall searches it (same tool name, so prompts and
-    // mode allowlists are unchanged). The session goes in sharedState below.
+    // The memory tools are core built-ins; the session goes in sharedState below.
     const memorySession = await this.memorySessionReady;
-    if (memorySession) {
-      this.toolRegistry.register(new MemoryRecallV4Tool());
-      this.toolRegistry.register(new MemorySaveV4Tool());
-      this.toolRegistry.register(new MemoryUpdateV4Tool());
-      this.toolRegistry.register(new MemoryDeleteV4Tool());
-    }
 
     // Apply permission mode from settings
     const config = vscode.workspace.getConfiguration('ava-supernova');
@@ -1847,8 +1749,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.activeModelDef = model;
 
-    // Ensure memoryManager is ready (constructor fires refreshProjectContext without await)
-    if (!this.memoryManager) {
+    // Ensure project context is ready (constructor fires refreshProjectContext without await)
+    if (!this.taskManager) {
       await this.refreshProjectContext();
     }
 
@@ -1917,7 +1819,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         require('node:os').homedir(),
         vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.projectsHome'),
       ),
-      memoryManager: this.memoryManager,
+      globalDir: AVA_HOME,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
       // Scoped HistoryManager so the recall tool reads the right (account-
@@ -2023,21 +1925,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       toolRegistry: this.toolRegistry,
     };
 
-    // Qwen Flash — lightweight auxiliary model for classification and
-    // curation. Shared by the Memory Agent (brief curation) and the
-    // Intent Classifier (tool-use gate). Using one resolution keeps the
-    // two wiring sites in lockstep.
+    // Qwen Flash — lightweight auxiliary model for the Intent Classifier
+    // (tool-use gate).
     const qwenFlash = this.providerRegistry.resolveModel('qwen:qwen3.5-flash');
-
-    // Memory Agent — curates memory briefs instead of raw dumps
-    if (qwenFlash && this.memoryManager) {
-      this.memoryAgent = new MemoryAgent({
-        memoryManager: this.memoryManager,
-        provider: qwenFlash.provider,
-        model: qwenFlash.model,
-      });
-      sharedState.memoryAgent = this.memoryAgent;
-    }
 
     // Intent Classifier — tool-use gate. Classifies each user message
     // as task/conversational/ambiguous before the coordinator sees it.
@@ -2389,8 +2279,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   /** Build the optional local-embedding service from VS Code settings (opt-in;
-   *  off by default → recall stays on TF-IDF). Shared by every MemoryManager
-   *  construction so semantic recall is consistent across re-inits. */
+   *  off by default → memory search stays on words). Used whenever memory opens
+   *  so meaning search is consistent across re-inits. */
   private resolveEmbeddingService() {
     const cfg = vscode.workspace.getConfiguration('ava-supernova');
     return createEmbeddingServiceFromConfig({
@@ -2428,7 +2318,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       projectInstructions: this.projectInstructions,
       projectRoot: this.projectRoot,
       decisionsState: this.decisionsState,
-      projectBrainBrief: this.memoryManager?.getProjectBrain?.()?.brief,
       activeModelDef: this.activeModelDef,
       currentLocale: this.currentLocale,
       permissionMode: this.getPermissionMode(),
@@ -2475,27 +2364,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   private async exportConversation(conversationId: string, format: 'markdown' | 'json'): Promise<void> {
     return this.history.export(conversationId, format);
-  }
-
-  // ── Memory Management ────────────────────────────────────────────────────────
-
-  private async sendMemoryContent(): Promise<void> {
-    if (!this.memoryManager) return;
-    const [globalEntries, projectEntries] = await Promise.all([
-      this.memoryManager.getEntries('global'),
-      this.memoryManager.getEntries('project'),
-    ]);
-    const toUI = (e: { id: string; category: string; content: string; createdAt: string; updatedAt: string; lastRecalledAt?: string | null; recallCount?: number; tags?: string[]; archived?: boolean; archivedAt?: string | null; branch?: string | null }) => ({
-      id: e.id, category: e.category, content: e.content,
-      createdAt: e.createdAt, updatedAt: e.updatedAt,
-      lastRecalledAt: e.lastRecalledAt ?? null, recallCount: e.recallCount ?? 0,
-      tags: e.tags, archived: e.archived, archivedAt: e.archivedAt ?? null, branch: e.branch ?? null,
-    });
-    this.postMessage({
-      type: 'memory_content',
-      global: globalEntries.map(toUI),
-      project: projectEntries.map(toUI),
-    });
   }
 
   private async sendTodayTasks(): Promise<void> {
@@ -2669,55 +2537,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  /** Reset the memory manager — called after Delete All. */
-  public async resetMemoryManager(): Promise<void> {
-    if (this.memoryManager) {
-      await this.memoryManager.clearEverything();
-    }
-    this.memoryManager = new MemoryManager({ globalDir: this.accountScopedDir, projectRoot: this.projectRoot, embeddingService: this.resolveEmbeddingService() });
-  }
-
-  private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {
-    if (!this.memoryManager) return;
-    if (scope === 'global') {
-      await this.memoryManager.saveGlobalMemory(content);
-    } else {
-      await this.memoryManager.saveProjectMemory(content);
-    }
-    await this.memoryManager.loadAll();
-    await this.sendMemoryContent();
-  }
-
-  private async clearMemory(scope: 'global' | 'project'): Promise<void> {
-    if (!this.memoryManager) return;
-    if (scope === 'global') {
-      await this.memoryManager.saveGlobalMemory('');
-    } else {
-      await this.memoryManager.saveProjectMemory('');
-    }
-    await this.memoryManager.loadAll();
-    await this.sendMemoryContent();
-  }
-
-  private async archiveMemory(scope: 'global' | 'project', id: string): Promise<void> {
-    if (!this.memoryManager) return;
-    await this.memoryManager.archiveEntry(scope, id);
-    await this.memoryManager.loadAll();
-    await this.sendMemoryContent();
-  }
-
-  private async restoreMemory(scope: 'global' | 'project', id: string): Promise<void> {
-    if (!this.memoryManager) return;
-    await this.memoryManager.restoreEntry(scope, id);
-    await this.memoryManager.loadAll();
-    await this.sendMemoryContent();
-  }
-
-  private async deleteMemoryEntry(scope: 'global' | 'project', id: string): Promise<void> {
-    if (!this.memoryManager) return;
-    await this.memoryManager.deleteEntry(scope, id);
-    await this.memoryManager.loadAll();
-    await this.sendMemoryContent();
+  /** After "Delete all memories": reopen memory for this project (its record was forgotten). */
+  public async reopenMemory(): Promise<void> {
+    this.memorySessionReady = this.openMemorySession();
+    const session = await this.memorySessionReady;
+    if (this.sharedState) this.sharedState.memorySession = session;
   }
 
   // ── Feedback Rating ──────────────────────────────────────────────────────────
@@ -2994,14 +2818,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
 
-      case 'request_memory':
-        await this.sendMemoryContent();
-        break;
-
-      case 'save_memory':
-        await this.saveMemory(message.scope, message.content);
-        break;
-
       // The Plans tab. Read on demand rather than pushed: the Decisions
       // folder is the user's to edit by hand, so a cached list would go stale
       // the moment they did — and a record they wrote themselves should appear
@@ -3106,22 +2922,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.log(`[history] refresh failed: ${err}`);
           this.postMessage({ type: 'history_refreshed', count: 0, error: String(err) });
         }
-        break;
-
-      case 'clear_memory':
-        await this.clearMemory(message.scope);
-        break;
-
-      case 'archive_memory':
-        await this.archiveMemory(message.scope, message.id);
-        break;
-
-      case 'restore_memory':
-        await this.restoreMemory(message.scope, message.id);
-        break;
-
-      case 'delete_memory_entry':
-        await this.deleteMemoryEntry(message.scope, message.id);
         break;
 
       case 'request_today_tasks':
@@ -3433,54 +3233,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         }
       } catch { /* non-fatal — memory is optional */ }
     }
-    const shouldInjectMemory = !memorySession && mode !== 'code';
-    if (shouldInjectMemory) {
-      try {
-        if (this.memoryAgent && text.length > 5) {
-          const brief = await this.memoryAgent.generateBrief(text);
-          if (brief.summary) {
-            const topicList = brief.availableTopics.length > 0
-              ? '\n\nAvailable memory topics (use memory_recall for detail): ' +
-                brief.availableTopics.map(t => t.topic).join(', ')
-              : '';
-            const msgs = this.conversation!.getMessages();
-            // SYSTEM, not user — this is an internal primer, not something the
-            // operator typed. As a 'user' message it was persisted into the
-            // conversation and then resurrected as a "You" bubble on every
-            // reopen, showing them a raw [Memory Brief] blob they never wrote.
-            // The IDE sidecar has always used 'system' here; this is the
-            // extension catching up.
-            msgs.push({
-              role: 'system' as const,
-              content: `[Memory Brief]\n${brief.summary}${topicList}`,
-            });
-            this.conversation!.setMessages(msgs);
-          }
-        } else if (this.memoryManager && text.length > 5) {
-          // Fallback pointer (no Memory Agent available). Mirrors the IDE
-          // sidecar: instead of dumping 5 × 300 chars of raw content every
-          // turn (~500 tokens of speculative context), emit a category
-          // pointer so Ava knows memory exists and reaches for memory_recall
-          // only when the conversation touches something worth searching.
-          const recalled = await this.memoryManager.recall({ query: text, limit: 5, scope: 'all' });
-          if (recalled.length > 0) {
-            const categories = [...new Set(
-              recalled.map((r: { entry: { category: string } }) => r.entry.category)
-            )];
-            const msgs = this.conversation!.getMessages();
-            // SYSTEM, not user — same reason as the [Memory Brief] above: an
-            // internal primer filed as a user message comes back as a "You"
-            // bubble the operator never typed.
-            msgs.push({
-              role: 'system' as const,
-              content: `[Memory pointer] ${recalled.length} related memor${recalled.length === 1 ? 'y' : 'ies'} found across: ${categories.join(', ')}. Call memory_recall with a specific query if it's relevant to the user's question.`,
-            });
-            this.conversation!.setMessages(msgs);
-          }
-        }
-      } catch { /* non-fatal — memory is optional */ }
-    }
-
     let streamStarted = false;
     let deltaCount = 0;
     let thinkingDeltaCount = 0;

@@ -124,7 +124,6 @@ export type ExtToWebviewMessage =
    *  the turn ending. No payload: the detail is English and lives in the log,
    *  while the transcript shows a localised line. */
   | { type: 'history_repaired' }
-  | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] }
   | { type: 'system_message'; content: string }
   | { type: 'ping' }
   | { type: 'interjection_ack'; content: string }
@@ -318,12 +317,6 @@ export type WebviewToExtMessage =
   | { type: 'new_chat' }
   | { type: 'webview_ready' }
   | { type: 'compress_context' }
-  | { type: 'request_memory' }
-  | { type: 'save_memory'; scope: 'global' | 'project'; content: string }
-  | { type: 'clear_memory'; scope: 'global' | 'project' }
-  | { type: 'archive_memory'; scope: 'global' | 'project'; id: string }
-  | { type: 'restore_memory'; scope: 'global' | 'project'; id: string }
-  | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
   // The project's decision records for the Plans tab. Pulled on demand —
   // the Decisions folder is the user's to edit by hand, so a cached list
   // goes stale the moment they touch a file.
@@ -505,9 +498,6 @@ export interface ChatState {
   /** Title of the loaded conversation — chip next to the model picker
    *  in the chat header. null on fresh chat. */
   conversationTitle: string | null;
-  memoryOpen: boolean;
-  memoryGlobal: MemoryEntryUI[];
-  memoryProject: MemoryEntryUI[];
   tasksOpen: boolean;
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];

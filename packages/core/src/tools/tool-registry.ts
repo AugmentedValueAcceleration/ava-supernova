@@ -24,13 +24,11 @@ import { GitDiffTool } from './git-diff.js';
 // import { ScreenshotTool } from './screenshot.js';
 import { DatabaseQueryTool } from './database-query.js';
 import { BrowserTool } from './browser.js';
-import { MemorySaveTool } from './memory-save.js';
-import { MemoryRecallTool } from './memory-recall.js';
+import { MemorySaveV4Tool, MemoryUpdateV4Tool, MemoryDeleteV4Tool } from './memory-write-v4.js';
+import { MemoryRecallV4Tool } from './memory-recall-v4.js';
 import { ConversationRecallTool } from './conversation-recall.js';
 import { CheckPostsTool } from './check-posts.js';
 import { ReviewPostTool } from './review-post.js';
-import { MemoryUpdateTool } from './memory-update.js';
-import { MemoryDeleteTool } from './memory-delete.js';
 import { RollbackTool } from './rollback.js';
 import { ProjectIndexTool } from './project-index.js';
 import { CreateProjectTool } from './create-project.js';
@@ -454,13 +452,13 @@ export class ToolRegistry {
       new GitDiffTool(),
       new DatabaseQueryTool(),
       new BrowserTool(),
-      new MemorySaveTool(),
-      new MemoryRecallTool(),
+      new MemorySaveV4Tool(),
+      new MemoryRecallV4Tool(),
       new ConversationRecallTool(),
       new CheckPostsTool(),
       new ReviewPostTool(),
-      new MemoryUpdateTool(),
-      new MemoryDeleteTool(),
+      new MemoryUpdateV4Tool(),
+      new MemoryDeleteV4Tool(),
       new RollbackTool(),
       new ProjectIndexTool(),
       new CreateProjectTool(),

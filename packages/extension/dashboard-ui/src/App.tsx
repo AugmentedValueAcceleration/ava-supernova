@@ -9,7 +9,6 @@ import { DashboardTopBar } from './components/DashboardTopBar';
 import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { LazyPage } from './components/LazyPage';
 import { Overview } from './pages/Overview';
-import { Memory } from './pages/Memory';
 import { MemoryV4Page } from './components/MemoryV4Page';
 import { memoryRequest } from './lib/memory-v4';
 import { History } from './pages/History';
@@ -41,7 +40,6 @@ import type {
   DashboardJournalSearchHit,
   SessionStats,
   DashboardSettings,
-  MemoryEntry,
   ProviderKeyStatus,
   ExtToDashboardMessage,
   ChatModel,
@@ -252,12 +250,10 @@ export function App() {
     streamResponses: true,
     loopPreventionEnabled: true,
   });
-  const [memories, setMemories] = useState<MemoryEntry[]>([]);
   // Memory v4: when the host says it is on, the Memory page is "What Ava knows",
   // and the sidebar shows how many things are waiting for a yes.
-  const [memoryV4, setMemoryV4] = useState<{ on: boolean; pending: number }>({ on: false, pending: 0 });
-  const [memoryTotal, setMemoryTotal] = useState(0);
-  const [memoryHasMore, setMemoryHasMore] = useState(false);
+  // Ava's memory: waiting for a yes (sidebar badge), and the Command Centre card.
+  const [memoryV4, setMemoryV4] = useState<{ pending: number; facts: number; latest: string | null }>({ pending: 0, facts: 0, latest: null });
   const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
     deepseek: false, kimi: false, glm: false, qwen: false, mistral: false, xiaomi: false, tencent: false, nvidia: false,
   });
@@ -961,16 +957,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           setTimeout(() => setErrorMsg(null), 8000);
         }
         break;
-      case 'memories_loaded':
-        setMemories(msg.memories);
-        setMemoryTotal(msg.total ?? msg.memories.length);
-        setMemoryHasMore(msg.hasMore ?? false);
-        break;
-      case 'memories_more_loaded':
-        setMemories(prev => [...prev, ...msg.memories]);
-        setMemoryTotal(msg.total ?? 0);
-        setMemoryHasMore(msg.hasMore ?? false);
-        break;
       case 'connection_saved':
         setConnections((prev) => ({ ...prev, [msg.service]: true }));
         break;
@@ -984,24 +970,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'conversation_deleted':
         setConversations((prev) => prev.filter((c) => c.id !== msg.id));
         break;
-      // BYOK messages
-      case 'local_memory_deleted':
-        setMemories((prev) => prev.filter((m) => m.id !== msg.id));
-        setMemoryTotal((n) => Math.max(0, n - 1));
-        break;
-      case 'local_memory_upserted': {
-        const upsert = (prev: MemoryEntry[]) => {
-          const idx = prev.findIndex((m) => m.id === msg.memory.id);
-          if (idx >= 0) {
-            const updated = [...prev];
-            updated[idx] = msg.memory;
-            return updated;
-          }
-          return [msg.memory, ...prev];
-        };
-        setMemories(upsert);
-        break;
-      }
       case 'session_stats_loaded':
         setSessionStatsData(msg.stats);
         if ((msg as any).allTime) setLocalAllTimeData((msg as any).allTime);
@@ -1419,7 +1387,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         setGenerationJobs(((msg as any).jobs || []) as GenerationJobLite[]);
         break;
       case 'memory_v4_status':
-        setMemoryV4({ on: !!(msg as any).on, pending: Number((msg as any).pending) || 0 });
+        setMemoryV4({ pending: Number((msg as any).pending) || 0, facts: Number((msg as any).facts) || 0, latest: (msg as any).latest ?? null });
         break;
       case 'error':
         setErrorMsg(msg.message);
@@ -1599,7 +1567,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       post({ type: 'load_news' });
       post({ type: 'load_latest_release' });
       post({ type: 'get_storage_scan' });  // powers the header storage bar
-      post({ type: 'load_memories' });
       post({ type: 'load_session_stats' });
     }
     // Unified Library — load all three data sources when the page opens.
@@ -1763,16 +1730,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             />
           );
         }
-        return <Overview connections={connections} onNavigate={setPagePersist} sessionStats={sessionStatsData} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={memories} memoryTotal={memoryTotal} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} forYou={forYou} forYouHandlers={{
+        return <Overview connections={connections} onNavigate={setPagePersist} sessionStats={sessionStatsData} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memoryFacts={memoryV4.facts} memoryWaiting={memoryV4.pending} memoryLatest={memoryV4.latest} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} forYou={forYou} forYouHandlers={{
           onOpenItem: (kind, slug) => { setHealthOpenItem({ kind, slug }); setHealthInitialTab(kind === 'recipe' ? 'recipes' : 'exercises'); setPagePersist('health'); },
           onStartPlan: (seed) => { setWizardSeed(seed); setHealthInitialTab('plans'); setPagePersist('health'); },
           onProfile: () => { setHealthInitialTab('profile'); setPagePersist('health'); },
           onOpenPlans: () => { setHealthInitialTab('plans'); setPagePersist('health'); },
         }} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'memory':
-        return memoryV4.on
-          ? <MemoryV4Page request={memoryRequest} onPendingChange={(n) => setMemoryV4((m) => ({ ...m, pending: n }))} />
-          : <Memory memories={memories} serverTotal={memoryTotal} serverHasMore={memoryHasMore} loaded={isLoaded('memories')} />;
+        return <MemoryV4Page request={memoryRequest} onPendingChange={(n) => setMemoryV4((m) => ({ ...m, pending: n }))} />;
       case 'history':
         return <History sessionStats={sessionStatsData} localAllTime={localAllTimeData} auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
       case 'library':
@@ -1931,7 +1896,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
           without first expanding. CSS order flips it between left/right. */}
       <div style={{ order: sidebarSide === 'left' ? 0 : 2 }}>
         <NavSidebar
-          memoryWaiting={memoryV4.on ? memoryV4.pending : 0}
+          memoryWaiting={memoryV4.pending}
           currentPage={page}
           onNavigate={setPagePersist}
           userName={generalProfile?.display_name ?? null}

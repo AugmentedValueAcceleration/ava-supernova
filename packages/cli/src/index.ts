@@ -9,7 +9,6 @@ import {
   Conversation,
   buildSystemPrompt,
   HistoryManager,
-  MemoryManager,
   createEmbeddingServiceFromConfig,
   TaskManager,
   JournalManager,
@@ -18,13 +17,8 @@ import {
   Conductor,
   BriefingEngine,
   AutoCoordinator,
-  MemoryAgent,
   AvaMemory,
   MemorySession,
-  MemoryRecallV4Tool,
-  MemorySaveV4Tool,
-  MemoryUpdateV4Tool,
-  MemoryDeleteV4Tool,
   consolidateSession,
   ensureOldMemoryImported,
   memoryV4Root,
@@ -93,7 +87,6 @@ async function main(): Promise<void> {
   const appConfig = await config.load();
   const keys = loadProviderKeys();
   const embeddingService = createEmbeddingServiceFromConfig(appConfig.preferences);
-  const memoryManager = new MemoryManager({ globalDir, projectRoot, embeddingService });
   const configToRegistry: Record<string, string> = { glm: 'zhipu' };
   for (const [id, apiKey] of Object.entries(keys)) {
     if (id === 'brave') continue; // search, not a chat provider — read via getProviderKey
@@ -153,26 +146,17 @@ async function main(): Promise<void> {
   // full toolkit, so it opts in. See core/src/tools/desktop-tools.ts.
   registerDesktopTools(toolRegistry);
 
-  // Memory v4: the same memory the extension, the IDE and the hub use
-  // (~/.ava/memory). The old memory below is only the escape hatch
-  // (AVA_MEMORY_V4=off).
+  // Ava's memory (~/.ava/memory), the same one the extension, the IDE and the
+  // hub use. Its tools are core built-ins; the old memory is only read once,
+  // by the import.
   const memoryRoot = memoryV4Root();
   let memorySession: MemorySession | undefined;
-  if (memoryRoot) {
-    try {
-      await ensureOldMemoryImported(new AvaMemory({ root: memoryRoot }), AVA_HOME, (m) => console.log(`  ${m}`));
-      memorySession = await MemorySession.open({ root: memoryRoot, projectPath: projectRoot ?? null, embeddingService });
-      toolRegistry.register(new MemoryRecallV4Tool());
-      toolRegistry.register(new MemorySaveV4Tool());
-      toolRegistry.register(new MemoryUpdateV4Tool());
-      toolRegistry.register(new MemoryDeleteV4Tool());
-    } catch {
-      memorySession = undefined;
-    }
+  try {
+    await ensureOldMemoryImported(new AvaMemory({ root: memoryRoot }), AVA_HOME, (m) => console.log(`  ${m}`));
+    memorySession = await MemorySession.open({ root: memoryRoot, projectPath: projectRoot ?? null, embeddingService });
+  } catch {
+    memorySession = undefined;
   }
-
-  // Load persistent memory (pass project instructions as context for episodic retrieval)
-  const memory = memorySession ? '' : await memoryManager.loadAll(projectInstructions ?? undefined);
   const coreMemory = memorySession ? (await memorySession.sessionBlock().catch(() => '')) || undefined : undefined;
 
   // Create conversation and agent
@@ -184,7 +168,6 @@ async function main(): Promise<void> {
       shell: process.env.SHELL ?? (process.platform === 'win32' ? 'bash' : '/bin/bash'),
       supportsVision: resolved.model.supportsVision,
       projectInstructions: projectInstructions ?? undefined,
-      memory: memory || undefined,
       autoMemory,
       language,
       // Ava's style and your name, as set in any Ava app (~/.ava). The CLI
@@ -194,7 +177,6 @@ async function main(): Promise<void> {
       decisionsContext: decisionsState?.context ?? undefined,
       decisionsFolderExists: decisionsState?.hasFolder ?? false,
       decisionsOptInStatus: decisionsState?.optInStatus ?? 'not-asked',
-      projectBrainBrief: memorySession ? undefined : memoryManager.getProjectBrain?.()?.brief,
       coreMemory,
     }),
   );
@@ -205,8 +187,8 @@ async function main(): Promise<void> {
     keys[provider === 'zhipu' ? 'glm' : provider] || undefined;
 
   const sharedState: Record<string, unknown> = {
-    memoryManager,
     memorySession,
+    globalDir,
     getProviderKey,
     activeModelId: resolved.model.id,
     // Active provider + model + tool registry — needed by specialist tools
@@ -223,17 +205,6 @@ async function main(): Promise<void> {
     if (!memorySession || !memoryModel) return;
     await consolidateSession({ session: memorySession, messages: conversation.getMessages(), provider: memoryModel.provider, model: memoryModel.model }).catch(() => null);
   };
-
-  // Memory Agent — curates briefs instead of raw memory dumps (old memory only)
-  const qwenFlash = providerRegistry.resolveModel('qwen:qwen3.5-flash');
-  if (!memorySession && qwenFlash && memoryManager) {
-    const memoryAgent = new MemoryAgent({
-      memoryManager,
-      provider: qwenFlash.provider,
-      model: qwenFlash.model,
-    });
-    sharedState.memoryAgent = memoryAgent;
-  }
 
   // Build resilient provider with automatic failover
   const healthTracker = new ProviderHealthTracker();
@@ -313,9 +284,7 @@ async function main(): Promise<void> {
     toolRegistry,
     historyManager,
     onSessionEnd: () => {
-      if (memorySession) { void tidyMemory(); return; }
-      const ma = sharedState.memoryAgent as MemoryAgent | undefined;
-      if (ma) void ma.reflectOnSession(conversation.getMessages(), conversation.id).catch(() => {});
+      void tidyMemory();
     },
     onModelSwitch: (provider, model) => {
       sharedState.activeModelId = model.id;
@@ -372,7 +341,7 @@ async function main(): Promise<void> {
     const briefingEngine = new BriefingEngine({ globalDir });
 
     if (await briefingEngine.shouldShowBriefing()) {
-      const briefing = await briefingEngine.generateBriefing(taskManager, journalManager, memoryManager);
+      const briefing = await briefingEngine.generateBriefing(taskManager, journalManager, memorySession);
       repl.printBriefing(briefing.text);
     }
   } catch {
@@ -401,10 +370,6 @@ async function main(): Promise<void> {
   // it's bounded by the reflection's own Flash call. (SIGINT is too abrupt to
   // block, so it's skipped there.)
   await tidyMemory();
-  const exitMemoryAgent = sharedState.memoryAgent as MemoryAgent | undefined;
-  if (exitMemoryAgent) {
-    await exitMemoryAgent.reflectOnSession(conversation.getMessages(), conversation.id).catch(() => {});
-  }
 
   await historyManager.saveConversation(conversation);
 }

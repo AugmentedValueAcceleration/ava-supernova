@@ -1,10 +1,19 @@
 import { exec } from 'node:child_process';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import type { MemoryManager } from '../memory/memory-manager.js';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { AVA_HOME } from '../core/constants.js';
+import { writeAtomic } from '../memory-v4/files.js';
 
 const BENCHMARK_TIMEOUT_MS = 300_000;
-const MEMORY_KEY_PREFIX = 'benchmark:';
+
+/** Baselines are timings, not memories: their own file, keyed by folder + name. */
+const BASELINES_FILE = () => join(AVA_HOME, 'benchmarks.json');
+type Baselines = Record<string, { duration_ms: number; command: string; date: string }>;
+async function readBaselines(): Promise<Baselines> {
+  try { return JSON.parse(await readFile(BASELINES_FILE(), 'utf-8')) as Baselines; } catch { return {}; }
+}
 
 export class BenchmarkTool implements Tool {
   readonly name = 'benchmark';
@@ -16,7 +25,7 @@ export class BenchmarkTool implements Tool {
     name: 'benchmark',
     description:
       'Run a command (build, test, etc.) and measure execution time. Optionally stores the result as a ' +
-      'named baseline in memory for future comparison. Detects regressions when comparing against baselines.',
+      'named baseline for future comparison. Detects regressions when comparing against baselines.',
     parameters: {
       type: 'object',
       properties: {
@@ -47,7 +56,7 @@ export class BenchmarkTool implements Tool {
     const saveBaseline = (args.save_baseline as boolean) ?? false;
     const runs = Math.min(Math.max((args.runs as number) ?? 1, 1), 5);
 
-    const memoryManager = context.sharedState?.memoryManager as MemoryManager | undefined;
+    const key = `${context.cwd}|${name}`;
 
     // Run benchmark
     const times: number[] = [];
@@ -67,29 +76,14 @@ export class BenchmarkTool implements Tool {
     const avgSec = avgMs / 1000;
 
     // Load baseline for comparison
-    let baseline: number | null = null;
-    if (memoryManager) {
-      try {
-        const results = await memoryManager.recall({
-          query: `${MEMORY_KEY_PREFIX}${name}`,
-          scope: 'project',
-          limit: 1,
-        });
-        if (results.length > 0) {
-          const match = results[0].entry.content.match(/duration_ms:\s*(\d+)/);
-          if (match) baseline = +match[1];
-        }
-      } catch { /* ignore */ }
-    }
+    const baseline: number | null = (await readBaselines())[key]?.duration_ms ?? null;
 
     // Save baseline
-    if (saveBaseline && memoryManager) {
+    if (saveBaseline) {
       try {
-        await memoryManager.saveEntry({
-          scope: 'project',
-          content: `${MEMORY_KEY_PREFIX}${name}\nduration_ms: ${Math.round(avgMs)}\ncommand: ${command}\ndate: ${new Date().toISOString()}`,
-          category: 'tool-config',
-        });
+        const all = await readBaselines();
+        all[key] = { duration_ms: Math.round(avgMs), command, date: new Date().toISOString() };
+        await writeAtomic(BASELINES_FILE(), JSON.stringify(all, null, 2));
       } catch { /* ignore */ }
     }
 

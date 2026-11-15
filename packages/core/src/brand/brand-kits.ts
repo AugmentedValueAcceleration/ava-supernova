@@ -20,7 +20,9 @@ import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { AVA_HOME } from '../core/constants.js';
 import { projectsHome } from '../projects/project-data.js';
-import { MemoryManager } from '../memory/memory-manager.js';
+import { AvaMemory } from '../memory-v4/store.js';
+import { memoryV4Root } from '../memory-v4/reader.js';
+import { normalizeProjectPath } from '../memory-v4/projects.js';
 import { creativeDir, metadataFile } from '../tools/blender/paths.js';
 import { readImageFinals } from '../tools/gimp/build-image.js';
 
@@ -698,9 +700,10 @@ export async function deleteBrandKit(id: string): Promise<boolean> {
 }
 
 /**
- * A deleted kit is deleted so they can start again, so what its projects remember
- * about it is archived: still there, but never carried into the next design. The
- * kit is gone either way, so a failure here doesn't undo the delete.
+ * A deleted kit is deleted so they can start again, so what its projects'
+ * memory says about it moves to history: still there, but never carried into
+ * the next design. The kit is gone either way, so a failure here doesn't undo
+ * the delete.
  */
 async function forgetBrandKit(kit: BrandKitRecord): Promise<void> {
   const name = kit.name.toLowerCase();
@@ -708,9 +711,16 @@ async function forgetBrandKit(kit: BrandKitRecord): Promise<void> {
     const text = content.toLowerCase();
     return text.includes(kit.id.toLowerCase()) || (text.includes('brand kit') && text.includes(name));
   };
-  for (const project of kit.projects ?? []) {
-    await MemoryManager.archiveInProject(dirname(brandKitsFile()), project, aboutKit).catch(() => 0);
-  }
+  try {
+    const mem = new AvaMemory({ root: process.env.AVA_BRAND_KITS_DIR ? join(brandKitsHome(), 'memory') : memoryV4Root() });
+    const wanted = new Set((kit.projects ?? []).map((p) => normalizeProjectPath(p)));
+    const scopes = new Set((await mem.projects.all())
+      .filter((r) => r.paths.some((p) => wanted.has(normalizeProjectPath(p))))
+      .map((r) => `project:${r.id}`));
+    for (const f of await mem.listFacts('fact')) {
+      if (scopes.has(f.scope) && aboutKit(f.text)) await mem.retireFact(f.id);
+    }
+  } catch { /* the kit is deleted regardless */ }
 }
 
 /**

@@ -51,7 +51,7 @@ export type PageOp =
   | 'overview' | 'facts' | 'threads' | 'days'
   | 'confirm' | 'reject' | 'edit' | 'forget' | 'core'
   | 'thread_add' | 'thread_done' | 'thread_reopen' | 'thread_delete'
-  | 'link' | 'unlink' | 'project_move' | 'project_forget';
+  | 'link' | 'unlink' | 'project_move' | 'project_forget' | 'forget_all';
 
 const PAGE = 40;
 
@@ -192,6 +192,9 @@ export async function memoryPage(mem: AvaMemory, op: PageOp, args: Record<string
     }
     case 'project_forget':
       return { ok: true, ...(await mem.forgetProject(str('project'))) };
+    case 'forget_all':
+      // The app also deletes the old memory's files and reopens its session.
+      return { ok: true, ...(await mem.forgetEverything()) };
     default:
       return { ok: false, error: `Unknown memory page action: ${String(op)}` };
   }

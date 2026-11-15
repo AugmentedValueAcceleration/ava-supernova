@@ -18,7 +18,7 @@
  *   - Every change happens under one lock, safe with several apps open.
  */
 
-import { mkdir, readdir } from 'node:fs/promises';
+import { mkdir, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EmbeddingService } from '../memory/embedding-service.js';
 import { EmbeddingStore } from '../memory/embedding-store.js';
@@ -314,6 +314,28 @@ export class AvaMemory {
   }
 
   /**
+   * No longer true, with nothing replacing it (e.g. a deleted brand kit): the
+   * fact moves to history — kept, ended today, never used as current again.
+   */
+  async retireFact(id: string): Promise<Fact | null> {
+    const retired = await withLock(this.root, async () => {
+      await this.refreshAll();
+      const current = await this.find(id, ['fact', 'pending']);
+      if (!current) return null;
+      const old: Fact = { ...current, state: 'history', until: today() };
+      await this.put(old);
+      await this.drop(current.state, current.id);
+      return old;
+    });
+    if (retired) {
+      this.index.remove(id);
+      this.indexFacts.delete(id);
+      await this.forgetEmbedding(id);
+    }
+    return retired;
+  }
+
+  /**
    * Fix a fact in place — a typo, a better wording, the wrong project. Not a
    * change in the world (that's replaceFact), so no history entry is made.
    */
@@ -349,6 +371,32 @@ export class AvaMemory {
       await this.forgetEmbedding(id);
     }
     return removed;
+  }
+
+  /**
+   * "Delete all memories": every fact (current, waiting, history), core, the
+   * threads, the days, the projects and the search index. Only the import
+   * marker stays, so the old memory is never brought back across.
+   */
+  async forgetEverything(): Promise<{ facts: number }> {
+    let facts = 0;
+    await withLock(this.root, async () => {
+      await this.refreshAll();
+      for (const state of ['fact', 'pending', 'history'] as const) {
+        for (const f of await this.readState(state)) if (await this.drop(state, f.id)) facts++;
+      }
+      await removeIfExists(join(this.root, 'core.md'));
+      await removeIfExists(this.threadsPath());
+      await removeIfExists(join(this.root, 'projects.json'));
+      await rm(join(this.root, 'episodes'), { recursive: true, force: true });
+      await rm(join(this.root, '.index'), { recursive: true, force: true });
+    });
+    this.index = new SearchIndex();
+    this.indexFacts.clear();
+    this.indexVersion = -1;
+    this.embeddings = null;
+    this.embeddingsReady = null;
+    return { facts };
   }
 
   // ── Threads ─────────────────────────────────────────────────────────────

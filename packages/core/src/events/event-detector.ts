@@ -8,7 +8,6 @@
 
 import type { TaskManager } from '../tasks/task-manager.js';
 import type { JournalManager } from '../journal/journal-manager.js';
-import type { MemoryManager } from '../memory/memory-manager.js';
 import type { AvaEvent, AvaEventHandler, EventDetectorState } from './types.js';
 import { localYmd, todayLocal } from '../core/dates.js';
 
@@ -43,7 +42,6 @@ export class EventDetector {
   async detect(opts: {
     taskManager?: TaskManager;
     journalManager?: JournalManager;
-    memoryManager?: MemoryManager;
   }): Promise<AvaEvent[]> {
     const events: AvaEvent[] = [];
     const today = this.todayDate();
@@ -62,9 +60,6 @@ export class EventDetector {
     }
     if (opts.journalManager) {
       detectors.push(this.detectJournalEvents(opts.journalManager, today));
-    }
-    if (opts.memoryManager) {
-      detectors.push(this.detectMemoryEvents(opts.memoryManager));
     }
 
     const results = await Promise.allSettled(detectors);
@@ -221,37 +216,6 @@ export class EventDetector {
             detectedAt: now,
           });
         }
-      }
-    } catch { /* non-fatal */ }
-
-    return events;
-  }
-
-  // ── Memory Detectors ────────────────────────────────────────────────────────
-
-  private async detectMemoryEvents(memoryManager: MemoryManager): Promise<AvaEvent[]> {
-    const events: AvaEvent[] = [];
-    const now = new Date().toISOString();
-
-    try {
-      const store = await memoryManager.loadGlobalStore();
-      const staleThreshold = new Date();
-      staleThreshold.setDate(staleThreshold.getDate() - 90);
-
-      const staleCount = store.entries.filter(e =>
-        !e.archived &&
-        new Date(e.updatedAt) < staleThreshold &&
-        (!e.lastRecalledAt || new Date(e.lastRecalledAt) < staleThreshold)
-      ).length;
-
-      if (staleCount >= 5) {
-        events.push({
-          type: 'memory_stale',
-          message: `${staleCount} memories haven't been used in 90+ days. Want to review and clean up?`,
-          severity: 'info',
-          detectedAt: now,
-          data: { staleCount },
-        });
       }
     } catch { /* non-fatal */ }
 

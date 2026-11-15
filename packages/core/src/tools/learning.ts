@@ -471,8 +471,8 @@ function getLessonsForReview(curriculum: Curriculum): Array<{ module: Module; le
 // ── AVA_HOME resolution ──────────────────────────────────────────────
 
 function getGlobalDir(context: ToolExecutionContext): string {
-  const mgr = context.sharedState?.memoryManager as { globalDir?: string } | undefined;
-  return mgr?.globalDir ?? join(process.env.HOME || process.env.USERPROFILE || '.', '.ava');
+  const dir = context.sharedState?.globalDir as string | undefined;
+  return dir ?? join(process.env.HOME || process.env.USERPROFILE || '.', '.ava');
 }
 
 // Pre-curriculum diagnostic. Runs before any curriculum exists, so it
@@ -682,21 +682,8 @@ export class LearningCreateTool implements Tool {
       const memorySession = context.sharedState?.memorySession as
         | { mem: { addFact: (f: Record<string, unknown>) => Promise<unknown> } }
         | undefined;
-      const memoryManager = context.sharedState?.memoryManager as
-        | { saveEntry: (o: Record<string, unknown>) => Promise<unknown> }
-        | undefined;
-      if (memorySession) {
-        // Memory v4: a fact about them (they started the course), from the tool itself.
-        await memorySession.mem.addFact({ text: learning, kind: 'event', scope: 'everywhere', source: 'tool', tags: ['learning', curriculum.subject] });
-      } else if (memoryManager?.saveEntry) {
-        await memoryManager.saveEntry({
-          scope: 'global',
-          content: learning,
-          category: 'general',
-          tags: ['learning', curriculum.subject],
-          sourceConversationId: context.conversationId,
-        });
-      }
+      // A fact about them (they started the course), from the tool itself.
+      await memorySession?.mem.addFact({ text: learning, kind: 'event', scope: 'everywhere', source: 'tool', tags: ['learning', curriculum.subject] });
     } catch { /* memory is additive — course creation must still succeed */ }
 
     const totalLessons = curriculum.modules.reduce((sum, m) => sum + m.lessons.length, 0);

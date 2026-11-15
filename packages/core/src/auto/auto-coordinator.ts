@@ -1424,29 +1424,11 @@ Should these tasks be executed as a plan? Output yes or no.`;
       ? content
       : content.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join(' ');
 
-    // Try Memory Agent first (curated brief)
-    const ma = this.sharedState.memoryAgent as {
-      generateBrief?: (msg: string) => Promise<{ summary: string }>;
-    } | undefined;
-
-    if (ma?.generateBrief) {
-      try {
-        const brief = await ma.generateBrief(text);
-        if (brief.summary) return brief.summary;
-      } catch { /* fall through */ }
-    }
-
-    // Fallback: direct recall
-    const mm = this.sharedState.memoryManager as {
-      recall?: (opts: { query: string; limit: number; scope: string }) => Promise<Array<{ content: string; category: string }>>;
-    } | undefined;
-
-    if (!mm?.recall) return '';
-
+    // Memory v4: the same lookup the apps add before each message.
+    const session = this.sharedState.memorySession as { messageBlock?: (m: string) => Promise<string> } | undefined;
+    if (!session?.messageBlock) return '';
     try {
-      const entries = await mm.recall({ query: text, limit: 5, scope: 'all' });
-      if (!entries || entries.length === 0) return '';
-      return entries.map(e => `[${e.category}] ${e.content}`).join('\n');
+      return await session.messageBlock(text);
     } catch {
       return '';
     }

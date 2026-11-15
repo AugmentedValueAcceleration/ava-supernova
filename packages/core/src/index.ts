@@ -19,12 +19,12 @@ export { stripChangesSummary } from './auto/changes-summary.js';
 // Memory Agent
 export { MemoryAgent } from './memory/memory-agent.js';
 export type { MemoryBrief, MemoryAgentOptions } from './memory/memory-agent.js';
-// Memory v4: one store of plain files (see src/memory-v4). Opt-in until the switch-over.
+// Memory v4: Ava's memory — one store of plain files (see src/memory-v4).
 export { AvaMemory, MemorySession, memoryV4Root, datesIn } from './memory-v4/index.js';
 export type { Fact, FactKind, FactScope, FactSource, NewFact, Thread, ProjectRecord, RecallArgs, SearchHit as MemorySearchHit } from './memory-v4/index.js';
 export { MemoryRecallV4Tool } from './tools/memory-recall-v4.js';
 export { MemorySaveV4Tool, MemoryUpdateV4Tool, MemoryDeleteV4Tool } from './tools/memory-write-v4.js';
-export { consolidateSession, resolveMemoryModel, memoryPage, ensureOldMemoryImported } from './memory-v4/index.js';
+export { consolidateSession, resolveMemoryModel, memoryPage, ensureOldMemoryImported, removeOldMemoryFiles } from './memory-v4/index.js';
 export type { PageFact, PageOverview, PageOp } from './memory-v4/index.js';
 export type { ConsolidateResult } from './memory-v4/index.js';
 
@@ -460,6 +460,7 @@ export {
   BudgetTracker, estimateCost, DEFAULT_BUDGET,
   DESKTOP_SCOUT, DESKTOP_PLANNER, DESKTOP_ACTOR, DESKTOP_VERIFIER, DESKTOP_NARRATOR,
   DESKTOP_PERSONAS, DESKTOP_WAVE_ORDER, ESTIMATED_TOKENS_PER_STEP,
+  DesktopLearnedSteps,
 } from './desktop/index.js';
 export type {
   RiskClass, PermissionLevel, ActionClassificationInput, ClassificationResult as SafetyClassificationResult, ApprovalDecision,

@@ -30,7 +30,7 @@ function httpGetJson(url: string): Promise<unknown> {
   });
 }
 import {
-  MemoryManager, TaskManager, migrateGlobalTasksToSubfolder, JournalManager, AVA_HOME,
+  TaskManager, migrateGlobalTasksToSubfolder, JournalManager, AVA_HOME,
   resolveLocale,
   listOpenAICompatibleModels,
   loadPersonality, savePersonality, resetPersonality,
@@ -55,10 +55,10 @@ import {
   exportFolder, previewFolderExport, setFolderNote, STORE_PROFILES, STORE_TRADEMARK_NOTICE,
   loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipeSafety, checkExerciseSafety, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
-  AvaMemory, memoryPage, memoryV4Root, type PageOp,
+  AvaMemory, memoryPage, memoryV4Root, removeOldMemoryFiles, type PageOp,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
-import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
+import type { TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch, getDeviceId } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
@@ -71,7 +71,6 @@ import type {
   ConnectionStatus,
   ConversationEntry,
   ProviderKeyStatus,
-  MemoryEntry,
   DashboardTaskEntry,
   DashboardJournalEntry,
   DashboardJournalDay,
@@ -119,8 +118,7 @@ const CHAT_MESSAGE_TYPES = new Set([
   'cancel', 'interrupt', 'request_history', 'load_chat_conversation',
   'delete_chat_conversation', 'search_history', 'rename_conversation',
   'pin_conversation', 'export_conversation', 'new_chat', 'compress_context',
-  'set_provider_source', 'request_memory', 'save_chat_memory', 'clear_chat_memory',
-  'archive_chat_memory', 'restore_chat_memory', 'delete_chat_memory_entry',
+  'set_provider_source',
   'pong', 'request_today_tasks', 'request_all_tasks', 'toggle_task', 'panel_create_task',
   // grant_secret must reach AvaViewProvider — it owns the SecretAccess working
   // set that resolves {{secret:<id>}} handles at tool-execution time.
@@ -192,7 +190,6 @@ export class DashboardPanel {
   private readonly context: vscode.ExtensionContext;
   private readonly secrets: vscode.SecretStorage;
   private disposables: vscode.Disposable[] = [];
-  private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
   private viewProvider?: AvaViewProvider;
@@ -539,20 +536,6 @@ export class DashboardPanel {
         await this.detectLocalModels(msg.baseUrl, msg.apiKey);
         break;
 
-      case 'load_memories':
-        await this.loadMemories();
-        // Also send v3 graph stats, contradictions, patterns, and brain
-        this.sendGraphData();
-        break;
-
-      case 'load_more_memories':
-        await this.loadMoreMemories();
-        break;
-
-      case 'delete_all_memories':
-        await this.deleteAllMemories();
-        break;
-
       case 'save_connection':
         await this.saveConnection(msg.service, msg.credentials);
         break;
@@ -757,30 +740,6 @@ export class DashboardPanel {
         break;
 
       // ─── BYOK messages ──────────────────────────────────────────────────────
-
-      case 'load_local_memories':
-        await this.loadLocalMemories();
-        break;
-
-      case 'delete_local_memory':
-        await this.deleteLocalMemory(msg.id);
-        break;
-
-      case 'delete_all_local_memories':
-        await this.deleteAllLocalMemories();
-        break;
-
-      case 'upsert_local_memory':
-        await this.upsertLocalMemory(msg);
-        break;
-
-      case 'archive_local_memory':
-        await this.archiveLocalMemory(msg.id, true);
-        break;
-
-      case 'restore_local_memory':
-        await this.archiveLocalMemory(msg.id, false);
-        break;
 
       case 'load_session_stats':
         this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
@@ -2756,7 +2715,15 @@ export class DashboardPanel {
         const mem = this.memoryV4();
         let result: unknown;
         try {
-          result = mem ? await memoryPage(mem, m.op as PageOp, m.args ?? {}) : { ok: false, error: 'Memory v4 is not on.' };
+          result = await memoryPage(mem, m.op as PageOp, m.args ?? {});
+          if (m.op === 'forget_all') {
+            // Everything they asked to forget: the old memory's files too, and
+            // Ava's open session starts again on the empty memory.
+            // (Not when memory is pointed at a test copy: the real old files stay.)
+            if (!process.env.AVA_MEMORY_V4_ROOT?.trim()) await removeOldMemoryFiles(AVA_HOME);
+            await this.viewProvider?.reopenMemory();
+            void this.sendMemoryV4Status();
+          }
         } catch (err) {
           result = { ok: false, error: err instanceof Error ? err.message : String(err) };
         }
@@ -2960,11 +2927,10 @@ export class DashboardPanel {
 
   // ─── Init ──────────────────────────────────────────────────────────────────
 
-  /** Memory v4's store when it is on (AVA_MEMORY_V4_ROOT until the switch-over); otherwise null. */
+  /** Ava's memory (~/.ava/memory, or AVA_MEMORY_V4_ROOT for a test copy). */
   private memoryV4Store: AvaMemory | null = null;
-  private memoryV4(): AvaMemory | null {
+  private memoryV4(): AvaMemory {
     const root = memoryV4Root();
-    if (!root) return null;
     if (!this.memoryV4Store || this.memoryV4Store.root !== root) this.memoryV4Store = new AvaMemory({ root });
     return this.memoryV4Store;
   }
@@ -2975,11 +2941,19 @@ export class DashboardPanel {
     void DashboardPanel.currentPanel?.sendMemoryV4Status();
   }
 
+  /** The sidebar badge (waiting for a yes) and the Command Centre's memory card. */
   private async sendMemoryV4Status(): Promise<void> {
     const mem = this.memoryV4();
     let pending = 0;
-    try { pending = mem ? (await mem.listFacts('pending')).length : 0; } catch { /* a count is not worth failing over */ }
-    this.post({ type: 'memory_v4_status', on: !!mem, pending } as never);
+    let facts = 0;
+    let latest: string | null = null;
+    try {
+      pending = (await mem.listFacts('pending')).length;
+      const all = await mem.listFacts('fact');
+      facts = all.length;
+      latest = all.reduce<{ from: string; text: string } | null>((a, f) => (!a || f.from > a.from ? f : a), null)?.text ?? null;
+    } catch { /* a count is not worth failing over */ }
+    this.post({ type: 'memory_v4_status', on: true, pending, facts, latest } as never);
   }
 
   private async sendInit(): Promise<void> {
@@ -3021,142 +2995,8 @@ export class DashboardPanel {
     const workingHours = this.context.globalState.get<{ start: number; end: number }>('ava.workingHours') ?? null;
     this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, onboarding, consentAccepted, userAvatar, workingHours });
 
-    // Memories + session stats are local, so the Memory and Usage panels
-    // render with data straight away. Memories through the PAGED loader over
-    // Ava's own memory graph — what signed-in users always saw; the older
-    // loadLocalMemories posts a whole store at once.
-    this.loadMemories().catch(() => { /* non-fatal */ });
+    // Session stats are local, so the Usage panel renders straight away.
     this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
-  }
-
-  // ─── Memories ──────────────────────────────────────────────────────────────
-
-  private memoryOffset = 0;
-  // Full memory list, sorted, built once per load. The panel pages
-  // through it (a 2,500+ memory store froze the webview when posted at once).
-  private memoryCache: MemoryEntry[] = [];
-  private static readonly MEMORY_PAGE_SIZE = 100;
-
-  private async loadMemories(): Promise<void> {
-    this.memoryOffset = 0;
-    const byId = new Map<string, MemoryEntry>();
-
-    // Read the on-device memory (the v3 graph, via getEntries). Memory is
-    // local only. Use the AGENT's memory manager when available: it's
-    // scoped to the signed-in account dir (~/.ava/users/<id>) where saves land,
-    // whereas this panel's own manager defaults to ~/.ava and would miss them.
-    try {
-      const mgr = (this.viewProvider as unknown as { memoryManager?: MemoryManager }).memoryManager
-        ?? this.getMemoryManager();
-      const [g, p] = await Promise.all([
-        mgr.getEntries('global'),
-        mgr.getEntries('project').catch(() => [] as CoreMemoryEntry[]),
-      ]);
-      for (const e of g) byId.set(e.id, this.coreToDisplayEntry(e, 'global'));
-      for (const e of p) byId.set(e.id, this.coreToDisplayEntry(e, 'project'));
-    } catch (err) {
-      console.error('[Ava] loadMemories local read error:', err);
-    }
-
-    // Sort newest-first and cache; post only the first page so a large store
-    // doesn't freeze the webview. Subsequent pages come via loadMoreMemories.
-    const all = [...byId.values()].sort((a, b) =>
-      new Date(b.updated_at || b.created_at || 0).getTime() - new Date(a.updated_at || a.created_at || 0).getTime());
-    this.memoryCache = all;
-    const page = all.slice(0, DashboardPanel.MEMORY_PAGE_SIZE);
-    this.memoryOffset = page.length;
-    console.log(`[Ava] loadMemories: ${all.length} memories, showing first ${page.length}`);
-    this.post({ type: 'memories_loaded', memories: page, total: all.length, hasMore: all.length > page.length });
-  }
-
-  /** Send v3 graph stats, contradictions, patterns, and brain to the dashboard. */
-  private sendGraphData(): void {
-    try {
-      const mm = this.getMemoryManager() as any;
-      if (!mm?.getGraphStats) return;
-
-      // Graph stats for both scopes
-      const globalStats = mm.getGraphStats('global');
-      if (globalStats) this.post({ type: 'graph_stats', scope: 'global', stats: globalStats });
-
-      const projectStats = mm.getGraphStats('project');
-      if (projectStats) this.post({ type: 'graph_stats', scope: 'project', stats: projectStats });
-
-      // Contradictions (project scope — most relevant)
-      const contradictions = mm.getContradictions?.('project') ?? [];
-      if (contradictions.length > 0) {
-        this.post({ type: 'contradictions_loaded', contradictions });
-      }
-
-      // Procedural patterns
-      const patterns = (mm.getProceduralPatterns?.('project') ?? []).map((p: any) => ({
-        id: p.id,
-        taskType: p.taskType,
-        toolSequence: p.toolSequence,
-        observationCount: p.observationCount,
-        confidence: p.confidence,
-        crystallised: p.crystallised,
-        lastObservedAt: p.lastObservedAt,
-      }));
-      if (patterns.length > 0) {
-        this.post({ type: 'patterns_loaded', patterns });
-      }
-
-      // Project brain
-      const brain = mm.getProjectBrain?.();
-      this.post({
-        type: 'project_brain_loaded',
-        brain: brain ? {
-          brief: brain.brief,
-          stack: brain.stack,
-          keyDecisions: brain.keyDecisions,
-          confidenceAvg: brain.confidenceAvg,
-          nodeCount: brain.nodeCount,
-          lastSessionDate: brain.lastSessionDate,
-        } : null,
-      });
-    } catch {
-      // Non-critical — dashboard still shows basic memory list without graph data
-    }
-  }
-
-  private loadMoreMemories(): void {
-    // Page through the cached list built in loadMemories — no
-    // round-trip, no re-read of the whole graph.
-    const page = this.memoryCache.slice(this.memoryOffset, this.memoryOffset + DashboardPanel.MEMORY_PAGE_SIZE);
-    this.memoryOffset += page.length;
-    this.post({
-      type: 'memories_more_loaded',
-      memories: page,
-      total: this.memoryCache.length,
-      hasMore: this.memoryOffset < this.memoryCache.length,
-    });
-  }
-
-  private async deleteAllMemories(): Promise<void> {
-    // Step 1: clear all local files.
-    try {
-      const mgr = this.getMemoryManager();
-      await mgr.clearEverything();
-    } catch { /* best-effort */ }
-
-    // Step 2: Reset the AvaViewProvider's memory manager so it drops cached entries
-    if (this.viewProvider) {
-      try {
-        console.log('[Ava] Resetting AvaViewProvider memory manager...');
-        await (this.viewProvider as any).resetMemoryManager();
-        console.log('[Ava] AvaViewProvider memory manager reset complete.');
-      } catch (err) {
-        console.error('[Ava] Failed to reset AvaViewProvider memory manager:', err);
-      }
-    } else {
-      console.log('[Ava] No viewProvider reference — cannot reset AvaViewProvider memory manager');
-    }
-
-    // Clear both UI lists — the Memory page renders one or the other
-    // depending on account state, so empty both.
-    this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
-    this.post({ type: 'local_memories_loaded', memories: [] });
   }
 
   // ─── Connections ───────────────────────────────────────────────────────────
@@ -3675,135 +3515,6 @@ export class DashboardPanel {
     } catch (err) {
       this.log(`[Creative] Could not list models: ${err instanceof Error ? err.message : String(err)}`);
       this.post({ type: 'models_listed', models: [] });
-    }
-  }
-
-  // ─── Local Memories (BYOK) ──────────────────────────────────────────────────
-
-  private getMemoryManager(): MemoryManager {
-    if (!this.memoryManager) {
-      const globalDir = this.getUserDataDir();
-      const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      this.memoryManager = new MemoryManager({ globalDir, projectRoot });
-    }
-    return this.memoryManager;
-  }
-
-  private coreToDisplayEntry(entry: CoreMemoryEntry, scope: 'global' | 'project'): MemoryEntry {
-    return {
-      id: entry.id,
-      scope,
-      project_id: null,
-      key: entry.content.slice(0, 50).replace(/\n/g, ' '),
-      content: entry.content,
-      category: entry.category,
-      created_at: entry.createdAt,
-      updated_at: entry.updatedAt,
-      last_recalled_at: entry.lastRecalledAt ?? null,
-      recall_count: entry.recallCount,
-      tags: entry.tags,
-      archived: entry.archived,
-      archived_at: entry.archivedAt ?? null,
-      branch: entry.branch ?? null,
-      directory_scope: entry.directoryScope ?? null,
-    };
-  }
-
-  private async loadLocalMemories(): Promise<void> {
-    try {
-      const mgr = this.getMemoryManager();
-      const globalStore = await mgr.loadGlobalStore();
-      const projectStore = await mgr.loadProjectStore();
-
-      const memories: MemoryEntry[] = [
-        ...globalStore.entries.map(e => this.coreToDisplayEntry(e, 'global')),
-        ...(projectStore?.entries ?? []).map(e => this.coreToDisplayEntry(e, 'project')),
-      ];
-
-      this.post({ type: 'local_memories_loaded', memories });
-    } catch {
-      this.post({ type: 'local_memories_loaded', memories: [] });
-    }
-  }
-
-  private async deleteLocalMemory(id: string): Promise<void> {
-    try {
-      const mgr = this.getMemoryManager();
-      // Try global first, then project
-      const deleted = await mgr.deleteEntry('global', id) || await mgr.deleteEntry('project', id);
-      if (deleted) {
-        this.post({ type: 'local_memory_deleted', id });
-      } else {
-        this.post({ type: 'error', message: 'Memory not found.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to delete memory.' });
-    }
-  }
-
-  private async deleteAllLocalMemories(): Promise<void> {
-    try {
-      const mgr = this.getMemoryManager();
-      await mgr.clearAll('global');
-      await mgr.clearAll('project');
-      // Clear both UI lists — the Memory page may render either source.
-      this.post({ type: 'local_memories_loaded', memories: [] });
-      this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
-    } catch {
-      this.post({ type: 'error', message: 'Failed to delete all memories.' });
-    }
-  }
-
-  private async upsertLocalMemory(msg: { id?: string; content: string; category?: string | null }): Promise<void> {
-    try {
-      const mgr = this.getMemoryManager();
-      if (msg.id) {
-        const updated = await mgr.updateEntry('global', msg.id, { content: msg.content })
-          ?? await mgr.updateEntry('project', msg.id, { content: msg.content });
-        if (updated) {
-          this.post({ type: 'local_memory_upserted', memory: this.coreToDisplayEntry(updated, 'global') });
-        } else {
-          this.post({ type: 'error', message: 'Memory not found.' });
-        }
-      } else {
-        const entry = await mgr.saveEntry({
-          scope: 'global',
-          content: msg.content,
-          category: (msg.category as CoreMemoryEntry['category']) ?? 'general',
-        });
-        this.post({ type: 'local_memory_upserted', memory: this.coreToDisplayEntry(entry, 'global') });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to save memory.' });
-    }
-  }
-
-  private async archiveLocalMemory(id: string, archived: boolean): Promise<void> {
-    try {
-      const mgr = this.getMemoryManager();
-      // Load stores and find the entry
-      const globalStore = await mgr.loadGlobalStore();
-      let entry = globalStore.entries.find(e => e.id === id);
-      let scope: 'global' | 'project' = 'global';
-
-      if (!entry) {
-        const projectStore = await mgr.loadProjectStore();
-        entry = projectStore?.entries.find(e => e.id === id);
-        scope = 'project';
-      }
-
-      if (!entry) {
-        this.post({ type: 'error', message: 'Memory not found.' });
-        return;
-      }
-
-      // Toggle archived state and trigger save via updateEntry
-      entry.archived = archived;
-      entry.archivedAt = archived ? new Date().toISOString() : null;
-      await mgr.updateEntry(scope, id, { content: entry.content });
-      this.post({ type: 'local_memory_upserted', memory: this.coreToDisplayEntry(entry, scope) });
-    } catch {
-      this.post({ type: 'error', message: `Failed to ${archived ? 'archive' : 'restore'} memory.` });
     }
   }
 

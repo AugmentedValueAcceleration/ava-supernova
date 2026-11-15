@@ -12,7 +12,6 @@ import type {
   DashboardLearningCurriculum,
   DashboardTaskEntry,
   HealthPlan,
-  MemoryEntry,
   Page,
   SessionStats,
 } from '../types/messages';
@@ -103,8 +102,10 @@ interface OverviewProps {
   tasks: DashboardTaskEntry[];
   journalDay: DashboardJournalDay | null;
   learningCurriculums: DashboardLearningCurriculum[];
-  memories: MemoryEntry[];
-  memoryTotal?: number;
+  /** Ava's memory, for the card: facts, waiting for a yes, the newest fact. */
+  memoryFacts: number;
+  memoryWaiting: number;
+  memoryLatest: string | null;
   weatherData: WeatherData | null;
   newsArticles: NewsArticle[];
   latestRelease: ReleaseInfo | null;
@@ -146,8 +147,9 @@ export function Overview({
   tasks,
   journalDay,
   learningCurriculums,
-  memories,
-  memoryTotal,
+  memoryFacts,
+  memoryWaiting,
+  memoryLatest,
   weatherData,
   newsArticles,
   latestRelease,
@@ -339,7 +341,7 @@ export function Overview({
       {/* ── Reflect tab — Memory + Learning ──────────────────────────── */}
       {tab === 'reflect' && (
         <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <MemoryWidget memories={memories} onNavigate={onNavigate} total={memoryTotal} />
+          <MemoryWidget facts={memoryFacts} waiting={memoryWaiting} latest={memoryLatest} onNavigate={onNavigate} />
           <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
         </div>
       )}
@@ -1050,40 +1052,28 @@ function LearningWidget({ curriculums: rawCurriculums, onNavigate }: { curriculu
 
 // ── Memory Widget ────────────────────────────────────────────────────────────
 
-function MemoryWidget({ memories: rawMemories, onNavigate, total }: { memories: MemoryEntry[]; onNavigate: (p: Page) => void; total?: number }) {
-  const memories = Array.isArray(rawMemories) ? rawMemories : [];
-  const activeCount = memories.filter(m => !m.archived).length;
-  const lastMemory = memories.length > 0
-    ? memories.reduce((latest, m) => {
-        const mDate = m.updated_at ?? m.created_at;
-        const latestDate = latest.updated_at ?? latest.created_at;
-        return mDate > latestDate ? m : latest;
-      })
-    : null;
-
+function MemoryWidget({ facts, waiting, latest, onNavigate }: { facts: number; waiting: number; latest: string | null; onNavigate: (p: Page) => void }) {
   return (
     <WidgetCard
       title={t('dash.cc.memory')}
       icon={<Icon.brain size={16} />}
       action={{ label: t('dash.cc.view_all'), onClick: () => onNavigate('memory') }}
-      onRefresh={() => post({ type: 'load_memories' })}
     >
       <div className="space-y-3">
         <div className="flex items-center gap-4">
           <div>
-            <div className="text-2xl font-bold">{activeCount}</div>
-            <div className="text-[10px] text-[var(--text-muted)]">{t('dash.memory.title')}</div>
+            <div className="text-2xl font-bold">{facts}</div>
+            <div className="text-[10px] text-[var(--text-muted)]">{tt('memory.v4.card_facts', 'things Ava knows')}</div>
           </div>
           <div className="ml-auto text-right">
-            <div className="text-lg font-semibold text-[var(--text-secondary)]">{total ?? memories.length}</div>
-            <div className="text-[10px] text-[var(--text-muted)]">{t('dash.memory.total')}</div>
+            <div className="text-lg font-semibold text-[var(--text-secondary)]">{waiting}</div>
+            <div className="text-[10px] text-[var(--text-muted)]">{tt('memory.v4.card_waiting', 'waiting for your yes')}</div>
           </div>
         </div>
-        {lastMemory && (
+        {latest && (
           <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 p-2.5">
-            <p className="text-[10px] text-[var(--text-muted)] mb-0.5">{t('dash.memory.last_saved')}</p>
-            <p className="text-xs text-[var(--text-secondary)] truncate">{lastMemory.key || truncate(lastMemory.content, 60)}</p>
-            <p className="text-[9px] text-[var(--text-muted)] mt-0.5">{formatRelativeDate(lastMemory.updated_at ?? lastMemory.created_at)}</p>
+            <p className="text-[10px] text-[var(--text-muted)] mb-0.5">{tt('memory.v4.card_latest', 'Newest')}</p>
+            <p className="text-xs text-[var(--text-secondary)] truncate">{truncate(latest, 80)}</p>
           </div>
         )}
       </div>

@@ -73,7 +73,6 @@ import { InputArea } from './components/InputArea';
 import { Header } from './components/Header';
 import { HistoryPanel } from './components/HistoryPanel';
 import { SecretGrantPrompt } from './components/SecretGrantPrompt';
-import { MemoryPanel } from './components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
 import { TasksSpine } from './components/TasksSpine';
 import { ContextBar } from './components/ContextBar';
@@ -121,7 +120,6 @@ function stripModePrefix(content: string): string {
 type ChatAction =
   | ExtToWebviewMessage
   | { type: 'close_history' }
-  | { type: 'close_memory' }
   | { type: 'toggle_tasks' }
   | { type: 'close_tasks' }
   | { type: 'set_tasks_width'; width: number }
@@ -788,19 +786,6 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
     }
 
-    // ── Memory ──────────────────────────────────────────────────────────
-
-    case 'memory_content':
-      return {
-        ...state,
-        memoryOpen: true,
-        memoryGlobal: action.global,
-        memoryProject: action.project,
-      };
-
-    case 'close_memory':
-      return { ...state, memoryOpen: false };
-
     // ── Tasks ─────────────────────────────────────────────────────────────
 
     case 'today_tasks':
@@ -980,9 +965,6 @@ const initialState: ChatState = {
   currentConversationId: null,
   conversationTitle: null,
   showWelcome: false,
-  memoryOpen: false,
-  memoryGlobal: [],
-  memoryProject: [],
   tasksOpen: false,
   todayTasks: [],
   allTasks: [],
@@ -1477,10 +1459,6 @@ export function App() {
     dispatch({ type: 'close_history' });
   }, []);
 
-  const handleCloseMemory = useCallback(() => {
-    dispatch({ type: 'close_memory' });
-  }, []);
-
   const handleToggleTasks = useCallback(() => {
     if (!state.tasksOpen) {
       postMessage({ type: 'request_today_tasks' });
@@ -1524,41 +1502,6 @@ export function App() {
       dispatch({ type: 'set_tasks_width', width });
     },
     [],
-  );
-
-  const handleSaveMemory = useCallback(
-    (scope: 'global' | 'project', content: string) => {
-      postMessage({ type: 'save_memory', scope, content });
-    },
-    [postMessage],
-  );
-
-  const handleClearMemory = useCallback(
-    (scope: 'global' | 'project') => {
-      postMessage({ type: 'clear_memory', scope });
-    },
-    [postMessage],
-  );
-
-  const handleArchiveMemory = useCallback(
-    (scope: 'global' | 'project', id: string) => {
-      postMessage({ type: 'archive_memory', scope, id });
-    },
-    [postMessage],
-  );
-
-  const handleRestoreMemory = useCallback(
-    (scope: 'global' | 'project', id: string) => {
-      postMessage({ type: 'restore_memory', scope, id });
-    },
-    [postMessage],
-  );
-
-  const handleDeleteMemoryEntry = useCallback(
-    (scope: 'global' | 'project', id: string) => {
-      postMessage({ type: 'delete_memory_entry', scope, id });
-    },
-    [postMessage],
   );
 
   // Track last error for ARIA announcements
@@ -1758,20 +1701,6 @@ export function App() {
           </ErrorBoundary>
         )}
 
-        {state.memoryOpen && (
-          <ErrorBoundary>
-            <MemoryPanel
-              globalEntries={state.memoryGlobal}
-              projectEntries={state.memoryProject}
-              onClose={handleCloseMemory}
-              onSave={handleSaveMemory}
-              onClear={handleClearMemory}
-              onArchive={handleArchiveMemory}
-              onRestore={handleRestoreMemory}
-              onDelete={handleDeleteMemoryEntry}
-            />
-          </ErrorBoundary>
-        )}
       </div>
 
       {/* Tasks — always present on the right: full panel when open, thin
