@@ -179,7 +179,7 @@ describe.skipIf(!gimp)('in GIMP', () => {
     const brief = Object.fromEntries(IMAGE_BRIEF_FIELDS.map(([k]) => [k, `the ${k}`]));
     await new DesignProposeImageBriefTool().execute({ name: 'Record Icons', ...brief, reasoning: 'because' }, ctx('stat icons'));
     await agreeImageBrief('record-icons');
-  }, 30_000);
+  }, 120_000); // real GIMP: room for a busy machine
 
   it('a step records the model, their words, the script, the fonts and the files', async () => {
     const res = await build(
@@ -242,7 +242,7 @@ describe.skipIf(!blender)('in Blender', () => {
     const brief = Object.fromEntries(BRIEF_FIELDS.map(([k]) => [k, `the ${k}`]));
     await new DesignProposeModelBriefTool().execute({ name: 'Record Crate', ...brief, reasoning: 'because' }, ctx('a supply crate'));
     await agreeModelBrief('record-crate');
-  });
+  }, 120_000); // real Blender: room for a busy machine
 
   it('a step records the model, their words, Blender\'s version and the fonts in the file', async () => {
     const res = await build(

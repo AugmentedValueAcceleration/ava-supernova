@@ -42,7 +42,21 @@ export function userFontsFolder(): string {
 }
 
 /** Every font GIMP can use, or null when GIMP isn't here to ask. */
-export async function installedFonts(): Promise<string[] | null> {
+/**
+ * The installed fonts, remembered for a few minutes. Asking GIMP takes seconds
+ * (it starts headless), and a single proposal or brief can ask several times.
+ * Installing a font through Ava asks afresh; a failed answer is never kept.
+ */
+const FONT_LIST_TTL_MS = 5 * 60_000;
+let fontListCache: { at: number; fonts: string[] } | null = null;
+export async function installedFonts(opts: { fresh?: boolean } = {}): Promise<string[] | null> {
+  if (!opts.fresh && fontListCache && Date.now() - fontListCache.at < FONT_LIST_TTL_MS) return fontListCache.fonts;
+  const fonts = await readInstalledFonts();
+  fontListCache = fonts ? { at: Date.now(), fonts } : null;
+  return fonts;
+}
+
+async function readInstalledFonts(): Promise<string[] | null> {
   const gimp = await findGimp();
   if (!gimp) return null;
   const dir = await mkdtemp(join(tmpdir(), 'ava-fonts-'));
@@ -166,7 +180,7 @@ async function installGoogleFont(family: string, wanted: number[], signal?: Abor
     added.push(face.weight);
   }
 
-  const fonts = await installedFonts();
+  const fonts = await installedFonts({ fresh: true });
   const seen = fonts ? fontIsIn(family, fonts) : null;
   const done = added.length ? `Installed ${family}, weights ${added.join(', ')}.` : `${family} was already there.`;
   if (seen === false) return { ok: false, unseen: true, message: `${done} GIMP can't see it yet, so don't rely on it: tell them, and don't swap in another font without saying so.` };
