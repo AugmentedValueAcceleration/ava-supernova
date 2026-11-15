@@ -17,10 +17,13 @@ interface PageFact {
   id: string; text: string; kind: Kind; scope: string; project: string | null;
   origin: 'said' | 'noticed' | 'memory'; quote?: string; from: string;
   history: Array<{ text: string; from: string; until?: string }>; wouldReplace?: string;
+  /** A suggested promotion: the projects the lesson came up in. */
+  seenIn?: string[];
 }
 interface Overview {
   facts: number; aboutYou: number; days: number; pending: number; threadsOpen: number;
-  core: string; coreTokens: number; coreBudget: number; projects: Array<{ id: string; name: string; count: number }>;
+  core: string; coreTokens: number; coreBudget: number; projects: Array<{ id: string; name: string; count: number; links: string[] }>;
+  allProjects: Array<{ id: string; name: string }>;
 }
 interface ThreadRow { id: string; text: string; project?: string; projectName: string | null; added: string; due?: string; done?: string }
 interface Day { date: string; sections: Array<{ name: string; project?: string; lines: string[] }> }
@@ -101,6 +104,11 @@ function FactCard({ fact, request, onChanged }: { fact: PageFact; request: Memor
     <div style={{ ...card, borderColor: pending ? 'rgba(251,191,36,0.3)' : C.border, opacity: busy ? 0.6 : 1 }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
+          {fact.seenIn && fact.seenIn.length > 0 && (
+            <div style={{ ...meta, margin: '0 0 6px', color: C.warn }}>
+              {tt('memory.v4.seen_in', 'Came up in {projects}. Is this how you always work?').replace('{projects}', fact.seenIn.join(tt('memory.v4.and', ' and ')))}
+            </div>
+          )}
           {fact.wouldReplace && (
             <div style={{ ...meta, margin: '0 0 6px' }}>{tt('memory.v4.would_replace', 'Would replace:')} {fact.wouldReplace}</div>
           )}
@@ -210,6 +218,39 @@ function FactList({ view, project, query, request, refreshKey, onChanged }: {
         </div>
       )}
     </>
+  );
+}
+
+// ── Linked projects ───────────────────────────────────────────────────────
+
+/** Projects that belong together share what's relevant, ranked a little below the open one's own facts. */
+function LinkedProjects({ project, overview, onLink }: {
+  project: string; overview: Overview; onLink: (other: string, link: boolean) => void;
+}) {
+  useLocale();
+  const links = overview.projects.find((p) => p.id === project)?.links ?? [];
+  const name = (id: string) => overview.allProjects.find((p) => p.id === id)?.name ?? id;
+  const choices = overview.allProjects.filter((p) => p.id !== project && !links.includes(p.id));
+  return (
+    <div style={{ ...meta, margin: '2px 0 4px', gap: 8 }}>
+      <span>{tt('memory.v4.linked_with', 'Linked with:')}</span>
+      {links.length === 0 && <span>{tt('memory.v4.no_links', 'none')}</span>}
+      {links.map((id) => (
+        <span key={id} style={{ border: `1px solid ${C.border}`, borderRadius: 999, padding: '0 4px 0 10px', color: C.text2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          {name(id)}
+          <button type="button" aria-label={tt('memory.v4.unlink', 'Unlink')} title={tt('memory.v4.unlink', 'Unlink')} onClick={() => onLink(id, false)}
+            style={{ background: 'transparent', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 4px' }}>×</button>
+        </span>
+      ))}
+      {choices.length > 0 && (
+        <select value="" aria-label={tt('memory.v4.link_with', 'Link with…')} onChange={(e) => { if (e.target.value) onLink(e.target.value, true); }}
+          style={{ background: C.input, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text2, fontFamily: 'inherit', fontSize: 12, padding: '2px 6px' }}>
+          <option value="">{tt('memory.v4.link_with', 'Link with…')}</option>
+          {choices.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      )}
+      <span style={{ color: C.muted }}>{tt('memory.v4.links_note', 'Linked projects share what is relevant to each other.')}</span>
+    </div>
   );
 }
 
@@ -350,6 +391,13 @@ export function MemoryV4Page({ request, onPendingChange }: {
                   </button>
                 ))}
               </div>
+              {project && (
+                <LinkedProjects
+                  project={project}
+                  overview={overview}
+                  onLink={async (other, link) => { await request(link ? 'link' : 'unlink', { a: project, b: other }); changed(); }}
+                />
+              )}
               {project && <FactList key={project} view="project" project={project} query={query} request={request} refreshKey={refreshKey} onChanged={changed} />}
             </>
           )}

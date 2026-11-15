@@ -29,6 +29,8 @@ export interface PageFact {
   history: Array<{ text: string; from: string; until?: string }>;
   /** For a noticed change: the fact it would replace. */
   wouldReplace?: string;
+  /** For a suggested promotion: the projects the lesson came up in. */
+  seenIn?: string[];
 }
 
 export interface PageOverview {
@@ -40,13 +42,16 @@ export interface PageOverview {
   core: string;
   coreTokens: number;
   coreBudget: number;
-  projects: Array<{ id: string; name: string; count: number }>;
+  projects: Array<{ id: string; name: string; count: number; links: string[] }>;
+  /** Every project Ava knows, for the "link with" choice. */
+  allProjects: Array<{ id: string; name: string }>;
 }
 
 export type PageOp =
   | 'overview' | 'facts' | 'threads' | 'days'
   | 'confirm' | 'reject' | 'edit' | 'forget' | 'core'
-  | 'thread_add' | 'thread_done' | 'thread_reopen' | 'thread_delete';
+  | 'thread_add' | 'thread_done' | 'thread_reopen' | 'thread_delete'
+  | 'link' | 'unlink';
 
 const PAGE = 40;
 
@@ -69,6 +74,9 @@ async function toPage(mem: AvaMemory, f: Fact, projectNames: Record<string, stri
     from: f.from,
     history: f.state === 'pending' ? [] : chain.map((h) => ({ text: h.text, from: h.from, until: h.until })),
     wouldReplace,
+    seenIn: f.tags?.includes('promotion')
+      ? f.tags.filter((t) => t.startsWith('seen:')).map((t) => projectNames[t.slice(5)] ?? 'a project')
+      : undefined,
   };
 }
 
@@ -93,7 +101,12 @@ export async function memoryPage(mem: AvaMemory, op: PageOp, args: Record<string
         core,
         coreTokens: estimateTokens(core),
         coreBudget: CORE_TOKEN_BUDGET,
-        projects: Object.entries(counts).map(([id, count]) => ({ id, name: projectNames[id] ?? id, count })).sort((a, b) => b.count - a.count),
+        projects: await (async () => {
+          const all = await mem.projects.all();
+          const links = Object.fromEntries(all.map((p) => [p.id, p.links]));
+          return Object.entries(counts).map(([id, count]) => ({ id, name: projectNames[id] ?? id, count, links: links[id] ?? [] })).sort((a, b) => b.count - a.count);
+        })(),
+        allProjects: (await mem.projects.all()).map((p) => ({ id: p.id, name: p.name })).sort((a, b) => a.name.localeCompare(b.name)),
       };
       return result;
     }
@@ -167,6 +180,11 @@ export async function memoryPage(mem: AvaMemory, op: PageOp, args: Record<string
       return { ok: await mem.reopenThread(str('id')) };
     case 'thread_delete':
       return { ok: await mem.deleteThread(str('id')) };
+    case 'link':
+      return { ok: await mem.linkProjects(str('a'), str('b')) };
+    case 'unlink':
+      await mem.unlinkProjects(str('a'), str('b'));
+      return { ok: true };
     default:
       return { ok: false, error: `Unknown memory page action: ${String(op)}` };
   }

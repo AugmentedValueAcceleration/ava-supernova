@@ -153,7 +153,8 @@ export class MemorySession {
     const message = text.trim();
     if (message.length < 4) return '';
     const parts: string[] = [];
-    const hits = await this.mem.search(message, { project: this.project?.id, limit: 6 });
+    // Linked projects count too (ranked a little below this one's own facts).
+    const hits = await this.mem.search(message, { project: this.project?.id, reach: 'linked', limit: 6 });
     if (hits.length) {
       const names = await this.projectNames();
       parts.push(`Memories that may bear on this message (use what is relevant; ignore the rest):\n${hits.map((h) => factLine(h, names)).join('\n')}`);
@@ -185,7 +186,7 @@ export class MemorySession {
       if (!hit) return `No project called "${args.project}" in memory. Known projects: ${all.map((p) => p.name).join(', ') || 'none'}.`;
       also.push(hit.id);
     }
-    const hits = await this.mem.search(query, { project: this.project?.id, alsoProjects: also, reach: args.reach, limit: 10 });
+    const hits = await this.mem.search(query, { project: this.project?.id, alsoProjects: also, reach: args.reach ?? 'linked', limit: 10 });
     if (!hits.length) return `Nothing in memory matches "${query}".`;
     const names = await this.projectNames();
     return hits.map((h) => factLine(h, names)).join('\n');

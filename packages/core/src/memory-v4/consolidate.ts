@@ -27,6 +27,7 @@ import { FACT_KINDS } from './types.js';
 import { today as todayFn } from './files.js';
 import { logger } from '../core/logger.js';
 import { stripModePrefix } from '../memory/ambient-capture.js';
+import { suggestPromotion } from './promotion.js';
 import {
   getWorkModePrefix, getWorkTalkPrefix, getChatModePrefix, getPlanModePrefix,
   getWriteModePrefix, getSecurityModePrefix, getDesktopModePrefix, getTeachModePrefix,
@@ -235,6 +236,8 @@ export async function consolidateSession(opts: {
       const { fact, created } = await mem.addFact({ text, kind, scope, source: said ? 'said' : 'inferred', quote: said ? quote : undefined });
       if (!created) continue;
       if (fact.state === 'pending') result.waiting++; else result.saved++;
+      // The same lesson in another project: suggest it as how they always work.
+      if (await suggestPromotion(mem, fact)) result.waiting++;
     }
     return result;
   } catch (err) {

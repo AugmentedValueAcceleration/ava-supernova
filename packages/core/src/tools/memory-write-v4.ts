@@ -18,6 +18,7 @@ import type { MemorySession } from '../memory-v4/reader.js';
 import type { FactKind, FactScope } from '../memory-v4/types.js';
 import { FACT_KINDS } from '../memory-v4/types.js';
 import { containsCredentials } from './security.js';
+import { suggestPromotion } from '../memory-v4/promotion.js';
 
 const BLOCKED = 'Blocked: that looks like a key, token or password. Those never go in memory; keep them in the keychain or an environment variable.';
 
@@ -85,6 +86,8 @@ export class MemorySaveV4Tool implements Tool {
       quote: said ? quote : undefined,
     });
     if (!created) return { success: true, output: `Already remembered [${fact.id}].` };
+    // The same lesson in another project: suggest it, on the Memory page, as how they always work.
+    await suggestPromotion(session.mem, fact);
     return {
       success: true,
       output: fact.state === 'pending'

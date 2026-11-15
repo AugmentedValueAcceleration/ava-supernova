@@ -16,3 +16,4 @@ export { importOldMemory, importDone, ensureOldMemoryImported } from './import-v
 export type { ImportResult } from './import-v3.js';
 export { memoryPage } from './page.js';
 export type { PageFact, PageOverview, PageOp } from './page.js';
+export { suggestPromotion, PROMOTION_TAG } from './promotion.js';

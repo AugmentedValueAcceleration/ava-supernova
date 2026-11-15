@@ -43,8 +43,8 @@ import {
 const STATE_DIR: Record<FactState, string> = { fact: 'facts', pending: 'pending', history: 'history' };
 
 /** Hits from linked projects rank a little below the open one's; other projects lower still. */
-const LINKED_WEIGHT = 0.85;
-const OTHER_WEIGHT = 0.7;
+export const LINKED_WEIGHT = 0.85;
+export const OTHER_WEIGHT = 0.7;
 /** A keyword hit must cover this share of the query's weight (rare words weigh more). */
 const COVERAGE_MIN = 0.3;
 /**
