@@ -69,7 +69,6 @@ export { renderPdf } from './render-pdf.js';
 export { renderOdt, renderOds, ODT_MIMETYPE, ODS_MIMETYPE } from './render-odf.js';
 export { exportDocument, deriveExportPath, parseCsv } from './export-document.js';
 export type { ExportRequest, ExportResult } from './export-document.js';
-export { legacyToDocModel } from './doc-model.js';
 export type {
   DocModel, DocMeta, Block, Inline, ListItem, Align, CalloutVariant, BrandTokens,
 } from './doc-model.js';

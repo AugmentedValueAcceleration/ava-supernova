@@ -1,12 +1,13 @@
 /**
- * Email Draft Tool — Draft emails as native .docx files.
- *
- * Uses the `docx` library to generate real Word documents with
- * tone-aware formatting. Falls back to markdown if docx is not installed.
+ * Email Draft Tool — draft an email, and save it as a document when asked
+ * (Word, PDF, OpenDocument or Markdown, by the file name), through the one
+ * document engine.
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { extname } from 'node:path';
+import { validatePath } from './security.js';
+import { documentPathFor } from './authoring/document-places.js';
+import { writeDocumentFromMarkdown } from './authoring/export-document.js';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
@@ -18,7 +19,7 @@ export class EmailDraftTool implements Tool {
 
   readonly schema: FunctionSchema = {
     name: 'email_draft',
-    description: 'Draft a professional email. Supports tone control (formal, casual, brief) and structured sections. Can save to .docx file or return as text.',
+    description: 'Draft a professional email. Supports tone control (formal, casual, brief) and structured sections. Returns the text, and can save it as a Word, PDF, OpenDocument or Markdown file.',
     parameters: {
       type: 'object',
       properties: {
@@ -37,7 +38,7 @@ export class EmailDraftTool implements Tool {
         },
         sign_off: { type: 'string', description: 'Closing phrase (default: "Best regards")' },
         sender_name: { type: 'string', description: 'Your name for the sign-off' },
-        save_to: { type: 'string', description: 'Optional: file path to save. Save to documents/ for Library access (e.g. "documents/emails/client-update.docx")' },
+        save_to: { type: 'string', description: 'Optional: save it as a document — .docx, .pdf, .odt or .md by the name, e.g. "client-update.docx". A bare name is saved in the project documents/ folder, where the Library shows it.' },
       },
       required: ['to', 'subject', 'body'],
     },
@@ -68,20 +69,23 @@ export class EmailDraftTool implements Tool {
       };
     }
 
-    const absolutePath = saveTo.startsWith('/') || saveTo.includes(':')
-      ? saveTo
-      : join(context.cwd, saveTo);
+    // Inside the project; a bare name goes to documents/, where the Library shows it.
+    let absolutePath: string;
+    try { absolutePath = validatePath(documentPathFor(saveTo), context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
 
-    // Try native .docx generation
+    // One engine for every document (15 Nov 2026): the draft is written as
+    // Markdown and turned into the format its file name asks for.
+    const lines = [`**To:** ${to}`, '', `**Subject:** ${subject}`, '', body.trim(), '', `${signOff}${senderName ? `,  \n${senderName}` : ''}`];
+    const markdown = `---\ntitle: ${JSON.stringify(subject)}\nstyle: letter\n---\n\n${lines.join('\n')}\n`;
     try {
-      const { Document, Packer, Paragraph, TextRun } = await import('docx');
-      return await this.generateDocx(
-        { Document, Packer, Paragraph, TextRun },
-        absolutePath, to, subject, body, tone, signOff, senderName, emailText,
-      );
-    } catch {
-      // docx not available — fall back to plain text
-      return await this.generateTextFallback(absolutePath, to, subject, tone, emailText);
+      const out = await writeDocumentFromMarkdown(markdown, absolutePath);
+      return {
+        success: true,
+        output: `Email draft saved: ${out.path}\n\n${emailText}`,
+        metadata: { path: out.path, to, subject, tone, format: extname(out.path).slice(1) },
+      };
+    } catch (err) {
+      return { success: false, output: `Failed to save email draft: ${err instanceof Error ? err.message : String(err)}` };
     }
   }
 
@@ -96,141 +100,4 @@ export class EmailDraftTool implements Tool {
     return lines.join('\n');
   }
 
-  private async generateDocx(
-    docxLib: { Document: any; Packer: any; Paragraph: any; TextRun: any },
-    absolutePath: string,
-    to: string,
-    subject: string,
-    body: string,
-    tone: string,
-    signOff: string,
-    senderName: string | undefined,
-    emailText: string,
-  ): Promise<ToolResult> {
-    const { Document, Packer, Paragraph, TextRun } = docxLib;
-
-    // Tone-based font selection
-    const isSerif = tone === 'formal' || tone === 'assertive';
-    const fontFace = isSerif ? 'Times New Roman' : 'Calibri';
-    const bodyFontSize = isSerif ? 24 : 22; // half-points (24 = 12pt, 22 = 11pt)
-
-    // Split body into paragraphs
-    const bodyParagraphs = body.split(/\n\n+/).filter(p => p.trim());
-
-    const children: any[] = [];
-
-    // "To:" field
-    children.push(new Paragraph({
-      spacing: { after: 80 },
-      children: [
-        new TextRun({ text: 'To: ', bold: true, font: fontFace, size: bodyFontSize }),
-        new TextRun({ text: to, font: fontFace, size: bodyFontSize }),
-      ],
-    }));
-
-    // "Subject:" field
-    children.push(new Paragraph({
-      spacing: { after: 200 },
-      children: [
-        new TextRun({ text: 'Subject: ', bold: true, font: fontFace, size: bodyFontSize }),
-        new TextRun({ text: subject, font: fontFace, size: bodyFontSize }),
-      ],
-    }));
-
-    // Horizontal rule (thin border paragraph)
-    children.push(new Paragraph({
-      spacing: { after: 200 },
-      border: {
-        bottom: { color: '999999', space: 1, style: 'single' as any, size: 6 },
-      },
-    }));
-
-    // Body paragraphs
-    for (const para of bodyParagraphs) {
-      // Handle single newlines within a paragraph as line breaks
-      const lines = para.split('\n');
-      const runs: any[] = [];
-      for (let i = 0; i < lines.length; i++) {
-        if (i > 0) {
-          runs.push(new TextRun({ text: '', break: 1, font: fontFace, size: bodyFontSize }));
-        }
-        runs.push(new TextRun({ text: lines[i], font: fontFace, size: bodyFontSize }));
-      }
-
-      children.push(new Paragraph({
-        spacing: { after: 160 },
-        children: runs,
-      }));
-    }
-
-    // Spacer before sign-off
-    children.push(new Paragraph({ spacing: { after: 80 } }));
-
-    // Sign-off
-    const signOffRuns: any[] = [
-      new TextRun({ text: signOff + (senderName ? ',' : ''), font: fontFace, size: bodyFontSize }),
-    ];
-    if (senderName) {
-      signOffRuns.push(new TextRun({ text: '', break: 1, font: fontFace, size: bodyFontSize }));
-      signOffRuns.push(new TextRun({ text: senderName, font: fontFace, size: bodyFontSize }));
-    }
-    children.push(new Paragraph({ children: signOffRuns }));
-
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children,
-      }],
-    });
-
-    // Ensure output path ends with .docx
-    let outputPath = absolutePath;
-    if (!outputPath.toLowerCase().endsWith('.docx')) {
-      outputPath = outputPath.replace(/\.[^.]+$/, '.docx');
-      if (!outputPath.toLowerCase().endsWith('.docx')) {
-        outputPath += '.docx';
-      }
-    }
-
-    try {
-      await mkdir(dirname(outputPath), { recursive: true });
-      const buffer = await Packer.toBuffer(doc);
-      await writeFile(outputPath, buffer);
-
-      return {
-        success: true,
-        output: `Email draft saved as .docx: ${outputPath}\n\n${emailText}`,
-        metadata: { path: outputPath, to, subject, tone, format: 'docx' },
-      };
-    } catch (err) {
-      return { success: false, output: `Failed to save email draft: ${err}` };
-    }
-  }
-
-  private async generateTextFallback(
-    absolutePath: string,
-    to: string,
-    subject: string,
-    tone: string,
-    emailText: string,
-  ): Promise<ToolResult> {
-    // Keep original path but warn about missing library
-    let outputPath = absolutePath;
-    if (outputPath.toLowerCase().endsWith('.docx')) {
-      outputPath = outputPath.replace(/\.docx$/i, '.txt');
-    }
-
-    try {
-      await mkdir(dirname(outputPath), { recursive: true });
-      await writeFile(outputPath, emailText, 'utf-8');
-
-      return {
-        success: true,
-        output: `Email draft saved as text (docx library not available — install with: pnpm add docx): ${outputPath}\n\n${emailText}`,
-        metadata: { path: outputPath, to, subject, tone, format: 'text', fallback: true },
-      };
-    } catch (err) {
-      return { success: false, output: `Failed to save draft: ${err}` };
-    }
-  }
 }

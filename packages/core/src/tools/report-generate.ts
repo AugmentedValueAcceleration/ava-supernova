@@ -12,19 +12,16 @@
  * Ava produces has the same look.
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { extname } from 'node:path';
+import { validatePath } from './security.js';
+import { documentPathFor } from './authoring/document-places.js';
+import { writeDocumentFromMarkdown } from './authoring/export-document.js';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { TaskManager } from '../tasks/task-manager.js';
 import type { JournalManager } from '../journal/journal-manager.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import { localYmd, todayLocal } from '../core/dates.js';
-import {
-  titleParagraph, subtitleParagraph, headingParagraph, bodyParagraph,
-  bulletParagraph, themedTable, sectionProperties,
-  AVA_FONT, AVA_BODY_SIZE_DOCX, AVA_BODY_COLOR,
-} from './document-styling.js';
 
 export class ReportGenerateTool implements Tool {
   readonly name = 'report_generate';
@@ -34,7 +31,7 @@ export class ReportGenerateTool implements Tool {
 
   readonly schema: FunctionSchema = {
     name: 'report_generate',
-    description: 'Generate a structured report by combining data from tasks, journal entries, memories, and project context. Supports multiple report types: weekly status, project health, sprint review, board brief. Output is a .docx Word document.',
+    description: 'Generate a structured report by combining data from tasks, journal entries, memories, and project context. Supports multiple report types: weekly status, project health, sprint review, board brief. The format follows the file name: .docx (Word), .pdf, .odt or .md.',
     parameters: {
       type: 'object',
       properties: {
@@ -44,7 +41,7 @@ export class ReportGenerateTool implements Tool {
           description: 'Type of report to generate',
         },
         title: { type: 'string', description: 'Report title (auto-generated if omitted)' },
-        file_path: { type: 'string', description: 'Output file path. Save to documents/ for Library access (e.g. "documents/reports/weekly-2026-03-17.docx")' },
+        file_path: { type: 'string', description: 'Output file, e.g. "weekly-2026-11-15.docx" or ".pdf". A bare name is saved in the project documents/ folder, where the Library shows it.' },
         period_days: { type: 'number', description: 'Number of days to cover (default: 7)' },
         include_tasks: { type: 'boolean', description: 'Include task summary (default: true)' },
         include_journal: { type: 'boolean', description: 'Include journal highlights (default: true)' },
@@ -79,9 +76,9 @@ export class ReportGenerateTool implements Tool {
       return { success: false, output: 'report_type and file_path are required.' };
     }
 
-    const absolutePath = filePath.startsWith('/') || filePath.includes(':')
-      ? filePath
-      : join(context.cwd, filePath);
+    // Inside the project; a bare name goes to documents/, where the Library shows it.
+    let absolutePath: string;
+    try { absolutePath = validatePath(documentPathFor(filePath), context.cwd); } catch (e) { return { success: false, output: (e as Error).message }; }
 
     const now = new Date();
     const periodStart = new Date(now);
@@ -104,21 +101,20 @@ export class ReportGenerateTool implements Tool {
       ? await this.gatherDecisionData(context.sharedState.memoryManager as MemoryManager)
       : null;
 
-    // Try native .docx generation
+    // One engine for every document (15 Nov 2026): the report is written as
+    // Markdown and turned into the format its file name asks for — Word, PDF,
+    // OpenDocument or Markdown itself — with the same fonts, house style and
+    // tables as everything else Ava writes.
+    const markdown = this.buildMarkdown(title, startDate, endDate, taskData, journalData, decisionData, customSections);
     try {
-      const docxLib = await import('docx');
-      return await this.generateDocx(
-        docxLib, absolutePath, title, startDate, endDate,
-        taskData, journalData, decisionData, customSections,
-        reportType, periodDays,
-      );
-    } catch {
-      // docx not available — fall back to markdown
-      return await this.generateMarkdownFallback(
-        absolutePath, title, startDate, endDate,
-        taskData, journalData, decisionData, customSections,
-        reportType, periodDays,
-      );
+      const out = await writeDocumentFromMarkdown(markdown, absolutePath);
+      return {
+        success: true,
+        output: `Report saved: ${out.path}\n\n${markdown}`,
+        metadata: { path: out.path, reportType, periodDays, lineCount: markdown.split('\n').length, format: extname(out.path).slice(1) },
+      };
+    } catch (err) {
+      return { success: false, output: `Failed to write report: ${err instanceof Error ? err.message : String(err)}` };
     }
   }
 
@@ -172,9 +168,9 @@ export class ReportGenerateTool implements Tool {
 
   // ─── Native .docx Generation ─────────────────────────────────────────
 
-  private async generateDocx(
-    docxLib: any,
-    absolutePath: string,
+  // ─── The report as Markdown ──────────────────────────────────────────
+
+  private buildMarkdown(
     title: string,
     startDate: string,
     endDate: string,
@@ -182,207 +178,44 @@ export class ReportGenerateTool implements Tool {
     journalData: Awaited<ReturnType<typeof this.gatherJournalData>>,
     decisionData: Awaited<ReturnType<typeof this.gatherDecisionData>>,
     customSections: Array<{ heading: string; content: string }> | undefined,
-    reportType: string,
-    periodDays: number,
-  ): Promise<ToolResult> {
-    const { Document, Packer, Paragraph, TextRun } = docxLib;
+  ): string {
+    const yaml = (v: string) => JSON.stringify(v);
+    const sections: string[] = [`---\ntitle: ${yaml(title)}\nsubtitle: ${yaml(`${startDate} to ${endDate}`)}\ndate: ${yaml(endDate)}\nstyle: report\n---`];
 
-    const children: any[] = [];
-
-    // Title page (using shared style kit)
-    children.push(titleParagraph(docxLib, title));
-    children.push(subtitleParagraph(docxLib, `Generated by Ava Supernova on ${endDate}`));
-    children.push(subtitleParagraph(docxLib, `Period: ${startDate} — ${endDate}`));
-
-    // Tasks section
     if (taskData) {
       const { completed, inProgress, overdue } = taskData;
-
-      if (completed.length > 0 || inProgress.length > 0 || overdue.length > 0) {
-        children.push(headingParagraph(docxLib, 'Tasks', 1));
-
-        const allDisplayTasks = [
-          ...completed.slice(0, 10).map(t => ({ name: t.title, status: 'Completed', priority: (t as any).priority || '-' })),
-          ...inProgress.slice(0, 10).map(t => ({ name: t.title, status: 'In Progress', priority: (t as any).priority || '-' })),
-          ...overdue.slice(0, 5).map(t => ({ name: t.title, status: `Overdue (due ${t.dueDate})`, priority: (t as any).priority || '-' })),
-        ];
-
-        if (allDisplayTasks.length > 0) {
-          children.push(themedTable(docxLib, {
-            headers: ['Task', 'Status', 'Priority'],
-            rows: allDisplayTasks.map(t => [t.name, t.status, String(t.priority)]),
-            columnWidths: [60, 20, 20],
-          }));
-        }
-      }
-    }
-
-    // Journal section
-    if (journalData && journalData.length > 0) {
-      children.push(headingParagraph(docxLib, 'Journal Highlights', 1));
-
-      for (const entry of journalData) {
-        // Mixed-style paragraph: bold date prefix + body content. Custom build
-        // because the shared helper takes a single text run; this needs two.
-        children.push(new Paragraph({
-          spacing: { after: 120, line: 276 },
-          children: [
-            new TextRun({ text: `${entry.date}: `, bold: true, font: AVA_FONT, size: AVA_BODY_SIZE_DOCX, color: AVA_BODY_COLOR }),
-            new TextRun({ text: entry.content, font: AVA_FONT, size: AVA_BODY_SIZE_DOCX, color: AVA_BODY_COLOR }),
-          ],
-        }));
-      }
-    }
-
-    // Decisions section
-    if (decisionData && decisionData.length > 0) {
-      children.push(headingParagraph(docxLib, 'Key Decisions', 1));
-      for (const decision of decisionData) {
-        children.push(bulletParagraph(docxLib, decision));
-      }
-    }
-
-    // Custom sections
-    if (customSections && customSections.length > 0) {
-      for (const section of customSections) {
-        children.push(headingParagraph(docxLib, section.heading, 1));
-        const paragraphs = section.content.split(/\n\n+/).filter(p => p.trim());
-        for (const para of paragraphs) {
-          children.push(bodyParagraph(docxLib, para.trim()));
-        }
-      }
-    }
-
-    const doc = new Document({
-      sections: [{
-        properties: sectionProperties(),
-        children,
-      }],
-    });
-
-    // Ensure output path ends with .docx
-    let outputPath = absolutePath;
-    if (!outputPath.toLowerCase().endsWith('.docx')) {
-      outputPath = outputPath.replace(/\.[^.]+$/, '.docx');
-      if (!outputPath.toLowerCase().endsWith('.docx')) {
-        outputPath += '.docx';
-      }
-    }
-
-    try {
-      await mkdir(dirname(outputPath), { recursive: true });
-      const buffer = await Packer.toBuffer(doc);
-      await writeFile(outputPath, buffer);
-
-      const sectionCount = [taskData, journalData, decisionData, customSections?.length ? customSections : null]
-        .filter(Boolean).length;
-
-      return {
-        success: true,
-        output: `Report generated: ${outputPath} (native .docx, ${sectionCount} sections)`,
-        metadata: {
-          path: outputPath,
-          reportType,
-          periodDays,
-          format: 'docx',
-          sections: sectionCount,
-        },
-      };
-    } catch (err) {
-      return { success: false, output: `Failed to write report: ${err}` };
-    }
-  }
-
-  // ─── Markdown Fallback ────────────────────────────────────────────────
-
-  private async generateMarkdownFallback(
-    absolutePath: string,
-    title: string,
-    startDate: string,
-    endDate: string,
-    taskData: Awaited<ReturnType<typeof this.gatherTaskData>>,
-    journalData: Awaited<ReturnType<typeof this.gatherJournalData>>,
-    decisionData: Awaited<ReturnType<typeof this.gatherDecisionData>>,
-    customSections: Array<{ heading: string; content: string }> | undefined,
-    reportType: string,
-    periodDays: number,
-  ): Promise<ToolResult> {
-    const sections: string[] = [];
-    sections.push(`# ${title}`);
-    sections.push(`\n*Generated by Ava Supernova on ${endDate}*`);
-    sections.push(`*Period: ${startDate} — ${endDate}*\n`);
-
-    // Tasks
-    if (taskData) {
-      const { completed, inProgress, overdue } = taskData;
-      if (completed.length > 0 || inProgress.length > 0) {
+      if (completed.length || inProgress.length || overdue.length) {
         const lines: string[] = ['## Tasks'];
-        if (completed.length > 0) {
-          lines.push(`\n**Completed (${completed.length}):**`);
-          for (const t of completed.slice(0, 10)) lines.push(`- ✓ ${t.title}`);
+        if (completed.length) {
+          lines.push(`\n**Completed (${completed.length})**\n`);
+          for (const t of completed.slice(0, 10)) lines.push(`- ${t.title}`);
         }
-        if (inProgress.length > 0) {
-          lines.push(`\n**In Progress (${inProgress.length}):**`);
-          for (const t of inProgress.slice(0, 10)) lines.push(`- → ${t.title}`);
+        if (inProgress.length) {
+          lines.push(`\n**In progress (${inProgress.length})**\n`);
+          for (const t of inProgress.slice(0, 10)) lines.push(`- ${t.title}`);
         }
-        if (overdue.length > 0) {
-          lines.push(`\n**Overdue (${overdue.length}):**`);
-          for (const t of overdue.slice(0, 5)) lines.push(`- ⚠ ${t.title} (due ${t.dueDate})`);
+        if (overdue.length) {
+          lines.push(`\n:::warning Overdue (${overdue.length})`);
+          for (const t of overdue.slice(0, 5)) lines.push(`- ${t.title} (due ${t.dueDate})`);
+          lines.push(':::');
         }
         sections.push(lines.join('\n'));
       }
     }
 
-    // Journal
-    if (journalData && journalData.length > 0) {
-      const lines: string[] = ['## Journal Highlights'];
-      for (const entry of journalData) {
-        lines.push(`\n**${entry.date}:** ${entry.content}`);
-      }
+    if (journalData?.length) {
+      const lines: string[] = ['## Journal highlights'];
+      for (const entry of journalData) lines.push(`\n**${entry.date}:** ${entry.content}`);
       sections.push(lines.join('\n'));
     }
 
-    // Decisions
-    if (decisionData && decisionData.length > 0) {
-      const lines: string[] = ['## Key Decisions'];
-      for (const d of decisionData) lines.push(`\n- ${d}`);
-      sections.push(lines.join('\n'));
+    if (decisionData?.length) {
+      sections.push(['## Key decisions', '', ...decisionData.map((d) => `- ${d}`)].join('\n'));
     }
 
-    // Custom sections
-    if (customSections && customSections.length > 0) {
-      for (const section of customSections) {
-        sections.push(`## ${section.heading}\n\n${section.content}`);
-      }
-    }
+    for (const section of customSections ?? []) sections.push(`## ${section.heading}\n\n${section.content}`);
 
-    const content = sections.join('\n\n---\n\n');
-
-    // Use .md extension for fallback
-    let outputPath = absolutePath;
-    if (outputPath.toLowerCase().endsWith('.docx')) {
-      outputPath = outputPath.replace(/\.docx$/i, '.md');
-    }
-
-    try {
-      await mkdir(dirname(outputPath), { recursive: true });
-      await writeFile(outputPath, content, 'utf-8');
-
-      return {
-        success: true,
-        output: `Report generated as markdown (docx library not available — install with: pnpm add docx): ${outputPath}\n\n${content}`,
-        metadata: {
-          path: outputPath,
-          reportType,
-          periodDays,
-          lineCount: content.split('\n').length,
-          format: 'markdown',
-          fallback: true,
-        },
-      };
-    } catch (err) {
-      return { success: false, output: `Failed to write report: ${err}` };
-    }
+    return sections.join('\n\n') + '\n';
   }
 
   private defaultTitle(reportType: string, date: string): string {

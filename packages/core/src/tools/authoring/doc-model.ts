@@ -10,11 +10,10 @@
  * It deliberately replaces the old flat `DocumentContent` ({ title, sections:
  * [{ heading, text, list, table }] }) which had no inline formatting, capped
  * headings at H2, and could not express ordered/nested lists, callouts, images,
- * footnotes, or page breaks. `legacyToDocModel` bridges the old shape so
- * existing callers (e.g. report_generate) keep working during migration.
+ * footnotes, or page breaks. Every producer now writes Markdown through this
+ * model (the legacy bridge was retired on 15 Nov 2026).
  */
 
-import type { DocumentContent } from '../document-templates.js';
 
 // ── Inline level ─────────────────────────────────────────────────────────────
 
@@ -117,39 +116,3 @@ export function inlineToPlainText(inlines: Inline[]): string {
   return out;
 }
 
-/**
- * Bridge the legacy flat `DocumentContent` shape onto the rich model so existing
- * producers (report_generate, the old document_manage create path) can render
- * through the new engine unchanged. Each legacy section's `text` is split on
- * blank lines into paragraphs; `list` becomes an unordered list; `table` carries
- * straight across. No inline formatting is inferred — legacy text was plain.
- */
-export function legacyToDocModel(content?: DocumentContent): DocModel {
-  const blocks: Block[] = [];
-  for (const section of content?.sections ?? []) {
-    if (section.heading) {
-      blocks.push({ type: 'heading', level: 1, inlines: textInline(section.heading) });
-    }
-    if (section.text) {
-      for (const para of section.text.split(/\n{2,}/)) {
-        const trimmed = para.trim();
-        if (trimmed) blocks.push({ type: 'paragraph', inlines: textInline(trimmed) });
-      }
-    }
-    if (section.list) {
-      blocks.push({
-        type: 'list',
-        ordered: false,
-        items: section.list.map(item => ({ inlines: textInline(item) })),
-      });
-    }
-    if (section.table) {
-      blocks.push({
-        type: 'table',
-        headers: section.table.headers.map(h => textInline(h)),
-        rows: section.table.rows.map(row => row.map(cell => textInline(cell))),
-      });
-    }
-  }
-  return { meta: { title: content?.title }, blocks };
-}

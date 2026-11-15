@@ -138,3 +138,29 @@ function csvToModel(raw: string, title: string): DocModel {
     }],
   };
 }
+
+/**
+ * Markdown → a file in the format its name asks for (.docx / .pdf / .odt /
+ * .ods / .md), through the one document engine. Used by the tools that
+ * assemble a document themselves (report_generate, email_draft) so their
+ * files get the same fonts, house style and tables as document_author's.
+ */
+export async function writeDocumentFromMarkdown(markdown: string, outPath: string): Promise<{ path: string; bytes: number }> {
+  const ext = extname(outPath).toLowerCase().replace('.', '');
+  const { mkdir } = await import('node:fs/promises');
+  await mkdir(dirname(outPath), { recursive: true });
+  if (ext === 'md' || ext === 'markdown' || ext === 'txt') {
+    await writeFile(outPath, markdown, 'utf8');
+    return { path: outPath, bytes: Buffer.byteLength(markdown) };
+  }
+  if (!['docx', 'pdf', 'odt', 'ods'].includes(ext)) throw new Error(`Cannot write a .${ext} document — use .docx, .pdf, .odt or .md.`);
+  const rendered = await renderDocument(parseMarkdown(markdown), ext as RenderTarget, {
+    baseDir: dirname(outPath),
+    loadDocx: () => import('docx'),
+    // @ts-expect-error — pdfkit ships no types here
+    loadPdf: () => import('pdfkit'),
+  });
+  const data = typeof rendered === 'string' ? Buffer.from(rendered, 'utf8') : rendered;
+  await writeFile(outPath, data);
+  return { path: outPath, bytes: data.length };
+}
