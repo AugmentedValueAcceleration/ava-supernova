@@ -4730,4 +4730,11 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': '放大',
   'viewer.zoom_out': '缩小',
   'viewer.chart': '图表',
+  'settings.pdf_fonts.about': '所有语言的 PDF 均能正确显示。中文、日文和韩文的粗体默认显示为常规字重，除非您添加此字体包：{mb} MB，需从谷歌 Noto 字体库下载一次，且在使用前会进行检查。',
+  'settings.pdf_fonts.download': '下载 ({mb} MB)',
+  'settings.pdf_fonts.downloading': '正在下载… {pct}%',
+  'settings.pdf_fonts.installed': '已安装。这些语言的 PDF 将使用真实粗体。',
+  'settings.pdf_fonts.remove': '移除',
+  'settings.pdf_fonts.section': 'PDF 字体',
+  'settings.pdf_fonts.title': 'PDF 中的中文、日文和韩文粗体',
 };

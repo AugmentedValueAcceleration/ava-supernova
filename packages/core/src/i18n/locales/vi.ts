@@ -4750,4 +4750,11 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Phóng to',
   'viewer.zoom_out': 'Thu nhỏ',
   'viewer.chart': 'Biểu đồ',
+  'settings.pdf_fonts.about': 'PDF trong mọi ngôn ngữ đều hiển thị chính xác. Đối với tiếng Trung, Nhật và Hàn, chữ đậm mặc định ở trọng lượng thường trừ khi bạn thêm gói phông chữ này: {mb} MB, tải một lần từ phông chữ Noto của Google và được kiểm tra trước khi dùng.',
+  'settings.pdf_fonts.download': 'Tải xuống ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Đang tải… {pct}%',
+  'settings.pdf_fonts.installed': 'Đã cài đặt. PDF trong các ngôn ngữ này sử dụng nét đậm thực tế.',
+  'settings.pdf_fonts.remove': 'Xóa',
+  'settings.pdf_fonts.section': 'Phông chữ PDF',
+  'settings.pdf_fonts.title': 'Chữ đậm tiếng Trung, Nhật và Hàn trong PDF',
 };

@@ -4,10 +4,12 @@
 
 import { mkdtempSync, existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { DocumentAuthorTool } from '../../core/dist/tools/document-author.js';
 import { DocumentManageTool } from '../../core/dist/tools/document-manage.js';
 
+// The fonts sit beside the bundle, as in the shipped app.
+process.env.AVA_FONTS_DIR = join(dirname(process.argv[1]), 'fonts');
 const cwd = mkdtempSync(join(tmpdir(), 'ava-doc-smoke-work-'));
 const ctx = { cwd, sharedState: {} };
 const author = new DocumentAuthorTool();
@@ -34,6 +36,15 @@ async function main() {
   check('spreadsheet ods', r.success && size(join(cwd, 'documents', 'sheet.ods')) > 500, r.output);
   r = await manage.execute({ action: 'read', file_path: 'sheet.ods' }, ctx);
   check('read ods', r.success && /1,?150/.test(r.output), r.success ? '' : r.output);
+
+  // A PDF in every script, read back (15 Nov 2026: PDFs were garbled in 11 of 20 languages).
+  const langs = ['Zażółć gęślą jaźń', 'Kế hoạch của bạn', 'Ваш план на неделю', '你本周的计划', '今週の計画', '이번 주 계획'];
+  const others = ['خطتك لهذا الأسبوع', 'इस सप्ताह', 'แผนของคุณ'];
+  r = await author.execute({ action: 'create', file_path: 'langs.md', content: ['# Languages', ...langs, ...others].join('\n\n') + '\n' }, ctx);
+  r = await author.execute({ action: 'build', file_path: 'langs.md', format: 'pdf' }, ctx);
+  r = await author.execute({ action: 'read', file_path: 'langs.pdf' }, ctx);
+  const missing = langs.filter((l) => !r.output.includes(l));
+  check('pdf in every script', r.success && !missing.length, missing.length ? `garbled: ${missing.join(' | ')}` : '');
 
   r = await author.execute({ action: 'read', file_path: 'smoke.pdf' }, ctx);
   check('read pdf', r.success && r.output.includes('Smoke test'), r.success ? '' : r.output);

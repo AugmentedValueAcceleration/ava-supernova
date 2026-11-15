@@ -24,3 +24,18 @@ export function copyPdfkitData(outDir) {
   fs.mkdirSync(dest, { recursive: true });
   for (const f of fs.readdirSync(src)) fs.copyFileSync(path.join(src, f), path.join(dest, f));
 }
+
+/** The PDF fonts (Noto, every script Ava writes in) → `<outDir>/fonts`, fetched
+ *  and checksum-checked by core's scripts/fetch-fonts.mjs. The extension sets
+ *  AVA_FONTS_DIR to this folder when it starts. */
+export async function copyPdfFonts(outDir) {
+  const { ensureFonts } = await import(new URL('../../core/scripts/fetch-fonts.mjs', import.meta.url).href);
+  const fonts = await ensureFonts();
+  const dest = path.join(outDir, 'fonts');
+  fs.mkdirSync(dest, { recursive: true });
+  for (const f of fonts) {
+    const to = path.join(dest, f.file);
+    if (fs.existsSync(to) && fs.statSync(to).size === fs.statSync(f.path).size) continue;
+    fs.copyFileSync(f.path, to);
+  }
+}

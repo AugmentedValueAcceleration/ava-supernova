@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import * as esbuild from 'esbuild';
-import { EXTERNAL, copyPdfkitData } from './bundle-shared.mjs';
+import { EXTERNAL, copyPdfkitData, copyPdfFonts } from './bundle-shared.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'ava-doc-smoke-'));
 try {
@@ -24,6 +24,7 @@ try {
     external: EXTERNAL, outfile: join(dir, 'smoke.cjs'), logLevel: 'warning',
   });
   copyPdfkitData(dir);
+  await copyPdfFonts(dir);
   execFileSync(process.execPath, [join(dir, 'smoke.cjs')], { cwd: dir, stdio: 'inherit' });
 } catch {
   process.exitCode = 1;

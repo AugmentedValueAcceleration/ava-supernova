@@ -4750,4 +4750,11 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': '확대',
   'viewer.zoom_out': '축소',
   'viewer.chart': '차트',
+  'settings.pdf_fonts.about': '모든 언어의 PDF 가 이미 정상적으로 출력됩니다. 중국어, 일본어, 한국어에서는 이 폰트 팩을 추가하지 않으면 굵은 글씨가 보통 두께로 표시됩니다: {mb} MB, 구글의 Noto 폰트에서 한 번 다운로드되어 사용 전 검사를 거칩니다.',
+  'settings.pdf_fonts.download': '다운로드 ({mb} MB)',
+  'settings.pdf_fonts.downloading': '다운로드 중… {pct}%',
+  'settings.pdf_fonts.installed': '설치 완료. 해당 언어 PDF 는 실제 굵은 글씨를 적용합니다.',
+  'settings.pdf_fonts.remove': '삭제',
+  'settings.pdf_fonts.section': 'PDF 폰트',
+  'settings.pdf_fonts.title': 'PDF 에서 중국어, 일본어, 한국어 굵은 글씨',
 };

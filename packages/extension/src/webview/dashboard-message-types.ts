@@ -1992,6 +1992,9 @@ export type DashboardToExtMessage =
   | { type: 'load_for_you' }
   | { type: 'decode_results'; text: string }
   | { type: 'view_document'; path: string; locale?: string }
+  | { type: 'pdf_fonts_status' }
+  | { type: 'pdf_fonts_download' }
+  | { type: 'pdf_fonts_remove' }
   | { type: 'save_results'; payload: string }
   | { type: 'load_progression'; session: unknown }
   | { type: 'load_last_times'; planId: string; dayIndex: number; date: string }

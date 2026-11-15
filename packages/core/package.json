@@ -219,6 +219,11 @@
       "require": "./dist/tools/authoring/sheet-view.js",
       "types": "./dist/tools/authoring/sheet-view.d.ts"
     },
+    "./authoring/pdf-fonts": {
+      "import": "./dist/tools/authoring/pdf-fonts.js",
+      "require": "./dist/tools/authoring/pdf-fonts.js",
+      "types": "./dist/tools/authoring/pdf-fonts.d.ts"
+    },
     "./authoring/formats": {
       "import": "./dist/tools/authoring/export-formats.js",
       "require": "./dist/tools/authoring/export-formats.js",

@@ -5016,6 +5016,14 @@ export const enStrings = {
   'viewer.zoom_out': 'Zoom out',
   // ── Added from tt() fallbacks ──
   'viewer.chart': 'Chart',
+  // ── Added from tt() fallbacks ──
+  'settings.pdf_fonts.about': 'PDFs in every language come out right already. In Chinese, Japanese and Korean, bold prints at normal weight unless you add this font pack: {mb} MB, downloaded once from Google\'s Noto fonts and checked before it is used.',
+  'settings.pdf_fonts.download': 'Download ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Downloading… {pct}%',
+  'settings.pdf_fonts.installed': 'Installed. PDFs in these languages use real bold.',
+  'settings.pdf_fonts.remove': 'Remove',
+  'settings.pdf_fonts.section': 'PDF fonts',
+  'settings.pdf_fonts.title': 'Bold Chinese, Japanese and Korean in PDFs',
 };
 
 export type StringKey = keyof typeof enStrings;

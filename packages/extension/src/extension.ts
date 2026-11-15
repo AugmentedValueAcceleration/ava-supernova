@@ -26,6 +26,10 @@ const PANEL_STATE_KEY = 'avaSupernova.panelOpen';
 const DASHBOARD_STATE_KEY = 'avaSupernova.dashboardOpen';
 
 export function activate(vscodeContext: vscode.ExtensionContext): void {
+  // The fonts PDFs are written with, shipped beside the bundle (every script
+  // Ava writes in — core tools/authoring/pdf-fonts.ts reads this).
+  process.env.AVA_FONTS_DIR = vscodeContext.asAbsolutePath(path.join('dist', 'fonts'));
+
   // Provider keys live in the OS keychain the IDE shares, so a user with both
   // apps enters each key once. Everything below gets the wrapped context, and
   // with it the shared keys; every other secret passes through to VS Code.

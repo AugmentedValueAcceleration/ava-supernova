@@ -4750,4 +4750,11 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'ซูมเข้า',
   'viewer.zoom_out': 'ซูมออก',
   'viewer.chart': 'แผนภูมิ',
+  'settings.pdf_fonts.about': 'เอกสาร PDF ในทุกภาษาแสดงผลได้ถูกต้องอยู่แล้ว ในภาษาจีน ญี่ปุ่น และเกาหลี ตัวหนาจะแสดงผลเป็นน้ำหนักปกติ ยกเว้นคุณเพิ่มชุดฟอนต์นี้: {mb} MB ดาวน์โหลดเพียงครั้งเดียวจากฟอนต์ Noto ของ Google และผ่านการตรวจสอบก่อนใช้งาน',
+  'settings.pdf_fonts.download': 'ดาวน์โหลด ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'กำลังดาวน์โหลด… {pct}%',
+  'settings.pdf_fonts.installed': 'ติดตั้งแล้ว เอกสาร PDF ในภาษาเหล่านี้ใช้ตัวหนาจริง',
+  'settings.pdf_fonts.remove': 'ลบ',
+  'settings.pdf_fonts.section': 'ฟอนต์ PDF',
+  'settings.pdf_fonts.title': 'ตัวหนาสำหรับภาษาจีน ญี่ปุ่น และเกาหลีใน PDF',
 };

@@ -4750,4 +4750,11 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'تكبير',
   'viewer.zoom_out': 'تصغير',
   'viewer.chart': 'الرسم البياني',
+  'settings.pdf_fonts.about': 'تظهر ملفات PDF بشكل صحيح في جميع اللغات بالفعل. في الصينية واليابانية والكورية، تظهر النصوص العريضة بوزن عادي إلا إذا أضفت هذه الحزمة الخطية: {mb} ميجابايت، التي تم تنزيلها مرة واحدة من خطوط Noto الخاصة بجوجل وفحصها قبل استخدامها.',
+  'settings.pdf_fonts.download': 'تحميل ({mb} ميجابايت)',
+  'settings.pdf_fonts.downloading': 'جاري التحميل… {pct}%',
+  'settings.pdf_fonts.installed': 'تم التثبيت. تستخدم ملفات PDF في هذه اللغات خطًا عريضًا حقيقيًا.',
+  'settings.pdf_fonts.remove': 'إزالة',
+  'settings.pdf_fonts.section': 'خطوط PDF',
+  'settings.pdf_fonts.title': 'النص العريض الصيني والياباني والكوري في ملفات PDF',
 };

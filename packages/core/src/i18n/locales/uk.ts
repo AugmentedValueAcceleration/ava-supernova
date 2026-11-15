@@ -4730,4 +4730,11 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Збільшити',
   'viewer.zoom_out': 'Зменшити',
   'viewer.chart': 'Діаграма',
+  'settings.pdf_fonts.about': 'PDF-файли будь-якою мовою вже виводяться коректно. У китайській, японській та корейській мовах жирний текст відображається звичайною вагою, якщо не додати цей пакет шрифтів: {mb} МБ, завантажений один раз із шрифтів Google Noto та перевірений перед використанням.',
+  'settings.pdf_fonts.download': 'Завантажити ({mb} МБ)',
+  'settings.pdf_fonts.downloading': 'Завантаження… {pct}%',
+  'settings.pdf_fonts.installed': 'Встановлено. PDF-файли цими мовами мають справжній жирний шрифт.',
+  'settings.pdf_fonts.remove': 'Видалити',
+  'settings.pdf_fonts.section': 'Шрифти для PDF',
+  'settings.pdf_fonts.title': 'Жирний шрифт для китайської, японської та корейської мов у PDF',
 };

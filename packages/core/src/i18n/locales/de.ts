@@ -4730,4 +4730,11 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Vergrößern',
   'viewer.zoom_out': 'Verkleinern',
   'viewer.chart': 'Diagramm',
+  'settings.pdf_fonts.about': 'PDFs in jeder Sprache werden bereits korrekt dargestellt. Bei Chinesisch, Japanisch und Koreanisch wird Fettschrift in normaler Stärke angezeigt, es sei denn, Sie fügen dieses Schriftpaket hinzu: {mb} MB, einmalig von Googles Noto-Schriften heruntergeladen und vor der Verwendung geprüft.',
+  'settings.pdf_fonts.download': 'Herunterladen ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Wird heruntergeladen… {pct}%',
+  'settings.pdf_fonts.installed': 'Installiert. PDFs in diesen Sprachen verwenden echten Fettdruck.',
+  'settings.pdf_fonts.remove': 'Entfernen',
+  'settings.pdf_fonts.section': 'PDF-Schriften',
+  'settings.pdf_fonts.title': 'Fettes Chinesisch, Japanisch und Koreanisch in PDFs',
 };

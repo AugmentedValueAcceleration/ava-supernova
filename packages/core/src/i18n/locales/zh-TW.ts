@@ -4751,4 +4751,11 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': '放大',
   'viewer.zoom_out': '縮小',
   'viewer.chart': '圖表',
+  'settings.pdf_fonts.about': '各種語言的 PDF 檔案都能正確顯示。在中文、日文和韓文中，粗體預設為正常字重，除非您新增此字型套件：{mb} MB，從 Google 的 Noto 字型下載一次，並在使用前經過檢查。',
+  'settings.pdf_fonts.download': '下載 ({mb} MB)',
+  'settings.pdf_fonts.downloading': '下載中… {pct}%',
+  'settings.pdf_fonts.installed': '已安裝。這些語言的 PDF 檔案將使用真實粗體。',
+  'settings.pdf_fonts.remove': '移除',
+  'settings.pdf_fonts.section': 'PDF 字型',
+  'settings.pdf_fonts.title': 'PDF 中的粗體中文、日文與韓文',
 };

@@ -4746,4 +4746,11 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Zoom avant',
   'viewer.zoom_out': 'Zoom arrière',
   'viewer.chart': 'Graphique',
+  'settings.pdf_fonts.about': 'Les PDF dans toutes les langues s\'affichent déjà correctement. Pour le chinois, le japonais et le coréen, le gras s\'affiche en poids normal sauf si vous ajoutez ce pack de polices : {mb} MB, téléchargé une fois depuis les polices Noto de Google et vérifié avant utilisation.',
+  'settings.pdf_fonts.download': 'Télécharger ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Téléchargement… {pct}%',
+  'settings.pdf_fonts.installed': 'Installé. Les PDF de ces langues utilisent un vrai gras.',
+  'settings.pdf_fonts.remove': 'Supprimer',
+  'settings.pdf_fonts.section': 'Polices PDF',
+  'settings.pdf_fonts.title': 'Gras pour le chinois, le japonais et le coréen dans les PDF',
 };

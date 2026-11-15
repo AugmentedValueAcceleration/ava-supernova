@@ -4722,4 +4722,11 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Ampliar',
   'viewer.zoom_out': 'Reducir',
   'viewer.chart': 'Gráfico',
+  'settings.pdf_fonts.about': 'Los PDFs en todos los idiomas ya se muestran correctamente. En chino, japonés y coreano, el texto en negrita aparece con peso normal a menos que agregues este paquete de fuentes: {mb} MB, descargado una vez desde las fuentes Noto de Google y verificado antes de usarse.',
+  'settings.pdf_fonts.download': 'Descargar ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Descargando… {pct}%',
+  'settings.pdf_fonts.installed': 'Instalado. Los PDFs en estos idiomas usan negritas reales.',
+  'settings.pdf_fonts.remove': 'Eliminar',
+  'settings.pdf_fonts.section': 'Fuentes PDF',
+  'settings.pdf_fonts.title': 'Negritas en chino, japonés y coreano en PDFs',
 };

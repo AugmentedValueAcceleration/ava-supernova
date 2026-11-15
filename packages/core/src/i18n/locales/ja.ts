@@ -4752,4 +4752,11 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': '拡大',
   'viewer.zoom_out': '縮小',
   'viewer.chart': 'チャート',
+  'settings.pdf_fonts.about': 'すべての言語の PDF はすでに適切に表示されます。中国語、日本語、韓国語では、このフォントパックを追加しない限り、太字は通常の太さで表示されます：{mb} MB。これは Google の Noto フォントから一度ダウンロードされ、使用前にチェックされています。',
+  'settings.pdf_fonts.download': 'ダウンロード ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'ダウンロード中… {pct}%',
+  'settings.pdf_fonts.installed': 'インストール済み。これらの言語の PDF では実際の太字が使用されます。',
+  'settings.pdf_fonts.remove': '削除',
+  'settings.pdf_fonts.section': 'PDF フォント',
+  'settings.pdf_fonts.title': 'PDF 内の中国語、日本語、韓国語の太字',
 };

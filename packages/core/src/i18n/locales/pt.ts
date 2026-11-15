@@ -4748,4 +4748,11 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Aumentar zoom',
   'viewer.zoom_out': 'Diminuir zoom',
   'viewer.chart': 'Gráfico',
+  'settings.pdf_fonts.about': 'PDFs em qualquer idioma já saem corretos. Em chinês, japonês e coreano, o negrito aparece com peso normal, a menos que você adicione este pacote de fontes: {mb} MB, baixado uma vez das fontes Noto do Google e verificado antes de ser usado.',
+  'settings.pdf_fonts.download': 'Baixar ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Baixando… {pct}%',
+  'settings.pdf_fonts.installed': 'Instalado. PDFs nestes idiomas usam negrito real.',
+  'settings.pdf_fonts.remove': 'Remover',
+  'settings.pdf_fonts.section': 'Fontes de PDF',
+  'settings.pdf_fonts.title': 'Negrito em chinês, japonês e coreano em PDFs',
 };

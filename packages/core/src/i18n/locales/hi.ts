@@ -4750,4 +4750,11 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'ज़ूम इन',
   'viewer.zoom_out': 'ज़ूम आउट',
   'viewer.chart': 'चार्ट',
+  'settings.pdf_fonts.about': 'हर भाषा के पीडीएफ पहले से ही सही आते हैं। चीनी, जापानी और कोरियन में, इस फ़ॉन्ट पैक को जोड़े बिना मोटे अक्षर सामान्य वजन के दिखते हैं: {mb} एमबी, जिसे गूगल के नोटो फ़ॉन्ट्स से एक बार डाउनलोड किया जाता है और उपयोग से पहले जाँच की जाती है।',
+  'settings.pdf_fonts.download': 'डाउनलोड ({mb} एमबी)',
+  'settings.pdf_fonts.downloading': 'डाउनलोड हो रहा है… {pct}%',
+  'settings.pdf_fonts.installed': 'स्थापित। इन भाषाओं के पीडीएफ वास्तविक मोटे अक्षरों का उपयोग करते हैं।',
+  'settings.pdf_fonts.remove': 'हटाएं',
+  'settings.pdf_fonts.section': 'पीडीएफ फ़ॉन्ट्स',
+  'settings.pdf_fonts.title': 'पीडीएफ में चीनी, जापानी और कोरियन के लिए मोटे अक्षर',
 };

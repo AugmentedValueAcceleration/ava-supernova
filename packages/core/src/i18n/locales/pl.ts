@@ -4730,4 +4730,11 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Powiększ',
   'viewer.zoom_out': 'Pomniejsz',
   'viewer.chart': 'Wykres',
+  'settings.pdf_fonts.about': 'Dokumenty PDF we wszystkich językach wyświetlają się poprawnie od razu. W językach chińskim, japońskim i koreańskim pogrubienia mają wagę normalną, chyba że dodasz ten pakiet czcionek: {mb} MB, pobierany raz z czcionek Google Noto i sprawdzany przed użyciem.',
+  'settings.pdf_fonts.download': 'Pobierz ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Pobieranie… {pct}%',
+  'settings.pdf_fonts.installed': 'Zainstalowano. Dokumenty PDF w tych językach używają prawdziwego pogrubienia.',
+  'settings.pdf_fonts.remove': 'Usuń',
+  'settings.pdf_fonts.section': 'Czcionki PDF',
+  'settings.pdf_fonts.title': 'Pogrubienie w językach chińskim, japońskim i koreańskim w PDF-ach',
 };

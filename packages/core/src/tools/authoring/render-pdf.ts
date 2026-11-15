@@ -12,6 +12,7 @@ import { readFile } from 'node:fs/promises';
 import { isAbsolute, resolve } from 'node:path';
 import type { Block, Inline, DocModel, ListItem } from './doc-model.js';
 import { inlineToPlainText } from './doc-model.js';
+import { installPdfFonts, isMostlyRtl } from './pdf-fonts.js';
 import {
   AVA_TITLE_SIZE_PDF, AVA_H1_SIZE_PDF, AVA_H2_SIZE_PDF, AVA_H3_SIZE_PDF, AVA_H4_SIZE_PDF,
   AVA_BODY_SIZE_PDF, AVA_SUBTITLE_SIZE_PDF, AVA_LINK_COLOR,
@@ -61,6 +62,8 @@ export async function renderPdf(model: DocModel, opts: RenderPdfOptions): Promis
     doc.on('end', () => resolvePromise(Buffer.concat(chunks)));
 
     const ctx: PdfCtx = { doc, brand, footnoteNumbers, baseDir: opts.baseDir };
+    // Fonts for every language the document uses (Noto; see pdf-fonts.ts).
+    installPdfFonts(doc, documentText(model));
 
     // Title / subtitle / meta.
     if (model.meta.title) {
@@ -244,6 +247,8 @@ function pdfInline(ctx: PdfCtx, inlines: Inline[], opts?: PdfInlineOpts): void {
   if (!segs.length) { doc.text(''); return; }
   const size = opts?.size ?? AVA_BODY_SIZE_PDF;
   const baseColor = opts?.color ?? ctx.brand.bodyColor;
+  // An Arabic paragraph reads from the right.
+  const align = opts?.align ?? (isMostlyRtl(segs.map((x) => x.text).join('')) ? 'right' : undefined);
 
   segs.forEach((s, i) => {
     const last = i === segs.length - 1;
@@ -252,7 +257,7 @@ function pdfInline(ctx: PdfCtx, inlines: Inline[], opts?: PdfInlineOpts): void {
       .fillColor(s.link ? `#${AVA_LINK_COLOR}` : `#${baseColor}`);
     const o: any = { continued: !last };
     if (opts?.indent != null && i === 0) o.indent = opts.indent;
-    if (opts?.align && i === 0) o.align = opts.align;
+    if (align && i === 0) o.align = align;
     if (s.link) { o.link = s.link; o.underline = true; } else { o.link = null; o.underline = false; }
     doc.text(s.text, o);
   });
@@ -280,6 +285,23 @@ function flattenInline(nodes: Inline[], ctx: PdfCtx, bold = false, italic = fals
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** All the words in a document, to know which scripts' fonts it needs. */
+function documentText(model: DocModel): string {
+  const parts: string[] = [model.meta.title ?? '', model.meta.subtitle ?? '', model.meta.author ?? ''];
+  const walk = (blocks: Block[]) => {
+    for (const b of blocks) {
+      if (b.type === 'heading' || b.type === 'paragraph') parts.push(inlineToPlainText(b.inlines));
+      else if (b.type === 'table') { b.headers.forEach((h) => parts.push(inlineToPlainText(h))); b.rows.forEach((r) => r.forEach((c) => parts.push(inlineToPlainText(c)))); }
+      else if (b.type === 'list') for (const it of b.items) { parts.push(inlineToPlainText(it.inlines)); if (it.children) walk(it.children); }
+      else if (b.type === 'blockquote' || b.type === 'callout') { if (b.type === 'callout' && b.title) parts.push(b.title); walk(b.blocks); }
+      else if (b.type === 'code') parts.push(b.text);
+    }
+  };
+  walk(model.blocks);
+  for (const f of Object.values(model.meta.footnotes ?? {})) parts.push(inlineToPlainText(f));
+  return parts.join(' ');
+}
 
 function pdfFont(bold: boolean, italic: boolean): string {
   if (bold && italic) return 'Helvetica-BoldOblique';

@@ -4748,4 +4748,11 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Perbesar',
   'viewer.zoom_out': 'Perkecil',
   'viewer.chart': 'Grafik',
+  'settings.pdf_fonts.about': 'PDF dalam setiap bahasa sudah tampil dengan benar. Untuk Mandarin, Jepang, dan Korea, cetak tebal tetap pada bobot normal kecuali Anda menambahkan paket font ini: {mb} MB, diunduh sekali dari font Noto Google dan diperiksa sebelum digunakan.',
+  'settings.pdf_fonts.download': 'Unduh ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Mengunduh… {pct}%',
+  'settings.pdf_fonts.installed': 'Terpasang. PDF dalam bahasa ini menggunakan cetak tebal asli.',
+  'settings.pdf_fonts.remove': 'Hapus',
+  'settings.pdf_fonts.section': 'Font PDF',
+  'settings.pdf_fonts.title': 'Cetak Tebal Mandarin, Jepang, dan Korea dalam PDF',
 };

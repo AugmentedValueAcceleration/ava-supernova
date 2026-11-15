@@ -4750,4 +4750,11 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Увеличить',
   'viewer.zoom_out': 'Уменьшить',
   'viewer.chart': 'График',
+  'settings.pdf_fonts.about': 'PDF-файлы на всех языках отображаются корректно. На китайском, японском и корейском жирный текст отображается обычным начертанием, если не добавить этот пакет шрифтов: {mb} МБ, скачанный один раз из шрифтов Google Noto и проверенный перед использованием.',
+  'settings.pdf_fonts.download': 'Скачать ({mb} МБ)',
+  'settings.pdf_fonts.downloading': 'Загрузка… {pct}%',
+  'settings.pdf_fonts.installed': 'Установлено. В PDF для этих языков используется настоящий жирный шрифт.',
+  'settings.pdf_fonts.remove': 'Удалить',
+  'settings.pdf_fonts.section': 'Шрифты PDF',
+  'settings.pdf_fonts.title': 'Жирный китайский, японский и корейский в PDF',
 };

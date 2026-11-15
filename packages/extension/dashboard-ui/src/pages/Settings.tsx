@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { PdfFontsSetting, type PdfFontsState } from '../components/PdfFontsSetting';
 import { t, tt, initLocale, pendingLocaleRequest, useLocale, languageOptions } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
@@ -850,6 +851,8 @@ export function Settings({
       <ToolPathSetting tool="blender" />
       <SectionLabel>{tt('dash.settings.gimp', 'GIMP (2D images)')}</SectionLabel>
       <ToolPathSetting tool="gimp" />
+      <SectionLabel>{tt('settings.pdf_fonts.section', 'PDF fonts')}</SectionLabel>
+      <PdfFontsRow />
       <SectionLabel>{tt('ext.settings.welcome_tour', 'Welcome tour')}</SectionLabel>
       <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <p className="text-xs text-[var(--text-muted)]">{tt('ext.settings.replay_tour_hint', 'See the first-run walkthrough again.')}</p>
@@ -989,6 +992,26 @@ export function Settings({
 /** Which Blender or GIMP the Design Studio uses. Found by itself in the usual
  *  places; chosen by hand only for an unusual install. Saved in ~/.ava, so the
  *  IDE uses the same one. */
+/** The optional bold Chinese/Japanese/Korean pack for PDFs (shared row, host does the work). */
+function PdfFontsRow() {
+  const [state, setState] = useState<PdfFontsState | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'pdf_fonts_state') { setState(e.data.state); setProgress(null); }
+      if (e.data?.type === 'pdf_fonts_progress') setProgress({ done: e.data.done, total: e.data.total });
+    };
+    window.addEventListener('message', onMessage);
+    post({ type: 'pdf_fonts_status' });
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+  return (
+    <PdfFontsSetting state={state} progress={progress}
+      onDownload={() => { setProgress({ done: 0, total: state?.sizeBytes ?? 1 }); post({ type: 'pdf_fonts_download' }); }}
+      onRemove={() => post({ type: 'pdf_fonts_remove' })} />
+  );
+}
+
 function ToolPathSetting({ tool }: { tool: 'blender' | 'gimp' }) {
   const label = tool === 'gimp' ? 'GIMP' : 'Blender';
   const [st, setSt] = useState<{ path: string | null; version: string | null; source: string | null; configured: string | null; error?: string } | null>(null);

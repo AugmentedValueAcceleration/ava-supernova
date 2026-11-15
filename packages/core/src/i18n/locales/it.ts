@@ -4750,4 +4750,11 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Ingrandisci',
   'viewer.zoom_out': 'Rimpicciolisci',
   'viewer.chart': 'Grafico',
+  'settings.pdf_fonts.about': 'I PDF in tutte le lingue sono già corretti. In cinese, giapponese e coreano, il grassetto appare con peso normale a meno che non aggiunga questo pacchetto di caratteri: {mb} MB, scaricato una volta dai caratteri Noto di Google e verificato prima dell\'uso.',
+  'settings.pdf_fonts.download': 'Scarica ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Scaricando… {pct}%',
+  'settings.pdf_fonts.installed': 'Installato. I PDF in queste lingue usano un vero grassetto.',
+  'settings.pdf_fonts.remove': 'Rimuovi',
+  'settings.pdf_fonts.section': 'Caratteri PDF',
+  'settings.pdf_fonts.title': 'Grassetto Cinese, Giapponese e Coreano nei PDF',
 };

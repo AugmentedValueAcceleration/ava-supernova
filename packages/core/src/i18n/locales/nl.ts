@@ -4750,4 +4750,11 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Inzoomen',
   'viewer.zoom_out': 'Uitzoomen',
   'viewer.chart': 'Grafiek',
+  'settings.pdf_fonts.about': 'PDF\'s in elke taal worden correct weergegeven. Voor Chinees, Japans en Koreaans hebben vetgedrukte teksten normaal gewicht, tenzij u dit lettertypepakket toevoegt: {mb} MB, eenmalig gedownload van Google Noto-lettertypes en gecontroleerd voordat het wordt gebruikt.',
+  'settings.pdf_fonts.download': 'Downloaden ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'Downloaden… {pct}%',
+  'settings.pdf_fonts.installed': 'Geïnstalleerd. PDF\'s in deze talen gebruiken echte vetdruk.',
+  'settings.pdf_fonts.remove': 'Verwijderen',
+  'settings.pdf_fonts.section': 'PDF-lettertypes',
+  'settings.pdf_fonts.title': 'Vet Chinees, Japans en Koreaans in PDF\'s',
 };

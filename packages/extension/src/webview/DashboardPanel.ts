@@ -104,6 +104,7 @@ import { decodeResults, sessionFromResults } from '@ava/core/health/share-result
 import { progressionAfterSession, lastTimesForDay, applyProgression } from '@ava/core/health/progression';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
+import { optionalFontsStatus, downloadOptionalFonts, removeOptionalFonts } from '@ava/core/authoring/pdf-fonts';
 import { DocumentViewerPanel } from './DocumentViewerPanel';
 import { exportDocument } from '@ava/core/authoring';
 import { modelFolder, readLocalCreative, readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
@@ -2744,6 +2745,30 @@ export class DashboardPanel {
         } catch (err: any) {
           this.post({ type: 'error', message: `Open tasks folder failed: ${err?.message || err}` });
         }
+        break;
+      }
+      // ── PDF fonts: the optional bold Chinese/Japanese/Korean pack ──
+      case 'pdf_fonts_status': {
+        this.post({ type: 'pdf_fonts_state', state: await optionalFontsStatus() } as never);
+        break;
+      }
+      case 'pdf_fonts_download': {
+        let last = 0;
+        try {
+          await downloadOptionalFonts((done, total) => {
+            if (done - last < 512 * 1024 && done < total) return; // a few updates, not thousands
+            last = done;
+            this.post({ type: 'pdf_fonts_progress', done, total } as never);
+          });
+          this.post({ type: 'pdf_fonts_state', state: await optionalFontsStatus() } as never);
+        } catch (err) {
+          this.post({ type: 'pdf_fonts_state', state: { ...(await optionalFontsStatus()), error: err instanceof Error ? err.message : String(err) } } as never);
+        }
+        break;
+      }
+      case 'pdf_fonts_remove': {
+        await removeOptionalFonts().catch(() => {});
+        this.post({ type: 'pdf_fonts_state', state: await optionalFontsStatus() } as never);
         break;
       }
       case 'view_document': {

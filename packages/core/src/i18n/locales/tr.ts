@@ -4750,4 +4750,11 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'viewer.zoom_in': 'Yakınlaştır',
   'viewer.zoom_out': 'Uzaklaştır',
   'viewer.chart': 'Grafik',
+  'settings.pdf_fonts.about': 'PDF\'ler her dilde zaten doğru şekilde çıkar. Çince, Japonca ve Korece\'de, bu yazı tipi paketini eklemezseniz kalın yazılar normal ağırlıkta görünür: {mb} MB, Google\'ın Noto yazı tiplerinden bir kez indirilir ve kullanılmadan önce kontrol edilir.',
+  'settings.pdf_fonts.download': 'İndir ({mb} MB)',
+  'settings.pdf_fonts.downloading': 'İndiriliyor… {pct}%',
+  'settings.pdf_fonts.installed': 'Yüklendi. Bu dillerdeki PDF\'ler gerçek kalın yazı kullanır.',
+  'settings.pdf_fonts.remove': 'Kaldır',
+  'settings.pdf_fonts.section': 'PDF yazı tipleri',
+  'settings.pdf_fonts.title': 'PDF\'lerde Çince, Japonca ve Korece Kalın Yazılar',
 };
