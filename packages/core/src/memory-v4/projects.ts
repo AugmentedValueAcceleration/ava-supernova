@@ -128,6 +128,13 @@ export class ProjectRegistry {
     return true;
   }
 
+  /** Remove a project's record and every link to it. Caller holds the lock. */
+  async remove(id: string): Promise<void> {
+    const projects = (await this.all()).filter((p) => p.id !== id);
+    for (const p of projects) p.links = p.links.filter((x) => x !== id);
+    await this.save(projects);
+  }
+
   async unlink(a: string, b: string): Promise<void> {
     const projects = await this.all();
     for (const p of projects) {

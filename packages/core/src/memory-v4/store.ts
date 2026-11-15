@@ -467,6 +467,30 @@ export class AvaMemory {
     await withLock(this.root, () => this.projects.unlink(a, b));
   }
 
+  /** The project's folder moved: its memory follows it to the new path. */
+  async moveProject(id: string, newPath: string): Promise<boolean> {
+    return withLock(this.root, () => this.projects.addPath(id, newPath));
+  }
+
+  /**
+   * A finished or deleted project: all its facts (current, waiting, history)
+   * and its threads are forgotten, and its record and links removed. The days
+   * stay — they are what happened, not what is true.
+   */
+  async forgetProject(id: string): Promise<{ facts: number; threads: number }> {
+    const scope = `project:${id}`;
+    let facts = 0;
+    for (const f of await this.listFacts('all')) {
+      if (f.scope === scope && (await this.deleteFact(f.id))) facts++;
+    }
+    let threads = 0;
+    for (const t of await this.listThreads({ includeDone: true })) {
+      if (t.project === id && (await this.deleteThread(t.id))) threads++;
+    }
+    await withLock(this.root, () => this.projects.remove(id));
+    return { facts, threads };
+  }
+
   // ── Search ──────────────────────────────────────────────────────────────
 
   private async refreshIndex(): Promise<void> {

@@ -22,7 +22,7 @@ interface PageFact {
 }
 interface Overview {
   facts: number; aboutYou: number; days: number; pending: number; threadsOpen: number;
-  core: string; coreTokens: number; coreBudget: number; projects: Array<{ id: string; name: string; count: number; links: string[] }>;
+  core: string; coreTokens: number; coreBudget: number; projects: Array<{ id: string; name: string; count: number; links: string[]; paths: string[] }>;
   allProjects: Array<{ id: string; name: string }>;
 }
 interface ThreadRow { id: string; text: string; project?: string; projectName: string | null; added: string; due?: string; done?: string }
@@ -254,6 +254,52 @@ function LinkedProjects({ project, overview, onLink }: {
   );
 }
 
+// ── A project's folder, a move, and forgetting it ─────────────────────────
+
+function ProjectTools({ project, onMove, onForget }: {
+  project?: { id: string; name: string; count: number; paths: string[] };
+  onMove: (path: string) => Promise<{ ok: boolean; error?: string }>;
+  onForget: () => Promise<void>;
+}) {
+  useLocale();
+  const [moving, setMoving] = useState(false);
+  const [path, setPath] = useState('');
+  const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState(false);
+  if (!project) return null;
+  const folder = project.paths[project.paths.length - 1];
+  return (
+    <div style={{ ...meta, margin: '0 0 6px', gap: 8 }}>
+      <span>{folder ? tt('memory.v4.folder', 'Folder: {path}').replace('{path}', folder) : tt('memory.v4.no_folder', 'No folder yet')}</span>
+      {moving ? (
+        <>
+          <input value={path} onChange={(e) => setPath(e.target.value)} placeholder={tt('memory.v4.move_placeholder', 'Paste the folder it moved to…')} autoFocus
+            style={{ minWidth: 260, flex: 1, background: C.input, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, padding: '3px 8px', fontFamily: 'inherit', fontSize: 12 }} />
+          <button type="button" style={primary} disabled={!path.trim()} onClick={async () => {
+            const r = await onMove(path.trim());
+            if (r.ok) { setMoving(false); setPath(''); setError(''); } else setError(r.error ?? tt('memory.v4.move_failed', 'Could not move it.'));
+          }}>{tt('memory.v4.save', 'Save')}</button>
+          <button type="button" style={btn} onClick={() => { setMoving(false); setError(''); }}>{tt('memory.v4.cancel', 'Cancel')}</button>
+          {error && <span style={{ color: C.warn }}>{error}</span>}
+        </>
+      ) : confirm ? (
+        <>
+          <span style={{ color: C.danger }}>
+            {tt('memory.v4.forget_project_confirm', 'Forget all {n} facts and the threads of {name}? The days stay.').replace('{n}', String(project.count)).replace('{name}', project.name)}
+          </span>
+          <button type="button" style={{ ...btn, color: C.danger, borderColor: 'rgba(248,113,113,0.4)' }} onClick={() => void onForget()}>{tt('memory.v4.forget_for_good', 'Forget for good')}</button>
+          <button type="button" style={btn} onClick={() => setConfirm(false)}>{tt('memory.v4.cancel', 'Cancel')}</button>
+        </>
+      ) : (
+        <>
+          <button type="button" style={btn} onClick={() => setMoving(true)}>{tt('memory.v4.moved', 'Moved this project')}</button>
+          <button type="button" style={{ ...btn, color: C.danger }} onClick={() => setConfirm(true)}>{tt('memory.v4.forget_project', 'Forget this project')}</button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── The page ──────────────────────────────────────────────────────────────
 
 export function MemoryV4Page({ request, onPendingChange }: {
@@ -396,6 +442,14 @@ export function MemoryV4Page({ request, onPendingChange }: {
                   project={project}
                   overview={overview}
                   onLink={async (other, link) => { await request(link ? 'link' : 'unlink', { a: project, b: other }); changed(); }}
+                />
+              )}
+              {project && (
+                <ProjectTools
+                  key={`tools-${project}`}
+                  project={overview.projects.find((p) => p.id === project)}
+                  onMove={async (path) => { const r = await request('project_move', { project, path }) as { ok: boolean; error?: string }; if (r.ok) changed(); return r; }}
+                  onForget={async () => { await request('project_forget', { project }); setProject(undefined); changed(); }}
                 />
               )}
               {project && <FactList key={project} view="project" project={project} query={query} request={request} refreshKey={refreshKey} onChanged={changed} />}

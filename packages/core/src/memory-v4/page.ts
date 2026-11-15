@@ -42,7 +42,7 @@ export interface PageOverview {
   core: string;
   coreTokens: number;
   coreBudget: number;
-  projects: Array<{ id: string; name: string; count: number; links: string[] }>;
+  projects: Array<{ id: string; name: string; count: number; links: string[]; paths: string[] }>;
   /** Every project Ava knows, for the "link with" choice. */
   allProjects: Array<{ id: string; name: string }>;
 }
@@ -51,7 +51,7 @@ export type PageOp =
   | 'overview' | 'facts' | 'threads' | 'days'
   | 'confirm' | 'reject' | 'edit' | 'forget' | 'core'
   | 'thread_add' | 'thread_done' | 'thread_reopen' | 'thread_delete'
-  | 'link' | 'unlink';
+  | 'link' | 'unlink' | 'project_move' | 'project_forget';
 
 const PAGE = 40;
 
@@ -103,8 +103,8 @@ export async function memoryPage(mem: AvaMemory, op: PageOp, args: Record<string
         coreBudget: CORE_TOKEN_BUDGET,
         projects: await (async () => {
           const all = await mem.projects.all();
-          const links = Object.fromEntries(all.map((p) => [p.id, p.links]));
-          return Object.entries(counts).map(([id, count]) => ({ id, name: projectNames[id] ?? id, count, links: links[id] ?? [] })).sort((a, b) => b.count - a.count);
+          const byId = Object.fromEntries(all.map((p) => [p.id, p]));
+          return Object.entries(counts).map(([id, count]) => ({ id, name: projectNames[id] ?? id, count, links: byId[id]?.links ?? [], paths: byId[id]?.paths ?? [] })).sort((a, b) => b.count - a.count);
         })(),
         allProjects: (await mem.projects.all()).map((p) => ({ id: p.id, name: p.name })).sort((a, b) => a.name.localeCompare(b.name)),
       };
@@ -185,6 +185,13 @@ export async function memoryPage(mem: AvaMemory, op: PageOp, args: Record<string
     case 'unlink':
       await mem.unlinkProjects(str('a'), str('b'));
       return { ok: true };
+    case 'project_move': {
+      const path = str('path');
+      if (!path) return { ok: false, error: 'Give the folder it moved to.' };
+      return { ok: await mem.moveProject(str('project'), path) };
+    }
+    case 'project_forget':
+      return { ok: true, ...(await mem.forgetProject(str('project'))) };
     default:
       return { ok: false, error: `Unknown memory page action: ${String(op)}` };
   }

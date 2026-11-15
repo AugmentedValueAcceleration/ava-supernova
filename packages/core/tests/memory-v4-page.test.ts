@@ -31,7 +31,7 @@ describe('memory page', () => {
   it('gives the overview the page header needs', async () => {
     const o = await memoryPage(mem, 'overview') as PageOverview;
     expect(o).toMatchObject({ facts: 3, aboutYou: 2, days: 1, pending: 1, threadsOpen: 1, coreBudget: 1500 });
-    expect(o.projects).toEqual([{ id: dawnId, name: 'DawnSets', count: 1, links: [] }]);
+    expect(o.projects).toEqual([{ id: dawnId, name: 'DawnSets', count: 1, links: [], paths: [expect.any(String)] }]);
     expect(o.allProjects).toEqual([{ id: dawnId, name: 'DawnSets' }]);
   });
 
@@ -125,5 +125,16 @@ describe('across projects', () => {
     await mem.linkProjects(dawnId, web);
     const after = await MemorySession.open({ root, projectPath: join(root, 'DawnSets') });
     expect(await after.messageBlock('what branch deploys on Render?')).toContain('(Website, since');
+  });
+
+  it('follows a moved project, and forgets a finished one', async () => {
+    const moved = join(root, 'Moved', 'DawnSets');
+    expect(await memoryPage(mem, 'project_move', { project: dawnId, path: moved })).toEqual({ ok: true });
+    expect((await mem.projects.find(moved))?.id).toBe(dawnId);
+    const r = await memoryPage(mem, 'project_forget', { project: dawnId }) as { ok: boolean; facts: number; threads: number };
+    expect(r).toEqual({ ok: true, facts: 1, threads: 1 });
+    expect((await mem.listFacts('all')).some((f) => f.scope === `project:${dawnId}`)).toBe(false);
+    expect(await mem.projects.get(dawnId)).toBeUndefined();
+    expect((await mem.readDay('2026-11-15')).sections).toHaveLength(1); // the day stays
   });
 });
