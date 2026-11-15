@@ -121,9 +121,9 @@ describe('across projects', () => {
     const web = (await mem.projectFor(join(root, 'Web'), 'Website')).id;
     await mem.addFact({ text: 'The website deploys from main on Render.', scope: `project:${web}` });
     const before = await MemorySession.open({ root, projectPath: join(root, 'DawnSets') });
-    expect(await before.messageBlock('where does the website deploy from on Render?')).not.toContain('deploys from main');
+    expect(await before.messageBlock('what branch deploys on Render?')).not.toContain('deploys from main');
     await mem.linkProjects(dawnId, web);
     const after = await MemorySession.open({ root, projectPath: join(root, 'DawnSets') });
-    expect(await after.messageBlock('where does the website deploy from on Render?')).toContain('(Website, since');
+    expect(await after.messageBlock('what branch deploys on Render?')).toContain('(Website, since');
   });
 });

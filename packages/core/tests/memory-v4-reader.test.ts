@@ -167,3 +167,26 @@ describe('memory_recall (v4)', () => {
     expect(r.success).toBe(false);
   });
 });
+
+describe('the hub (breadth everything)', () => {
+  it('lists live projects, and brings what a named project is', async () => {
+    const mem = new AvaMemory({ root });
+    const dawn = (await mem.projects.find(dawnPath))!;
+    await mem.addFact({ text: 'DawnSets is a single-player action RPG about a battle mage.', scope: `project:${dawn.id}` });
+    const hub = await MemorySession.open({ root, breadth: 'everything' });
+    const block = await hub.sessionBlock();
+    expect(block).toContain('Their projects (last worked on):');
+    expect(block).toContain('- DawnSets: Tuesday 27 October 2026');
+    const msg = await hub.messageBlock('help me promote tonights DawnSets stream');
+    expect(msg).toContain('DawnSets is a single-player action RPG about a battle mage.');
+    expect(msg).toContain('(DawnSets, since');
+  });
+
+  it('a project with no facts left is not listed', async () => {
+    const mem = new AvaMemory({ root });
+    for (const f of await mem.listFacts('fact')) if (f.scope !== 'everywhere' && f.text.includes('5.7')) await mem.deleteFact(f.id);
+    for (const f of await mem.listFacts('fact')) if (f.text.includes('animation and UMG')) await mem.deleteFact(f.id);
+    const hub = await MemorySession.open({ root, breadth: 'everything' });
+    expect(await hub.sessionBlock()).not.toContain('- Sacred Crossing:');
+  });
+});
