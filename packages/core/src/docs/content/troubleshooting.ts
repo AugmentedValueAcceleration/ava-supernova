@@ -23,7 +23,7 @@ export const TROUBLESHOOTING_PAGES: DocPage[] = [
 
       { type: 'heading', level: 3, text: 'Memory not recalling' },
       { type: 'paragraph', text: 'What you see: Ava cannot find something you are sure she should remember.' },
-      { type: 'paragraph', text: 'Memory works by meaning, not exact words (this is what "semantic" means). So "What did I decide about auth?" works better than "find my auth decision". If the memory is definitely there but not surfacing, open the memory browser and search — if it is not there, it was never saved in the first place.' },
+      { type: 'paragraph', text: 'Open the Memory page and search for it. If it is under "Waiting for your yes", she noticed it but you have not agreed yet — say yes and she will use it. If it belongs to another project, it is only used when that project is open or you name it. If it is not there at all, it was never saved: tell her "remember that…" and it is kept straight away.' },
 
       { type: 'heading', level: 3, text: 'Ava says she needs a key' },
       { type: 'paragraph', text: 'What you see: the chat will not start, or Ava says a key is missing for images, voice or video.' },

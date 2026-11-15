@@ -87,7 +87,6 @@ export const REFERENCE_PAGES: DocPage[] = [
         '/model <id> — switch model without leaving the session.',
         '/clear — clear the current conversation. Memory is untouched.',
         '/history — list past conversations in this project.',
-        '/memory — open the memory browser.',
         '/tasks — list and manage tasks.',
         '/journal — open today journal entry.',
         '/settings — open the settings menu.',
@@ -116,7 +115,7 @@ export const REFERENCE_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'Global — ~/.ava/' },
       { type: 'list', ordered: false, items: [
         'settings.json — model preferences, permission mode, personality, language.',
-        'memory/ — your global memories (preferences, decisions that apply everywhere).',
+        'memory/ — Ava\'s memory, as plain text files: core.md (the core page), facts/, pending/ (waiting for your yes), history/, threads.md and episodes/ (the days). Every project\'s facts live here too.',
         'tasks.json — cross-project task list.',
         'journal/ — daily journal entries, date-organised.',
       ]},
@@ -124,10 +123,9 @@ export const REFERENCE_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'instructions.md — project-specific instructions Ava always loads. Durable context ("we use pnpm, not npm", "API keys live in 1Password").',
         'context.md — optional freeform project notes.',
-        'memory/ — memories scoped to this project.',
         'datasets/config.json — opt-in dataset capture configuration.',
       ]},
-      { type: 'callout', variant: 'tip', text: 'Add .ava/ to your .gitignore (a list of files Git is told to leave out of the shared project) if you do not want to share memories with your team. Keep instructions.md in the repo (the shared project folder) — that is how Ava learns the project conventions.' },
+      { type: 'callout', variant: 'tip', text: 'Memory never lives in the project folder, so it is never shared through your repo (the shared project folder). Keep instructions.md in the repo — that is how Ava learns the project conventions.' },
     ],
   },
   {
@@ -166,7 +164,7 @@ export const REFERENCE_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'Project index — a structured map of your files and the named pieces inside them (functions, classes — "symbols") and how they connect ("imports"). Built lazily, meaning only when Ava needs it.',
         'Git history — the record of past changes; pulled when git_status, git_diff, or git_create_pr are called (git is the tool that tracks every change to a project; "PR" is a pull request, a proposed batch of changes).',
-        'Memory — entries are matched by meaning ("semantically") and injected one turn at a time, not all at once.',
+        'Memory — the core page comes with every conversation; for each message, only the memories that match it are added, not all of them.',
       ]},
       { type: 'callout', variant: 'tip', text: 'Put conventions in instructions.md. Put notes in context.md. Let memory capture the rest on its own.' },
     ],
