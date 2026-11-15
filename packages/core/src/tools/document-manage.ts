@@ -8,6 +8,8 @@ import { validatePath } from './security.js';
 import { readPdfText, readDocxText, unreadable } from './authoring/read-office.js';
 import { documentPathFor } from './authoring/document-places.js';
 import { exportDocument, parseCsv } from './authoring/export-document.js';
+import { buildWorkbook, updateCells, recalculate, type SheetSpec, type CellInput } from './authoring/spreadsheet.js';
+import { loadHouseStyle } from './authoring/templates/index.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -30,7 +32,9 @@ export class DocumentManageTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'document_manage',
     description:
-      'Spreadsheets and CSV: create a spreadsheet (.xlsx) or CSV, add rows to one, read one, or export between them. '
+      'Spreadsheets and CSV: create a spreadsheet (.xlsx) or CSV, add rows, change cells, read one, or export between them. '
+      + 'Spreadsheets are real: give numbers as numbers, use formulas as text starting with "=" ("=B2*12", "=SUM(B2:B9)"), '
+      + 'set a format per column (currency, percent, date, integer, number, text) and ask for a totals row — Ava works out the results so they read back correctly. '
       + 'Also reads the text of any document (.docx, .pdf, .md, .txt). '
       + 'For prose documents — reports, letters, proposals, Word or PDF files — use document_author instead. '
       + 'A bare file name ("budget.xlsx") is saved in the project\'s documents/ folder, where the Library shows it.',
@@ -39,14 +43,16 @@ export class DocumentManageTool implements Tool {
       properties: {
         action: {
           type: 'string',
-          enum: ['create', 'edit', 'read', 'export'],
-          description: 'create (new spreadsheet / CSV) · edit (add rows) · read (any document) · export (csv ↔ xlsx, or a CSV to ods / pdf / docx)',
+          enum: ['create', 'edit', 'update_cells', 'read', 'export'],
+          description: 'create (new spreadsheet / CSV) · edit (add rows; above a totals row, which keeps adding up) · update_cells (change cells by reference) · read (any document, formulas shown) · export (csv ↔ xlsx, or a CSV to ods / pdf / docx)',
         },
         file_path: { type: 'string', description: 'Path of the spreadsheet or document.' },
         content: {
           type: 'object',
-          description: 'xlsx: { sheets: [{ name, headers, rows }] }. csv: { headers, rows }. edit: the rows to add, same shape.',
+          description: 'xlsx: { sheets: [{ name, headers, rows, columns?: [{ format?: "text"|"number"|"integer"|"currency"|"percent"|"date", currency?: "GBP"|"USD"|"EUR" }], totals?: { label?, columns: ["Monthly", …] (header names or letters) }, freeze?: true }] }. Dates as "2026-11-15". csv: { headers, rows }. edit: the rows to add, same shape.',
         },
+        sheet: { type: 'string', description: 'update_cells: the sheet name (default: the first sheet).' },
+        cells: { type: 'object', description: 'update_cells: cell references to values — { "B4": 950, "C7": "=SUM(C2:C6)", "A9": "Insurance" }.' },
         export_format: { type: 'string', enum: ['xlsx', 'csv', 'ods', 'pdf', 'docx'], description: 'export: the format to make.' },
         export_path: { type: 'string', description: 'export: where to write it (otherwise beside the source).' },
       },
@@ -59,6 +65,7 @@ export class DocumentManageTool implements Tool {
       switch (args.action) {
         case 'create': return await this.handleCreate(args, context);
         case 'edit': return await this.handleEdit(args, context);
+        case 'update_cells': return await this.handleUpdateCells(args, context);
         case 'read': return await this.handleRead(args, context);
         case 'export': return await this.handleExport(args, context);
         default:
@@ -220,28 +227,16 @@ export class DocumentManageTool implements Tool {
 
   private async createXlsx(filePath: string, content?: SpreadsheetContent): Promise<ToolResult> {
     const ExcelJS = await this.loadExcel();
-    const workbook = new ExcelJS.Workbook();
-    const sheets = content?.sheets?.length ? content.sheets : [{ name: 'Sheet1', headers: [], rows: [] }];
-    let totalRows = 0;
-    for (const sheet of sheets) {
-      const ws = workbook.addWorksheet(sheet.name || 'Sheet1');
-      if (sheet.headers?.length) {
-        const headerRow = ws.addRow(sheet.headers);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        headerRow.eachCell((cell: any) => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
-        });
-      }
-      for (const row of sheet.rows ?? []) { ws.addRow(row); totalRows++; }
-      ws.columns?.forEach((col: any) => {
-        if (!col) return;
-        let maxLen = 10;
-        col.eachCell?.({ includeEmpty: false }, (cell: any) => { maxLen = Math.max(maxLen, String(cell.value ?? '').length); });
-        col.width = Math.min(maxLen + 2, 50);
-      });
-    }
+    const specs = (content?.sheets ?? []) as unknown as SheetSpec[];
+    const { workbook, calculated, left } = buildWorkbook(ExcelJS, specs, await loadHouseStyle());
     await workbook.xlsx.writeFile(filePath);
-    return { success: true, output: `Created spreadsheet: ${filePath} (${sheets.length} sheet${sheets.length === 1 ? '' : 's'}, ${totalRows} rows)` };
+    const rows = specs.reduce((n, s) => n + (s.rows?.length ?? 0), 0);
+    const sheets = Math.max(1, specs.length);
+    const notes = [
+      calculated ? `${calculated} formula${calculated === 1 ? '' : 's'} worked out` : '',
+      left ? `${left} left for the spreadsheet app to calculate on opening` : '',
+    ].filter(Boolean).join('; ');
+    return { success: true, output: `Created spreadsheet: ${filePath} (${sheets} sheet${sheets === 1 ? '' : 's'}, ${rows} rows${notes ? `; ${notes}` : ''})` };
   }
 
   private async xlsxSheets(filePath: string): Promise<Array<{ name: string; headers: string[]; rows: string[][] }>> {
@@ -288,10 +283,62 @@ export class DocumentManageTool implements Tool {
     let added = 0;
     for (const sheet of content?.sheets ?? []) {
       const ws = workbook.getWorksheet(sheet.name) ?? workbook.addWorksheet(sheet.name);
-      for (const row of sheet.rows ?? []) { ws.addRow(row); added++; }
+      const rows = (sheet.rows ?? []) as CellInput[][];
+      if (!rows.length) continue;
+      const total = this.totalsRow(ws);
+      if (total) {
+        // Insert above the totals and stretch each SUM over the new rows.
+        ws.spliceRows(total.row, 0, ...rows.map((r) => r.map((v) => (typeof v === 'string' && v.startsWith('=') ? { formula: v.slice(1) } : v))));
+        const tr = ws.getRow(total.row + rows.length);
+        tr.eachCell((cell: any) => {
+          const v = cell.value;
+          if (v && typeof v === 'object' && 'formula' in v) {
+            cell.value = { formula: String(v.formula).replace(/^(SUM\([A-Z]{1,3}\d+:[A-Z]{1,3})(\d+)\)$/i, (_m: string, head: string, end: string) => `${head}${Number(end) + rows.length})`) };
+          }
+        });
+        // Carry the column formats down onto the new rows.
+        const model = ws.getRow(Math.max(2, total.row - 1));
+        for (let r = total.row; r < total.row + rows.length; r++) {
+          ws.getRow(r).eachCell({ includeEmpty: true }, (cell: any, c: number) => { const f = model.getCell(c).numFmt; if (f) cell.numFmt = f; });
+        }
+      } else {
+        for (const row of rows) ws.addRow(row.map((v) => (typeof v === 'string' && v.startsWith('=') ? { formula: v.slice(1) } : v)));
+      }
+      recalculate(ws);
+      added += rows.length;
     }
     if (!added) return { success: false, output: 'Nothing to add. Provide { sheets: [{ name, rows }] }.' };
     await workbook.xlsx.writeFile(filePath);
     return { success: true, output: `Updated spreadsheet: ${filePath} (added ${added} rows)` };
+  }
+
+  /** The last row, when it is a totals row (a SUM down to the row above). */
+  private totalsRow(ws: any): { row: number } | null {
+    const last = ws.rowCount;
+    if (last < 2) return null;
+    let isTotal = false;
+    ws.getRow(last).eachCell((cell: any) => {
+      const v = cell.value;
+      if (v && typeof v === 'object' && 'formula' in v && new RegExp(`^SUM\\([A-Z]{1,3}\\d+:[A-Z]{1,3}${last - 1}\\)$`, 'i').test(String(v.formula))) isTotal = true;
+    });
+    return isTotal ? { row: last } : null;
+  }
+
+  // ── Update cells ─────────────────────────────────────────────────────────────
+
+  private async handleUpdateCells(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
+    const fullPath = this.target(args.file_path as string | undefined, context.cwd, false);
+    if (!existsSync(fullPath)) return { success: false, output: `File not found: ${fullPath}` };
+    if (this.formatOf(fullPath) !== 'xlsx') return { success: false, output: 'update_cells changes .xlsx spreadsheets. For a CSV, use edit to add rows.' };
+    const cells = args.cells as Record<string, CellInput> | undefined;
+    if (!cells || !Object.keys(cells).length) return { success: false, output: 'Nothing to change. Provide cells: { "B4": 950 }.' };
+    const ExcelJS = await this.loadExcel();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(fullPath);
+    const ws = args.sheet ? workbook.getWorksheet(String(args.sheet)) : workbook.worksheets[0];
+    if (!ws) return { success: false, output: `No sheet called ${String(args.sheet)}.` };
+    const changed = updateCells(ws, cells);
+    await workbook.xlsx.writeFile(fullPath);
+    return { success: true, output: `Updated ${changed.join(', ')} on ${ws.name} in ${fullPath}; formulas recalculated.` };
   }
 }
