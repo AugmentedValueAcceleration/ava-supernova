@@ -16,6 +16,8 @@
  * every turn and added up to three seconds.
  */
 
+import { join } from 'node:path';
+import { AVA_HOME } from '../core/constants.js';
 import type { EmbeddingService } from '../memory/embedding-service.js';
 import { AvaMemory, type SearchHit } from './store.js';
 import type { Episode } from './threads-episodes.js';
@@ -23,13 +25,17 @@ import { dayTitle } from './threads-episodes.js';
 import type { ProjectRecord } from './types.js';
 
 /**
- * Where the v4 memory lives, or null while the apps still use the old one.
- * Until the switch-over (Part 4) it is opt-in through AVA_MEMORY_V4_ROOT, so
- * a test copy can be tried in a dev build without touching a release.
+ * Where Ava's memory lives. SWITCHED OVER 15 Nov 2026: memory v4 is the
+ * memory, at ~/.ava/memory/ (beside the old graph files, which stay put and
+ * are read once by the free import).
+ *
+ * AVA_MEMORY_V4_ROOT points it somewhere else (a test copy). AVA_MEMORY_V4=off
+ * turns it off and falls back to the old memory: an escape hatch, not a mode.
  */
 export function memoryV4Root(): string | null {
+  if (process.env.AVA_MEMORY_V4?.trim().toLowerCase() === 'off') return null;
   const root = process.env.AVA_MEMORY_V4_ROOT?.trim();
-  return root ? root : null;
+  return root ? root : join(AVA_HOME, 'memory');
 }
 
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];

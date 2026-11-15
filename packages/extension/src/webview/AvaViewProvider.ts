@@ -46,6 +46,8 @@ import {
   MemoryAgent,
   MemorySession,
   MemoryRecallV4Tool,
+  AvaMemory,
+  ensureOldMemoryImported,
   MemorySaveV4Tool,
   MemoryUpdateV4Tool,
   MemoryDeleteV4Tool,
@@ -2403,6 +2405,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const root = memoryV4Root();
     if (!root) return undefined;
     try {
+      // First start after the update: the old memory comes across once, free.
+      await ensureOldMemoryImported(new AvaMemory({ root }), AVA_HOME, (m) => this.log(m));
       const session = await MemorySession.open({ root, projectPath: this.projectRoot ?? null, embeddingService: this.resolveEmbeddingService() });
       this.log(`memory v4: on (${root})${session.project ? `, project ${session.project.name}` : ''}`);
       return session;

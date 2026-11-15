@@ -62,6 +62,21 @@ export function importDone(root: string): boolean {
   return existsSync(join(root, '.import', 'done.json'));
 }
 
+/**
+ * The first start after the update: bring the old memory across once, free.
+ * A no-op once done (or for a new user, who has no old memory: the marker is
+ * still written, so it never looks again). Never throws.
+ */
+export async function ensureOldMemoryImported(mem: AvaMemory, oldHome: string, log?: (m: string) => void): Promise<void> {
+  if (importDone(mem.root)) return;
+  try {
+    const r = await importOldMemory({ mem, oldHome });
+    if (r.imported || r.setAside) log?.(`memory: brought your old memory across (${r.imported} memories, ${r.repeatsFolded} repeats folded, ${r.setAside} set aside)`);
+  } catch (err) {
+    log?.(`memory: could not bring the old memory across: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 export async function importOldMemory(opts: { mem: AvaMemory; oldHome: string; since?: string; now?: Date }): Promise<ImportResult> {
   const { mem, oldHome } = opts;
   const marker = join(mem.root, '.import', 'done.json');

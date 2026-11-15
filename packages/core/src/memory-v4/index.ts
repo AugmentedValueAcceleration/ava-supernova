@@ -12,7 +12,7 @@ export type { RecallArgs } from './reader.js';
 export { consolidateSession } from './consolidate.js';
 export type { ConsolidateResult } from './consolidate.js';
 export { resolveMemoryModel } from './model.js';
-export { importOldMemory, importDone } from './import-v3.js';
+export { importOldMemory, importDone, ensureOldMemoryImported } from './import-v3.js';
 export type { ImportResult } from './import-v3.js';
 export { memoryPage } from './page.js';
 export type { PageFact, PageOverview, PageOp } from './page.js';
