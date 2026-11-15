@@ -104,6 +104,7 @@ import { decodeResults, sessionFromResults } from '@ava/core/health/share-result
 import { progressionAfterSession, lastTimesForDay, applyProgression } from '@ava/core/health/progression';
 import { deriveProgression, libraryPathToCurriculum, type LearningStore, type LibraryPathInput } from '@ava/core/learning';
 import { buildCertificateMarkdown, buildCvMarkdown, renderProgressionPdf } from '@ava/core/learning/export';
+import { DocumentViewerPanel } from './DocumentViewerPanel';
 import { exportDocument } from '@ava/core/authoring';
 import { modelFolder, readLocalCreative, readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
 import { scanStorage, reclaimStorage, measureProjects, readProjectsUsage } from './storage-scan.js';
@@ -2743,6 +2744,19 @@ export class DashboardPanel {
         } catch (err: any) {
           this.post({ type: 'error', message: `Open tasks folder failed: ${err?.message || err}` });
         }
+        break;
+      }
+      case 'view_document': {
+        // The document viewer, in its own tab (Documents 1.0 Part 4).
+        const fullPath = this.resolveInsideWorkspace(msg.path);
+        if (!fullPath) {
+          this.post({ type: 'error', message: 'Invalid path: access restricted to workspace and home directory.' });
+          break;
+        }
+        DocumentViewerPanel.show(this.extensionUri, fullPath, {
+          projectRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+          locale: typeof msg.locale === 'string' ? msg.locale : undefined,
+        });
         break;
       }
       case 'open_external': {

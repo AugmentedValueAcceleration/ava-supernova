@@ -23,7 +23,8 @@ import type { ToolCallDisplay } from '../types/messages';
 import { CopyButton } from './CopyButton';
 import { getToolHeader } from './tool-header';
 import { DiffView, getDiffStats } from './DiffView';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
+import { useVSCodeApi } from '../hooks/useVSCodeApi';
 
 interface ToolCallBlockProps {
   toolCall: ToolCallDisplay;
@@ -32,6 +33,7 @@ interface ToolCallBlockProps {
 
 export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) {
   useLocale();
+  const { postMessage } = useVSCodeApi();
   const { verb, target } = getToolHeader(toolCall.name, toolCall.arguments);
   const isFailed = toolCall.status === 'failed';
   const isPending = toolCall.status === 'pending_confirmation';
@@ -209,6 +211,31 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
           </div>
         )}
       </div>
+      {!isRunning && !isPending && !isFailed && (
+        <ViewFiles files={viewableFiles(toolCall.name, toolCall.result)} onView={(path) => postMessage({ type: 'view_document', path })} />
+      )}
+    </div>
+  );
+}
+
+/** Files a document tool made that the viewer can show (Documents 1.0 Part 4):
+ *  "Built → C:\\…\\documents\\overview.pdf", "Created spreadsheet: …/budget.xlsx". */
+function viewableFiles(name: string, result: string | undefined): string[] {
+  if (!result || (name !== 'document_author' && name !== 'document_manage')) return [];
+  const found = result.match(/(?:[A-Za-z]:[\\/]|\/)[^\n"'`|]*?\.(?:pdf|docx|xlsx|csv)\b/gi) ?? [];
+  return [...new Set(found.map((p) => p.trim()))];
+}
+
+function ViewFiles({ files, onView }: { files: string[]; onView: (path: string) => void }) {
+  if (!files.length) return null;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1.5 pl-3">
+      {files.map((f) => (
+        <button key={f} type="button" onClick={() => onView(f)}
+          className="flex items-center gap-1.5 rounded-md border-none bg-[var(--accent)] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:opacity-90 cursor-pointer">
+          {tt('library.view', 'View')} · {f.split(/[\\/]/).pop()}
+        </button>
+      ))}
     </div>
   );
 }

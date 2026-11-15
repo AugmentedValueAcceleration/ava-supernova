@@ -214,6 +214,11 @@
       "require": "./dist/projects/storage-categories.js",
       "types": "./dist/projects/storage-categories.d.ts"
     },
+    "./authoring/sheet-view": {
+      "import": "./dist/tools/authoring/sheet-view.js",
+      "require": "./dist/tools/authoring/sheet-view.js",
+      "types": "./dist/tools/authoring/sheet-view.d.ts"
+    },
     "./authoring/formats": {
       "import": "./dist/tools/authoring/export-formats.js",
       "require": "./dist/tools/authoring/export-formats.js",

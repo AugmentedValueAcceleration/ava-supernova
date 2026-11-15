@@ -116,6 +116,7 @@ import { migrateHealthFromGlobalState, readProfile, writeProfile, emptyHealthPro
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 import { DashboardPanel } from './DashboardPanel.js';
 import { SecretAccess } from '../secrets/secret-access.js';
+import { DocumentViewerPanel } from './DocumentViewerPanel';
 import { DocumentPreviewPanel } from './DocumentPreviewPanel.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
@@ -2992,6 +2993,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.postMessage({ type: 'document_body', path: message.path, content: '', ok: false });
         }
         break;
+
+      case 'view_document': {
+        // The document viewer, in its own tab (Documents 1.0 Part 4). Only a
+        // file inside the open project.
+        const root = this.projectRoot;
+        const abs = message.path ? require('node:path').resolve(message.path) as string : '';
+        const rel = root && abs ? require('node:path').relative(root, abs) as string : '..';
+        if (!abs || rel.startsWith('..') || require('node:path').isAbsolute(rel)) {
+          this.log(`[document] view refused outside the project: ${message.path}`);
+          break;
+        }
+        DocumentViewerPanel.show(this.extensionUri, abs, { projectRoot: root, locale: this.currentLocale });
+        break;
+      }
 
       case 'write_document':
         try {

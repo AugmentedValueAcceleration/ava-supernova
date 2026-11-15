@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { t, useLocale, tt} from '../i18n';
+import { t, useLocale, tt, getLocale } from '../i18n';
 import { post } from '../App';
 import type { LibraryImage, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset } from '../types/messages';
 import { LibraryPapers } from './LibraryPapers';
@@ -16,6 +16,12 @@ import { LazyModelViewer } from '../components/LazyModelViewer';
 import { canExport, targetsFor, TARGET_LABELS, type ExportFormat } from '@ava/core/authoring/formats';
 import { exportOptionsFor, originalExt, transcodeImage, withExt, type ExportFormat as ImageExportFormat, type ExportOption as ImageExportOption } from '../lib/image-export';
 import { useLibraryFolders, useFolderSidebar, FoldersView, FolderButton, FolderDropBar, FolderSidebar, FolderGlyph, fileRef, DRAG_WORK, type FolderItem, type FolderRef } from './LibraryFolders';
+import { viewerKind } from '../components/DocumentViewer';
+
+/** Open a document in the viewer, in its own tab (Documents 1.0 Part 4). */
+function viewDocument(path: string): void {
+  post({ type: 'view_document', path, locale: getLocale() } as never);
+}
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -1201,6 +1207,14 @@ function PreviewModal({
                 {tt('library.rename', 'Rename')}
               </button>
             )}
+            {isLocal && localPath && viewerKind(localPath) !== 'other' && (
+              <button
+                onClick={() => viewDocument(localPath)}
+                className="rounded-lg border-none bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+              >
+                {tt('library.view', 'View')}
+              </button>
+            )}
             {isLocal && localPath && (
               <button
                 onClick={handleOpen}
@@ -1259,6 +1273,14 @@ function PreviewModal({
                       </span>
                       {sibPath && (
                         <>
+                          {viewerKind(sibPath) !== 'other' && (
+                            <button
+                              onClick={() => viewDocument(sibPath)}
+                              className="rounded border-none bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white transition hover:opacity-90"
+                            >
+                              {tt('library.view', 'View')}
+                            </button>
+                          )}
                           <button
                             onClick={() => post({ type: 'open_external', path: sibPath })}
                             className="rounded border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"

@@ -11,8 +11,10 @@
   "dependencies": {
     "@ava/core": "workspace:*",
     "@phosphor-icons/react": "^2.1.10",
+    "docx-preview": "0.4.1",
     "lucide": "^1.23.0",
     "opentype.js": "^2.0.0",
+    "pdfjs-dist": "6.5.438",
     "qrcode-generator": "2.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

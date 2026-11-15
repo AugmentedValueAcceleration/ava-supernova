@@ -336,6 +336,8 @@ export type WebviewToExtMessage =
   | { type: 'set_open_document'; path: string | null }
   | { type: 'read_document'; path: string }
   | { type: 'write_document'; path: string; content: string }
+  /** Open a document Ava made in the viewer, in its own tab. */
+  | { type: 'view_document'; path: string }
   | { type: 'refresh_history' }
   | { type: 'pong' }
   | { type: 'request_today_tasks' }

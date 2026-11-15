@@ -4992,6 +4992,28 @@ export const enStrings = {
   'health.next.ticked': 'Done — no sets recorded',
   'health.next.title': 'Saved. Next time?',
   'health.next.update': 'Update my plan',
+  // ── Added from tt() fallbacks ──
+  'library.view': 'View',
+  'viewer.docx_failed': 'This Word document could not be shown.',
+  'viewer.found_pages': 'On page {pages}',
+  'viewer.go_to_page': 'Page {n}',
+  'viewer.loading': 'Opening…',
+  'viewer.more_pages': 'The first {n} pages are shown here. Open it in your app for the rest.',
+  'viewer.next_page': 'Next page',
+  'viewer.no_match': 'Not found',
+  'viewer.open_in_app': 'Open in your app',
+  'viewer.other': 'This kind of file opens in your own app.',
+  'viewer.pages': '{n} pages',
+  'viewer.pdf_failed': 'This PDF could not be shown.',
+  'viewer.prev_page': 'Previous page',
+  'viewer.search': 'Search',
+  'viewer.search_label': 'Search the document',
+  'viewer.sheet_clipped': 'Only part of this sheet is shown here. Open it in your app to see all of it.',
+  'viewer.sheets': '{n} sheets',
+  'viewer.show_in_folder': 'Show in folder',
+  'viewer.spreadsheet': 'Spreadsheet',
+  'viewer.zoom_in': 'Zoom in',
+  'viewer.zoom_out': 'Zoom out',
 };
 
 export type StringKey = keyof typeof enStrings;

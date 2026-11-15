@@ -132,7 +132,9 @@
         "health.wizard.r.allergies": "Allergies",
         "health.wizard.sum.plan": "Plan",
         "health.profile.never.allergies": "Allergies",
-        "health.results.mins": "{n} min"
+        "health.results.mins": "{n} min",
+        "viewer.go_to_page": "Page {n}",
+        "viewer.pages": "{n} pages"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
