@@ -81,7 +81,8 @@
         "health.browse.sort.name": "A–Z",
         "library.plan.tile": "Plan",
         "health.wizard.sum.plan": "Plan",
-        "health.results.mins": "{n} min"
+        "health.results.mins": "{n} min",
+        "memory.v4.no": "No"
       },
       "fr": {
         "health.plans.n_cook": "{n} min",
@@ -166,7 +167,8 @@
         "ext.studio.kit_font_ui_name": "Font",
         "dash.studio.model.pick": "Model",
         "health.browse.sort.name": "A–Z",
-        "dash.studio.finals": "Final"
+        "dash.studio.finals": "Final",
+        "memory.v4.folder": "Folder: {path}"
       },
       "it": {
         "health.plans.n_cook": "{n} min",
@@ -200,7 +202,8 @@
         "dash.nav.studio_jobs": "Studio",
         "dash.studio.voice.volume": "Volume",
         "health.browse.sort.name": "A–Z",
-        "health.results.mins": "{n} min"
+        "health.results.mins": "{n} min",
+        "memory.v4.no": "No"
       },
       "ja": {
         "learning.room.tab.ava": "Ava",

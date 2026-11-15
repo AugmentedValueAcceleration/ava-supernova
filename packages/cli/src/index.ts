@@ -200,7 +200,7 @@ async function main(): Promise<void> {
 
   // Memory v4's end-of-session tidy-up: one call, on the first main model
   // among the keys they hold (the CLI has no fleet switch).
-  const memoryModel = memorySession ? resolveMemoryModel(providerRegistry, Object.keys(keys)) : null;
+  const memoryModel = memorySession ? resolveMemoryModel(providerRegistry, Object.keys(keys), undefined, resolved) : null;
   const tidyMemory = async () => {
     if (!memorySession || !memoryModel) return;
     await consolidateSession({ session: memorySession, messages: conversation.getMessages(), provider: memoryModel.provider, model: memoryModel.model }).catch(() => null);

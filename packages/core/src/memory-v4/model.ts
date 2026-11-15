@@ -12,6 +12,9 @@
  *   Supernova (Qwen + DeepSeek) → DeepSeek Flash, its coordinator
  *   Aurora (Mistral)            → Mistral Small 4
  *   own keys, no fleet          → the first of these the person holds a key for
+ *   no key, a local model       → that local model (DECIDED 15 Nov: someone
+ *                                 running Ava only on their own machine still
+ *                                 gets the tidy-up)
  *
  * Each fleet stays on its own providers. Null when none is reachable: saves
  * they ask for still work, and only the tidy-up is skipped.
@@ -30,18 +33,26 @@ const FLEET_LADDER: Record<string, readonly string[]> = {
 
 const OWN_KEYS_LADDER = ['qwen3.7-plus', 'deepseek-flash', 'mistral-small-4', 'qwen3.8-flash', 'qwen3.7-flash', 'qwen3.5-flash', 'nvidia/nemotron-3.5-lightning-30b-a3b'];
 
+/** A local model (Ollama, LM Studio, any OpenAI-compatible server they run): registered as `generic`. */
+export function isLocalModel(current: { provider: Provider } | null | undefined): boolean {
+  return current?.provider.name === 'generic';
+}
+
 export function resolveMemoryModel(
   providerRegistry: ProviderRegistry,
   availableProviders: Iterable<string>,
   routingMode?: string,
+  /** The model they are chatting with: used when nothing else is reachable and it is a local one. */
+  current?: { provider: Provider; model: ModelDefinition } | null,
 ): { provider: Provider; model: ModelDefinition } | null {
+  const local = current && isLocalModel(current) ? current : null;
   const fleet = routingMode ? FLEET_PROVIDERS[routingMode as keyof typeof FLEET_PROVIDERS] : undefined;
   if (fleet) {
     for (const id of FLEET_LADDER[routingMode as string] ?? OWN_KEYS_LADDER) {
       const r = resolveOnFleet(providerRegistry, fleet, id);
       if (r) return r;
     }
-    return null;
+    return local;
   }
   const providers = [...availableProviders];
   for (const id of OWN_KEYS_LADDER) {
@@ -52,5 +63,5 @@ export function resolveMemoryModel(
     const direct = providerRegistry.resolveModel(id);
     if (direct) return { provider: direct.provider, model: direct.model };
   }
-  return null;
+  return local;
 }

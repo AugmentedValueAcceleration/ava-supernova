@@ -2018,7 +2018,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // 15 Nov). A single model picked outside the fleets uses any key they hold.
     const onFleet = !activeModel || ['auto', 'maestro', 'supernova', 'aurora', 'longxiang'].includes(activeModel);
     this.memoryModel = memorySession
-      ? resolveMemoryModel(this.providerRegistry, availableProviders, onFleet ? routingMode : undefined)
+      ? resolveMemoryModel(this.providerRegistry, availableProviders, onFleet ? routingMode : undefined, onFleet ? null : { provider, model })
       : null;
     if (memorySession) this.log(`memory v4 tidy-up model: ${this.memoryModel?.model.id ?? 'none reachable (tidy-up off; saves still work)'}`);
 

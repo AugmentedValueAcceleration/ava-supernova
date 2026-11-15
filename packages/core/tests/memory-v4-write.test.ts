@@ -216,6 +216,16 @@ describe('tidy-up model per fleet', () => {
     // Own keys, no fleet: the first held.
     expect(resolveMemoryModel(registry(['mistral']), ['mistral'])?.model.id).toBe('mistral-small-4');
   });
+
+  it('with no key, uses their local model — and only a local one', async () => {
+    const { resolveMemoryModel } = await import('../src/memory-v4/model.js');
+    const local = { provider: { name: 'generic' }, model: { id: 'qwen2.5-coder:7b' } } as never;
+    const remote = { provider: { name: 'kimi' }, model: { id: 'kimi-k2' } } as never;
+    expect((resolveMemoryModel(registry([]), [], undefined, local) as { model: { id: string } } | null)?.model.id).toBe('qwen2.5-coder:7b');
+    expect(resolveMemoryModel(registry([]), [], undefined, remote)).toBeNull();
+    // A key's main model still comes first.
+    expect(resolveMemoryModel(registry(['qwen']), ['qwen'], undefined, local)?.model.id).toBe('qwen3.7-plus');
+  });
 });
 
 describe('memory_save quote', () => {
