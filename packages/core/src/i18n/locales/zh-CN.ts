@@ -4729,4 +4729,5 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': '电子表格',
   'viewer.zoom_in': '放大',
   'viewer.zoom_out': '缩小',
+  'viewer.chart': '图表',
 };

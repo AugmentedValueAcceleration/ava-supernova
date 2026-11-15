@@ -4749,4 +4749,5 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'جدول بيانات',
   'viewer.zoom_in': 'تكبير',
   'viewer.zoom_out': 'تصغير',
+  'viewer.chart': 'الرسم البياني',
 };

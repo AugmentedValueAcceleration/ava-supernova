@@ -4747,4 +4747,5 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Lembar Kerja',
   'viewer.zoom_in': 'Perbesar',
   'viewer.zoom_out': 'Perkecil',
+  'viewer.chart': 'Grafik',
 };

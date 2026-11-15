@@ -6,7 +6,7 @@
 //
 //   PDF          → pdf.js (Mozilla): pages, thumbnails, zoom, search
 //   Word (.docx) → docx-preview: the real page layout
-//   .xlsx / .csv → a grid with sheet tabs and a formula bar (read by the host)
+//   .xlsx / .ods / .csv → a grid with sheet tabs and a formula bar (read by the host)
 //   anything else → "Open in your app"
 //
 // ONE SHARED FILE: identical in the extension and the IDE apart from the
@@ -24,7 +24,7 @@ export function viewerKind(name: string): ViewerKind {
   const ext = name.toLowerCase().split('.').pop() ?? '';
   if (ext === 'pdf') return 'pdf';
   if (ext === 'docx') return 'docx';
-  if (ext === 'xlsx' || ext === 'csv') return 'sheet';
+  if (ext === 'xlsx' || ext === 'ods' || ext === 'csv') return 'sheet';
   return 'other';
 }
 
@@ -367,6 +367,11 @@ function SheetView({ sheets }: { sheets: ViewSheet[] }) {
           : <span style={{ color: '#cdd6f4' }}>{selected?.v ?? ''}</span>}
       </div>
       <div style={{ flexGrow: 1, overflow: 'auto' }}>
+        {sheet.charts?.length ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, padding: '16px 18px', borderBottom: '1px solid #241d33' }}>
+            {sheet.charts.map((c, i) => <ChartSvg key={i} chart={c} />)}
+          </div>
+        ) : null}
         <table style={{ borderCollapse: 'separate', borderSpacing: 0, fontSize: 13 }}>
           <thead>
             <tr>
@@ -410,5 +415,96 @@ function SheetView({ sheets }: { sheets: ViewSheet[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Charts (drawn from the numbers the .xlsx carries) ───────────────────────
+
+const CHART_COLOURS = ['#7C3AED', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#EC4899', '#14B8A6', '#8B5CF6'];
+type ChartData = NonNullable<ViewSheet['charts']>[number];
+
+const short = (n: number): string => (Math.abs(n) >= 1e6 ? `${+(n / 1e6).toFixed(1)}m` : Math.abs(n) >= 1e3 ? `${+(n / 1e3).toFixed(1)}k` : `${+n.toFixed(2)}`);
+
+function ChartSvg({ chart }: { chart: ChartData }) {
+  // The chart's own colours from the file (the house colour leads), else ours.
+  const colour = (i: number): string => chart.colours?.[i] ?? CHART_COLOURS[i % CHART_COLOURS.length];
+  const W = 460, H = 280;
+  const pad = { l: 48, r: 16, t: chart.title ? 36 : 16, b: 52 };
+  const labels = chart.labels;
+  const series = chart.data;
+  const legend = series.length > 1 || chart.type === 'pie';
+  const box: CSSProperties = { background: '#110d1a', border: BORDER, borderRadius: 10 };
+
+  if (chart.type === 'pie') {
+    const vals = (series[0]?.values ?? []).map((v) => Math.max(0, v));
+    const total = vals.reduce((a, b) => a + b, 0) || 1;
+    let angle = -Math.PI / 2;
+    const cx = 140, cy = H / 2 + 8, r = 96;
+    return (
+      <svg width={W} height={H} role="img" aria-label={chart.title || tt('viewer.chart', 'Chart')} style={box}>
+        {chart.title && <text x={W / 2} y={22} textAnchor="middle" fill="#cdd6f4" fontSize="13" fontWeight="600">{chart.title}</text>}
+        {vals.map((v, i) => {
+          const a0 = angle, a1 = angle + (v / total) * Math.PI * 2;
+          angle = a1;
+          const large = a1 - a0 > Math.PI ? 1 : 0;
+          const d = vals.length === 1 || v === total
+            ? `M ${cx - r} ${cy} a ${r} ${r} 0 1 0 ${r * 2} 0 a ${r} ${r} 0 1 0 ${-r * 2} 0`
+            : `M ${cx} ${cy} L ${cx + r * Math.cos(a0)} ${cy + r * Math.sin(a0)} A ${r} ${r} 0 ${large} 1 ${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)} Z`;
+          return <path key={i} d={d} fill={colour(i)} stroke="#110d1a" strokeWidth="1.5" />;
+        })}
+        {labels.map((l, i) => (
+          <g key={i} transform={`translate(270, ${50 + i * 20})`}>
+            <rect width="10" height="10" rx="2" fill={colour(i)} />
+            <text x="16" y="9" fill="#cdd6f4" fontSize="11">{`${l} · ${Math.round(((vals[i] ?? 0) / total) * 100)}%`}</text>
+          </g>
+        )).slice(0, 10)}
+      </svg>
+    );
+  }
+
+  const all = series.flatMap((s) => s.values);
+  const max = Math.max(0, ...all), min = Math.min(0, ...all);
+  const span = max - min || 1;
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b - (legend ? 16 : 0);
+  const horizontal = chart.type === 'bar';
+  const n = Math.max(1, labels.length);
+  const valueAt = (v: number) => (horizontal ? pad.l + ((v - min) / span) * pw : pad.t + ph - ((v - min) / span) * ph);
+  const zero = valueAt(0);
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => min + f * span);
+
+  return (
+    <svg width={W} height={H} role="img" aria-label={chart.title || tt('viewer.chart', 'Chart')} style={box}>
+      {chart.title && <text x={W / 2} y={22} textAnchor="middle" fill="#cdd6f4" fontSize="13" fontWeight="600">{chart.title}</text>}
+      {ticks.map((t, i) => horizontal
+        ? <g key={i}><line x1={valueAt(t)} x2={valueAt(t)} y1={pad.t} y2={pad.t + ph} stroke="#241d33" /><text x={valueAt(t)} y={pad.t + ph + 14} textAnchor="middle" fill="#8d86a3" fontSize="10">{short(t)}</text></g>
+        : <g key={i}><line x1={pad.l} x2={pad.l + pw} y1={valueAt(t)} y2={valueAt(t)} stroke="#241d33" /><text x={pad.l - 6} y={valueAt(t) + 3} textAnchor="end" fill="#8d86a3" fontSize="10">{short(t)}</text></g>)}
+      {labels.map((l, i) => {
+        const slot = (horizontal ? ph : pw) / n;
+        const mid = (horizontal ? pad.t : pad.l) + slot * (i + 0.5);
+        return horizontal
+          ? <text key={i} x={pad.l - 6} y={mid + 3} textAnchor="end" fill="#a6adc8" fontSize="10">{l.slice(0, 10)}</text>
+          : <text key={i} x={mid} y={pad.t + ph + 14} textAnchor="middle" fill="#a6adc8" fontSize="10">{l.slice(0, 12)}</text>;
+      })}
+      {chart.type === 'line'
+        ? series.map((s, k) => (
+          <polyline key={k} fill="none" stroke={colour(k)} strokeWidth="2.5" strokeLinejoin="round"
+            points={s.values.map((v, i) => `${pad.l + (pw / n) * (i + 0.5)},${valueAt(v)}`).join(' ')} />
+        ))
+        : series.map((s, k) => s.values.map((v, i) => {
+          const slot = (horizontal ? ph : pw) / n;
+          const bw = (slot * 0.7) / series.length;
+          const start = (horizontal ? pad.t : pad.l) + slot * i + slot * 0.15 + bw * k;
+          const end = valueAt(v);
+          return horizontal
+            ? <rect key={`${k}-${i}`} x={Math.min(zero, end)} y={start} width={Math.abs(end - zero)} height={bw} fill={colour(k)} rx="2" />
+            : <rect key={`${k}-${i}`} x={start} y={Math.min(zero, end)} width={bw} height={Math.abs(end - zero)} fill={colour(k)} rx="2" />;
+        }))}
+      {legend && series.map((s, k) => (
+        <g key={k} transform={`translate(${pad.l + k * 110}, ${H - 18})`}>
+          <rect width="10" height="10" rx="2" fill={colour(k)} />
+          <text x="16" y="9" fill="#cdd6f4" fontSize="11">{s.name.slice(0, 14)}</text>
+        </g>
+      ))}
+    </svg>
   );
 }

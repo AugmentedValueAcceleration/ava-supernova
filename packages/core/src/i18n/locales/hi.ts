@@ -4749,4 +4749,5 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'स्प्रैडशीट',
   'viewer.zoom_in': 'ज़ूम इन',
   'viewer.zoom_out': 'ज़ूम आउट',
+  'viewer.chart': 'चार्ट',
 };

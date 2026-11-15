@@ -4750,4 +4750,5 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': '試算表',
   'viewer.zoom_in': '放大',
   'viewer.zoom_out': '縮小',
+  'viewer.chart': '圖表',
 };

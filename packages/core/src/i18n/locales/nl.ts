@@ -4749,4 +4749,5 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Werkblad',
   'viewer.zoom_in': 'Inzoomen',
   'viewer.zoom_out': 'Uitzoomen',
+  'viewer.chart': 'Grafiek',
 };

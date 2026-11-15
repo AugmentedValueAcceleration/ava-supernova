@@ -4751,4 +4751,5 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'スプレッドシート',
   'viewer.zoom_in': '拡大',
   'viewer.zoom_out': '縮小',
+  'viewer.chart': 'チャート',
 };

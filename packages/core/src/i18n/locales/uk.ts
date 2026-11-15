@@ -4729,4 +4729,5 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Електронна таблиця',
   'viewer.zoom_in': 'Збільшити',
   'viewer.zoom_out': 'Зменшити',
+  'viewer.chart': 'Діаграма',
 };

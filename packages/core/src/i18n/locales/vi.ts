@@ -4749,4 +4749,5 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Bảng tính',
   'viewer.zoom_in': 'Phóng to',
   'viewer.zoom_out': 'Thu nhỏ',
+  'viewer.chart': 'Biểu đồ',
 };

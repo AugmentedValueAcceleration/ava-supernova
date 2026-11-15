@@ -99,7 +99,7 @@ export class DocumentViewerPanel {
       if (ext === '.pdf' || ext === '.docx') {
         const bytes = await readFile(this.filePath);
         void this.panel.webview.postMessage({ ...base, kind: ext === '.pdf' ? 'pdf' : 'docx', b64: bytes.toString('base64') });
-      } else if (ext === '.xlsx' || ext === '.csv') {
+      } else if (ext === '.xlsx' || ext === '.ods' || ext === '.csv') {
         void this.panel.webview.postMessage({ ...base, kind: 'sheet', sheets: await readSheetForView(this.filePath) });
       } else {
         void this.panel.webview.postMessage({ ...base, kind: 'other' });

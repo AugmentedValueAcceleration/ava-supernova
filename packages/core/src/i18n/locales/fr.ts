@@ -4745,4 +4745,5 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Feuille de calcul',
   'viewer.zoom_in': 'Zoom avant',
   'viewer.zoom_out': 'Zoom arrière',
+  'viewer.chart': 'Graphique',
 };

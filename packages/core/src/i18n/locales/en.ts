@@ -5014,6 +5014,8 @@ export const enStrings = {
   'viewer.spreadsheet': 'Spreadsheet',
   'viewer.zoom_in': 'Zoom in',
   'viewer.zoom_out': 'Zoom out',
+  // ── Added from tt() fallbacks ──
+  'viewer.chart': 'Chart',
 };
 
 export type StringKey = keyof typeof enStrings;

@@ -30,6 +30,11 @@ async function main() {
   r = await manage.execute({ action: 'create', file_path: 'sheet.xlsx', content: { sheets: [{ name: 'Costs', headers: ['Item', 'Cost'], rows: [['Rent', 900], ['Food', 250]] }] } }, ctx);
   check('spreadsheet xlsx', r.success && size(join(cwd, 'documents', 'sheet.xlsx')) > 500, r.output);
 
+  r = await manage.execute({ action: 'create', file_path: 'sheet.ods', content: { sheets: [{ name: 'Costs', headers: ['Item', 'Cost'], rows: [['Rent', 900], ['Food', 250]], totals: { columns: ['Cost'] }, charts: [{ type: 'pie', categories: 'A2:A3', series: [{ name: 'Cost', values: 'B2:B3' }] }] }] } }, ctx);
+  check('spreadsheet ods', r.success && size(join(cwd, 'documents', 'sheet.ods')) > 500, r.output);
+  r = await manage.execute({ action: 'read', file_path: 'sheet.ods' }, ctx);
+  check('read ods', r.success && /1,?150/.test(r.output), r.success ? '' : r.output);
+
   r = await author.execute({ action: 'read', file_path: 'smoke.pdf' }, ctx);
   check('read pdf', r.success && r.output.includes('Smoke test'), r.success ? '' : r.output);
   r = await author.execute({ action: 'read', file_path: 'smoke.docx' }, ctx);

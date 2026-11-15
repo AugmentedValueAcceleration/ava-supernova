@@ -4749,4 +4749,5 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'สเปรดชีต',
   'viewer.zoom_in': 'ซูมเข้า',
   'viewer.zoom_out': 'ซูมออก',
+  'viewer.chart': 'แผนภูมิ',
 };

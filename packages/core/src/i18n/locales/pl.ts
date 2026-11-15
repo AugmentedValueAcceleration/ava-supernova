@@ -4729,4 +4729,5 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Arkusz kalkulacyjny',
   'viewer.zoom_in': 'Powiększ',
   'viewer.zoom_out': 'Pomniejsz',
+  'viewer.chart': 'Wykres',
 };

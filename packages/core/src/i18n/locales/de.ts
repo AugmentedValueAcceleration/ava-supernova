@@ -4729,4 +4729,5 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Tabelle',
   'viewer.zoom_in': 'Vergrößern',
   'viewer.zoom_out': 'Verkleinern',
+  'viewer.chart': 'Diagramm',
 };

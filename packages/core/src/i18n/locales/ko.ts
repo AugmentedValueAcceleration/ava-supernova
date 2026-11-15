@@ -4749,4 +4749,5 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': '스프레드시트',
   'viewer.zoom_in': '확대',
   'viewer.zoom_out': '축소',
+  'viewer.chart': '차트',
 };

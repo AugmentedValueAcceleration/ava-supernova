@@ -4721,4 +4721,5 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Hoja de cálculo',
   'viewer.zoom_in': 'Ampliar',
   'viewer.zoom_out': 'Reducir',
+  'viewer.chart': 'Gráfico',
 };

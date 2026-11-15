@@ -4749,4 +4749,5 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Tablo',
   'viewer.zoom_in': 'Yakınlaştır',
   'viewer.zoom_out': 'Uzaklaştır',
+  'viewer.chart': 'Grafik',
 };

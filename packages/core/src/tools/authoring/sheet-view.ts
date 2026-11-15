@@ -10,6 +10,8 @@
 import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { parseCsv } from './export-document.js';
+import { readCharts, type ChartView } from './xlsx-charts.js';
+import { readOds } from './ods-spreadsheet.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -27,6 +29,8 @@ export interface ViewSheet {
   rows: ViewCell[][];
   /** True when the sheet had more rows or columns than the viewer shows. */
   clipped?: boolean;
+  /** Charts on the sheet, with the numbers they show. */
+  charts?: ChartView[];
 }
 
 /** Enough for any spreadsheet a person reads; bigger ones open in their app. */
@@ -69,12 +73,25 @@ export async function readSheetForView(path: string): Promise<ViewSheet[]> {
       clipped,
     }];
   }
+  if (ext === '.ods') {
+    return readOds(await readFile(path), SHEET_VIEW_LIMITS).map((sh) => ({
+      name: sh.name,
+      rows: sh.rows.map((r) => r.map((c) => ({
+        v: c.text,
+        ...(c.formula ? { f: c.formula } : {}),
+        ...(c.kind === 'float' || c.kind === 'currency' || c.kind === 'percentage' ? { n: true } : {}),
+      }))),
+      ...(sh.charts.length ? { charts: sh.charts } : {}),
+    }));
+  }
   if (ext !== '.xlsx') throw new Error('This spreadsheet type opens in your own app.');
 
   const mod: any = await import('exceljs');
   const ExcelJS = mod.default?.Workbook ? mod.default : mod;
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(path);
+  const bytes = await readFile(path);
+  await workbook.xlsx.load(bytes);
+  const chartsBySheet = new Map(readCharts(bytes).map((x) => [x.sheet, x.charts]));
   const out: ViewSheet[] = [];
   workbook.eachSheet((ws: any) => {
     const rows: ViewCell[][] = [];
@@ -89,7 +106,8 @@ export async function readSheetForView(path: string): Promise<ViewSheet[]> {
       for (let c = 1; c <= width; c++) cells.push(cellOf(row.getCell(c).value));
       rows.push(cells);
     }
-    out.push({ name: String(ws.name), rows, clipped });
+    const charts = chartsBySheet.get(String(ws.name));
+    out.push({ name: String(ws.name), rows, clipped, ...(charts?.length ? { charts } : {}) });
   });
   return out;
 }

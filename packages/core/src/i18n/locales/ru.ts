@@ -4749,4 +4749,5 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Таблица',
   'viewer.zoom_in': 'Увеличить',
   'viewer.zoom_out': 'Уменьшить',
+  'viewer.chart': 'График',
 };

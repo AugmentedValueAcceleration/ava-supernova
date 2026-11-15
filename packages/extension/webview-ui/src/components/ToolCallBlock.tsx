@@ -222,7 +222,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
  *  "Built → C:\\…\\documents\\overview.pdf", "Created spreadsheet: …/budget.xlsx". */
 function viewableFiles(name: string, result: string | undefined): string[] {
   if (!result || (name !== 'document_author' && name !== 'document_manage')) return [];
-  const found = result.match(/(?:[A-Za-z]:[\\/]|\/)[^\n"'`|]*?\.(?:pdf|docx|xlsx|csv)\b/gi) ?? [];
+  const found = result.match(/(?:[A-Za-z]:[\\/]|\/)[^\n"'`|]*?\.(?:pdf|docx|xlsx|ods|csv)\b/gi) ?? [];
   return [...new Set(found.map((p) => p.trim()))];
 }
 

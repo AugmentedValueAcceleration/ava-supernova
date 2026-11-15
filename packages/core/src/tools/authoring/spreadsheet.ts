@@ -18,6 +18,7 @@
 
 import { evaluateFormula, colNumber, parseRef } from './formula-eval.js';
 import type { BrandTokens } from './doc-model.js';
+import { addCharts, type ChartSpec, type ChartCells } from './xlsx-charts.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -41,6 +42,8 @@ export interface SheetSpec {
   totals?: { label?: string; columns: string[] };
   /** Freeze the header row (default true). */
   freeze?: boolean;
+  /** Charts on this sheet: column, bar, line or pie, from ranges on it. */
+  charts?: ChartSpec[];
 }
 
 const SYMBOL: Record<string, string> = { GBP: '£', USD: '$', EUR: '€', JPY: '¥', INR: '₹' };
@@ -203,4 +206,25 @@ export function updateCells(ws: any, cells: Record<string, CellInput>, cols?: Co
   }
   recalculate(ws);
   return changed;
+}
+
+/** Cell text and numbers for a chart's cache, from an exceljs workbook. */
+export function chartCellsOf(workbook: any): ChartCells {
+  return (sheet, c, r) => {
+    const v = workbook.getWorksheet(sheet)?.getRow(r).getCell(c).value;
+    if (typeof v === 'number') return { text: String(v), num: v };
+    if (v && typeof v === 'object' && 'formula' in v) {
+      const res = (v as any).result;
+      return { text: res == null ? '' : String(res), num: typeof res === 'number' ? res : null };
+    }
+    if (v instanceof Date) return { text: v.toISOString().slice(0, 10), num: null };
+    if (v && typeof v === 'object' && 'richText' in v) return { text: (v as any).richText.map((t: any) => t.text).join(''), num: null };
+    return { text: v == null ? '' : String(v), num: null };
+  };
+}
+
+/** The workbook as .xlsx bytes, with its charts added. */
+export async function workbookBytes(workbook: any, charts: Array<{ sheet: string; charts: ChartSpec[] }>, brand?: BrandTokens): Promise<Buffer> {
+  const raw = Buffer.from(await workbook.xlsx.writeBuffer());
+  return addCharts(raw, charts, chartCellsOf(workbook), brand?.headingColor?.replace(/^#/, ''));
 }

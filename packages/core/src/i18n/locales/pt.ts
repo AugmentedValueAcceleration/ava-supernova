@@ -4747,4 +4747,5 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'viewer.spreadsheet': 'Planilha',
   'viewer.zoom_in': 'Aumentar zoom',
   'viewer.zoom_out': 'Diminuir zoom',
+  'viewer.chart': 'Gráfico',
 };

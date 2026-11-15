@@ -12,7 +12,7 @@
  * entries. ODF packages are a handful of small files, so none of it applies.
  */
 
-import { deflateRawSync } from 'node:zlib';
+import { deflateRawSync, inflateRawSync } from 'node:zlib';
 
 export interface ZipEntry {
   /** Path inside the archive, '/'-separated. */
@@ -145,4 +145,43 @@ export function zipSync(entries: ZipEntry[], modified: Date = new Date()): Buffe
   end.writeUInt16LE(0, 20);                   // comment length
 
   return Buffer.concat([...locals, centralDir, end]);
+}
+
+// ── Reading ──────────────────────────────────────────────────────────────────
+
+/**
+ * Every entry of a zip (an .xlsx is one), from its central directory. Stored
+ * and deflated entries only — all that Office files use. Added 15 Nov 2026 so
+ * charts can be added to a workbook exceljs wrote, with no zip library.
+ */
+export function unzipSync(zip: Buffer): ZipEntry[] {
+  // The end-of-central-directory record: last 22 bytes, or further back when
+  // the archive carries a comment.
+  let eocd = -1;
+  for (let i = zip.length - 22; i >= Math.max(0, zip.length - 22 - 0xffff); i--) {
+    if (zip.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('Not a zip file.');
+  const count = zip.readUInt16LE(eocd + 10);
+  let p = zip.readUInt32LE(eocd + 16);
+  const out: ZipEntry[] = [];
+  for (let n = 0; n < count; n++) {
+    if (zip.readUInt32LE(p) !== 0x02014b50) throw new Error('Damaged zip directory.');
+    const method = zip.readUInt16LE(p + 10);
+    const compSize = zip.readUInt32LE(p + 20);
+    const nameLen = zip.readUInt16LE(p + 28);
+    const extraLen = zip.readUInt16LE(p + 30);
+    const commentLen = zip.readUInt16LE(p + 32);
+    const local = zip.readUInt32LE(p + 42);
+    const name = zip.subarray(p + 46, p + 46 + nameLen).toString('utf8');
+    const lNameLen = zip.readUInt16LE(local + 26);
+    const lExtraLen = zip.readUInt16LE(local + 28);
+    const start = local + 30 + lNameLen + lExtraLen;
+    const body = zip.subarray(start, start + compSize);
+    if (method !== 0 && method !== 8) throw new Error(`Unsupported zip compression (${method}) in ${name}.`);
+    const data = method === 8 ? inflateRawSync(body) : Buffer.from(body);
+    if (!name.endsWith('/')) out.push({ name, data, store: method === 0 });
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
 }
