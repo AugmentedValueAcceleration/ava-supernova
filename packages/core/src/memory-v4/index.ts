@@ -7,3 +7,5 @@ export type { Episode, EpisodeSection } from './threads-episodes.js';
 export { withLock, writeAtomic, today } from './files.js';
 export * from './types.js';
 export { SearchIndex, tokenizeAll } from './search-index.js';
+export { MemorySession, memoryV4Root, datesIn } from './reader.js';
+export type { RecallArgs } from './reader.js';

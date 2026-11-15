@@ -6,6 +6,7 @@
  * page. Nothing is applied until the person has reviewed it:
  *
  *   node scripts/memory-migrate.mjs propose --from=<backup of ~/.ava> --work=<private dir> --projects=<json>
+ *   node scripts/memory-migrate.mjs refine  --work=<dir> --decisions=<files> --out=<file>
  *   node scripts/memory-migrate.mjs apply   --work=<dir> --decisions=<file saved from the review page> --to=<memory root>
  *
  * propose stages (each saved in <work>, so a re-run never pays twice):
@@ -570,6 +571,96 @@ async function apply() {
   console.log(`applied: ${facts} facts (+${history} history), core, ${decisions.episodes?.length ?? 0} days, ${decisions.threads?.length ?? 0} threads → ${to}`);
 }
 
+// ── refine: structure only, after the review ───────────────────────────────
+
+/**
+ * Two fixes to approved decisions that change structure, never meaning:
+ *
+ *  Split. The merge sometimes welded a dozen facts into one (the DawnSets stat
+ *  sheet, panels and widgets became one 3,000-character fact), and search
+ *  can't find one detail buried in a blob. Long facts are split into focused
+ *  ones. Every identifier and number in the original must survive in the
+ *  pieces, or the original is kept as it was.
+ *
+ *  Quotes. A quote is shown to Ava as "their words", so it must be: short,
+ *  the person's own words, and actually saying that fact. The classifier
+ *  sometimes copied the memory's own text, or an unrelated remark, into it.
+ */
+const SPLIT_OVER = 600;
+
+/** Tokens that must survive a split: identifiers, numbers, names. */
+function specifics(text) {
+  // Identifiers with a digit or underscore, CamelCase names (two capitals),
+  // and numbers of two or more characters. Not list markers ("1)"), not
+  // ordinary capitalised words, and not trailing punctuation ("5.8,").
+  const tokens = text.match(/[A-Za-z_][A-Za-z0-9_]*[\d_][A-Za-z0-9_]*|\b[A-Z][a-z0-9]+[A-Z][A-Za-z0-9]*\b|\b\d[\d.,:%×/-]*\d%?|\b\d{2,}\b/g) ?? [];
+  return [...new Set(tokens.map((t) => t.replace(/[.,:]+$/, '').toLowerCase()).filter((t) => t.length > 1))];
+}
+
+const SPLIT_SYSTEM = `Each numbered FACT below is too long: several facts were joined into one. Split each into focused facts, one subject each.
+Rules: keep every detail (names, numbers, identifiers, file names, commands); each fact must stand alone (repeat the subject where needed); do not reword beyond that; drop sentences that exactly repeat another; never add anything.
+Reply with JSON only: {"facts":[{"n":1,"parts":["…","…"]}]}`;
+
+const QUOTE_SYSTEM = `Each item has a memory FACT and a QUOTE said to be the person's own words. Keep the quote only if it is plainly the person speaking (first person, informal) AND it says or directly supports that fact. Drop it if it is a description written by someone else, a copy of the fact, or a remark about something else.
+Reply with JSON only: {"verdicts":[{"n":1,"keep":true}]}`;
+
+async function refine() {
+  const { work, decisions: files, out } = args;
+  if (!work || !files || !out) throw new Error('refine needs --work, --decisions and --out');
+  const facts = [];
+  for (const file of String(files).split(',')) facts.push(...(readJson(file.trim()).facts ?? []));
+  const base = readJson(String(files).split(',')[0].trim());
+
+  // Quotes: length and copy checks for free, then the model for the rest.
+  let quotesDropped = 0;
+  const toCheck = [];
+  for (const f of facts) {
+    if (!f.quote) continue;
+    const q = String(f.quote).trim();
+    const copy = norm(f.text).includes(norm(q)) && norm(q).length > 40;
+    if (f.source !== 'said' || q.length > 200 || copy) { f.quote = ''; quotesDropped++; } else toCheck.push(f);
+  }
+  for (let i = 0; i < toCheck.length; i += 30) {
+    const batch = toCheck.slice(i, i + 30);
+    const user = batch.map((f, j) => `${j + 1}. FACT: ${f.text.slice(0, 400)}\n   QUOTE: "${f.quote}"`).join('\n');
+    const reply = parseJson(await ask(work, `quotes-${i}`, QUOTE_SYSTEM, user, 3000));
+    for (const v of reply.verdicts ?? []) {
+      const f = batch[v.n - 1];
+      if (f && v.keep === false) { f.quote = ''; quotesDropped++; }
+    }
+  }
+
+  // Splits.
+  const long = facts.filter((f) => f.text.length > SPLIT_OVER);
+  const result = [];
+  let split = 0, keptWhole = 0;
+  const replacement = new Map();
+  for (let i = 0; i < long.length; i += 5) {
+    const batch = long.slice(i, i + 5);
+    const user = batch.map((f, j) => `FACT ${j + 1}:\n${f.text}`).join('\n\n');
+    const reply = parseJson(await ask(work, `split-${i}`, SPLIT_SYSTEM, user, 12000));
+    for (const r of reply.facts ?? []) {
+      const f = batch[r.n - 1];
+      const parts = (r.parts ?? []).map((x) => String(x).trim()).filter(Boolean);
+      if (!f || parts.length < 2) continue;
+      const joined = parts.join(' ').toLowerCase();
+      const missing = specifics(f.text).filter((t) => !joined.includes(t));
+      if (missing.length) { keptWhole++; console.log(`  kept whole (would lose ${missing.slice(0, 4).join(', ')}): ${f.text.slice(0, 60)}…`); continue; }
+      replacement.set(f, parts);
+      split++;
+    }
+  }
+  for (const f of facts) {
+    const parts = replacement.get(f);
+    if (!parts) { result.push(f); continue; }
+    // The first piece carries the history and the quote; the rest are plain facts.
+    parts.forEach((text, k) => result.push(k === 0 ? { ...f, text } : { ...f, text, quote: '', replaced: [] }));
+  }
+  writeJson(out, { ...base, facts: result, refinedAt: new Date().toISOString() });
+  console.log(`refine: ${quotesDropped} quotes dropped (${facts.filter((f) => f.quote).length} kept); ${split} long facts split, ${keptWhole} kept whole; ${facts.length} → ${result.length} facts → ${out}`);
+  console.log(`Spent $${(spend.in / 1e6 * MODEL.inPerM + spend.out / 1e6 * MODEL.outPerM).toFixed(3)}.`);
+}
+
 // ── recover: a separate page for memories an earlier run dropped ───────────
 
 /**
@@ -595,6 +686,7 @@ try {
   else if (command === 'apply') await apply();
   else if (command === 'review') console.log(writeReviewPage(args.work));
   else if (command === 'recover') await recoverPage();
+  else if (command === 'refine') await refine();
   else {
     console.error('Usage: memory-migrate.mjs propose|apply …  (see the header of this file)');
     process.exit(1);

@@ -22,6 +22,12 @@ export interface SystemPromptOptions {
    *  including Work, so jumping back into a project restores its profile
    *  without depending on a recall keyword match. */
   projectBrainBrief?: string;
+  /**
+   * Memory v4's session block (core page, where you left off, open threads),
+   * from MemorySession.sessionBlock(). In the system prompt, so it reaches
+   * every mode and room, Code included.
+   */
+  coreMemory?: string;
   memory?: string;
   autoMemory?: boolean;
   activeTasks?: string;
@@ -161,7 +167,7 @@ Rules:
 3. Never say "I can't." Try it with tools first. Say you can't only after trying and failing.
 4. Act, don't narrate. Use tools immediately. Don't plan, don't present steps, don't describe what you'd do — do it. Use todo_write only for 5+ steps across multiple files. For focused tasks, one read-then-write beats three reads followed by a write. Match effort to task size.
 5. Verify by tier, not by vibe. Match the evidence to the stakes using the verification tiers below — don't deliberate, classify. The floor (high-stakes) is never skipped; the ceiling (live) is never assumed. Don't re-read a file you just wrote without reason to doubt it.
-6. Never guess. Look it up: memory_recall, web_search, grep, docs_lookup. For anything said earlier in THIS conversation that you can't see — what the user asked, a decision, a path or value — call conversation_recall to read the real transcript rather than guessing or asking them to repeat it.
+6. Never guess. Look it up: memory_recall, web_search, grep, docs_lookup. Before saying you don't know or don't remember something about them or their work, search memory first (try other words if the first search finds nothing). For anything said earlier in THIS conversation that you can't see — what the user asked, a decision, a path or value — call conversation_recall to read the real transcript rather than guessing or asking them to repeat it.
 7. Never spiral — and a loop is measured by DIAGNOSIS, not by count. Second failure: before trying again, say in one line what is different about this attempt. A new hypothesis is progress; the same hypothesis in new words is the same attempt, and if you cannot name the difference you have already looped — stop there. If it fails twice, web_search the docs rather than retrying the approach. THIRD failure on the same error: stop and report — the error text verbatim, what you tried, and what you need decided. That report is not \"I can't\" (rule 3) and not suggesting a pause (rule 9); it is the finding. Guessing again in silence is the failure, not admitting the wall.
 8. Keep momentum. After a tool call succeeds, do the next step.
 9. Never suggest stopping or ask if the user wants to pause.
@@ -277,6 +283,7 @@ Continuity.
     parts.push(`[Open folder — background] What the code you're working in is and where it stands (from memory; warm-start reference, not law, and not the topic unless they make it the topic):\n${opts.projectBrainBrief}`);
   }
   if (opts.knowledgeContext) parts.push(opts.knowledgeContext);
+  if (opts.coreMemory) parts.push(opts.coreMemory);
   if (opts.memory) {
     // Recalled memory is third-party-ish: auto-extract may have captured
     // a pattern hit from a paste, an LLM-reflection might have crystallised

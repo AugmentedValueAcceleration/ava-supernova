@@ -44,6 +44,9 @@ import {
   Conductor,
   AutoCoordinator,
   MemoryAgent,
+  MemorySession,
+  MemoryRecallV4Tool,
+  memoryV4Root,
   IntentClassifier,
   resolveCoordinatorModel,
   resolveMaestroCoordinator,
@@ -334,6 +337,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private conductor?: Conductor;
   private autoCoordinator?: AutoCoordinator | null;
   private memoryAgent?: MemoryAgent;
+  /**
+   * Memory v4 (one store of plain files). Opt-in through AVA_MEMORY_V4_ROOT
+   * until the switch-over; when open it replaces the old brief in every mode,
+   * Code included, and memory_recall searches it.
+   */
+  private memorySessionReady: Promise<MemorySession | undefined> = Promise.resolve(undefined);
   private intentClassifier?: IntentClassifier;
   private briefingEngine?: BriefingEngine;
   private eventDetector?: EventDetector;
@@ -543,6 +552,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Memory is local only — there is no cloud copy.
     this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, embeddingService: this.resolveEmbeddingService() });
+    this.memorySessionReady = this.openMemorySession();
 
     // ── One-time memory reset for v0.37.0 ─────────────────────────────────
     // The memory extraction system was fundamentally improved: broadened
@@ -1758,6 +1768,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       exclude: [...DESKTOP_TOOL_NAMES],
       allowDesktopMode: false,
     });
+    // Memory v4 on: memory_recall searches it (same tool name, so prompts and
+    // mode allowlists are unchanged). The session goes in sharedState below.
+    const memorySession = await this.memorySessionReady;
+    if (memorySession) this.toolRegistry.register(new MemoryRecallV4Tool());
 
     // Apply permission mode from settings
     const config = vscode.workspace.getConfiguration('ava-supernova');
@@ -1858,6 +1872,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     await migrateHealthFromGlobalState(this.context, join(this.accountScopedDir, 'health')).catch(() => {});
 
     const sharedState: Record<string, unknown> = {
+      memorySession,
       // Creative Studio library root — account-scoped, outside any project.
       // browse_library reads this so assets the user made in the Studio are
       // visible to Ava; without it she only ever saw project files and would
@@ -2347,8 +2362,26 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  /** Open memory v4 for this project when it is switched on; undefined otherwise. Never throws. */
+  private async openMemorySession(): Promise<MemorySession | undefined> {
+    const root = memoryV4Root();
+    if (!root) return undefined;
+    try {
+      const session = await MemorySession.open({ root, projectPath: this.projectRoot ?? null, embeddingService: this.resolveEmbeddingService() });
+      this.log(`memory v4: on (${root})${session.project ? `, project ${session.project.name}` : ''}`);
+      return session;
+    } catch (err) {
+      this.log(`memory v4: could not open ${root}: ${err instanceof Error ? err.message : String(err)}`);
+      return undefined;
+    }
+  }
+
   private async buildCurrentSystemPrompt(): Promise<string> {
+    const session = await this.memorySessionReady;
+    let coreMemory: string | undefined;
+    try { coreMemory = (await session?.sessionBlock()) || undefined; } catch { /* memory is optional */ }
     return buildCurrentSystemPromptFn({
+      coreMemory,
       userName: this.getLocalUserName(),
       taskManager: this.taskManager,
       journalManager: this.journalManager,
@@ -3346,7 +3379,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // when it actually needs them. In Chat/Teach/Plan/Brainstorm/Security
     // modes, memory briefs genuinely help (personal context, learning
     // history, project decisions).
-    const shouldInjectMemory = mode !== 'code';
+    // Memory v4: the app's own lookup for this message, in EVERY mode (Code
+    // included), and no second model call. Same [Memory Brief] label, so the
+    // history code that strips stale primers handles it unchanged.
+    const memorySession = await this.memorySessionReady;
+    if (memorySession) {
+      try {
+        const block = await memorySession.messageBlock(text);
+        if (block) {
+          const msgs = this.conversation!.getMessages();
+          msgs.push({ role: 'system' as const, content: `[Memory Brief]\n${block}` });
+          this.conversation!.setMessages(msgs);
+        }
+      } catch { /* non-fatal — memory is optional */ }
+    }
+    const shouldInjectMemory = !memorySession && mode !== 'code';
     if (shouldInjectMemory) {
       try {
         if (this.memoryAgent && text.length > 5) {

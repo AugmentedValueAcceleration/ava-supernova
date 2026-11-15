@@ -30,6 +30,8 @@ export interface SystemPromptContext {
   /** Pre-computed Project Brain brief (from memory) — warm-start project
    *  profile, injected into the system prompt in every mode. */
   projectBrainBrief?: string;
+  /** Memory v4 session block (core page, where you left off, open threads). */
+  coreMemory?: string;
   activeModelDef?: ModelDefinition;
   currentLocale: string;
   permissionMode: PermissionMode;
@@ -85,6 +87,8 @@ export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promis
     decisionsContext: ctx.decisionsState?.context ?? undefined,
     decisionsFolderExists: ctx.decisionsState?.hasFolder ?? false,
     decisionsOptInStatus: ctx.decisionsState?.optInStatus ?? 'not-asked',
-    projectBrainBrief: ctx.projectBrainBrief,
+    // With memory v4 on, its session block replaces the old project brain.
+    projectBrainBrief: ctx.coreMemory ? undefined : ctx.projectBrainBrief,
+    coreMemory: ctx.coreMemory,
   });
 }

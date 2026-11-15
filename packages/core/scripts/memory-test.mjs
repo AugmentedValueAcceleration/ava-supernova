@@ -216,123 +216,40 @@ PASS only if the answer contains the substance of the correct answer (wording ma
   try { return JSON.parse(m[0]); } catch { return { pass: false, reason: `unparseable judge reply: ${text.slice(0, 80)}` }; }
 }
 
-// ── The rebuilt memory (v4), as Part 3 will wire it ───────────────────────
+// ── The rebuilt memory (v4), through the real reader (Part 3) ─────────────
 
 const v4 = system === 'v4'
   ? await import(url.pathToFileURL(path.join(here, '..', 'dist', 'memory-v4', 'index.js')).href)
   : null;
-let v4mem = null;
-const v4project = {};
-async function v4Ready() {
-  if (v4mem) return v4mem;
-  v4mem = new v4.AvaMemory({ root: path.join(sandbox, 'v4') });
-  for (const [ctx, real] of Object.entries(spec.contexts)) {
-    v4project[ctx] = real ? (await v4mem.projects.find(real)) ?? null : null;
+const V4Tool = system === 'v4'
+  ? (await import(url.pathToFileURL(path.join(here, '..', 'dist', 'tools', 'memory-recall-v4.js')).href)).MemoryRecallV4Tool
+  : null;
+const { buildSystemPrompt } = await import(url.pathToFileURL(path.join(here, '..', 'dist', 'agent', 'system-prompt.js')).href);
+const sessions = new Map();
+async function v4Session(ctx) {
+  if (!sessions.has(ctx)) {
+    sessions.set(ctx, await v4.MemorySession.open({ root: path.join(sandbox, 'v4'), projectPath: spec.contexts[ctx] ?? null }));
   }
-  return v4mem;
+  return sessions.get(ctx);
 }
 
-const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-/** Days named in a message: "27 October", "October 27", "2026-10-27". Year defaults to the latest past one. */
-function datesIn(text, now = new Date()) {
-  const out = new Set();
-  const t = text.toLowerCase();
-  for (const m of t.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) out.add(`${m[1]}-${m[2]}-${m[3]}`);
-  const mon = MONTHS.map((x) => `${x}|${x.slice(0, 3)}`).join('|');
-  const add = (d, mo, y) => {
-    const month = MONTHS.findIndex((x) => x.startsWith(mo.slice(0, 3))) + 1;
-    let year = y ? Number(y) : now.getFullYear();
-    if (!y && new Date(year, month - 1, Number(d)) > now) year--;
-    out.add(`${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
-  };
-  for (const m of t.matchAll(new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?(${mon})\\b(?:\\s+(\\d{4}))?`, 'g'))) add(m[1], m[2], m[3]);
-  for (const m of t.matchAll(new RegExp(`\\b(${mon})\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?:,?\\s+(\\d{4}))?`, 'g'))) add(m[2], m[1], m[3]);
-  return [...out];
-}
-
-function episodeText(ep, projectId) {
-  const sections = ep.sections.filter((s) => !projectId || !s.project || s.project === projectId || true);
-  return sections.map((s) => `${s.name}:\n${s.lines.map((l) => `- ${l}`).join('\n')}`).join('\n');
-}
-
-const V4_RECALL = {
-  name: 'memory_recall',
-  description: 'Search your long-term memory. By default it searches facts about the person and the open project. Set "project" to search another project by name, "reach":"all" to search every project, or "date" (YYYY-MM-DD) to read what happened that day.',
-  parameters: {
-    type: 'object',
-    properties: {
-      query: { type: 'string', description: 'What to look for.' },
-      project: { type: 'string', description: 'Another project to search, by name (optional).' },
-      reach: { type: 'string', enum: ['here', 'linked', 'all'], description: 'here (default): the person + the open project.' },
-      date: { type: 'string', description: 'A day to read, YYYY-MM-DD (optional).' },
-    },
-    required: ['query'],
-  },
-};
-
-async function v4Recall(a, ctx) {
-  const mem = await v4Ready();
-  const here = v4project[ctx];
-  if (a.date && /^\d{4}-\d{2}-\d{2}$/.test(a.date)) {
-    const ep = await mem.readDay(a.date);
-    return ep.sections.length ? `${a.date}:\n${episodeText(ep)}` : `Nothing recorded for ${a.date}.`;
-  }
-  const also = [];
-  if (a.project) {
-    const all = await mem.projects.all();
-    const want = String(a.project).toLowerCase().replace(/\s+/g, '');
-    const hit = all.find((p) => p.name.toLowerCase().replace(/\s+/g, '') === want) ?? all.find((p) => p.name.toLowerCase().includes(String(a.project).toLowerCase()));
-    if (hit) also.push(hit.id);
-  }
-  const hits = await mem.search(String(a.query ?? ''), { project: here?.id, alsoProjects: also, reach: a.reach, limit: 8 });
-  if (!hits.length) return `No memories found for "${a.query}".`;
-  const names = Object.fromEntries((await mem.projects.all()).map((p) => [p.id, p.name]));
-  return hits.map((h) => {
-    const where = h.fact.scope === 'everywhere' ? 'about him' : names[h.fact.scope.slice(8)] ?? 'a project';
-    return `- (${where}, since ${h.fact.from}${h.fact.quote ? `, his words: "${h.fact.quote}"` : ''}) ${h.fact.text}`;
-  }).join('\n');
-}
-
+/** What the apps do: the session block in the system prompt, the message block per message, the v4 tool. */
 async function askV4(q, mode) {
-  const mem = await v4Ready();
-  const proj = v4project[q.ctx];
-  const real = spec.contexts[q.ctx];
+  const session = await v4Session(q.ctx);
   const trace = { brief: null, recalls: [] };
-  const parts = [
-    'You are Ava, a coding and life partner who works on the user\'s own computer. You have a persistent memory of the user and their projects; what it holds about him is below, and memory_recall searches the rest. Answer the user\'s question directly and briefly. If you do not know, say so plainly: never guess.',
-    real ? `Open project: ${proj?.name ?? path.basename(real)}` : 'No project is open.',
-  ];
-  const core = await mem.readCore();
-  if (core) parts.push(`<core-memory>\n${core}\n</core-memory>`);
-
-  // "Where were we": the open project's most recent day and its open threads.
-  if (proj) {
-    const days = await mem.listDays();
-    for (const d of [...days].reverse()) {
-      const ep = await mem.readDay(d);
-      const sec = ep.sections.find((s) => s.project === proj.id);
-      if (sec) { parts.push(`Last time in ${proj.name} (${d}):\n${sec.lines.map((l) => `- ${l}`).join('\n')}`); break; }
-    }
-    const threads = await mem.listThreads({ project: proj.id });
-    if (threads.length) parts.push(`Open threads:\n${threads.map((t) => `- ${t.text}`).join('\n')}`);
-  }
-
-  // The app's own lookup for this message (never left to the model).
-  const hits = await mem.search(q.q, { project: proj?.id, limit: 6 });
-  const brief = [];
-  if (hits.length) brief.push('Memories relevant to this message:\n' + hits.map((h) => `- (${h.fact.scope === 'everywhere' ? 'about him' : 'this project'}, since ${h.fact.from}) ${h.fact.text}`).join('\n'));
-  for (const d of datesIn(q.q)) {
-    const ep = await mem.readDay(d);
-    brief.push(ep.sections.length ? `What happened on ${d}:\n${episodeText(ep)}` : `Nothing is recorded for ${d}.`);
-  }
-  trace.brief = brief.join('\n\n') || null;
-
-  const messages = [{ role: 'system', content: parts.join('\n\n') }];
+  const real = spec.contexts[q.ctx];
+  const lead = 'You are Ava, a coding and life partner who works on the user\'s own computer. Answer the user\'s question directly and briefly. If you do not know, say so plainly: never guess.';
+  // The real rules (incl. "search memory before saying you don't know") come from buildSystemPrompt.
+  const rules = buildSystemPrompt({ cwd: real ?? process.cwd(), platform: 'win32', shell: 'bash', coreMemory: await session.sessionBlock() });
+  const where = real ? `Open project: ${session.project?.name ?? path.basename(real)}` : 'No project is open.';
+  trace.brief = (await session.messageBlock(q.q)) || null;
+  const messages = [{ role: 'system', content: `${lead}\n${where}\n\n${rules}` }];
   if (trace.brief) messages.push({ role: 'system', content: trace.brief });
   messages.push({ role: 'user', content: q.q });
   void mode; // v4 reaches every mode the same way; both modes are run to show it.
 
-  const tools = [{ type: 'function', function: V4_RECALL }];
+  const tool = new V4Tool();
+  const tools = [{ type: 'function', function: tool.schema }];
   for (let round = 0; round < 4; round++) {
     const res = await complete(ANSWER_MODEL, { messages, tools, temperature: 0.2, max_tokens: 700 });
     const msg = res.choices?.[0]?.message ?? {};
@@ -342,7 +259,15 @@ async function askV4(q, mode) {
     for (const call of calls) {
       let a = {};
       try { a = JSON.parse(call.function.arguments || '{}'); } catch { /* empty query */ }
-      const out = await v4Recall(a, q.ctx);
+      // The real system prompt names every tool, so she may reach for file
+      // tools (read package.json — the right move in the app). This test has
+      // only memory: say so, rather than run her call as an empty search.
+      if (call.function.name !== 'memory_recall') {
+        trace.recalls.push({ query: `(${call.function.name})`, scope: 'not in test', output: '' });
+        messages.push({ role: 'tool', tool_call_id: call.id, content: `${call.function.name} is not available in this test; only memory_recall is. Answer from memory, or say what you would check.` });
+        continue;
+      }
+      const out = String((await tool.execute(a, { sharedState: { memorySession: session } })).output);
       trace.recalls.push({ query: a.query, scope: a.project ?? a.reach ?? a.date ?? 'here', output: out.slice(0, 1500) });
       messages.push({ role: 'tool', tool_call_id: call.id, content: out.slice(0, 6000) });
     }
@@ -358,11 +283,9 @@ await new Promise((r) => setTimeout(r, 300));
 
 if (args.dry && system === 'v4') {
   for (const q of questions) {
-    const mem = await v4Ready();
-    const hits = await mem.search(q.q, { project: v4project[q.ctx]?.id, limit: 5 });
-    console.log(`\n${q.id} [${q.ctx}] ${q.q}${datesIn(q.q).length ? `  (days: ${datesIn(q.q).join(', ')})` : ''}`);
-    for (const h of hits) console.log(`   ${Math.round(h.score * 100)}% ${h.match} ${h.from}: ${h.fact.text.replace(/\s+/g, ' ').slice(0, 110)}`);
-    if (!hits.length) console.log('   (no search hits)');
+    const session = await v4Session(q.ctx);
+    console.log(`\n${q.id} [${q.ctx}] ${q.q}`);
+    console.log((await session.messageBlock(q.q)).split('\n').map((l) => `   ${l.slice(0, 130)}`).join('\n') || '   (nothing added)');
   }
   fs.rmSync(sandbox, { recursive: true, force: true });
   process.exit(0);
