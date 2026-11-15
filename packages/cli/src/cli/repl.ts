@@ -5,7 +5,7 @@ import {
   t, getSecurityModePrefix, getBrainstormModePrefix, getWorkModePrefix,
   modeForTaggedText, Conductor, haltIntent,
 } from '@ava/core';
-import type { Agent, AgentEvent, ConductorEvent, Conversation, ToolRegistry, HistoryManager, AutoCoordinator } from '@ava/core';
+import type { Agent, AgentEvent, ConductorEvent, Conversation, ToolRegistry, HistoryManager, AutoCoordinator, MemorySession } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
 import { Spinner } from './spinner.js';
@@ -28,6 +28,7 @@ export class Repl {
   private inMultiline = false;
   private lastUserInput = '';
   private historyManager: HistoryManager;
+  private memorySession?: MemorySession;
   private runAbortController?: AbortController;
 
   constructor(opts: {
@@ -38,7 +39,10 @@ export class Repl {
     toolRegistry: ToolRegistry;
     historyManager: HistoryManager;
     modelLabel: string;
+    /** Memory v4: the app's own memory lookup for each message. */
+    memorySession?: MemorySession;
   }) {
+    this.memorySession = opts.memorySession;
     this.agent = opts.agent;
     this.conductor = opts.conductor;
     this.autoCoordinator = opts.autoCoordinator;
@@ -455,6 +459,17 @@ export class Repl {
     const prefixed = modeForTaggedText(input) === null && input.trim()
       ? getWorkModePrefix(input)
       : input;
+    // Memory v4: the relevant memories for this message, just before it (as in the apps).
+    if (this.memorySession) {
+      try {
+        const block = await this.memorySession.messageBlock(input);
+        if (block) {
+          const msgs = this.conversation.getMessages();
+          msgs.push({ role: 'system', content: `[Memory Brief]\n${block}` });
+          this.conversation.setMessages(msgs);
+        }
+      } catch { /* memory is optional */ }
+    }
     this.conversation.addUserMessage(prefixed);
 
     const onEvent = (event: AgentEvent): void => {

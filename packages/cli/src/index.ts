@@ -19,6 +19,16 @@ import {
   BriefingEngine,
   AutoCoordinator,
   MemoryAgent,
+  AvaMemory,
+  MemorySession,
+  MemoryRecallV4Tool,
+  MemorySaveV4Tool,
+  MemoryUpdateV4Tool,
+  MemoryDeleteV4Tool,
+  consolidateSession,
+  ensureOldMemoryImported,
+  memoryV4Root,
+  resolveMemoryModel,
   AVA_HOME,
   detectProjectRoot,
   loadProjectInstructions,
@@ -143,8 +153,27 @@ async function main(): Promise<void> {
   // full toolkit, so it opts in. See core/src/tools/desktop-tools.ts.
   registerDesktopTools(toolRegistry);
 
+  // Memory v4: the same memory the extension, the IDE and the hub use
+  // (~/.ava/memory). The old memory below is only the escape hatch
+  // (AVA_MEMORY_V4=off).
+  const memoryRoot = memoryV4Root();
+  let memorySession: MemorySession | undefined;
+  if (memoryRoot) {
+    try {
+      await ensureOldMemoryImported(new AvaMemory({ root: memoryRoot }), AVA_HOME, (m) => console.log(`  ${m}`));
+      memorySession = await MemorySession.open({ root: memoryRoot, projectPath: projectRoot ?? null, embeddingService });
+      toolRegistry.register(new MemoryRecallV4Tool());
+      toolRegistry.register(new MemorySaveV4Tool());
+      toolRegistry.register(new MemoryUpdateV4Tool());
+      toolRegistry.register(new MemoryDeleteV4Tool());
+    } catch {
+      memorySession = undefined;
+    }
+  }
+
   // Load persistent memory (pass project instructions as context for episodic retrieval)
-  const memory = await memoryManager.loadAll(projectInstructions ?? undefined);
+  const memory = memorySession ? '' : await memoryManager.loadAll(projectInstructions ?? undefined);
+  const coreMemory = memorySession ? (await memorySession.sessionBlock().catch(() => '')) || undefined : undefined;
 
   // Create conversation and agent
   const conversation = new Conversation();
@@ -165,7 +194,8 @@ async function main(): Promise<void> {
       decisionsContext: decisionsState?.context ?? undefined,
       decisionsFolderExists: decisionsState?.hasFolder ?? false,
       decisionsOptInStatus: decisionsState?.optInStatus ?? 'not-asked',
-      projectBrainBrief: memoryManager.getProjectBrain?.()?.brief,
+      projectBrainBrief: memorySession ? undefined : memoryManager.getProjectBrain?.()?.brief,
+      coreMemory,
     }),
   );
 
@@ -176,6 +206,7 @@ async function main(): Promise<void> {
 
   const sharedState: Record<string, unknown> = {
     memoryManager,
+    memorySession,
     getProviderKey,
     activeModelId: resolved.model.id,
     // Active provider + model + tool registry — needed by specialist tools
@@ -185,9 +216,17 @@ async function main(): Promise<void> {
     toolRegistry,
   };
 
-  // Memory Agent — curates briefs instead of raw memory dumps
+  // Memory v4's end-of-session tidy-up: one call, on the first main model
+  // among the keys they hold (the CLI has no fleet switch).
+  const memoryModel = memorySession ? resolveMemoryModel(providerRegistry, Object.keys(keys)) : null;
+  const tidyMemory = async () => {
+    if (!memorySession || !memoryModel) return;
+    await consolidateSession({ session: memorySession, messages: conversation.getMessages(), provider: memoryModel.provider, model: memoryModel.model }).catch(() => null);
+  };
+
+  // Memory Agent — curates briefs instead of raw memory dumps (old memory only)
   const qwenFlash = providerRegistry.resolveModel('qwen:qwen3.5-flash');
-  if (qwenFlash && memoryManager) {
+  if (!memorySession && qwenFlash && memoryManager) {
     const memoryAgent = new MemoryAgent({
       memoryManager,
       provider: qwenFlash.provider,
@@ -264,7 +303,7 @@ async function main(): Promise<void> {
 
   // Set up REPL
   const modelLabel = `${resolved.provider.name}:${resolved.model.id}`;
-  const repl = new Repl({ agent, conductor, autoCoordinator, conversation, toolRegistry, historyManager, modelLabel });
+  const repl = new Repl({ agent, conductor, autoCoordinator, conversation, toolRegistry, historyManager, modelLabel, memorySession });
 
   // Set up commands with live model switching
   const commands = new CommandHandler({
@@ -274,6 +313,7 @@ async function main(): Promise<void> {
     toolRegistry,
     historyManager,
     onSessionEnd: () => {
+      if (memorySession) { void tidyMemory(); return; }
       const ma = sharedState.memoryAgent as MemoryAgent | undefined;
       if (ma) void ma.reflectOnSession(conversation.getMessages(), conversation.id).catch(() => {});
     },
@@ -360,6 +400,7 @@ async function main(): Promise<void> {
   // The user left deliberately (/exit), so a brief pause to persist is fine;
   // it's bounded by the reflection's own Flash call. (SIGINT is too abrupt to
   // block, so it's skipped there.)
+  await tidyMemory();
   const exitMemoryAgent = sharedState.memoryAgent as MemoryAgent | undefined;
   if (exitMemoryAgent) {
     await exitMemoryAgent.reflectOnSession(conversation.getMessages(), conversation.id).catch(() => {});
