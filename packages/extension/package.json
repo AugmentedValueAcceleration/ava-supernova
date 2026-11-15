@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava Supernova",
   "description": "%description%",
-  "version": "0.112.0",
+  "version": "0.113.0",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -449,14 +449,14 @@
         },
         {
           "command": "ava-supernova.previewDocument",
-          "when": "resourceExtname =~ /\\.(md|txt|csv|html|docx|xlsx|pdf)$/",
+          "when": "resourceExtname =~ /\\.(md|txt|csv|html|docx|xlsx|ods|pdf)$/",
           "group": "navigation"
         }
       ],
       "explorer/context": [
         {
           "command": "ava-supernova.previewDocument",
-          "when": "resourceExtname =~ /\\.(md|txt|csv|html|docx|xlsx|pdf)$/",
+          "when": "resourceExtname =~ /\\.(md|txt|csv|html|docx|xlsx|ods|pdf)$/",
           "group": "navigation"
         }
       ]

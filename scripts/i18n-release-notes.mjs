@@ -72,6 +72,60 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 527,
+    version: '0.113.0',
+    platform: 'extension',
+    toolCount: 90,
+    publishedAt: '2026-11-15 06:00:00+00',
+    title: `Documents, spreadsheets and PDFs that work everywhere, and you can see them inside me`,
+    body: `Documents, PDFs and spreadsheets have been rebuilt for 1.0.
+
+**Word, Excel and PDF work for everyone.** Making a Word, Excel or PDF file could fail on an installed copy of me, and reading a PDF quietly failed everywhere. All of that works now, and a check runs on every build so it can't come back.
+
+**See your files without leaving me.** Press **View** on my message or in the Library and the file opens in its own tab: PDFs with pages, zoom and search; Word documents in their real layout; spreadsheets with every sheet, their formulas and charts.
+
+**Real spreadsheets.** Numbers that add up, formulas I work out, totals that grow when you add rows, money, percentage and date formats in your house colour, and column, bar, line and pie charts. In Excel's .xlsx or the open .ods, with everything in both.
+
+**PDFs in every language.** PDFs came out garbled in eleven of my twenty languages. Arabic, Hindi, Thai, Chinese, Japanese, Korean, Russian, Ukrainian, Polish, Turkish and Vietnamese now all come out right, with the fonts included. For bold Chinese, Japanese and Korean, add the font pack in Settings, under PDF fonts.
+
+**Saved where you'll find them.** Documents go in your project's documents folder, where the Library shows them, and I can make them in Code and Chat as well as Write mode. Reports and email drafts now come from the same engine, so they get your house style and fonts too.
+
+**Also:** tables in PDFs fit their content, and right-click Preview opens the new viewer.`,
+    highlights: [
+      'Word, Excel and PDF files work everywhere, and you can view them inside me.',
+      'Real spreadsheets with formulas, totals, formats and charts, in .xlsx or .ods.',
+      'PDFs come out right in all twenty languages.',
+      'Documents saved where the Library shows them.',
+    ],
+  },
+  {
+    migration: 528,
+    version: '0.58.0',
+    platform: 'ide',
+    toolCount: 103,
+    publishedAt: '2026-11-15 06:00:00+00',
+    title: `Documents, spreadsheets and PDFs that work everywhere, and you can see them inside me`,
+    body: `Documents, PDFs and spreadsheets have been rebuilt for 1.0.
+
+**Word, Excel and PDF work for everyone.** Making a Word, Excel or PDF file could fail on an installed copy of me, and reading a PDF quietly failed everywhere. All of that works now, and a check runs on every build so it can't come back.
+
+**See your files without leaving me.** Press **View** on my message or in the Library and the file opens in its own tab: PDFs with pages, zoom and search; Word documents in their real layout; spreadsheets with every sheet, their formulas and charts.
+
+**Real spreadsheets.** Numbers that add up, formulas I work out, totals that grow when you add rows, money, percentage and date formats in your house colour, and column, bar, line and pie charts. In Excel's .xlsx or the open .ods, with everything in both.
+
+**PDFs in every language.** PDFs came out garbled in eleven of my twenty languages. Arabic, Hindi, Thai, Chinese, Japanese, Korean, Russian, Ukrainian, Polish, Turkish and Vietnamese now all come out right, with the fonts included. For bold Chinese, Japanese and Korean, add the font pack in Settings, under PDF fonts.
+
+**Saved where you'll find them.** Documents go in your project's documents folder, where the Library shows them, and I can make them in Code and Chat as well as Write mode. Reports and email drafts now come from the same engine, so they get your house style and fonts too.
+
+**Also:** tables in PDFs fit their content, and right-click Preview opens the new viewer.`,
+    highlights: [
+      'Word, Excel and PDF files work everywhere, and you can view them inside me.',
+      'Real spreadsheets with formulas, totals, formats and charts, in .xlsx or .ods.',
+      'PDFs come out right in all twenty languages.',
+      'Documents saved where the Library shows them.',
+    ],
+  },
+  {
     migration: 525,
     version: '0.112.0',
     platform: 'extension',

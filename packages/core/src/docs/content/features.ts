@@ -136,14 +136,15 @@ export const FEATURE_PAGES: DocPage[] = [
     order: 40,
     section: 'features',
     body: [
-      { type: 'paragraph', text: 'Need a report, an email, or a document written up? Ava can draft it and hand you a real Word, Excel, or PDF file you can open and edit like any other.' },
-      { type: 'paragraph', text: 'Reports, emails, and documents — drafted, formatted, and exported to native formats (.docx is Word, .xlsx is Excel, .pdf is a PDF).' },
+      { type: 'paragraph', text: 'Need a report, a letter, an invoice or a budget? Ask in Code, Chat or Write mode and Ava hands you a real file: a Word document, a PDF, an OpenDocument file, or a spreadsheet.' },
       { type: 'list', ordered: false, items: [
-        'report_generate — a structured .docx pulling from tasks, journal, memory, and project state.',
-        'email_draft — tone-controlled email to a .docx file.',
-        'document_manage — create, read, edit, export across Word, Excel, PDF, CSV, Markdown.',
+        'Documents — written as Markdown, the editable source, then built as Word (.docx), PDF or OpenDocument (.odt) when you want a file for someone. Changes are made section by section, and the rest is never touched.',
+        'Templates — proposal, report, meeting notes, invoice, brief, article, press release, essay, résumé and cover letter, plus your own. Your house style (font and colours) goes into every new document.',
+        'Spreadsheets — .xlsx for Excel or .ods for LibreOffice, with real numbers, formulas Ava works out, totals rows, money, percentage and date formats, and column, bar, line and pie charts.',
+        'Reports and email drafts — pulled together from your tasks, journal and memory, saved in whichever format you name.',
+        'Every language — PDFs come out right in all twenty of Ava\'s languages, with the fonts included. Bold Chinese, Japanese and Korean needs the optional font pack in Settings, under PDF fonts.',
       ]},
-      { type: 'paragraph', text: 'Useful when Ava is writing on your behalf — status reports, kickoff decks, client updates. The .docx lands in your project where you can polish it.' },
+      { type: 'paragraph', text: 'Files are saved in your project\'s documents folder, where the Library shows them, unless you name another folder. Press View on Ava\'s message to open one in its own tab.' },
     ],
   },
   {
@@ -159,7 +160,7 @@ export const FEATURE_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'Papers — scientific papers you have saved, fetched from arXiv, OpenAlex, and Crossref, with the full text to read inline.',
         'Assets — everything you have made in Creative Studio, sorted by the four groups you made it in (Open Canvas, Brand & Web, 2D, 3D), plus anything you upload. Filter by group, then by room. 3D models open in a 3D view you can turn and zoom.',
-        'Documents — the Word, Excel, PDF, and other files Ava has written with you, filterable by what they are.',
+        'Documents — the Word, PDF, spreadsheet and other files Ava has written with you, filterable by what they are. Click one and press View to open it in its own tab.',
       ]},
       { type: 'heading', level: 3, text: 'Folders and packs' },
       { type: 'paragraph', text: 'Folders gather work from any tab: drag a card onto a folder in the sidebar, or use the folder button on the card. A folder holds links, never copies, so it always has the newest version, and deleting a folder never deletes your work. A folder can carry a short style note that Ava follows for every piece in it, and you can plan a whole pack with her: she proposes every piece, you edit and agree the plan, and each piece still gets its own brief.' },
@@ -178,8 +179,14 @@ export const FEATURE_PAGES: DocPage[] = [
     order: 60,
     section: 'features',
     body: [
-      { type: 'paragraph', text: 'In plain terms: peek inside a document right where you are, without opening a separate program to read it.' },
-      { type: 'paragraph', text: 'Right-click a Word doc, Excel sheet, PDF, CSV, HTML, or Markdown file in your project — preview it inline without leaving the editor. Useful for reading reference material Ava has generated or files a collaborator dropped in.' },
+      { type: 'paragraph', text: 'In plain terms: read a document right where you are, without opening a separate program.' },
+      { type: 'paragraph', text: 'Press View on a document in the Library or on Ava\'s message, or right-click a file in your project and choose Preview. It opens in its own tab:' },
+      { type: 'list', ordered: false, items: [
+        'PDFs — pages, thumbnails, zoom and search.',
+        'Word documents — the real page layout, with fonts, tables and headings.',
+        'Spreadsheets (.xlsx, .ods, .csv) — the grid, a tab for each sheet, charts, and a formula bar: click a cell to see its formula.',
+      ]},
+      { type: 'paragraph', text: 'It is read-only and everything stays on your computer. To change something, ask Ava, or press Open in your app. Markdown files open in the live preview, which updates as Ava writes.' },
     ],
   },
   {

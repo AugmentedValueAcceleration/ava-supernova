@@ -144,6 +144,7 @@ export const START_PAGES: DocPage[] = [
         'Something built — "make me a simple to-do list page".',
         'To learn something — "teach me Python from scratch". She builds you a real course, step by step.',
         'A document — "write me a one-page project proposal". She\'ll hand you a Word file or PDF.',
+        'A spreadsheet — "make me a monthly budget with a total and a pie chart".',
       ]},
       { type: 'callout', variant: 'tip', text: 'Not sure what to type? Talk to her like a knowledgeable friend. Plain words are exactly right — you never need the technical terms to get going.' },
     ],

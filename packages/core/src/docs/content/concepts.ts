@@ -90,7 +90,7 @@ export const CONCEPT_PAGES: DocPage[] = [
         'I want to learn something → Teach (??). A real course built for you: lessons, quizzes, the lot. Perfect if you are new.',
         'I want my project checked for security holes → Security (!!). A team works through the standard list of common web vulnerabilities (the "OWASP" categories) and known reported flaws (called "CVEs"), then hands you a report sorted by how serious each issue is. This one is aimed at developers — skip it if that is not you.',
         'I want ideas → Brainstorm (**). She generates options grounded in your actual situation, pokes holes in the weak ones, and refines the rest into next steps.',
-        'I want to write a document → Write (<<). Reports, proposals, letters, articles — she drafts in Markdown and exports a branded Word doc or PDF, refining section by section. No code, just writing.',
+        'I want to write a document → Write (<<). Reports, proposals, letters, articles — she drafts in Markdown and builds a branded Word, PDF or OpenDocument file, refining section by section. Code and Chat can make documents and spreadsheets too; Write is made for longer pieces.',
       ]},
       { type: 'callout', variant: 'note', text: "The \"helper team\" (personas) runs entirely behind the scenes — you never talk to them directly. You just get a more thorough answer. You do not need to know their names." },
       { type: 'callout', variant: 'tip', text: 'You can switch modes mid-conversation. Your memory carries across; the specialists reset to suit the new mode.' },
