@@ -46,6 +46,11 @@ import {
   MemoryAgent,
   MemorySession,
   MemoryRecallV4Tool,
+  MemorySaveV4Tool,
+  MemoryUpdateV4Tool,
+  MemoryDeleteV4Tool,
+  consolidateSession,
+  resolveMemoryModel,
   memoryV4Root,
   IntentClassifier,
   resolveCoordinatorModel,
@@ -343,6 +348,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * Code included, and memory_recall searches it.
    */
   private memorySessionReady: Promise<MemorySession | undefined> = Promise.resolve(undefined);
+  /** The fleet's own low-cost model for the end-of-session tidy-up (memory v4). */
+  private memoryModel: ReturnType<typeof resolveMemoryModel> = null;
   private intentClassifier?: IntentClassifier;
   private briefingEngine?: BriefingEngine;
   private eventDetector?: EventDetector;
@@ -1165,9 +1172,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * bounded chance to finish rather than firing into a dying host.
    */
   private async reflectSession(conversation: Conversation | undefined): Promise<number> {
-    if (!conversation || !this.memoryAgent) return 0;
+    if (!conversation) return 0;
     const messages = conversation.getMessages();
     const userTurns = messages.filter((m) => m.role === 'user').length;
+
+    // Memory v4: the one writer is the end-of-session tidy-up, on the fleet's
+    // own low-cost model. Same once-per-new-material guard as below.
+    const memorySession = await this.memorySessionReady;
+    if (memorySession) {
+      if (!this.memoryModel) { this.log('memory tidy-up: skipped, no tidy-up model reachable on this fleet'); return 0; }
+      if (userTurns < 2) return 0;
+      if (userTurns <= (this.lastReflectedTurns.get(conversation.id) ?? 0)) return 0;
+      const r = await consolidateSession({ session: memorySession, messages, provider: this.memoryModel.provider, model: this.memoryModel.model, log: (m) => this.log(m) });
+      this.lastReflectedTurns.set(conversation.id, userTurns);
+      if (r) this.log(`memory tidy-up: ${r.dayLines} day lines, ${r.saved} saved, ${r.waiting} waiting for a yes, ${r.changed} changed, threads +${r.threadsOpened}/-${r.threadsClosed}`);
+      return r ? r.saved + r.waiting + r.changed : 0;
+    }
+
+    if (!this.memoryAgent) return 0;
 
     // Nothing new since the last reflection OF THIS conversation. Idle
     // reflection plus an explicit new-chat would otherwise pay for the same
@@ -1771,7 +1793,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Memory v4 on: memory_recall searches it (same tool name, so prompts and
     // mode allowlists are unchanged). The session goes in sharedState below.
     const memorySession = await this.memorySessionReady;
-    if (memorySession) this.toolRegistry.register(new MemoryRecallV4Tool());
+    if (memorySession) {
+      this.toolRegistry.register(new MemoryRecallV4Tool());
+      this.toolRegistry.register(new MemorySaveV4Tool());
+      this.toolRegistry.register(new MemoryUpdateV4Tool());
+      this.toolRegistry.register(new MemoryDeleteV4Tool());
+    }
 
     // Apply permission mode from settings
     const config = vscode.workspace.getConfiguration('ava-supernova');
@@ -2093,6 +2120,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         : activeModel === 'aurora' ? 'aurora'
         : activeModel === 'longxiang' ? 'longxiang'
         : 'auto');
+
+    // Memory v4's tidy-up runs on the fleet's own low-cost model (decided
+    // 15 Nov). A single model picked outside the fleets uses any key they hold.
+    const onFleet = !activeModel || ['auto', 'maestro', 'supernova', 'aurora', 'longxiang'].includes(activeModel);
+    this.memoryModel = memorySession
+      ? resolveMemoryModel(this.providerRegistry, availableProviders, onFleet ? routingMode : undefined)
+      : null;
+    if (memorySession) this.log(`memory v4 tidy-up model: ${this.memoryModel?.model.id ?? 'none reachable (tidy-up off; saves still work)'}`);
 
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
     if (availableProviders.size > 1) {

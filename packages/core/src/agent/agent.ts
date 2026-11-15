@@ -3132,6 +3132,9 @@ export class Agent {
    * Errors are logged at debug level so they don't spam the UI but are visible for debugging.
    */
   private extractMemoriesFromRun(messages: Message[], runContext: ToolExecutionContext): void {
+    // Memory v4: nothing is extracted per turn. The one writer is the
+    // end-of-session tidy-up (memory-v4/consolidate.ts), run by the surface.
+    if (runContext.sharedState?.memorySession) return;
     const ma = runContext.sharedState?.memoryAgent as { extractAndSave: (msgs: Message[], cid?: string) => Promise<number> } | undefined;
     const mm = runContext.sharedState?.memoryManager as MemoryManager | undefined;
 

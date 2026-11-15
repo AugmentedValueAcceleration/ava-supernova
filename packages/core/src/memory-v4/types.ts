@@ -62,6 +62,11 @@ export interface NewFact {
    * migration review page): an inferred fact with this is a fact, not pending.
    */
   confirmed?: string;
+  /**
+   * For a NOTICED change waiting for a yes: the fact it would replace. That
+   * fact stays current until confirmFact; then it moves to history.
+   */
+  replaces?: string;
 }
 
 export interface Thread {

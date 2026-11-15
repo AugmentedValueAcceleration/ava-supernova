@@ -677,14 +677,21 @@ export class LearningCreateTool implements Tool {
     // "they're currently learning X" and weave it into help / brainstorming.
     // Best-effort: never fail the course creation if memory is unavailable.
     try {
+      const learning = `Currently learning ${curriculum.subject} — taking the course "${curriculum.title}" (${curriculum.level})` +
+        (curriculum.goal ? `. Goal: ${curriculum.goal}` : '') + '.';
+      const memorySession = context.sharedState?.memorySession as
+        | { mem: { addFact: (f: Record<string, unknown>) => Promise<unknown> } }
+        | undefined;
       const memoryManager = context.sharedState?.memoryManager as
         | { saveEntry: (o: Record<string, unknown>) => Promise<unknown> }
         | undefined;
-      if (memoryManager?.saveEntry) {
+      if (memorySession) {
+        // Memory v4: a fact about them (they started the course), from the tool itself.
+        await memorySession.mem.addFact({ text: learning, kind: 'event', scope: 'everywhere', source: 'tool', tags: ['learning', curriculum.subject] });
+      } else if (memoryManager?.saveEntry) {
         await memoryManager.saveEntry({
           scope: 'global',
-          content: `Currently learning ${curriculum.subject} — taking the course "${curriculum.title}" (${curriculum.level})` +
-            (curriculum.goal ? `. Goal: ${curriculum.goal}` : '') + '.',
+          content: learning,
           category: 'general',
           tags: ['learning', curriculum.subject],
           sourceConversationId: context.conversationId,

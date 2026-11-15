@@ -63,7 +63,7 @@ describe('session block (system prompt)', () => {
     expect(block).toContain('Where you left off in DawnSets (Tuesday 27 October 2026)');
     expect(block).toContain('Menu drawer wired');
     expect(block).not.toContain('rock textures'); // another project's day
-    expect(block).toContain('- MetaHuman body swap, after a test project\n'); // its own project: no label, first
+    expect(block).toMatch(/- MetaHuman body swap, after a test project \[[0-9a-f]{8}\]\n/); // its own project: no label, first; id for closing it
     expect(block).toContain('Remind him about the bill');
   });
 

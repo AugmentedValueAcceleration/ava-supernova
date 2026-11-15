@@ -109,9 +109,11 @@ export class SearchIndex {
   /**
    * Ranked matches, each with a score relative to a typical full match (about
    * 1; a short fact repeating the words can go higher), the share of the query's weight it covers, and
-   * that weight itself (how rare the matched words are).
+   * that weight itself (how rare the matched words are), and `rare`: that weight
+   * counted in rarest-possible words (2 = as much as two words found in only one
+   * fact), which lets one part of a long message still find its fact.
    */
-  search(query: string, limit = 10): Array<{ id: string; score: number; coverage: number; weight: number }> {
+  search(query: string, limit = 10): Array<{ id: string; score: number; coverage: number; weight: number; rare: number }> {
     const terms = [...new Set(tokenizeAll(query))];
     if (terms.length === 0 || this.docs.size === 0) return [];
     const avg = this.totalLength / this.docs.size || 1;
@@ -119,8 +121,10 @@ export class SearchIndex {
     const totalWeight = weights.reduce((a, b) => a + b, 0) || 1;
     // The score a document would get matching every term once at average length.
     const ideal = weights.reduce((s, w) => s + w * ((K1 + 1) / (1 + K1)), 0) || 1;
+    // The weight of a word found in exactly one fact: the rarest a word can be.
+    const rarest = Math.log(1 + (this.docs.size - 0.5) / 1.5) || 1;
 
-    const out: Array<{ id: string; score: number; coverage: number; weight: number }> = [];
+    const out: Array<{ id: string; score: number; coverage: number; weight: number; rare: number }> = [];
     for (const [id, tf] of this.docs) {
       const len = this.lengths.get(id) ?? 0;
       let score = 0;
@@ -131,7 +135,7 @@ export class SearchIndex {
         covered += weights[i];
         score += weights[i] * ((f * (K1 + 1)) / (f + K1 * (1 - B + B * (len / avg))));
       });
-      if (score > 0) out.push({ id, score: score / ideal, coverage: covered / totalWeight, weight: covered });
+      if (score > 0) out.push({ id, score: score / ideal, coverage: covered / totalWeight, weight: covered, rare: covered / rarest });
     }
     return out.sort((a, b) => b.score - a.score).slice(0, limit);
   }

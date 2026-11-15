@@ -53,6 +53,8 @@ const COVERAGE_MIN = 0.3;
  * make a match on its own however short the query.
  */
 const WEIGHT_MIN = 0.5;
+/** For long messages: the matched words must weigh as much as two words found in only one fact. */
+const RARE_MIN = 1.5;
 const SEMANTIC_MIN = 0.5;
 
 /** A rough token count: enough to hold core to its budget in any language. */
@@ -236,6 +238,7 @@ export class AvaMemory {
         quote: input.quote?.trim() || undefined,
         from: input.from ?? today(),
         confirmed: input.confirmed,
+        replaces: input.replaces,
         tags: input.tags,
         text,
         state: source === 'inferred' && !input.confirmed ? 'pending' : 'fact',
@@ -256,6 +259,15 @@ export class AvaMemory {
       const confirmed: Fact = { ...f, state: 'fact', confirmed: today() };
       await this.put(confirmed);
       await this.drop('pending', id);
+      // A noticed CHANGE retires the fact it replaces only now, on their yes:
+      // until then the old fact stayed current.
+      if (f.replaces) {
+        const old = await this.find(f.replaces, ['fact']);
+        if (old) {
+          await this.put({ ...old, state: 'history', until: confirmed.confirmed, supersededBy: confirmed.id });
+          await this.drop('fact', old.id);
+        }
+      }
       return confirmed;
     });
     if (fact) void this.embedInBackground(fact);
@@ -495,10 +507,11 @@ export class AvaMemory {
       if (!prev || score > prev.score) best.set(id, { fact, score, match, from });
     };
 
-    for (const { id, score, coverage, weight } of this.index.search(q, limit * 4)) {
+    for (const { id, score, coverage, weight, rare } of this.index.search(q, limit * 4)) {
       // With only a few facts every word looks common, so the floor waits until there are some.
       const rareEnough = this.index.size < 5 || weight >= WEIGHT_MIN;
-      if (coverage >= COVERAGE_MIN && rareEnough) consider(id, score, 'words');
+      // Enough of the query, OR (for a long message) at least two rare words' worth of it.
+      if (rareEnough && (coverage >= COVERAGE_MIN || rare >= RARE_MIN)) consider(id, score, 'words');
     }
 
     const store = await this.embeddingStore();

@@ -9,3 +9,8 @@ export * from './types.js';
 export { SearchIndex, tokenizeAll } from './search-index.js';
 export { MemorySession, memoryV4Root, datesIn } from './reader.js';
 export type { RecallArgs } from './reader.js';
+export { consolidateSession } from './consolidate.js';
+export type { ConsolidateResult } from './consolidate.js';
+export { resolveMemoryModel } from './model.js';
+export { importOldMemory, importDone } from './import-v3.js';
+export type { ImportResult } from './import-v3.js';

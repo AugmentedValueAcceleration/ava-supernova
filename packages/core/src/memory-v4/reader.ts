@@ -65,7 +65,7 @@ function factLine(h: SearchHit, names: Record<string, string>): string {
   const f = h.fact;
   const where = f.scope === 'everywhere' ? 'about them' : (names[f.scope.slice('project:'.length)] ?? 'a project');
   const text = f.text.length > 500 ? `${f.text.slice(0, 500)}…` : f.text;
-  return `- (${where}, since ${f.from || 'unknown'}${f.quote ? `, their words: "${f.quote}"` : ''}) ${text}`;
+  return `- (${where}, since ${f.from || 'unknown'}${f.quote ? `, their words: "${f.quote}"` : ''}) ${text} [${f.id}]`;
 }
 
 function episodeLines(ep: Episode, onlyProject?: string, max = 8): string {
@@ -136,7 +136,7 @@ export class MemorySession {
       const ordered = [...threads].sort((a, b) => rank(a) - rank(b));
       parts.push(`Open threads (things still to come back to):\n${ordered.slice(0, 12).map((t) => {
         const label = t.project && t.project !== this.project?.id ? ` [${names[t.project] ?? 'another project'}]` : '';
-        return `- ${t.text}${label}${t.due ? ` (due ${t.due})` : ''}`;
+        return `- ${t.text}${label}${t.due ? ` (due ${t.due})` : ''} [${t.id}]`;
       }).join('\n')}`);
     }
     return parts.join('\n\n');
