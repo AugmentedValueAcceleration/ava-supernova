@@ -405,9 +405,14 @@ export function syncBlenderLiveTools(registry: { register(t: Tool): void; unregi
   return tools.length;
 }
 
+/** Ava's own MCP tools (Blender's come from the server once connected). */
+export function blenderLiveOwnTools(): Tool[] {
+  return [new DesignLiveOpenModelTool(), new DesignLiveStepTool(), new DesignLiveLookTool(), new DesignLiveSaveTool()];
+}
+
 /** Everything Ava gets while Live is connected. */
 export function blenderLiveTools(): Tool[] {
   const conn = BlenderLive.current().connection;
   if (!conn) return [];
-  return [new DesignLiveOpenModelTool(), new DesignLiveStepTool(), new DesignLiveLookTool(), new DesignLiveSaveTool(), ...blenderLiveServerTools(conn)];
+  return [...blenderLiveOwnTools(), ...blenderLiveServerTools(conn)];
 }

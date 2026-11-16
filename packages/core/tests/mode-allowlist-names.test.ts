@@ -21,6 +21,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ToolRegistry, DESKTOP_TOOL_NAMES } from '../src/index.js';
 import { registerDesktopTools } from '../src/tools/desktop-tools.js';
+import { blenderLiveOwnTools } from '../src/tools/blender/live-tools.js';
 
 const raw = readFileSync(join(__dirname, '../src/agent/agent.ts'), 'utf8');
 const src = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
@@ -44,6 +45,8 @@ function fullRegistry(): Set<string> {
   const reg = new ToolRegistry();
   reg.registerBuiltins();
   registerDesktopTools(reg);
+  // Ava's MCP tools register only while Blender is connected; the design room lists them.
+  for (const t of blenderLiveOwnTools()) reg.register(t);
   return new Set(reg.getSchemas().map((s: { function: { name: string } }) => s.function.name));
 }
 

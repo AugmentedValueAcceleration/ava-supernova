@@ -24,12 +24,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ToolRegistry } from '../src/tools/tool-registry.js';
 import { registerDesktopTools } from '../src/tools/desktop-tools.js';
+import { blenderLiveOwnTools } from '../src/tools/blender/live-tools.js';
 
 /** Every tool name the registry can actually produce, desktop included. */
 function registeredToolNames(): Set<string> {
   const registry = new ToolRegistry();
   registry.registerBuiltins();
   registerDesktopTools(registry);
+  // Ava's MCP tools register only while Blender is connected; the design room lists them.
+  for (const t of blenderLiveOwnTools()) registry.register(t);
   return new Set(registry.getSchemas().map((s) => s.function.name));
 }
 

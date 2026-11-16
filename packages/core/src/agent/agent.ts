@@ -900,7 +900,7 @@ function allowedToolsForMode(mode: string): Set<string> | undefined {
 export function toolPassesModeGate(name: string, modeAllowed: Set<string>): boolean {
   // Tools a connected program brings (Blender Live's blender_live_*) are only
   // known at run time; they belong to the room that has Live's own tools.
-  if (name.startsWith('blender_live_')) return modeAllowed.has('design_live_step');
+  if (name?.startsWith('blender_live_')) return modeAllowed.has('design_live_step');
   if (modeAllowed.has(name) || ALWAYS_ALLOWED_TOOLS.has(name)) return true;
   return !MODE_CLASSIFIED_TOOLS.has(name) && !DESKTOP_ONLY_TOOLS.has(name);
 }

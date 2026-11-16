@@ -666,5 +666,5 @@ export type { McpServerConfig, McpTransportConfig, McpToolInfo, McpCallResult, M
 // Blender Live: Ava in the person's open Blender through Blender Lab's official MCP server.
 export { BlenderLive, findUv, installedServer, addonListening, blenderMcpRoot, versionAtLeast, blenderLiveWanted, setBlenderLiveWanted, BLENDER_LIVE_MIN, BLENDER_MCP_PORT } from './tools/blender/live.js';
 export type { LiveState, LiveStatus } from './tools/blender/live.js';
-export { blenderLiveTools, liveModelNow, syncBlenderLiveTools, isBlenderLiveTool } from './tools/blender/live-tools.js';
+export { blenderLiveTools, blenderLiveOwnTools, liveModelNow, syncBlenderLiveTools, isBlenderLiveTool } from './tools/blender/live-tools.js';
 export { DesignLiveSetupTool, DesignLiveSetupCheckTool, latestServerRelease, blenderInstalls } from './tools/blender/live-setup.js';
