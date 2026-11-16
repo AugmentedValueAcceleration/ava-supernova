@@ -7,7 +7,6 @@ import {
   Clock, CloudSun, Newspaper, Rocket,
 } from '@phosphor-icons/react';
 import type {
-  ConnectionStatus,
   DashboardJournalDay,
   DashboardLearningCurriculum,
   DashboardTaskEntry,
@@ -92,7 +91,6 @@ function truncate(str: string, len: number): string {
 // ── Props ────────────────────────────────────────────────────────────────────
 
 interface OverviewProps {
-  connections: ConnectionStatus;
   onNavigate: (page: Page) => void;
   sessionStats?: SessionStats | null;
   /** Your name from the local general profile (the one Ava uses). */
@@ -139,7 +137,6 @@ let lastCcTab: CcTab = 'daily';
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export function Overview({
-  connections: _connections,
   onNavigate,
   sessionStats: _stats,
   userName,

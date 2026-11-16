@@ -59,7 +59,9 @@
         "dash.studio.asset.model_both": "Blender (Headless/MCP)",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
         "dash.studio.live.headless": "Headless",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "mcp.page.add.name": "Name",
+        "mcp.page.online": "Online"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -181,7 +183,8 @@
         "dash.studio.finals": "Final",
         "memory.v4.folder": "Folder: {path}",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "mcp.page.online": "Online"
       },
       "it": {
         "health.plans.n_cook": "{n} min",
@@ -218,7 +221,8 @@
         "health.results.mins": "{n} min",
         "memory.v4.no": "No",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "mcp.page.online": "Online"
       },
       "ja": {
         "learning.room.tab.ava": "Ava",
@@ -294,7 +298,10 @@
         "dash.studio.asset.model_both": "Blender (Headless/MCP)",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
         "dash.studio.live.headless": "Headless",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "mcp.page.online": "Online",
+        "mcp.page.summary_tools": "{n} tools",
+        "mcp.page.summary_tools_one": "1 tool"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -314,7 +321,8 @@
         "health.wizard.sum.plan": "Plan",
         "health.results.mins": "{n} min",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "mcp.page.online": "Online"
       },
       "pt": {
         "health.plans.n_cook": "{n} min",
@@ -491,6 +499,8 @@
       "signedOffBy": "operator (overriding the automated reviewer)",
       "why": "Suggested \"Uruchom\" means launch/run a program. This heads the date options for starting a training plan; Polish UI uses \"Start\" there. Note: the same word was signed off as CORRECT for core/pl in the same run — the reviewer is not deterministic across requests."
     },
-    "2026-11-17: Blender room MCP strings reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"MCP\" is a protocol name, identical everywhere; \"Blender (MCP)\" keeps the product name in Latin-script languages; German and Dutch use the English \"Headless\" (as their existing \"Blender (Headless)\" label does)."
+    "2026-11-17: Blender room MCP strings reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"MCP\" is a protocol name, identical everywhere; \"Blender (MCP)\" keeps the product name in Latin-script languages; German and Dutch use the English \"Headless\" (as their existing \"Blender (Headless)\" label does).",
+    "2026-11-17: Connections page (MCP servers) reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"Online\" is the native word in German, Indonesian, Italian, Dutch and Polish UI; \"Name\" is German for name; Dutch uses \"tools\" (as its existing strings do).",
+    "2026-11-17: Connections page (MCP servers) reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"Online\" is the native word in German, Indonesian, Italian, Dutch and Polish UI; \"Name\" is German for name; Dutch uses \"tool/tools\" (as its existing strings do); singular counts added the same evening."
   ]
 }

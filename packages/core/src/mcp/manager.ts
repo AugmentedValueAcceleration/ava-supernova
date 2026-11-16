@@ -27,6 +27,7 @@ import {
   readMcpFile, readProjectServers, secretsUsed, updateMcpFile, type McpFile, type McpServerEntry,
 } from './servers-config.js';
 import { getMcpSecret } from './secrets.js';
+import { riskNotes, type McpRiskNote } from './risk.js';
 import { USER_MCP_PREFIX, isUserMcpTool, setMcpAllowCheck, setMcpReadOnlyCheck } from './permissions.js';
 
 export type McpServerState =
@@ -54,8 +55,14 @@ export interface McpServerStatus {
   id: string;
   scope: McpScope;
   state: McpServerState;
-  /** What's wrong, or why it waits, in plain words. */
+  /** What's wrong, or why it waits, in plain words (English: for logs and for Ava). */
   message?: string;
+  /** Why, as a code the page says in his language. */
+  reason?: 'new' | 'changed' | 'declined' | 'shadowed' | 'stopped' | 'signin';
+  /** The keys it needs that aren't in the keychain (needs-key). */
+  missing?: string[];
+  /** What to point out about its command or address before it runs (risk.ts). */
+  notes: McpRiskNote[];
   online: boolean;
   /** The exact command or address (secrets left as ${secret:…}). */
   shows: string;
@@ -96,6 +103,8 @@ export class McpServers {
   private readonly running = new Map<string, Running>();
   /** Servers being started right now (a reload meanwhile mustn't start them twice). */
   private readonly starting = new Set<string>();
+  /** Each start's number: a restart meanwhile retires the start in flight. */
+  private readonly gens = new Map<string, number>();
   private readonly statuses = new Map<string, McpServerStatus>();
   private readonly listeners = new Set<() => void>();
   private watchers: FSWatcher[] = [];
@@ -159,6 +168,11 @@ export class McpServers {
 
   get projectFolder(): string | null {
     return this.projectRoot;
+  }
+
+  /** Has an app started it yet? (The Connections page can open before the chat does.) */
+  get isStarted(): boolean {
+    return this.started;
   }
 
   /** Every connected server's tools, as Ava tools. */
@@ -242,8 +256,11 @@ export class McpServers {
 
   /** Stop and start one server again. */
   async restart(scope: McpScope, id: string): Promise<void> {
-    const r = this.running.get(key(scope, id));
-    this.running.delete(key(scope, id));
+    const k = key(scope, id);
+    const r = this.running.get(k);
+    this.running.delete(k);
+    this.gens.set(k, (this.gens.get(k) ?? 0) + 1);
+    this.starting.delete(k);
     await r?.conn.close().catch(() => {});
     await this.reload();
   }
@@ -272,8 +289,8 @@ export class McpServers {
     const answers = (this.projectRoot && this.file.projects?.[this.projectRoot]) || {};
     const wanted = new Map<string, { scope: McpScope; id: string; entry: McpServerEntry; allow: string[] }>();
     const next = new Map<string, McpServerStatus>();
-    const base = (scope: McpScope, id: string, e: McpServerEntry, state: McpServerState, message?: string): McpServerStatus => ({
-      id, scope, state, message, online: isWebEntry(e), shows: describeEntry(e), fingerprint: fingerprint(e), secrets: secretsUsed(e), tools: [],
+    const base = (scope: McpScope, id: string, e: McpServerEntry, state: McpServerState, message?: string, reason?: McpServerStatus['reason']): McpServerStatus => ({
+      id, scope, state, message, reason, online: isWebEntry(e), shows: describeEntry(e), fingerprint: fingerprint(e), secrets: secretsUsed(e), notes: riskNotes(e), tools: [],
     });
 
     for (const [id, e] of Object.entries(this.file.mcpServers)) {
@@ -283,13 +300,14 @@ export class McpServers {
     for (const [id, e] of Object.entries(this.project)) {
       const k = key('project', id);
       if (this.file.mcpServers[id]) {
-        next.set(k, base('project', id, e, 'off', `One of your own servers is also called "${id}", so this project's one isn't used.`));
+        next.set(k, base('project', id, e, 'off', `One of your own servers is also called "${id}", so this project's one isn't used.`, 'shadowed'));
       } else if (answers.never?.includes(id)) {
-        next.set(k, base('project', id, e, 'off', 'You said never for this project.'));
+        next.set(k, base('project', id, e, 'off', 'You said never for this project.', 'declined'));
       } else if (answers.approved?.[id] !== fingerprint(e)) {
-        next.set(k, base('project', id, e, 'waiting', answers.approved?.[id]
+        const changed = !!answers.approved?.[id];
+        next.set(k, base('project', id, e, 'waiting', changed
           ? 'Its command changed since you said yes, so it waits for you again.'
-          : 'Waiting for your yes. A project can never turn on its own servers.'));
+          : 'Waiting for your yes. A project can never turn on its own servers.', changed ? 'changed' : 'new'));
       } else {
         wanted.set(k, { scope: 'project', id, entry: e, allow: answers.allow?.[id] ?? [] });
       }
@@ -320,14 +338,16 @@ export class McpServers {
     this.statuses.clear();
     for (const [k, s] of next) this.statuses.set(k, s);
     this.emit();
-    await Promise.all(starts);
+    // Starting can take a while (npx/uvx may download the server first): the
+    // statuses say "connecting" meanwhile, and nobody waits on it.
+    void Promise.all(starts);
   }
 
   private readyStatus(scope: McpScope, id: string, e: McpServerEntry, conn: McpConnection, allow: string[]): McpServerStatus {
     const allowSet = new Set(allow);
     return {
       id, scope, state: 'ready', online: isWebEntry(e), shows: describeEntry(e), fingerprint: fingerprint(e), secrets: secretsUsed(e),
-      server: conn.server,
+      notes: riskNotes(e), server: conn.server,
       tools: conn.tools().map((t) => ({
         name: t.name, avaName: avaToolName(conn.config.id, t.name), description: t.description,
         readOnly: t.readOnly === true, allowed: allowSet.has(t.name),
@@ -338,16 +358,19 @@ export class McpServers {
   private async connect(scope: McpScope, id: string, e: McpServerEntry, allow: string[]): Promise<void> {
     const k = key(scope, id);
     const fp = fingerprint(e);
+    const gen = (this.gens.get(k) ?? 0) + 1;
+    this.gens.set(k, gen);
     const set = (s: McpServerStatus) => {
-      // A reload that came in meanwhile may have changed its mind about this server.
+      // A reload or restart that came in meanwhile may have changed its mind about this server.
       const now = this.statuses.get(k);
+      if (this.gens.get(k) !== gen) return false;
       if (!now || now.fingerprint !== fp || (now.state !== 'connecting' && now.state !== 'ready')) return false;
       this.statuses.set(k, s);
       this.emit();
       return true;
     };
-    const fail = (state: McpServerState, message: string) =>
-      set({ id, scope, state, message, online: isWebEntry(e), shows: describeEntry(e), fingerprint: fp, secrets: secretsUsed(e), tools: [] });
+    const fail = (state: McpServerState, message: string, extra: Partial<McpServerStatus> = {}) =>
+      set({ id, scope, state, message, online: isWebEntry(e), shows: describeEntry(e), fingerprint: fp, secrets: secretsUsed(e), notes: riskNotes(e), tools: [], ...extra });
 
     let transport: McpTransportConfig;
     try {
@@ -378,7 +401,7 @@ export class McpServers {
         };
       }
       if (missing.length) {
-        fail('needs-key', `It needs ${missing.length === 1 ? 'a key' : 'keys'} that ${missing.length === 1 ? "isn't" : "aren't"} in your keychain: ${missing.join(', ')}.`);
+        fail('needs-key', `It needs ${missing.length === 1 ? 'a key' : 'keys'} that ${missing.length === 1 ? "isn't" : "aren't"} in your keychain: ${missing.join(', ')}.`, { missing: missing.map((m) => m.replace(/ \(.*\)$/, '')) });
         return;
       }
     } catch (err) {
@@ -399,15 +422,15 @@ export class McpServers {
         if (r?.conn !== conn) return;
         this.running.delete(k);
         const said = conn.recentErrors().slice(-3).join(' | ');
-        fail('error', `It stopped.${said ? ` It said: ${said}` : ''}`);
+        fail('error', `It stopped.${said ? ` It said: ${said}` : ''}`, { reason: 'stopped' });
       });
     } catch (err) {
       const unauthorized = (err as { unauthorized?: boolean }).unauthorized === true;
       fail(unauthorized ? 'needs-signin' : 'error', unauthorized
         ? 'It wants a sign-in (or the key it was given was refused).'
-        : err instanceof Error ? err.message : String(err));
+        : err instanceof Error ? err.message : String(err), unauthorized ? { reason: 'signin' } : {});
     } finally {
-      this.starting.delete(k);
+      if (this.gens.get(k) === gen) this.starting.delete(k);
     }
   }
 

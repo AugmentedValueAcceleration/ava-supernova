@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { Settings } from './Settings';
-import { Connections } from './Connections';
 import { Personality } from './Personality';
 import { GeneralProfilePage } from './GeneralProfilePage';
 import type {
   DashboardSettings, ProviderKeyStatus, PersonalityData,
-  ConnectionStatus, Page,
+  Page,
   GeneralProfile,
 } from '../types/messages';
 
-type AccountTab = 'settings' | 'connections' | 'personality' | 'profile';
+type AccountTab = 'settings' | 'personality' | 'profile';
 
 /** "{name}'s profile" holds what is genuinely ACCOUNT-shaped: who you are.
  *  Name, picture, body basics — reusable well beyond health.
@@ -27,7 +26,6 @@ interface AccountPageProps {
   onNavigate?: (page: Page) => void;
   personality?: PersonalityData | null;
   avatarDataUrl?: string;
-  connections: ConnectionStatus;
   // "Your profile" tab — identity, picture and body basics.
   generalProfile: GeneralProfile | null;
   onSaveGeneralProfile: (next: GeneralProfile) => void;
@@ -37,8 +35,6 @@ function getAccountTabs(name?: string | null): { key: AccountTab; label: string 
   const firstName = name?.trim().split(/\s+/)[0];
   return [
     { key: 'settings', label: tt('dash.account.tab_settings', 'Settings') },
-    // Connections tab hidden for now — being reworked later this week.
-    // Re-enable by restoring: { key: 'connections', label: tt('dash.account.tab_connections', 'Connections') },
     { key: 'personality', label: tt('dash.account.tab_personality', "Ava's Style") },
     { key: 'profile', label: firstName ? t('general.profile.account_tab_named', { name: firstName }) : t('general.profile.account_tab') },
   ];
@@ -47,7 +43,6 @@ function getAccountTabs(name?: string | null): { key: AccountTab; label: string 
 export function AccountPage({
   settings, onSettingsChange, providerKeys,
   personality, avatarDataUrl,
-  connections,
   generalProfile, onSaveGeneralProfile,
 }: AccountPageProps) {
   useLocale();
@@ -88,10 +83,6 @@ export function AccountPage({
           providerKeys={providerKeys}
           showProviderKeys
         />
-      )}
-
-      {activeTab === 'connections' && (
-        <Connections connections={connections} />
       )}
 
       {activeTab === 'personality' && (

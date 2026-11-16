@@ -668,8 +668,10 @@ export {
   readProjectServers, readEntry, fingerprint, describeEntry, secretsUsed, cleanServerId, isWebEntry,
   setMcpKeychain, hasMcpKeychain, getMcpSecret, setMcpSecret, mcpSecretNames, getMcpAuth, setMcpAuth,
   isUserMcpTool, mcpToolInMode, mcpToolAlwaysAllowed, USER_MCP_PREFIX,
+  mcpPage, splitCommandLine, MCP_HEAVY_TOOLS, riskNotes,
 } from './mcp/index.js';
 export type { McpServerState, McpServerStatus, McpToolStatus, McpScope, McpFile, McpServerEntry, McpProjectAnswers, McpKeychain } from './mcp/index.js';
+export type { McpDraft, McpPageState, McpPageServer, McpCheck, McpRiskCode, McpRiskNote } from './mcp/index.js';
 // Blender Live: Ava in the person's open Blender through Blender Lab's official MCP server.
 export { BlenderLive, findUv, installedServer, addonListening, blenderMcpRoot, versionAtLeast, blenderLiveWanted, setBlenderLiveWanted, BLENDER_LIVE_MIN, BLENDER_MCP_PORT } from './tools/blender/live.js';
 export type { LiveState, LiveStatus } from './tools/blender/live.js';

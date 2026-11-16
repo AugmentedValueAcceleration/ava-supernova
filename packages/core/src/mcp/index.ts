@@ -13,3 +13,7 @@ export type { McpFile, McpServerEntry, McpProjectAnswers } from './servers-confi
 export { setMcpKeychain, hasMcpKeychain, getMcpSecret, setMcpSecret, mcpSecretNames, getMcpAuth, setMcpAuth } from './secrets.js';
 export type { McpKeychain } from './secrets.js';
 export { isUserMcpTool, mcpToolInMode, mcpToolAlwaysAllowed, USER_MCP_PREFIX } from './permissions.js';
+export { mcpPage, splitCommandLine, MCP_HEAVY_TOOLS } from './page.js';
+export type { McpDraft, McpPageState, McpPageServer, McpCheck } from './page.js';
+export { riskNotes } from './risk.js';
+export type { McpRiskCode, McpRiskNote } from './risk.js';

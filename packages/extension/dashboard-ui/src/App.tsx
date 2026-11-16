@@ -11,6 +11,8 @@ import { LazyPage } from './components/LazyPage';
 import { Overview } from './pages/Overview';
 import { MemoryV4Page } from './components/MemoryV4Page';
 import { memoryRequest } from './lib/memory-v4';
+import { connectionsRequest } from './lib/connections';
+import { ConnectionsPage } from './components/ConnectionsPage';
 import { History } from './pages/History';
 import { Library } from './pages/Library';
 import { ResultsImport } from './components/ResultsImport';
@@ -30,7 +32,6 @@ import { LearningRoom } from './pages/LearningRoom';
 import type { DayProposal } from './components/AssistSheet';
 import type {
   Page,
-  ConnectionStatus,
   ConversationEntry,
   DashboardTaskEntry,
   DashboardJournalDay,
@@ -233,12 +234,6 @@ export function App() {
     }
   };
   setPagePersistRef.current = setPagePersist;
-  const [connections, setConnections] = useState<ConnectionStatus>({
-    github: false,
-    email: false,
-    slack: false,
-    discord: false,
-  });
   const [settings, setSettings] = useState<DashboardSettings>({
     language: 'auto',
     permissionMode: 'strict',
@@ -254,6 +249,11 @@ export function App() {
   // and the sidebar shows how many things are waiting for a yes.
   // Ava's memory: waiting for a yes (sidebar badge), and the Command Centre card.
   const [memoryV4, setMemoryV4] = useState<{ pending: number; facts: number; latest: string | null }>({ pending: 0, facts: 0, latest: null });
+  // MCP: this project's servers waiting for a yes (the badge on Connections).
+  const [mcpWaiting, setMcpWaiting] = useState(0);
+  useEffect(() => {
+    connectionsRequest('state').then((s) => setMcpWaiting((s as { waiting?: number })?.waiting ?? 0)).catch(() => {});
+  }, []);
   const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
     deepseek: false, kimi: false, glm: false, qwen: false, mistral: false, xiaomi: false, tencent: false, nvidia: false,
   });
@@ -922,7 +922,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         break;
 
       case 'init':
-        setConnections(msg.connections);
         setSettings(msg.settings);
         setProviderKeys(msg.providerKeys);
         setOnboarding(msg.onboarding ?? null);
@@ -956,12 +955,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           setErrorMsg(msg.result.message);
           setTimeout(() => setErrorMsg(null), 8000);
         }
-        break;
-      case 'connection_saved':
-        setConnections((prev) => ({ ...prev, [msg.service]: true }));
-        break;
-      case 'connection_removed':
-        setConnections((prev) => ({ ...prev, [msg.service]: false }));
         break;
       case 'conversations_loaded':
         setConversations(msg.conversations);
@@ -1682,7 +1675,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
 
       case 'account':
       case 'settings':
-      case 'connections':
       case 'personality':
       case 'keys':
         return (
@@ -1693,7 +1685,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             onNavigate={setPagePersist}
             personality={personalityData}
             avatarDataUrl={avatarDataUrl}
-            connections={connections}
             generalProfile={generalProfile}
             onSaveGeneralProfile={handleSaveGeneralProfile}
           />
@@ -1730,12 +1721,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
             />
           );
         }
-        return <Overview connections={connections} onNavigate={setPagePersist} sessionStats={sessionStatsData} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memoryFacts={memoryV4.facts} memoryWaiting={memoryV4.pending} memoryLatest={memoryV4.latest} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} forYou={forYou} forYouHandlers={{
+        return <Overview onNavigate={setPagePersist} sessionStats={sessionStatsData} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memoryFacts={memoryV4.facts} memoryWaiting={memoryV4.pending} memoryLatest={memoryV4.latest} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} forYou={forYou} forYouHandlers={{
           onOpenItem: (kind, slug) => { setHealthOpenItem({ kind, slug }); setHealthInitialTab(kind === 'recipe' ? 'recipes' : 'exercises'); setPagePersist('health'); },
           onStartPlan: (seed) => { setWizardSeed(seed); setHealthInitialTab('plans'); setPagePersist('health'); },
           onProfile: () => { setHealthInitialTab('profile'); setPagePersist('health'); },
           onOpenPlans: () => { setHealthInitialTab('plans'); setPagePersist('health'); },
         }} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
+      case 'connections':
+        return <ConnectionsPage request={connectionsRequest} onWaitingChange={setMcpWaiting} />;
       case 'memory':
         return <MemoryV4Page request={memoryRequest} onPendingChange={(n) => setMemoryV4((m) => ({ ...m, pending: n }))} />;
       case 'history':
@@ -1897,6 +1890,7 @@ libraryLoading={libraryLoading} courseRatings={courseRatings}             paths=
       <div style={{ order: sidebarSide === 'left' ? 0 : 2 }}>
         <NavSidebar
           memoryWaiting={memoryV4.pending}
+          connectionsWaiting={mcpWaiting}
           currentPage={page}
           onNavigate={setPagePersist}
           userName={generalProfile?.display_name ?? null}

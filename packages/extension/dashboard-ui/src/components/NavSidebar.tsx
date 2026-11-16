@@ -5,7 +5,7 @@ import type { Page, DashboardJournalDaySummary, HealthPlanSummary, ProviderKeySt
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
   Brain, ChartLineUp, GearSix, Question, Barbell, GraduationCap,
-  ArrowsLeftRight, CaretLeft, CaretRight, Heart,
+  ArrowsLeftRight, CaretLeft, CaretRight, Heart, PlugsConnected,
 } from '@phosphor-icons/react';
 
 /** The donation page on the website — Ava is free, and donations keep it so. */
@@ -57,6 +57,8 @@ interface NavSidebarProps {
   generationJobs?: GenerationJobLite[];
   /** Memory v4: things waiting for the person's yes (badge on Memory). */
   memoryWaiting?: number;
+  /** MCP: this project's servers waiting for the person's yes (badge on Connections). */
+  connectionsWaiting?: number;
 }
 
 const RAIL_WIDTH = 56;
@@ -89,6 +91,8 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     // feature actually is in its development. Keep in step with the IDE Sidebar.
     { page: 'creative-studio', icon: <Palette weight="duotone" size={18} />, label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice'), earlyAccess: true },
     { page: 'memory', icon: <Brain weight="duotone" size={18} />, label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
+    // His MCP servers (plan 2026-11-17-mcp-servers). Keep in step with the IDE Sidebar.
+    { page: 'connections', icon: <PlugsConnected weight="duotone" size={18} />, label: tt('dash.nav.connections', 'Connections'), description: tt('dash.nav.connections_desc', 'Your MCP servers') },
     // Labelled 'History' to match the IDE Sidebar (Sidebar.tsx:1116) —
     // the previous tt('dash.nav.usage', 'History') resolved to "Usage"
     // because the i18n key exists in the locale (the fallback only fires
@@ -135,6 +139,7 @@ export function NavSidebar({
   collapsed,
   generationJobs,
   memoryWaiting,
+  connectionsWaiting,
 }: NavSidebarProps) {
   useLocale();
 
@@ -252,6 +257,9 @@ export function NavSidebar({
               {item.page === 'memory' && memoryWaiting && memoryWaiting > 0 ? (
                 <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{memoryWaiting}</span>
               ) : null}
+              {item.page === 'connections' && connectionsWaiting && connectionsWaiting > 0 ? (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[#fbbf24] px-0.5 text-[7px] font-bold text-[#1a1028]">{connectionsWaiting}</span>
+              ) : null}
               {item.page === 'creative-studio' && runningJobs > 0 ? (
                 <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{runningJobs}</span>
               ) : null}
@@ -348,7 +356,7 @@ export function NavSidebar({
             onClick={() => handleNavigate(item.page)}
             comingSoon={item.comingSoon}
             earlyAccess={item.earlyAccess}
-            badge={item.page === 'memory' ? memoryWaiting : undefined}
+            badge={item.page === 'memory' ? memoryWaiting : item.page === 'connections' ? connectionsWaiting : undefined}
           />
         ))}
       </div>

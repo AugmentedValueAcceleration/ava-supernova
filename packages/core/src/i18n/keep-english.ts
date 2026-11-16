@@ -24,9 +24,6 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   'dash.nav.ava_chat',
 
   // Service / integration brand names
-  'dash.connections.discord',
-  'dash.connections.github',
-  'dash.connections.slack',
   'dash.nav.connections_desc',
 
   // Longxiang fleet roster subtitles — these are model NAMES end to end
@@ -135,7 +132,6 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   'dash.chat.tab.briefing',
   'dash.chat.tokens',
   'dash.chat.tool_error',
-  'dash.connections.smtp_port',
   'dash.creative.camera_dolly',
   'dash.creative.camera_orbit',
   'dash.creative.camera_pan',

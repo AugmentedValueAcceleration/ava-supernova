@@ -66,13 +66,6 @@ export interface ProceduralPatternUI {
   lastObservedAt: string;
 }
 
-export interface ConnectionStatus {
-  github: boolean;
-  email: boolean;
-  slack: boolean;
-  discord: boolean;
-}
-
 export interface DashboardSettings {
   language: string;
   permissionMode: 'strict' | 'balanced' | 'autonomous' | 'custom';
@@ -1454,6 +1447,8 @@ export type ExtToDashboardMessage =
   | { type: 'memory_v4_status'; on: boolean; pending: number }
   /** Reply to a `memory_v4` request: core's memoryPage() result. */
   | { type: 'memory_v4_result'; requestId: string; result: unknown }
+  /** Reply to an `mcp_page` request: core's mcpPage() result (the Connections page). */
+  | { type: 'mcp_page_result'; requestId: string; result: unknown }
   /**
    * UI strings for ONE language, in reply to request_locale_strings.
    *
@@ -1474,7 +1469,6 @@ export type ExtToDashboardMessage =
       type: 'init';
       /** Always null — there are no accounts. Kept so the init shape is stable. */
       account: null;
-      connections: ConnectionStatus;
       settings: DashboardSettings;
       providerKeys: ProviderKeyStatus;
       locale: string;
@@ -1508,8 +1502,6 @@ export type ExtToDashboardMessage =
   | { type: 'memories_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memories_more_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'connection_tested'; service: string; success: boolean; message: string }
-  | { type: 'connection_saved'; service: string }
-  | { type: 'connection_removed'; service: string }
   | { type: 'conversations_loaded'; conversations: ConversationEntry[] }
   | { type: 'conversation_deleted'; id: string }
   // BYOK messages
@@ -1821,6 +1813,8 @@ export type ExtToDashboardMessage =
 export type DashboardToExtMessage =
   /** The Memory page (memory v4): one op of core's memoryPage(), answered by memory_v4_result. */
   | { type: 'memory_v4'; requestId: string; op: string; args?: Record<string, unknown> }
+  /** The Connections page: one op of core's mcpPage(), answered by mcp_page_result. */
+  | { type: 'mcp_page'; requestId: string; op: string; args?: Record<string, unknown> }
   /** "Send me the strings for this language." The dashboard asks rather than
    *  being pushed to, because it owns its own locale choice —
    *  localStorage['ava-dashboard-language'], which can differ from the host's
@@ -1845,8 +1839,6 @@ export type DashboardToExtMessage =
   | { type: 'detect_local_models'; baseUrl: string; apiKey?: string }
   | { type: 'load_memories' }
   | { type: 'load_more_memories' }
-  | { type: 'save_connection'; service: 'github' | 'email' | 'slack' | 'discord'; credentials: Record<string, string> }
-  | { type: 'remove_connection'; service: string }
   | { type: 'test_connection'; service: string }
   | { type: 'save_settings'; settings: DashboardSettings }
   | { type: 'open_chat' }

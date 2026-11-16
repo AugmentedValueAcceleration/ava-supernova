@@ -57,6 +57,7 @@ import {
   loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipeSafety, checkExerciseSafety, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
   AvaMemory, memoryPage, memoryV4Root, removeOldMemoryFiles, type PageOp,
+  McpServers, mcpPage,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -69,7 +70,6 @@ import type {
   ExtToDashboardMessage,
   DashboardToExtMessage,
   DashboardSettings,
-  ConnectionStatus,
   ConversationEntry,
   ProviderKeyStatus,
   DashboardTaskEntry,
@@ -157,13 +157,6 @@ const PROVIDER_KEY_SECRETS: Record<string, string> = {
   brave: 'ava-supernova.provider.brave.apiKey',
 };
 
-// Connection credential secret keys
-const CONNECTION_SECRETS: Record<string, string[]> = {
-  github: ['ava.connection.github.token'],
-  email: ['ava.connection.email.host', 'ava.connection.email.port', 'ava.connection.email.user', 'ava.connection.email.pass'],
-  slack: ['ava.connection.slack.webhook'],
-  discord: ['ava.connection.discord.webhook'],
-};
 
 // ─── DashboardPanel ───────────────────────────────────────────────────────────
 
@@ -540,13 +533,6 @@ export class DashboardPanel {
         await this.detectLocalModels(msg.baseUrl, msg.apiKey);
         break;
 
-      case 'save_connection':
-        await this.saveConnection(msg.service, msg.credentials);
-        break;
-
-      case 'remove_connection':
-        await this.removeConnection(msg.service);
-        break;
 
       case 'save_settings':
         // Write to VS Code config only.
@@ -2726,6 +2712,20 @@ export class DashboardPanel {
         }
         break;
       }
+      // ── Connections: his MCP servers (core mcpPage) ──
+      case 'mcp_page': {
+        const m = msg as { requestId: string; op: string; args?: Record<string, unknown> };
+        let result: unknown;
+        try {
+          const servers = McpServers.current();
+          if (!servers.isStarted) await servers.start(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null);
+          result = await mcpPage(m.op, m.args ?? {});
+        } catch (err) {
+          result = { ok: false, error: err instanceof Error ? err.message : String(err) };
+        }
+        this.post({ type: 'mcp_page_result', requestId: m.requestId, result } as never);
+        break;
+      }
       // ── PDF fonts: the optional bold Chinese/Japanese/Korean pack ──
       case 'memory_v4': {
         // The Memory page ("What Ava knows"): one op of core's memoryPage().
@@ -2975,7 +2975,6 @@ export class DashboardPanel {
   }
 
   private async sendInit(): Promise<void> {
-    const connections = await this.getConnectionStatus();
 
     // Settings + provider keys come from this machine only.
     const settings = this.readSettings();
@@ -3011,61 +3010,10 @@ export class DashboardPanel {
     } catch { /* no avatar set */ }
 
     const workingHours = this.context.globalState.get<{ start: number; end: number }>('ava.workingHours') ?? null;
-    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, onboarding, consentAccepted, userAvatar, workingHours });
+    this.post({ type: 'init', account: null, settings, providerKeys, locale, onboarding, consentAccepted, userAvatar, workingHours });
 
     // Session stats are local, so the Usage panel renders straight away.
     this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
-  }
-
-  // ─── Connections ───────────────────────────────────────────────────────────
-
-  private async getConnectionStatus(): Promise<ConnectionStatus> {
-    // SecretStorage reads run in parallel — sequential awaits used to add
-    // ~50-100ms to every dashboard open. The 4 services are independent.
-    const services = ['github', 'email', 'slack', 'discord'] as const;
-    const results = await Promise.all(services.map(async (service) => {
-      const secrets = CONNECTION_SECRETS[service] ?? [];
-      const first = secrets[0] ? await this.secrets.get(secrets[0]) : undefined;
-      return [service, Boolean(first)] as const;
-    }));
-    const status = { github: false, email: false, slack: false, discord: false } as ConnectionStatus;
-    for (const [service, present] of results) status[service] = present;
-    return status;
-  }
-
-  private async saveConnection(
-    service: 'github' | 'email' | 'slack' | 'discord',
-    credentials: Record<string, string>,
-  ): Promise<void> {
-    const secretKeys = CONNECTION_SECRETS[service] ?? [];
-
-    // Empty credentials = disconnect
-    if (Object.keys(credentials).length === 0) {
-      for (const key of secretKeys) {
-        await this.secrets.delete(key);
-      }
-      this.post({ type: 'connection_removed', service });
-      return;
-    }
-
-    // Store each field in SecretStorage
-    for (const key of secretKeys) {
-      const field = key.split('.').pop() ?? key; // e.g. "token", "host", "pass"
-      const val = credentials[field];
-      if (val) {
-        await this.secrets.store(key, val);
-      }
-    }
-
-    this.post({ type: 'connection_saved', service });
-  }
-
-  private async removeConnection(service: string): Promise<void> {
-    const secretKeys = CONNECTION_SECRETS[service] ?? [];
-    for (const key of secretKeys) {
-      await this.secrets.delete(key);
-    }
-    this.post({ type: 'connection_removed', service });
   }
 
   // ─── Provider Keys ────────────────────────────────────────────────────────
