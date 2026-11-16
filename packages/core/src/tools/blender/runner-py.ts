@@ -10,107 +10,14 @@
  */
 import { KIT_PY } from '../../brand/kit-py.js';
 
+/**
+ * The helpers Ava calls from her scripts (ava_unwrap, ava_bake). Shared by
+ * Headless (this runner) and MCP (sent ahead of each step to the open
+ * Blender), so baking works the same either way — his question, 17 Nov.
+ * Needs: bpy, os, ASSET_DIR in scope.
+ */
 // prettier-ignore
-export const BLENDER_RUNNER_PY = String.raw`# Ava's Blender runner. Started by design_build_model as:
-#   blender -b [model.blend] --factory-startup --disable-autoexec --python runner.py -- job.json
-# It prepares the scene, installs the guard, runs Ava's script, then saves,
-# exports and renders a preview. The last line it prints is the result.
-import sys, os, json, time, traceback, tempfile, shutil, math
-
-JOB = json.load(open(sys.argv[sys.argv.index('--') + 1], encoding='utf-8'))
-ASSET_DIR = os.path.realpath(JOB['assetDir'])
-NAME = JOB['name']
-BLEND = os.path.join(ASSET_DIR, NAME + '.blend')
-STARTED = time.time()
-result = {'ok': False, 'files': [], 'warnings': []}
-${KIT_PY}
-
-def emit():
-    sys.stdout.write('\n@@AVA_RESULT@@' + json.dumps(result) + '\n')
-    sys.stdout.flush()
-
-import bpy
-sys.dont_write_bytecode = True
-bpy.context.preferences.filepaths.save_version = 0   # no .blend1 clutter beside the model
-
-if not JOB['continue']:
-    bpy.ops.wm.read_factory_settings(use_empty=True)  # a new canvas: nothing in it
-for sc in bpy.data.scenes:
-    sc.render.filepath = os.path.join(ASSET_DIR, 'render_')
-
-# ── The guard ────────────────────────────────────────────────────────────────
-# Python audit hooks see every file write, process start and network call made
-# from Python, and cannot be removed once installed. A guard, not a sandbox:
-# Blender's own C code (saving a .blend, writing a render) is not seen here,
-# which is why the tool also refuses absolute paths in the script itself.
-# Writes are allowed in the model folder and in Blender's OWN per-run temp
-# folder (blender_xxxx), not the whole system temp. Python's tempfile is
-# pointed there too, so any library that needs scratch space stays inside it.
-_BTMP = bpy.app.tempdir or os.path.join(ASSET_DIR, '.tmp')
-os.makedirs(_BTMP, exist_ok=True)
-tempfile.tempdir = _BTMP
-_ALLOWED = [os.path.normcase(os.path.realpath(p)) for p in {ASSET_DIR, _BTMP}]
-
-def _inside(p):
-    try:
-        rp = os.path.normcase(os.path.realpath(os.fsdecode(p)))
-    except Exception:
-        return False
-    return any(rp == a or rp.startswith(a.rstrip(os.sep) + os.sep) for a in _ALLOWED)
-
-_BLOCKED = {
-    'subprocess.Popen': 'starting other programs', 'os.system': 'starting other programs',
-    'os.exec': 'starting other programs', 'os.posix_spawn': 'starting other programs',
-    'os.spawn': 'starting other programs', 'os.startfile': 'opening files in other programs',
-    'os.kill': 'stopping other programs', 'webbrowser.open': 'opening a browser',
-    'socket.connect': 'network access', 'socket.bind': 'network access',
-    'socket.getaddrinfo': 'network access', 'socket.gethostbyname': 'network access',
-    'urllib.Request': 'network access', 'ctypes.dlopen': 'loading native code',
-    'ctypes.dlsym': 'calling native code', 'ctypes.call_function': 'calling native code',
-    'winreg.CreateKey': 'changing the registry', 'winreg.SetValue': 'changing the registry',
-    'winreg.DeleteKey': 'changing the registry', 'winreg.DeleteValue': 'changing the registry',
-}
-_WRITE_ARGS = {  # event -> indexes of the paths it writes or removes
-    'os.remove': (0,), 'os.rmdir': (0,), 'os.mkdir': (0,), 'os.chmod': (0,),
-    'os.truncate': (0,), 'os.utime': (0,), 'shutil.rmtree': (0,),
-    'os.rename': (0, 1), 'shutil.move': (0, 1), 'shutil.copyfile': (1,),
-    'shutil.copytree': (1,), 'os.symlink': (1,), 'os.link': (1,),
-}
-_WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC
-
-def _refuse(why):
-    raise PermissionError(f'Blocked by the Design Studio guard: {why}. '
-                          f'Scripts here may only build the model and write inside its own folder (ASSET_DIR).')
-
-def _hook(event, args):
-    if event in _BLOCKED:
-        _refuse(_BLOCKED[event])
-    if event == 'open':
-        path, mode, flags = (list(args) + [None, None, 0])[:3]
-        if path is None or isinstance(path, int):
-            return
-        writing = (isinstance(mode, str) and any(c in mode for c in 'wax+')) or \
-                  (mode is None and isinstance(flags, int) and flags & _WRITE_FLAGS)
-        if writing and not _inside(path):
-            _refuse(f'writing outside the model folder ({os.fsdecode(path)})')
-    elif event in _WRITE_ARGS:
-        for i in _WRITE_ARGS[event]:
-            if i < len(args) and args[i] is not None and not isinstance(args[i], int) and not _inside(args[i]):
-                _refuse(f'changing files outside the model folder ({os.fsdecode(args[i])})')
-
-# Blender's own exporters load native code when first imported (the glTF one
-# pulls in ctypes for Draco). Import them BEFORE the guard goes up, so the guard
-# only ever sees what Ava's script does.
-import ctypes  # noqa: F401
-for _mod in ('io_scene_gltf2.blender.exp.export', 'io_scene_fbx.export_fbx_bin'):
-    try:
-        __import__(_mod)
-    except Exception as e:
-        result['warnings'].append(f'Could not preload {_mod}: {e}')
-
-sys.addaudithook(_hook)
-
-# ── Helpers Ava calls from her script ────────────────────────────────────────
+export const BLENDER_HELPERS_PY = String.raw`# ── Helpers Ava calls from her script ────────────────────────────────────────
 # Texturing is where she lost twenty minutes on the first real model (3 Nov
 # 2026): a beautiful live shader that exports as nothing, a dozen runs on UV
 # layout, and Blender reporting only EEVEE when asked which engines exist —
@@ -323,7 +230,109 @@ def ava_bake(objects=None, size=2048, maps=('base_color', 'roughness', 'metallic
     files = [f'textures/{_os.path.basename(i.filepath_raw)}' for i in images.values()]
     print(f'AVA_BAKE: {len(obs)} objects, {len(mats)} live material(s) -> {", ".join(files)} on {baked.name}')
     return files
+`;
 
+// prettier-ignore
+export const BLENDER_RUNNER_PY = String.raw`# Ava's Blender runner. Started by design_build_model as:
+#   blender -b [model.blend] --factory-startup --disable-autoexec --python runner.py -- job.json
+# It prepares the scene, installs the guard, runs Ava's script, then saves,
+# exports and renders a preview. The last line it prints is the result.
+import sys, os, json, time, traceback, tempfile, shutil, math
+
+JOB = json.load(open(sys.argv[sys.argv.index('--') + 1], encoding='utf-8'))
+ASSET_DIR = os.path.realpath(JOB['assetDir'])
+NAME = JOB['name']
+BLEND = os.path.join(ASSET_DIR, NAME + '.blend')
+STARTED = time.time()
+result = {'ok': False, 'files': [], 'warnings': []}
+${KIT_PY}
+
+def emit():
+    sys.stdout.write('\n@@AVA_RESULT@@' + json.dumps(result) + '\n')
+    sys.stdout.flush()
+
+import bpy
+sys.dont_write_bytecode = True
+bpy.context.preferences.filepaths.save_version = 0   # no .blend1 clutter beside the model
+
+if not JOB['continue']:
+    bpy.ops.wm.read_factory_settings(use_empty=True)  # a new canvas: nothing in it
+for sc in bpy.data.scenes:
+    sc.render.filepath = os.path.join(ASSET_DIR, 'render_')
+
+# ── The guard ────────────────────────────────────────────────────────────────
+# Python audit hooks see every file write, process start and network call made
+# from Python, and cannot be removed once installed. A guard, not a sandbox:
+# Blender's own C code (saving a .blend, writing a render) is not seen here,
+# which is why the tool also refuses absolute paths in the script itself.
+# Writes are allowed in the model folder and in Blender's OWN per-run temp
+# folder (blender_xxxx), not the whole system temp. Python's tempfile is
+# pointed there too, so any library that needs scratch space stays inside it.
+_BTMP = bpy.app.tempdir or os.path.join(ASSET_DIR, '.tmp')
+os.makedirs(_BTMP, exist_ok=True)
+tempfile.tempdir = _BTMP
+_ALLOWED = [os.path.normcase(os.path.realpath(p)) for p in {ASSET_DIR, _BTMP}]
+
+def _inside(p):
+    try:
+        rp = os.path.normcase(os.path.realpath(os.fsdecode(p)))
+    except Exception:
+        return False
+    return any(rp == a or rp.startswith(a.rstrip(os.sep) + os.sep) for a in _ALLOWED)
+
+_BLOCKED = {
+    'subprocess.Popen': 'starting other programs', 'os.system': 'starting other programs',
+    'os.exec': 'starting other programs', 'os.posix_spawn': 'starting other programs',
+    'os.spawn': 'starting other programs', 'os.startfile': 'opening files in other programs',
+    'os.kill': 'stopping other programs', 'webbrowser.open': 'opening a browser',
+    'socket.connect': 'network access', 'socket.bind': 'network access',
+    'socket.getaddrinfo': 'network access', 'socket.gethostbyname': 'network access',
+    'urllib.Request': 'network access', 'ctypes.dlopen': 'loading native code',
+    'ctypes.dlsym': 'calling native code', 'ctypes.call_function': 'calling native code',
+    'winreg.CreateKey': 'changing the registry', 'winreg.SetValue': 'changing the registry',
+    'winreg.DeleteKey': 'changing the registry', 'winreg.DeleteValue': 'changing the registry',
+}
+_WRITE_ARGS = {  # event -> indexes of the paths it writes or removes
+    'os.remove': (0,), 'os.rmdir': (0,), 'os.mkdir': (0,), 'os.chmod': (0,),
+    'os.truncate': (0,), 'os.utime': (0,), 'shutil.rmtree': (0,),
+    'os.rename': (0, 1), 'shutil.move': (0, 1), 'shutil.copyfile': (1,),
+    'shutil.copytree': (1,), 'os.symlink': (1,), 'os.link': (1,),
+}
+_WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC
+
+def _refuse(why):
+    raise PermissionError(f'Blocked by the Design Studio guard: {why}. '
+                          f'Scripts here may only build the model and write inside its own folder (ASSET_DIR).')
+
+def _hook(event, args):
+    if event in _BLOCKED:
+        _refuse(_BLOCKED[event])
+    if event == 'open':
+        path, mode, flags = (list(args) + [None, None, 0])[:3]
+        if path is None or isinstance(path, int):
+            return
+        writing = (isinstance(mode, str) and any(c in mode for c in 'wax+')) or \
+                  (mode is None and isinstance(flags, int) and flags & _WRITE_FLAGS)
+        if writing and not _inside(path):
+            _refuse(f'writing outside the model folder ({os.fsdecode(path)})')
+    elif event in _WRITE_ARGS:
+        for i in _WRITE_ARGS[event]:
+            if i < len(args) and args[i] is not None and not isinstance(args[i], int) and not _inside(args[i]):
+                _refuse(f'changing files outside the model folder ({os.fsdecode(args[i])})')
+
+# Blender's own exporters load native code when first imported (the glTF one
+# pulls in ctypes for Draco). Import them BEFORE the guard goes up, so the guard
+# only ever sees what Ava's script does.
+import ctypes  # noqa: F401
+for _mod in ('io_scene_gltf2.blender.exp.export', 'io_scene_fbx.export_fbx_bin'):
+    try:
+        __import__(_mod)
+    except Exception as e:
+        result['warnings'].append(f'Could not preload {_mod}: {e}')
+
+sys.addaudithook(_hook)
+
+${BLENDER_HELPERS_PY}
 # ── Ava's script ─────────────────────────────────────────────────────────────
 script_path = os.path.join(ASSET_DIR, 'script.py')
 ns = {'__name__': '__main__', '__file__': script_path, 'ASSET_DIR': ASSET_DIR, 'bpy': bpy, 'KIT': KIT,

@@ -29,6 +29,9 @@ import type { FunctionSchema } from '../../providers/types.js';
 import { mcpToolsForAva } from '../../mcp/tools.js';
 import type { McpConnection } from '../../mcp/connection.js';
 import { BlenderLive } from './live.js';
+import { BLENDER_HELPERS_PY } from './runner-py.js';
+import { KIT_PY } from '../../brand/kit-py.js';
+import { kitForScripts } from '../../brand/brand-kits.js';
 import { modelsDir, modelSlug } from './paths.js';
 import { readModelBrief } from './model-brief.js';
 import { checkBlenderScript, upsertLibraryEntry } from './build-model.js';
@@ -208,7 +211,7 @@ export class DesignLiveStepTool implements Tool {
   readonly schema = schema(this.name,
     'Run ONE small step of your Blender Python (bpy) in THEIR open Blender, on the model opened with design_live_open_model, then get a picture of the 3D viewport so you SEE the result. ' +
     'They watch it happen and may have changed things by hand since your last step — read the scene first when unsure (blender_live_get_objects_summary). ' +
-    'ASSET_DIR is predefined: the model\'s folder; write files only inside it. Don\'t save, open or reset files yourself — design_live_save does that. ' +
+    'ASSET_DIR (the model\'s folder), KIT (the brand kit) and the helpers ava_unwrap() and ava_bake() are predefined, exactly as in Headless — bake here when the look is right; Blender is busy while it bakes, so tell them first. Write files only inside ASSET_DIR. Don\'t save, open or reset files yourself — design_live_save does that. ' +
     'To return values, set `result` to a JSON-serialisable dict. Units are metres, Z is up.',
     {
       script: { type: 'string', description: 'The Blender Python for this one step.' },
@@ -230,8 +233,13 @@ export class DesignLiveStepTool implements Tool {
     await mkdir(scriptsDir, { recursive: true });
     await writeFile(join(scriptsDir, `${new Date().toISOString().replace(/[:.]/g, '-')}-live.py`), script, 'utf-8');
 
-    const prelude = `import bpy, os
+    // The same helpers and brand kit as Headless: KIT, ava_unwrap(), ava_bake().
+    const kit = await kitForScripts((context.sharedState?.designProject as (() => string | null | undefined) | undefined)?.()).catch(() => null);
+    const prelude = `import bpy, os, json, math
 ASSET_DIR = ${py(model.dir)}
+JOB = json.loads(${py(JSON.stringify({ kit: kit ?? null }))})
+${KIT_PY}
+${BLENDER_HELPERS_PY}
 if os.path.normcase(os.path.abspath(bpy.data.filepath or "")) != os.path.normcase(os.path.abspath(${py(model.blend)})):
     raise RuntimeError("The file open in Blender isn't the model any more (they may have opened another). Open it again with design_live_open_model.")
 `;

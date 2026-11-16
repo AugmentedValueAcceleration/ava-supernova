@@ -289,7 +289,7 @@ export class DesignBuildModelTool implements Tool {
     if (live.connection && live.openModel?.slug === slug) {
       return {
         success: false,
-        output: `"${name}" is open in their Blender through MCP, so Headless won't touch it — two Blenders writing one file would lose work. Keep working with design_live_step, or save it with design_live_save and ask them to switch the room to Headless before building headless (the bake helpers are headless-only).`,
+        output: `"${name}" is open in their Blender through MCP, so Headless won't touch it — two Blenders writing one file would lose work. Keep working with design_live_step, including baking: KIT, ava_unwrap() and ava_bake() work there too. To build headless instead, save it with design_live_save and ask them to switch the room to Headless.`,
       };
     }
 
