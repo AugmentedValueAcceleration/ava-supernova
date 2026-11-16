@@ -2020,7 +2020,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.memoryModel = memorySession
       ? resolveMemoryModel(this.providerRegistry, availableProviders, onFleet ? routingMode : undefined, onFleet ? null : { provider, model })
       : null;
-    if (memorySession) this.log(`memory v4 tidy-up model: ${this.memoryModel?.model.id ?? 'none reachable (tidy-up off; saves still work)'}`);
+    if (memorySession) this.log(`memory tidy-up model: ${this.memoryModel?.model.id ?? 'none reachable (tidy-up off; saves still work)'}`);
 
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
     if (availableProviders.size > 1) {
@@ -2298,10 +2298,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // First start after the update: the old memory comes across once, free.
       await ensureOldMemoryImported(new AvaMemory({ root }), AVA_HOME, (m) => this.log(m));
       const session = await MemorySession.open({ root, projectPath: this.projectRoot ?? null, embeddingService: this.resolveEmbeddingService() });
-      this.log(`memory v4: on (${root})${session.project ? `, project ${session.project.name}` : ''}`);
+      this.log(`memory: open (${root})${session.project ? `, project ${session.project.name}` : ''}`);
       return session;
     } catch (err) {
-      this.log(`memory v4: could not open ${root}: ${err instanceof Error ? err.message : String(err)}`);
+      this.log(`memory: could not open ${root}: ${err instanceof Error ? err.message : String(err)}`);
       return undefined;
     }
   }

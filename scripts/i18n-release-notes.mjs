@@ -72,6 +72,62 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 529,
+    version: '0.114.0',
+    platform: 'extension',
+    toolCount: 90,
+    publishedAt: '2026-11-16 00:00:00+00',
+    title: `I remember you properly now, and you can see everything I know`,
+    body: `My memory has been rebuilt from the ground up. It still lives only on your computer.
+
+**Everything I know, on one page.** Open **Memory** in the sidebar: what I know about you, each project's facts, the threads I'm carrying for you, and what happened each day. Search it, edit it, or forget any of it.
+
+**You said it, or I noticed it.** What you tell me is remembered straight away. What I only notice waits under **Waiting for your yes**, and I don't use it until you agree. I never stop a chat to ask.
+
+**I pick up where you left off.** I carry open threads, things promised or left unfinished, until they're done. I keep a few lines for each day, so you can ask what we did last Tuesday.
+
+**Across projects.** A project's facts come up when it's open or when you mention it by name. Link projects that affect each other. If something you taught me in one project turns up in another, I'll suggest remembering it everywhere.
+
+**Plain files you own.** It all lives in ~/.ava/memory as text you can open. **Forget everything**, at the bottom of the page, clears it all, including the files from earlier versions. Your existing memories come across automatically the first time you open this version.
+
+**Also:** memory works on a local model with no key; the Command Centre's memory card shows what I know and what's waiting; brand kit proposals are quicker.`,
+    highlights: [
+      'A new Memory page shows everything I know, and you can edit or forget any of it.',
+      'What I only noticed waits for your yes; what you say is kept straight away.',
+      'I carry your open threads and remember each day, across every project.',
+      'Your existing memories come across automatically, and it all stays on your computer.',
+    ],
+  },
+  {
+    migration: 530,
+    version: '0.59.0',
+    platform: 'ide',
+    toolCount: 103,
+    publishedAt: '2026-11-16 00:00:00+00',
+    title: `I remember you properly now, and you can see everything I know`,
+    body: `My memory has been rebuilt from the ground up. It still lives only on your computer.
+
+**Everything I know, on one page.** Open **Memory** in the sidebar: what I know about you, each project's facts, the threads I'm carrying for you, and what happened each day. Search it, edit it, or forget any of it.
+
+**You said it, or I noticed it.** What you tell me is remembered straight away. What I only notice waits under **Waiting for your yes**, and I don't use it until you agree. I never stop a chat to ask.
+
+**I pick up where you left off.** I carry open threads, things promised or left unfinished, until they're done. I keep a few lines for each day, so you can ask what we did last Tuesday.
+
+**Across projects.** A project's facts come up when it's open or when you mention it by name. Link projects that affect each other. If something you taught me in one project turns up in another, I'll suggest remembering it everywhere.
+
+**Plain files you own.** It all lives in ~/.ava/memory as text you can open. **Forget everything**, at the bottom of the page, clears it all, including the files from earlier versions. Your existing memories come across automatically the first time you open this version.
+
+**Also:** memory works on a local model with no key; the Command Centre's memory card shows what I know and what's waiting; brand kit proposals are quicker.
+
+The steps I learn for driving your apps in desktop mode are now kept on their own, out of your memory.`,
+    highlights: [
+      'A new Memory page shows everything I know, and you can edit or forget any of it.',
+      'What I only noticed waits for your yes; what you say is kept straight away.',
+      'I carry your open threads and remember each day, across every project.',
+      'Your existing memories come across automatically, and it all stays on your computer.',
+    ],
+  },
+  {
     migration: 527,
     version: '0.113.0',
     platform: 'extension',
