@@ -544,6 +544,7 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Blender Live — Ava in their OPEN Blender (Blender MCP plan, 17 Nov 2026). Blender's own
     // server tools (blender_live_*) are named at connect time: see toolPassesModeGate.
     'design_live_open_model', 'design_live_step', 'design_live_look', 'design_live_save',
+    'design_live_setup_check', 'design_live_setup',
     'memory_save', 'memory_recall', 'memory_update',
     // Journal — Ava reflects on the person + their taste in her own voice
     'journal_write',

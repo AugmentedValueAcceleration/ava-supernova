@@ -94,6 +94,7 @@ import { DesignFontsTool, DesignInstallFontTool } from './design-fonts.js';
 import { DesignRestoreImageTool } from './gimp/build-image.js';
 import { DesignFolderTool } from './design-folder.js';
 import { DesignBuildModelTool, DesignRestoreModelTool, DesignDuplicateModelTool } from './blender/build-model.js';
+import { DesignLiveSetupTool, DesignLiveSetupCheckTool } from './blender/live-setup.js';
 import { DesignProposeModelBriefTool } from './blender/model-brief.js';
 import { DesignBuildImageTool, DesignDuplicateImageTool, DesignProposeImageBriefTool, DesignShowOptionsTool, DesignMarkFinalTool } from './gimp/build-image.js';
 import { DesignApiLookupTool, DesignReadDocsTool } from './design-docs.js';
@@ -489,6 +490,8 @@ export class ToolRegistry {
       new DesignSaveTool(),
       new DesignProposeModelBriefTool(),
       new DesignBuildModelTool(),
+      new DesignLiveSetupCheckTool(),
+      new DesignLiveSetupTool(),
       new DesignDuplicateModelTool(),
       new DesignProposeImageBriefTool(),
       new DesignBuildImageTool(),

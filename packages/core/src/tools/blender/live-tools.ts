@@ -62,7 +62,7 @@ async function runPy(conn: McpConnection, code: string, signal?: AbortSignal): P
 async function readyConnection(): Promise<McpConnection | ToolResult> {
   const live = BlenderLive.current();
   if (!live.connection) {
-    return { success: false, output: `Live isn't connected (${live.lastStatus.message}). Work headless with design_build_model, or ask them to switch Live on.` };
+    return { success: false, output: `MCP isn't connected (${live.lastStatus.message}). Work headless with design_build_model, or ask them to switch the room to MCP.` };
   }
   const s = await live.refresh();
   if (s.state !== 'ready') return { success: false, output: `${s.message} Tell them, and wait — or work headless.` };

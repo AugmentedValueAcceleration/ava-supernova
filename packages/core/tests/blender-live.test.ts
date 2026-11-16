@@ -187,3 +187,34 @@ describe('Live in the room (Phase 3)', () => {
     expect(r.output).toMatch(/open in their Blender through MCP/);
   }, 20_000);
 });
+
+describe('setup (Phase 4)', () => {
+  it('the setup tools are design-room tools; checking runs freely, installing asks', async () => {
+    const { toolPassesModeGate, MODE_ALLOWED_TOOLS } = await import('../src/agent/agent.js') as unknown as {
+      toolPassesModeGate: (n: string, s: Set<string>) => boolean; MODE_ALLOWED_TOOLS: Record<string, Set<string>>;
+    };
+    for (const name of ['design_live_setup_check', 'design_live_setup']) {
+      expect(toolPassesModeGate(name, MODE_ALLOWED_TOOLS.design)).toBe(true);
+      expect(toolPassesModeGate(name, MODE_ALLOWED_TOOLS.work)).toBe(false);
+    }
+    const { DesignLiveSetupCheckTool, DesignLiveSetupTool } = await import('../src/tools/blender/live-setup.js');
+    expect(new DesignLiveSetupCheckTool().requiresConfirmation).toBe(false);
+    expect(new DesignLiveSetupTool().requiresConfirmation).toBe(true);
+  });
+
+  it('unpacking refuses a file that would land outside its folder', async () => {
+    const { unpack } = await import('../src/tools/blender/live-setup.js');
+    const dest = join(dir, 'bundle');
+    await unpack({ 'manifest.json': new TextEncoder().encode('{}'), 'blmcp/__init__.py': new TextEncoder().encode('') }, dest);
+    const { existsSync } = await import('node:fs');
+    expect(existsSync(join(dest, 'blmcp', '__init__.py'))).toBe(true);
+    await expect(unpack({ '../evil.txt': new TextEncoder().encode('x') }, join(dir, 'bundle2'))).rejects.toThrow(/outside its folder/);
+    expect(existsSync(join(dir, 'evil.txt'))).toBe(false);
+  });
+
+  it('an unknown action is refused, not guessed', async () => {
+    const { DesignLiveSetupTool } = await import('../src/tools/blender/live-setup.js');
+    const r = await new DesignLiveSetupTool().execute({ action: 'install_everything' }, { cwd: '.' });
+    expect(r.success).toBe(false);
+  });
+});

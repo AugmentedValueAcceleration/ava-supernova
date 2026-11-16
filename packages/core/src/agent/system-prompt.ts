@@ -598,7 +598,9 @@ export type DesignRoom = 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model'
 /** When Live is on and Blender answered: how the Blender room works now. */
 function blenderLiveNote(): string {
   const s = BlenderLive.current().lastStatus;
-  if (s.state !== 'ready') return s.state === 'off' ? '' : ` **MCP is switched on but not ready** (${s.message}) — work headless until it is, and tell them what's missing.`;
+  if (s.state === 'off') return '';
+  if (s.state === 'needs-uv' || s.state === 'needs-server') return ` **They switched the room to MCP, but it isn't set up on this computer yet.** Offer to set it up for them: design_live_setup_check, then design_live_setup one step at a time (each asks them first). Work headless until it's ready.`;
+  if (s.state !== 'ready') return ` **MCP is switched on but not ready** (${s.message}) — work headless until it is, and tell them what's missing (design_live_setup_check shows it).`;
   return ` **MCP is ON (the room's switch: Headless · MCP): you work in their OPEN Blender (${s.blenderVersion ?? 'Blender'}) through Blender's official MCP add-on, and they watch it happen.** The brief still comes first. Then design_live_open_model, and build in SMALL steps with design_live_step — each step asks them first, and returns a picture of the 3D view: look before you speak. They may change things by hand between your steps: design_live_look or blender_live_get_objects_summary before you assume. design_live_save keeps a step (the .blend, .glb, preview and a history step). Blender's own tools (blender_live_*) read the scene, move the view and search Blender's manual and API. KIT, ava_unwrap() and ava_bake() work in your steps exactly as in Headless: bake right here when the look is right — tell them first, because their Blender is busy while it bakes — then design_live_save.`;
 }
 

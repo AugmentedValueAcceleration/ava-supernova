@@ -151,12 +151,12 @@ export interface LiveModel { slug: string; name: string; dir: string; blend: str
 // ── The connection ──────────────────────────────────────────────────────────
 
 const MESSAGES: Record<LiveState, string> = {
-  'needs-uv': 'Live needs uv (a small tool that runs Blender\'s MCP server). I can install it for you.',
-  'needs-server': 'Live needs Blender\'s official MCP server. I can fetch it from Blender\'s release page for you.',
-  off: 'Live is off — I work headless.',
+  'needs-uv': 'MCP needs uv (a small tool that runs Blender\'s MCP server). I can install it for you.',
+  'needs-server': 'MCP needs Blender\'s official MCP server. I can fetch it from Blender\'s release page for you.',
+  off: 'MCP is off — Ava works headless.',
   'blender-closed': 'Blender isn\'t open with the MCP add-on running. Open Blender 5.1 or newer and start the add-on.',
   ready: 'Connected to your Blender.',
-  error: 'Live hit a problem connecting.',
+  error: 'MCP hit a problem connecting to Blender.',
 };
 
 type Listener = (s: LiveStatus) => void;
@@ -227,7 +227,7 @@ export class BlenderLive {
             }, { timeoutMs: 120_000 }); // the first start sets up Python and the server's libraries
         this.conn.onClose(() => {
           this.conn = null;
-          this.set({ state: 'error', serverVersion: pre.server.version, message: 'Blender\'s MCP server stopped. Switch Live off and on to restart it.' });
+          this.set({ state: 'error', serverVersion: pre.server.version, message: 'Blender\'s MCP server stopped. Switch the room to Headless and back to MCP to restart it.' });
         });
       } catch (err) {
         return this.set({ state: 'error', message: `${MESSAGES.error} ${err instanceof Error ? err.message : String(err)}` });
@@ -270,7 +270,7 @@ export class BlenderLive {
       const version = /"version"\s*:\s*"([^"]+)"/.exec(r.text)?.[1] ?? /\b(\d+\.\d+(?:\.\d+)?)\b/.exec(r.text)?.[1];
       if (r.isError || !version) return this.set({ state: 'blender-closed', serverVersion, message: MESSAGES['blender-closed'] });
       if (!versionAtLeast(version, BLENDER_LIVE_MIN)) {
-        return this.set({ state: 'error', serverVersion, blenderVersion: version, message: `This is Blender ${version}; Live needs ${BLENDER_LIVE_MIN} or newer. Headless works with any version.` });
+        return this.set({ state: 'error', serverVersion, blenderVersion: version, message: `This is Blender ${version}; MCP needs ${BLENDER_LIVE_MIN} or newer. Headless works with any version.` });
       }
       return this.set({ state: 'ready', serverVersion, blenderVersion: version, message: `Connected to Blender ${version} · ready` });
     } catch {

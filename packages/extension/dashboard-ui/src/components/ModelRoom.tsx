@@ -160,6 +160,12 @@ export function ModelRoom({ tool = 'blender', busy = false, startFresh = false, 
             <p className="mt-1 flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)]" role="status" aria-live="polite">
               <span className={`inline-block h-2 w-2 rounded-full ${live.busy ? 'bg-amber-400 animate-pulse' : live.state === 'ready' ? 'bg-emerald-400' : live.state === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
               {blenderLiveLine(live)}
+              {(live.state === 'needs-uv' || live.state === 'needs-server') && !live.busy && (
+                <button onClick={() => window.dispatchEvent(new CustomEvent('ava-design-say', { detail: { text: tt('dash.studio.live.setup_ask', 'Please set up MCP for Blender for me.') } }))} disabled={busy}
+                  className="ml-1 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition disabled:opacity-50">
+                  {tt('dash.studio.live.setup_button', 'Set up')}
+                </button>
+              )}
             </p>
           )}
         </div>
