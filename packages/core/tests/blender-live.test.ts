@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { McpConnection } from '../src/mcp/connection.js';
 import { BlenderLive, installedServer, versionAtLeast } from '../src/tools/blender/live.js';
-import { blenderLiveTools, insideModelFolder, DesignLiveStepTool, DesignLiveOpenModelTool } from '../src/tools/blender/live-tools.js';
+import { blenderLiveTools, DesignLiveStepTool, DesignLiveOpenModelTool } from '../src/tools/blender/live-tools.js';
 
 const FAKE = join(__dirname, 'fixtures', 'fake-blender-mcp.mjs');
 let dir: string;
@@ -86,26 +86,24 @@ describe('the connection', () => {
 });
 
 describe('what Ava gets while Live is on', () => {
-  it('our three tools plus Blender\'s, without the background ones or raw code-running', async () => {
+  it('our four tools plus Blender\'s — no background ones, raw code, image screenshots or render-to-path', async () => {
     await useFake().connect();
     const names = blenderLiveTools().map((t) => t.name);
-    expect(names.slice(0, 3)).toEqual(['design_live_open_model', 'design_live_step', 'design_live_save']);
+    expect(names.slice(0, 4)).toEqual(['design_live_open_model', 'design_live_step', 'design_live_look', 'design_live_save']);
     expect(names).toContain('blender_live_get_objects_summary');
-    expect(names).toContain('blender_live_get_screenshot_of_area_as_image');
     expect(names.some((n) => n.endsWith('_for_cli'))).toBe(false);
     expect(names).not.toContain('blender_live_execute_blender_code');
+    expect(names).not.toContain('blender_live_get_screenshot_of_area_as_image');
+    expect(names.some((n) => n.startsWith('blender_live_render_'))).toBe(false);
   }, 20_000);
 
-  it('reading is free; rendering asks and stays inside the model folder', async () => {
+  it('reading and moving the view are free; a step asks', async () => {
     await useFake().connect();
     const byName = Object.fromEntries(blenderLiveTools().map((t) => [t.name, t]));
     expect(byName.blender_live_get_objects_summary.requiresConfirmation).toBe(false);
+    expect(byName.blender_live_jump_to_view3d_object_by_name.requiresConfirmation).toBe(false);
+    expect(byName.design_live_look.requiresConfirmation).toBe(false);
     expect(byName.design_live_step.requiresConfirmation).toBe(true);
-    expect(byName.blender_live_render_thumbnail_to_path.riskLevel).toBe('write');
-    const r = await byName.blender_live_render_thumbnail_to_path.execute({ output_path: 'C:/Windows/evil.png' }, { cwd: '.' });
-    expect(r.success).toBe(false);
-    expect(r.output).toMatch(/inside the model's own folder/);
-    expect(insideModelFolder('C:/anything.png')).toBe(false);
   }, 20_000);
 });
 

@@ -68,6 +68,17 @@ export async function findUv(): Promise<string | null> {
   for (const dir of [join(home, '.local', 'bin'), join(home, '.cargo', 'bin')]) {
     if (home && existsSync(join(dir, exe))) return join(dir, exe);
   }
+  // WinGet (uv's documented Windows route): a running app doesn't see the PATH
+  // change until it restarts, so look where WinGet puts it.
+  const local = process.env.LOCALAPPDATA;
+  if (process.platform === 'win32' && local) {
+    const links = join(local, 'Microsoft', 'WinGet', 'Links', exe);
+    if (existsSync(links)) return links;
+    const pkgs = join(local, 'Microsoft', 'WinGet', 'Packages');
+    for (const entry of await readdir(pkgs, { withFileTypes: true }).catch(() => [])) {
+      if (entry.isDirectory() && entry.name.startsWith('astral-sh.uv_') && existsSync(join(pkgs, entry.name, exe))) return join(pkgs, entry.name, exe);
+    }
+  }
   return null;
 }
 

@@ -22,8 +22,8 @@
  */
 
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join, resolve, sep } from 'node:path';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import type { Tool, ToolExecutionContext, ToolResult, ToolRiskLevel } from '../types.js';
 import type { FunctionSchema } from '../../providers/types.js';
 import { mcpToolsForAva } from '../../mcp/tools.js';
@@ -76,6 +76,57 @@ async function agreedBrief(name: string, slug: string): Promise<ToolResult | nul
 
 function schema(name: string, description: string, properties: Record<string, unknown>, required: string[]): FunctionSchema {
   return { name, description, parameters: { type: 'object', properties, required } };
+}
+
+// ── Looking ──────────────────────────────────────────────────────────────────
+// Tested on his Blender 5.2.2 (17 Nov): the server's screenshot tools came back
+// pure black (window and area), while an OFF-SCREEN render of the 3D view gave
+// exactly what he sees, in half a second. So Ava looks with that, falling back
+// to Blender's thumbnail render (the camera view), then a screenshot.
+
+const LOOK_PY = (out: string) => `import bpy, os
+out = ${py(out)}
+os.makedirs(os.path.dirname(out), exist_ok=True)
+win = area = None
+for w in bpy.context.window_manager.windows:
+    for a in w.screen.areas:
+        if a.type == "VIEW_3D":
+            win, area = w, a
+            break
+    if area:
+        break
+if area is None:
+    result = {"ok": False, "why": "no 3D viewport is open"}
+else:
+    region = next(r for r in area.regions if r.type == "WINDOW")
+    with bpy.context.temp_override(window=win, area=area, region=region):
+        bpy.ops.render.opengl(view_context=True)
+    bpy.data.images["Render Result"].save_render(out)
+    result = {"ok": os.path.exists(out)}
+`;
+
+/** Copy the file a render-to-path tool reports (the add-on writes in its own temp folder). */
+async function copyReported(text: string, to: string): Promise<boolean> {
+  try {
+    const body = JSON.parse(text) as { result?: { filepath?: string; path?: string }; filepath?: string };
+    const from = body.result?.filepath ?? body.result?.path ?? body.filepath;
+    if (!from || !existsSync(from)) return false;
+    await copyFile(from, to);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A picture of the model as it is now, as base64 PNG — or null. */
+export async function liveLook(conn: McpConnection, modelDir: string): Promise<string | null> {
+  const out = join(modelDir, '.live', 'view.png');
+  const view = await runPy(conn, LOOK_PY(out)).catch(() => null);
+  if (view?.ok && view.result?.ok && existsSync(out)) return (await readFile(out)).toString('base64');
+  const thumb = await conn.call('render_thumbnail_to_path', { output_path: out }, { timeoutMs: 120_000 }).catch(() => null);
+  if (thumb && !thumb.isError && (await copyReported(thumb.text, out))) return (await readFile(out)).toString('base64');
+  const shot = await conn.call('get_screenshot_of_area_as_image', { area_ui_type: 'VIEW_3D' }, { timeoutMs: 30_000 }).catch(() => null);
+  return shot?.images[0]?.data ?? null;
 }
 
 // ── design_live_open_model ───────────────────────────────────────────────────
@@ -186,8 +237,8 @@ if os.path.normcase(os.path.abspath(bpy.data.filepath or "")) != os.path.normcas
     raise RuntimeError("The file open in Blender isn't the model any more (they may have opened another). Open it again with design_live_open_model.")
 `;
     const run = await runPy(conn, `${prelude}\n${script}`, context.signal);
-    const look = await conn.call('get_screenshot_of_area_as_image', { area_ui_type: 'VIEW_3D' }, { timeoutMs: 30_000 }).catch(() => null);
-    const image = look?.images[0];
+    const picture = await liveLook(conn, model.dir);
+    const image = picture ? { data: picture, mimeType: 'image/png' } : undefined;
     const said = [run.stdout && `What the script printed:\n${run.stdout.slice(-4000)}`].filter(Boolean).join('\n');
     if (!run.ok) {
       return {
@@ -200,7 +251,7 @@ if os.path.normcase(os.path.abspath(bpy.data.filepath or "")) != os.path.normcas
     return {
       success: true,
       output: `Step done in their Blender${typeof args.description === 'string' ? ` (${args.description})` : ''}.${result}${said ? `\n${said}` : ''}\n` +
-        (image ? 'Here is the 3D viewport now — check it against the brief before you say anything about it.' : 'The viewport picture could not be taken; use blender_live_get_screenshot_of_window_as_image to look.'),
+        (image ? 'Here is the 3D view now — check it against the brief before you say anything about it.' : 'No picture could be taken of the 3D view (is a 3D viewport open?). Read the scene with blender_live_get_objects_summary instead.'),
       metadata: image ? { base64_image: image.data, mime_type: image.mimeType } : undefined,
     };
   }
@@ -255,8 +306,15 @@ size = [round(hi[i] - lo[i], 3) for i in range(3)] if tris else [0, 0, 0]
 result = {"triangles": tris, "size_m": size, "version": bpy.app.version_string}
 `, context.signal);
     if (!saved.ok) return { success: false, output: `Saving didn't finish: ${saved.message.slice(-3000)}` };
-    // The preview, with Blender's own thumbnail render (inside the model folder only).
-    await conn.call('render_thumbnail_to_path', { output_path: join(model.dir, 'preview.png') }, { timeoutMs: 120_000 }).catch(() => null);
+    // The preview: Blender's own thumbnail render (the camera view). The add-on
+    // writes it in its own temp folder and reports the path, so copy it in. No
+    // camera, or no luck: the 3D view as it is.
+    const previewPath = join(model.dir, 'preview.png');
+    const thumb = await conn.call('render_thumbnail_to_path', { output_path: previewPath }, { timeoutMs: 120_000 }).catch(() => null);
+    if (!(thumb && !thumb.isError && (await copyReported(thumb.text, previewPath)))) {
+      const view = await liveLook(conn, model.dir);
+      if (view) await writeFile(previewPath, Buffer.from(view, 'base64'));
+    }
 
     const files = [`${model.slug}.blend`, `${model.slug}.glb`, ...(args.fbx === true ? [`${model.slug}.fbx`] : []), 'preview.png']
       .filter((f) => existsSync(join(model.dir, f)));
@@ -286,30 +344,42 @@ result = {"triangles": tris, "size_m": size, "version": bpy.app.version_string}
   }
 }
 
-// ── Blender's own tools, as Ava's ────────────────────────────────────────────
+// ── design_live_look ─────────────────────────────────────────────────────────
 
-/** Inside the model folder? (For the server's render-to-path tools.) */
-export function insideModelFolder(path: string): boolean {
-  const model = liveModel;
-  if (!model || !path) return false;
-  const p = resolve(path).toLowerCase();
-  const d = resolve(model.dir).toLowerCase();
-  return p.startsWith(d + sep.toLowerCase()) || p.startsWith(d + '/');
+export class DesignLiveLookTool implements Tool {
+  readonly name = 'design_live_look';
+  readonly description = 'See the 3D view of their open Blender right now.';
+  readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly requiresConfirmation = false;
+  readonly schema = schema(this.name,
+    'Get a picture of the 3D view in THEIR open Blender, as they see it — after they change something by hand, or before you decide the next step.',
+    {}, []);
+
+  async execute(): Promise<ToolResult> {
+    const conn = await readyConnection();
+    if (!('call' in conn)) return conn;
+    const dir = liveModel?.dir ?? join(modelsDir(), '.live');
+    const picture = await liveLook(conn, dir);
+    if (!picture) return { success: false, output: 'No picture could be taken of the 3D view (is a 3D viewport open in Blender?).' };
+    return { success: true, output: 'Here is their 3D view now.', metadata: { base64_image: picture, mime_type: 'image/png' } };
+  }
 }
 
-/** Blender's server tools for Live, without the background ones and without raw code-running. */
+// ── Blender's own tools, as Ava's ────────────────────────────────────────────
+
+/**
+ * Blender's server tools for Live, minus: the background "_for_cli" ones
+ * (that's Headless), raw code-running (design_live_step), and the image
+ * screenshots and render-to-path tools (black / written to the add-on's temp
+ * folder on his machine — design_live_look and design_live_save cover them).
+ */
 export function blenderLiveServerTools(conn: McpConnection): Tool[] {
-  const keep = conn.tools().map((t) => t.name).filter((n) => !n.endsWith('_for_cli') && n !== 'execute_blender_code');
+  const keep = conn.tools().map((t) => t.name).filter((n) =>
+    !n.endsWith('_for_cli') && n !== 'execute_blender_code' && !n.startsWith('render_') && !/^get_screenshot_.*_as_image$/.test(n));
   return mcpToolsForAva(conn, {
     only: keep,
-    // The server marks render-to-path read-only, but it writes a file.
-    risk: (t) => (t.name.startsWith('render_') ? 'write' : undefined),
-    check: (t, a) => {
-      if (t.name.startsWith('render_') && !insideModelFolder(String(a.output_path ?? ''))) {
-        return 'Refused: renders go inside the model\'s own folder (open the model with design_live_open_model, then use a path inside it).';
-      }
-      return undefined;
-    },
+    // Moving the view or switching a tab changes nothing in their work.
+    risk: (t) => (t.name.startsWith('jump_to_') ? 'safe' : undefined),
   });
 }
 
@@ -317,5 +387,5 @@ export function blenderLiveServerTools(conn: McpConnection): Tool[] {
 export function blenderLiveTools(): Tool[] {
   const conn = BlenderLive.current().connection;
   if (!conn) return [];
-  return [new DesignLiveOpenModelTool(), new DesignLiveStepTool(), new DesignLiveSaveTool(), ...blenderLiveServerTools(conn)];
+  return [new DesignLiveOpenModelTool(), new DesignLiveStepTool(), new DesignLiveLookTool(), new DesignLiveSaveTool(), ...blenderLiveServerTools(conn)];
 }
