@@ -86,12 +86,12 @@ async function folderBytes(dir: string): Promise<number> {
   return total;
 }
 
-interface ModelEntry {
+export interface ModelEntry {
   slug: string; name: string; description?: string; files: string[];
   blenderVersion: string; triangles?: number; sizeM?: number[];
 }
 
-async function upsertLibraryEntry(m: ModelEntry): Promise<void> {
+export async function upsertLibraryEntry(m: ModelEntry): Promise<void> {
   let items: Array<Record<string, unknown>> = [];
   try {
     const parsed = JSON.parse(await readFile(metadataFile(), 'utf-8'));
