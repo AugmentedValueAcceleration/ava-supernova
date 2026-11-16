@@ -67,8 +67,8 @@ export function blenderLiveLine(s: BlenderLive): string {
     case 'ready': return tt('dash.studio.live.ready', 'Connected to Blender {version} · ready').replace('{version}', s.blenderVersion ?? '');
     case 'blender-closed': return tt('dash.studio.live.closed', 'Blender isn’t open with the MCP add-on running. Open Blender 5.1 or newer.');
     case 'needs-uv':
-    case 'needs-server': return tt('dash.studio.live.setup', 'Live needs a one-time setup. Ask Ava to set it up for you.');
-    case 'error': return s.message || tt('dash.studio.live.error', 'Live couldn’t connect to Blender.');
+    case 'needs-server': return tt('dash.studio.live.setup', 'MCP needs a one-time setup. Ask Ava to set it up for you.');
+    case 'error': return s.message || tt('dash.studio.live.error', 'MCP couldn’t connect to Blender.');
     default: return tt('dash.studio.live.off', 'Ava builds headless, with no Blender window.');
   }
 }

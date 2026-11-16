@@ -5097,6 +5097,22 @@ export const enStrings = {
   'memory.v4.would_replace': 'Would replace:',
   'memory.v4.yes': 'Yes, remember',
   'memory.v4.yes_intro': 'Things Ava noticed but you never said. They are not used until you say yes. She never asks you about these in a chat.',
+  // ── Added 17 Nov 2026 from tt() fallbacks: the Blender room's Headless · MCP switch, status and setup ──
+  'dash.studio.asset.model_both': 'Blender (Headless/MCP)',
+  'dash.studio.asset.model_mcp': 'Blender (MCP)',
+  'dash.studio.live.closed': 'Blender isn’t open with the MCP add-on running. Open Blender 5.1 or newer.',
+  'dash.studio.live.connecting': 'Connecting to Blender…',
+  'dash.studio.live.error': 'MCP couldn’t connect to Blender.',
+  'dash.studio.live.headless': 'Headless',
+  'dash.studio.live.headless_tip': 'Ava builds in Blender with no window',
+  'dash.studio.live.how': 'How Ava works in Blender',
+  'dash.studio.live.mcp': 'MCP',
+  'dash.studio.live.mcp_tip': 'Ava works in your open Blender, through Blender’s official MCP add-on, while you watch',
+  'dash.studio.live.off': 'Ava builds headless, with no Blender window.',
+  'dash.studio.live.ready': 'Connected to Blender {version} · ready',
+  'dash.studio.live.setup': 'MCP needs a one-time setup. Ask Ava to set it up for you.',
+  'dash.studio.live.setup_ask': 'Please set up MCP for Blender for me.',
+  'dash.studio.live.setup_button': 'Set up',
 };
 
 export type StringKey = keyof typeof enStrings;

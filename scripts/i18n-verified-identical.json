@@ -7,7 +7,8 @@
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.studio.live.mcp": "MCP"
       },
       "de": {
         "learning.room.tab.ava": "Ava",
@@ -54,7 +55,11 @@
         "health.wizard.training": "Training",
         "health.wizard.type.fitness": "Fitness",
         "health.foryou.training": "Training",
-        "health.phone.training": "Training"
+        "health.phone.training": "Training",
+        "dash.studio.asset.model_both": "Blender (Headless/MCP)",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.headless": "Headless",
+        "dash.studio.live.mcp": "MCP"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -82,7 +87,9 @@
         "library.plan.tile": "Plan",
         "health.wizard.sum.plan": "Plan",
         "health.results.mins": "{n} min",
-        "memory.v4.no": "No"
+        "memory.v4.no": "No",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "fr": {
         "health.plans.n_cook": "{n} min",
@@ -135,14 +142,18 @@
         "health.profile.never.allergies": "Allergies",
         "health.results.mins": "{n} min",
         "viewer.go_to_page": "Page {n}",
-        "viewer.pages": "{n} pages"
+        "viewer.pages": "{n} pages",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
         "ide.papers.primer_url": "URL: {url}",
-        "health.browse.sort.name": "A–Z"
+        "health.browse.sort.name": "A–Z",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "id": {
         "learning.room.tab.ava": "Ava",
@@ -168,7 +179,9 @@
         "dash.studio.model.pick": "Model",
         "health.browse.sort.name": "A–Z",
         "dash.studio.finals": "Final",
-        "memory.v4.folder": "Folder: {path}"
+        "memory.v4.folder": "Folder: {path}",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "it": {
         "health.plans.n_cook": "{n} min",
@@ -203,7 +216,9 @@
         "dash.studio.voice.volume": "Volume",
         "health.browse.sort.name": "A–Z",
         "health.results.mins": "{n} min",
-        "memory.v4.no": "No"
+        "memory.v4.no": "No",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "ja": {
         "learning.room.tab.ava": "Ava",
@@ -211,13 +226,15 @@
         "dash.perm.cat.git": "Git",
         "ide.papers.primer_url": "URL: {url}",
         "ext.studio.kit_font_ui": "UI",
-        "health.browse.sort.name": "A–Z"
+        "health.browse.sort.name": "A–Z",
+        "dash.studio.live.mcp": "MCP"
       },
       "ko": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.studio.live.mcp": "MCP"
       },
       "nl": {
         "health.plans.n_cook": "{n} min",
@@ -273,7 +290,11 @@
         "health.wizard.training": "Training",
         "health.wizard.type.fitness": "Fitness",
         "health.phone.training": "Training",
-        "health.results.mins": "{n} min"
+        "health.results.mins": "{n} min",
+        "dash.studio.asset.model_both": "Blender (Headless/MCP)",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.headless": "Headless",
+        "dash.studio.live.mcp": "MCP"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -291,7 +312,9 @@
         "health.browse.sort.name": "A–Z",
         "library.plan.tile": "Plan",
         "health.wizard.sum.plan": "Plan",
-        "health.results.mins": "{n} min"
+        "health.results.mins": "{n} min",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "pt": {
         "health.plans.n_cook": "{n} min",
@@ -319,20 +342,25 @@
         "dash.studio.voice.vol_normal": "Normal",
         "dash.studio.voice.volume": "Volume",
         "health.browse.sort.name": "A–Z",
-        "health.results.mins": "{n} min"
+        "health.results.mins": "{n} min",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "ru": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.studio.live.mcp": "MCP"
       },
       "th": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
         "ide.papers.primer_url": "URL: {url}",
-        "health.browse.sort.name": "A–Z"
+        "health.browse.sort.name": "A–Z",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "tr": {
         "learning.room.tab.ava": "Ava",
@@ -353,31 +381,41 @@
         "dash.studio.voice.vol_normal": "Normal",
         "dash.studio.model.pick": "Model",
         "ext.studio.kit_logo": "Logo",
-        "health.wizard.sum.plan": "Plan"
+        "health.wizard.sum.plan": "Plan",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "uk": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
-        "ide.papers.primer_url": "URL: {url}"
+        "ide.papers.primer_url": "URL: {url}",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "vi": {
         "ide.papers.primer_url": "URL: {url}",
-        "health.browse.sort.name": "A–Z"
+        "health.browse.sort.name": "A–Z",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "zh-CN": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
         "ide.papers.primer_url": "URL: {url}",
-        "health.browse.sort.name": "A–Z"
+        "health.browse.sort.name": "A–Z",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       },
       "zh-TW": {
         "learning.room.tab.ava": "Ava",
         "dash.audit.cat_git": "Git",
         "dash.perm.cat.git": "Git",
         "ide.papers.primer_url": "URL: {url}",
-        "health.browse.sort.name": "A–Z"
+        "health.browse.sort.name": "A–Z",
+        "dash.studio.asset.model_mcp": "Blender (MCP)",
+        "dash.studio.live.mcp": "MCP"
       }
     },
     "companion": {
@@ -452,6 +490,7 @@
       "verdict": "correct",
       "signedOffBy": "operator (overriding the automated reviewer)",
       "why": "Suggested \"Uruchom\" means launch/run a program. This heads the date options for starting a training plan; Polish UI uses \"Start\" there. Note: the same word was signed off as CORRECT for core/pl in the same run — the reviewer is not deterministic across requests."
-    }
+    },
+    "2026-11-17: Blender room MCP strings reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"MCP\" is a protocol name, identical everywhere; \"Blender (MCP)\" keeps the product name in Latin-script languages; German and Dutch use the English \"Headless\" (as their existing \"Blender (Headless)\" label does)."
   ]
 }

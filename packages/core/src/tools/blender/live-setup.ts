@@ -83,7 +83,13 @@ export async function unpack(files: Record<string, Uint8Array>, dest: string): P
 
 // ── What's on the machine ───────────────────────────────────────────────────
 
-export interface BlenderInstallInfo { path: string; version: string; addon: string | null; liveOk: boolean }
+export interface BlenderInstallInfo {
+  path: string; version: string; addon: string | null; liveOk: boolean;
+  /** The Blender Ava uses (the one chosen in Settings, or else the one she found). */
+  inUse: boolean;
+  /** Chosen by them in Settings, General, "Blender (3D models)". */
+  chosen: boolean;
+}
 
 /** Blender's own config folder for a version (where its extensions are). */
 function blenderConfigDir(version: string): string | null {
@@ -128,9 +134,11 @@ export async function blenderInstalls(): Promise<BlenderInstallInfo[]> {
   for (const path of paths) {
     const version = (await readBlenderVersion(path).catch(() => null)) ?? null;
     if (!version) continue;
-    out.push({ path, version, addon: await addonVersion(version), liveOk: versionAtLeast(version, BLENDER_LIVE_MIN) });
+    const inUse = !!found?.path && resolve(found.path).toLowerCase() === resolve(path).toLowerCase();
+    out.push({ path, version, addon: await addonVersion(version), liveOk: versionAtLeast(version, BLENDER_LIVE_MIN), inUse, chosen: inUse && found?.source === 'settings' });
   }
-  return out.sort((a, b) => (versionAtLeast(a.version, b.version) ? -1 : 1));
+  // The one they use first (their choice in Settings wins), then newest.
+  return out.sort((a, b) => (a.inUse !== b.inUse ? (a.inUse ? -1 : 1) : versionAtLeast(a.version, b.version) ? -1 : 1));
 }
 
 async function blenderRunning(): Promise<boolean> {
@@ -204,7 +212,7 @@ async function check(): Promise<string> {
   const lines = [
     `1. uv: ${uv ? `installed (${uv})` : 'NOT installed — install_uv'}`,
     `2. Blender's MCP server: ${server ? `installed, version ${server.version}${rel && !versionAtLeast(server.version, rel.version) ? ` (a newer stable, ${rel.version}, is out — install_server updates it)` : ''}` : `NOT installed — install_server (latest stable: ${rel?.version ?? 'unknown'})`}`,
-    `3. The add-on: ${installs.length ? installs.map((b) => `Blender ${b.version} (${b.path}): ${
+    `3. The add-on: ${installs.length ? installs.map((b) => `Blender ${b.version}${b.chosen ? ' — the one they chose in Settings' : b.inUse ? ' — the one Ava uses' : ''} (${b.path}): ${
       !b.liveOk ? `too old for MCP (needs ${BLENDER_LIVE_MIN}+)`
         : !b.addon ? 'add-on NOT installed — install_addon with this blender_path'
           : rel && b.addon !== '?' && !versionAtLeast(b.addon, rel.version) ? `add-on ${b.addon} installed, older than the latest stable ${rel.version} — install_addon with this blender_path updates it`
@@ -253,7 +261,7 @@ export class DesignLiveSetupTool implements Tool {
       type: 'object',
       properties: {
         action: { type: 'string', enum: ['install_uv', 'install_server', 'install_addon'], description: 'What to install.' },
-        blender_path: { type: 'string', description: 'install_addon only: which Blender (from check). Default: the newest one that can use MCP.' },
+        blender_path: { type: 'string', description: 'install_addon only: which Blender (its path, from design_live_setup_check). Default: the one they use (their choice in Settings), else the newest that can use MCP.' },
       },
       required: ['action'],
     },

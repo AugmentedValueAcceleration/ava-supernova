@@ -45,7 +45,7 @@ export const FEATURE_PAGES: DocPage[] = [
         'Open Canvas — Video (short clips, landscape, portrait or square), Voiceover (natural speech from a script, the same voice in any language) and Image (free-form pictures and scenes).',
         'Brand & Web — Icon (a real line-icon shape restyled in your colours, cut to a transparent PNG) and Logo (true vectors drawn on your computer: a full set from one brief, with several directions to choose from).',
         '2D — GIMP (Headless): icon sets, game UI, sprites, textures and web graphics, made in GIMP on your computer, with layered files you can open yourself.',
-        '3D — Blender (Headless): game-ready 3D models built in Blender on your computer, with baked textures and a 3D view you can turn and zoom.',
+        '3D — Blender (Headless/MCP): game-ready 3D models built in Blender on your computer, with baked textures and a 3D view you can turn and zoom. Headless builds with no window; MCP has Ava work in your own open Blender while you watch.',
       ]},
       { type: 'heading', level: 3, text: 'The GIMP and Blender rooms' },
       { type: 'paragraph', text: 'These need GIMP 3 or Blender installed (both free). Ava finds them on her own; if yours is somewhere unusual, set its path in Settings, General. In these rooms the brief comes first: Ava researches and puts a brief on the stage, and nothing is made until you agree it — only you can. She then works in steps, looks at each result herself, and stops to check in after three good steps since you last spoke (up to ten if you tell her to keep going). Every step is saved in the History strip, and "Go back to this" restores any of them. A run that fails saves nothing.' },
@@ -55,6 +55,7 @@ export const FEATURE_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'What powers it' },
       { type: 'paragraph', text: 'Images and icons use Qwen-Image, video uses Wan, and voiceovers use Qwen3-TTS, all on your own Qwen key. Logos, background removal and vectorising run on your own machine, as do GIMP and Blender. Anything you make lands in your Library, filed under the room you made it in.' },
       { type: 'paragraph', text: 'Creative Studio is not a paid add-on — it is part of Ava, free for everyone. What you pay for is your own provider usage: the chat with Ava, and images, voiceovers and video on your Qwen key, at Alibaba’s rates.' },
+      { type: 'paragraph', text: 'The Blender room has a switch at the top: Headless or MCP. MCP has Ava work in your own open Blender, through Blender’s official MCP add-on, so you watch every step and can take the mouse at any time. It needs Blender 5.1 or newer. The first time, click Set up: Ava installs what it needs (uv, Blender’s MCP server and its add-on), each only after you say yes, from the official sources. A line under the room’s name shows whether Blender is connected and ready. The switch is shared by the extension and the IDE, and work is saved in the same model folder either way.' },
     ],
   },
   {

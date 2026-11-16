@@ -72,6 +72,56 @@ const DO_NOT_TRANSLATE = [
 // Add a new entry here for each future release, then re-run the script.
 const RELEASES = [
   {
+    migration: 531,
+    version: '0.115.0',
+    platform: 'extension',
+    toolCount: 90,
+    publishedAt: '2026-11-17 00:00:00+00',
+    title: `I can now work in your open Blender while you watch`,
+    body: `The Blender room has a new way to work: **MCP**.
+
+**Headless or MCP.** There's a switch at the top of the room. Headless works as before: I build in Blender with no window. MCP has me working in your own open Blender, through Blender's official MCP add-on, so you watch every step happen and can take the mouse whenever you like.
+
+**I set it up for you.** Click **Set up** and I install what it needs (uv, Blender's MCP server and its add-on), each only after you say yes, and only from the official sources. MCP needs Blender 5.1 or newer; Headless keeps working with any version.
+
+**Same brief, same files.** The brief still comes first. Every step asks you before it runs, I look at the 3D view after each one, and I can bake textures right there in your Blender. Saving keeps the .blend, the .glb and a step in History, exactly as Headless does.
+
+**Always know where it stands.** The line under the room's name shows "Connected to Blender 5.2 · ready", or what's missing, and follows Blender as you open and close it.
+
+**Also:** the tab is now Blender (Headless/MCP), and the switch is shared by the extension and the IDE.`,
+    highlights: [
+      "Work Headless, or in your own open Blender through Blender's official MCP add-on.",
+      'I set MCP up for you, each step on your yes, from official sources only.',
+      'Same brief, same files, same History, and baking works either way.',
+      'A status line shows whether Blender is connected and ready.',
+    ],
+  },
+  {
+    migration: 532,
+    version: '0.60.0',
+    platform: 'ide',
+    toolCount: 103,
+    publishedAt: '2026-11-17 00:00:00+00',
+    title: `I can now work in your open Blender while you watch`,
+    body: `The Blender room has a new way to work: **MCP**.
+
+**Headless or MCP.** There's a switch at the top of the room. Headless works as before: I build in Blender with no window. MCP has me working in your own open Blender, through Blender's official MCP add-on, so you watch every step happen and can take the mouse whenever you like.
+
+**I set it up for you.** Click **Set up** and I install what it needs (uv, Blender's MCP server and its add-on), each only after you say yes, and only from the official sources. MCP needs Blender 5.1 or newer; Headless keeps working with any version.
+
+**Same brief, same files.** The brief still comes first. Every step asks you before it runs, I look at the 3D view after each one, and I can bake textures right there in your Blender. Saving keeps the .blend, the .glb and a step in History, exactly as Headless does.
+
+**Always know where it stands.** The line under the room's name shows "Connected to Blender 5.2 · ready", or what's missing, and follows Blender as you open and close it.
+
+**Also:** the tab is now Blender (Headless/MCP), and the switch is shared by the extension and the IDE.`,
+    highlights: [
+      "Work Headless, or in your own open Blender through Blender's official MCP add-on.",
+      'I set MCP up for you, each step on your yes, from official sources only.',
+      'Same brief, same files, same History, and baking works either way.',
+      'A status line shows whether Blender is connected and ready.',
+    ],
+  },
+  {
     migration: 529,
     version: '0.114.0',
     platform: 'extension',
