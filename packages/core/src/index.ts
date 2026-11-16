@@ -664,6 +664,6 @@ export { imagesDir } from './tools/blender/paths.js';
 export { McpConnection, isLocalUrl, mcpToolsForAva, avaToolName } from './mcp/index.js';
 export type { McpServerConfig, McpTransportConfig, McpToolInfo, McpCallResult, McpToolOptions } from './mcp/index.js';
 // Blender Live: Ava in the person's open Blender through Blender Lab's official MCP server.
-export { BlenderLive, findUv, installedServer, addonListening, blenderMcpRoot, versionAtLeast, BLENDER_LIVE_MIN, BLENDER_MCP_PORT } from './tools/blender/live.js';
+export { BlenderLive, findUv, installedServer, addonListening, blenderMcpRoot, versionAtLeast, blenderLiveWanted, setBlenderLiveWanted, BLENDER_LIVE_MIN, BLENDER_MCP_PORT } from './tools/blender/live.js';
 export type { LiveState, LiveStatus } from './tools/blender/live.js';
-export { blenderLiveTools, liveModelNow } from './tools/blender/live-tools.js';
+export { blenderLiveTools, liveModelNow, syncBlenderLiveTools, isBlenderLiveTool } from './tools/blender/live-tools.js';

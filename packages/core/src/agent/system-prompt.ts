@@ -4,6 +4,7 @@ import type { PermissionMode } from '../tools/types.js';
 import { getLanguageName } from '../i18n/index.js';
 import type { Personality } from '../config/personality.js';
 import { buildPersonalityPrefix, DEFAULT_PERSONALITY } from '../config/personality.js';
+import { BlenderLive } from '../tools/blender/live.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -594,6 +595,13 @@ ${trainingSummary}`;
  */
 export type DesignRoom = 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit';
 
+/** When Live is on and Blender answered: how the Blender room works now. */
+function blenderLiveNote(): string {
+  const s = BlenderLive.current().lastStatus;
+  if (s.state !== 'ready') return s.state === 'off' ? '' : ` **MCP is switched on but not ready** (${s.message}) — work headless until it is, and tell them what's missing.`;
+  return ` **MCP is ON (the room's switch: Headless · MCP): you work in their OPEN Blender (${s.blenderVersion ?? 'Blender'}) through Blender's official MCP add-on, and they watch it happen.** The brief still comes first. Then design_live_open_model, and build in SMALL steps with design_live_step — each step asks them first, and returns a picture of the 3D view: look before you speak. They may change things by hand between your steps: design_live_look or blender_live_get_objects_summary before you assume. design_live_save keeps a step (the .blend, .glb, preview and a history step). Blender's own tools (blender_live_*) read the scene, move the view and search Blender's manual and API. The bake helpers (ava_unwrap / ava_bake) are Headless-only: when the look is right, save, then ask them to switch to Headless to bake.`;
+}
+
 export function getDesignStudioPrefix(userText: string, brandKitSummary?: string, room?: DesignRoom, panel?: string, projectContext?: string | null): string {
   // The dials the operator set, handed to Ava so she designs FROM them. Without
   // this she was blind to the panel and her tool arguments always won — which is
@@ -690,7 +698,7 @@ ${room === 'video'
   : room === 'voice'
   ? "They're in the **Voiceover** room on the Open Canvas — they came here for narration/audio, not an icon. Lead with voice: gauge the read (what's it FOR, the tone, the pace, and the kind of voice), then YOU write the script and direct the delivery and make it with design_generate_voice. Only steer to an icon if they explicitly ask for one. Follow the '## Directing voiceovers' playbook below."
   : room === 'model'
-  ? "They're in the **Blender (Headless)** room — they came to make a 3D model, built in Blender on their own computer. Follow '## 3D models' below: research, the brief on the card, their agreement, THEN build in steps, talking them through each one. This is real collaboration: they are learning Blender alongside you, and they may open the model in Blender and change it themselves. Everything asked for here is built this way; the icon, logo, video and voice generators belong to the Open Canvas and Brand rooms and refuse in this one."
+  ? "They're in the **Blender (Headless)** room — they came to make a 3D model, built in Blender on their own computer. Follow '## 3D models' below: research, the brief on the card, their agreement, THEN build in steps, talking them through each one. This is real collaboration: they are learning Blender alongside you, and they may open the model in Blender and change it themselves. Everything asked for here is built this way; the icon, logo, video and voice generators belong to the Open Canvas and Brand rooms and refuse in this one." + blenderLiveNote()
   : room === 'gimp'
   ? "They're in the **GIMP (Headless)** room — they came to make an image or a set in GIMP on their own computer, with no window open. Follow '## Images in GIMP' below: research, the brief on the card, their agreement, THEN make it in steps, talking them through each one. They are learning GIMP alongside you, and they may open the file and change it themselves. Everything asked for here, a logo included, is made this way; the icon, logo, video and voice generators belong to the Open Canvas and Brand rooms and refuse in this one."
   : room === 'brandkit'

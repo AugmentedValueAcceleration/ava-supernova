@@ -14,11 +14,11 @@
  */
 
 import { existsSync } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { connect as netConnect } from 'node:net';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { execFile } from 'node:child_process';
-import { AVA_HOME } from '../../core/constants.js';
+import { AVA_HOME, CONFIG_PATH } from '../../core/constants.js';
 import { McpConnection } from '../../mcp/connection.js';
 import { findBlender } from './find-blender.js';
 
@@ -118,6 +118,36 @@ export function addonListening(port = BLENDER_MCP_PORT, timeoutMs = 800): Promis
   });
 }
 
+// ── The room's setting (his call, 16 Nov: one setting for the room) ─────────
+// In ~/.ava/config.json beside the Blender path, so the extension and the IDE
+// share it: switch Live on in one, it's on in the other.
+
+const configPath = () => process.env.AVA_CONFIG_PATH || CONFIG_PATH;
+
+export async function blenderLiveWanted(): Promise<boolean> {
+  try {
+    const cfg = JSON.parse(await readFile(configPath(), 'utf-8')) as { preferences?: { blenderLive?: boolean } };
+    return cfg.preferences?.blenderLive === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function setBlenderLiveWanted(on: boolean): Promise<void> {
+  let cfg: Record<string, unknown> = {};
+  try { cfg = JSON.parse(await readFile(configPath(), 'utf-8')); } catch { /* none yet */ }
+  const prefs = { ...((cfg.preferences as Record<string, unknown> | undefined) ?? {}) };
+  if (on) prefs.blenderLive = true; else delete prefs.blenderLive;
+  cfg.preferences = prefs;
+  await mkdir(dirname(configPath()), { recursive: true });
+  const tmp = `${configPath()}.${process.pid}.tmp`;
+  await writeFile(tmp, JSON.stringify(cfg, null, 2), 'utf-8');
+  await rename(tmp, configPath());
+}
+
+/** The model open Live in their Blender (one model, one place: Headless won't touch it). */
+export interface LiveModel { slug: string; name: string; dir: string; blend: string }
+
 // ── The connection ──────────────────────────────────────────────────────────
 
 const MESSAGES: Record<LiveState, string> = {
@@ -142,6 +172,9 @@ export class BlenderLive {
   private connecting: Promise<LiveStatus> | null = null;
   private last: LiveStatus = { state: 'off', message: MESSAGES.off };
   private readonly listeners: Listener[] = [];
+  private watcher: ReturnType<typeof setInterval> | null = null;
+  /** The model open Live right now (set by design_live_open_model). */
+  openModel: LiveModel | null = null;
   /** For tests: start a different server than Blender's bundle. */
   launch?: (env: Record<string, string>) => Promise<McpConnection>;
 
@@ -199,9 +232,30 @@ export class BlenderLive {
       } catch (err) {
         return this.set({ state: 'error', message: `${MESSAGES.error} ${err instanceof Error ? err.message : String(err)}` });
       }
+      this.watch();
       return this.refresh(pre.server.version);
     })().finally(() => { this.connecting = null; });
     return this.connecting;
+  }
+
+  /**
+   * While Live is on, notice Blender opening and closing: a cheap port check
+   * every few seconds, and one question to Blender only when that changes.
+   */
+  private watch(): void {
+    if (this.watcher || this.launch) return;
+    this.watcher = setInterval(() => {
+      if (!this.connection) return;
+      void addonListening().then((up) => {
+        const ready = this.last.state === 'ready';
+        if (up && !ready) void this.refresh();
+        if (!up && ready) {
+          this.openModel = null;
+          this.set({ state: 'blender-closed', serverVersion: this.last.serverVersion, message: MESSAGES['blender-closed'] });
+        }
+      });
+    }, 4000);
+    (this.watcher as unknown as { unref?: () => void }).unref?.();
   }
 
   /** Re-check Blender (opened or closed since). Cheap: a port check, then one question to Blender. */
@@ -228,6 +282,8 @@ export class BlenderLive {
   async disconnect(): Promise<LiveStatus> {
     const c = this.conn;
     this.conn = null;
+    this.openModel = null;
+    if (this.watcher) { clearInterval(this.watcher); this.watcher = null; }
     if (c) await c.close();
     return this.set({ state: 'off', message: MESSAGES.off });
   }

@@ -605,6 +605,15 @@ export class ToolRegistry {
     this.tools.set(tool.name, tool);
   }
 
+  /** Take tools away (e.g. Blender Live's, when Live is switched off). */
+  unregisterWhere(match: (name: string) => boolean): number {
+    let n = 0;
+    for (const name of [...this.tools.keys()]) {
+      if (match(name)) { this.tools.delete(name); n++; }
+    }
+    return n;
+  }
+
   /**
    * Model-facing aliases for tool names. The model's training data
    * overwhelmingly uses short convention names (`write`, `read`, `edit`)

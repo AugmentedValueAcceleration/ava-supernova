@@ -36,9 +36,8 @@ import { recordModelStep } from './model-history.js';
 import { appendMaking, avaContext, beforeChange, sourcesNow } from '../making-record.js';
 import { fileLinkedWork } from '../../creative/library-folders.js';
 
-/** The model open in their Blender right now (set by design_live_open_model). */
-let liveModel: { slug: string; name: string; dir: string; blend: string } | null = null;
-export const liveModelNow = () => liveModel;
+/** The model open in their Blender right now (kept on BlenderLive, so Headless can see it). */
+export const liveModelNow = () => BlenderLive.current().openModel;
 
 const py = (s: string) => JSON.stringify(s); // a JSON string is a valid Python string literal
 
@@ -190,7 +189,7 @@ else:
       }
       if (!opened) return { success: false, output: `Blender didn't open "${name}" in time. Ask them to look at Blender, then try again.` };
     }
-    liveModel = { slug, name, dir, blend };
+    BlenderLive.current().openModel = { slug, name, dir, blend };
     return {
       success: true,
       output: `"${name}" is open in their Blender${isNew ? ' on an empty scene (no default cube, camera or light)' : ''}. ` +
@@ -219,7 +218,7 @@ export class DesignLiveStepTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const script = String(args.script ?? '');
     if (!script.trim()) return { success: false, output: 'Missing `script`.' };
-    const model = liveModel;
+    const model = liveModelNow();
     if (!model) return { success: false, output: 'No model is open Live. Open one with design_live_open_model first.' };
     const refused = checkBlenderScript(script);
     if (refused) return { success: false, output: refused };
@@ -273,7 +272,7 @@ export class DesignLiveSaveTool implements Tool {
     }, []);
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const model = liveModel;
+    const model = liveModelNow();
     if (!model) return { success: false, output: 'No model is open Live.' };
     const conn = await readyConnection();
     if (!('call' in conn)) return conn;
@@ -358,7 +357,7 @@ export class DesignLiveLookTool implements Tool {
   async execute(): Promise<ToolResult> {
     const conn = await readyConnection();
     if (!('call' in conn)) return conn;
-    const dir = liveModel?.dir ?? join(modelsDir(), '.live');
+    const dir = liveModelNow()?.dir ?? join(modelsDir(), '.live');
     const picture = await liveLook(conn, dir);
     if (!picture) return { success: false, output: 'No picture could be taken of the 3D view (is a 3D viewport open in Blender?).' };
     return { success: true, output: 'Here is their 3D view now.', metadata: { base64_image: picture, mime_type: 'image/png' } };
@@ -381,6 +380,21 @@ export function blenderLiveServerTools(conn: McpConnection): Tool[] {
     // Moving the view or switching a tab changes nothing in their work.
     risk: (t) => (t.name.startsWith('jump_to_') ? 'safe' : undefined),
   });
+}
+
+/** Ava's Live tool names, and Blender's (for taking them away again). */
+export const isBlenderLiveTool = (name: string) => name.startsWith('design_live_') || name.startsWith('blender_live_');
+
+/**
+ * Put Ava's Live tools in a registry, or take them away: call on start and on
+ * every BlenderLive change. Live tools exist only while Blender is ready.
+ */
+export function syncBlenderLiveTools(registry: { register(t: Tool): void; unregisterWhere(m: (n: string) => boolean): number }): number {
+  registry.unregisterWhere(isBlenderLiveTool);
+  if (BlenderLive.current().lastStatus.state !== 'ready') return 0;
+  const tools = blenderLiveTools();
+  for (const t of tools) registry.register(t);
+  return tools.length;
 }
 
 /** Everything Ava gets while Live is connected. */

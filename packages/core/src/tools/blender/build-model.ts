@@ -44,6 +44,7 @@ import { recordModelStep, restoreModelStep, readModelHistory } from './model-his
 export { modelsDir, modelSlug } from './paths.js';
 import { findBlender, BLENDER_DOWNLOAD_URL } from './find-blender.js';
 import { BLENDER_RUNNER_PY } from './runner-py.js';
+import { BlenderLive } from './live.js';
 
 const DEFAULT_TIMEOUT_S = 300;
 const MAX_TIMEOUT_S = 900;
@@ -282,6 +283,15 @@ export class DesignBuildModelTool implements Tool {
 
     const refused = checkBlenderScript(script);
     if (refused) return { success: false, output: refused };
+
+    // One model, one place: while it's open Live, their Blender holds the file.
+    const live = BlenderLive.current();
+    if (live.connection && live.openModel?.slug === slug) {
+      return {
+        success: false,
+        output: `"${name}" is open in their Blender through MCP, so Headless won't touch it — two Blenders writing one file would lose work. Keep working with design_live_step, or save it with design_live_save and ask them to switch the room to Headless before building headless (the bake helpers are headless-only).`,
+      };
+    }
 
     const blender = await findBlender();
     if (!blender) {

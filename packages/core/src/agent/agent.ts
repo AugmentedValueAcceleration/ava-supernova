@@ -285,7 +285,7 @@ const WORK_TOOL_GATE: 'log' | 'enforce' = 'enforce';
  */
 const WORK_GATE_LOG = 'work-gate.log';
 
-const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
+export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // Work mode — the bread-and-butter coding surface. Ships every turn
   // to users writing code, so the schema list is the single biggest
   // per-turn token line item. Keep what a coder actually reaches for;
@@ -541,6 +541,9 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'design_api_lookup', 'design_read_docs', 'design_fonts', 'design_install_font', 'design_restore_image',
     // Library folders: see a pack, file work into it, keep its style note (Phase 3, 9 Nov 2026).
     'design_folder', 'design_restore_model',
+    // Blender Live — Ava in their OPEN Blender (Blender MCP plan, 17 Nov 2026). Blender's own
+    // server tools (blender_live_*) are named at connect time: see toolPassesModeGate.
+    'design_live_open_model', 'design_live_step', 'design_live_look', 'design_live_save',
     'memory_save', 'memory_recall', 'memory_update',
     // Journal — Ava reflects on the person + their taste in her own voice
     'journal_write',
@@ -894,6 +897,9 @@ function allowedToolsForMode(mode: string): Set<string> | undefined {
 }
 
 export function toolPassesModeGate(name: string, modeAllowed: Set<string>): boolean {
+  // Tools a connected program brings (Blender Live's blender_live_*) are only
+  // known at run time; they belong to the room that has Live's own tools.
+  if (name.startsWith('blender_live_')) return modeAllowed.has('design_live_step');
   if (modeAllowed.has(name) || ALWAYS_ALLOWED_TOOLS.has(name)) return true;
   return !MODE_CLASSIFIED_TOOLS.has(name) && !DESKTOP_ONLY_TOOLS.has(name);
 }

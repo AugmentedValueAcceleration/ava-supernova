@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { post } from '../App';
 import { tt } from '../i18n';
+import { useBlenderLive, setBlenderLive, blenderRoomName, blenderLiveLine } from '../lib/blender-live';
 import type { DesignModelSummary } from '../types/messages';
 
 import { LazyModelViewer } from './LazyModelViewer';
@@ -51,6 +52,7 @@ export function ModelRoom({ tool = 'blender', busy = false, startFresh = false, 
   // The Library folders this piece can be filed into (Phase 3).
   const { folders: libraryFolders, plans: libraryPlans } = useLibraryFolders();
   const room = ROOMS[tool];
+  const live = useBlenderLive();
   const [models, setModels] = useState<DesignModelSummary[] | null>(null);
   // A design opened from the Library comes straight to the stage.
   const [picked, setPicked] = useState<string | null>(() => {
@@ -150,11 +152,34 @@ export function ModelRoom({ tool = 'blender', busy = false, startFresh = false, 
     <div className="flex-1 min-h-0 px-6 py-5 flex flex-col overflow-hidden">
       <div className="mb-3 flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tt(room.titleKey, room.title)}</h2>
+          <h2 className="text-[17px] font-normal text-[var(--text-primary)]">{tool === 'blender' ? blenderRoomName(live.wanted) : tt(room.titleKey, room.title)}</h2>
           <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
             {tt(room.subtitleKey, room.subtitle)}
           </p>
+          {tool === 'blender' && live.wanted && (
+            <p className="mt-1 flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)]" role="status" aria-live="polite">
+              <span className={`inline-block h-2 w-2 rounded-full ${live.busy ? 'bg-amber-400 animate-pulse' : live.state === 'ready' ? 'bg-emerald-400' : live.state === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
+              {blenderLiveLine(live)}
+            </p>
+          )}
         </div>
+        {tool === 'blender' && (
+          <div className="shrink-0 inline-flex rounded-lg border border-[var(--border)] p-0.5 text-xs" role="radiogroup" aria-label={tt('dash.studio.live.how', 'How Ava works in Blender')}>
+            {([false, true] as const).map((on) => (
+              <button
+                key={String(on)}
+                role="radio"
+                aria-checked={live.wanted === on}
+                disabled={live.busy || busy}
+                onClick={() => { if (live.wanted !== on) setBlenderLive(on); }}
+                title={on ? tt('dash.studio.live.mcp_tip', 'Ava works in your open Blender, through Blender’s official MCP add-on, while you watch') : tt('dash.studio.live.headless_tip', 'Ava builds in Blender with no window')}
+                className={`rounded-md px-2.5 py-1 font-medium transition disabled:opacity-50 ${live.wanted === on ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                {on ? tt('dash.studio.live.mcp', 'MCP') : tt('dash.studio.live.headless', 'Headless')}
+              </button>
+            ))}
+          </div>
+        )}
         {tool === 'gimp' && active && (
           <button
             onClick={() => post({ type: 'add_image_art', slug: active.slug })}

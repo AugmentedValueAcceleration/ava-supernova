@@ -26,6 +26,7 @@ import { renderMark, renderElements, type MarkSpec, type MarkStyle } from '../li
 import type { LogoBrief, LogoSystem, LogoVariant } from '../lib/asset-forge/logo/types';
 import { DESIGN_GROUPS, QWEN_VIEWS, type ViewId } from '../lib/design-types';
 import { ModelRoom, roomRoster } from '../components/ModelRoom';
+import { useBlenderLive, blenderRoomName } from '../lib/blender-live';
 import type { DesignModelSummary } from '../types/messages';
 import { toWebp } from '../lib/compress';
 
@@ -616,6 +617,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   /** False greys out the lanes that generate on the Qwen key (QWEN_VIEWS). */
   hasQwenKey?: boolean;
 }) {
+  const blenderLive = useBlenderLive();
   useLocale();  // re-render Studio labels when the language changes
   const [kit, setKit] = useState<BrandKit>(() => activeKit());     // the ACTIVE kit
   const [openKit, setOpenKit] = useState<BrandKit | null>(null);           // kit open on the page, for Ava's context
@@ -1545,7 +1547,7 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
                     : on ? 'cursor-pointer border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)] font-normal'
                     : 'cursor-pointer border-transparent bg-transparent text-[var(--text-secondary)] font-light hover:text-[var(--text-primary)]'
                   }`}>
-                  {tt('dash.studio.asset.' + it.id, it.label)}
+                  {it.id === 'model' ? blenderRoomName(blenderLive.wanted) : tt('dash.studio.asset.' + it.id, it.label)}
                   {it.badge && <span className="ml-auto text-[9px] tracking-wider text-[var(--text-muted)] border border-[var(--border-card)] px-1.5 rounded-full">{tt('dash.studio.soon', it.badge)}</span>}
                   {!it.badge && keyless && <span className="ml-auto text-[9px] tracking-wider text-[var(--text-muted)] border border-[var(--border-card)] px-1.5 rounded-full whitespace-nowrap">{tt('dash.studio.needs_qwen', 'Needs Qwen key')}</span>}
                 </button>

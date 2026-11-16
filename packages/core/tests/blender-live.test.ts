@@ -132,3 +132,58 @@ describe('the rules carry over from Headless', () => {
     expect(r.success).toBe(false);
   });
 });
+
+describe('Live in the room (Phase 3)', () => {
+  it('Live tools only reach Ava in the design room', async () => {
+    const { toolPassesModeGate, MODE_ALLOWED_TOOLS } = await import('../src/agent/agent.js') as unknown as {
+      toolPassesModeGate: (n: string, s: Set<string>) => boolean; MODE_ALLOWED_TOOLS: Record<string, Set<string>>;
+    };
+    for (const name of ['design_live_step', 'blender_live_get_objects_summary']) {
+      expect(toolPassesModeGate(name, MODE_ALLOWED_TOOLS.design)).toBe(true);
+      expect(toolPassesModeGate(name, MODE_ALLOWED_TOOLS.work)).toBe(false);
+      expect(toolPassesModeGate(name, MODE_ALLOWED_TOOLS.chat)).toBe(false);
+    }
+  });
+
+  it('switching Live puts the tools in and takes them out', async () => {
+    const { ToolRegistry } = await import('../src/tools/tool-registry.js');
+    const { syncBlenderLiveTools } = await import('../src/tools/blender/live-tools.js');
+    const reg = new ToolRegistry();
+    const live = useFake();
+    await live.connect();
+    expect(syncBlenderLiveTools(reg)).toBeGreaterThan(4);
+    expect(reg.getTool('design_live_step')).toBeTruthy();
+    await live.disconnect();
+    expect(syncBlenderLiveTools(reg)).toBe(0);
+    expect(reg.getTool('design_live_step')).toBeUndefined();
+    expect(reg.getTool('blender_live_get_objects_summary')).toBeUndefined();
+  }, 20_000);
+
+  it('the room setting is remembered in config.json, beside other preferences', async () => {
+    const { blenderLiveWanted, setBlenderLiveWanted } = await import('../src/tools/blender/live.js');
+    process.env.AVA_CONFIG_PATH = join(dir, 'config.json');
+    await writeFile(process.env.AVA_CONFIG_PATH, JSON.stringify({ preferences: { blenderPath: 'C:/b.exe' } }));
+    expect(await blenderLiveWanted()).toBe(false);
+    await setBlenderLiveWanted(true);
+    expect(await blenderLiveWanted()).toBe(true);
+    await setBlenderLiveWanted(false);
+    expect(await blenderLiveWanted()).toBe(false);
+    const { readFile } = await import('node:fs/promises');
+    expect(JSON.parse(await readFile(process.env.AVA_CONFIG_PATH, 'utf-8')).preferences.blenderPath).toBe('C:/b.exe');
+    delete process.env.AVA_CONFIG_PATH;
+  });
+
+  it('Headless won\'t build a model that is open Live', async () => {
+    const live = useFake();
+    await live.connect();
+    const { DesignProposeModelBriefTool, agreeModelBrief, BRIEF_FIELDS } = await import('../src/tools/blender/model-brief.js');
+    const fields = Object.fromEntries(BRIEF_FIELDS.map(([k]) => [k, `x ${k}`]));
+    await new DesignProposeModelBriefTool().execute({ name: 'Live Crate', ...fields, reasoning: 'r' }, { cwd: '.' });
+    await agreeModelBrief('live-crate');
+    live.openModel = { slug: 'live-crate', name: 'Live Crate', dir: '.', blend: 'x.blend' };
+    const { DesignBuildModelTool } = await import('../src/tools/blender/build-model.js');
+    const r = await new DesignBuildModelTool().execute({ name: 'Live Crate', script: 'import bpy' }, { cwd: '.' });
+    expect(r.success).toBe(false);
+    expect(r.output).toMatch(/open in their Blender through MCP/);
+  }, 20_000);
+});

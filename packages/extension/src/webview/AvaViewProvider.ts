@@ -46,6 +46,9 @@ import {
   AvaMemory,
   ensureOldMemoryImported,
   consolidateSession,
+  BlenderLive,
+  blenderLiveWanted,
+  syncBlenderLiveTools,
   resolveMemoryModel,
   memoryV4Root,
   IntentClassifier,
@@ -342,6 +345,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * the import.
    */
   private memorySessionReady: Promise<MemorySession | undefined> = Promise.resolve(undefined);
+  /** Blender Live: following its changes (set once). */
+  private blenderLiveFollowing = false;
   /** The fleet's own low-cost model for the end-of-session tidy-up (memory v4). */
   private memoryModel: ReturnType<typeof resolveMemoryModel> = null;
   private intentClassifier?: IntentClassifier;
@@ -553,6 +558,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Memory is local only — there is no cloud copy.
     this.memorySessionReady = this.openMemorySession();
+    if (!this.blenderLiveFollowing) {
+      this.blenderLiveFollowing = true;
+      BlenderLive.current().onChange(() => { if (this.toolRegistry) syncBlenderLiveTools(this.toolRegistry); });
+      void blenderLiveWanted().then((on) => { if (on) void BlenderLive.current().connect(); });
+    }
 
     // Tasks are local only — there is no cloud copy.
     migrateGlobalTasksToSubfolder(AVA_HOME);
@@ -1702,6 +1712,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       exclude: [...DESKTOP_TOOL_NAMES],
       allowDesktopMode: false,
     });
+    // Blender Live: its tools are in the registry only while their Blender is ready.
+    syncBlenderLiveTools(this.toolRegistry);
     // The memory tools are core built-ins; the session goes in sharedState below.
     const memorySession = await this.memorySessionReady;
 

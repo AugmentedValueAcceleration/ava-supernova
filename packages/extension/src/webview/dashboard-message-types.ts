@@ -1670,6 +1670,8 @@ export type ExtToDashboardMessage =
   | { type: 'brand_kits'; kits: unknown[]; activeId: string | null; project: { key: string; path: string } | null; kinds: unknown[]; pieces: unknown; corePieces: unknown[]; projects: unknown[] }
   | { type: 'gimp_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
   | { type: 'blender_status'; path: string | null; version: string | null; source: string | null; configured: string | null; error?: string }
+  /** Blender Live (Ava in their open Blender): the room's switch and status line. */
+  | { type: 'blender_live_status'; wanted: boolean; state: 'needs-uv' | 'needs-server' | 'off' | 'blender-closed' | 'ready' | 'error'; message: string; blenderVersion: string | null; busy?: boolean }
   | { type: 'storage_scan_loaded'; scan: StorageScan }
   /** What the projects folder costs, with the age of the figure. */
   | { type: 'projects_usage_loaded'; usage: ProjectsUsage | null }
@@ -2182,6 +2184,8 @@ export type DashboardToExtMessage =
   // The Blender (Headless) room: its models, and the brief he agrees on the card.
   // Settings → Blender: which one is used, and choosing one by hand.
   | { type: 'get_blender_status' }
+  | { type: 'get_blender_live' }
+  | { type: 'set_blender_live'; on: boolean }
   | { type: 'choose_blender_path' }
   | { type: 'clear_blender_path' }
   | { type: 'list_models' }

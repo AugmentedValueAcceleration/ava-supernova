@@ -47,6 +47,7 @@ import {
   testProviderKey,
   // Design Studio 3D — open a model in Blender from the Library.
   findBlender, setBlenderPath, blenderStatus, BLENDER_DOWNLOAD_URL,
+  BlenderLive, blenderLiveWanted, setBlenderLiveWanted,
   listModels, agreeModelBrief, saveModelBriefEdits, BRIEF_FIELDS,
   findGimp, setGimpPath, gimpStatus, GIMP_DOWNLOAD_URL,
   listImageWork, restoreImageStep, chooseImageMain, keepImageVersion, deleteImageVersion, agreeImageBrief, saveImageBriefEdits, pickImageOption, addImageReference, deleteDesignWork, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS,
@@ -336,6 +337,9 @@ export class DashboardPanel {
 
     // A key added or removed in the IDE (shared keychain) shows here without
     // reopening the dashboard.
+    // Blender Live's status follows Blender opening and closing; the room shows it as it changes.
+    const offLive = BlenderLive.current().onChange(() => { void this.postBlenderLiveStatus(); });
+    this.disposables.push({ dispose: offLive });
     this.disposables.push(this.secrets.onDidChange(async (e) => {
       if (!Object.values(PROVIDER_KEY_SECRETS).includes(e.key)) return;
       this.post({ type: 'provider_keys_updated', providerKeys: await this.getProviderKeyStatus() });
@@ -2100,6 +2104,20 @@ export class DashboardPanel {
         await this.postBlenderStatus();
         break;
 
+      // Blender Live: one setting for the room, shared with the IDE (config.json).
+      case 'get_blender_live':
+        await this.postBlenderLiveStatus();
+        break;
+
+      case 'set_blender_live': {
+        await setBlenderLiveWanted(msg.on === true);
+        await this.postBlenderLiveStatus(true);
+        if (msg.on === true) await BlenderLive.current().connect();
+        else await BlenderLive.current().disconnect();
+        await this.postBlenderLiveStatus();
+        break;
+      }
+
       case 'choose_blender_path': {
         const picked = await vscode.window.showOpenDialog({
           canSelectMany: false,
@@ -3462,6 +3480,11 @@ export class DashboardPanel {
     } catch (err) {
       this.log(`[Creative] Could not read the brand kits: ${err instanceof Error ? err.message : String(err)}`);
     }
+  }
+
+  private async postBlenderLiveStatus(busy = false): Promise<void> {
+    const s = BlenderLive.current().lastStatus;
+    this.post({ type: 'blender_live_status', wanted: await blenderLiveWanted(), state: s.state, message: s.message, blenderVersion: s.blenderVersion ?? null, ...(busy ? { busy: true } : {}) });
   }
 
   private async postBlenderStatus(error?: string): Promise<void> {
