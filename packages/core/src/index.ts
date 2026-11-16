@@ -659,3 +659,7 @@ export { fontChoices, installFontTheyChose } from './tools/design-fonts.js';
 export { readImageHistory, restoreImageStep, chooseImageMain, keepImageVersion, deleteImageVersion, readImageBrief, agreeImageBrief, saveImageBriefEdits, listImageWork, pickImageOption, addImageReference, readImageFinals, removeImageFinal, IMAGE_BRIEF_FIELDS } from './tools/gimp/build-image.js';
 export type { ImageBrief, ImageWorkSummary, ImageOption, ImageOptions } from './tools/gimp/build-image.js';
 export { imagesDir } from './tools/blender/paths.js';
+
+// MCP: Ava as a client of other programs' tools (Blender live, then Unreal) — local servers only.
+export { McpConnection, isLocalUrl, mcpToolsForAva, avaToolName } from './mcp/index.js';
+export type { McpServerConfig, McpTransportConfig, McpToolInfo, McpCallResult, McpToolOptions } from './mcp/index.js';
