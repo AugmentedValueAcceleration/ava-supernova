@@ -93,6 +93,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'अनुमति दें',
   'tool.always_allow': 'हमेशा अनुमति दें',
   'tool.always_allow_category_tip': 'इस टूल श्रेणी को शेष सत्र के लिए स्वतः अनुमोदित करें',
+  'tool.always_allow_tool_tip': 'इस टूल के लिए दोबारा न पूछें',
   'tool.deny': 'अस्वीकार करें',
   'tool.allow_prompt': '{tool} को अनुमति दें?',
   'tool.arguments': 'आर्गुमेंट',

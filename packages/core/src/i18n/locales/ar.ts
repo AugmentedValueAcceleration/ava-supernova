@@ -93,6 +93,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'سماح',
   'tool.always_allow': 'السماح دائماً',
   'tool.always_allow_category_tip': 'الموافقة التلقائية على فئة الأدوات هذه لبقية الجلسة',
+  'tool.always_allow_tool_tip': 'لا تسأل مجددًا عن هذه الأداة',
   'tool.deny': 'رفض',
   'tool.allow_prompt': 'السماح بـ {tool}؟',
   'tool.arguments': 'المعاملات',

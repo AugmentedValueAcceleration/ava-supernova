@@ -49,6 +49,9 @@ import {
   BlenderLive,
   blenderLiveWanted,
   syncBlenderLiveTools,
+  McpServers,
+  syncMcpTools,
+  isUserMcpTool,
   resolveMemoryModel,
   memoryV4Root,
   IntentClassifier,
@@ -347,6 +350,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private memorySessionReady: Promise<MemorySession | undefined> = Promise.resolve(undefined);
   /** Blender Live: following its changes (set once). */
   private blenderLiveFollowing = false;
+  private mcpFollowing = false;
   /** The fleet's own low-cost model for the end-of-session tidy-up (memory v4). */
   private memoryModel: ReturnType<typeof resolveMemoryModel> = null;
   private intentClassifier?: IntentClassifier;
@@ -563,6 +567,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       BlenderLive.current().onChange(() => { if (this.toolRegistry) syncBlenderLiveTools(this.toolRegistry); });
       void blenderLiveWanted().then((on) => { if (on) void BlenderLive.current().connect(); });
     }
+    // His own MCP servers (~/.ava/mcp.json + this project's .mcp.json): their
+    // tools follow every change — a server starting, stopping, or his answers.
+    if (!this.mcpFollowing) {
+      this.mcpFollowing = true;
+      McpServers.current().onChange(() => { if (this.toolRegistry) syncMcpTools(this.toolRegistry); });
+      void McpServers.current().start(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null)
+        .catch((err) => this.log(`MCP servers failed to start: ${err instanceof Error ? err.message : err}`));
+    }
 
     // Tasks are local only — there is no cloud copy.
     migrateGlobalTasksToSubfolder(AVA_HOME);
@@ -611,6 +623,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async onWorkspaceChanged(): Promise<void> {
+    void McpServers.current().setProjectRoot(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null);
     // Cancel any in-progress agent run
     if (this.isRunning && this.runAbortController) {
       this.log('Workspace change: aborting current run');
@@ -1714,6 +1727,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
     // Blender Live: its tools are in the registry only while their Blender is ready.
     syncBlenderLiveTools(this.toolRegistry);
+    syncMcpTools(this.toolRegistry);
     // The memory tools are core built-ins; the session goes in sharedState below.
     const memorySession = await this.memorySessionReady;
 
@@ -4617,7 +4631,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // "Always Allow" — approve this category AND persist it, so it sticks across
     // sessions and the Settings per-category list reflects it (previously
     // session-only, which is why it "didn't update").
-    if (approved && alwaysAllowCategory && this.toolRegistry) {
+    // A tool from one of his MCP servers: "always" is for that one tool,
+    // remembered in ~/.ava/mcp.json — never its whole category.
+    if (approved && alwaysAllowCategory && isUserMcpTool(pending.toolName)) {
+      void McpServers.current().allowTool(pending.toolName)
+        .then((ok) => this.log(ok ? `MCP tool always allowed: ${pending.toolName}` : `MCP tool not found to allow: ${pending.toolName}`));
+    } else if (approved && alwaysAllowCategory && this.toolRegistry) {
       const category = this.toolRegistry.getCategoryForTool(pending.toolName);
       this.toolRegistry.approveCategory(category as any);
       this.setSavedCategoryPermission(String(category), 'auto');

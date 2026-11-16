@@ -93,6 +93,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'İzin Ver',
   'tool.always_allow': 'Her Zaman İzin Ver',
   'tool.always_allow_category_tip': 'Bu araç kategorisini oturumun geri kalanı için otomatik onayla',
+  'tool.always_allow_tool_tip': 'Bu araç için bir daha sorma',
   'tool.deny': 'Reddet',
   'tool.allow_prompt': '{tool} izni verilsin mi?',
   'tool.arguments': 'Argümanlar',

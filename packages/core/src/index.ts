@@ -663,6 +663,13 @@ export { imagesDir } from './tools/blender/paths.js';
 // MCP: Ava as a client of other programs' tools (Blender live, then Unreal) — local servers only.
 export { McpConnection, isLocalUrl, mcpToolsForAva, avaToolName } from './mcp/index.js';
 export type { McpServerConfig, McpTransportConfig, McpToolInfo, McpCallResult, McpToolOptions } from './mcp/index.js';
+export {
+  checkServerUrl, isUnauthorized, McpServers, syncMcpTools, mcpConfigPath, projectMcpPath, readMcpFile, updateMcpFile,
+  readProjectServers, readEntry, fingerprint, describeEntry, secretsUsed, cleanServerId, isWebEntry,
+  setMcpKeychain, hasMcpKeychain, getMcpSecret, setMcpSecret, mcpSecretNames, getMcpAuth, setMcpAuth,
+  isUserMcpTool, mcpToolInMode, mcpToolAlwaysAllowed, USER_MCP_PREFIX,
+} from './mcp/index.js';
+export type { McpServerState, McpServerStatus, McpToolStatus, McpScope, McpFile, McpServerEntry, McpProjectAnswers, McpKeychain } from './mcp/index.js';
 // Blender Live: Ava in the person's open Blender through Blender Lab's official MCP server.
 export { BlenderLive, findUv, installedServer, addonListening, blenderMcpRoot, versionAtLeast, blenderLiveWanted, setBlenderLiveWanted, BLENDER_LIVE_MIN, BLENDER_MCP_PORT } from './tools/blender/live.js';
 export type { LiveState, LiveStatus } from './tools/blender/live.js';

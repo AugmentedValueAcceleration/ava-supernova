@@ -21,7 +21,7 @@ function makeServer() {
   }));
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const { name, arguments: args } = req.params;
-    if (name === 'echo') return { content: [{ type: 'text', text: `echo: ${args?.text ?? ''}` }] };
+    if (name === 'echo') return { content: [{ type: 'text', text: `echo: ${args?.text ?? ''}${process.env.MCP_TEST_KEY ? ` key=${process.env.MCP_TEST_KEY}` : ''}` }] };
     if (name === 'snapshot') return { content: [{ type: 'text', text: 'viewport' }, { type: 'image', data: PNG, mimeType: 'image/png' }, { type: 'image', data: PNG, mimeType: 'image/png' }] };
     if (name === 'fail') return { isError: true, content: [{ type: 'text', text: 'Blender said no' }] };
     throw new Error(`unknown tool ${name}`);
@@ -35,7 +35,15 @@ if (httpAt === -1) {
   await makeServer().connect(new StdioServerTransport());
 } else {
   const port = Number(process.argv[httpAt + 1]);
+  // `--token <t>`: refuse any request without "Authorization: Bearer <t>" (a server that wants a key).
+  const tokenAt = process.argv.indexOf('--token');
+  const token = tokenAt === -1 ? null : process.argv[tokenAt + 1];
   const http = createServer(async (req, res) => {
+    if (token && req.headers.authorization !== `Bearer ${token}`) {
+      res.writeHead(401, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: 'unauthorized' }));
+      return;
+    }
     // Stateless: a fresh server + transport per request.
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     const server = makeServer();

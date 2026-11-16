@@ -93,6 +93,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Consenti',
   'tool.always_allow': 'Consenti sempre',
   'tool.always_allow_category_tip': 'Approva automaticamente questa categoria di strumenti per il resto della sessione',
+  'tool.always_allow_tool_tip': 'Non chiedere più per questo strumento',
   'tool.deny': 'Nega',
   'tool.allow_prompt': 'Consentire {tool}?',
   'tool.arguments': 'Argomenti',

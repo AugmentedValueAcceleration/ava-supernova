@@ -112,7 +112,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
                          hover:opacity-80
                          border-none cursor-pointer transition-opacity"
               onClick={() => onConfirmation(toolCall.confirmationId!, true, true)}
-              title={t('tool.always_allow_category_tip')}
+              title={toolCall.name.startsWith('mcp_') ? t('tool.always_allow_tool_tip') : t('tool.always_allow_category_tip')}
             >
               {t('tool.always_allow')}
             </button>

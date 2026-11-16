@@ -93,6 +93,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Cho phép',
   'tool.always_allow': 'Luôn cho phép',
   'tool.always_allow_category_tip': 'Tự động duyệt danh mục công cụ này cho phần còn lại của phiên',
+  'tool.always_allow_tool_tip': 'Không hỏi lại với công cụ này',
   'tool.deny': 'Từ chối',
   'tool.allow_prompt': 'Cho phép {tool}?',
   'tool.arguments': 'Tham số',

@@ -137,7 +137,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
                              hover:bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)]
                              cursor-pointer transition"
                   onClick={() => onConfirmation(toolCall.confirmationId!, true, true)}
-                  title={t('tool.always_allow_category_tip')}
+                  title={toolCall.name.startsWith('mcp_') ? t('tool.always_allow_tool_tip') : t('tool.always_allow_category_tip')}
                 >
                   {t('tool.always_allow')}
                 </button>

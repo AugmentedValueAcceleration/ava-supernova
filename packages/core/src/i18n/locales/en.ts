@@ -101,6 +101,7 @@ export const enStrings = {
   'tool.allow': 'Allow',
   'tool.always_allow': 'Always Allow',
   'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_tool_tip': "Don't ask again for this tool",
   'tool.deny': 'Deny',
   'tool.allow_prompt': 'Allow {tool}?',
   'tool.arguments': 'Arguments',

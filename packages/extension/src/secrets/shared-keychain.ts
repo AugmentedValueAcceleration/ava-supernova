@@ -147,45 +147,69 @@ export class SharedSecretStorage implements vscode.SecretStorage {
   // made current by `vault.head` only once every piece is written and read
   // back, so a failed save leaves the previous vault readable.
 
-  private readHead(): { gen: number; count: number } | null {
+  // A long value kept in pieces (a Windows credential holds only 1,280
+  // characters): `<name>.head` says which generation and how many pieces.
+  // The secret vault is `vault`; MCP server keys are `mcp.secrets`.
+  private readHead(name = 'vault'): { gen: number; count: number } | null {
     try {
-      const raw = this.entry('vault.head')?.getPassword();
+      const raw = this.entry(`${name}.head`)?.getPassword();
       const h = raw ? JSON.parse(raw) as { gen: number; count: number } : null;
       return h && Number.isInteger(h.gen) && Number.isInteger(h.count) ? h : null;
     } catch { return null; }
   }
 
-  private readVault(): string | null {
-    const head = this.readHead();
+  private readVault(name = 'vault'): string | null {
+    const head = this.readHead(name);
     if (!head) return null;
     let out = '';
     for (let i = 0; i < head.count; i++) {
-      const piece = this.entry(`vault.${head.gen}.${i}`)?.getPassword();
+      const piece = this.entry(`${name}.${head.gen}.${i}`)?.getPassword();
       if (piece == null) return null;
       out += piece;
     }
     return out;
   }
 
-  private writeVault(value: string | null): void {
-    const old = this.readHead();
+  private writeVault(value: string | null, name = 'vault'): void {
+    const old = this.readHead(name);
     const put = (account: string, v: string) => {
       const e = this.entry(account);
       if (!e) throw new Error('no keychain');
       e.setPassword(v);
-      if (e.getPassword() !== v) throw new Error('the keychain did not keep the vault');
+      if (e.getPassword() !== v) throw new Error(`the keychain did not keep ${name}`);
     };
     if (value !== null) {
       const gen = (old?.gen ?? 0) + 1;
       const pieces = value.match(/[\s\S]{1,1000}/g) ?? [];
-      pieces.forEach((p, i) => put(`vault.${gen}.${i}`, p));
-      put('vault.head', JSON.stringify({ gen, count: pieces.length }));
+      pieces.forEach((p, i) => put(`${name}.${gen}.${i}`, p));
+      put(`${name}.head`, JSON.stringify({ gen, count: pieces.length }));
     } else {
-      try { this.entry('vault.head')?.deletePassword(); } catch { /* gone */ }
+      try { this.entry(`${name}.head`)?.deletePassword(); } catch { /* gone */ }
     }
     if (old) for (let i = 0; i < old.count; i++) {
-      try { this.entry(`vault.${old.gen}.${i}`)?.deletePassword(); } catch { /* gone */ }
+      try { this.entry(`${name}.${old.gen}.${i}`)?.deletePassword(); } catch { /* gone */ }
     }
+  }
+
+  /**
+   * MCP server keys (core mcp/secrets.ts), in the entry the IDE reads too
+   * (`mcp.secrets`). Without a keychain they stay in VS Code, unshared.
+   */
+  mcpKeychain(): { read(): Promise<string | null>; write(value: string | null): Promise<void> } {
+    const FALLBACK = 'ava.mcp.secrets';
+    return {
+      read: async () => {
+        if (!this.keyring()) return (await this.inner.get(FALLBACK)) ?? null;
+        return this.readVault('mcp.secrets');
+      },
+      write: async (value) => {
+        if (!this.keyring()) {
+          if (value === null) await this.inner.delete(FALLBACK); else await this.inner.store(FALLBACK, value);
+          return;
+        }
+        this.writeVault(value, 'mcp.secrets');
+      },
+    };
   }
 
   private async getVault(): Promise<string | undefined> {

@@ -93,6 +93,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Zezwól',
   'tool.always_allow': 'Zawsze zezwalaj',
   'tool.always_allow_category_tip': 'Automatycznie zatwierdź tę kategorię narzędzi na resztę sesji',
+  'tool.always_allow_tool_tip': 'Nie pytaj więcej o to narzędzie',
   'tool.deny': 'Odmów',
   'tool.allow_prompt': 'Zezwolić na {tool}?',
   'tool.arguments': 'Argumenty',

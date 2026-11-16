@@ -93,6 +93,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Дозволити',
   'tool.always_allow': 'Завжди дозволяти',
   'tool.always_allow_category_tip': 'Автоматично схвалювати цю категорію інструментів до кінця сесії',
+  'tool.always_allow_tool_tip': 'Більше не питати для цього інструмента',
   'tool.deny': 'Відхилити',
   'tool.allow_prompt': 'Дозволити {tool}?',
   'tool.arguments': 'Аргументи',

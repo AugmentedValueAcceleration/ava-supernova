@@ -93,6 +93,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'อนุญาต',
   'tool.always_allow': 'อนุญาตเสมอ',
   'tool.always_allow_category_tip': 'อนุมัติหมวดหมู่เครื่องมือนี้โดยอัตโนมัติสำหรับช่วงเวลาที่เหลือของเซสชัน',
+  'tool.always_allow_tool_tip': 'ไม่ต้องถามอีกสำหรับเครื่องมือนี้',
   'tool.deny': 'ปฏิเสธ',
   'tool.allow_prompt': 'อนุญาต {tool}?',
   'tool.arguments': 'อาร์กิวเมนต์',

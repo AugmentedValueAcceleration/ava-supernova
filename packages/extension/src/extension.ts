@@ -15,6 +15,8 @@ import {
   JournalManager,
   AVA_HOME,
   installDatasetConsumer,
+  setMcpKeychain,
+  McpServers,
 } from '@ava/core';
 import { sessionStats } from './session-stats.js';
 import { withSharedProviderKeys } from './secrets/shared-keychain.js';
@@ -38,6 +40,8 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
     vscodeContext,
     (msg) => console.log(`[Ava keychain] ${msg}`),
   );
+  // MCP server keys: the same keychain, entry mcp.secrets (shared with the IDE).
+  setMcpKeychain(sharedSecrets.mcpKeychain());
   // The keychain sends no events, so a key added or removed in the IDE is
   // picked up when this window comes back into focus. The first look only
   // records what is there.
@@ -433,6 +437,8 @@ function showReleaseNotesPanel(
 
 export async function deactivate(): Promise<void> {
   killBackgroundProcesses();
+  // His MCP servers are programs we started: stop them with us.
+  await McpServers.current().stopAll().catch(() => {});
   // Async so VS Code waits for it. This was `void`, so end-of-session
   // reflection had no chance to run on shutdown — a whole evening's work could
   // end with the editor closing and nothing reaching memory. Bounded at four

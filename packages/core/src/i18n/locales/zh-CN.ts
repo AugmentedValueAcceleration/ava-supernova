@@ -93,6 +93,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': '允许',
   'tool.always_allow': '始终允许',
   'tool.always_allow_category_tip': '在本次会话的其余时间内自动批准此工具类别',
+  'tool.always_allow_tool_tip': '此工具不再询问',
   'tool.deny': '拒绝',
   'tool.allow_prompt': '允许 {tool}？',
   'tool.arguments': '参数',

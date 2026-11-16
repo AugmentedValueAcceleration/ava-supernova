@@ -67,6 +67,7 @@ import { AVA_HOME } from '../core/constants.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
 import { PNG } from 'pngjs';
 import { personsWords } from '../tools/making-record.js';
+import { isUserMcpTool, mcpToolInMode } from '../mcp/permissions.js';
 
 // ─── Image downsampling ────────────────────────────────────────────────────
 // Screenshots at native resolution are the single biggest token sink in
@@ -897,7 +898,9 @@ function allowedToolsForMode(mode: string): Set<string> | undefined {
   return base ? talkingToolsFor(base) : undefined;
 }
 
-export function toolPassesModeGate(name: string, modeAllowed: Set<string>): boolean {
+export function toolPassesModeGate(name: string, modeAllowed: Set<string>, mode?: string | null): boolean {
+  // Servers the person added: Code and Chat, Plan's read-only ones, no room.
+  if (isUserMcpTool(name)) return mcpToolInMode(name, mode);
   // Tools a connected program brings (Blender Live's blender_live_*) are only
   // known at run time; they belong to the room that has Live's own tools.
   if (name?.startsWith('blender_live_')) return modeAllowed.has('design_live_step');
@@ -1876,7 +1879,7 @@ export class Agent {
 
     let filteredSchemas: ToolSchema[];
     if (modeAllowed && applyModeGate) {
-      filteredSchemas = allSchemas.filter(s => toolPassesModeGate(s.function.name, modeAllowed));
+      filteredSchemas = allSchemas.filter(s => toolPassesModeGate(s.function.name, modeAllowed, baseMode));
     } else {
       filteredSchemas = allSchemas.filter(s => !DESKTOP_ONLY_TOOLS.has(s.function.name));
     }
@@ -2826,7 +2829,7 @@ export class Agent {
       // blocking here would do precisely what the paragraph above forbids:
       // offer a tool and then refuse the call.
       if (modeAllowed) {
-        const isAllowed = (name: string) => toolPassesModeGate(name, modeAllowed);
+        const isAllowed = (name: string) => toolPassesModeGate(name, modeAllowed, baseMode);
         const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !isAllowed(tc.function.name));
         if (blocked.length > 0 && !applyModeGate) {
           // The evidence worth having. The static count says what is in play;

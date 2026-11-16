@@ -93,6 +93,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Permitir',
   'tool.always_allow': 'Permitir sempre',
   'tool.always_allow_category_tip': 'Aprovar automaticamente esta categoria de ferramentas para o resto da sessão',
+  'tool.always_allow_tool_tip': 'Não perguntar de novo para esta ferramenta',
   'tool.deny': 'Negar',
   'tool.allow_prompt': 'Permitir {tool}?',
   'tool.arguments': 'Argumentos',

@@ -93,6 +93,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Разрешить',
   'tool.always_allow': 'Всегда разрешать',
   'tool.always_allow_category_tip': 'Автоматически одобрять эту категорию инструментов до конца сессии',
+  'tool.always_allow_tool_tip': 'Больше не спрашивать для этого инструмента',
   'tool.deny': 'Запретить',
   'tool.allow_prompt': 'Разрешить {tool}?',
   'tool.arguments': 'Аргументы',

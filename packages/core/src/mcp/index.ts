@@ -2,3 +2,14 @@ export { McpConnection, isLocalUrl } from './connection.js';
 export type { McpServerConfig, McpTransportConfig, McpToolInfo, McpCallResult } from './connection.js';
 export { mcpToolsForAva, avaToolName, riskFor } from './tools.js';
 export type { McpToolOptions } from './tools.js';
+export { checkServerUrl, isUnauthorized } from './connection.js';
+export { McpServers, syncMcpTools } from './manager.js';
+export type { McpServerState, McpServerStatus, McpToolStatus, McpScope } from './manager.js';
+export {
+  mcpConfigPath, projectMcpPath, readMcpFile, updateMcpFile, readProjectServers, readEntry, fingerprint,
+  describeEntry, secretsUsed, cleanServerId, isWebEntry,
+} from './servers-config.js';
+export type { McpFile, McpServerEntry, McpProjectAnswers } from './servers-config.js';
+export { setMcpKeychain, hasMcpKeychain, getMcpSecret, setMcpSecret, mcpSecretNames, getMcpAuth, setMcpAuth } from './secrets.js';
+export type { McpKeychain } from './secrets.js';
+export { isUserMcpTool, mcpToolInMode, mcpToolAlwaysAllowed, USER_MCP_PREFIX } from './permissions.js';

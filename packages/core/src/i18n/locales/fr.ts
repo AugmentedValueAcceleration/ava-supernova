@@ -93,6 +93,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Autoriser',
   'tool.always_allow': 'Toujours autoriser',
   'tool.always_allow_category_tip': 'Approuver automatiquement cette catégorie d\'outils pour le reste de la session',
+  'tool.always_allow_tool_tip': 'Ne plus demander pour cet outil',
   'tool.deny': 'Refuser',
   'tool.allow_prompt': 'Autoriser {tool} ?',
   'tool.arguments': 'Arguments',

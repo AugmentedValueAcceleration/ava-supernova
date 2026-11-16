@@ -78,6 +78,7 @@ import { HealthProfileAskTool } from './health-profile-ask.js';
 import { OpenHealthRoomTool } from './open-health-room.js';
 import { OpenLearningRoomTool } from './open-learning-room.js';
 import { OpenDesignStudioTool } from './open-design-studio.js';
+import { isUserMcpTool, mcpToolAlwaysAllowed } from '../mcp/permissions.js';
 import {
   DesignFindShapeTool,
   DesignGenerateIconTool,
@@ -701,6 +702,13 @@ export class ToolRegistry {
       // "always allow" on its category must not skip the look.
       || tool.name === 'health_plan_create'
     ) return true;
+
+    // Tools from a server the person added (mcp_<server>_<tool>) ask until he
+    // says "always allow" for that one tool, whatever the permission mode and
+    // whatever the server calls them: a server's own read-only label isn't
+    // trusted (plan 2026-11-17-mcp-servers, decision 2). Blender's own tools
+    // are not these (blender_live_*).
+    if (isUserMcpTool(tool.name)) return !mcpToolAlwaysAllowed(tool.name);
 
     // Tools that handle approval inside their own execute() (desktop-safety-gate
     // pattern) skip the generic flow — they carry richer per-invocation

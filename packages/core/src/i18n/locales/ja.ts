@@ -93,6 +93,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': '許可',
   'tool.always_allow': '常に許可',
   'tool.always_allow_category_tip': 'このツールカテゴリをセッション終了まで自動承認する',
+  'tool.always_allow_tool_tip': 'このツールは今後確認しない',
   'tool.deny': '拒否',
   'tool.allow_prompt': '{tool} を許可しますか？',
   'tool.arguments': '引数',

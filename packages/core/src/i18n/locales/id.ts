@@ -93,6 +93,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Izinkan',
   'tool.always_allow': 'Selalu Izinkan',
   'tool.always_allow_category_tip': 'Setujui otomatis kategori alat ini untuk sisa sesi',
+  'tool.always_allow_tool_tip': 'Jangan tanya lagi untuk alat ini',
   'tool.deny': 'Tolak',
   'tool.allow_prompt': 'Izinkan {tool}?',
   'tool.arguments': 'Argumen',

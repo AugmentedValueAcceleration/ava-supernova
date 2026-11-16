@@ -93,6 +93,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Erlauben',
   'tool.always_allow': 'Immer erlauben',
   'tool.always_allow_category_tip': 'Diese Tool-Kategorie automatisch für den Rest der Sitzung genehmigen',
+  'tool.always_allow_tool_tip': 'Für dieses Tool nicht mehr fragen',
   'tool.deny': 'Ablehnen',
   'tool.allow_prompt': '{tool} erlauben?',
   'tool.arguments': 'Argumente',

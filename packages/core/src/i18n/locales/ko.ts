@@ -93,6 +93,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': '허용',
   'tool.always_allow': '항상 허용',
   'tool.always_allow_category_tip': '이 도구 카테고리를 세션이 끝날 때까지 자동 승인',
+  'tool.always_allow_tool_tip': '이 도구는 다시 묻지 않기',
   'tool.deny': '거부',
   'tool.allow_prompt': '{tool}을(를) 허용하시겠습니까?',
   'tool.arguments': '인수',

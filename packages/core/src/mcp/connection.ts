@@ -9,8 +9,10 @@
  *   - a LOCAL WEB ADDRESS on this computer (Streamable HTTP) — Blender Lab's
  *     official server and Unreal's.
  *
- * Local only, on purpose: a web address that isn't this computer is refused,
- * so nothing here can send work off the machine. A server's tools are read
+ * Blender's connection is local only (`local-url`): a web address that isn't
+ * this computer is refused. Servers the person adds themselves may be online
+ * (`url`, plan 2026-11-17-mcp-servers decision 1: their choice, never ours),
+ * over https — plain http only to this computer. A server's tools are read
  * when it connects, never hard-coded, so an experimental server changing its
  * tools costs us nothing.
  */
@@ -18,13 +20,18 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport, getDefaultEnvironment } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 
 export type McpTransportConfig =
   /** A program Ava starts, talking over its input and output. */
   | { kind: 'program'; command: string; args?: string[]; env?: Record<string, string>; cwd?: string }
   /** A server already running on this computer, at a local web address. */
-  | { kind: 'local-url'; url: string; headers?: Record<string, string> };
+  | { kind: 'local-url'; url: string; headers?: Record<string, string> }
+  /** A server the person added, on this computer or online (https). `sse` is
+   *  the older MCP web transport some servers still use. */
+  | { kind: 'url'; url: string; headers?: Record<string, string>; sse?: boolean; authProvider?: OAuthClientProvider };
 
 export interface McpServerConfig {
   /** Short id, also the start of each tool's name for Ava (e.g. "blender_live"). */
@@ -61,7 +68,25 @@ export function isLocalUrl(raw: string): boolean {
   return host === 'localhost' || host === '::1' || /^127(\.\d{1,3}){3}$/.test(host);
 }
 
+/** An online server's address: https, or plain http only to this computer. */
+export function checkServerUrl(raw: string): string | null {
+  let u: URL;
+  try { u = new URL(raw); } catch { return `"${raw}" isn't a web address.`; }
+  if (u.protocol === 'https:') return null;
+  if (u.protocol === 'http:' && isLocalUrl(raw)) return null;
+  if (u.protocol === 'http:') return `${u.host} uses plain http, which would send your keys unprotected. Only https is used for a server that isn't on this computer.`;
+  return `${u.protocol} addresses can't be MCP servers.`;
+}
+
 function makeTransport(cfg: McpTransportConfig, stderrLines: string[]): Transport {
+  if (cfg.kind === 'url') {
+    const bad = checkServerUrl(cfg.url);
+    if (bad) throw new Error(bad);
+    const requestInit = cfg.headers ? { headers: cfg.headers } : undefined;
+    return cfg.sse
+      ? new SSEClientTransport(new URL(cfg.url), { requestInit, authProvider: cfg.authProvider })
+      : new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit, authProvider: cfg.authProvider });
+  }
   if (cfg.kind === 'local-url') {
     if (!isLocalUrl(cfg.url)) throw new Error(`Only a server on this computer can be connected (got ${cfg.url}).`);
     return new StreamableHTTPClientTransport(new URL(cfg.url), cfg.headers ? { requestInit: { headers: cfg.headers } } : undefined);
@@ -81,6 +106,13 @@ function makeTransport(cfg: McpTransportConfig, stderrLines: string[]): Transpor
     if (stderrLines.length > 40) stderrLines.splice(0, stderrLines.length - 40);
   });
   return transport;
+}
+
+/** True when a server refused us for want of a sign-in or a valid key. */
+export function isUnauthorized(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { name?: string; code?: number; message?: string; unauthorized?: boolean };
+  return e.unauthorized === true || e.name === 'UnauthorizedError' || e.code === 401 || /401|unauthori[sz]ed/i.test(e.message ?? '');
 }
 
 export class McpConnection {
@@ -110,7 +142,10 @@ export class McpConnection {
     } catch (err) {
       await client.close().catch(() => {});
       const said = stderrLines.slice(-5).join(' | ');
-      throw new Error(`Could not connect to ${config.name}: ${err instanceof Error ? err.message : String(err)}${said ? ` (it said: ${said})` : ''}`);
+      const out = new Error(`Could not connect to ${config.name}: ${err instanceof Error ? err.message : String(err)}${said ? ` (it said: ${said})` : ''}`, { cause: err });
+      // An online server that wants a sign-in (or a key it didn't accept).
+      (out as Error & { unauthorized?: boolean }).unauthorized = isUnauthorized(err);
+      throw out;
     }
     return conn;
   }

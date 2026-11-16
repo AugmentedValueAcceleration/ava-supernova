@@ -93,6 +93,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'tool.allow': 'Toestaan',
   'tool.always_allow': 'Altijd toestaan',
   'tool.always_allow_category_tip': 'Deze toolcategorie automatisch goedkeuren voor de rest van de sessie',
+  'tool.always_allow_tool_tip': 'Niet meer vragen voor deze tool',
   'tool.deny': 'Weigeren',
   'tool.allow_prompt': '{tool} toestaan?',
   'tool.arguments': 'Argumenten',
