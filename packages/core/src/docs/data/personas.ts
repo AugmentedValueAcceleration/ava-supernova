@@ -45,9 +45,9 @@ export const PERSONAS: PersonaFact[] = [
 
   // Brainstorm (5) — Explorer → Researcher → Ideator → Challenger → Refiner
   { id: 'brainstorm.explorer', name: 'Explorer', mode: 'brainstorm', order: 1, role: 'Mines user context and memory to build a profile for personalised ideation.' },
-  { id: 'brainstorm.researcher', name: 'Researcher', mode: 'brainstorm', order: 2, role: 'Researches market gaps, trends, and demand signals to ground ideation.' },
-  { id: 'brainstorm.ideator', name: 'Ideator', mode: 'brainstorm', order: 3, role: 'Generates specific, actionable ideas tailored to the person and the market.' },
-  { id: 'brainstorm.challenger', name: 'Challenger', mode: 'brainstorm', order: 4, role: 'Stress-tests ideas and cuts weak ones ruthlessly against reality.' },
+  { id: 'brainstorm.ideator', name: 'Ideator', mode: 'brainstorm', order: 2, role: 'Generates specific, actionable ideas from who you are and what you brought.' },
+  { id: 'brainstorm.researcher', name: 'Researcher', mode: 'brainstorm', order: 3, role: 'Sharpens each idea: what already exists, and what building it takes.' },
+  { id: 'brainstorm.challenger', name: 'Challenger', mode: 'brainstorm', order: 4, role: 'Tests each idea on what decides whether it gets built: can you start it, will you still care, is it the right size.' },
   { id: 'brainstorm.refiner', name: 'Refiner', mode: 'brainstorm', order: 5, role: 'Sharpens surviving ideas into concrete next steps and validation tests.' },
 ];
 

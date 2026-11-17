@@ -43,7 +43,7 @@ export class CreateProjectTool implements Tool {
     name: 'create_project',
     description:
       'Create a new, empty project folder in the user\'s projects home ' +
-      '(~/Ava Projects by default) and return its absolute path. ' +
+      '(~/.ava/projects by default) and return its absolute path. ' +
       'Use this when the user asks to START A NEW PROJECT rather than work on ' +
       'the one that is open — every other file tool is restricted to the ' +
       'currently open project, so without this a new project would be created ' +
