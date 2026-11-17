@@ -2,7 +2,7 @@
   <h1 align="center">Ava Supernova</h1>
   <p align="center">
     <strong>The open-source AI coding agent that works for everyone — not just the people who can afford it.</strong><br/>
-    100+ tools · 7 modes · 24 specialist personas · frontier open-weight models from every major lab · a Creative Studio that builds real assets into your project.<br/>
+    80+ tools · 6 modes · a Brainstorm room · 24 specialist personas · frontier open-weight models from every major lab · a Creative Studio that builds real assets into your project.<br/>
     <strong>Free and open source. Your keys. Your machine. Your work.</strong>
   </p>
   <p align="center">
@@ -52,14 +52,14 @@ Your keys and everything Ava knows about you — profile, personality, settings 
 ## What Makes Ava Different
 
 - **She remembers you.** A layered memory system learns your style, conventions, decisions, and the bugs you've fixed before — curated by a dedicated Memory Agent so context stays lean and recall stays sharp. Local-first, opt-in semantic recall.
-- **She thinks before she builds.** 24 specialist personas across 7 modes plan, verify, and challenge before executing. Simple questions skip orchestration entirely — zero overhead.
+- **She thinks before she builds.** 24 specialist personas across her modes and rooms plan, verify, and challenge before executing. Simple questions skip orchestration entirely — zero overhead.
 - **She won't fake a "done."** A built-in honesty gate checks every claim of completion or success — "it's fixed", "tests pass", "deployed" — against the tools she actually ran that turn, and flags any it can't back with evidence. A guess never stands as fact. Always on, no off-switch.
 - **She picks the right fleet for the work.** You pick the job; the right multi-model fleet falls out of it (see [Models & Fleets](#models--fleets)).
 - **She teaches.** Switch to Teach mode, say "teach me Rust," and she builds a personalised curriculum and teaches it lesson by lesson — fact-checked against the live web.
 - **She explains herself.** Ask "how does your memory work?" and she reads her own implementation and walks you through it.
 - **She's yours to design.** Name, pronouns, tone, energy, communication style — same brain, your personality. The whole UI translates into 20 languages and switches live the moment you change it — no restart.
 
-## 7 Modes — States of Thought
+## 6 Modes — States of Thought
 
 Modes aren't tool restrictions — they're states of mind. The toolkit and the persona team change to match the work.
 
@@ -70,10 +70,11 @@ Modes aren't tool restrictions — they're states of mind. The toolkit and the p
 | **Chat** | `..` | Friend | Personal conversation, journal, memory, news, weather |
 | **Teach** | `??` | Tutor | Personalised learning paths and Socratic delivery |
 | **Security** | `!!` | Auditor | OWASP-aligned scanning with verified findings |
-| **Brainstorm** | `**` | Ideator | Research, generate, challenge, and refine ideas |
 | **Write** | `<<` | Author | Drafting real documents — reports, proposals, letters, articles — exported as branded Word & PDF |
 
 Switch with the mode menu, or start a message with its prefix.
+
+**Brainstorming has its own room.** Open Brainstorm in the sidebar and bring part of an idea: a project, a feature, how it should feel for the people using it, or where a project goes next. Every brainstorm keeps its ideas (including the ones you turn down, and why), a living plan and the experience beside the chat. Assign a plan to a project, and in Code and Plan mode Ava builds from it and keeps it up to date.
 
 ## Personas — Ava's Internal Specialist Team
 
@@ -83,7 +84,7 @@ When a task is complex, Ava's internal team activates. Each persona gets its own
 - **Plan:** Researcher → Architect → Challenger
 - **Teach:** Curriculum Architect → Content Writer → Fact Checker → Quiz Master → Tutor
 - **Security:** Recon → Scanner → CVE Researcher → Verifier → Reporter
-- **Brainstorm:** Explorer → Researcher → Ideator → Challenger → Refiner
+- **Brainstorm room:** Explorer → Ideator → Researcher → Challenger → Refiner
 
 Chat and Write run without personas — just Ava.
 
@@ -157,7 +158,7 @@ On first launch, Ava runs a short setup: pick a provider and paste your key (or 
 | **Learning** | `learning_create`, `learning_teach`, `learning_progress`, `open_learning_room` |
 | **Health** | `health_plan_create`, `health_plan_update`, `health_plan_update_day`, `health_plan_list`, `health_plan_delete`, `health_profile_ask`, `health_catalogue_search`, `open_health_room` |
 | **Security & data** | `audit_dependencies`, `database_query` |
-| **Brainstorm** | `brainstorm_session` |
+| **Brainstorm** | `brainstorm_session`, `brainstorm_plan`, `open_brainstorm_room` |
 | **System** | `get_datetime`, `detect_language`, `support_request`, `propose_tool` |
 | **Desktop & browser automation** *(IDE, Q4 2026)* | `desktop_launch_app`, `desktop_focus_window`, `desktop_list_elements`, `desktop_click_by_name`, `desktop_type`, `desktop_key_press`, `desktop_plan_approve`, `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_close` |
 

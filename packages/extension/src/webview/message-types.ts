@@ -306,7 +306,7 @@ export type WebviewToExtMessage =
   | { type: 'mark_onboarded' }
   /** Dashboard-page deep-links triggered from the welcome modal's
    *  "Open docs" / "Creative Studio" / "Settings" shortcuts. */
-  | { type: 'open_dashboard_page'; page: 'documentation' | 'creative-studio' | 'account' | 'keys' | 'journal' | 'learning' | 'health' }
+  | { type: 'open_dashboard_page'; page: 'documentation' | 'creative-studio' | 'account' | 'keys' | 'journal' | 'learning' | 'health' | 'brainstorm'; primer?: string }
   | { type: 'request_history' }
   | { type: 'load_conversation'; conversationId: string }
   | { type: 'delete_conversation'; conversationId: string }

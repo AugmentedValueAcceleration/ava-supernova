@@ -38,7 +38,7 @@ export class BrainstormSessionTool implements Tool {
       + 'you can say to someone stuck). read — one in full. save — create or update one: its kind, headline, ideas, notes, plan '
       + '(summary + steps, small first then ambitious), ticks, changes, experience. assign — link it to a project folder (it stays '
       + 'here; Ava sees it while working in that project); project_path "" unassigns. experience_to_kit — save its experience to a '
-      + 'brand kit (he always sees a card): the project\'s linked kit, a kit by id, or a new PROPOSED kit he agrees in the Design Studio.',
+      + 'brand kit (he always sees a card): the project\'s linked kit, a kit by id, or a new PROPOSED kit he agrees in Brand Kits, in the Creative Studio.',
     parameters: {
       type: 'object',
       properties: {
@@ -246,7 +246,7 @@ export class BrainstormSessionTool implements Tool {
           return {
             success: true,
             output: saved.proposed
-              ? `The experience is in the proposed kit "${saved.name}" [${saved.id}]. It is not in use until he agrees the kit in the Design Studio's Brand Kits — tell him that's where to look.`
+              ? `The experience is in the proposed kit "${saved.name}" [${saved.id}]. It is not in use until he agrees the kit in Brand Kits, in the Creative Studio — tell him that's where to look.`
               : `The experience is saved in the brand kit "${saved.name}" [${saved.id}]; every mode working with that kit now designs and writes for it.`,
           };
         }

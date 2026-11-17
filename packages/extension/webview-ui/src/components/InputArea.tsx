@@ -57,7 +57,6 @@ const MODES: { id: AvaMode; labelKey: string; descKey: string; icon: string }[] 
   { id: 'code',       labelKey: 'input.mode.code',       descKey: 'input.mode.code.desc',       icon: '>>' },
   { id: 'write',      labelKey: 'input.mode.write',      descKey: 'input.mode.write.desc',      icon: '<<' },
   { id: 'plan',       labelKey: 'input.mode.plan',       descKey: 'input.mode.plan.desc',       icon: '::' },
-  { id: 'brainstorm', labelKey: 'input.mode.brainstorm', descKey: 'input.mode.brainstorm.desc', icon: '**' },
   { id: 'chat',       labelKey: 'input.mode.chat',       descKey: 'input.mode.chat.desc',       icon: '..' },
   { id: 'security',   labelKey: 'input.mode.security',   descKey: 'input.mode.security.desc',   icon: '!!' },
   // Teach is NOT here. It moved into the Learning room, the same way Health
@@ -68,6 +67,10 @@ const MODES: { id: AvaMode; labelKey: string; descKey: string; icon: string }[] 
   //
   // The type keeps 'teach' and so does PLACEHOLDER_KEYS: core still detects the
   // prefix, and a conversation already in Teach must keep working.
+  //
+  // Brainstorm is NOT here either (17 Nov 2026): it is the Brainstorm room on the
+  // dashboard, its only home. Ava offers the room from Code, Plan and Chat, and
+  // a mode left on brainstorm falls back to code.
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -94,7 +97,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSuppor
   const [mode, setMode] = useState<AvaMode>(() => {
     try {
       const stored = localStorage.getItem('ava-ext-chat-mode');
-      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'];
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'write'];
       if (stored && (valid as string[]).includes(stored)) return stored as AvaMode;
     } catch { /* localStorage unavailable */ }
     return 'code';
@@ -114,7 +117,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSuppor
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       const m = e.data as { type?: string; mode?: string };
-      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'];
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'write'];
       if (m?.type === 'chat_mode' && m.mode && (valid as string[]).includes(m.mode)) setMode(m.mode as AvaMode);
     };
     window.addEventListener('message', onMsg);

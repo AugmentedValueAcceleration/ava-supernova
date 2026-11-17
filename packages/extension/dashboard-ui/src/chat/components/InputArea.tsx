@@ -74,11 +74,12 @@ interface InputAreaProps {
 
 // Teach is intentionally absent — it now lives in the focused Learning room
 // (its own lane), so it's no longer a selectable main-chat mode (same as Health).
+// So is Brainstorm (17 Nov 2026): the Brainstorm room is its only home. The type
+// and PLACEHOLDER_KEYS keep it because the room's own chat sends mode brainstorm.
 const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
   { id: 'code', labelKey: 'input.mode.code', icon: '>>' },
   { id: 'write', labelKey: 'input.mode.write', icon: '<<' },
   { id: 'plan', labelKey: 'input.mode.plan', icon: '::' },
-  { id: 'brainstorm', labelKey: 'input.mode.brainstorm', icon: '**' },
   { id: 'chat', labelKey: 'input.mode.chat', icon: '..' },
   { id: 'security', labelKey: 'input.mode.security', icon: '!!' },
 ];
@@ -107,7 +108,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, modelSuppor
       const stored = localStorage.getItem('ava-dashboard-chat-mode');
       // 'teach' deliberately omitted — it moved to the Learning room, so a
       // previously-persisted teach falls back to 'code' in the main chat.
-      const valid: AvaMode[] = ['code', 'plan', 'chat', 'security', 'brainstorm', 'write'];
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'security', 'write'];
       if (stored && (valid as string[]).includes(stored)) return stored as AvaMode;
     } catch { /* localStorage unavailable */ }
     return 'code';

@@ -1234,7 +1234,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   applyChatMode(shared: string | undefined): void {
     if (!shared) return;
     const mode = shared === 'work' ? 'code' : shared;
-    const valid = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'];
+    // Brainstorm is a room now, not a chat mode: a shared 'brainstorm' leaves this panel as it is.
+    const valid = ['code', 'plan', 'chat', 'teach', 'security', 'write'];
     if (valid.includes(mode)) this.postMessage({ type: 'chat_mode', mode: mode as 'code' });
   }
 
@@ -2812,8 +2813,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         // Open the dashboard and hand off which page to jump to — the
         // welcome modal's shortcuts route through here so "Open docs" /
         // "Creative Studio" / "Settings" take the user straight there.
-        await this.context.globalState.update('ava.dashboardPageAfterOpen', message.page);
-        vscode.commands.executeCommand('ava-supernova.openDashboard');
+        // The page used to be written to globalState and never read, so these
+        // links only opened the dashboard. Now the panel shows it once ready.
+        DashboardPanel.openPage(this.extensionUri, this.context, this, message.page, message.primer);
         break;
 
       case 'open_docs':
@@ -3242,11 +3244,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // In the Brainstorm room, Ava is told which brainstorm this thread is and what's in it.
     const roomContext = options?.surface === 'brainstorm' && options.courseId
       ? await brainstormRoomContext(options.courseId).catch(() => undefined) : undefined;
+    // In the room, the prompt is the room's even when its brainstorm can't be read.
+    const brainstormRoom = options?.surface === 'brainstorm'
+      ? (roomContext ?? 'This conversation is in the Brainstorm room.') : roomContext;
     const userText = await this.applyModePrefix(
       docContext ? `${docContext}` + '\n\n' + `${text}` : text,
       mode,
       talk,
-      roomContext,
+      brainstormRoom,
     );
     this.log(`User message (mode=${mode}): "${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"`);
 

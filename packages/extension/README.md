@@ -105,7 +105,7 @@ Make Qwen keys in Alibaba Cloud Model Studio's **Singapore** region — keys are
 
 ---
 
-## 7 Modes — One Ava, Seven States of Thought
+## 6 Modes — One Ava, Six States of Thought
 
 Modes aren't tool restrictions. They're states of mind. The toolkit and the persona team change to match the work.
 
@@ -116,10 +116,11 @@ Modes aren't tool restrictions. They're states of mind. The toolkit and the pers
 | **Chat** | `..` | Friend | Personal conversation, journal, life check-ins |
 | **Teach** | `??` | Tutor | Personalised learning paths and Socratic delivery |
 | **Security** | `!!` | Auditor | OWASP-aligned vulnerability scanning |
-| **Brainstorm** | `**` | Ideator | New product ideas, problem framing, refinement |
 | **Write** | `<<` | Author | Drafting real documents — reports, proposals, letters, articles — exported as branded Word & PDF |
 
 Switch with the mode menu, or start a message with its prefix.
+
+**Brainstorming has its own room.** Open Brainstorm in the sidebar and bring part of an idea: a project, a feature, how it should feel for the people using it, or where a project goes next. Every brainstorm keeps its ideas (including the ones you turn down, and why), a living plan and the experience beside the chat. Assign a plan to a project, and in Code and Plan mode Ava builds from it and keeps it up to date.
 
 ---
 
@@ -196,11 +197,11 @@ Tell Ava what you want to learn and she becomes a real teacher. Teach runs on yo
 <details>
 <summary><strong>As Your Strategist</strong></summary>
 
-Two modes for thinking work, no code touched until you approve.
+A mode and a room for thinking work, no code touched until you approve.
 
 **Plan mode** — read-only architecture and proposal work. The Researcher gathers evidence (codebase, web, memory). The Architect designs the approach. The Challenger questions every decision. Output is a structured plan you can approve or reject.
 
-**Brainstorm mode** — for ideation and decision-making. The Explorer mines your context. The Researcher checks the market. The Ideator generates options. The Challenger cuts the weak ones. The Refiner turns survivors into "here's what you do Monday morning" plans.
+**The Brainstorm room** — for part of an idea: a project, a feature, how it should feel, or where a project goes next. The Explorer gets to know you. The Ideator generates options from what you told it. The Researcher sharpens the ones you like. The Challenger asks whether you'll start it today and still care on Thursday. The Refiner turns survivors into a plan you can assign to a project — and Ava keeps it up to date as you build.
 
 </details>
 

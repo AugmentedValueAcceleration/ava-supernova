@@ -481,6 +481,9 @@
       "fr": {
         "plan.note": "Note",
         "tasks.filter_plans": "Plans"
+      },
+      "nl": {
+        "starter.chip.brainstorm": "Brainstorm"
       }
     }
   },

@@ -323,12 +323,13 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
     { label: t('brainstorm.room.starter.experience'), prefix: '✦', prompt: t('brainstorm.room.starter.experience_prompt'), color: '#f9a8d4' },
     { label: t('brainstorm.room.starter.direction'),  prefix: '✦', prompt: t('brainstorm.room.starter.direction_prompt'),  color: '#fbbf24' },
   ];
-  const codeChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+  // `go` replaces filling the input: Brainstorm opens its room (its only home).
+  const codeChips: { label: string; prefix: React.ReactNode; prompt: string; color: string; go?: () => void }[] = [
     { label: t('dash.chat.starter.explain'),    prefix: '>>', prompt: t('dash.chat.starter.explain_prompt'),    color: 'var(--accent)' },
     { label: t('dash.chat.starter.plan'),        prefix: '::', prompt: t('dash.chat.starter.plan_prompt'),        color: '#60a5fa' },
     { label: t('dash.chat.starter.teach'),       prefix: '??', prompt: t('dash.chat.starter.teach_prompt'),       color: '#f9e2af' },
     { label: t('dash.chat.starter.audit'),       prefix: '!!', prompt: t('dash.chat.starter.audit_prompt'),       color: '#f38ba8' },
-    { label: t('dash.chat.starter.brainstorm'),  prefix: '**', prompt: t('dash.chat.starter.brainstorm_prompt'),  color: '#94e2d5' },
+    { label: t('dash.nav.brainstorm'),  prefix: '**', prompt: '', color: '#94e2d5', go: () => window.dispatchEvent(new CustomEvent('ava-navigate-dashboard', { detail: 'brainstorm' })) },
     { label: t('dash.chat.starter.chat'),        prefix: '..', prompt: '.. ',                                     color: '#a6adc8' },
   ];
   const chips = isHealth ? healthChips : isLearning ? learningChips : isBrainstorm ? brainstormChips : isDesign ? designChips : codeChips;
@@ -355,7 +356,7 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
         {chips.map((c) => (
           <button
             key={c.label}
-            onClick={() => onSuggestion(c.prompt)}
+            onClick={() => { const go = (c as { go?: () => void }).go; if (go) go(); else onSuggestion(c.prompt); }}
             className="ava-starter-chip text-[12px] px-3 py-1.5 rounded-lg flex items-center gap-1.5"
             style={{
               background: 'rgba(26, 16, 40, 0.5)',

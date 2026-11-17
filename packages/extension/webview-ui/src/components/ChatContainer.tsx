@@ -5,6 +5,7 @@ import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
 import { AddKeyScreen } from './AddKeyScreen';
 import { t, useLocale } from '../i18n';
+import { useVSCodeApi } from '../hooks/useVSCodeApi';
 
 interface PersonaInfo {
   id: string;
@@ -322,12 +323,14 @@ function buildSeededWelcome(userName: string | null): string {
 function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
   useLocale();
   // labelKey resolves to display text at render; prefix/prompt/color are static data.
-  const chips: { labelKey: string; prefix: string; prompt: string; color: string }[] = [
+  const { postMessage } = useVSCodeApi();
+  // `go` replaces filling the input: Brainstorm opens its room on the dashboard.
+  const chips: { labelKey: string; prefix: string; prompt: string; color: string; go?: () => void }[] = [
     { labelKey: 'starter.chip.explain',  prefix: '>>', prompt: 'Explain what this file does: ',            color: '#a855f7' },
     { labelKey: 'starter.chip.plan',     prefix: '::', prompt: ':: How should I approach adding ',         color: '#60a5fa' },
     { labelKey: 'starter.chip.teach',    prefix: '??', prompt: '?? Teach me about ',                       color: '#f9e2af' },
     { labelKey: 'starter.chip.audit',    prefix: '!!', prompt: '!! Audit this project for security issues',color: '#f38ba8' },
-    { labelKey: 'starter.chip.brainstorm', prefix: '**', prompt: '** Help me think through ',              color: '#94e2d5' },
+    { labelKey: 'starter.chip.brainstorm', prefix: '**', prompt: '',                                       color: '#94e2d5', go: () => postMessage({ type: 'open_dashboard_page', page: 'brainstorm' }) },
     { labelKey: 'starter.chip.chat',     prefix: '..', prompt: '.. ',                                      color: '#a6adc8' },
   ];
 
@@ -351,7 +354,7 @@ function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => voi
         {chips.map((c) => (
           <button
             key={c.labelKey}
-            onClick={() => onSuggestion(c.prompt)}
+            onClick={() => (c.go ? c.go() : onSuggestion(c.prompt))}
             className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
             style={{
               background: 'rgba(26, 16, 40, 0.5)',

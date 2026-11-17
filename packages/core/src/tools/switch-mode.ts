@@ -1,8 +1,9 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
-/** Modes offered on every surface. */
-const CROSS_SURFACE_MODES = ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'] as const;
+/** Modes offered on every surface. Brainstorm is not one: it is a room (17 Nov
+ *  2026), reached with open_brainstorm_room, not a mode the main chat switches to. */
+const CROSS_SURFACE_MODES = ['work', 'plan', 'chat', 'teach', 'security', 'write'] as const;
 
 export class SwitchModeTool implements Tool {
   readonly name = 'switch_mode';
@@ -27,7 +28,7 @@ export class SwitchModeTool implements Tool {
     name: 'switch_mode',
     description:
       'Offer to switch to a different mode when a natural transition point is reached. ' +
-      'Examples: Plan mode after plan approved → Work mode. Brainstorm after idea refined → Plan or Work. ' +
+      'Examples: Plan mode after plan approved → Work mode. An idea worked out in the Brainstorm room → Plan or Work. ' +
       'Security after findings → Work to fix. Chat when a task is mentioned → Work or Plan. ' +
       'The user will see this as a transition card and can confirm, add more context, or decline. ' +
       'Always ask if there is anything to add before switching.',

@@ -43,7 +43,7 @@ export const PERSONAS: PersonaFact[] = [
   { id: 'security.verifier', name: 'Verifier', mode: 'security', order: 4, role: 'Confirms each finding is real and eliminates false positives with proof.' },
   { id: 'security.reporter', name: 'Reporter', mode: 'security', order: 5, role: 'Structures verified findings into a severity-sorted, actionable report.' },
 
-  // Brainstorm (5) — Explorer → Researcher → Ideator → Challenger → Refiner
+  // Brainstorm room (5) — Explorer → Ideator → Researcher → Challenger → Refiner
   { id: 'brainstorm.explorer', name: 'Explorer', mode: 'brainstorm', order: 1, role: 'Mines user context and memory to build a profile for personalised ideation.' },
   { id: 'brainstorm.ideator', name: 'Ideator', mode: 'brainstorm', order: 2, role: 'Generates specific, actionable ideas from who you are and what you brought.' },
   { id: 'brainstorm.researcher', name: 'Researcher', mode: 'brainstorm', order: 3, role: 'Sharpens each idea: what already exists, and what building it takes.' },

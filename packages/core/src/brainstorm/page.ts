@@ -104,9 +104,11 @@ export async function brainstormPage(op: string, args: Record<string, unknown> =
 }
 
 /** For the room's chat: what Ava is told about the brainstorm this conversation belongs to. */
-export async function brainstormRoomContext(id: string): Promise<string | undefined> {
+export async function brainstormRoomContext(id: string): Promise<string> {
   const s = await store().get(id).catch(() => null);
-  if (!s) return undefined;
+  // Still the room, even when its brainstorm can't be read (deleted, or the file
+  // is damaged): say so plainly rather than fall back to a prompt for elsewhere.
+  if (!s) return `This conversation is in the Brainstorm room, but its brainstorm [${id}] could not be read. Tell him in a line, and start a new one with brainstorm_session action="save" if he wants to carry on.`;
   const sum = summarise(s);
   const lines = [
     `This conversation IS brainstorm [${s.id}]${s.headline ? ` — "${s.headline}"` : ' (new, no headline yet: give it one when you first save)'}. `

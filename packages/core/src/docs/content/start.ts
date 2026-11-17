@@ -153,7 +153,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'Tools and approval' },
       { type: 'paragraph', text: 'When Ava reads a file, runs a command, or edits code, each of those is a "tool call". She asks before anything that touches your files or system — how often she asks is set by your permission mode (ask every time, ask only for risky things, or just go).' },
       { type: 'heading', level: 3, text: 'Modes — her states of mind' },
-      { type: 'paragraph', text: 'Ava works in modes: a mindset plus the right toolkit for the job. Switch any time from the picker, or type a prefix at the start of your message. There are seven.' },
+      { type: 'paragraph', text: 'Ava works in modes: a mindset plus the right toolkit for the job. Switch any time from the picker, or type a prefix at the start of your message. There are six. Brainstorming has its own room: open Brainstorm in the sidebar.' },
       { type: 'facts', kind: 'modes' },
       { type: 'heading', level: 3, text: 'Specialists and routing' },
       { type: 'paragraph', text: 'On harder jobs Ava runs a small team of specialist helpers behind the scenes (a planner, a checker, a builder) and routes each step to the model that\'s best at it. You never manage any of this — she coordinates it for you.' },
@@ -211,7 +211,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'table', headers: ['Word', 'What it actually means'], rows: [
         ['Agent', 'An AI that can take actions for you — read a file, run a command, search the web — not just chat. Ava is an agent: she does things, with your say-so.'],
         ['Model', 'The actual AI brain doing the thinking (Qwen, DeepSeek, Mistral, and others). Different models have different strengths. You normally never pick one — Ava does.'],
-        ['Mode', 'The mindset Ava is in. Like a colleague switching hats: builder, writer, teacher, planner, friend. You pick the mode; it changes how she behaves. There are seven.'],
+        ['Mode', 'The mindset Ava is in. Like a colleague switching hats: builder, writer, teacher, planner, friend. You pick the mode; it changes how she behaves. There are six.'],
         ['Persona / specialist', 'Helper roles Ava runs behind the scenes for harder jobs — an explorer, a planner, a fact-checker. Think of a small expert team. You never talk to them directly; Ava coordinates them.'],
         ['Routing', "Ava deciding which model to use for each step so you get good answers without overpaying. It happens automatically — \"routing mode\" just picks the overall strategy."],
         ['Tool', 'A specific action Ava can take — read a file, run a search, send an email. A "tool call" is her using one. She asks permission before anything risky.'],

@@ -78,7 +78,7 @@ describe('the experience into a brand kit', () => {
     experience: { words: ['calm', 'in control'], not_words: ['guilty'], principles: [{ title: 'Nothing shouts', do: 'soft colours', dont: 'red numbers' }] },
   }, ctx())).output);
 
-  it('with no kit, proposes a NEW kit he agrees in the Design Studio — nothing in use until then', async () => {
+  it('with no kit, proposes a NEW kit he agrees in Brand Kits — nothing in use until then', async () => {
     const id = await save();
     const r = await tool.execute({ action: 'experience_to_kit', session_id: id, kit_name: 'Calm Budget' }, ctx());
     expect(r.output).toMatch(/proposed kit "Calm Budget"/);

@@ -9,8 +9,8 @@ import type { FunctionSchema } from '../providers/types.js';
  * opens the room on a NEW brainstorm and sends the primer as its first message,
  * so the thread continues instead of starting cold.
  *
- * Quick thinking mid-work stays in the main chat (Brainstorm mode `**`); this is
- * for when it grows into a real brainstorm.
+ * Since 17 Nov 2026 the room is the ONLY place brainstorming happens — it is no
+ * longer a main-chat mode — so this is how Code, Plan and Chat get there.
  */
 export class OpenBrainstormRoomTool implements Tool {
   readonly name = 'open_brainstorm_room';
@@ -23,8 +23,8 @@ export class OpenBrainstormRoomTool implements Tool {
     name: 'open_brainstorm_room',
     description:
       'Offer a one-tap jump to the Brainstorm room (the focused space where an idea — a project, a feature, an experience or a direction — '
-      + 'becomes ideas, a plan and an experience, kept beside the chat). Use it when a brainstorm grows beyond a quick thought, or when '
-      + 'they ask to brainstorm properly. Pair it with one warm line; quick thinking mid-work can stay right here.',
+      + 'becomes ideas, a plan and an experience, kept beside the chat). Brainstorming lives there, not in the main chat: use it whenever '
+      + 'they want to brainstorm or work an idea through. Pair it with one warm line. A passing question about an idea you can just answer.',
     parameters: {
       type: 'object',
       properties: {

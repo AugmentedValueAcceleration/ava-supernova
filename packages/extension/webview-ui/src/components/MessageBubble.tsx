@@ -9,6 +9,7 @@ import { ToolCallBlock } from './ToolCallBlock';
 import { PlanCard } from './PlanCard';
 import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
+import { OpenBrainstormRoomCard } from './OpenBrainstormRoomCard';
 import { CopyButton } from './CopyButton';
 import { FeedbackButtons } from './FeedbackButtons';
 import { useSecrets } from '../hooks/useSecrets';
@@ -511,6 +512,9 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
         }
         if (tc.name === 'ask_user') {
           return <AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
+        }
+        if (tc.name === 'open_brainstorm_room') {
+          return <OpenBrainstormRoomCard key={tc.id} toolCall={tc} />;
         }
         return (
           <div key={tc.id} className="w-full">

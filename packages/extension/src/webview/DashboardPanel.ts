@@ -274,6 +274,20 @@ export class DashboardPanel {
     else DashboardPanel.currentPanel?.queueWelcomeTour();
   }
 
+  /** Open the dashboard on one page — the sidebar's deep links (welcome shortcuts,
+   *  the add-key step, the Brainstorm room hand-off). A fresh panel shows it once
+   *  the webview is ready. `primer` starts a new brainstorm with it. */
+  public static openPage(extensionUri: vscode.Uri, context: vscode.ExtensionContext, viewProvider: AvaViewProvider | undefined, page: string, primer?: string): void {
+    DashboardPanel.show(extensionUri, context, viewProvider);
+    const p = DashboardPanel.currentPanel;
+    if (!p) return;
+    const msg = { type: 'open_page', page, ...(primer ? { primer } : {}) } as never;
+    if (p.webviewReady) p.post(msg);
+    else p.pageQueued = msg;
+  }
+  private webviewReady = false;
+  private pageQueued: never | null = null;
+
   /** Show the welcome once the webview signals ready (for freshly-opened panels). */
   private welcomeTourQueued = false;
   /** Results from the phone waiting for a freshly-opened panel to be ready. */
@@ -470,6 +484,12 @@ export class DashboardPanel {
           const payload = this.resultsQueued;
           this.resultsQueued = null;
           void this.sendResults(payload);
+        }
+        this.webviewReady = true;
+        if (this.pageQueued) {
+          const msg = this.pageQueued;
+          this.pageQueued = null;
+          this.post(msg);
         }
         // Also initialise the chat engine
         if (this.viewProvider) {

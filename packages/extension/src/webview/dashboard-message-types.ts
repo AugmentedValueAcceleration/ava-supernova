@@ -1485,6 +1485,8 @@ export type ExtToDashboardMessage =
       workingHours?: { start: number; end: number } | null;
     }
   | { type: 'show_welcome' }
+  /** Show a page — a deep link from the sidebar. `primer` starts a new brainstorm (page 'brainstorm'). */
+  | { type: 'open_page'; page: Page; primer?: string }
   /** Answer to test_provider_key. `saved` is false only when the provider refused the key. */
   | { type: 'provider_key_tested'; provider: string; result: { status: 'valid' } | { status: 'invalid' | 'unverified'; message: string }; saved: boolean }
   | { type: 'dataset:config'; config: {

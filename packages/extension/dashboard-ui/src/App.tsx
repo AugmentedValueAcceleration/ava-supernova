@@ -934,6 +934,11 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'show_welcome':
         setOnboarding('full');
         break;
+      // A deep link from the sidebar. A primer on the Brainstorm room starts a new brainstorm with it.
+      case 'open_page':
+        if (msg.page === 'brainstorm' && msg.primer) setBrainstormPrimer(msg.primer);
+        setPagePersistRef.current(msg.page);
+        break;
       case 'locale_strings':
         // null means the host looked and found no file — loadStrings leaves us
         // on English rather than retrying.

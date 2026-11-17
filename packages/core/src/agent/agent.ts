@@ -393,6 +393,8 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Brainstormed plans assigned to this project — planning starts from them.
     // Writes only to ~/.ava/brainstorm, never the project, so Plan stays read-only.
     'brainstorm_plan',
+    // Still at the idea stage → the Brainstorm room (no longer a main-chat mode).
+    'open_brainstorm_room',
     // Reference / introspection (already used; advertised below now too)
     'docs_lookup', 'self_inspect',
     // Taste specialist for design/voice/microcopy decisions
@@ -464,8 +466,6 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Taste specialist for naming/voice/microcopy decisions
     'curator',
     'ask_user', 'get_datetime',
-    // From `**` in the main chat to the Brainstorm room when it grows (plan 2026-11-17-brainstorm).
-    'open_brainstorm_room',
     'switch_mode',
   ]),
   teach: new Set([

@@ -140,7 +140,8 @@ describe('the room chat', () => {
     expect(ctx).toContain(`This conversation IS brainstorm [${s.id}]`);
     expect(ctx).toContain(`session_id="${s.id}"`);
     expect(ctx).toContain('experience: calm, safe');
-    expect(await brainstormRoomContext('missing')).toBeUndefined();
+    // Still the room when its brainstorm can't be read — never a prompt for somewhere else.
+    expect(await brainstormRoomContext('missing')).toContain('in the Brainstorm room, but its brainstorm [missing] could not be read');
   });
 
   it('a room turn is brainstorm mode, the brainstorm surface, and never a title', async () => {
@@ -155,9 +156,38 @@ describe('the room chat', () => {
     expect(stripPromptScaffold(text)).toBe('I want an app for my allotment');
   });
 
-  it('the main chat mode keeps its own tag', () => {
+  it('outside the room (the CLI) it is plain Brainstorm, and nothing points to a main-chat mode', () => {
+    // 17 Nov 2026: Brainstorm left the main chat — the room is its only home.
     const text = getBrainstormModePrefix('an idea');
     expect(text.startsWith('[Brainstorm Mode]')).toBe(true);
-    expect(text).toContain('open_brainstorm_room');
+    expect(text).not.toContain('open_brainstorm_room');
+    expect(text).not.toContain('main chat');
+  });
+});
+
+describe('Brainstorm is a room, not a main-chat mode (17 Nov 2026)', () => {
+  it('Ava cannot switch the main chat into it; Code, Plan and Chat hand off to the room instead', async () => {
+    const { SwitchModeTool } = await import('../src/tools/switch-mode.js');
+    const { modeAllowedTools } = await import('../src/agent/agent.js');
+    const target = (new SwitchModeTool(true).schema.parameters as { properties: { target_mode: { enum: string[] } } }).properties.target_mode.enum;
+    expect(target).not.toContain('brainstorm');
+    for (const m of ['work', 'plan', 'chat']) expect(modeAllowedTools(m)?.has('open_brainstorm_room'), m).toBe(true);
+    expect(modeAllowedTools('brainstorm')?.has('open_brainstorm_room')).toBe(false);
+  });
+
+  it('no main-chat picker offers it', async () => {
+    const { readFileSync, existsSync } = await import('node:fs');
+    const root = join(__dirname, '..', '..');
+    for (const f of [
+      join(root, 'extension', 'webview-ui', 'src', 'components', 'InputArea.tsx'),
+      join(root, 'extension', 'dashboard-ui', 'src', 'chat', 'components', 'InputArea.tsx'),
+      join(root, 'ide', 'src', 'components', 'DashboardPages.tsx'),
+    ]) {
+      if (!existsSync(f)) continue; // a partial checkout
+      const src = readFileSync(f, 'utf8');
+      const decl = src.slice(src.search(/const MODES\s*:/));
+      const list = decl.slice(0, decl.indexOf('];'));
+      expect(list, f).not.toMatch(/id: 'brainstorm'/);
+    }
   });
 });

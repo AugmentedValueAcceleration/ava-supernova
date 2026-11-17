@@ -1,4 +1,6 @@
-// Canonical fact table for the 7 modes — states of thought.
+// Canonical fact table for the 6 modes — states of thought. Brainstorm was the
+// seventh until 17 Nov 2026; it is the Brainstorm room now, not a chat mode.
+// ModeId keeps 'brainstorm' because the room still runs its persona team.
 
 export type ModeId = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
@@ -51,14 +53,6 @@ export const MODES: ModeFact[] = [
     mindset: 'Auditor — systematic vulnerability scanning, paranoia as a virtue.',
     usesConductor: true,
     summary: 'Five-persona security team: recon, scan, CVE research, verify, report. OWASP and dependency CVE coverage end-to-end.',
-  },
-  {
-    id: 'brainstorm',
-    prefix: '**',
-    displayName: 'Brainstorm',
-    mindset: 'Ideator — grounded ideas, actionable paths.',
-    usesConductor: true,
-    summary: 'Mines your context, researches the market, generates specific ideas, challenges them, and refines the survivors into next steps.',
   },
   {
     id: 'write',
