@@ -20,13 +20,17 @@
 import { existsSync, watch, type FSWatcher } from 'node:fs';
 import { basename, dirname } from 'node:path';
 import type { Tool } from '../tools/types.js';
-import { McpConnection, type McpTransportConfig } from './connection.js';
+import { McpConnection, signInToServer, type McpTransportConfig } from './connection.js';
 import { avaToolName, mcpToolsForAva } from './tools.js';
 import {
   cleanServerId, describeEntry, expandValue, fingerprint, isWebEntry, mcpConfigPath, projectMcpPath,
   readMcpFile, readProjectServers, secretsUsed, updateMcpFile, type McpFile, type McpServerEntry,
 } from './servers-config.js';
-import { getMcpSecret } from './secrets.js';
+import { getMcpAuthAll, getMcpSecret } from './secrets.js';
+import {
+  AvaOAuthProvider, fencedFetch, forgetSignIn, hasMcpBrowserOpener, listenForSignIn, mcpAuthKey, openSignInPage,
+  type McpAuthRecord, type McpCallbackListener, type McpSignInWords,
+} from './oauth.js';
 import { riskNotes, type McpRiskNote } from './risk.js';
 import { USER_MCP_PREFIX, isUserMcpTool, setMcpAllowCheck, setMcpReadOnlyCheck } from './permissions.js';
 
@@ -72,6 +76,10 @@ export interface McpServerStatus {
   tools: McpToolStatus[];
   /** The server's own name and version, once connected. */
   server?: { name: string; version: string };
+  /** An online server he has signed in to (oauth.ts). */
+  signedIn?: boolean;
+  /** His browser is open on its sign-in page. */
+  signingIn?: boolean;
 }
 
 interface Running {
@@ -106,6 +114,12 @@ export class McpServers {
   /** Each start's number: a restart meanwhile retires the start in flight. */
   private readonly gens = new Map<string, number>();
   private readonly statuses = new Map<string, McpServerStatus>();
+  /** Sign-ins in progress, by server. */
+  private readonly signingIn = new Map<string, McpCallbackListener>();
+  /** Why the last sign-in didn't finish, by server (until the next try). */
+  private readonly signInProblems = new Map<string, string>();
+  /** The servers with a sign-in kept (keychain names, oauth.ts mcpAuthKey). */
+  private signedIn = new Set<string>();
   private readonly listeners = new Set<() => void>();
   private watchers: FSWatcher[] = [];
   private reloadChain: Promise<void> = Promise.resolve();
@@ -136,6 +150,8 @@ export class McpServers {
   }
 
   async stopAll(): Promise<void> {
+    for (const l of this.signingIn.values()) l.close();
+    this.signingIn.clear();
     for (const w of this.watchers) w.close();
     this.watchers = [];
     if (this.reloadTimer) clearTimeout(this.reloadTimer);
@@ -158,7 +174,21 @@ export class McpServers {
   // ── What's there ──────────────────────────────────────────────────────────
 
   status(): McpServerStatus[] {
-    return [...this.statuses.values()].sort((a, b) => (a.scope === b.scope ? a.id.localeCompare(b.id) : a.scope === 'user' ? -1 : 1));
+    return [...this.statuses.values()].map((s) => {
+      if (!s.online) return s;
+      const k = key(s.scope, s.id);
+      const problem = s.state === 'needs-signin' ? this.signInProblems.get(k) : undefined;
+      return {
+        ...s,
+        signedIn: this.signedIn.has(this.authKey(s.scope, s.id)),
+        signingIn: this.signingIn.has(k),
+        ...(problem ? { message: problem } : {}),
+      };
+    }).sort((a, b) => (a.scope === b.scope ? a.id.localeCompare(b.id) : a.scope === 'user' ? -1 : 1));
+  }
+
+  private authKey(scope: McpScope, id: string): string {
+    return mcpAuthKey(scope, id, this.projectRoot);
   }
 
   /** Problems reading the files, for the page. */
@@ -265,6 +295,94 @@ export class McpServers {
     await this.reload();
   }
 
+  // ── Signing in (online servers, oauth.ts) ─────────────────────────────────
+
+  /**
+   * Send him to an online server's sign-in page. Resolves once his browser
+   * is open on it (or fails with why it couldn't start); the rest happens in
+   * the background, and the server starts again once he's signed in.
+   */
+  async signIn(scope: McpScope, id: string, words: McpSignInWords = {}): Promise<void> {
+    const k = key(scope, id);
+    const e = scope === 'user' ? this.file.mcpServers[id] : this.project[id];
+    if (!e || !isWebEntry(e)) throw new Error('Only an online server can be signed in to.');
+    const st = this.statuses.get(k);
+    if (!st || st.state === 'off' || st.state === 'waiting') throw new Error('Switch it on (or say yes to it) first.');
+    if (!hasMcpBrowserOpener()) throw new Error('This app can\'t open a browser for signing in.');
+    this.signingIn.get(k)?.close('Started again.');
+    this.signInProblems.delete(k);
+
+    const missing: string[] = [];
+    const t = await this.webTransport(scope, e, missing);
+    if (missing.length) throw new Error(`It needs ${missing.join(', ')} first.`);
+
+    const listener = await listenForSignIn(words);
+    this.signingIn.set(k, listener);
+    this.emit();
+    let opened = false;
+    let started!: { resolve: () => void; reject: (err: unknown) => void; done: boolean };
+    const startedP = new Promise<void>((resolve, reject) => { started = { resolve, reject, done: false }; });
+    const begin = (err?: unknown) => {
+      if (started.done) return;
+      started.done = true;
+      if (err) started.reject(err); else started.resolve();
+    };
+
+    void (async () => {
+      try {
+        const provider = await AvaOAuthProvider.create(this.authKey(scope, id), t.url, {
+          redirect: listener.redirect,
+          state: listener.state,
+          open: async (u) => { await openSignInPage(u); opened = true; },
+        });
+        await signInToServer({ ...t, authProvider: provider }, async () => {
+          if (!opened) throw new Error('The server refused without offering a sign-in. If it uses a key, add it under Tools & details.');
+          begin();
+          return listener.code;
+        });
+        begin();
+        this.signedIn.add(this.authKey(scope, id));
+        if (this.signingIn.get(k) === listener) this.signingIn.delete(k);
+        await this.restart(scope, id);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        begin(err);
+        // Cancelled by him (or started again): nothing to tell.
+        if (this.signingIn.get(k) === listener && msg !== 'Sign-in was cancelled.') {
+          this.signInProblems.set(k, `Sign-in didn't finish: ${msg}`);
+        }
+      } finally {
+        listener.close();
+        if (this.signingIn.get(k) === listener) this.signingIn.delete(k);
+        this.emit();
+      }
+    })();
+    return startedP;
+  }
+
+  /** Stop waiting for his browser. */
+  cancelSignIn(scope: McpScope, id: string): void {
+    this.signingIn.get(key(scope, id))?.close();
+  }
+
+  /** Forget his sign-in to a server, and start it again (it will want one). */
+  async signOut(scope: McpScope, id: string): Promise<void> {
+    const ak = this.authKey(scope, id);
+    await forgetSignIn(ak);
+    this.signedIn.delete(ak);
+    this.signInProblems.delete(key(scope, id));
+    await this.restart(scope, id);
+  }
+
+  /** An online server's address and headers, with its keys filled in. */
+  private async webTransport(scope: McpScope, e: McpServerEntry, missing: string[]): Promise<Extract<McpTransportConfig, { kind: 'url' }>> {
+    const ctx = { projectRoot: this.projectRoot, secret: getMcpSecret, fromProject: scope === 'project' };
+    const headers: Record<string, string> = {};
+    for (const [name, v] of Object.entries(e.headers ?? {})) headers[name] = await expandValue(v, ctx, 'web', missing);
+    const url = await expandValue(e.url!, ctx, 'web', missing);
+    return { kind: 'url', url, headers: e.headers ? headers : undefined, sse: e.type === 'sse', fetch: fencedFetch(url) };
+  }
+
   // ── Reading the files and matching what runs to them ─────────────────────
 
   /** Re-read both files and start/stop servers to match. Calls are queued. */
@@ -285,6 +403,8 @@ export class McpServers {
       this.project = p.servers;
     }
     this.problems = problems;
+    const auth = await getMcpAuthAll().catch(() => ({} as Record<string, unknown>));
+    this.signedIn = new Set(Object.entries(auth).filter(([, r]) => !!(r as McpAuthRecord | undefined)?.tokens).map(([n]) => n));
 
     const answers = (this.projectRoot && this.file.projects?.[this.projectRoot]) || {};
     const wanted = new Map<string, { scope: McpScope; id: string; entry: McpServerEntry; allow: string[] }>();
@@ -383,12 +503,12 @@ export class McpServers {
         return out;
       };
       if (isWebEntry(e)) {
-        transport = {
-          kind: 'url',
-          url: await expandValue(e.url!, ctx, 'web', missing),
-          headers: await expandMap(e.headers, 'web'),
-          sse: e.type === 'sse',
-        };
+        const web = await this.webTransport(scope, e, missing);
+        // His sign-in, if he made one for this address (refreshed as needed).
+        // Without one no provider is given, so a server that wants a sign-in
+        // simply says so: Ava never registers with it until he clicks Sign in.
+        const provider = await AvaOAuthProvider.create(this.authKey(scope, id), web.url).catch(() => undefined);
+        transport = provider?.hasTokens ? { ...web, authProvider: provider } : web;
       } else {
         const args: string[] = [];
         for (const a of e.args ?? []) args.push(await expandValue(a, ctx, 'command', missing));

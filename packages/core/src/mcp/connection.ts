@@ -22,7 +22,7 @@ import { StdioClientTransport, getDefaultEnvironment } from '@modelcontextprotoc
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
-import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { FetchLike, Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 
 export type McpTransportConfig =
   /** A program Ava starts, talking over its input and output. */
@@ -31,7 +31,7 @@ export type McpTransportConfig =
   | { kind: 'local-url'; url: string; headers?: Record<string, string> }
   /** A server the person added, on this computer or online (https). `sse` is
    *  the older MCP web transport some servers still use. */
-  | { kind: 'url'; url: string; headers?: Record<string, string>; sse?: boolean; authProvider?: OAuthClientProvider };
+  | { kind: 'url'; url: string; headers?: Record<string, string>; sse?: boolean; authProvider?: OAuthClientProvider; fetch?: FetchLike };
 
 export interface McpServerConfig {
   /** Short id, also the start of each tool's name for Ava (e.g. "blender_live"). */
@@ -83,9 +83,8 @@ function makeTransport(cfg: McpTransportConfig, stderrLines: string[]): Transpor
     const bad = checkServerUrl(cfg.url);
     if (bad) throw new Error(bad);
     const requestInit = cfg.headers ? { headers: cfg.headers } : undefined;
-    return cfg.sse
-      ? new SSEClientTransport(new URL(cfg.url), { requestInit, authProvider: cfg.authProvider })
-      : new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit, authProvider: cfg.authProvider });
+    const opts = { requestInit, authProvider: cfg.authProvider, fetch: cfg.fetch };
+    return cfg.sse ? new SSEClientTransport(new URL(cfg.url), opts) : new StreamableHTTPClientTransport(new URL(cfg.url), opts);
   }
   if (cfg.kind === 'local-url') {
     if (!isLocalUrl(cfg.url)) throw new Error(`Only a server on this computer can be connected (got ${cfg.url}).`);
@@ -113,6 +112,35 @@ export function isUnauthorized(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as { name?: string; code?: number; message?: string; unauthorized?: boolean };
   return e.unauthorized === true || e.name === 'UnauthorizedError' || e.code === 401 || /401|unauthori[sz]ed/i.test(e.message ?? '');
+}
+
+/**
+ * Sign in to an online server (oauth.ts). Connecting without a valid sign-in
+ * makes the SDK find the server's sign-in, register Ava and hand the page to
+ * `authProvider` (which opens his browser); `code` then waits for the browser
+ * to come back, and the SDK swaps that code for tokens, which the provider
+ * keeps. Resolves true when it signed in, false when it already was.
+ */
+export async function signInToServer(
+  cfg: Extract<McpTransportConfig, { kind: 'url' }>,
+  code: () => Promise<string>,
+  timeoutMs = 60_000,
+): Promise<boolean> {
+  if (!cfg.authProvider) throw new Error('Signing in needs a sign-in provider.');
+  const transport = makeTransport(cfg, []) as StreamableHTTPClientTransport | SSEClientTransport;
+  const client = new Client(CLIENT_INFO, { capabilities: {} });
+  let refused: unknown;
+  try {
+    await client.connect(transport, { timeout: timeoutMs });
+  } catch (err) {
+    if (!isUnauthorized(err)) throw err;
+    refused = err;
+  } finally {
+    await client.close().catch(() => {});
+  }
+  if (!refused) return false;
+  await transport.finishAuth(await code());
+  return true;
 }
 
 export class McpConnection {

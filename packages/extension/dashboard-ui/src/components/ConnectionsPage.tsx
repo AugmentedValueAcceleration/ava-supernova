@@ -1,4 +1,4 @@
-// Connections — his MCP servers (plan 2026-11-17-mcp-servers, Phase 2; mockup
+// Connections — his MCP servers (plan 2026-11-17-mcp-servers, Phases 2-3; mockup
 // Decisions/mcp/connections-page-mockup.html, approved 17 Nov 2026).
 //
 // ONE SHARED FILE: identical in the extension and the IDE apart from the
@@ -22,6 +22,7 @@ interface Server {
   reason?: 'new' | 'changed' | 'declined' | 'shadowed' | 'stopped' | 'signin';
   missing?: string[]; notes: Note[]; online: boolean; shows: string;
   tools: ToolRow[]; keys: Array<{ name: string; set: boolean }>; server?: { name: string; version: string };
+  signedIn?: boolean; signingIn?: boolean;
 }
 interface PageState {
   servers: Server[]; projectFolder: string | null; problems: string[];
@@ -158,9 +159,24 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
   const [open, setOpen] = useState(s.state === 'needs-key' || s.state === 'error');
   const [removing, setRemoving] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [signInProblem, setSignInProblem] = useState('');
   const run = async (op: string, args: Record<string, unknown>) => {
     setBusy(true);
     try { onState(await request(op, args) as PageState); } finally { setBusy(false); }
+  };
+  // Opens his browser on the server's sign-in page; the page's polling shows the rest.
+  const signIn = async () => {
+    setBusy(true); setSignInProblem('');
+    try {
+      const r = await request('sign_in', { scope: s.scope, id: s.id, words: {
+        done: tt('mcp.page.signin_done', 'Signed in. You can close this tab and go back to Ava.'),
+        failed: tt('mcp.page.signin_failed', "Sign-in didn't finish. You can close this tab and try again from Ava."),
+      } }) as { problem?: string; state: PageState };
+      if (r.problem) setSignInProblem(r.problem);
+      onState(r.state);
+    } catch (e) {
+      setSignInProblem(e instanceof Error ? e.message : String(e));
+    } finally { setBusy(false); }
   };
   const st = statusLine(s);
   const waiting = s.state === 'waiting';
@@ -179,6 +195,20 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
           <div style={{ fontSize: 12.5, marginTop: 3, color: C.text2, display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={dot(st.color, st.glow)} /> <span>{st.text}</span>
           </div>
+          {s.online && s.signingIn && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, fontSize: 12.5, color: C.text2, flexWrap: 'wrap' }}>
+              <span>{tt('mcp.page.signing_in', 'Finish signing in in your browser…')}</span>
+              <button style={btn} onClick={() => void run('cancel_signin', { scope: s.scope, id: s.id })}>{tt('mcp.page.cancel', 'Cancel')}</button>
+            </div>
+          )}
+          {s.online && s.state === 'needs-signin' && !s.signingIn && (
+            <div style={{ marginTop: 8 }}>
+              <button style={primary} disabled={busy} onClick={() => void signIn()}>{tt('mcp.page.signin', 'Sign in')}</button>
+            </div>
+          )}
+          {signInProblem && !s.signingIn && (
+            <div style={{ ...note, color: C.danger }}>{tt('mcp.page.signin_error', "Sign-in couldn't start: {detail}").replace('{detail}', signInProblem)}</div>
+          )}
         </div>
         {!waiting && <button style={link} onClick={() => setOpen(!open)}>{tt('mcp.page.details', 'Tools & details')}</button>}
         {s.scope === 'user' && (
@@ -219,6 +249,7 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
             ) : (
               <>
                 {s.state !== 'off' && <button style={btn} disabled={busy} onClick={() => void run('restart', { scope: s.scope, id: s.id })}>{tt('mcp.page.restart', 'Restart')}</button>}
+                {s.online && s.signedIn && <button style={btn} disabled={busy} onClick={() => void run('sign_out', { scope: s.scope, id: s.id })}>{tt('mcp.page.signout', 'Sign out')}</button>}
                 {s.scope === 'project' && s.reason !== 'shadowed' && (
                   s.state === 'off'
                     ? <button style={btn} disabled={busy} onClick={() => void run('answer', { id: s.id, answer: 'not-now' })}>{tt('mcp.page.ask_again', 'Ask me again')}</button>
@@ -331,7 +362,7 @@ function AddPanel({ request, onClose, onState }: { request: ConnectionsRequest; 
               <input style={{ ...input, fontFamily: mono, fontSize: 12.5, flex: '0 0 40%' }} value={d.headerName} onChange={(e) => set({ headerName: e.target.value })} placeholder="Authorization" />
               <input type="password" style={input} value={d.headerValue} onChange={(e) => set({ headerValue: e.target.value })} placeholder={tt('mcp.page.add.value', 'Value')} />
             </div>
-            <div style={note}>{tt('mcp.page.add.signin_later', 'Servers that use a sign-in instead of a key will get a Sign in button soon.')}</div>
+            <div style={note}>{tt('mcp.page.add.signin_hint', "If it uses a sign-in instead of a key, leave this empty: a Sign in button shows once it's added.")}</div>
           </>
         )}
 

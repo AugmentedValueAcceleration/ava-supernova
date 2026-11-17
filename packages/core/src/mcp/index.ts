@@ -17,3 +17,9 @@ export { mcpPage, splitCommandLine, MCP_HEAVY_TOOLS } from './page.js';
 export type { McpDraft, McpPageState, McpPageServer, McpCheck } from './page.js';
 export { riskNotes } from './risk.js';
 export type { McpRiskCode, McpRiskNote } from './risk.js';
+export {
+  setMcpBrowserOpener, hasMcpBrowserOpener, checkSignInUrl, addressZone, fencedFetch, listenForSignIn,
+  setMcpSignInPort, mcpAuthKey, isSignedIn, forgetSignIn, AvaOAuthProvider,
+} from './oauth.js';
+export type { McpBrowserOpener, McpAuthRecord, McpSignInWords } from './oauth.js';
+export { signInToServer } from './connection.js';

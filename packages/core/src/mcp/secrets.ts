@@ -1,5 +1,5 @@
 /**
- * MCP server keys (and, in Phase 3, sign-ins) — kept in the OS keychain the
+ * MCP server keys and sign-ins (oauth.ts) — kept in the OS keychain the
  * extension and the IDE share, never in ~/.ava/mcp.json.
  *
  * Core can't reach the keychain itself: each app hands it one stored value,
@@ -47,12 +47,20 @@ async function load(): Promise<McpSecretsBlob> {
   }
 }
 
-async function save(change: (b: McpSecretsBlob) => void): Promise<void> {
-  if (!keychain) throw new Error('The keychain isn\'t available, so the key wasn\'t kept.');
-  const b = await load();
-  change(b);
-  const empty = !Object.keys(b.secrets).length && !Object.keys(b.auth).length;
-  await keychain.write(empty ? null : JSON.stringify(b));
+let saving: Promise<void> = Promise.resolve();
+
+/** Changes are queued: two at once (say, two servers refreshing their sign-ins) must not lose one. */
+function save(change: (b: McpSecretsBlob) => void): Promise<void> {
+  const run = async () => {
+    if (!keychain) throw new Error('The keychain isn\'t available, so the key wasn\'t kept.');
+    const b = await load();
+    change(b);
+    const empty = !Object.keys(b.secrets).length && !Object.keys(b.auth).length;
+    await keychain.write(empty ? null : JSON.stringify(b));
+  };
+  const next = saving.then(run, run);
+  saving = next.catch(() => {});
+  return next;
 }
 
 export async function getMcpSecret(name: string): Promise<string | undefined> {
@@ -72,7 +80,12 @@ export async function mcpSecretNames(): Promise<string[]> {
   return Object.keys((await load()).secrets).sort();
 }
 
-/** A server's sign-in record (Phase 3). */
+/** Every server's sign-in record, in one read. */
+export async function getMcpAuthAll(): Promise<Record<string, unknown>> {
+  return (await load()).auth;
+}
+
+/** A server's sign-in record (Phase 3, oauth.ts). */
 export async function getMcpAuth<T>(server: string): Promise<T | undefined> {
   return (await load()).auth[server] as T | undefined;
 }

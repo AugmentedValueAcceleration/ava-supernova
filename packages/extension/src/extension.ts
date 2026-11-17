@@ -16,6 +16,7 @@ import {
   AVA_HOME,
   installDatasetConsumer,
   setMcpKeychain,
+  setMcpBrowserOpener,
   McpServers,
 } from '@ava/core';
 import { sessionStats } from './session-stats.js';
@@ -42,6 +43,12 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
   );
   // MCP server keys: the same keychain, entry mcp.secrets (shared with the IDE).
   setMcpKeychain(sharedSecrets.mcpKeychain());
+  // Signing in to an online MCP server opens his browser through VS Code, never
+  // a shell (core checks the address is https, or http on this computer).
+  setMcpBrowserOpener(async (url) => {
+    const opened = await vscode.env.openExternal(vscode.Uri.parse(url, true));
+    if (!opened) throw new Error('The browser did not open.');
+  });
   // The keychain sends no events, so a key added or removed in the IDE is
   // picked up when this window comes back into focus. The first look only
   // records what is there.

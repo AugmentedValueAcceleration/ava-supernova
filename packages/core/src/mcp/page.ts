@@ -14,6 +14,10 @@
  *   allow     { avaName, on }    "Always" for one tool, or back to asking
  *   answer    { id, answer }     his yes / not now / never to a project's server
  *   set_key   { name, value }    keep a key in the keychain ('' forgets it)
+ *   sign_in   { scope, id, words }  open his browser on an online server's sign-in
+ *                                (resolves once it's open; the page then polls)
+ *   cancel_signin { scope, id }
+ *   sign_out  { scope, id }      forget the sign-in
  *   check     { draft }          what a new server would run, and what to point out
  *   add       { draft }          add it (after he has seen the check)
  */
@@ -24,6 +28,7 @@ import {
 } from './servers-config.js';
 import { hasMcpKeychain, mcpSecretNames, setMcpSecret } from './secrets.js';
 import { checkServerUrl } from './connection.js';
+import { forgetSignIn, mcpAuthKey } from './oauth.js';
 import { riskNotes, type McpRiskNote } from './risk.js';
 
 /** More tools than this from his servers and the page says it's getting heavy. */
@@ -171,6 +176,7 @@ export async function mcpPage(op: string, args: Record<string, unknown> = {}): P
       const stillUsed = new Set(Object.entries(file.mcpServers).filter(([k]) => k !== id).flatMap(([, e]) => secretsUsed(e)));
       await updateMcpFile((f) => { delete f.mcpServers[id]; });
       for (const name of secretsUsed(gone)) if (!stillUsed.has(name)) await setMcpSecret(name, null).catch(() => {});
+      await forgetSignIn(mcpAuthKey('user', id, null)).catch(() => {});
       await m.reload();
       return state();
     }
@@ -191,6 +197,24 @@ export async function mcpPage(op: string, args: Record<string, unknown> = {}): P
       if (!users.length) await m.reload();
       return state();
     }
+    case 'sign_in': {
+      const w = (args.words ?? {}) as { done?: unknown; failed?: unknown };
+      try {
+        await m.signIn(args.scope === 'project' ? 'project' : 'user', str('id'), {
+          done: typeof w.done === 'string' ? w.done : undefined,
+          failed: typeof w.failed === 'string' ? w.failed : undefined,
+        });
+        return { ok: true, state: await state() };
+      } catch (err) {
+        return { ok: true, problem: err instanceof Error ? err.message : String(err), state: await state() };
+      }
+    }
+    case 'cancel_signin':
+      m.cancelSignIn(args.scope === 'project' ? 'project' : 'user', str('id'));
+      return state();
+    case 'sign_out':
+      await m.signOut(args.scope === 'project' ? 'project' : 'user', str('id'));
+      return state();
     case 'check':
       return check(args.draft as McpDraft);
     case 'add': {
