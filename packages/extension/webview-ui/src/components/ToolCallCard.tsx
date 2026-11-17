@@ -91,7 +91,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
       {/* Confirmation bar — always visible for pending_confirmation */}
       {isPending && toolCall.confirmationId && (
         <div className="pl-[18px] py-1.5 space-y-1.5">
-          <span className="opacity-70 block text-[11px]">
+          <span className="whitespace-pre-line opacity-70 block text-[11px]">
             {toolCall.summary || t('tool.allow_prompt', { tool: toolCall.name })}
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">

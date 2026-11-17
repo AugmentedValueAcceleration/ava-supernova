@@ -18,6 +18,8 @@
  *                                (resolves once it's open; the page then polls)
  *   cancel_signin { scope, id }
  *   sign_out  { scope, id }      forget the sign-in
+ *   import_scan                  what Claude Desktop, Cursor and VS Code have (no secrets shown)
+ *   import    { picks }          bring in the ones he ticked: [{ app, name }]
  *   check     { draft }          what a new server would run, and what to point out
  *   add       { draft }          add it (after he has seen the check)
  */
@@ -29,6 +31,8 @@ import {
 import { hasMcpKeychain, mcpSecretNames, setMcpSecret } from './secrets.js';
 import { checkServerUrl } from './connection.js';
 import { forgetSignIn, mcpAuthKey } from './oauth.js';
+import { MCP_IMPORT_APP_NAMES, scanMcpImports, type McpImportApp } from './import.js';
+import { importMcpServers } from './setup.js';
 import { riskNotes, type McpRiskNote } from './risk.js';
 
 /** More tools than this from his servers and the page says it's getting heavy. */
@@ -215,6 +219,23 @@ export async function mcpPage(op: string, args: Record<string, unknown> = {}): P
     case 'sign_out':
       await m.signOut(args.scope === 'project' ? 'project' : 'user', str('id'));
       return state();
+    case 'import_scan': {
+      const sources = await scanMcpImports();
+      return {
+        sources: sources.map((s) => ({
+          app: s.app, appName: MCP_IMPORT_APP_NAMES[s.app], path: s.path, found: s.found, problem: s.problem,
+          // Never the keys themselves: only how many would move into his keychain.
+          servers: s.servers.map((c) => ({ name: c.name, id: c.id, shows: c.shows, notes: c.notes, online: c.online, here: c.here, keysMoved: Object.keys(c.secrets).length, slots: c.slots })),
+        })),
+      };
+    }
+    case 'import': {
+      const picks = (Array.isArray(args.picks) ? args.picks : [])
+        .map((p) => p as { app?: string; name?: string })
+        .filter((p): p is { app: McpImportApp; name: string } => !!p.app && p.app in MCP_IMPORT_APP_NAMES && typeof p.name === 'string');
+      const result = await importMcpServers(picks);
+      return { ok: true, result, state: await state() };
+    }
     case 'check':
       return check(args.draft as McpDraft);
     case 'add': {

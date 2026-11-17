@@ -1728,7 +1728,9 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           onOpenPlans: () => { setHealthInitialTab('plans'); setPagePersist('health'); },
         }} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'connections':
-        return <ConnectionsPage request={connectionsRequest} onWaitingChange={setMcpWaiting} />;
+        // Ask Ava: the chat opens with his request written in (he presses send), as the docs page does.
+        return <ConnectionsPage request={connectionsRequest} onWaitingChange={setMcpWaiting}
+          onAskAva={(m) => { try { localStorage.setItem('ava-pending-ask', m); } catch { /* no storage */ } setPagePersist('chat'); }} />;
       case 'memory':
         return <MemoryV4Page request={memoryRequest} onPendingChange={(n) => setMemoryV4((m) => ({ ...m, pending: n }))} />;
       case 'history':

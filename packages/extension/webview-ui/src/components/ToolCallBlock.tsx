@@ -111,7 +111,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
         {/* Confirmation bar — always visible for pending_confirmation */}
         {isPending && toolCall.confirmationId && (
           <div className="pl-2.5 pr-2 py-2 space-y-2">
-            <span className="opacity-70 block text-[11px]">
+            <span className="whitespace-pre-line opacity-70 block text-[11px]">
               {toolCall.summary || t('tool.allow_prompt', { tool: toolCall.name })}
             </span>
             {/* Tool's own description — answers 'what does this tool actually do?'

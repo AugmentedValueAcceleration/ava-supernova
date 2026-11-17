@@ -23,3 +23,11 @@ export {
 } from './oauth.js';
 export type { McpBrowserOpener, McpAuthRecord, McpSignInWords } from './oauth.js';
 export { signInToServer } from './connection.js';
+export { searchMcpRegistry, clearMcpRegistryCache } from './registry.js';
+export type { McpRegistryServer, McpRegistryPackage, McpRegistryRemote } from './registry.js';
+export { scanMcpImports, mcpImportPaths, MCP_IMPORT_APP_NAMES } from './import.js';
+export type { McpImportApp, McpImportCandidate, McpImportSource } from './import.js';
+export { checkProposal, addMcpServers, importMcpServers, settleMcpServers, statusInWords } from './setup.js';
+export type { McpProposal, McpImportResult } from './setup.js';
+export { redactSecrets } from './risk.js';
+export type { McpAvaNote } from './servers-config.js';

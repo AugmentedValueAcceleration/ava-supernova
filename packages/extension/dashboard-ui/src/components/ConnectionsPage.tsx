@@ -1,4 +1,4 @@
-// Connections — his MCP servers (plan 2026-11-17-mcp-servers, Phases 2-3; mockup
+// Connections — his MCP servers (plan 2026-11-17-mcp-servers, Phases 2-4; mockup
 // Decisions/mcp/connections-page-mockup.html, approved 17 Nov 2026).
 //
 // ONE SHARED FILE: identical in the extension and the IDE apart from the
@@ -23,6 +23,7 @@ interface Server {
   missing?: string[]; notes: Note[]; online: boolean; shows: string;
   tools: ToolRow[]; keys: Array<{ name: string; set: boolean }>; server?: { name: string; version: string };
   signedIn?: boolean; signingIn?: boolean;
+  ava?: { view?: string; registry?: string; repository?: string; from?: string };
 }
 interface PageState {
   servers: Server[]; projectFolder: string | null; problems: string[];
@@ -60,6 +61,7 @@ const cmd: CSSProperties = { fontFamily: mono, fontSize: 12.5, background: C.dee
 const input: CSSProperties = { width: '100%', background: C.input, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, padding: '8px 10px', fontFamily: 'inherit', fontSize: 13.5, boxSizing: 'border-box' };
 const label: CSSProperties = { display: 'block', fontSize: 12.5, color: C.text2, margin: '10px 0 4px' };
 const acts: CSSProperties = { display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' };
+const opinion: CSSProperties = { background: C.soft, borderLeft: `2px solid ${C.accent}`, borderRadius: 6, padding: '8px 12px', fontSize: 13, color: C.text2, marginTop: 10 };
 const chip = (color: string, border: string): CSSProperties => ({ border: `1px solid ${border}`, borderRadius: 999, padding: '0 8px', fontSize: 11.5, color, fontWeight: 400 });
 const dot = (color: string, glow = false): CSSProperties => ({ width: 8, height: 8, borderRadius: '50%', display: 'inline-block', background: color, boxShadow: glow ? `0 0 6px ${color}` : 'none', flex: 'none' });
 
@@ -217,11 +219,16 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
         )}
       </div>
 
+      {s.ava?.view && (
+        <div style={opinion}><b style={{ color: C.text, fontWeight: 500 }}>{tt('mcp.page.my_view', 'My view:')}</b> {s.ava.view}</div>
+      )}
+
       {(open || waiting) && (
         <div style={{ marginTop: 12, borderTop: waiting ? 'none' : `1px solid ${C.border}`, paddingTop: waiting ? 0 : 10 }}>
           <div style={note}>{s.online ? tt('mcp.page.address', 'Address') : waiting ? tt('mcp.page.command_wants', 'The exact command it wants to run') : tt('mcp.page.command', 'The exact command I run')}</div>
           <div style={cmd}>{s.shows}</div>
           <Notes notes={s.notes} />
+          {s.ava?.from && <div style={note}>{tt('mcp.page.from', 'Brought in from {app}').replace('{app}', s.ava.from)}</div>}
           {s.keys.map((k) => <KeyRow key={k.name} k={k} request={request} onState={onState} />)}
           {(s.state === 'error' || s.state === 'needs-signin') && s.message && (
             <>
@@ -294,7 +301,12 @@ function ToolLine({ t, onAllow }: { t: ToolRow; onAllow: (on: boolean) => void }
 
 const EMPTY_DRAFT: Draft = { name: '', kind: 'local', commandLine: '', keys: [], url: '', headerName: 'Authorization', headerValue: '' };
 
-function AddPanel({ request, onClose, onState }: { request: ConnectionsRequest; onClose: () => void; onState: (s: PageState) => void }) {
+function AddPanel({ request, onClose, onState, onAskAva, onImport }: {
+  request: ConnectionsRequest; onClose: () => void; onState: (s: PageState) => void;
+  onAskAva?: (what: string) => void; onImport: () => void;
+}) {
+  const [how, setHow] = useState<'ava' | 'me'>(onAskAva ? 'ava' : 'me');
+  const [what, setWhat] = useState('');
   const [d, setD] = useState<Draft>(EMPTY_DRAFT);
   const [checked, setChecked] = useState<Check | null>(null);
   const [busy, setBusy] = useState(false);
@@ -319,6 +331,8 @@ function AddPanel({ request, onClose, onState }: { request: ConnectionsRequest; 
     exists: tt('mcp.page.add.problem_exists', 'You already have a server with that name.'),
   })[checked.problem] : null;
   const seg = (on: boolean): CSSProperties => ({ padding: '5px 12px', cursor: 'pointer', fontSize: 13, border: 'none', fontFamily: 'inherit', background: on ? C.soft : 'transparent', color: on ? C.text : C.text2 });
+  const choice = (on: boolean): CSSProperties => ({ border: `1px solid ${on ? C.accent : C.border}`, background: on ? C.soft : 'transparent', borderRadius: 10, padding: 12, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', color: C.text, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' });
+  const ask = () => { if (what.trim() && onAskAva) { onAskAva(what.trim()); onClose(); } };
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
@@ -327,6 +341,32 @@ function AddPanel({ request, onClose, onState }: { request: ConnectionsRequest; 
         style={{ width: 'min(640px, 92vw)', background: '#1a1028', border: `1px solid ${C.strong}`, borderRadius: 14, padding: '18px 20px', maxHeight: '84vh', overflow: 'auto', color: C.text }}>
         <div style={{ fontWeight: 500, fontSize: 17 }}>{tt('mcp.page.add.title', 'Add a server')}</div>
         <div style={{ ...note, marginTop: 2 }}>{tt('mcp.page.add.intro', 'A server is a program or a website that gives me more tools. It runs as you, so you see exactly what runs first.')}</div>
+
+        {onAskAva && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '14px 0 4px' }}>
+            <button style={choice(how === 'ava')} onClick={() => setHow('ava')}>
+              <b style={{ fontWeight: 500, display: 'block', marginBottom: 2 }}>{tt('mcp.page.add.choice_ava', 'Ask Ava')}</b>
+              <span style={{ color: C.muted, fontSize: 12.5 }}>{tt('mcp.page.add.choice_ava_d', 'Tell me what you want to connect. I find the official server, look into it and tell you what I think, then set it up on your yes.')}</span>
+            </button>
+            <button style={choice(how === 'me')} onClick={() => setHow('me')}>
+              <b style={{ fontWeight: 500, display: 'block', marginBottom: 2 }}>{tt('mcp.page.add.choice_me', 'Add it myself')}</b>
+              <span style={{ color: C.muted, fontSize: 12.5 }}>{tt('mcp.page.add.choice_me_d', 'Paste a command or an address, or bring in servers from Claude Desktop, Cursor or VS Code.')}</span>
+            </button>
+          </div>
+        )}
+
+        {how === 'ava' && onAskAva ? (
+          <>
+            <label style={label}>{tt('mcp.page.add.ava_what', 'What would you like to connect?')}</label>
+            <input style={input} autoFocus value={what} onChange={(e) => setWhat(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') ask(); }}
+              placeholder={tt('mcp.page.add.ava_placeholder', 'e.g. my Notion workspace, Linear, a local SQLite file')} />
+            <div style={note}>{tt('mcp.page.add.ava_note', 'I look for the official server first and check its publisher in the official MCP Registry. I tell you what it can reach and my honest view, then wait for your yes.')}</div>
+            <div style={acts}>
+              <button style={primary} disabled={!what.trim()} onClick={ask}>{tt('mcp.page.add.ava_go', 'Ask Ava')}</button>
+              <button style={btn} onClick={onClose}>{tt('mcp.page.cancel', 'Cancel')}</button>
+            </div>
+          </>
+        ) : (<>
 
         <div style={{ display: 'inline-flex', border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginTop: 14 }}>
           <button style={seg(d.kind === 'local')} onClick={() => set({ kind: 'local' })}>{tt('mcp.page.local', 'On this computer')}</button>
@@ -388,8 +428,102 @@ function AddPanel({ request, onClose, onState }: { request: ConnectionsRequest; 
           {checked?.ok
             ? <button style={primary} disabled={busy} onClick={() => void add()}>{tt('mcp.page.add.add', 'Add it')}</button>
             : <button style={primary} disabled={busy} onClick={() => void check()}>{tt('mcp.page.add.check', 'Check it')}</button>}
+          <button style={btn} onClick={() => { onClose(); onImport(); }}>{tt('mcp.page.add.import', 'Bring in from Claude Desktop, Cursor or VS Code')}</button>
           <button style={btn} onClick={onClose}>{tt('mcp.page.cancel', 'Cancel')}</button>
         </div>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
+// ── Bringing servers in from his other apps ──────────────────────────────
+
+type ImportApp = 'claude-desktop' | 'cursor' | 'vscode';
+interface ImportServer { name: string; id: string; shows: string; notes: Note[]; online: boolean; here: 'no' | 'same' | 'different'; keysMoved: number; slots: string[] }
+interface ImportSource { app: ImportApp; appName: string; found: boolean; problem?: string; servers: ImportServer[] }
+
+function ImportPanel({ request, onClose, onState }: { request: ConnectionsRequest; onClose: () => void; onState: (s: PageState) => void }) {
+  const [sources, setSources] = useState<ImportSource[] | null>(null);
+  const [failed, setFailed] = useState('');
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<{ added: string[]; skipped: string[] } | null>(null);
+  useEffect(() => {
+    request('import_scan')
+      .then((r) => setSources((r as { sources: ImportSource[] }).sources))
+      .catch((e) => setFailed(e instanceof Error ? e.message : String(e)));
+  }, [request]);
+  const k = (app: ImportApp, name: string) => `${app}\n${name}`;
+  const toggle = (key: string) => setPicked((p) => { const n = new Set(p); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  const bringIn = async () => {
+    setBusy(true);
+    try {
+      const picks = [...picked].map((x) => { const [app, name] = x.split('\n'); return { app, name }; });
+      const r = await request('import', { picks }) as { result: { added: Array<{ id: string }>; skipped: Array<{ name: string }> }; state: PageState };
+      onState(r.state);
+      setDone({ added: r.result.added.map((a) => a.id), skipped: r.result.skipped.map((s) => s.name) });
+    } catch (e) {
+      setFailed(e instanceof Error ? e.message : String(e));
+    } finally { setBusy(false); }
+  };
+  const appLine = (s: ImportSource) => !s.found ? tt('mcp.page.import.not_found', "{app} isn't set up on this computer.").replace('{app}', s.appName)
+    : s.problem ? tt('mcp.page.import.problem', "{app}'s file couldn't be read: {error}").replace('{app}', s.appName).replace('{error}', s.problem)
+    : tt('mcp.page.import.none', '{app} has no servers.').replace('{app}', s.appName);
+
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(5,3,10,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 50, zIndex: 50 }}>
+      <div role="dialog" aria-label={tt('mcp.page.import.title', 'Bring in servers')}
+        style={{ width: 'min(680px, 92vw)', background: '#1a1028', border: `1px solid ${C.strong}`, borderRadius: 14, padding: '18px 20px', maxHeight: '84vh', overflow: 'auto', color: C.text }}>
+        <div style={{ fontWeight: 500, fontSize: 17 }}>{tt('mcp.page.import.title', 'Bring in servers')}</div>
+        <div style={{ ...note, marginTop: 2 }}>{tt('mcp.page.import.intro', 'Servers you set up in your other apps. Their files are only read; keys written in them move into your keychain.')}</div>
+        {failed && <div style={{ ...note, color: C.danger }}>{failed}</div>}
+        {!sources && !failed && <div style={note}>{tt('mcp.page.import.reading', 'Looking in your other apps…')}</div>}
+        {done ? (
+          <div style={{ marginTop: 14, fontSize: 13, color: C.text2 }}>
+            {done.added.length > 0 && <div>{tt('mcp.page.import.done', 'Brought in: {names}').replace('{names}', done.added.join(', '))}</div>}
+            {done.skipped.length > 0 && <div style={{ color: C.warn }}>{tt('mcp.page.import.skipped', 'Not brought in: {names}').replace('{names}', done.skipped.join(', '))}</div>}
+            <div style={note}>{tt('mcp.page.import.after', 'Each one starts now, and its tools ask you the first time.')}</div>
+            <div style={acts}><button style={primary} onClick={onClose}>{tt('mcp.page.done', 'Done')}</button></div>
+          </div>
+        ) : sources && (
+          <>
+            {sources.map((src) => (
+              <div key={src.app} style={{ marginTop: 14 }}>
+                <div style={{ fontWeight: 500, fontSize: 14 }}>{src.appName}</div>
+                {(!src.found || src.problem || !src.servers.length) && <div style={note}>{appLine(src)}</div>}
+                {src.servers.map((s) => {
+                  const key = k(src.app, s.name);
+                  const same = s.here === 'same';
+                  return (
+                    <label key={key} style={{ ...card, display: 'flex', gap: 10, alignItems: 'flex-start', cursor: same ? 'default' : 'pointer', opacity: same ? 0.6 : 1, margin: '8px 0' }}>
+                      <input type="checkbox" disabled={same} checked={picked.has(key)} onChange={() => toggle(key)} style={{ marginTop: 3 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontWeight: 500 }}>
+                          {s.name}
+                          {s.online
+                            ? <span style={chip(C.online, 'rgba(96,165,250,0.35)')}>{tt('mcp.page.online', 'Online')}</span>
+                            : <span style={chip(C.ok, 'rgba(52,211,153,0.3)')}>{tt('mcp.page.local', 'On this computer')}</span>}
+                        </div>
+                        <div style={cmd}>{s.shows}</div>
+                        <Notes notes={s.notes} />
+                        {same && <div style={note}>{tt('mcp.page.import.here_same', 'Already in your list')}</div>}
+                        {s.here === 'different' && <div style={{ ...note, color: C.warn }}>{tt('mcp.page.import.here_diff', 'You have a different "{id}": this one comes in as "{new}"').replace('{id}', s.id).replace('{new}', `${s.id}-${src.app}`)}</div>}
+                        {s.keysMoved > 0 && <div style={note}>🔑 {(s.keysMoved === 1 ? tt('mcp.page.import.keys_moved_one', '1 key moves into your keychain') : tt('mcp.page.import.keys_moved', '{n} keys move into your keychain')).replace('{n}', String(s.keysMoved))}</div>}
+                        {s.slots.length > 0 && <div style={note}>🔑 {tt('mcp.page.import.slots', 'Keys to set afterwards: {names}').replace('{names}', s.slots.join(', '))}</div>}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
+            <div style={acts}>
+              <button style={primary} disabled={busy || picked.size === 0} onClick={() => void bringIn()}>{tt('mcp.page.import.go', 'Bring in ({n})').replace('{n}', String(picked.size))}</button>
+              <button style={btn} onClick={onClose}>{tt('mcp.page.cancel', 'Cancel')}</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -397,10 +531,15 @@ function AddPanel({ request, onClose, onState }: { request: ConnectionsRequest; 
 
 // ── The page ──────────────────────────────────────────────────────────────
 
-export function ConnectionsPage({ request, onWaitingChange }: { request: ConnectionsRequest; onWaitingChange?: (n: number) => void }) {
+export function ConnectionsPage({ request, onWaitingChange, onAskAva }: {
+  request: ConnectionsRequest; onWaitingChange?: (n: number) => void;
+  /** Opens the main chat with his request written in ("Ask Ava" in the Add panel). */
+  onAskAva?: (message: string) => void;
+}) {
   const [st, setSt] = useState<PageState | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   const alive = useRef(true);
   const show = useCallback((s: PageState) => {
     if (!alive.current) return;
@@ -472,7 +611,9 @@ export function ConnectionsPage({ request, onWaitingChange }: { request: Connect
       <h1 style={{ fontSize: 20, fontWeight: 500, margin: '0 0 2px' }}>{tt('dash.nav.connections', 'Connections')}</h1>
       <div style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>{tt('mcp.page.subtitle', 'MCP servers give me more tools: your GitHub, your files, your other apps. Nothing here runs until you say yes.')}</div>
       {body}
-      {adding && <AddPanel request={request} onClose={() => setAdding(false)} onState={show} />}
+      {adding && <AddPanel request={request} onClose={() => setAdding(false)} onState={show} onImport={() => setImporting(true)}
+        onAskAva={onAskAva ? (what) => onAskAva(tt('mcp.page.add.ava_message', 'Help me connect {what} as an MCP server.').replace('{what}', what)) : undefined} />}
+      {importing && <ImportPanel request={request} onClose={() => setImporting(false)} onState={show} />}
     </div>
   );
 }

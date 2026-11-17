@@ -35,6 +35,17 @@ const SECRET_SHAPES = [
   /\bAKIA[0-9A-Z]{16}\b/, /\bAIza[0-9A-Za-z_-]{30,}/, /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]+@/i,
 ];
 
+/**
+ * A command or address with any key or password in it masked — for anything
+ * that goes to the AI (Ava's tools), where a secret must never travel.
+ */
+export function redactSecrets(text: string): string {
+  return text
+    .replace(/\b([a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:)[^\s/@]+@/gi, '$1•••@')
+    .replace(/\b(ghp_|github_pat_|sk-|xox[abpr]-|AKIA|AIza|glpat-|npm_)[A-Za-z0-9_\-]{6,}/g, '$1•••')
+    .replace(/(--?(?:token|password|passwd|secret|api[-_]?key|key)[= ])\S+/gi, '$1•••');
+}
+
 function isWholeHomeOrDrive(arg: string): boolean {
   const a = arg.replace(/[\\/]+$/, '').trim();
   if (!a) return false;

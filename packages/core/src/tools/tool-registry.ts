@@ -140,6 +140,7 @@ import { EnvWriteTool } from './env-write.js';
 import { RecordMachineRuleTool } from './record-machine-rule.js';
 
 import { bashDangerTier } from './bash.js';
+import { ConnectionAddTool, ConnectionImportTool, ConnectionListTool, ConnectionSearchTool } from './connection-tools.js';
 
 // ── Untrusted output wrapper ───────────────────────────────────────────────
 // Tools that fetch external content (web_search, http_request, browser
@@ -184,6 +185,8 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   git_create_pr: 'git', rollback: 'git',
   // Web — search, HTTP, browsing, real-world data
   web_search: 'web', http_request: 'web', browser: 'web',
+  // His MCP servers (Phase 4): looking one up is web; adding one changes his setup.
+  connection_search: 'web', connection_list: 'system', connection_add: 'system', connection_import: 'system',
   weather: 'web', news: 'web', release_notes: 'web',
   // Browser automation (Desktop mode) — Playwright DOM via Tauri subprocess
   browser_navigate: 'web', browser_snapshot: 'web', browser_click: 'web',
@@ -458,6 +461,11 @@ export class ToolRegistry {
       new MemoryRecallV4Tool(),
       new ConversationRecallTool(),
       new CheckPostsTool(),
+      // His MCP servers: Ava researches and sets them up (plan 2026-11-17-mcp-servers, Phase 4).
+      new ConnectionSearchTool(),
+      new ConnectionListTool(),
+      new ConnectionAddTool(),
+      new ConnectionImportTool(),
       new ReviewPostTool(),
       new MemoryUpdateV4Tool(),
       new MemoryDeleteV4Tool(),
@@ -701,6 +709,10 @@ export class ToolRegistry {
       // A new health plan is SHOWN to them before it is saved (12 Nov 2026);
       // "always allow" on its category must not skip the look.
       || tool.name === 'health_plan_create'
+      // A server runs as him: he sees the exact command and Ava's view before
+      // it's added, whatever the permission mode (plan 2026-11-17-mcp-servers).
+      || tool.name === 'connection_add'
+      || (tool.name === 'connection_import' && args?.action === 'bring_in')
     ) return true;
 
     // Tools from a server the person added (mcp_<server>_<tool>) ask until he

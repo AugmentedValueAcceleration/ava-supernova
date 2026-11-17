@@ -11,8 +11,9 @@
  *                   "headers": { "Authorization": "Bearer ${secret:github}" } } } }
  *
  * Ava's own additions, all optional: `enabled` (default on), `allow` (the
- * server's tools that no longer ask), and `projects` (his yes or no to each
- * project's own servers, tied to the exact command he saw).
+ * server's tools that no longer ask), `ava` (her view of the server and where
+ * it came from, Phase 4), and `projects` (his yes or no to each project's own
+ * servers, tied to the exact command he saw).
  *
  * Secrets are never in this file: `${secret:name}` is read from the keychain
  * (secrets.ts). `${env:NAME}`, `${NAME}`, `${NAME:-default}`, `${userHome}` and
@@ -45,6 +46,20 @@ export interface McpServerEntry {
   enabled?: boolean;
   /** Ava: the server's tools (its own names) that no longer ask. */
   allow?: string[];
+  /** Ava: her view when she set it up, and where it came from. Not part of the fingerprint. */
+  ava?: McpAvaNote;
+}
+
+export interface McpAvaNote {
+  /** Her honest view, in her words, shown on its card ("My view"). */
+  view?: string;
+  /** Its name in the official MCP Registry (publisher verified there). */
+  registry?: string;
+  repository?: string;
+  /** Brought in from another app ("Claude Desktop", "Cursor", "VS Code"). */
+  from?: string;
+  /** When (ISO). */
+  at?: string;
 }
 
 export interface McpProjectAnswers {
@@ -92,6 +107,12 @@ export function readEntry(v: unknown): McpServerEntry | null {
   if (typeof o.enabled === 'boolean') e.enabled = o.enabled;
   if (o.disabled === true) e.enabled = false; // Cursor / Cline spelling
   if (Array.isArray(o.allow)) e.allow = o.allow.filter((a): a is string => typeof a === 'string');
+  if (o.ava && typeof o.ava === 'object' && !Array.isArray(o.ava)) {
+    const a = o.ava as Record<string, unknown>;
+    const note: McpAvaNote = {};
+    for (const k of ['view', 'registry', 'repository', 'from', 'at'] as const) if (typeof a[k] === 'string') note[k] = (a[k] as string).slice(0, 2000);
+    if (Object.keys(note).length) e.ava = note;
+  }
   if (!e.command && !e.url) return null;
   return e;
 }

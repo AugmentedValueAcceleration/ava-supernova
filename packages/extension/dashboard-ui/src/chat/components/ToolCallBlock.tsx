@@ -95,7 +95,7 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
 
         {isPending && toolCall.confirmationId && (
           <div className="pl-2.5 pr-2 py-2 space-y-2">
-            <p className="m-0 text-[12.5px] leading-relaxed text-[var(--text-primary)]">
+            <p className="whitespace-pre-line m-0 text-[12.5px] leading-relaxed text-[var(--text-primary)]">
               {toolCall.summary || t('tool.allow_prompt', { tool: toolCall.name })}
             </p>
             <div className="flex items-center gap-2 flex-wrap">

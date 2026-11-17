@@ -326,6 +326,8 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'git_status', 'git_diff', 'rollback', 'git_commit', 'git_create_pr',
     // Web
     'web_search', 'http_request', 'browser',
+    // His MCP servers: research, list, add (always a card), bring in from his other apps
+    'connection_search', 'connection_list', 'connection_add', 'connection_import',
     // Creative Studio — making an asset happens in the Studio, not inline
     // here. This gate used to list 'generate_image' / 'generate_video' /
     // but the registry only ever builds the design_* tools,
@@ -381,6 +383,8 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // coordinator-direct path (the most common Plan flow) has the same
     // research tools the Researcher persona gets in orchestrated mode.
     'web_search', 'http_request', 'browser', 'news',
+    // His MCP servers — looking only (Plan changes nothing)
+    'connection_search', 'connection_list',
     // Memory + planning + analysis
     'memory_save', 'memory_recall', 'present_plan', 'analyze_architecture',
     // Reference / introspection (already used; advertised below now too)
@@ -416,6 +420,8 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // learn-a-topic request off to the focused Learning room, or an icon /
     // on-brand asset request off to the focused Design Studio.
     'open_health_room', 'open_learning_room', 'open_design_studio',
+    // His MCP servers: research, list, add (always a card), bring in from his other apps
+    'connection_search', 'connection_list', 'connection_add', 'connection_import',
     'switch_mode',
   ]),
   brainstorm: new Set([

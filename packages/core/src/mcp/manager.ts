@@ -76,6 +76,8 @@ export interface McpServerStatus {
   tools: McpToolStatus[];
   /** The server's own name and version, once connected. */
   server?: { name: string; version: string };
+  /** Ava's view of it and where it came from (only his own servers: a project's file can't speak for her). */
+  ava?: McpServerEntry['ava'];
   /** An online server he has signed in to (oauth.ts). */
   signedIn?: boolean;
   /** His browser is open on its sign-in page. */
@@ -411,6 +413,7 @@ export class McpServers {
     const next = new Map<string, McpServerStatus>();
     const base = (scope: McpScope, id: string, e: McpServerEntry, state: McpServerState, message?: string, reason?: McpServerStatus['reason']): McpServerStatus => ({
       id, scope, state, message, reason, online: isWebEntry(e), shows: describeEntry(e), fingerprint: fingerprint(e), secrets: secretsUsed(e), notes: riskNotes(e), tools: [],
+      ...(scope === 'user' && e.ava ? { ava: e.ava } : {}),
     });
 
     for (const [id, e] of Object.entries(this.file.mcpServers)) {
@@ -467,7 +470,7 @@ export class McpServers {
     const allowSet = new Set(allow);
     return {
       id, scope, state: 'ready', online: isWebEntry(e), shows: describeEntry(e), fingerprint: fingerprint(e), secrets: secretsUsed(e),
-      notes: riskNotes(e), server: conn.server,
+      notes: riskNotes(e), server: conn.server, ...(scope === 'user' && e.ava ? { ava: e.ava } : {}),
       tools: conn.tools().map((t) => ({
         name: t.name, avaName: avaToolName(conn.config.id, t.name), description: t.description,
         readOnly: t.readOnly === true, allowed: allowSet.has(t.name),
@@ -490,7 +493,7 @@ export class McpServers {
       return true;
     };
     const fail = (state: McpServerState, message: string, extra: Partial<McpServerStatus> = {}) =>
-      set({ id, scope, state, message, online: isWebEntry(e), shows: describeEntry(e), fingerprint: fp, secrets: secretsUsed(e), notes: riskNotes(e), tools: [], ...extra });
+      set({ id, scope, state, message, online: isWebEntry(e), shows: describeEntry(e), fingerprint: fp, secrets: secretsUsed(e), notes: riskNotes(e), tools: [], ...(scope === 'user' && e.ava ? { ava: e.ava } : {}), ...extra });
 
     let transport: McpTransportConfig;
     try {
