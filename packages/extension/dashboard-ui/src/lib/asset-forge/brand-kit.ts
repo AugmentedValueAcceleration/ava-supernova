@@ -54,6 +54,13 @@ export interface BrandKit {
   dontRules?: string[];
   defaultHashtags?: string[];
   defaultLink?: string;
+  /** What the people using it should feel — set from a Brainstorm (plan
+   *  2026-11-17-brainstorm). Ava writes it; the sheet shows it. */
+  experience?: {
+    words: string[];
+    notWords: string[];
+    principles: Array<{ title: string; do: string; dont: string }>;
+  };
 
   // ── Audio (optional — only if they use voice/music) ──────────────────
   defaultVoiceId?: string;

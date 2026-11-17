@@ -13,6 +13,7 @@ import { AskUserCard } from './AskUserCard';
 import { ProfileFieldCard } from './ProfileFieldCard';
 import { OpenHealthRoomCard } from './OpenHealthRoomCard';
 import { OpenLearningRoomCard } from './OpenLearningRoomCard';
+import { OpenBrainstormRoomCard } from './OpenBrainstormRoomCard';
 import { TaskSuggestCard } from './TaskSuggestCard';
 import { CopyButton } from './CopyButton';
 import { FeedbackButtons } from './FeedbackButtons';
@@ -481,6 +482,9 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
         }
         if (tc.name === 'open_health_room') {
           return <OpenHealthRoomCard key={tc.id} toolCall={tc} />;
+        }
+        if (tc.name === 'open_brainstorm_room') {
+          return <OpenBrainstormRoomCard key={tc.id} toolCall={tc} />;
         }
         if (tc.name === 'open_learning_room') {
           return <OpenLearningRoomCard key={tc.id} toolCall={tc} />;

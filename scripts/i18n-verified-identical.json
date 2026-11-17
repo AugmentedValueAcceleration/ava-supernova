@@ -61,7 +61,8 @@
         "dash.studio.live.headless": "Headless",
         "dash.studio.live.mcp": "MCP",
         "mcp.page.add.name": "Name",
-        "mcp.page.online": "Online"
+        "mcp.page.online": "Online",
+        "brainstorm.room.tab.plan": "Plan"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -91,7 +92,9 @@
         "health.results.mins": "{n} min",
         "memory.v4.no": "No",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "brainstorm.room.tab.ideas": "Ideas",
+        "brainstorm.room.tab.plan": "Plan"
       },
       "fr": {
         "health.plans.n_cook": "{n} min",
@@ -146,7 +149,10 @@
         "viewer.go_to_page": "Page {n}",
         "viewer.pages": "{n} pages",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "brainstorm.room.col.candidate": "Candidates",
+        "brainstorm.room.note": "Note",
+        "brainstorm.room.tab.plan": "Plan"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
@@ -301,7 +307,12 @@
         "dash.studio.live.mcp": "MCP",
         "mcp.page.online": "Online",
         "mcp.page.summary_tools": "{n} tools",
-        "mcp.page.summary_tools_one": "1 tool"
+        "mcp.page.summary_tools_one": "1 tool",
+        "dash.nav.brainstorm": "Brainstorm",
+        "brainstorm.room.kind.project": "Project",
+        "brainstorm.room.title": "Brainstorm",
+        "brainstorm.room.tab.plan": "Plan",
+        "brainstorm.room.mode_label": "Brainstorm"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -322,7 +333,8 @@
         "health.results.mins": "{n} min",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
         "dash.studio.live.mcp": "MCP",
-        "mcp.page.online": "Online"
+        "mcp.page.online": "Online",
+        "brainstorm.room.tab.plan": "Plan"
       },
       "pt": {
         "health.plans.n_cook": "{n} min",
@@ -391,7 +403,8 @@
         "ext.studio.kit_logo": "Logo",
         "health.wizard.sum.plan": "Plan",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "brainstorm.room.tab.plan": "Plan"
       },
       "uk": {
         "learning.room.tab.ava": "Ava",

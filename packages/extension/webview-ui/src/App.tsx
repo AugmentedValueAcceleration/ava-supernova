@@ -94,7 +94,7 @@ function stripModePrefix(content: string): string {
   // Design conversation showed the user the entire internal briefing in
   // place of their own message.
   const prefixes = [
-    '[Work Mode]', '[Work Mode: Talk]', '[Plan Mode]', '[Chat Mode]', '[Brainstorm Mode]',
+    '[Work Mode]', '[Work Mode: Talk]', '[Plan Mode]', '[Chat Mode]', '[Brainstorm Mode]', '[Brainstorm Room]',
     '[Write Mode]', '[Teach Mode]', '[Security Audit Mode]',
     '[Desktop Automation Mode]', '[Health Room]', '[Design Studio]',
     '[Social Studio]', '[Newsroom]', '[Pantry]', '[Gym]', '[Classroom]',

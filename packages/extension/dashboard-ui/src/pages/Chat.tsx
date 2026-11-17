@@ -27,7 +27,7 @@ import { post } from '../vscode';
 
 function stripModePrefix(content: string): string {
   if (typeof content !== 'string') return content;
-  const prefixes = ['[Chat Mode]', '[Teach Mode]', '[Plan Mode]', '[Security Mode]', '[Brainstorm Mode]', '[Work Mode]'];
+  const prefixes = ['[Chat Mode]', '[Teach Mode]', '[Plan Mode]', '[Security Mode]', '[Brainstorm Mode]', '[Brainstorm Room]', '[Work Mode]'];
   for (const p of prefixes) {
     if (content.startsWith(p)) {
       const lastBlankIdx = content.lastIndexOf('\n\n');
@@ -893,7 +893,7 @@ export interface ChatPageProps {
    *  the focused Learning room — every send is tagged surface:<lane> so the host
    *  runs it on the separate thread, and forced into the room's mode (health /
    *  teach) so the room's briefing + tools always apply. */
-  lane?: 'main' | 'health' | 'learning' | 'design';
+  lane?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm';
   /** For the learning lane: which course this thread belongs to. Drives the
    *  per-course thread key (and is sent with every turn) so each course keeps
    *  its own saved conversation. The caller remounts (via React `key`) when the
@@ -1154,7 +1154,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     // In the health room every turn is health-scoped — force the mode so the
     // briefing always applies, and tag the lane so the host runs it on the
     // separate health thread.
-    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, attachments, surface: lane, courseId, ...(lane === 'design' ? { designRoom, designPanel } : {}), ...(talk && lane === 'main' ? { talk: true } : {}) });
+    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'brainstorm' ? 'brainstorm' : lane === 'design' ? 'design' : mode, attachments, surface: lane, courseId, ...(lane === 'design' ? { designRoom, designPanel } : {}), ...(talk && lane === 'main' ? { talk: true } : {}) });
   }, [lane, courseId, designRoom, designPanel]);
 
   // The design room's own controls speak to Ava through the chat, as him: the
@@ -1172,7 +1172,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
   }, [lane, handleSend]);
 
   const handlePaletteAction = useCallback((tool: PaletteTool, action: string, mode: AvaMode) => {
-    post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : mode, surface: lane, courseId });
+    post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'brainstorm' ? 'brainstorm' : lane === 'design' ? 'design' : mode, surface: lane, courseId });
   }, [lane, courseId]);
 
   const handleModelSwitch = useCallback((modelId: string) => {
@@ -1226,9 +1226,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     if (lastUserMsg?.content) {
       // Remove the error message first so it doesn't accumulate
       dispatch({ type: 'remove_last_error' });
-      post({ type: 'send_message', text: lastUserMsg.content, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : 'code', surface: lane, courseId });
+      post({ type: 'send_message', text: lastUserMsg.content, mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'brainstorm' ? 'brainstorm' : lane === 'design' ? 'design' : 'code', surface: lane, courseId });
     } else {
-      post({ type: 'send_message', text: t('app.continue'), mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'design' ? 'design' : 'code', surface: lane, courseId });
+      post({ type: 'send_message', text: t('app.continue'), mode: lane === 'health' ? 'health' : lane === 'learning' ? 'teach' : lane === 'brainstorm' ? 'brainstorm' : lane === 'design' ? 'design' : 'code', surface: lane, courseId });
     }
   }, [state.messages, lane, courseId]);
 
@@ -1549,7 +1549,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             })()}
             onAddKey={() => onNavigate?.('settings')}
             prefill={pendingPrefill}
-            lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : lane === 'learning' ? t('learning.room.mode_label') : lane === 'design' ? 'Design' : undefined}
+            lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : lane === 'learning' ? t('learning.room.mode_label') : lane === 'brainstorm' ? t('brainstorm.room.mode_label') : lane === 'design' ? 'Design' : undefined}
             onFocusInput={onComposerFocus}
             suppressAutoFocus={suppressAutoFocus}
           />

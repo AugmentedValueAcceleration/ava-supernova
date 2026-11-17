@@ -372,7 +372,7 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Hand a fitness/meal plan request off to the focused Health room, a
     // learn-a-topic request off to the focused Learning room, or an icon /
     // on-brand asset request off to the focused Design Studio.
-    'open_health_room', 'open_learning_room', 'open_design_studio',
+    'open_health_room', 'open_learning_room', 'open_design_studio', 'open_brainstorm_room',
     // Mode switch
     'switch_mode',
   ]),
@@ -419,7 +419,7 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Hand a fitness/meal plan request off to the focused Health room, a
     // learn-a-topic request off to the focused Learning room, or an icon /
     // on-brand asset request off to the focused Design Studio.
-    'open_health_room', 'open_learning_room', 'open_design_studio',
+    'open_health_room', 'open_learning_room', 'open_design_studio', 'open_brainstorm_room',
     // His MCP servers: research, list, add (always a card), bring in from his other apps
     'connection_search', 'connection_list', 'connection_add', 'connection_import',
     'switch_mode',
@@ -458,6 +458,8 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Taste specialist for naming/voice/microcopy decisions
     'curator',
     'ask_user', 'get_datetime',
+    // From `**` in the main chat to the Brainstorm room when it grows (plan 2026-11-17-brainstorm).
+    'open_brainstorm_room',
     'switch_mode',
   ]),
   teach: new Set([

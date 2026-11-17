@@ -680,3 +680,5 @@ export { BlenderLive, findUv, installedServer, addonListening, blenderMcpRoot, v
 export type { LiveState, LiveStatus } from './tools/blender/live.js';
 export { blenderLiveTools, blenderLiveOwnTools, liveModelNow, syncBlenderLiveTools, isBlenderLiveTool } from './tools/blender/live-tools.js';
 export { DesignLiveSetupTool, DesignLiveSetupCheckTool, latestServerRelease, blenderInstalls } from './tools/blender/live-setup.js';
+export { brainstormPage, brainstormRoomContext, setBrainstormPageStore } from './brainstorm/page.js';
+export type { BrainstormPageState, BrainstormPageDetail } from './brainstorm/page.js';

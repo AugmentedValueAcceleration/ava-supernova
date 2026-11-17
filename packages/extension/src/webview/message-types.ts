@@ -250,7 +250,7 @@ export type PaletteTool = 'task' | 'journal' | 'memory' | 'support' | 'learning'
 export type WebviewToExtMessage =
   // The input's mode changed — recorded so the IDE can follow it.
   | { type: 'set_chat_mode'; mode: AvaMode }
-  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
+  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   /**
    * Fired by a command-palette button. Carries the pre-classified intent
    * (tool + action) and the mode the input is currently in. The host turns
@@ -261,7 +261,7 @@ export type WebviewToExtMessage =
    * focused Ava Health & Fitness room (its own thread); default/'main' is the
    * main chat.
    */
-  | { type: 'palette_intent'; tool: PaletteTool; action: string; mode: AvaMode; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
+  | { type: 'palette_intent'; tool: PaletteTool; action: string; mode: AvaMode; surface?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm'; courseId?: string }
   /**
    * Sent by the error-message Retry button. Unlike send_message, the
    * extension first runs a conversation repair pass (fix orphan tool
@@ -288,7 +288,7 @@ export type WebviewToExtMessage =
    */
   | { type: 'grant_secret'; secretId: string }
   | { type: 'switch_model'; modelId: string }
-  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
+  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm'; courseId?: string }
   | { type: 'cancel' }
   | { type: 'interrupt' }
   | { type: 'open_dashboard' }

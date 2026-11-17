@@ -74,7 +74,7 @@ export const SCAFFOLD_TAGS: readonly string[] = ALL_SCAFFOLD_TAGS;
  * Note MODE tags ([Chat Mode], [Plan Mode], …) are modes *within* the main chat,
  * not rooms — they all belong to 'main'.
  */
-export type ConversationSurface = 'main' | 'design' | 'health' | 'learning' | 'social';
+export type ConversationSurface = 'main' | 'design' | 'health' | 'learning' | 'social' | 'brainstorm';
 
 /** Room tag → surface. Anything not listed here (mode tags, or no tag at all)
  *  is the main chat. */
@@ -82,6 +82,7 @@ const ROOM_TAGS: Array<[string, ConversationSurface]> = [
   ['[Design Studio]', 'design'],
   ['[Health Room]', 'health'],
   ['[Learning Room]', 'learning'],
+  ['[Brainstorm Room]', 'brainstorm'],
   ['[Social Studio]', 'social'],
 ];
 

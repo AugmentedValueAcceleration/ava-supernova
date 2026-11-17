@@ -57,7 +57,7 @@ import {
   loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipeSafety, checkExerciseSafety, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
   AvaMemory, memoryPage, memoryV4Root, removeOldMemoryFiles, type PageOp,
-  McpServers, mcpPage,
+  McpServers, mcpPage, brainstormPage,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
@@ -2724,6 +2724,15 @@ export class DashboardPanel {
           result = { ok: false, error: err instanceof Error ? err.message : String(err) };
         }
         this.post({ type: 'mcp_page_result', requestId: m.requestId, result } as never);
+        break;
+      }
+      // ── The Brainstorm room (core brainstormPage) ──
+      case 'brainstorm_page': {
+        const m = msg as { requestId: string; op: string; args?: Record<string, unknown> };
+        let result: unknown;
+        try { result = await brainstormPage(m.op, m.args ?? {}); }
+        catch (err) { result = { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+        this.post({ type: 'brainstorm_page_result', requestId: m.requestId, result } as never);
         break;
       }
       // ── PDF fonts: the optional bold Chinese/Japanese/Korean pack ──

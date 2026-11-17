@@ -77,6 +77,7 @@ import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
 import { HealthProfileAskTool } from './health-profile-ask.js';
 import { OpenHealthRoomTool } from './open-health-room.js';
 import { OpenLearningRoomTool } from './open-learning-room.js';
+import { OpenBrainstormRoomTool } from './open-brainstorm-room.js';
 import { OpenDesignStudioTool } from './open-design-studio.js';
 import { isUserMcpTool, mcpToolAlwaysAllowed } from '../mcp/permissions.js';
 import {
@@ -486,6 +487,7 @@ export class ToolRegistry {
       new HealthProfileAskTool(),
       new OpenHealthRoomTool(),
       new OpenLearningRoomTool(),
+      new OpenBrainstormRoomTool(),
       new OpenDesignStudioTool(),
       new DesignFindShapeTool(),
       new DesignGenerateIconTool(),

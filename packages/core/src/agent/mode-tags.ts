@@ -70,7 +70,9 @@ export const MODE_TAGS: readonly ModeTag[] = [
   { mode: 'work:talking', tag: '[Work Mode: Talk]' },
   { mode: 'plan', tag: '[Plan Mode]' },
   { mode: 'chat', tag: '[Chat Mode]' },
-  { mode: 'brainstorm', tag: '[Brainstorm Mode]' },
+  // [Brainstorm Room]: the same mode in its own room (plan 2026-11-17-brainstorm) —
+  // brainstorm tools, and the conversation belongs to the room, not the main chat.
+  { mode: 'brainstorm', tag: '[Brainstorm Mode]', legacyTags: ['[Brainstorm Room]'] },
   { mode: 'write', tag: '[Write Mode]' },
   { mode: 'teach', tag: '[Teach Mode]' },
   { mode: 'security', tag: '[Security Audit Mode]', legacyTags: ['[Security Mode]'] },

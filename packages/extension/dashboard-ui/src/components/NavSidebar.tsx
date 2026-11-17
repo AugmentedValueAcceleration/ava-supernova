@@ -5,7 +5,7 @@ import type { Page, DashboardJournalDaySummary, HealthPlanSummary, ProviderKeySt
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
   Brain, ChartLineUp, GearSix, Question, Barbell, GraduationCap,
-  ArrowsLeftRight, CaretLeft, CaretRight, Heart, PlugsConnected,
+  ArrowsLeftRight, CaretLeft, CaretRight, Heart, PlugsConnected, Lightbulb,
 } from '@phosphor-icons/react';
 
 /** The donation page on the website — Ava is free, and donations keep it so. */
@@ -86,6 +86,8 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     { page: 'library', icon: <Books weight="duotone" size={18} />, label: tt('dash.nav.library', 'Library'), description: tt('dash.nav.library_desc', 'Papers, assets, and documents') },
     { page: 'health', icon: <Barbell weight="duotone" size={18} />, label: tt('dash.nav.health', 'Health & Nutrition'), description: tt('dash.nav.health_desc', 'Exercises, recipes, plans'), earlyAccess: true },
     { page: 'learning-room', icon: <GraduationCap weight="duotone" size={18} />, label: tt('dash.nav.learning', 'Learning'), description: tt('dash.nav.learning_desc', 'Courses, lessons, and teaching'), earlyAccess: true },
+    // The Brainstorm room (plan 2026-11-17-brainstorm). Keep in step with the IDE Sidebar.
+    { page: 'brainstorm', icon: <Lightbulb weight="duotone" size={18} />, label: tt('dash.nav.brainstorm', 'Brainstorm'), description: tt('dash.nav.brainstorm_desc', 'Ideas, plans and how it should feel'), earlyAccess: true },
     // earlyAccess marks the rooms that are shipped and usable but still evolving —
     // Health, Learning, Creative Studio. Not a warning: it tells someone where a
     // feature actually is in its development. Keep in step with the IDE Sidebar.

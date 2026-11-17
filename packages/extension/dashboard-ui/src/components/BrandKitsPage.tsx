@@ -201,6 +201,28 @@ function Sheet({ kit, actions, onBack, onEdit, onDelete, onPickPiece }: { kit: B
           </Section>
         )}
 
+        {!!kit.experience && (kit.experience.words.length > 0 || kit.experience.principles.length > 0) && (
+          <Section title={tt('ext.studio.kit_sheet_experience', 'Experience — what people should feel')}>
+            {!!kit.experience.words.length && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {kit.experience.words.map((w) => (
+                  <span key={w} style={{ ...pill, fontSize: 11.5, background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: C.accent }}>{w}</span>
+                ))}
+              </div>
+            )}
+            {!!kit.experience.notWords.length && (
+              <p style={{ fontSize: 11.5, color: C.muted, margin: '8px 0 0' }}>{tt('ext.studio.kit_exp_never', 'Never:')} {kit.experience.notWords.join(', ')}</p>
+            )}
+            {kit.experience.principles.map((p) => (
+              <div key={p.title} style={{ marginTop: 10 }}>
+                <p style={{ fontSize: 12.5, color: C.text, margin: 0 }}>{p.title}</p>
+                {!!p.do && <p style={{ fontSize: 11.5, color: C.soft, lineHeight: 1.5, margin: '2px 0 0' }}>{tt('ext.studio.kit_exp_do', 'Do:')} {p.do}</p>}
+                {!!p.dont && <p style={{ fontSize: 11.5, color: C.soft, lineHeight: 1.5, margin: '2px 0 0' }}>{tt('ext.studio.kit_exp_dont', 'Don’t:')} {p.dont}</p>}
+              </div>
+            ))}
+          </Section>
+        )}
+
         {!!work.length && (
           <div style={{ gridColumn: '1 / -1' }}>
             <Section title={tt('ext.studio.kit_sheet_work', 'Approved work')}>

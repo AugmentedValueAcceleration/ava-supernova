@@ -51,7 +51,7 @@ interface ChatContainerProps {
   /** Conversation lane — 'health' swaps the empty-state greeting + starter
    *  chips for the Ava Health & Fitness room (plans/training/nutrition), and
    *  drops the mode-switch tip (the room is locked to health). */
-  lane?: 'main' | 'health' | 'learning' | 'design';
+  lane?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm';
   /** For the design lane: which Design Studio room the operator is standing in.
    *  Drives the room-aware greeting, starter chips and heading so the Design
    *  Architect reflects the active Open-Canvas view (Video / Voiceover) instead
@@ -174,7 +174,7 @@ export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmat
  * Date is appended in conversational form ("Tuesday") rather than full
  * ISO so it reads like a human picking up a conversation.
  */
-function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit' = 'icon'): string {
+function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | 'learning' | 'design' | 'brainstorm' = 'main', designRoom: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit' = 'icon'): string {
   const now = new Date();
   const h = now.getHours();
   const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -187,6 +187,10 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
   // The Learning room greets around what they want to learn — no code talk.
   if (lane === 'learning') {
     return t('learning.room.greeting', { name });
+  }
+  // The Brainstorm room greets around whatever part of an idea they bring.
+  if (lane === 'brainstorm') {
+    return t('brainstorm.room.greeting', { name });
   }
   // The Design Studio room — Ava as the Design Architect. No code talk. The
   // greeting follows the operator into the Open Canvas: filming in the Video
@@ -240,10 +244,11 @@ function buildSeededWelcome(userName: string | null, lane: 'main' | 'health' | '
  * chips with prefix-coloured tokens so the modes are recognisable on
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
-function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit' }) {
+function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { onSuggestion: (prompt: string) => void; lane?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm'; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit' }) {
   useLocale();
   const isHealth = lane === 'health';
   const isLearning = lane === 'learning';
+  const isBrainstorm = lane === 'brainstorm';
   const isDesign = lane === 'design';
   // Design room: plain-prompt chips (no mode prefix — the room is Ava's design
   // hat). They prefill the composer so the user can edit before sending. The
@@ -310,6 +315,14 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
     { label: t('learning.room.starter.resume'),  prefix: <Icon.play size={14} />,   prompt: t('learning.room.starter.resume_prompt'),  color: '#34d399' },
     { label: t('learning.room.starter.explain'), prefix: <Icon.idea size={14} />,   prompt: t('learning.room.starter.explain_prompt'), color: '#60a5fa' },
   ];
+  // Brainstorm room: the four kinds of fragment people bring. Plain prompts that
+  // prefill the composer, so they finish the sentence themselves.
+  const brainstormChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
+    { label: t('brainstorm.room.starter.project'),    prefix: '✦', prompt: t('brainstorm.room.starter.project_prompt'),    color: '#34d399' },
+    { label: t('brainstorm.room.starter.feature'),    prefix: '✦', prompt: t('brainstorm.room.starter.feature_prompt'),    color: '#93c5fd' },
+    { label: t('brainstorm.room.starter.experience'), prefix: '✦', prompt: t('brainstorm.room.starter.experience_prompt'), color: '#f9a8d4' },
+    { label: t('brainstorm.room.starter.direction'),  prefix: '✦', prompt: t('brainstorm.room.starter.direction_prompt'),  color: '#fbbf24' },
+  ];
   const codeChips: { label: string; prefix: React.ReactNode; prompt: string; color: string }[] = [
     { label: t('dash.chat.starter.explain'),    prefix: '>>', prompt: t('dash.chat.starter.explain_prompt'),    color: 'var(--accent)' },
     { label: t('dash.chat.starter.plan'),        prefix: '::', prompt: t('dash.chat.starter.plan_prompt'),        color: '#60a5fa' },
@@ -318,7 +331,7 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
     { label: t('dash.chat.starter.brainstorm'),  prefix: '**', prompt: t('dash.chat.starter.brainstorm_prompt'),  color: '#94e2d5' },
     { label: t('dash.chat.starter.chat'),        prefix: '..', prompt: '.. ',                                     color: '#a6adc8' },
   ];
-  const chips = isHealth ? healthChips : isLearning ? learningChips : isDesign ? designChips : codeChips;
+  const chips = isHealth ? healthChips : isLearning ? learningChips : isBrainstorm ? brainstormChips : isDesign ? designChips : codeChips;
   // Design heading follows the room: Direct (video) / Voice (voiceover) / Design (icon).
   const designHeading = designRoom === 'video' ? 'Direct with Ava' : designRoom === 'voice' ? 'Voice with Ava' : designRoom === 'image' ? 'Compose with Ava' : designRoom === 'logo' ? 'Design your logo with Ava' : 'Design with Ava';
 
@@ -333,10 +346,10 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
     >
       <div className="flex items-center gap-2 mb-1.5">
         <span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span>
-        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>{isHealth ? t('health.room.starter.heading') : isLearning ? t('learning.room.starter.heading') : isDesign ? designHeading : t('dash.chat.starter.heading')}</div>
+        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>{isHealth ? t('health.room.starter.heading') : isLearning ? t('learning.room.starter.heading') : isBrainstorm ? t('brainstorm.room.starter.heading') : isDesign ? designHeading : t('dash.chat.starter.heading')}</div>
       </div>
       <p className="text-[12px] leading-relaxed mb-4" style={{ color: '#a6adc8' }}>
-        {isHealth ? t('health.room.starter.subheading') : isLearning ? t('learning.room.starter.subheading') : isDesign ? "Tell me what you're making and your brand — I'll design it with you." : t('dash.chat.starter.subheading')}
+        {isHealth ? t('health.room.starter.subheading') : isLearning ? t('learning.room.starter.subheading') : isBrainstorm ? t('brainstorm.room.starter.subheading') : isDesign ? "Tell me what you're making and your brand — I'll design it with you." : t('dash.chat.starter.subheading')}
       </p>
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
@@ -366,7 +379,7 @@ function StarterHelper({ onSuggestion, lane = 'main', designRoom = 'icon' }: { o
           </button>
         ))}
       </div>
-      {!isHealth && !isLearning && !isDesign && (
+      {!isHealth && !isLearning && !isBrainstorm && !isDesign && (
         <p className="text-[10px] mt-4" style={{ color: '#6c7086' }}>
           {t('dash.chat.starter.tip_prefix')} <code style={{ color: 'var(--accent)' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> {t('dash.chat.starter.tip_suffix')}
         </p>

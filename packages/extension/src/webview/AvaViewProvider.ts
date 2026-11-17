@@ -22,6 +22,7 @@ import {
   getSecurityModePrefix,
   getPlanModePrefix,
   getBrainstormModePrefix,
+  brainstormRoomContext,
   getWriteModePrefix,
   getWorkModePrefix,
   getWorkTalkPrefix,
@@ -256,6 +257,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  conversation, so switching the active course loads the right thread. Runs in
    *  Teach mode; keeps learning turns out of the main thread. */
   private learningConversations = new Map<string, Conversation>();
+  /** Brainstorm room: one thread per brainstorm (the room sends its id as courseId — the room's thread key). */
+  private brainstormConversations = new Map<string, Conversation>();
   /** The Design Studio room's thread — the Design Architect (Ava's design hat).
    *  Local-only, and shares Ava's global memory (never a walled-off chatbot). */
   private designConversation?: Conversation;
@@ -263,7 +266,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  handleUserMessage and read by postMessage to stamp outbound events so the
    *  right surface (main chat vs Ava room) renders them. One run pipeline (the
    *  isRunning guard) → no concurrency, so a scalar is safe. */
-  private activeLane: 'main' | 'health' | 'learning' | 'design' = 'main';
+  private activeLane: 'main' | 'health' | 'learning' | 'design' | 'brainstorm' = 'main';
   /** Set when a turn emits an error event; drained into the conversation once
    *  the run's messages have been appended, so Ava can answer "what happened".
    *  See the 'error' case in the agent event handler. */
@@ -550,6 +553,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         if (surface === 'health') { this.healthConversation = c; return; }
         if (surface === 'design') { this.designConversation = c; return; }
         if (surface === 'learning') { this.learningConversations.set('__lobby__', c); return; }
+        // A Brainstorm room thread names its brainstorm in its first turn; back it goes to that one.
+        if (surface === 'brainstorm') {
+          const first = c.getMessages().find((m) => m.role === 'user');
+          const id = /This conversation IS brainstorm \[(\w+)\]/.exec(typeof first?.content === 'string' ? first.content : '')?.[1];
+          if (id) this.brainstormConversations.set(id, c);
+          return;
+        }
         this.conversation = c;
       },
       reflectOutgoing: () => this.reflectOutgoingSession(this.conversation),
@@ -848,7 +858,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.activeDesignRoom = msg.designRoom;
         }
         this.activeDesignPanel = typeof msg.designPanel === 'string' && msg.designPanel.trim() ? msg.designPanel.trim() : undefined;
-        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined), talk: msg.talk === true };
+        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | 'brainstorm' | undefined), talk: msg.talk === true };
       }
         break;
       case 'tool_confirmation_response':
@@ -876,7 +886,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         mapped = { type: 'switch_model', modelId: msg.modelId as string };
         break;
       case 'clear_chat':
-        mapped = { type: 'clear_chat', surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined) };
+        mapped = { type: 'clear_chat', surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | 'brainstorm' | undefined) };
         break;
       case 'cancel':
         mapped = { type: 'cancel' };
@@ -1020,7 +1030,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           tool: msg.tool as PaletteTool,
           action: msg.action as string,
           mode: (msg.mode ?? 'code') as AvaMode,
-          surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | undefined),
+          surface: msg.surface as ('main' | 'health' | 'learning' | 'design' | 'brainstorm' | undefined),
         };
         break;
       default:
@@ -2742,6 +2752,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.healthConversation = undefined;
         } else if (message.surface === 'learning') {
           this.learningConversations.delete(message.courseId ?? '__lobby__');
+        } else if (message.surface === 'brainstorm') {
+          if (message.courseId) this.brainstormConversations.delete(message.courseId);
         } else if (message.surface === 'design') {
           this.designConversation = undefined;
         } else {
@@ -3051,7 +3063,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * receives the confirmed intent (no intent detection needed) while the
    * chat shows the user a short clean label instead of the raw directive.
    */
-  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode, surface?: 'main' | 'health' | 'learning' | 'design', courseId?: string): Promise<void> {
+  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode, surface?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm', courseId?: string): Promise<void> {
     // Ask Ava from the plan wizard arrives already IN the health room. The
     // palette's version tells her to open that room; this one is for inside
     // it, shared with the IDE (core health/room-directives).
@@ -3070,7 +3082,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     text: string,
     mode: AvaMode = 'code',
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
-    options?: { displayText?: string; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; talk?: boolean },
+    options?: { displayText?: string; surface?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm'; courseId?: string; talk?: boolean },
   ): Promise<void> {
     this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}`);
     // The Talk switch only means something in Code mode — every other mode
@@ -3194,6 +3206,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.learningConversations.set(key, conv);
       }
       this.conversation = conv;
+    } else if (surface === 'brainstorm') {
+      // The Brainstorm room: each brainstorm is its own thread (plan 2026-11-17-brainstorm).
+      const key = options?.courseId ?? '__none__';
+      let conv = this.brainstormConversations.get(key);
+      if (!conv) {
+        conv = new Conversation();
+        conv.setSystemPrompt(await this.buildCurrentSystemPrompt());
+        this.brainstormConversations.set(key, conv);
+      }
+      this.conversation = conv;
     } else if (surface === 'design') {
       // The Design Architect thread. Shares the same agent + global memory as
       // the main chat (so Ava is never blind to design work), just its own
@@ -3216,10 +3238,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.updateStatusBar('busy');
 
     const docContext = this.openDocumentContext();
+    // In the Brainstorm room, Ava is told which brainstorm this thread is and what's in it.
+    const roomContext = options?.surface === 'brainstorm' && options.courseId
+      ? await brainstormRoomContext(options.courseId).catch(() => undefined) : undefined;
     const userText = await this.applyModePrefix(
       docContext ? `${docContext}` + '\n\n' + `${text}` : text,
       mode,
       talk,
+      roomContext,
     );
     this.log(`User message (mode=${mode}): "${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"`);
 
@@ -4173,7 +4199,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Mode Handling ──────────────────────────────────────────────────────────
 
-  private async applyModePrefix(text: string, mode: AvaMode, talk = false): Promise<string> {
+  private async applyModePrefix(text: string, mode: AvaMode, talk = false, roomContext?: string): Promise<string> {
     let prefixed: string;
     switch (mode) {
       case 'plan':
@@ -4190,6 +4216,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           text || 'Help me brainstorm ideas.',
           projectsHomeFrom(require('node:os').homedir(),
             vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.projectsHome')),
+          roomContext,
         ); break;
       case 'write':
         prefixed = getWriteModePrefix(text || 'What would you like to write?'); break;
@@ -4827,7 +4854,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // every existing surface behaves exactly as before; the Ava tab opts in by
     // filtering for lane === 'health'. Additive field — non-chat consumers
     // ignore it.
-    (message as { lane?: 'main' | 'health' | 'learning' | 'design' }).lane = this.activeLane;
+    (message as { lane?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm' }).lane = this.activeLane;
 
     // Broadcast to all active webviews — keeps sidebar + editor panel in sync
     this.view?.webview.postMessage(message);

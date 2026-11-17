@@ -104,7 +104,7 @@ export interface ProviderKeyStatus {
  *  already in the transcript — no schema change, works on every old record.
  *  Mode tags ([Chat Mode], [Plan Mode]…) are modes within the main chat, so they
  *  are 'main'. */
-export type ConversationSurface = 'main' | 'design' | 'health' | 'learning' | 'social';
+export type ConversationSurface = 'main' | 'design' | 'health' | 'learning' | 'social' | 'brainstorm';
 
 export interface ConversationEntry {
   id: string;
@@ -1111,7 +1111,7 @@ export interface PersonalityData {
 
 // ─── Usage Analytics Types ───────────────────────────────────────────────────
 
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'releases' | 'roadmap' | 'connections' | 'brainstorm' | 'history' | 'support' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
@@ -1449,6 +1449,8 @@ export type ExtToDashboardMessage =
   | { type: 'memory_v4_result'; requestId: string; result: unknown }
   /** Reply to an `mcp_page` request: core's mcpPage() result (the Connections page). */
   | { type: 'mcp_page_result'; requestId: string; result: unknown }
+  /** Reply to a `brainstorm_page` request: core's brainstormPage() result (the Brainstorm room). */
+  | { type: 'brainstorm_page_result'; requestId: string; result: unknown }
   /**
    * UI strings for ONE language, in reply to request_locale_strings.
    *
@@ -1815,6 +1817,8 @@ export type DashboardToExtMessage =
   | { type: 'memory_v4'; requestId: string; op: string; args?: Record<string, unknown> }
   /** The Connections page: one op of core's mcpPage(), answered by mcp_page_result. */
   | { type: 'mcp_page'; requestId: string; op: string; args?: Record<string, unknown> }
+  /** The Brainstorm room: one op of core's brainstormPage(), answered by brainstorm_page_result. */
+  | { type: 'brainstorm_page'; requestId: string; op: string; args?: Record<string, unknown> }
   /** "Send me the strings for this language." The dashboard asks rather than
    *  being pushed to, because it owns its own locale choice —
    *  localStorage['ava-dashboard-language'], which can differ from the host's
@@ -2074,19 +2078,19 @@ export type DashboardToExtMessage =
   // Design Architect tool → canvas: the webview's reply to a requestFromDesign.
   | { type: 'design_tool_result'; requestId: string; ok: boolean; data?: unknown; error?: string }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm'; courseId?: string; designRoom?: 'icon' | 'video' | 'voice' | 'image' | 'logo' | 'model' | 'gimp' | 'brandkit'; /** Code mode's Talk switch: read and discuss, change nothing. */ talk?: boolean }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
   // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`
   // routes the turn to the focused Ava Health & Fitness room (its own thread).
-  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
+  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string; surface?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm'; courseId?: string }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'set_category_permission'; category: string; permission: string }
   | { type: 'request_audit_log' }
   | { type: 'request_audit_findings' }
   | { type: 'export_audit_log'; format: 'markdown' | 'json' }
   | { type: 'switch_model'; modelId: string }
-  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning' | 'design'; courseId?: string }
+  | { type: 'clear_chat'; surface?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm'; courseId?: string }
   | { type: 'cancel' }
   | { type: 'interrupt' }
   | { type: 'request_history' }

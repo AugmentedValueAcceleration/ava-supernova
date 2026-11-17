@@ -187,7 +187,7 @@ export function parseScoringResponse(response: string): CandidateScore | null {
  */
 export const CONTEXT_TAGS: readonly string[] = [
   '[Work Mode]', '[Plan Mode]', '[Chat Mode]', '[Teach Mode]', '[Write Mode]',
-  '[Brainstorm Mode]', '[Security Audit Mode]', '[Desktop Automation Mode]',
+  '[Brainstorm Mode]', '[Brainstorm Room]', '[Security Audit Mode]', '[Desktop Automation Mode]',
   '[Newsroom]', '[Social Studio]', '[Pantry]', '[Gym]', '[Classroom]', '[Health Room]',
   '[Design Studio]', '[Memory Brief]', '[Project Brain]',
 ];

@@ -408,6 +408,7 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
       learning: 'learning-room',
       design: 'creative-studio',
       social: 'creative-studio',
+      brainstorm: 'brainstorm',
     };
     onNavigate(rooms[conv.surface ?? 'main']);
   };

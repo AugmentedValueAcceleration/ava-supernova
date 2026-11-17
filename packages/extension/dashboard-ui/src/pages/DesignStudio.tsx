@@ -708,7 +708,14 @@ export function DesignStudio({ onRegisterDesignChatDispatch, designModelState, o
   }, []);
   // Always the same place on entry: Video, on the Open Canvas. Every room is one
   // click away, so a fixed start beats trying to remember the last one.
-  const [view, setView] = useState<ViewId>(() => { try { return sessionStorage.getItem('ava-open-work') ? 'gimp' : 'video'; } catch { return 'video'; } });
+  const [view, setView] = useState<ViewId>(() => {
+    try {
+      // "Open the kit" from the Brainstorm room lands on Brand Kits, once.
+      const asked = sessionStorage.getItem('ava-design-open-view');
+      if (asked) { sessionStorage.removeItem('ava-design-open-view'); return asked as ViewId; }
+      return sessionStorage.getItem('ava-open-work') ? 'gimp' : 'video';
+    } catch { return 'video'; }
+  });
   // Without a Qwen key the image, video, voice and icon lanes can't make
   // anything, so the Studio opens on Logo instead.
   const needsQwen = (id: ViewId) => !hasQwenKey && QWEN_VIEWS.includes(id);

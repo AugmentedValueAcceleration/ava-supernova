@@ -1,6 +1,6 @@
 import type { ProjectsUsage } from '@ava/core/projects/storage';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { initLocale, useLocale, getLocale, loadStrings, pendingLocaleRequest } from './i18n';
+import { initLocale, useLocale, getLocale, loadStrings, pendingLocaleRequest, t } from './i18n';
 import { post } from './vscode';
 
 import { NavSidebar } from './components/NavSidebar';
@@ -13,6 +13,9 @@ import { MemoryV4Page } from './components/MemoryV4Page';
 import { memoryRequest } from './lib/memory-v4';
 import { connectionsRequest } from './lib/connections';
 import { ConnectionsPage } from './components/ConnectionsPage';
+import { BrainstormRoom } from './components/BrainstormRoom';
+import { BrainstormChatLane } from './components/BrainstormChatLane';
+import { brainstormRequest } from './lib/brainstorm';
 import { History } from './pages/History';
 import { Library } from './pages/Library';
 import { ResultsImport } from './components/ResultsImport';
@@ -186,6 +189,18 @@ export function App() {
     takePendingRestore('design', fn);
     for (const cached of lastChatSetupRef.current.values()) fn(cached);
   }, []);
+
+  // Fifth chat dispatch — the Brainstorm room (plan 2026-11-17-brainstorm). Host
+  // events from a brainstorm-lane turn are tagged lane:'brainstorm' and routed
+  // here; one thread per brainstorm (its id travels as courseId).
+  const brainstormChatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
+  const registerBrainstormChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
+    brainstormChatDispatchRef.current = fn;
+    takePendingRestore('brainstorm', fn);
+    for (const cached of lastChatSetupRef.current.values()) fn(cached);
+  }, []);
+  // A hand-off from the main chat: the room starts a new brainstorm with this as its first message.
+  const [brainstormPrimer, setBrainstormPrimer] = useState<string | null>(null);
 
   // Model state for the Design Studio's OWN top bar (so it shows the model
   // dropdown even when the chat overlay is closed). Fed from chat_init.
@@ -816,7 +831,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     // health surface; everything else (incl. shared setup like chat_init) goes
     // to the main chat — and ALSO to the health surface so it has the same
     // model/account context. Each surface still filters CHAT_MESSAGE_TYPES.
-    const lane = (msg as { lane?: 'main' | 'health' | 'learning' | 'design' }).lane;
+    const lane = (msg as { lane?: 'main' | 'health' | 'learning' | 'design' | 'brainstorm' }).lane;
     // The host remaps init → chat_init and platform_status → chat_platform_status
     // before they reach the dashboard, so those are the only setup types seen
     // here. Mirror them to the room surfaces so their chats have model/account
@@ -836,6 +851,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     if (msg.type === 'conversation_loaded' && msg.surface && msg.surface !== 'main') {
       const to = msg.surface === 'health' ? healthChatDispatchRef
         : msg.surface === 'learning' ? learningChatDispatchRef
+        : msg.surface === 'brainstorm' ? brainstormChatDispatchRef
         : designChatDispatchRef;
       // Queue it when the room has not mounted yet rather than dropping it on
       // the floor — that silent drop is what left the Ava tab open and empty.
@@ -880,13 +896,14 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     // announcing it in rooms nobody is looking at turns a fact into a pile of
     // stale notices at the top of a room opened hours later.
     if (msg.type === 'model_switched') {
-      const here = page === 'health' ? 'health' : page === 'learning-room' ? 'learning' : null;
-      const say = (target: 'main' | 'health' | 'learning' | 'design') =>
+      const here = page === 'health' ? 'health' : page === 'learning-room' ? 'learning' : page === 'brainstorm' ? 'brainstorm' : null;
+      const say = (target: 'main' | 'health' | 'learning' | 'design' | 'brainstorm') =>
         ({ ...msg, announce: target === (here ?? 'main') });
       chatDispatchRef.current?.(say('main'));
       healthChatDispatchRef.current?.(say('health'));
       learningChatDispatchRef.current?.(say('learning'));
       designChatDispatchRef.current?.(say('design'));
+      brainstormChatDispatchRef.current?.(say('brainstorm'));
       return;
     }
     if (lane === 'health') {
@@ -899,9 +916,11 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       if (msg.type === 'done') { post({ type: 'load_learning' }); post({ type: 'load_learning_profile' }); }
     } else if (lane === 'design') {
       designChatDispatchRef.current?.(msg);
+    } else if (lane === 'brainstorm') {
+      brainstormChatDispatchRef.current?.(msg);
     } else {
       chatDispatchRef.current?.(msg);
-      if (isChatSetup) { healthChatDispatchRef.current?.(msg); learningChatDispatchRef.current?.(msg); designChatDispatchRef.current?.(msg); }
+      if (isChatSetup) { healthChatDispatchRef.current?.(msg); learningChatDispatchRef.current?.(msg); designChatDispatchRef.current?.(msg); brainstormChatDispatchRef.current?.(msg); }
     }
 
     // Auto-register every data source the moment its first load lands —
@@ -1513,6 +1532,21 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Main-chat → Brainstorm room handoff (open_brainstorm_room): a new brainstorm
+  // in the room, with their idea so far as its first message.
+  useEffect(() => {
+    const onOpenRoom = (e: Event) => {
+      const raw = (e as CustomEvent).detail as { topic?: string; primer?: string } | undefined;
+      const text = raw?.primer?.trim()
+        || (raw?.topic ? t('brainstorm.handoff.seed_topic', { topic: raw.topic }) : t('brainstorm.handoff.seed'));
+      setBrainstormPrimer(text);
+      setPagePersist('brainstorm');
+    };
+    window.addEventListener('ava-open-brainstorm-room', onOpenRoom);
+    return () => window.removeEventListener('ava-open-brainstorm-room', onOpenRoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Load data when navigating to pages
   useEffect(() => {
     if (page === 'history') {
@@ -1727,6 +1761,30 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
           onProfile: () => { setHealthInitialTab('profile'); setPagePersist('health'); },
           onOpenPlans: () => { setHealthInitialTab('plans'); setPagePersist('health'); },
         }} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
+      case 'brainstorm':
+        return (
+          <div style={{ height: '100%', minHeight: 0 }}>
+            <BrainstormRoom
+              request={brainstormRequest}
+              primer={brainstormPrimer}
+              onPrimerUsed={() => setBrainstormPrimer(null)}
+              renderChat={(id, seed) => (
+                <BrainstormChatLane key={id} id={id} seed={seed} onRegisterDispatch={registerBrainstormChatDispatch}
+                  userName={firstName} userAvatarUrl={avatarDataUrl || null} />
+              )}
+              // Work on this: the main chat opens with the plan named (he presses send).
+              onWorkOnThis={(b) => {
+                try { localStorage.setItem('ava-pending-ask', t('brainstorm.room.work_message', { headline: b.headline, id: b.id })); } catch { /* no storage */ }
+                setPagePersist('chat');
+              }}
+              // Open the kit: the Creative Studio, on Brand Kits.
+              onOpenKit={() => {
+                try { sessionStorage.setItem('ava-design-open-view', 'brandkit'); } catch { /* no storage */ }
+                setPagePersist('creative-studio');
+              }}
+            />
+          </div>
+        );
       case 'connections':
         // Ask Ava: the chat opens with his request written in (he presses send), as the docs page does.
         return <ConnectionsPage request={connectionsRequest} onWaitingChange={setMcpWaiting}
