@@ -90,6 +90,12 @@ export interface BrandKitFonts { heading?: string; body?: string; ui?: string }
 /** A colour on a colour, for one use. Roles ("primary") or hex. */
 export interface BrandKitPairing { ink: string; on: string; use?: string }
 
+export interface BrandKitExperience {
+  words: string[];
+  notWords: string[];
+  principles: Array<{ title: string; do: string; dont: string }>;
+}
+
 export interface BrandKitRecord {
   id: string;
   name: string;
@@ -100,6 +106,12 @@ export interface BrandKitRecord {
   /** On disk: a path inside the kit's folder. To the apps: a data URL. */
   logo?: Partial<Record<BrandLogoSlot, string>>;
   voice?: string;
+  /**
+   * What the people using this should feel (Brainstorm's Experience, plan
+   * 2026-11-17-brainstorm): the words for it, what it must never be, and
+   * principles with what they mean in practice. Every mode reads it from here.
+   */
+  experience?: BrandKitExperience;
   doRules?: string[];
   dontRules?: string[];
   defaultHashtags?: string[];
@@ -384,11 +396,21 @@ export function brandKitSummary(found: KitForProject): string {
     ...kitPieceStates(k).filter((p) => p.note).map((p) => `Notes on ${p.label}: ${p.note}`),
     ...kitPieceStates(k).filter((p) => p.files?.length).map((p) => `${p.label} files: ${p.files!.map((f) => join(kitFolder(k.id), f)).join(', ')}`),
     k.voice ? `Voice: ${k.voice}` : '',
+    ...experienceLines(k.experience),
     k.doRules?.length ? `Always: ${k.doRules.join('; ')}.` : '',
     k.dontRules?.length ? `Never: ${k.dontRules.join('; ')}.` : '',
     `Design from this. The kit is the record, so never copy it into memory. In Blender and GIMP scripts use KIT.colour("primary"), KIT.rgba("primary") in Blender, and KIT.logo("mark") rather than typing colours or paths.`,
   ];
   return lines.filter(Boolean).join('\n');
+}
+
+/** The kit's experience, for Ava: what their users should feel, and how to make it so. */
+export function experienceLines(e?: BrandKitExperience): string[] {
+  if (!e || (!e.words?.length && !e.principles?.length)) return [];
+  return [
+    `Experience — what the people using it should feel: ${e.words.join(', ') || '(not named yet)'}${e.notWords?.length ? `; never ${e.notWords.join(', ')}` : ''}. Design, words and behaviour serve this.`,
+    ...(e.principles ?? []).map((p) => `Experience principle "${p.title}": do ${p.do || '—'}; don't ${p.dont || '—'}.`),
+  ];
 }
 
 export async function readBrandKit(id?: string): Promise<BrandKitRecord | null> {

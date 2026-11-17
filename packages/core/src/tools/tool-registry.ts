@@ -713,6 +713,9 @@ export class ToolRegistry {
       // it's added, whatever the permission mode (plan 2026-11-17-mcp-servers).
       || tool.name === 'connection_add'
       || (tool.name === 'connection_import' && args?.action === 'bring_in')
+      // A brainstorm's experience going into a brand kit changes the kit every
+      // mode designs from (plan 2026-11-17-brainstorm): he sees it first.
+      || (tool.name === 'brainstorm_session' && args?.action === 'experience_to_kit')
     ) return true;
 
     // Tools from a server the person added (mcp_<server>_<tool>) ask until he

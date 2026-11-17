@@ -1,24 +1,22 @@
-// Brainstorm sessions are kept, and they are kept LOCALLY.
+// Brainstorms are kept, and they are kept LOCALLY (plan 2026-11-17-brainstorm).
 //
-// Two rules, both settled with the operator on 2026-08-20:
-//
-//   1. Always local. Never in the repo — not even gitignored inside it.
-//      `Decisions/drafts/` was considered and rejected: gitignored is usually
-//      safe, not always, because the folder still sits in the project tree
-//      where a `git add -f`, a zip, or a copied directory takes it along.
-//
-//   2. Saved as you go, attached later. The mode exists for someone who is not
-//      ready to commit yet — that IS the state — so nothing waits for a project
-//      to exist. Requiring commitment before anything is kept would lose
-//      exactly the sessions worth keeping: explore five ideas, pick none, close
-//      the app, and Thursday starts from nothing.
+//   1. Always local, never in a project — not even gitignored inside it: a
+//      `git add -f`, a zip or a copied folder takes it along.
+//   2. Saved as you go. The mode exists for someone not ready to commit — so
+//      nothing waits for a project to exist.
+//   3. Plans live OUTSIDE projects; assigning is a LINK (17 Nov: "create plans
+//      outside of a project but not part of a project"). Until then "attach"
+//      MOVED a session into the project's notes — those come back.
+//   4. Plans are living: steps get ticked, changes get noted with why.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm, readdir, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BrainstormStore, projectHash } from '../src/brainstorm/brainstorm-store.js';
+import {
+  BrainstormStore, projectHash, normaliseKind, setPlan, tickSteps, addChange, setExperience, summarise,
+} from '../src/brainstorm/brainstorm-store.js';
 
 let home: string;      // stands in for ~/.ava
 let project: string;   // stands in for a real project folder
@@ -34,125 +32,119 @@ afterEach(async () => {
   await rm(project, { recursive: true, force: true });
 });
 
-describe('nothing is written into the project', () => {
-  it('keeps an evolve session under the local dir, not the project folder', async () => {
-    // The rule that matters most. An evolve session knows the project path —
-    // which is exactly when it would be tempting to write beside the code.
-    const s = store.create('evolve', 'Where does the inventory go next', project);
-    store.addIdea(s, { title: 'Drag to equip', summary: 'Slot-to-slot drag', status: 'candidate' });
+describe('nothing is written into a project', () => {
+  it('keeps every brainstorm in ~/.ava/brainstorm, assigned or not', async () => {
+    const s = store.create('feature', 'Sharing with a partner', project);
     await store.save(s);
-
+    expect(existsSync(join(home, 'brainstorm', `${s.id}.json`))).toBe(true);
     expect(await readdir(project)).toEqual([]);
-    expect(existsSync(join(home, 'project-notes', projectHash(project), 'brainstorm', s.id + '.json'))).toBe(true);
   });
 
-  it('hashes the project path the same way regardless of trailing slash or case', async () => {
-    // Matches verification-trust's cwdHash, so one project cannot end up with
-    // two buckets — for trust or for brainstorming.
-    expect(projectHash(project)).toBe(projectHash(project + '/'));
-    expect(projectHash(project)).toBe(projectHash(project.toUpperCase()));
+  it('hashes the project path the same way regardless of trailing slash or case (shared with project data)', () => {
+    expect(projectHash('C:\\Work\\App\\')).toBe(projectHash('c:/work/app'));
   });
 });
 
-describe('a session survives before there is a project', () => {
-  it('saves a blank-page session with no project at all', async () => {
-    const s = store.create('blank', 'Something to build on Sunday');
-    store.addIdea(s, { title: 'Tide clock', summary: 'A clock face showing the tide', status: 'candidate' });
+describe('a brainstorm survives before there is a project', () => {
+  it('saves one with no project at all, and lists it back', async () => {
+    const s = store.create('project', 'Something with music');
+    store.addIdea(s, { title: 'Beat maker', summary: 'A tiny step sequencer', status: 'candidate' });
     await store.save(s);
-
-    const found = await store.get(s.id);
-    expect(found?.headline).toBe('Something to build on Sunday');
-    expect(found?.ideas).toHaveLength(1);
-    expect(found?.projectPath).toBeUndefined();
-  });
-
-  it('lists it back so she can say "you were circling this"', async () => {
-    const s = store.create('blank', 'Weekend project ideas');
-    store.addIdea(s, { title: 'Tide clock', summary: 'x', status: 'candidate' });
-    store.addIdea(s, { title: 'Bus timer', summary: 'x', status: 'rejected', reason: 'API costs money' });
-    await store.save(s);
-
-    const [row] = await store.list();
-    expect(row.headline).toBe('Weekend project ideas');
-    expect(row.ideaCount).toBe(2);
-    // Only the live ones count as open — a rejected idea is not unfinished business.
-    expect(row.openCount).toBe(1);
-    expect(row.attached).toBe(false);
+    const [only] = await store.list();
+    expect(only).toMatchObject({ id: s.id, kind: 'project', headline: 'Something with music', ideaCount: 1, openCount: 1, attached: false });
+    expect(only.projectPath).toBeUndefined();
   });
 
   it('keeps WHY an idea was turned down', async () => {
-    // Without the reason, a returning session re-proposes what was already
-    // rejected, and "you looked at this and dropped it" says nothing useful.
-    const s = store.create('blank', 'Ideas');
-    store.addIdea(s, { title: 'Bus timer', summary: 'x', status: 'rejected', reason: 'API costs money' });
+    const s = store.create('project', 'x');
+    store.addIdea(s, { title: 'Open Banking', summary: 'Live sync', status: 'rejected', reason: 'costs money' });
     await store.save(s);
-    const back = await store.get(s.id);
-    expect(back!.ideas[0].reason).toBe('API costs money');
+    expect((await store.get(s.id))!.ideas[0].reason).toBe('costs money');
   });
 });
 
-describe('attaching to a project', () => {
-  it('moves the session rather than copying it', async () => {
-    // Two copies would drift, and the loose one would keep showing up as
-    // unattached thinking about a project that already exists.
-    const s = store.create('blank', 'Something to build');
-    store.addIdea(s, { title: 'Tide clock', summary: 'x', status: 'chosen' });
-    await store.save(s);
-
-    const loose = join(home, 'brainstorm', s.id + '.json');
-    expect(existsSync(loose)).toBe(true);
-
-    const moved = await store.attach(s.id, project);
-    expect(moved?.projectPath).toBe(project);
-    expect(existsSync(loose)).toBe(false);
-    expect(existsSync(join(home, 'project-notes', projectHash(project), 'brainstorm', s.id + '.json'))).toBe(true);
-    // …and still nothing in the project itself.
-    expect(await readdir(project)).toEqual([]);
+describe('the kinds', () => {
+  it('reads the old two as the new ones: a blank page was a project, evolving was a direction', () => {
+    expect(normaliseKind('blank')).toBe('project');
+    expect(normaliseKind('evolve')).toBe('direction');
+    expect(normaliseKind('experience')).toBe('experience');
+    expect(normaliseKind('nonsense')).toBe('unsure');
   });
 
-  it('carries the thinking across with it', async () => {
-    const s = store.create('blank', 'Something to build');
-    store.addIdea(s, { title: 'Bus timer', summary: 'x', status: 'rejected', reason: 'API costs money' });
-    store.addIdea(s, { title: 'Tide clock', summary: 'x', status: 'chosen' });
-    await store.save(s);
-    await store.attach(s.id, project);
-
-    const back = await store.get(s.id, project);
-    expect(back!.ideas.map((i) => i.title)).toEqual(['Bus timer', 'Tide clock']);
-    expect(back!.ideas[0].reason).toBe('API costs money');
-  });
-
-  it('returns null when there is nothing to attach', async () => {
-    expect(await store.attach('nope', project)).toBeNull();
-  });
-});
-
-describe('listing inside a project', () => {
-  it('shows the project sessions AND the loose pile', async () => {
-    // A blank-page session that later became this project is still the thinking
-    // that produced it, and someone circling an idea for weeks should hear
-    // about it whether or not they had a folder at the time.
-    const attached = store.create('evolve', 'Next move', project);
-    await store.save(attached);
-    const loose = store.create('blank', 'Half an idea');
-    await store.save(loose);
-
-    const headlines = (await store.list(project)).map((s) => s.headline).sort();
-    expect(headlines).toEqual(['Half an idea', 'Next move']);
-  });
-
-  it('is empty rather than failing before anything has been saved', async () => {
-    expect(await store.list()).toEqual([]);
-    expect(await store.list(project)).toEqual([]);
-  });
-
-  it('skips a corrupt file rather than losing the whole list', async () => {
-    const good = store.create('blank', 'Readable');
-    await store.save(good);
+  it('upgrades an old file when it is read', async () => {
     await mkdir(join(home, 'brainstorm'), { recursive: true });
-    await writeFile(join(home, 'brainstorm', 'broken.json'), '{ not json', 'utf-8');
+    await writeFile(join(home, 'brainstorm', 'old1.json'), JSON.stringify({ version: 1, id: 'old1', kind: 'evolve', headline: 'h', ideas: [], notes: [], startedAt: '2026-09-01', updatedAt: '2026-09-01' }));
+    expect(await store.get('old1')).toMatchObject({ version: 2, kind: 'direction' });
+  });
+});
 
-    const rows = await store.list();
-    expect(rows.map((r) => r.headline)).toEqual(['Readable']);
+describe('assigning to a project is a link', () => {
+  it('records the project and moves nothing', async () => {
+    const s = store.create('project', 'Calm budget');
+    await store.save(s);
+    await store.assign(s.id, project);
+    expect(existsSync(join(home, 'brainstorm', `${s.id}.json`))).toBe(true);
+    expect((await store.get(s.id))!.projectPath).toBe(project);
+    expect((await store.forProject(project)).map((x) => x.id)).toEqual([s.id]);
+    await store.assign(s.id, null);
+    expect((await store.get(s.id))!.projectPath).toBeUndefined();
+  });
+
+  it('lists a project\'s own brainstorms first, then the rest', async () => {
+    const other = store.create('project', 'Other');
+    await store.save(other);
+    const mine = store.create('feature', 'Mine', project);
+    await store.save(mine);
+    // Saved first, so "other" is older — but "mine" leads because it's this project's.
+    const listed = await store.list(project);
+    expect(listed.map((x) => x.id)).toEqual([mine.id, other.id]);
+  });
+
+  it('brings back brainstorms the old "attach" moved into a project\'s notes, keeping the assignment', async () => {
+    const oldDir = join(home, 'project-notes', projectHash(project), 'brainstorm');
+    await mkdir(oldDir, { recursive: true });
+    await writeFile(join(oldDir, 'moved1.json'), JSON.stringify({ version: 1, id: 'moved1', kind: 'blank', headline: 'From before', ideas: [], notes: [], projectPath: project, startedAt: '2026-10-01', updatedAt: '2026-10-01' }));
+    const listed = await store.list();
+    expect(listed.map((x) => x.id)).toContain('moved1');
+    expect(existsSync(join(oldDir, 'moved1.json'))).toBe(false);
+    expect(await store.get('moved1')).toMatchObject({ kind: 'project', projectPath: project });
+  });
+
+  it('can be deleted', async () => {
+    const s = store.create('project', 'x');
+    await store.save(s);
+    expect(await store.delete(s.id)).toBe(true);
+    expect(await store.get(s.id)).toBeNull();
+  });
+
+  it('is empty rather than failing before anything has been saved, and skips a corrupt file', async () => {
+    expect(await store.list()).toEqual([]);
+    await mkdir(join(home, 'brainstorm'), { recursive: true });
+    await writeFile(join(home, 'brainstorm', 'bad.json'), '{ not json');
+    const ok = store.create('project', 'fine');
+    await store.save(ok);
+    expect((await store.list()).map((x) => x.id)).toEqual([ok.id]);
+  });
+});
+
+describe('the plan is living', () => {
+  it('keeps ticks across a rewrite, notes changes with why, and counts progress', () => {
+    const s = store.create('project', 'Calm budget');
+    setPlan(s, { summary: 'Envelopes, gently', steps: [{ text: 'Envelopes' }, { text: 'Left this week' }, { text: 'Bank import', tier: 'ambitious' }] });
+    expect(tickSteps(s, ['envelopes'])).toBe(1);
+    setPlan(s, { steps: [{ text: 'Envelopes' }, { text: 'Left this week' }, { text: 'Sunday check-in' }] });
+    expect(s.plan!.steps.find((x) => x.text === 'Envelopes')!.done).toBe(true);
+    addChange(s, { type: 'changed', text: 'Weekly, not monthly — monthly felt scary', from: 'work' });
+    expect(s.plan!.changes[0]).toMatchObject({ type: 'changed', from: 'work' });
+    expect(summarise(s)).toMatchObject({ stepsDone: 1, stepsTotal: 3 });
+  });
+
+  it('keeps the experience: words, what it must not be, principles', () => {
+    const s = store.create('experience', 'Calm, not stressful');
+    setExperience(s, { words: ['calm', 'in control'], notWords: ['guilty'], principles: [{ title: 'Nothing shouts', do: 'soft colours', dont: 'red numbers' }] });
+    setExperience(s, { words: ['calm', 'in control', 'encouraged'] });
+    expect(s.experience).toMatchObject({ words: ['calm', 'in control', 'encouraged'], notWords: ['guilty'] });
+    expect(s.experience!.principles).toHaveLength(1);
+    expect(summarise(s).hasExperience).toBe(true);
   });
 });

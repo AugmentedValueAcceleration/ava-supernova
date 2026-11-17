@@ -69,6 +69,10 @@ export function toolRequestInWords(toolName: string, args: Record<string, unknow
       return `Bring ${named.length === 1 ? 'this MCP server' : 'these MCP servers'} into your Connections: ${list(named)}. Their files aren't changed; keys written in them move into your keychain. Each one starts as you, and its tools ask the first time.`;
     }
     case 'connection_search': return `Look up "${short(args.query, 60)}" in the official MCP Registry`;
+    case 'brainstorm_session':
+      return args.action === 'experience_to_kit'
+        ? `Save this brainstorm's experience (what your users should feel) to ${args.kit_id ? 'the brand kit' : 'your project\'s brand kit, or a new kit you agree in the Design Studio'}${args.kit_name ? ` "${short(args.kit_name, 60)}"` : ''}. Every mode designs and writes from the kit.`
+        : `Keep this brainstorm (${String(args.action ?? 'save')})`;
     default: return `Use its "${toolWords(toolName)}" tool`;
   }
 }

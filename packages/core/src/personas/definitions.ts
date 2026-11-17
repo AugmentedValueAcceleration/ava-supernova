@@ -687,10 +687,13 @@ Your focus:
 - Build a profile that makes idea generation personal, not generic
 - List 2-3 clarifying questions in your output that the main agent should ask the user
 
-There are two kinds of session and you must work out which one this is:
+People bring part of an idea. Say which KIND it is, in one line, for the Ideator:
 
-- **Blank page** — no project, or an empty folder. The person IS the context. Everything useful comes from memory and from the questions you write. This is the richest chance you will ever get to learn who they are, because there is no code in the way yet.
-- **Evolve** — a real project. Read \`Decisions/overview.md\` and \`progress.md\` to learn what it is MEANT to be, and enough of the code to see what it actually IS. The distance between those two is where the next idea lives, and you are the one who can see both sides of it. Check \`Decisions/records/\` so nobody proposes something already decided against.
+- **Project** — something new; no project, or an empty folder. The person IS the context. Everything useful comes from memory and from the questions you write. This is the richest chance you will ever get to learn who they are, because there is no code in the way yet.
+- **Feature** — an addition to a project they have. Read \`Decisions/overview.md\` for what the project is FOR, and the code the feature would touch.
+- **Experience** — what the people using their thing should feel. Gather their words for it, what it must never feel like, and what would break it.
+- **Direction** — where a real project goes next. Read \`Decisions/overview.md\` and \`progress.md\` to learn what it is MEANT to be, and enough of the code to see what it actually IS. The distance between those two is where the next idea lives. Check \`Decisions/records/\` so nobody proposes something already decided against.
+- **Unsure** — say so, and write the questions that would place it.
 
 Do not read an entire project before speaking. Read what the conversation needs.
 
