@@ -20,6 +20,9 @@
  *   sign_out  { scope, id }      forget the sign-in
  *   import_scan                  what Claude Desktop, Cursor and VS Code have (no secrets shown)
  *   import    { picks }          bring in the ones he ticked: [{ app, name }]
+ *   check_suggested { id }       what a suggested server would be (address, warnings)
+ *   add_suggested { id, view }   add it, with Ava's view in his language
+ *   open_docs { url }            open a server's docs page (only one the page was given)
  *   check     { draft }          what a new server would run, and what to point out
  *   add       { draft }          add it (after he has seen the check)
  */
@@ -30,9 +33,10 @@ import {
 } from './servers-config.js';
 import { hasMcpKeychain, mcpSecretNames, setMcpSecret } from './secrets.js';
 import { checkServerUrl } from './connection.js';
-import { forgetSignIn, mcpAuthKey } from './oauth.js';
+import { forgetSignIn, mcpAuthKey, openWebPage } from './oauth.js';
 import { MCP_IMPORT_APP_NAMES, scanMcpImports, type McpImportApp } from './import.js';
-import { importMcpServers } from './setup.js';
+import { addMcpServers, checkProposal, importMcpServers } from './setup.js';
+import { MCP_SUGGESTIONS, suggestionFor, type McpSuggestionKind } from './suggested.js';
 import { riskNotes, type McpRiskNote } from './risk.js';
 
 /** More tools than this from his servers and the page says it's getting heavy. */
@@ -54,6 +58,14 @@ export interface McpDraft {
 export interface McpPageServer extends McpServerStatus {
   /** Each key it uses, and whether the keychain has it. */
   keys: Array<{ name: string; set: boolean }>;
+  /** Where to read about it: a suggested server's docs, else the repository Ava noted. */
+  docs?: string;
+}
+
+/** A server's docs page, if known (https only). */
+function docsFor(s: McpServerStatus): string | undefined {
+  const known = suggestionFor(s.online ? s.shows : undefined)?.docs ?? s.ava?.repository;
+  return known && /^https:\/\//i.test(known) ? known : undefined;
 }
 
 export interface McpPageState {
@@ -67,6 +79,8 @@ export interface McpPageState {
   heavy: boolean;
   /** False when the keychain can't be reached: keys can't be kept. */
   keychain: boolean;
+  /** The suggested servers (suggested.ts), and whether he has each one already. */
+  suggested: Array<{ id: string; name: string; publisher: string; registry?: string; kind: McpSuggestionKind; url: string; docs: string; added: boolean; what: string; view: string }>;
 }
 
 export type McpCheck =
@@ -145,7 +159,7 @@ async function check(d: McpDraft): Promise<McpCheck> {
 async function state(): Promise<McpPageState> {
   const m = McpServers.current();
   const names = new Set(hasMcpKeychain() ? await mcpSecretNames().catch(() => []) : []);
-  const servers = m.status().map((s) => ({ ...s, keys: s.secrets.map((name) => ({ name, set: names.has(name) })) }));
+  const servers = m.status().map((s) => ({ ...s, keys: s.secrets.map((name) => ({ name, set: names.has(name) })), docs: docsFor(s) }));
   const toolsOn = servers.filter((s) => s.state === 'ready').reduce((n, s) => n + s.tools.length, 0);
   return {
     servers,
@@ -156,7 +170,18 @@ async function state(): Promise<McpPageState> {
     waiting: servers.filter((s) => s.state === 'waiting').length,
     heavy: toolsOn > MCP_HEAVY_TOOLS,
     keychain: hasMcpKeychain(),
+    suggested: MCP_SUGGESTIONS.map((g) => ({
+      id: g.id, name: g.name, publisher: g.publisher, registry: g.registry, kind: g.kind, url: g.url, docs: g.docs, what: g.what, view: g.view,
+      added: servers.some((s) => s.scope === 'user' && (s.id === g.id || s.shows === g.url)),
+    })),
   };
+}
+
+/** A suggested server as a proposal (the same checks and card as any other). */
+function suggestionProposal(id: string, view?: string) {
+  const g = MCP_SUGGESTIONS.find((x) => x.id === id);
+  if (!g) return null;
+  return { name: g.id, url: g.url, keyHeader: g.keyHeader, view: view || g.view, registry: g.registry };
 }
 
 export async function mcpPage(op: string, args: Record<string, unknown> = {}): Promise<unknown> {
@@ -235,6 +260,27 @@ export async function mcpPage(op: string, args: Record<string, unknown> = {}): P
         .filter((p): p is { app: McpImportApp; name: string } => !!p.app && p.app in MCP_IMPORT_APP_NAMES && typeof p.name === 'string');
       const result = await importMcpServers(picks);
       return { ok: true, result, state: await state() };
+    }
+    case 'check_suggested': {
+      const p = suggestionProposal(str('id'));
+      if (!p) return { ok: false, problem: 'unknown' };
+      const c = await checkProposal(p);
+      return c.ok ? { ok: true, id: c.id, shows: c.shows, notes: c.notes, slots: c.slots } : { ok: false, problem: c.problem };
+    }
+    case 'add_suggested': {
+      const p = suggestionProposal(str('id'), typeof args.view === 'string' ? args.view : undefined);
+      if (!p) return { ok: false, problem: 'unknown' };
+      const c = await checkProposal(p);
+      if (!c.ok) return { ok: false, problem: c.problem };
+      await addMcpServers([{ id: c.id, entry: c.entry }]);
+      return { ok: true, id: c.id, state: await state() };
+    }
+    case 'open_docs': {
+      // Only a page this page was shown: a suggested server's docs, or one of his servers' own.
+      const url = str('url');
+      const known = MCP_SUGGESTIONS.some((g) => g.docs === url) || m.status().some((s) => docsFor(s) === url);
+      if (!known) return { ok: false, problem: 'unknown' };
+      try { await openWebPage(url); return { ok: true }; } catch (err) { return { ok: false, problem: err instanceof Error ? err.message : String(err) }; }
     }
     case 'check':
       return check(args.draft as McpDraft);

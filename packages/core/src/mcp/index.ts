@@ -31,3 +31,5 @@ export { checkProposal, addMcpServers, importMcpServers, settleMcpServers, statu
 export type { McpProposal, McpImportResult } from './setup.js';
 export { redactSecrets } from './risk.js';
 export type { McpAvaNote } from './servers-config.js';
+export { MCP_SUGGESTIONS, suggestedScopes } from './suggested.js';
+export type { McpSuggestion, McpSuggestionKind } from './suggested.js';

@@ -304,6 +304,15 @@ export async function listenForSignIn(words: McpSignInWords = {}, timeoutMs = 5 
   };
 }
 
+/** Open a web page (a server's docs) with the app's opener: https only. */
+export async function openWebPage(url: string): Promise<void> {
+  let u: URL;
+  try { u = new URL(url); } catch { throw new Error('That isn\'t a web address.'); }
+  if (u.protocol !== 'https:' || u.username || u.password) throw new Error('Only https pages are opened.');
+  if (!opener) throw new Error('This app can\'t open a browser.');
+  await opener(u.href);
+}
+
 /** Open the sign-in page with the app's opener, after checking the address. */
 export async function openSignInPage(url: URL): Promise<void> {
   const bad = checkSignInUrl(url.href);
@@ -351,10 +360,10 @@ async function zoneOf(hostname: string): Promise<Zone> {
  * the server: an online server can't steer Ava to his router or to the cloud
  * metadata address. Link-local is never reached unless the server lives there.
  */
-export function fencedFetch(serverUrl: string, base: FetchLike = fetch): FetchLike {
+export function fencedFetch(serverUrl: string, base: FetchLike = fetch, opts: { scopes?: string[] } = {}): FetchLike {
   const origin = new URL(serverUrl).origin;
   let serverZone: Promise<Zone> | null = null;
-  return async (input, init) => {
+  const fenced: FetchLike = async (input, init) => {
     const u = new URL(input instanceof URL ? input.href : String(input));
     if (u.origin !== origin) {
       const local = isLocalUrl(serverUrl);
@@ -368,5 +377,36 @@ export function fencedFetch(serverUrl: string, base: FetchLike = fetch): FetchLi
       }
     }
     return base(input, init);
+  };
+  return opts.scopes?.length ? narrowScopes(fenced, opts.scopes) : fenced;
+}
+
+/**
+ * Ask for fewer sign-in permissions than a server offers (the MCP spec: ask
+ * for the minimum). The SDK asks for whatever the server names — in its
+ * "you need a sign-in" answer, else every scope its metadata lists — so the
+ * answers are trimmed to `scopes` before the SDK reads them. Used for the
+ * suggested servers that list far more than their tools need (suggested.ts).
+ */
+function narrowScopes(inner: FetchLike, scopes: string[]): FetchLike {
+  const want = scopes.join(' ');
+  return async (input, init) => {
+    const res = await inner(input, init);
+    const path = new URL(input instanceof URL ? input.href : String(input)).pathname;
+    if (path.includes('/.well-known/oauth-protected-resource') && res.ok) {
+      try {
+        const doc = await res.clone().json() as Record<string, unknown>;
+        if (Array.isArray(doc.scopes_supported)) {
+          return new Response(JSON.stringify({ ...doc, scopes_supported: scopes }), { status: res.status, headers: res.headers });
+        }
+      } catch { /* not JSON: leave it */ }
+    }
+    const www = res.headers.get('www-authenticate');
+    if ((res.status === 401 || res.status === 403) && www && /\bscope="/.test(www)) {
+      const headers = new Headers(res.headers);
+      headers.set('www-authenticate', www.replace(/\bscope="[^"]*"/, `scope="${want}"`));
+      return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+    }
+    return res;
   };
 }

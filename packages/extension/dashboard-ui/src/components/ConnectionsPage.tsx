@@ -24,10 +24,13 @@ interface Server {
   tools: ToolRow[]; keys: Array<{ name: string; set: boolean }>; server?: { name: string; version: string };
   signedIn?: boolean; signingIn?: boolean;
   ava?: { view?: string; registry?: string; repository?: string; from?: string };
+  docs?: string;
 }
+interface Suggestion { id: string; name: string; publisher: string; registry?: string; kind: 'open' | 'signin' | 'key'; url: string; docs: string; added: boolean; what: string; view: string }
 interface PageState {
   servers: Server[]; projectFolder: string | null; problems: string[];
   toolsOn: number; serversOn: number; waiting: number; heavy: boolean; keychain: boolean;
+  suggested?: Suggestion[];
 }
 type Check =
   | { ok: true; id: string; shows: string; notes: Note[]; replaces: boolean }
@@ -213,6 +216,7 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
           )}
         </div>
         {!waiting && <button style={link} onClick={() => setOpen(!open)}>{tt('mcp.page.details', 'Tools & details')}</button>}
+        {s.docs && <button style={btn} title={s.docs} onClick={() => void request('open_docs', { url: s.docs })}>{tt('mcp.page.docs', 'Docs')}</button>}
         {s.scope === 'user' && (
           <Switch on={s.state !== 'off'} title={s.state !== 'off' ? tt('mcp.page.switch_off', 'Switch off') : tt('mcp.page.switch_on', 'Switch on')}
             onChange={(on) => void run('enable', { id: s.id, on })} />
@@ -437,6 +441,64 @@ function AddPanel({ request, onClose, onState, onAskAva, onImport }: {
   );
 }
 
+// ── Suggested servers (core mcp/suggested.ts) ─────────────────────────────
+
+function SuggestedRow({ g, request, onState }: { g: Suggestion; request: ConnectionsRequest; onState: (s: PageState) => void }) {
+  const [check, setCheck] = useState<{ shows: string; notes: Note[] } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState('');
+  const view = tt(`mcp.suggest.${g.id}.view`, g.view);
+  const kind = g.kind === 'open' ? tt('mcp.page.kind_open', 'Free · no account')
+    : g.kind === 'signin' ? tt('mcp.page.kind_signin', 'Free account · sign in') : tt('mcp.page.kind_key', 'Free account · key');
+  const open = async () => {
+    setBusy(true); setProblem('');
+    try {
+      const r = await request('check_suggested', { id: g.id }) as { ok: boolean; shows?: string; notes?: Note[]; problem?: string };
+      if (r.ok) setCheck({ shows: r.shows ?? '', notes: r.notes ?? [] }); else setProblem(r.problem ?? '');
+    } finally { setBusy(false); }
+  };
+  const add = async () => {
+    setBusy(true);
+    try {
+      const r = await request('add_suggested', { id: g.id, view: view || undefined }) as { ok: boolean; state?: PageState; problem?: string };
+      if (r.ok && r.state) onState(r.state); else setProblem(r.problem ?? '');
+    } finally { setBusy(false); }
+  };
+  return (
+    <div style={{ ...card, padding: '12px 16px', margin: '8px 0' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 500, fontSize: 14.5, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', color: C.text }}>
+            {g.name}
+            <span style={chip(g.kind === 'open' ? C.ok : C.online, g.kind === 'open' ? 'rgba(52,211,153,0.3)' : 'rgba(96,165,250,0.35)')}>{kind}</span>
+            <span style={{ color: C.muted, fontSize: 12, fontWeight: 400 }}>
+              {g.publisher}{g.registry ? ` · ✓ ${tt('mcp.page.verified', 'verified in the MCP Registry')}` : ''}
+            </span>
+          </div>
+          <div style={{ fontSize: 12.5, marginTop: 3, color: C.text2 }}>{tt(`mcp.suggest.${g.id}.what`, g.what)}</div>
+        </div>
+        <button style={btn} title={g.docs} onClick={() => void request('open_docs', { url: g.docs })}>{tt('mcp.page.docs', 'Docs')}</button>
+        {!check && <button style={btn} disabled={busy} onClick={() => void open()}>{tt('mcp.page.add_short', 'Add')}</button>}
+      </div>
+      {check && (
+        <div style={{ marginTop: 10, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+          {view && <div style={{ ...opinion, marginTop: 0 }}><b style={{ color: C.text, fontWeight: 500 }}>{tt('mcp.page.my_view', 'My view:')}</b> {view}</div>}
+          <div style={note}>{tt('mcp.page.address', 'Address')}</div>
+          <div style={cmd}>{check.shows}</div>
+          <Notes notes={check.notes} />
+          {g.kind === 'signin' && <div style={note}>{tt('mcp.page.after_signin', "Once it's added, press Sign in on its card.")}</div>}
+          {g.kind === 'key' && <div style={note}>{tt('mcp.page.after_key', "Once it's added, set its key under Tools & details.")}</div>}
+          <div style={acts}>
+            <button style={primary} disabled={busy} onClick={() => void add()}>{tt('mcp.page.add.add', 'Add it')}</button>
+            <button style={btn} onClick={() => setCheck(null)}>{tt('mcp.page.cancel', 'Cancel')}</button>
+          </div>
+        </div>
+      )}
+      {problem && <div style={{ ...note, color: C.danger }}>{problem}</div>}
+    </div>
+  );
+}
+
 // ── Bringing servers in from his other apps ──────────────────────────────
 
 type ImportApp = 'claude-desktop' | 'cursor' | 'vscode';
@@ -592,6 +654,16 @@ export function ConnectionsPage({ request, onWaitingChange, onAskAva }: {
         {mine.map((s) => <ServerCard key={`u:${s.id}`} s={s} request={request} onState={show} />)}
 
         <div style={note}>{tt('mcp.page.blender_note', "Blender (MCP) is set up and switched in the Design Studio's Blender room.")}</div>
+
+        {(st.suggested ?? []).some((g) => !g.added) && (
+          <>
+            <div style={h2}>
+              <span>{tt('mcp.page.suggested', 'Suggested')}</span>
+              <span style={hint}>{tt('mcp.page.suggested_hint', 'Free, from the companies themselves · checked by me')}</span>
+            </div>
+            {(st.suggested ?? []).filter((g) => !g.added).map((g) => <SuggestedRow key={g.id} g={g} request={request} onState={show} />)}
+          </>
+        )}
 
         {project.length > 0 && (
           <>

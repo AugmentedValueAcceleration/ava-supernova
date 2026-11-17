@@ -199,3 +199,62 @@ describe('redacting secrets for the AI', () => {
     expect(redactSecrets('npx -y @scope/pkg C:\\Docs')).toBe('npx -y @scope/pkg C:\\Docs');
   });
 });
+
+describe('suggested servers', () => {
+  it('the page lists them, checks one like any other, and adds it with his-language view', async () => {
+    const st = await mcpPage('state') as { suggested: Array<{ id: string; kind: string; added: boolean }> };
+    expect(st.suggested.map((s) => s.id)).toEqual(['context7', 'deepwiki', 'microsoft-learn', 'cloudflare-docs', 'huggingface', 'notion', 'linear', 'atlassian', 'github']);
+    for (const s of st.suggested) expect(s.added).toBe(false);
+    const c = await mcpPage('check_suggested', { id: 'github' }) as { ok: boolean; shows: string; slots: string[]; notes: Array<{ code: string }> };
+    expect(c).toMatchObject({ ok: true, shows: 'https://api.githubcopilot.com/mcp/', slots: ['github.key'] });
+    expect(c.notes.map((n) => n.code)).toContain('online');
+    // GitHub needs a key, so nothing connects in this test.
+    const r = await mcpPage('add_suggested', { id: 'github', view: 'Mi opinión: el servidor de GitHub.' }) as { ok: boolean; state: { suggested: Array<{ id: string; added: boolean }> } };
+    expect(r.ok).toBe(true);
+    expect(r.state.suggested.find((s) => s.id === 'github')!.added).toBe(true);
+    const { file } = await readMcpFile();
+    expect(file.mcpServers.github).toMatchObject({ type: 'http', url: 'https://api.githubcopilot.com/mcp/', headers: { Authorization: 'Bearer ${secret:github.key}' } });
+    expect(file.mcpServers.github.ava).toMatchObject({ view: 'Mi opinión: el servidor de GitHub.', registry: 'io.github.github/github-mcp-server' });
+    // Ava's list offers the rest, not the one he has.
+    const reg = new ToolRegistry(); reg.registerBuiltins();
+    const out = (await reg.getTool('connection_list')!.execute({}, {} as never)).output;
+    expect(out).toMatch(/Suggested servers/);
+    expect(out).toContain('https://mcp.notion.com/mcp');
+    expect(out).not.toMatch(/• github —/);
+  });
+
+  it('a suggested server that offers too many sign-in permissions asks only for the ones its tools need', async () => {
+    const { fencedFetch } = await import('../src/mcp/oauth.js');
+    const base = (async (u: string | URL) => {
+      const s = String(u);
+      if (s.includes('/.well-known/oauth-protected-resource')) {
+        return new Response(JSON.stringify({ resource: 'https://mcp.example.com/mcp', scopes_supported: ['read', 'write', 'delete:everything'] }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response(null, { status: 401, headers: { 'www-authenticate': 'Bearer resource_metadata="x", scope="read write delete:everything"' } });
+    }) as never;
+    const f = fencedFetch('https://mcp.example.com/mcp', base, { scopes: ['read', 'write'] });
+    const prm = await (await f('https://mcp.example.com/.well-known/oauth-protected-resource/mcp')).json() as { scopes_supported: string[] };
+    expect(prm.scopes_supported).toEqual(['read', 'write']);
+    const denied = await f('https://mcp.example.com/mcp');
+    expect(denied.headers.get('www-authenticate')).toBe('Bearer resource_metadata="x", scope="read write"');
+  });
+});
+
+describe('docs buttons', () => {
+  it('opens only a docs page the page was given, through the app opener', async () => {
+    const { setMcpBrowserOpener } = await import('../src/mcp/oauth.js');
+    const opened: string[] = [];
+    setMcpBrowserOpener(async (u) => { opened.push(u); });
+    const st = await mcpPage('state') as { suggested: Array<{ id: string; docs: string }> };
+    const notion = st.suggested.find((g) => g.id === 'notion')!;
+    expect(notion.docs).toBe('https://developers.notion.com/docs/mcp');
+    expect(await mcpPage('open_docs', { url: notion.docs })).toEqual({ ok: true });
+    expect(await mcpPage('open_docs', { url: 'https://evil.example.com/' })).toMatchObject({ ok: false });
+    expect(opened).toEqual(['https://developers.notion.com/docs/mcp']);
+    // A suggested server he added keeps its docs link on its card.
+    await mcpPage('add_suggested', { id: 'github' });
+    const after = await mcpPage('state') as { servers: Array<{ id: string; docs?: string }> };
+    expect(after.servers.find((s) => s.id === 'github')!.docs).toBe('https://github.com/github/github-mcp-server');
+    setMcpBrowserOpener(null);
+  });
+});

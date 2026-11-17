@@ -24,6 +24,17 @@ import {
 import { MCP_IMPORT_APP_NAMES, scanMcpImports, type McpImportApp } from '../mcp/import.js';
 import { describeEntry } from '../mcp/servers-config.js';
 import { redactSecrets, type McpRiskNote } from '../mcp/risk.js';
+import { MCP_SUGGESTIONS } from '../mcp/suggested.js';
+
+/** The suggested servers he doesn't have yet, for Ava. */
+function suggestionsInWords(have: Array<{ id: string; shows: string }>): string {
+  const left = MCP_SUGGESTIONS.filter((g) => !have.some((s) => s.id === g.id || s.shows === g.url));
+  if (!left.length) return '';
+  const how = { open: 'free, no account', signin: 'free account; he signs in on the page', key: 'free account; he pastes a key on the page' } as const;
+  return '\nSuggested servers (checked, free, official; he can add any with connection_add using this exact address'
+    + ' — or from the Suggested list on the Connections page):\n'
+    + left.map((g) => `• ${g.id} — ${g.name} by ${g.publisher}: ${g.what} ${g.url} (${how[g.kind]}${g.keyHeader ? `; key_header "${g.keyHeader}"` : ''}). Your view: ${g.view}`).join('\n');
+}
 
 /** The risk notes in words (the page says them in his language; the card and Ava read these). */
 export function riskNoteInWords(n: McpRiskNote): string {
@@ -121,7 +132,7 @@ export class ConnectionListTool implements Tool {
   readonly requiresConfirmation = false;
   readonly schema: FunctionSchema = {
     name: 'connection_list',
-    description: 'List the MCP servers he has connected (his own, and this project\'s), with each one\'s state, tools and your earlier view of it.',
+    description: 'List the MCP servers he has connected (his own, and this project\'s), with each one\'s state, tools and your earlier view of it — and the checked, free, official servers Ava suggests that he hasn\'t added yet. Look here first when he asks to connect something.',
     parameters: { type: 'object', properties: {} },
   };
 
@@ -129,7 +140,8 @@ export class ConnectionListTool implements Tool {
     const m = McpServers.current();
     if (!m.isStarted) await m.start();
     const all = m.status();
-    if (!all.length) return { success: true, output: 'He has no MCP servers yet. They live on the Connections page (and in ~/.ava/mcp.json).' };
+    const mine = all.filter((s) => s.scope === 'user');
+    if (!all.length) return { success: true, output: `He has no MCP servers yet. They live on the Connections page (and in ~/.ava/mcp.json).${suggestionsInWords([])}` };
     const lines = all.map((s) => {
       const parts = [`• ${s.id} (${s.scope === 'user' ? 'his' : "this project's"}) — ${statusInWords(s)}`, `  ${s.online ? 'address' : 'command'}: ${redactSecrets(s.shows)}`];
       if (s.ava?.view) parts.push(`  your view: ${s.ava.view}`);
@@ -137,7 +149,7 @@ export class ConnectionListTool implements Tool {
       return parts.join('\n');
     });
     const problems = m.fileProblems();
-    return { success: true, output: `${lines.join('\n')}${problems.length ? `\nProblems: ${problems.join('; ')}` : ''}` };
+    return { success: true, output: `${lines.join('\n')}${problems.length ? `\nProblems: ${problems.join('; ')}` : ''}${suggestionsInWords(mine)}` };
   }
 }
 

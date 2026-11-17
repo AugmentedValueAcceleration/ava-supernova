@@ -32,6 +32,7 @@ import {
   type McpAuthRecord, type McpCallbackListener, type McpSignInWords,
 } from './oauth.js';
 import { riskNotes, type McpRiskNote } from './risk.js';
+import { suggestedScopes } from './suggested.js';
 import { USER_MCP_PREFIX, isUserMcpTool, setMcpAllowCheck, setMcpReadOnlyCheck } from './permissions.js';
 
 export type McpServerState =
@@ -382,7 +383,8 @@ export class McpServers {
     const headers: Record<string, string> = {};
     for (const [name, v] of Object.entries(e.headers ?? {})) headers[name] = await expandValue(v, ctx, 'web', missing);
     const url = await expandValue(e.url!, ctx, 'web', missing);
-    return { kind: 'url', url, headers: e.headers ? headers : undefined, sse: e.type === 'sse', fetch: fencedFetch(url) };
+    // A suggested server that offers far more sign-in permissions than its tools need asks for fewer (suggested.ts).
+    return { kind: 'url', url, headers: e.headers ? headers : undefined, sse: e.type === 'sse', fetch: fencedFetch(url, fetch, { scopes: suggestedScopes(e.url) }) };
   }
 
   // ── Reading the files and matching what runs to them ─────────────────────

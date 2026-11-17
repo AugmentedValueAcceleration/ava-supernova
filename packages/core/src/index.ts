@@ -670,6 +670,7 @@ export {
   isUserMcpTool, mcpToolInMode, mcpToolAlwaysAllowed, USER_MCP_PREFIX,
   mcpPage, splitCommandLine, MCP_HEAVY_TOOLS, riskNotes,
   setMcpBrowserOpener, hasMcpBrowserOpener, checkSignInUrl, addressZone, setMcpSignInPort, mcpAuthKey, isSignedIn, forgetSignIn,
+  fencedFetch, MCP_SUGGESTIONS, suggestedScopes, searchMcpRegistry, scanMcpImports, redactSecrets,
 } from './mcp/index.js';
 export type { McpServerState, McpServerStatus, McpToolStatus, McpScope, McpFile, McpServerEntry, McpProjectAnswers, McpKeychain } from './mcp/index.js';
 export type { McpDraft, McpPageState, McpPageServer, McpCheck, McpRiskCode, McpRiskNote, McpBrowserOpener, McpSignInWords } from './mcp/index.js';
