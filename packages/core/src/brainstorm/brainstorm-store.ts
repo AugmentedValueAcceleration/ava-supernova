@@ -58,8 +58,9 @@ function upgrade(raw: Record<string, unknown>): BrainstormSession {
   };
 }
 
-const sameProject = (a?: string, b?: string | null) =>
-  !!a && !!b && a.replace(/[\\/]+$/, '').toLowerCase() === b.replace(/[\\/]+$/, '').toLowerCase();
+/** One project folder, however it's spelled: case, slash direction, a trailing slash. */
+const folderKey = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+export const sameProject = (a?: string, b?: string | null) => !!a && !!b && folderKey(a) === folderKey(b);
 
 export class BrainstormStore {
   private readonly globalDir: string;

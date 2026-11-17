@@ -42,6 +42,7 @@ import { TaskManageTool } from './task-manage.js';
 import { TaskSuggestTool } from './task-suggest.js';
 import { JournalWriteTool } from './journal.js';
 import { BrainstormSessionTool } from './brainstorm-session.js';
+import { BrainstormPlanTool } from './brainstorm-plan.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateTool } from './health-plan-update.js';
 import { HealthPlanListTool } from './health-plan-list.js';
@@ -483,6 +484,7 @@ export class ToolRegistry {
       new TaskSuggestTool(),
       new JournalWriteTool(),
       new BrainstormSessionTool(),
+      new BrainstormPlanTool(),
       new HealthCatalogueSearchTool(),
       new HealthProfileAskTool(),
       new OpenHealthRoomTool(),

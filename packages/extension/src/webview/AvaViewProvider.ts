@@ -26,6 +26,7 @@ import {
   getWriteModePrefix,
   getWorkModePrefix,
   getWorkTalkPrefix,
+  assignedPlansContext,
   getHealthRoomPrefix,
   getDesignStudioPrefix,
   kitForProject,
@@ -4201,9 +4202,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   private async applyModePrefix(text: string, mode: AvaMode, talk = false, roomContext?: string): Promise<string> {
     let prefixed: string;
+    // The brainstormed plans assigned to the open project, read fresh each turn
+    // (they move as the work ticks them, and he can tick them in the room).
+    const plans = (mode === 'plan' || mode === 'code')
+      ? await assignedPlansContext(this.projectRoot).catch(() => undefined)
+      : undefined;
     switch (mode) {
       case 'plan':
-        prefixed = getPlanModePrefix(text || 'What should we focus on next?'); break;
+        prefixed = getPlanModePrefix(text || 'What should we focus on next?', plans); break;
       case 'chat':
         prefixed = getChatModePrefix(text); break;
       case 'teach':
@@ -4224,7 +4230,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // spelling split is why this fell through to `default` and shipped
       // without a prompt while every other mode had one.
       case 'code':
-        prefixed = talk ? getWorkTalkPrefix(text) : getWorkModePrefix(text); break;
+        prefixed = talk ? getWorkTalkPrefix(text, plans) : getWorkModePrefix(text, plans); break;
       case 'health':
         prefixed = getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary(), this.getTrainingLogSummary()); break;
       case 'design': {

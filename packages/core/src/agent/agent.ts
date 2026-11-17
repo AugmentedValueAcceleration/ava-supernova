@@ -342,6 +342,9 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'memory_save', 'memory_recall', 'memory_update',
     // Planning / tasks
     'present_plan', 'todo_write', 'task_manage', 'task_suggest', 'apply_plan',
+    // The brainstormed plans assigned to this project: read, tick what's built,
+    // keep honest while building (plan 2026-11-17-brainstorm, Phase 4).
+    'brainstorm_plan',
     // Testing
     'test_run', 'test_generate',
     // Architecture / docs gen
@@ -387,6 +390,9 @@ export const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'connection_search', 'connection_list',
     // Memory + planning + analysis
     'memory_save', 'memory_recall', 'present_plan', 'analyze_architecture',
+    // Brainstormed plans assigned to this project — planning starts from them.
+    // Writes only to ~/.ava/brainstorm, never the project, so Plan stays read-only.
+    'brainstorm_plan',
     // Reference / introspection (already used; advertised below now too)
     'docs_lookup', 'self_inspect',
     // Taste specialist for design/voice/microcopy decisions

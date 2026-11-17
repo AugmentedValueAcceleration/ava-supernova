@@ -682,3 +682,4 @@ export { blenderLiveTools, blenderLiveOwnTools, liveModelNow, syncBlenderLiveToo
 export { DesignLiveSetupTool, DesignLiveSetupCheckTool, latestServerRelease, blenderInstalls } from './tools/blender/live-setup.js';
 export { brainstormPage, brainstormRoomContext, setBrainstormPageStore } from './brainstorm/page.js';
 export type { BrainstormPageState, BrainstormPageDetail } from './brainstorm/page.js';
+export { assignedPlansContext, setWorkPlansStore } from './brainstorm/work-plans.js';
