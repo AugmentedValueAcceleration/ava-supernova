@@ -29,6 +29,7 @@ import {
   resolveMaestroCoordinator,
   resolveVisionDescriber,
   setLocale,
+  t,
 } from '@ava/core';
 import { loadLocalModel, loadProviderKeys, sharedSetting, sharedUserName } from '../shared.js';
 
@@ -144,7 +145,7 @@ export class AvaHost {
     const out: ModelChoice[] = [];
     const order = ['aurora', 'supernova', 'auto', 'longxiang'].filter((m) => (VISIBLE_ROUTING_MODES as readonly string[]).includes(m));
     for (const m of order) {
-      if (this.fleetSeat(m)) out.push({ value: m, name: FLEET_NAMES[m] ?? m, description: 'Ava fleet' });
+      if (this.fleetSeat(m)) out.push({ value: m, name: FLEET_NAMES[m] ?? m, description: t('acp.fleet') });
     }
     const seen = new Set<string>();
     for (const m of this.providerRegistry.listAllPossibleModels()) {
@@ -204,9 +205,7 @@ export class AvaHost {
 
   /** Which key a fleet is missing, in his words. */
   static fleetMissing(choice: string): string {
-    if (choice === 'supernova') return 'Supernova runs on DeepSeek and Qwen: add both keys in VS Code or the Ava IDE (Settings → API Keys).';
-    if (choice === 'aurora') return 'Aurora runs on Mistral: add a Mistral key in VS Code or the Ava IDE (Settings → API Keys).';
-    if (choice === 'auto') return 'Maestro runs on Qwen: add a Qwen key in VS Code or the Ava IDE (Settings → API Keys).';
-    return "That model isn't available with the keys on this computer.";
+    if (choice === 'supernova' || choice === 'aurora' || choice === 'auto') return t(`acp.fleet_missing.${choice}`);
+    return t('acp.fleet_missing.model');
   }
 }

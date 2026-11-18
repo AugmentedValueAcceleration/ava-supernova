@@ -331,4 +331,7 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   'welcome.modes',
   'dash.creative.cost_for_generation',
   'dash.creative.cost_over_balance',
+  // Unreal's own field name, shown exactly as Unreal shows it (Unreal's menu names
+  // stay English in every language — plan 2026-11-18-unreal, Phase 2).
+  'mcp.unreal_panel.step3',
 ] as StringKey[]);

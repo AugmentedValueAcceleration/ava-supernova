@@ -164,6 +164,9 @@ describe('Ava in Unreal\'s panel', () => {
     expect(textOf(first.messages[0].content)).toContain(UNREAL_NOTES);
     expect(textOf(first.messages[first.messages.length - 1].content)).toContain('[Work Mode]');
     expect(textOf(first.messages[first.messages.length - 1].content)).not.toContain(UNREAL_NOTES);
+    // Allowed once in the panel → offered "Always allow" on the Connections page.
+    const mcp = JSON.parse(readFileSync(join(home, '.ava', 'mcp.json'), 'utf8'));
+    expect(mcp.mcpServers.unreal.asked).toEqual(['EditorToolset.ActorToolset.SpawnActor']);
   }, 60_000);
 
   it('Deny means it does not run', async () => {
@@ -180,6 +183,8 @@ describe('Ava in Unreal\'s panel', () => {
     await send('session/prompt', { sessionId, prompt: [{ type: 'text', text: 'list the actors' }] });
     expect(permissionAsks).toHaveLength(2);
     expect(updates.find((u) => u.sessionUpdate === 'tool_call_update')?.status).toBe('completed');
+    // A tool that only looks never asks, so it's never offered "Always allow".
+    expect(JSON.parse(readFileSync(join(home, '.ava', 'mcp.json'), 'utf8')).mcpServers.unreal.asked).toEqual(['EditorToolset.ActorToolset.SpawnActor']);
   }, 60_000);
 
   it('Code · Talk looks but changes nothing: a change is refused, without asking', async () => {

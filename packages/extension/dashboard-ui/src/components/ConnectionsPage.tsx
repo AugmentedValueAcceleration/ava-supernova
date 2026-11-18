@@ -22,7 +22,7 @@ interface Server {
   reason?: 'new' | 'changed' | 'declined' | 'shadowed' | 'stopped' | 'signin' | 'unreal-closed' | 'unreal-old';
   missing?: string[]; notes: Note[]; online: boolean; shows: string;
   /** Unreal Engine's server: the Unreal tools Ava knows, toolsets off, and his "always" ones (Toolset.Tool). */
-  unreal?: { tools: number; toolsetsOff: boolean; allowed: string[] };
+  unreal?: { tools: number; toolsetsOff: boolean; allowed: string[]; asked?: string[] };
   tools: ToolRow[]; keys: Array<{ name: string; set: boolean }>; server?: { name: string; version: string };
   signedIn?: boolean; signingIn?: boolean;
   ava?: { view?: string; registry?: string; repository?: string; from?: string };
@@ -244,6 +244,12 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
       )}
 
       {s.scope === 'user' && isUnrealCard(s) && <UnrealPanelSetup request={request} />}
+      {s.state === 'ready' && (s.unreal?.asked?.length ?? 0) > 0 && (
+        <UnrealAsked asked={s.unreal!.asked!} busy={busy} onAlways={(inner) => {
+          const call = s.tools.find((t) => t.name === 'call_tool');
+          if (call) void run('allow', { avaName: call.avaName, on: true, inner });
+        }} />
+      )}
 
       {(open || waiting) && (
         <div style={{ marginTop: 12, borderTop: waiting ? 'none' : `1px solid ${C.border}`, paddingTop: waiting ? 0 : 10 }}>
@@ -384,10 +390,33 @@ function UnrealPanelSetup({ request }: { request: ConnectionsRequest }) {
           <div style={step}>{tt('mcp.unreal_panel.step4', '4. Custom Agent Arguments: add one item, and paste:')}</div>
           {p.args.map((a) => <CopyLine key={a} text={a} />)}
           <div style={step}>{tt('mcp.unreal_panel.step5', '5. Open the Assistant panel (the Assistant button at the bottom of the editor, or Window → Unreal Assistant), start a New Chat, and allow Ava when Unreal asks.')}</div>
+          <div style={note}>{tt('mcp.unreal_panel.menus_note', "If the mode and model menus don't show in your first chat, start another New Chat — Unreal shows them from then on.")}</div>
           <div style={step}>{tt('mcp.unreal_panel.step6', '6. Once per project: turn on All Toolsets (Edit → Plugins), then restart Unreal — or most of my Unreal tools stay hidden.')}</div>
           <div style={{ ...opinion, marginTop: 12 }}>{tt('mcp.unreal_panel.kimodo', "Optional — animation with Kimodo: it needs a Hugging Face account and Meta's approval for Llama 3. Ask for it early, as approval can take a while. Ask me and I'll walk you through it.")}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The Unreal tools he allowed once in Unreal's Assistant panel, newest first.
+ * The panel's prompt has only Deny / Allow Once (Phase 0), so "Always allow"
+ * for one of them is given here, by him — never by Ava (his call, 18 Nov).
+ */
+function UnrealAsked({ asked, busy, onAlways }: { asked: string[]; busy: boolean; onAlways: (inner: string) => void }) {
+  return (
+    <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+      <div style={{ fontSize: 13.5, color: C.text, fontWeight: 500 }}>{tt('mcp.unreal_panel.asked', 'Asked recently in Unreal')}</div>
+      <div style={note}>{tt('mcp.unreal_panel.asked_hint', "Tools you allowed once in Unreal's panel. \"Always allow\" stops one asking.")}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px 12px', fontSize: 13, marginTop: 6, alignItems: 'center' }}>
+        {asked.map((inner) => (
+          <Fragment key={inner}>
+            <span style={{ fontFamily: mono, fontSize: 12.5, color: C.text, minWidth: 0, overflowWrap: 'anywhere' }}>{inner}</span>
+            <button style={yesBtn} disabled={busy} onClick={() => onAlways(inner)}>{tt('mcp.unreal_panel.always_allow', 'Always allow')}</button>
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 }

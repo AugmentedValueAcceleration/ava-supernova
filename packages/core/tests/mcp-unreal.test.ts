@@ -66,7 +66,7 @@ describe('knowing it is Unreal', () => {
   it('reads every Unreal tool\'s label when it connects', async () => {
     const { s } = await startUnreal();
     expect(s.state).toBe('ready');
-    expect(s.unreal).toEqual({ tools: 7, toolsetsOff: false, allowed: [] });
+    expect(s.unreal).toEqual({ tools: 7, toolsetsOff: false, allowed: [], asked: [] });
     expect(s.tools.map((t) => t.avaName).sort()).toEqual([CALL, 'mcp_unreal_describe_tools', 'mcp_unreal_describe_toolsets', 'mcp_unreal_list_toolsets']);
   });
 
@@ -149,6 +149,21 @@ describe('asking first, by Unreal\'s own labels', () => {
     await mcpPage('allow', { avaName: CALL, on: false, inner: 'EditorToolset.ActorToolset.SpawnActor' });
     await settled();
     expect(m.status()[0].unreal?.allowed).toEqual([]);
+  });
+
+  // Unreal's panel has only Allow Once (Phase 0): what he allows there is
+  // offered for "Always allow" on the Connections page (his call, 18 Nov).
+  it("a tool allowed once in Unreal's panel is offered for always; a look-only tool never is", async () => {
+    const { m } = await startUnreal();
+    await m.noteAllowedOnce(CALL, call('EditorToolset.ActorToolset', 'SpawnActor'));
+    await m.noteAllowedOnce(CALL, call('EditorToolset.ActorToolset', 'ListActors'));
+    await m.noteAllowedOnce(CALL, call('EditorToolset.EditorAppToolset', 'StartPIE'));
+    await settled();
+    expect(m.status()[0].unreal?.asked).toEqual(['EditorToolset.EditorAppToolset.StartPIE', 'EditorToolset.ActorToolset.SpawnActor']);
+    await mcpPage('allow', { avaName: CALL, on: true, inner: 'EditorToolset.ActorToolset.SpawnActor' });
+    await settled();
+    expect(m.status()[0].unreal?.allowed).toEqual(['EditorToolset.ActorToolset.SpawnActor']);
+    expect(m.status()[0].unreal?.asked).toEqual(['EditorToolset.EditorAppToolset.StartPIE']);
   });
 });
 

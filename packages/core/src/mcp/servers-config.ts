@@ -46,6 +46,13 @@ export interface McpServerEntry {
   enabled?: boolean;
   /** Ava: the server's tools (its own names) that no longer ask. */
   allow?: string[];
+  /**
+   * Ava, Unreal Engine only: Unreal tools (Toolset.Tool) he allowed once in
+   * Unreal's Assistant panel, newest first — the panel has no "always" button,
+   * so the Connections page offers it for these (plan 2026-11-18-unreal, 18 Nov).
+   * Not part of the fingerprint.
+   */
+  asked?: string[];
   /** Ava: her view when she set it up, and where it came from. Not part of the fingerprint. */
   ava?: McpAvaNote;
 }
@@ -107,6 +114,7 @@ export function readEntry(v: unknown): McpServerEntry | null {
   if (typeof o.enabled === 'boolean') e.enabled = o.enabled;
   if (o.disabled === true) e.enabled = false; // Cursor / Cline spelling
   if (Array.isArray(o.allow)) e.allow = o.allow.filter((a): a is string => typeof a === 'string');
+  if (Array.isArray(o.asked)) e.asked = o.asked.filter((a): a is string => typeof a === 'string').slice(0, 12);
   if (o.ava && typeof o.ava === 'object' && !Array.isArray(o.ava)) {
     const a = o.ava as Record<string, unknown>;
     const note: McpAvaNote = {};

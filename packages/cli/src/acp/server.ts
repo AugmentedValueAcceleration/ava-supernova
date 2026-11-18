@@ -31,6 +31,8 @@ import {
   getPlanModePrefix,
   getWorkModePrefix,
   getWorkTalkPrefix,
+  isUserMcpTool,
+  t,
   loadDecisionsState,
   loadProjectInstructions,
   memoryV4Root,
@@ -48,14 +50,15 @@ import { AvaHost } from './ava-host.js';
 import { INVALID_PARAMS, JsonRpc, RpcError } from './rpc.js';
 import { toolKind, toolTitle } from './tool-title.js';
 
-/** Her modes in the panel: the ones that reach Unreal's tools. */
-const MODES = [
-  { id: 'code', name: 'Code', description: 'Builds and changes things — asks you before each change in the editor' },
-  { id: 'talk', name: 'Code · Talk', description: 'Talk it through: she looks, but changes nothing' },
-  { id: 'plan', name: 'Plan', description: 'Read-only: she researches and plans' },
-] as const;
-type PanelMode = typeof MODES[number]['id'];
-const isPanelMode = (v: unknown): v is PanelMode => MODES.some((m) => m.id === v);
+/** Her modes in the panel: the ones that reach Unreal's tools. Words in his language (core i18n). */
+const MODE_IDS = ['code', 'talk', 'plan'] as const;
+type PanelMode = typeof MODE_IDS[number];
+const isPanelMode = (v: unknown): v is PanelMode => (MODE_IDS as readonly unknown[]).includes(v);
+const modes = () => [
+  { id: 'code', name: t('mode.work'), description: t('acp.mode.work_desc') },
+  { id: 'talk', name: `${t('mode.work')} · ${t('input.talk')}`, description: t('acp.mode.talk_desc') },
+  { id: 'plan', name: t('mode.plan'), description: t('acp.mode.plan_desc') },
+];
 
 const RESULT_CHARS = 4000;
 
@@ -150,12 +153,12 @@ export class AcpServer {
       this.log(`Memory didn't open: ${e instanceof Error ? e.message : e}`);
     }
 
-    if (!host.canChat) s.blocked = 'I have no AI key on this computer yet. Add one in VS Code or the Ava IDE (Settings → API Keys), then start a new chat here.';
+    if (!host.canChat) s.blocked = t('acp.no_key');
     await this.connectEditor(s, p.mcpServers);
 
     return {
       sessionId: id,
-      modes: { currentModeId: s.mode, availableModes: MODES.map((m) => ({ id: m.id, name: m.name, description: m.description })) },
+      modes: { currentModeId: s.mode, availableModes: modes() },
       configOptions: this.configOptions(s),
     };
   }
@@ -173,11 +176,11 @@ export class AcpServer {
     if (unreal) {
       try {
         const r = await ensureUnrealServer(String(unreal.url));
-        if (r.added) s.notice = "I've added Unreal Engine to your Connections, so VS Code and the Ava IDE can reach this editor too. Changes I make here ask you first; to stop being asked for one Unreal tool, choose \"always allow\" for it on the Connections page.";
-        if (r.off) s.blocked = 'Unreal Engine is switched off in your Connections. Switch it on (Connections in VS Code or the Ava IDE), then start a new chat here.';
+        if (r.added) s.notice = t('acp.added_unreal');
+        if (r.off) s.blocked = t('acp.unreal_off');
         await m.start(s.root);
         const status = r.off ? undefined : await settleUnrealServer(r.id);
-        if (status?.reason === 'unreal-old') s.blocked = status.message ?? 'I work with Unreal Engine 5.9 and later. This editor is older.';
+        if (status?.reason === 'unreal-old') s.blocked = t('mcp.page.status.unreal_old');
         else if (status && status.state !== 'ready') this.log(`Unreal's server is ${status.state}: ${status.message ?? ''}`);
       } catch (e) {
         this.log(`Unreal's server didn't connect: ${e instanceof Error ? e.message : e}`);
@@ -193,9 +196,9 @@ export class AcpServer {
   private configOptions(s: Session) {
     const models = this.host?.modelChoices() ?? [];
     return [
-      { id: 'mode', name: 'Mode', category: 'mode', type: 'select', currentValue: s.mode,
-        options: MODES.map((m) => ({ value: m.id, name: m.name, description: m.description })) },
-      ...(models.length ? [{ id: 'model', name: 'Model', category: 'model', type: 'select', currentValue: s.model ?? models[0].value,
+      { id: 'mode', name: t('dash.docs.col_mode'), category: 'mode', type: 'select', currentValue: s.mode,
+        options: modes().map((m) => ({ value: m.id, name: m.name, description: m.description })) },
+      ...(models.length ? [{ id: 'model', name: t('dash.docs.col_model'), category: 'model', type: 'select', currentValue: s.model ?? models[0].value,
         options: models.map((c) => ({ value: c.value, name: c.name, ...(c.description ? { description: c.description } : {}) })) }] : []),
     ];
   }
@@ -269,7 +272,7 @@ export class AcpServer {
       const updated: Message[] = await made.runner.run(s.conversation.getContextMessages(), (e) => this.onEvent(s, e), s.abort.signal);
       s.conversation.appendMessages(updated);
     } catch (e) {
-      if (!s.abort.signal.aborted) this.say(s, `\n\n**Something went wrong:** ${e instanceof Error ? e.message : String(e)}`);
+      if (!s.abort.signal.aborted) this.say(s, `\n\n**${t('dash.common.error')}:** ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       this.active = null;
     }
@@ -333,10 +336,10 @@ export class AcpServer {
         break;
       }
       case 'response_truncated':
-        this.say(s, '\n\n_(My reply hit its length limit and was cut off.)_');
+        this.say(s, `\n\n_(${t('acp.truncated')})_`);
         break;
       case 'error':
-        this.say(s, `\n\n**Something went wrong:** ${e.error.message}`);
+        this.say(s, `\n\n**${t('dash.common.error')}:** ${e.error.message}`);
         break;
       default:
         break;
@@ -361,7 +364,7 @@ export class AcpServer {
       this.showMode(s);
       return `Mode transition approved. Switching to ${next === 'code' ? 'work' : next} mode. Carry on in it from their next message.`;
     }
-    const title = name === 'present_plan' ? 'Go ahead with this plan?' : toolRequestInWords(name, args);
+    const title = name === 'present_plan' ? t('acp.plan_title') : toolRequestInWords(name, args);
     let outcome: { outcome?: string; optionId?: string } | undefined;
     try {
       const r = await this.rpc.request<{ outcome?: { outcome?: string; optionId?: string } }>('session/request_permission', {
@@ -374,8 +377,8 @@ export class AcpServer {
           rawInput: args,
         },
         options: [
-          { optionId: 'allow', name: 'Allow once', kind: 'allow_once' },
-          { optionId: 'deny', name: 'Deny', kind: 'reject_once' },
+          { optionId: 'allow', name: t('acp.allow_once'), kind: 'allow_once' },
+          { optionId: 'deny', name: t('tool.deny'), kind: 'reject_once' },
         ],
       });
       outcome = r?.outcome;
@@ -384,6 +387,9 @@ export class AcpServer {
       return false;
     }
     const yes = outcome?.outcome === 'selected' && outcome.optionId === 'allow';
+    // The panel has no "always": an Unreal tool allowed once is offered for
+    // "Always allow" on the Connections page (his call, 18 Nov).
+    if (yes && isUserMcpTool(name)) await McpServers.current().noteAllowedOnce(name, args).catch(() => {});
     if (name === 'present_plan') return yes ? formatPlanDecision({}) : false;
     return yes;
   }

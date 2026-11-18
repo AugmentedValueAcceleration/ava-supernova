@@ -62,7 +62,8 @@
         "dash.studio.live.mcp": "MCP",
         "mcp.page.add.name": "Name",
         "mcp.page.online": "Online",
-        "brainstorm.room.tab.plan": "Plan"
+        "brainstorm.room.tab.plan": "Plan",
+        "mcp.unreal_panel.step1": "1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent."
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -228,7 +229,8 @@
         "memory.v4.no": "No",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
         "dash.studio.live.mcp": "MCP",
-        "mcp.page.online": "Online"
+        "mcp.page.online": "Online",
+        "mcp.unreal_panel.step1": "1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent."
       },
       "ja": {
         "learning.room.tab.ava": "Ava",
@@ -312,7 +314,8 @@
         "brainstorm.room.kind.project": "Project",
         "brainstorm.room.title": "Brainstorm",
         "brainstorm.room.tab.plan": "Plan",
-        "brainstorm.room.mode_label": "Brainstorm"
+        "brainstorm.room.mode_label": "Brainstorm",
+        "mcp.unreal_panel.step1": "1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent."
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -517,6 +520,7 @@
     },
     "2026-11-17: Blender room MCP strings reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"MCP\" is a protocol name, identical everywhere; \"Blender (MCP)\" keeps the product name in Latin-script languages; German and Dutch use the English \"Headless\" (as their existing \"Blender (Headless)\" label does).",
     "2026-11-17: Connections page (MCP servers) reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"Online\" is the native word in German, Indonesian, Italian, Dutch and Polish UI; \"Name\" is German for name; Dutch uses \"tools\" (as its existing strings do).",
-    "2026-11-17: Connections page (MCP servers) reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"Online\" is the native word in German, Indonesian, Italian, Dutch and Polish UI; \"Name\" is German for name; Dutch uses \"tool/tools\" (as its existing strings do); singular counts added the same evening."
+    "2026-11-17: Connections page (MCP servers) reviewed by hand (Claude, translating by hand while the Qwen bill was being sorted): \"Online\" is the native word in German, Indonesian, Italian, Dutch and Polish UI; \"Name\" is German for name; Dutch uses \"tool/tools\" (as its existing strings do); singular counts added the same evening.",
+    "2026-11-18: Ava in Unreal's Assistant panel (plan 2026-11-18-unreal, Phase 2) reviewed by hand (Claude): step 1 is identical in German, Italian and Dutch because \"In Unreal:\" reads the same and the rest is Unreal's own English menu path (Unreal's menu names stay English in every language, as in Phase 1)."
   ]
 }

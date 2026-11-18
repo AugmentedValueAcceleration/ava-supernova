@@ -70,7 +70,7 @@ export interface McpServerStatus {
    * labels of, whether the project's toolsets are switched off, and the Unreal
    * tools he said "always allow" for (as Unreal names them, Toolset.Tool).
    */
-  unreal?: { tools: number; toolsetsOff: boolean; allowed: string[] };
+  unreal?: { tools: number; toolsetsOff: boolean; allowed: string[]; asked?: string[] };
   /** The keys it needs that aren't in the keychain (needs-key). */
   missing?: string[];
   /** What to point out about its command or address before it runs (risk.ts). */
@@ -341,6 +341,24 @@ export class McpServers {
     return true;
   }
 
+  /**
+   * He allowed one Unreal tool once in Unreal's Assistant panel: remember it
+   * (newest first, the last 12) so the Connections page can offer "Always
+   * allow" for it — the panel itself has no such button (Phase 0). Only tools
+   * that ask: a read tool never comes here.
+   */
+  async noteAllowedOnce(avaName: string, args?: Record<string, unknown>): Promise<void> {
+    const t = this.toolByAvaName(avaName);
+    if (!t || t.scope !== 'user' || t.name !== UNREAL_CALL_TOOL) return;
+    const inner = unrealInnerTool(args);
+    if (!inner || this.connFor(t.scope, t.id)?.unreal?.accessOf(inner) === 'read') return;
+    await updateMcpFile((f) => {
+      const e = f.mcpServers[t.id];
+      if (e) e.asked = [inner, ...(e.asked ?? []).filter((x) => x !== inner)].slice(0, 12);
+    });
+    await this.reload();
+  }
+
   /** His yes (or no) to one of this project's servers. */
   async answerProjectServer(id: string, answer: 'yes' | 'not-now' | 'never'): Promise<void> {
     const root = this.projectRoot;
@@ -559,6 +577,7 @@ export class McpServers {
           tools: conn.unreal.size,
           toolsetsOff: conn.unreal.toolsetsOff,
           allowed: allow.filter((a) => a.startsWith(prefix)).map((a) => a.slice(prefix.length)).sort(),
+          asked: (scope === 'user' ? e.asked ?? [] : []).filter((a) => !allowSet.has(unrealAllowKey(a))),
         },
       } : {}),
     };
