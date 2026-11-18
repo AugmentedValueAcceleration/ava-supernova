@@ -5,6 +5,8 @@
 //
 //   --off             the project's toolset plugins are off: no actor / level / asset toolsets
 //   --version <v>     report this engine version (default 5.9.0-test)
+//   --http <port>     serve over HTTP at http://127.0.0.1:<port>/mcp, as the real editor does (0 = any
+//                     free port; prints "listening <url>" on stdout) — the panel tests (plan Phase 2)
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -32,6 +34,7 @@ let most = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const text = (t) => ({ content: [{ type: 'text', text: t }] });
 
+function makeServer() {
 const server = new Server({ name: 'unreal-mcp', version }, { capabilities: { tools: { listChanged: true } } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -69,5 +72,28 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   }
   throw new Error(`unknown tool ${name}`);
 });
+return server;
+}
 
-await server.connect(new StdioServerTransport());
+const httpAt = process.argv.indexOf('--http');
+if (httpAt === -1) {
+  await makeServer().connect(new StdioServerTransport());
+} else {
+  // Stateless, one server per request: enough for the editor's own shape (http, no sign-in).
+  const { createServer } = await import('node:http');
+  const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
+  const http = createServer(async (req, res) => {
+    if (!req.url?.startsWith('/mcp')) { res.writeHead(404).end(); return; }
+    let body = '';
+    for await (const c of req) body += c;
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    const server = makeServer();
+    res.on('close', () => { transport.close(); server.close(); });
+    await server.connect(transport);
+    await transport.handleRequest(req, res, body ? JSON.parse(body) : undefined);
+  });
+  http.listen(Number(process.argv[httpAt + 1]) || 0, '127.0.0.1', () => {
+    process.stdout.write(`listening http://127.0.0.1:${http.address().port}/mcp
+`);
+  });
+}

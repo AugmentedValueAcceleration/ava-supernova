@@ -19,6 +19,8 @@ export {
   UNREAL_SERVER_NAME, UNREAL_DEFAULT_URL, UNREAL_CALL_TOOL, UNREAL_MIN_VERSION, unrealVersionOk,
 } from './unreal.js';
 export type { UnrealAccess } from './unreal.js';
+export { ensureUnrealServer, settleUnrealServer, unrealPanelPrompt } from './unreal-panel.js';
+export type { UnrealServerInPanel } from './unreal-panel.js';
 export { mcpPage, splitCommandLine, MCP_HEAVY_TOOLS } from './page.js';
 export type { McpDraft, McpPageState, McpPageServer, McpCheck } from './page.js';
 export { riskNotes } from './risk.js';

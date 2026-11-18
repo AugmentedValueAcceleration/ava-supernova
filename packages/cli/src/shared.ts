@@ -48,6 +48,9 @@ interface Keyring { Entry: new (service: string, user: string) => Entry }
 let keyring: Keyring | null | undefined;
 function kr(): Keyring | null {
   if (keyring !== undefined) return keyring;
+  // Tests that start the real program (tests/acp.test.ts) must never read his
+  // keys: a stray metered call would spend them. No keychain = config.json only.
+  if (process.env.AVA_TEST_NO_KEYCHAIN === '1') return (keyring = null);
   try {
     keyring = createRequire(import.meta.url)('@napi-rs/keyring') as Keyring;
   } catch {
