@@ -180,8 +180,16 @@ export function getToolHeader(name: string, argsJson: string | undefined): ToolH
     case 'news':
       return { verb: 'News', target: truncate((args.query as string) || (args.category as string) || '', 80) };
 
-    default:
+    default: {
+      // A call through a server's call_tool (Unreal Engine puts every tool
+      // behind one): show the tool it runs, not "Mcp unreal call tool".
+      const via = /^mcp_(.+)_call_tool$/.exec(name);
+      if (via && typeof args.tool_name === 'string' && args.tool_name) {
+        const set = typeof args.toolset_name === 'string' ? args.toolset_name.split('.').pop() : '';
+        return { verb: via[1] === 'unreal' ? 'Unreal' : capitalize(via[1].replace(/_/g, ' ')), target: set ? `${set} · ${args.tool_name}` : args.tool_name };
+      }
       return { verb: capitalize(name.replace(/_/g, ' ')), target: '' };
+    }
   }
 }
 

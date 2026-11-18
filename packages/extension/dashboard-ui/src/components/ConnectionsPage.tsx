@@ -7,7 +7,7 @@
 // with its reply. What's shown is read from ~/.ava/mcp.json, the project's
 // .mcp.json and the running servers, so the page and Ava can never disagree.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { tt } from '../i18n';
 
@@ -19,14 +19,16 @@ interface Note { code: RiskCode; detail?: string }
 interface ToolRow { name: string; avaName: string; description: string; readOnly: boolean; allowed: boolean }
 interface Server {
   id: string; scope: 'user' | 'project'; state: State; message?: string;
-  reason?: 'new' | 'changed' | 'declined' | 'shadowed' | 'stopped' | 'signin';
+  reason?: 'new' | 'changed' | 'declined' | 'shadowed' | 'stopped' | 'signin' | 'unreal-closed' | 'unreal-old';
   missing?: string[]; notes: Note[]; online: boolean; shows: string;
+  /** Unreal Engine's server: the Unreal tools Ava knows, toolsets off, and his "always" ones (Toolset.Tool). */
+  unreal?: { tools: number; toolsetsOff: boolean; allowed: string[] };
   tools: ToolRow[]; keys: Array<{ name: string; set: boolean }>; server?: { name: string; version: string };
   signedIn?: boolean; signingIn?: boolean;
   ava?: { view?: string; registry?: string; repository?: string; from?: string };
   docs?: string;
 }
-interface Suggestion { id: string; name: string; publisher: string; registry?: string; kind: 'open' | 'signin' | 'key'; url: string; docs: string; added: boolean; what: string; view: string }
+interface Suggestion { id: string; name: string; publisher: string; registry?: string; kind: 'open' | 'signin' | 'key' | 'local'; url: string; docs: string; added: boolean; what: string; view: string }
 interface PageState {
   servers: Server[]; projectFolder: string | null; problems: string[];
   toolsOn: number; serversOn: number; waiting: number; heavy: boolean; keychain: boolean;
@@ -87,10 +89,17 @@ function riskText(n: Note): string {
 }
 const SERIOUS: RiskCode[] = ['admin', 'deletes', 'download-run', 'hidden', 'keys-folder', 'whole-home', 'plain-secret', 'bad-url'];
 
+/** A server at a web address on this computer (Unreal's) isn't "Online". */
+const onThisComputer = (s: { online: boolean; shows: string }) =>
+  !s.online || /^https?:\/\/(localhost|127(\.\d{1,3}){3}|\[::1\])(:\d+)?(\/|$)/i.test(s.shows);
+
 function statusLine(s: Server): { color: string; glow?: boolean; text: string } {
   const n = s.tools.length;
   switch (s.state) {
-    case 'ready': return { color: C.ok, glow: true, text: (s.online
+    case 'ready': if (s.unreal) {
+      return { color: C.ok, glow: true, text: tt('mcp.page.status.unreal_ready', 'Connected · {n} Unreal tools').replace('{n}', String(s.unreal.tools)) };
+    }
+    return { color: C.ok, glow: true, text: (s.online
       ? (n === 1 ? tt('mcp.page.status.connected_one', 'Connected · 1 tool') : tt('mcp.page.status.connected', 'Connected · {n} tools'))
       : (n === 1 ? tt('mcp.page.status.running_one', 'Running · 1 tool') : tt('mcp.page.status.running', 'Running · {n} tools'))).replace('{n}', String(n)) };
     case 'connecting': return { color: C.warn, text: tt('mcp.page.status.connecting', 'Starting…') };
@@ -99,7 +108,11 @@ function statusLine(s: Server): { color: string; glow?: boolean; text: string } 
       : tt('mcp.page.status.waiting', 'Waiting for your yes. A project can never turn on its own servers.') };
     case 'needs-key': return { color: C.warn, text: tt('mcp.page.status.needs_key', "It needs a key that isn't in your keychain yet.") };
     case 'needs-signin': return { color: C.warn, text: tt('mcp.page.status.needs_signin', 'It wants a sign-in, or its key was refused.') };
-    case 'error': return { color: C.danger, text: s.reason === 'stopped' ? tt('mcp.page.status.stopped', 'It stopped.') : tt('mcp.page.status.error', "It couldn't start.") };
+    case 'error': return s.reason === 'unreal-closed'
+      ? { color: C.muted, text: tt('mcp.page.status.unreal_closed', "Unreal Editor isn't open. Open your project in Unreal, then press Restart.") }
+      : s.reason === 'unreal-old'
+      ? { color: C.warn, text: tt('mcp.page.status.unreal_old', 'This Unreal Editor is older than 5.9. I work with Unreal Engine 5.9 and later.') }
+      : { color: C.danger, text: s.reason === 'stopped' ? tt('mcp.page.status.stopped', 'It stopped.') : tt('mcp.page.status.error', "It couldn't start.") };
     case 'off': return { color: C.muted, text: s.reason === 'declined' ? tt('mcp.page.status.declined', 'You said never for this project.')
       : s.reason === 'shadowed' ? tt('mcp.page.status.shadowed', "One of your own servers has the same name, so this one isn't used.")
       : tt('mcp.page.status.off', 'Off') };
@@ -192,7 +205,7 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 15, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', color: C.text }}>
             {s.id}
-            {s.online
+            {!onThisComputer(s)
               ? <span style={chip(C.online, 'rgba(96,165,250,0.35)')}>{tt('mcp.page.online', 'Online')}</span>
               : <span style={chip(C.ok, 'rgba(52,211,153,0.3)')}>{tt('mcp.page.local', 'On this computer')}</span>}
             {s.server && s.state === 'ready' && <span style={{ color: C.muted, fontSize: 12, fontWeight: 400 }}>{s.server.name} {s.server.version}</span>}
@@ -200,6 +213,9 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
           <div style={{ fontSize: 12.5, marginTop: 3, color: C.text2, display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={dot(st.color, st.glow)} /> <span>{st.text}</span>
           </div>
+          {s.state === 'ready' && s.unreal?.toolsetsOff && (
+            <div style={{ ...note, color: C.warn }}>{tt('mcp.page.unreal.toolsets_off', "Most of Unreal's tools are switched off in this project. In Unreal, open Edit → Plugins, turn on All Toolsets, then restart the editor.")}</div>
+          )}
           {s.online && s.signingIn && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, fontSize: 12.5, color: C.text2, flexWrap: 'wrap' }}>
               <span>{tt('mcp.page.signing_in', 'Finish signing in in your browser…')}</span>
@@ -234,13 +250,19 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
           <Notes notes={s.notes} />
           {s.ava?.from && <div style={note}>{tt('mcp.page.from', 'Brought in from {app}').replace('{app}', s.ava.from)}</div>}
           {s.keys.map((k) => <KeyRow key={k.name} k={k} request={request} onState={onState} />)}
-          {(s.state === 'error' || s.state === 'needs-signin') && s.message && (
+          {(s.state === 'error' || s.state === 'needs-signin') && s.message && s.reason !== 'unreal-closed' && s.reason !== 'unreal-old' && (
             <>
               <div style={note}>{tt('mcp.page.it_said', 'What it said')}</div>
               <div style={{ ...cmd, whiteSpace: 'pre-wrap', color: C.text2 }}>{s.message}</div>
             </>
           )}
-          {s.state === 'ready' && s.tools.length > 0 && (
+          {s.state === 'ready' && s.unreal && (
+            <UnrealTools s={s} busy={busy} onAskAgain={(inner) => {
+              const call = s.tools.find((t) => t.name === 'call_tool');
+              if (call) void run('allow', { avaName: call.avaName, on: false, inner });
+            }} />
+          )}
+          {s.state === 'ready' && !s.unreal && s.tools.length > 0 && (
             <>
               <div style={note}>{tt('mcp.page.tools_hint', 'Tools · each asks the first time; "Always" means I stop asking')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px 12px', fontSize: 13, marginTop: 6, alignItems: 'center' }}>
@@ -281,6 +303,33 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Unreal Engine (core mcp/unreal.ts): its ~1,900 tools sit behind one, so there's
+ * no per-tool list here — what only looks runs, the rest asks, and the Unreal
+ * tools he said "always" for are listed to take back.
+ */
+function UnrealTools({ s, busy, onAskAgain }: { s: Server; busy: boolean; onAskAgain: (inner: string) => void }) {
+  const allowed = s.unreal?.allowed ?? [];
+  return (
+    <>
+      <div style={note}>{tt('mcp.page.unreal.hint', 'When I only look, I go straight ahead; before I change your project or run anything, I ask you.')}</div>
+      {allowed.length > 0 && (
+        <>
+          <div style={{ ...note, marginTop: 10 }}>{tt('mcp.page.unreal.always', 'Always allowed in Unreal')}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px 12px', fontSize: 13, marginTop: 6, alignItems: 'center' }}>
+            {allowed.map((inner) => (
+              <Fragment key={inner}>
+                <span style={{ fontFamily: mono, fontSize: 12.5, color: C.text, minWidth: 0, overflowWrap: 'anywhere' }}>{inner}</span>
+                <button style={btn} disabled={busy} onClick={() => onAskAgain(inner)}>{tt('mcp.page.ask_again', 'Ask me again')}</button>
+              </Fragment>
+            ))}
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -449,7 +498,9 @@ function SuggestedRow({ g, request, onState }: { g: Suggestion; request: Connect
   const [problem, setProblem] = useState('');
   const view = tt(`mcp.suggest.${g.id}.view`, g.view);
   const kind = g.kind === 'open' ? tt('mcp.page.kind_open', 'Free · no account')
+    : g.kind === 'local' ? tt('mcp.page.kind_local', 'On this computer · free')
     : g.kind === 'signin' ? tt('mcp.page.kind_signin', 'Free account · sign in') : tt('mcp.page.kind_key', 'Free account · key');
+  const green = g.kind === 'open' || g.kind === 'local';
   const open = async () => {
     setBusy(true); setProblem('');
     try {
@@ -470,7 +521,7 @@ function SuggestedRow({ g, request, onState }: { g: Suggestion; request: Connect
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 14.5, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', color: C.text }}>
             {g.name}
-            <span style={chip(g.kind === 'open' ? C.ok : C.online, g.kind === 'open' ? 'rgba(52,211,153,0.3)' : 'rgba(96,165,250,0.35)')}>{kind}</span>
+            <span style={chip(green ? C.ok : C.online, green ? 'rgba(52,211,153,0.3)' : 'rgba(96,165,250,0.35)')}>{kind}</span>
             <span style={{ color: C.muted, fontSize: 12, fontWeight: 400 }}>
               {g.publisher}{g.registry ? ` · ✓ ${tt('mcp.page.verified', 'verified in the MCP Registry')}` : ''}
             </span>
@@ -564,7 +615,7 @@ function ImportPanel({ request, onClose, onState }: { request: ConnectionsReques
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontWeight: 500 }}>
                           {s.name}
-                          {s.online
+                          {!onThisComputer(s)
                             ? <span style={chip(C.online, 'rgba(96,165,250,0.35)')}>{tt('mcp.page.online', 'Online')}</span>
                             : <span style={chip(C.ok, 'rgba(52,211,153,0.3)')}>{tt('mcp.page.local', 'On this computer')}</span>}
                         </div>

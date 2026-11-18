@@ -9,6 +9,7 @@ import { riskNotes } from '../mcp/risk.js';
 import { splitCommandLine } from '../mcp/page.js';
 import { MCP_IMPORT_APP_NAMES, type McpImportApp } from '../mcp/import.js';
 import { riskNoteInWords } from './connection-tools.js';
+import { isLocalUrl } from '../mcp/connection.js';
 
 const short = (value: unknown, max = 100) => {
   const text = String(value ?? '').trim();
@@ -32,13 +33,30 @@ function connectionAddWords(args: Record<string, unknown>): string {
   const entry: McpServerEntry = url ? { type: 'http', url } : { command: parts[0] ?? '', args: parts.slice(1), ...(env ? { env } : {}) };
   const keys = Array.isArray(args.keys) ? args.keys.map(String) : [];
   if (url && typeof args.key_header === 'string' && args.key_header.trim()) keys.push(`${args.key_header.trim()} (a key)`);
-  const lines = [`Add the MCP server "${name}" to your Connections. ${url ? 'It is online.' : 'It runs on this computer, as you.'}`];
+  const where = !url ? 'It runs on this computer, as you.' : isLocalUrl(url) ? 'It is on this computer.' : 'It is online.';
+  const lines = [`Add the MCP server "${name}" to your Connections. ${where}`];
   lines.push(url ? `Address: ${url}` : `Runs: ${describeEntry(entry)}`);
   if (env && Object.keys(env).length) lines.push(`Settings: ${Object.entries(env).map(([k, v]) => `${k}=${v}`).join(', ')}`);
   if (keys.length) lines.push(`Keys you'll type on the Connections page (never in the chat): ${keys.join(', ')}`);
   for (const n of riskNotes(entry)) lines.push(`⚠ ${riskNoteInWords(n)}`);
   if (typeof args.view === 'string' && args.view.trim()) lines.push(`Ava's view: ${short(args.view, 600)}`);
   return lines.join('\n');
+}
+
+/**
+ * A call through a server's call_tool (Unreal Engine puts all its tools behind
+ * one): name the tool it runs and with what, not "call tool".
+ * "EditorToolset.ActorToolset" + "SpawnActor" → "In Unreal: Spawn Actor (ActorToolset), with …".
+ */
+function innerToolWords(toolName: string, args: Record<string, unknown>): string | undefined {
+  const m = /^mcp_(.+)_call_tool$/.exec(toolName);
+  if (!m || typeof args.tool_name !== 'string' || !args.tool_name.trim()) return undefined;
+  const server = m[1] === 'unreal' ? 'Unreal' : m[1].replace(/[_-]+/g, ' ');
+  const tool = args.tool_name.trim().replace(/[_]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+  const set = typeof args.toolset_name === 'string' ? args.toolset_name.split('.').pop() : '';
+  const inner = args.arguments && typeof args.arguments === 'object' && Object.keys(args.arguments).length
+    ? `, with ${short(JSON.stringify(args.arguments), 200)}` : '';
+  return `In ${server}: ${tool}${set ? ` (${set})` : ''}${inner}`;
 }
 
 /** "design_build_image" → "design build image", for a tool with no words of its own. */
@@ -73,6 +91,6 @@ export function toolRequestInWords(toolName: string, args: Record<string, unknow
       return args.action === 'experience_to_kit'
         ? `Save this brainstorm's experience (what your users should feel) to ${args.kit_id ? 'the brand kit' : 'your project\'s brand kit, or a new kit you agree in the Design Studio'}${args.kit_name ? ` "${short(args.kit_name, 60)}"` : ''}. Every mode designs and writes from the kit.`
         : `Keep this brainstorm (${String(args.action ?? 'save')})`;
-    default: return `Use its "${toolWords(toolName)}" tool`;
+    default: return innerToolWords(toolName, args) ?? `Use its "${toolWords(toolName)}" tool`;
   }
 }

@@ -80,7 +80,7 @@ import { OpenHealthRoomTool } from './open-health-room.js';
 import { OpenLearningRoomTool } from './open-learning-room.js';
 import { OpenBrainstormRoomTool } from './open-brainstorm-room.js';
 import { OpenDesignStudioTool } from './open-design-studio.js';
-import { isUserMcpTool, mcpToolAlwaysAllowed } from '../mcp/permissions.js';
+import { isUserMcpTool, mcpToolNeedsAsking } from '../mcp/permissions.js';
 import {
   DesignFindShapeTool,
   DesignGenerateIconTool,
@@ -726,8 +726,10 @@ export class ToolRegistry {
     // says "always allow" for that one tool, whatever the permission mode and
     // whatever the server calls them: a server's own read-only label isn't
     // trusted (plan 2026-11-17-mcp-servers, decision 2). Blender's own tools
-    // are not these (blender_live_*).
-    if (isUserMcpTool(tool.name)) return !mcpToolAlwaysAllowed(tool.name);
+    // are not these (blender_live_*). Unreal Engine's server is the one whose
+    // labels count (his decision, plan 2026-11-18-unreal): the call's args
+    // name the Unreal tool, and its READ label runs without asking.
+    if (isUserMcpTool(tool.name)) return mcpToolNeedsAsking(tool.name, args);
 
     // Tools that handle approval inside their own execute() (desktop-safety-gate
     // pattern) skip the generic flow — they carry richer per-invocation

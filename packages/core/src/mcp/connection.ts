@@ -23,6 +23,32 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
 import type { FetchLike, Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
+import { UNREAL_CALL_TIMEOUT_MS, UnrealCatalog, isUnrealServer, unrealEditorInfo, unrealVersionOk, type UnrealEditorInfo } from './unreal.js';
+
+/**
+ * Keep the server's answer to `initialize`. The SDK keeps only its name,
+ * version and capabilities; Unreal puts the open project in the answer's
+ * _meta. Wraps whatever onmessage the client installs, so nothing changes
+ * for any other message.
+ */
+function tapInitialize(transport: Transport, seen: (result: unknown) => void): void {
+  let handler: Transport['onmessage'];
+  let done = false;
+  Object.defineProperty(transport, 'onmessage', {
+    configurable: true,
+    get: () => handler,
+    set: (fn: Transport['onmessage']) => {
+      handler = fn && ((message, extra) => {
+        if (!done) {
+          const result = (message as { result?: { serverInfo?: unknown } }).result;
+          if (result && typeof result === 'object' && 'serverInfo' in result) { done = true; seen(result); }
+        }
+        fn(message, extra);
+      });
+    },
+  });
+}
 
 export type McpTransportConfig =
   /** A program Ava starts, talking over its input and output. */
@@ -147,6 +173,19 @@ export class McpConnection {
   private toolList: McpToolInfo[] = [];
   private closed = false;
   private readonly closeListeners: Array<() => void> = [];
+  private readonly changeListeners: Array<() => void> = [];
+  /**
+   * Unreal Engine's server (unreal.ts): its tools' read / write / execute
+   * labels, read at connect and again when its tools change. Undefined for
+   * every other server.
+   */
+  unreal?: UnrealCatalog;
+  /** Unreal: the project the editor has open (from its initialize answer). */
+  unrealEditor?: UnrealEditorInfo;
+  /** Calls wait for the one before (Unreal runs one at a time on its game thread). */
+  private serial = false;
+  private queue: Promise<unknown> = Promise.resolve();
+  private callTimeoutMs = DEFAULT_TIMEOUT_MS;
 
   private constructor(
     readonly config: McpServerConfig,
@@ -163,16 +202,42 @@ export class McpConnection {
     const transport = opts.transport ?? makeTransport(config.transport, stderrLines);
     const client = new Client(CLIENT_INFO, { capabilities: {} });
     const conn = new McpConnection(config, client, stderrLines);
+    let initResult: unknown;
+    tapInitialize(transport, (r) => { initResult = r; });
     client.onclose = () => conn.markClosed();
+    // A server whose tools change while connected (Unreal, when a plugin or
+    // toolset is switched on) says so; read them again rather than offer
+    // Ava a list that's gone stale.
+    client.setNotificationHandler(ToolListChangedNotificationSchema, async () => {
+      await conn.refreshTools().catch(() => {});
+      if (conn.unreal) conn.unreal = await UnrealCatalog.load(conn);
+      conn.emitChange();
+    });
     try {
       await client.connect(transport, { timeout: opts.timeoutMs ?? 30_000 });
+      const info = client.getServerVersion();
+      if (isUnrealServer(info) && !unrealVersionOk(info?.version)) {
+        // Too old for Ava (5.9 and later only): don't connect at all.
+        const old = new Error(`This Unreal Editor (${info?.version}) is older than 5.9. Ava works with Unreal Engine 5.9 and later.`);
+        (old as Error & { unrealTooOld?: string }).unrealTooOld = String(info?.version ?? '');
+        throw old;
+      }
       await conn.refreshTools();
+      if (isUnrealServer(info)) {
+        conn.serial = true;
+        conn.callTimeoutMs = UNREAL_CALL_TIMEOUT_MS;
+        conn.unrealEditor = unrealEditorInfo(initResult);
+        conn.unreal = await UnrealCatalog.load(conn);
+      }
     } catch (err) {
       await client.close().catch(() => {});
       const said = stderrLines.slice(-5).join(' | ');
       const out = new Error(`Could not connect to ${config.name}: ${err instanceof Error ? err.message : String(err)}${said ? ` (it said: ${said})` : ''}`, { cause: err });
       // An online server that wants a sign-in (or a key it didn't accept).
       (out as Error & { unauthorized?: boolean }).unauthorized = isUnauthorized(err);
+      // An Unreal older than 5.9: the manager says so in his language.
+      const tooOld = (err as { unrealTooOld?: string } | undefined)?.unrealTooOld;
+      if (tooOld !== undefined) (out as Error & { unrealTooOld?: string }).unrealTooOld = tooOld;
       throw out;
     }
     return conn;
@@ -213,12 +278,28 @@ export class McpConnection {
     return out;
   }
 
-  /** Call one of the server's tools. Text and images come back separately. */
-  async call(name: string, args: Record<string, unknown>, opts: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<McpCallResult> {
+  /**
+   * Call one of the server's tools. Text and images come back separately.
+   * For a server that runs one call at a time (Unreal), each call waits for
+   * the one before; the wait doesn't count against its timeout.
+   */
+  call(name: string, args: Record<string, unknown>, opts: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<McpCallResult> {
+    if (!this.serial) return this.callNow(name, args, opts);
+    const run = this.queue.then(() => this.callNow(name, args, opts), () => this.callNow(name, args, opts));
+    this.queue = run.catch(() => {});
+    return run;
+  }
+
+  private async callNow(name: string, args: Record<string, unknown>, opts: { signal?: AbortSignal; timeoutMs?: number }): Promise<McpCallResult> {
     if (this.closed) throw new Error(`${this.config.name} is not connected.`);
+    opts.signal?.throwIfAborted();
     const res = await this.client.callTool({ name, arguments: args }, undefined, {
       signal: opts.signal,
-      timeout: opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      timeout: opts.timeoutMs ?? this.callTimeoutMs,
+      // Asking for progress gives the server a token to report against, and
+      // each report restarts the timeout: a long compile or test play that
+      // keeps saying "still going" isn't cut off.
+      onprogress: () => {},
       resetTimeoutOnProgress: true,
     });
     const text: string[] = [];
@@ -240,6 +321,17 @@ export class McpConnection {
 
   onClose(listener: () => void): void {
     this.closeListeners.push(listener);
+  }
+
+  /** Called when the server's tools changed and were read again. */
+  onChange(listener: () => void): void {
+    this.changeListeners.push(listener);
+  }
+
+  private emitChange(): void {
+    for (const l of this.changeListeners) {
+      try { l(); } catch { /* a listener's problem is not ours */ }
+    }
   }
 
   private markClosed(): void {

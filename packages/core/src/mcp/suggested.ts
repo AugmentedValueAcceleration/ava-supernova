@@ -4,12 +4,15 @@
  * free helpful mcp's along with the ability for the user to add their own").
  *
  * Suggested, never installed: each one goes through the same card (exact
- * address, warnings, his yes) as anything else. All are ONLINE servers from the
- * company itself, so nothing is downloaded or run on his computer. Only gaps:
+ * address, warnings, his yes) as anything else. All but one are ONLINE servers
+ * from the company itself, so nothing is downloaded or run on his computer.
+ * The one exception is Unreal Engine (plan 2026-11-18-unreal): Epic's server is
+ * built into the editor he already runs, at a local address, so nothing is
+ * downloaded there either. Only gaps:
  * Ava already reads files, runs git, fetches pages and browses, so servers that
  * repeat those aren't here.
  *
- * Checked 17 Nov 2026, each against its live address (open / wants a sign-in /
+ * Checked 17 Nov 2026 (Unreal 18 Nov, against his own 5.9 editor), each against its live address (open / wants a sign-in /
  * lets an app register itself) and the official MCP Registry, plus its own
  * docs for "free". RE-CHECK EVERY RELEASE: run the probe in the plan, and
  * drop anything that stops being free or official.
@@ -21,7 +24,8 @@
 export type McpSuggestionKind =
   | 'open'     // free, no account
   | 'signin'   // free account, he signs in (Ava's sign-in works: the server lets apps register)
-  | 'key';     // free account, he pastes a key on the page
+  | 'key'      // free account, he pastes a key on the page
+  | 'local';   // part of a program on his computer (Unreal Engine): free, no account
 
 export interface McpSuggestion {
   id: string;
@@ -104,6 +108,14 @@ export const MCP_SUGGESTIONS: McpSuggestion[] = [
     url: 'https://api.githubcopilot.com/mcp/', docs: 'https://github.com/github/github-mcp-server', keyHeader: 'Authorization',
     what: 'Your repositories, issues and pull requests.',
     view: "GitHub's own server, verified in the MCP Registry. GitHub's sign-in doesn't let apps register themselves, so it takes a personal access token: make a fine-grained one at github.com/settings/personal-access-tokens with only the repositories and rights you want me to have. GitHub lists Copilot access as a requirement; Copilot's free plan counts.",
+  },
+  {
+    // Recognised by the name it reports, not this address (unreal.ts): he can
+    // change the port in Unreal, and Ava's rules follow the server.
+    id: 'unreal', name: 'Unreal Engine', publisher: 'Epic Games', kind: 'local',
+    url: 'http://127.0.0.1:8000/mcp', docs: 'https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-mcp-in-unreal-editor',
+    what: 'Work inside your open Unreal project: levels, actors, assets, Blueprints, materials, test play and screenshots.',
+    view: "Epic's own server, built into Unreal Engine 5.9 and later. It runs inside the editor on your computer: no account, and nothing leaves your machine. When I only look, I go straight ahead; before I change your project or run anything, I ask you. Open your project in Unreal before switching it on, and turn on All Toolsets once per project (Edit → Plugins in Unreal), or most of its tools stay hidden.",
   },
 ];
 

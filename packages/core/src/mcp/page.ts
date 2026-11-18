@@ -11,7 +11,7 @@
  *   enable    { id, on }         switch one of his servers on or off
  *   restart   { scope, id }
  *   remove    { id }             take it out, and forget the keys only it used
- *   allow     { avaName, on }    "Always" for one tool, or back to asking
+ *   allow     { avaName, on, inner? }  "Always" for one tool (inner: one Unreal tool), or back to asking
  *   answer    { id, answer }     his yes / not now / never to a project's server
  *   set_key   { name, value }    keep a key in the keychain ('' forgets it)
  *   sign_in   { scope, id, words }  open his browser on an online server's sign-in
@@ -210,7 +210,8 @@ export async function mcpPage(op: string, args: Record<string, unknown> = {}): P
       return state();
     }
     case 'allow':
-      await m.allowTool(str('avaName'), args.on !== false);
+      // `inner`: one Unreal tool (Toolset.Tool) behind Unreal's call_tool.
+      await m.allowTool(str('avaName'), args.on !== false, undefined, typeof args.inner === 'string' ? args.inner : undefined);
       return state();
     case 'answer': {
       const a = str('answer');

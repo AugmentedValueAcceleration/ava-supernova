@@ -30,7 +30,7 @@ import { MCP_SUGGESTIONS } from '../mcp/suggested.js';
 function suggestionsInWords(have: Array<{ id: string; shows: string }>): string {
   const left = MCP_SUGGESTIONS.filter((g) => !have.some((s) => s.id === g.id || s.shows === g.url));
   if (!left.length) return '';
-  const how = { open: 'free, no account', signin: 'free account; he signs in on the page', key: 'free account; he pastes a key on the page' } as const;
+  const how = { open: 'free, no account', signin: 'free account; he signs in on the page', key: 'free account; he pastes a key on the page', local: 'free, no account; part of a program on his computer, which must be open' } as const;
   return '\nSuggested servers (checked, free, official; he can add any with connection_add using this exact address'
     + ' — or from the Suggested list on the Connections page):\n'
     + left.map((g) => `• ${g.id} — ${g.name} by ${g.publisher}: ${g.what} ${g.url} (${how[g.kind]}${g.keyHeader ? `; key_header "${g.keyHeader}"` : ''}). Your view: ${g.view}`).join('\n');

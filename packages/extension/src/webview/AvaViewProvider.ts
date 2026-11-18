@@ -4670,9 +4670,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // sessions and the Settings per-category list reflects it (previously
     // session-only, which is why it "didn't update").
     // A tool from one of his MCP servers: "always" is for that one tool,
-    // remembered in ~/.ava/mcp.json — never its whole category.
+    // remembered in ~/.ava/mcp.json — never its whole category. The call's
+    // args go too: for Unreal's call_tool, "always" is for the Unreal tool it names.
     if (approved && alwaysAllowCategory && isUserMcpTool(pending.toolName)) {
-      void McpServers.current().allowTool(pending.toolName)
+      void McpServers.current().allowTool(pending.toolName, true, pending.args)
         .then((ok) => this.log(ok ? `MCP tool always allowed: ${pending.toolName}` : `MCP tool not found to allow: ${pending.toolName}`));
     } else if (approved && alwaysAllowCategory && this.toolRegistry) {
       const category = this.toolRegistry.getCategoryForTool(pending.toolName);

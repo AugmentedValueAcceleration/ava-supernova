@@ -20,4 +20,18 @@ describe('a permission card in plain words', () => {
   it('keeps a long command short', () => {
     expect(toolRequestInWords('bash', { command: 'x'.repeat(300) }).length).toBeLessThan(125);
   });
+
+  it('names the Unreal tool a call_tool call runs, not "call tool"', () => {
+    expect(toolRequestInWords('mcp_unreal_call_tool', { toolset_name: 'EditorToolset.ActorToolset', tool_name: 'SpawnActor', arguments: { Class: 'PointLight' } }))
+      .toBe('In Unreal: Spawn Actor (ActorToolset), with {"Class":"PointLight"}');
+    expect(toolRequestInWords('mcp_unreal_call_tool', { toolset_name: 'EditorToolset.EditorAppToolset', tool_name: 'StartPIE' }))
+      .toBe('In Unreal: Start PIE (EditorAppToolset)');
+    // Nothing named: the plain fallback.
+    expect(toolRequestInWords('mcp_unreal_call_tool', {})).toBe('Use its "mcp unreal call tool" tool');
+  });
+
+  it('a server at an address on this computer is not called online', () => {
+    expect(toolRequestInWords('connection_add', { name: 'unreal', url: 'http://127.0.0.1:8000/mcp' })).toContain('It is on this computer.');
+    expect(toolRequestInWords('connection_add', { name: 'x', url: 'https://example.com/mcp' })).toContain('It is online.');
+  });
 });

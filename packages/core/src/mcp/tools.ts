@@ -81,7 +81,13 @@ class McpTool implements Tool {
           : undefined,
       };
     } catch (err) {
-      return { success: false, output: `${this.conn.config.name}: ${err instanceof Error ? err.message : String(err)}` };
+      const msg = err instanceof Error ? err.message : String(err);
+      // Unreal over http has no live link to notice the editor closing: the
+      // next call is where it shows. Say what it means, not "fetch failed".
+      if (this.conn.unreal && /ECONNREFUSED|fetch failed/i.test(`${msg} ${String((err as { cause?: unknown })?.cause ?? '')}`)) {
+        return { success: false, output: 'Unreal Editor isn\'t answering: it was probably closed. Tell them to open their project in Unreal again, then press Restart on Unreal\'s card in Connections. Don\'t retry until it\'s back.' };
+      }
+      return { success: false, output: `${this.conn.config.name}: ${msg}` };
     }
   }
 }

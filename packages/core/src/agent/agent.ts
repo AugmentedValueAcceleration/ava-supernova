@@ -912,9 +912,11 @@ function allowedToolsForMode(mode: string): Set<string> | undefined {
   return base ? talkingToolsFor(base) : undefined;
 }
 
-export function toolPassesModeGate(name: string, modeAllowed: Set<string>, mode?: string | null): boolean {
+export function toolPassesModeGate(name: string, modeAllowed: Set<string>, mode?: string | null, args?: Record<string, unknown>): boolean {
   // Servers the person added: Code and Chat, Plan's read-only ones, no room.
-  if (isUserMcpTool(name)) return mcpToolInMode(name, mode);
+  // With a call's args the check is for that call: Plan may be offered
+  // Unreal's call_tool, and then only its read tools run (permissions.ts).
+  if (isUserMcpTool(name)) return mcpToolInMode(name, mode, args);
   // Tools a connected program brings (Blender Live's blender_live_*) are only
   // known at run time; they belong to the room that has Live's own tools.
   if (name?.startsWith('blender_live_')) return modeAllowed.has('design_live_step');
@@ -1893,7 +1895,9 @@ export class Agent {
 
     let filteredSchemas: ToolSchema[];
     if (modeAllowed && applyModeGate) {
-      filteredSchemas = allSchemas.filter(s => toolPassesModeGate(s.function.name, modeAllowed, baseMode));
+      // effectiveMode, not baseMode: a connected server's tools are told Talk
+      // (work:talking) from Code (permissions.ts mcpToolInMode).
+      filteredSchemas = allSchemas.filter(s => toolPassesModeGate(s.function.name, modeAllowed, effectiveMode));
     } else {
       filteredSchemas = allSchemas.filter(s => !DESKTOP_ONLY_TOOLS.has(s.function.name));
     }
@@ -2843,8 +2847,12 @@ export class Agent {
       // blocking here would do precisely what the paragraph above forbids:
       // offer a tool and then refuse the call.
       if (modeAllowed) {
-        const isAllowed = (name: string) => toolPassesModeGate(name, modeAllowed, baseMode);
-        const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !isAllowed(tc.function.name));
+        const argsOf = (tc: ToolCall): Record<string, unknown> | undefined => {
+          if (!isUserMcpTool(tc.function.name)) return undefined;
+          try { return JSON.parse(tc.function.arguments || '{}'); } catch { return {}; }
+        };
+        const callAllowed = (tc: ToolCall) => toolPassesModeGate(tc.function.name, modeAllowed, effectiveMode, argsOf(tc));
+        const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !callAllowed(tc));
         if (blocked.length > 0 && !applyModeGate) {
           // The evidence worth having. The static count says what is in play;
           // this says what she actually reached for while coding — and
@@ -2897,7 +2905,7 @@ export class Agent {
           }
           // Run only the allowed ones. The blocked calls stay on the reply,
           // each paired with the refusal pushed above.
-          callsToRun = callsToRun.filter((tc: ToolCall) => isAllowed(tc.function.name));
+          callsToRun = callsToRun.filter((tc: ToolCall) => callAllowed(tc));
           if (callsToRun.length === 0) continue;
         }
       }
