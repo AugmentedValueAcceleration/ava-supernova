@@ -16,7 +16,8 @@
  * stays the store, as before.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { AVA_HOME } from '@ava/core';
 
@@ -51,12 +52,38 @@ function kr(): Keyring | null {
   // Tests that start the real program (tests/acp.test.ts) must never read his
   // keys: a stray metered call would spend them. No keychain = config.json only.
   if (process.env.AVA_TEST_NO_KEYCHAIN === '1') return (keyring = null);
+  const req = createRequire(import.meta.url);
   try {
-    keyring = createRequire(import.meta.url)('@napi-rs/keyring') as Keyring;
+    keyring = req('@napi-rs/keyring') as Keyring;
   } catch {
-    keyring = null; // no build for this machine — config.json stays the store
+    // Bundled (Ava in Unreal's panel, ~/.ava/bin): no node_modules, so this
+    // machine's build sits in native/ beside the program, as in the extension.
+    const target = nativeTarget();
+    try {
+      keyring = target ? req(join(dirname(fileURLToPath(import.meta.url)), 'native', `keyring.${target}.node`)) as Keyring : null;
+    } catch {
+      keyring = null; // no build for this machine — config.json stays the store
+    }
   }
   return keyring;
+}
+
+/** The keychain build for this machine (the extension's shared-keychain.ts nativeTarget). */
+export function nativeTarget(): string | undefined {
+  const { platform, arch } = process;
+  if (arch !== 'x64' && arch !== 'arm64') return undefined;
+  if (platform === 'win32') return `win32-${arch}-msvc`;
+  if (platform === 'darwin') return `darwin-${arch}`;
+  if (platform === 'linux') {
+    let musl = false;
+    try {
+      const report = process.report?.getReport() as { header?: { glibcVersionRuntime?: string } } | undefined;
+      musl = !report?.header?.glibcVersionRuntime;
+    } catch { /* assume glibc */ }
+    if (musl) return arch === 'x64' ? 'linux-x64-musl' : undefined;
+    return `linux-${arch}-gnu`;
+  }
+  return undefined;
 }
 
 function entry(account: string): Entry | null {

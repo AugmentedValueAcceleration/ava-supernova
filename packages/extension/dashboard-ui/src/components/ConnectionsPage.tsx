@@ -243,6 +243,8 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
         <div style={opinion}><b style={{ color: C.text, fontWeight: 500 }}>{tt('mcp.page.my_view', 'My view:')}</b> {s.ava.view}</div>
       )}
 
+      {s.scope === 'user' && isUnrealCard(s) && <UnrealPanelSetup request={request} />}
+
       {(open || waiting) && (
         <div style={{ marginTop: 12, borderTop: waiting ? 'none' : `1px solid ${C.border}`, paddingTop: waiting ? 0 : 10 }}>
           <div style={note}>{s.online ? tt('mcp.page.address', 'Address') : waiting ? tt('mcp.page.command_wants', 'The exact command it wants to run') : tt('mcp.page.command', 'The exact command I run')}</div>
@@ -300,6 +302,90 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
               </>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const isUnrealCard = (s: Server) =>
+  !!s.unreal || s.server?.name === 'unreal-mcp' || s.reason === 'unreal-closed' || s.reason === 'unreal-old';
+
+interface UnrealPanel {
+  supported: boolean; canInstall: boolean; installed: boolean; current: boolean; downloadsNode: boolean;
+  command: string; args: string[];
+}
+
+function CopyLine({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <div style={{ ...cmd, flex: 1, minWidth: 0 }}>{text}</div>
+      <button style={btn} onClick={() => {
+        void navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
+      }}>{copied ? tt('mcp.unreal_panel.copied', 'Copied') : tt('mcp.unreal_panel.copy', 'Copy')}</button>
+    </div>
+  );
+}
+
+/**
+ * Ava in Unreal Editor's Assistant panel (plan 2026-11-18-unreal, Phase 2):
+ * puts Ava.exe and her program in ~/.ava/bin (core mcp/unreal-install.ts) and
+ * shows the steps in Unreal, with the two things to paste. Kimodo's own setup
+ * is one optional line here — it needs Meta's approval, so it can't block this
+ * (his call, 18 Nov); Ava walks him through it when he asks.
+ */
+function UnrealPanelSetup({ request }: { request: ConnectionsRequest }) {
+  const [p, setP] = useState<UnrealPanel | null>(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState('');
+  useEffect(() => { void request('unreal_panel').then((r) => setP(r as UnrealPanel)).catch(() => {}); }, [request]);
+  if (!p?.supported) return null;
+  const setUp = async () => {
+    setBusy(true); setProblem('');
+    try {
+      const r = await request('unreal_panel_install') as { ok: boolean; problem?: string; panel: UnrealPanel };
+      setP(r.panel);
+      if (r.ok) setOpen(true); else setProblem(r.problem ?? '');
+    } catch (e) {
+      setProblem(e instanceof Error ? e.message : String(e));
+    } finally { setBusy(false); }
+  };
+  const step: CSSProperties = { fontSize: 13, color: C.text2, margin: '10px 0 2px' };
+  return (
+    <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 13.5, color: C.text, fontWeight: 500 }}>{tt('mcp.unreal_panel.title', "Ava in Unreal's Assistant panel")}</div>
+          <div style={note}>{p.installed && p.current
+            ? tt('mcp.unreal_panel.ready', "Set up. Chat with me inside Unreal Editor, beside your project — same memory, same keys.")
+            : p.installed
+              ? tt('mcp.unreal_panel.update_ready', 'An update for Ava in Unreal is ready.')
+              : tt('mcp.unreal_panel.what', "Chat with me inside Unreal Editor, beside your project — same memory, same keys.")}</div>
+          {p.downloadsNode && (!p.installed || !p.current) && (
+            <div style={note}>{tt('mcp.unreal_panel.download', 'Setting up downloads Node (36 MB) once from nodejs.org, checked before it is used.')}</div>
+          )}
+        </div>
+        {p.canInstall && (!p.installed || !p.current) && (
+          <button style={primary} disabled={busy} onClick={() => void setUp()}>
+            {busy ? tt('mcp.unreal_panel.setting_up', 'Setting up…') : p.installed ? tt('mcp.unreal_panel.update', 'Update') : tt('mcp.unreal_panel.set_up', 'Set up')}
+          </button>
+        )}
+        {p.installed && <button style={link} onClick={() => setOpen(!open)}>{open ? tt('mcp.unreal_panel.hide_steps', 'Hide the steps') : tt('mcp.unreal_panel.show_steps', 'Show the steps')}</button>}
+      </div>
+      {problem && <div style={{ ...note, color: C.danger }}>{problem}</div>}
+      {open && p.installed && (
+        <div style={{ marginTop: 6 }}>
+          <div style={step}>{tt('mcp.unreal_panel.step1', '1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent.')}</div>
+          <div style={step}>{tt('mcp.unreal_panel.step2', '2. Tick Use External Agent, and set External Agent to Custom.')}</div>
+          <div style={step}>{tt('mcp.unreal_panel.step3', '3. Custom Agent Command:')}</div>
+          <CopyLine text={p.command} />
+          <div style={step}>{tt('mcp.unreal_panel.step4', '4. Custom Agent Arguments: add one item, and paste:')}</div>
+          {p.args.map((a) => <CopyLine key={a} text={a} />)}
+          <div style={step}>{tt('mcp.unreal_panel.step5', '5. Open the Assistant panel (the Assistant button at the bottom of the editor, or Window → Unreal Assistant), start a New Chat, and allow Ava when Unreal asks.')}</div>
+          <div style={step}>{tt('mcp.unreal_panel.step6', '6. Once per project: turn on All Toolsets (Edit → Plugins), then restart Unreal — or most of my Unreal tools stay hidden.')}</div>
+          <div style={{ ...opinion, marginTop: 12 }}>{tt('mcp.unreal_panel.kimodo', "Optional — animation with Kimodo: it needs a Hugging Face account and Meta's approval for Llama 3. Ask for it early, as approval can take a while. Ask me and I'll walk you through it.")}</div>
         </div>
       )}
     </div>

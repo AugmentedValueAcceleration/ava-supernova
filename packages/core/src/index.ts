@@ -671,11 +671,12 @@ export {
   isUserMcpTool, mcpToolInMode, mcpToolAlwaysAllowed, mcpToolNeedsAsking, USER_MCP_PREFIX,
   UnrealCatalog, isUnrealServer, unrealInnerTool, unrealAllowKey, UNREAL_SERVER_NAME, UNREAL_DEFAULT_URL, UNREAL_CALL_TOOL,
   ensureUnrealServer, settleUnrealServer, unrealPanelPrompt, unrealVersionOk, UNREAL_MIN_VERSION,
+  setUnrealProgramSource, unrealProgramState, installUnrealProgram, downloadNodeRuntime, unrealProgramPaths, UNREAL_NODE_VERSION,
   mcpPage, splitCommandLine, MCP_HEAVY_TOOLS, riskNotes,
   setMcpBrowserOpener, hasMcpBrowserOpener, checkSignInUrl, addressZone, setMcpSignInPort, mcpAuthKey, isSignedIn, forgetSignIn,
   fencedFetch, MCP_SUGGESTIONS, suggestedScopes, searchMcpRegistry, scanMcpImports, redactSecrets,
 } from './mcp/index.js';
-export type { McpServerState, McpServerStatus, McpToolStatus, McpScope, McpFile, McpServerEntry, McpProjectAnswers, McpKeychain, UnrealServerInPanel } from './mcp/index.js';
+export type { McpServerState, McpServerStatus, McpToolStatus, McpScope, McpFile, McpServerEntry, McpProjectAnswers, McpKeychain, UnrealServerInPanel, UnrealProgramSource, UnrealProgramState } from './mcp/index.js';
 export type { McpDraft, McpPageState, McpPageServer, McpCheck, McpRiskCode, McpRiskNote, McpBrowserOpener, McpSignInWords } from './mcp/index.js';
 // Blender Live: Ava in the person's open Blender through Blender Lab's official MCP server.
 export { BlenderLive, findUv, installedServer, addonListening, blenderMcpRoot, versionAtLeast, blenderLiveWanted, setBlenderLiveWanted, BLENDER_LIVE_MIN, BLENDER_MCP_PORT } from './tools/blender/live.js';

@@ -15,6 +15,15 @@ console.info = toErr;
 console.debug = toErr;
 console.warn = toErr;
 
+// Installed (~/.ava/bin/ava-unreal): the PDF fonts sit beside the program, as in the IDE.
+{
+  const { existsSync } = await import('node:fs');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const fonts = join(dirname(fileURLToPath(import.meta.url)), 'fonts');
+  if (!process.env.AVA_FONTS_DIR && existsSync(join(fonts, 'NotoSans-Regular.ttf'))) process.env.AVA_FONTS_DIR = fonts;
+}
+
 const { JsonRpc } = await import('./rpc.js');
 const { AcpServer } = await import('./server.js');
 

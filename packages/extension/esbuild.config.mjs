@@ -4,6 +4,8 @@ import { createRequire } from 'node:module';
 import { execFileSync, execSync } from 'node:child_process';
 import * as esbuild from 'esbuild';
 import { EXTERNAL, copyPdfkitData, copyPdfFonts } from './scripts/bundle-shared.mjs';
+// Ava in Unreal's Assistant panel (plan 2026-11-18-unreal): her program, set up into ~/.ava/bin from Connections.
+import { bundleUnrealProgram } from '../cli/scripts/unreal-program.mjs';
 
 const isWatch = process.argv.includes('--watch');
 const isProduction = process.argv.includes('--production') || process.env.NODE_ENV === 'production';
@@ -88,6 +90,7 @@ if (isWatch) {
   copyPdfkitData('dist');
   await copyPdfFonts('dist');
   await buildVectorizer();
+  await bundleUnrealProgram(esbuild.build, path.join('dist', 'unreal'));
   await ctx.watch();
   console.log('Watching for changes...');
 } else {
@@ -102,5 +105,6 @@ if (isWatch) {
   copyKeyringNative();
   copyPdfkitData('dist');
   await copyPdfFonts('dist');
+  await bundleUnrealProgram(esbuild.build, path.join('dist', 'unreal'));
   console.log('Extension built successfully.');
 }

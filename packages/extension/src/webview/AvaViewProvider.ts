@@ -53,6 +53,8 @@ import {
   syncBlenderLiveTools,
   McpServers,
   syncMcpTools,
+  setUnrealProgramSource,
+  downloadNodeRuntime,
   isUserMcpTool,
   resolveMemoryModel,
   memoryV4Root,
@@ -583,6 +585,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (!this.mcpFollowing) {
       this.mcpFollowing = true;
       McpServers.current().onChange(() => { if (this.toolRegistry) syncMcpTools(this.toolRegistry); });
+      // Ava in Unreal's panel: her program ships in dist/unreal; Node comes from
+      // nodejs.org when he sets it up (plan 2026-11-18-unreal, his decision 6).
+      setUnrealProgramSource({
+        programDir: join(__dirname, 'unreal'),
+        dataDir: join(__dirname, 'data'),
+        fontsDir: join(__dirname, 'fonts'),
+        node: downloadNodeRuntime,
+        downloadsNode: true,
+      });
       void McpServers.current().start(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null)
         .catch((err) => this.log(`MCP servers failed to start: ${err instanceof Error ? err.message : err}`));
     }

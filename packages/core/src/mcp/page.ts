@@ -38,6 +38,7 @@ import { MCP_IMPORT_APP_NAMES, scanMcpImports, type McpImportApp } from './impor
 import { addMcpServers, checkProposal, importMcpServers } from './setup.js';
 import { MCP_SUGGESTIONS, suggestionFor, type McpSuggestionKind } from './suggested.js';
 import { riskNotes, type McpRiskNote } from './risk.js';
+import { installUnrealProgram, unrealProgramState } from './unreal-install.js';
 
 /** More tools than this from his servers and the page says it's getting heavy. */
 export const MCP_HEAVY_TOOLS = 40;
@@ -276,6 +277,16 @@ export async function mcpPage(op: string, args: Record<string, unknown> = {}): P
       await addMcpServers([{ id: c.id, entry: c.entry }]);
       return { ok: true, id: c.id, state: await state() };
     }
+    // Ava in Unreal's Assistant panel (plan 2026-11-18-unreal, Phase 2): is
+    // Ava.exe set up, and set it up (or bring it up to date).
+    case 'unreal_panel':
+      return unrealProgramState();
+    case 'unreal_panel_install':
+      try {
+        return { ok: true, panel: await installUnrealProgram() };
+      } catch (e) {
+        return { ok: false, problem: e instanceof Error ? e.message : String(e), panel: await unrealProgramState() };
+      }
     case 'open_docs': {
       // Only a page this page was shown: a suggested server's docs, or one of his servers' own.
       const url = str('url');

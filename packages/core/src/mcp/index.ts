@@ -21,6 +21,8 @@ export {
 export type { UnrealAccess } from './unreal.js';
 export { ensureUnrealServer, settleUnrealServer, unrealPanelPrompt } from './unreal-panel.js';
 export type { UnrealServerInPanel } from './unreal-panel.js';
+export { setUnrealProgramSource, unrealProgramState, installUnrealProgram, downloadNodeRuntime, unrealProgramPaths, UNREAL_NODE_VERSION } from './unreal-install.js';
+export type { UnrealProgramSource, UnrealProgramState } from './unreal-install.js';
 export { mcpPage, splitCommandLine, MCP_HEAVY_TOOLS } from './page.js';
 export type { McpDraft, McpPageState, McpPageServer, McpCheck } from './page.js';
 export { riskNotes } from './risk.js';
