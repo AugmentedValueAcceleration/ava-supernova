@@ -204,6 +204,13 @@ describe('Ava is told the editor is there', () => {
     expect(getWorkTalkPrefix('hi')).toContain('mcp_unreal_list_toolsets');
   });
 
+  // Phase 3: how work in Unreal goes, read from his 5.9 editor — only while an editor is open.
+  it("tells her how this editor works: its own context, Epic's skills, Python's read_me, Live Coding, seeing her work", async () => {
+    await startUnreal();
+    const k = unrealPromptSection('build');
+    for (const s of ['### Working in Unreal', 'GetProjectContext', 'AgentSkillToolset.ListSkills', 'read_me', 'CompileLiveCoding', 'CaptureGameViewport', 'GetLogEntries', '/Temp']) expect(k).toContain(s);
+  });
+
   // 18 Nov, second live test: the section came after Talk's "What you can do"
   // list, the model followed the list and read the .uproject instead.
   it("Unreal's tools are IN each mode's own list, and the section comes before the how-to", async () => {

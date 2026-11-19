@@ -69,5 +69,27 @@ export function unrealPromptSection(mode: 'build' | 'talk' | 'plan'): string {
       ? `- Tools that only look run straight away; anything that changes the project or runs something asks them first, so say what you're about to do.`
       : `- Here you may use its tools that only look. Anything that changes the project or runs something waits for ${mode === 'talk' ? 'the Build switch' : 'Code mode'}: describe it instead.`);
   }
-  return `\n## Unreal Editor\n${lines.join('\n')}\n`;
+  const open = editors.some((e) => e.open);
+  return `\n## Unreal Editor\n${lines.join('\n')}\n${open ? UNREAL_KNOWLEDGE : ''}`;
 }
+
+/**
+ * How work in Unreal goes — knowledge, not rules (plan 2026-11-18-unreal,
+ * Phase 3). Read from his live 5.9 editor on 19 Nov (114 toolsets, 1,919
+ * tools): Unreal's own Python read_me, GetProjectContext, the Agent Skills it
+ * ships, and the tools' own descriptions — so she leans on what THIS editor
+ * says, not on memory of older engines. Names are `Toolset.Tool` as call_tool
+ * takes them. Only sent while an editor is open.
+ */
+const UNREAL_KNOWLEDGE = `
+### Working in Unreal
+- **This editor tells you how it works.** AIAssistantEditor.AIAssistantToolset.GetProjectContext gives Unreal's conventions (100 units is 1 metre, folder paths end in /, screen coordinates run 0–1 from the top left); GetDockedContext shows what they have open. When a request is unclear, look at what they have selected (EditorToolset.EditorAppToolset.GetSelectedActors / GetSelectedAssets).
+- **Epic ships Agent Skills** for this build — guides written for assistants: scene capture and diagnosing how things look, PCG, cloth, Dataflow, widgets and more. ToolsetRegistry.AgentSkillToolset.ListSkills, then GetSkills for the one that fits, before that kind of work. Creating or changing a skill is theirs to ask for.
+- **Tool names and arguments change between preview builds.** Describe a toolset or tool (describe_toolsets / describe_tools) before calling one you haven't used in this chat, rather than writing a call from memory.
+- **Python** (editor_toolset.toolsets.python_scripting.PythonScriptingTools): call read_me once per chat before execute_python. Look an API up with search_symbols / get_symbol before calling it — an API they don't find doesn't exist in this editor — and prefer a registered tool over Python. A script returns its last expression; print goes to the Output Log under LogPython (read it with ConsoleToolset.LogsToolset.GetLogEntries). Keep each script short. RunConsoleCommand refuses Python.
+- **Bringing files in** (a model from Blender, a texture): there is no import tool — import with Python, looking up the import API with search_symbols first.
+- **C++**: you write it with your own file tools in the project's Source folder. Compile with LiveCodingToolset (IsLiveCodingReady, EnableLiveCoding if it's off, then CompileLiveCoding). Live Coding is for changing function bodies; new classes and new or changed reflected members (UPROPERTY, UFUNCTION, USTRUCT) need the editor closed and a full build — say so rather than forcing it.
+- **See your work, don't assume it.** Make the change → compile if it was code → StartPIE (it times out after 30 seconds) → look → read the log for errors and warnings (GetLogEntries) → StopPIE → fix. Looking: SceneCaptureToolset.CaptureGameViewport shows play as the player sees it, game UI included; CaptureActiveEditorView renders the 3D scene from the editor camera, offscreen, without the editor's UI; EditorToolset.EditorAppToolset.CaptureEditorImage shows the whole editor window as they see it. You see the image; they don't. For lighting and material problems, the scene-capture skill explains the diagnostic modes.
+- **Nothing is saved until it's saved.** A new level lives in /Temp until they save it; edits to an asset are unsaved until AssetToolset.SaveAsset. Say what's unsaved; every editor change is also in Undo history (Ctrl+Z).
+- One Unreal call runs at a time, and compiling or starting play can take a while: tell them what you're waiting on.
+`;

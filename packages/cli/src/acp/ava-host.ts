@@ -98,6 +98,17 @@ export class AvaHost {
 
     const toolRegistry = new ToolRegistry();
     toolRegistry.registerBuiltins({ exclude: [...DESKTOP_TOOL_NAMES, ...CARD_ONLY_TOOLS], allowDesktopMode: false });
+    // His permission choices, as he set them in the extension or the IDE
+    // (~/.ava/settings.json): the mode, then each category he set — the
+    // extension's order (AvaViewProvider). The panel used the registry's
+    // default (strict, every category asking) whatever he had chosen; he
+    // agreed it should follow his settings (19 Nov). Unreal's own tools keep
+    // their rule (read runs, write/execute ask) — that is not a category.
+    const prefs = sharedSetting<{ permissionMode?: string }>('preferences');
+    const mode = prefs?.permissionMode;
+    if (mode === 'strict' || mode === 'balanced' || mode === 'autonomous' || mode === 'custom') toolRegistry.setPermissionMode(mode);
+    const categories = sharedSetting<Record<string, string>>('category_permissions');
+    if (categories && Object.keys(categories).length) toolRegistry.setCategoryPermissions(categories as never);
 
     return new AvaHost(
       providerRegistry, toolRegistry, keys, language, autoMemory,
