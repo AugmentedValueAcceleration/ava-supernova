@@ -90,13 +90,11 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'qwen-byok',
     name: 'Qwen (Alibaba Cloud)',
     kind: 'byok',
-    notes: 'Bring your own DashScope (international) key. Qwen 3.8 Max (3 August 2026) is the current flagship. It replaced 3.7 Max entirely on 2026-08-09 — it is cheaper at $2/$6, doubles the output ceiling to 131K, and takes video as well as images, so there was no task left that 3.7 Max was the right pick for. 3.8 Flash coordinates Maestro. Prices are Alibaba\'s published international rates; 3.7 Plus is tiered (input rises above 256K tokens) and the figure shown is the base tier. 3.5 Plus and 3.5 Flash still answer but Alibaba now treats them as legacy.',
+    notes: 'Bring your own DashScope (international) key. Qwen 4 Max (16 November 2026) is the current flagship. It replaced 3.8 Max on 2026-11-19 — cheaper at $1.50/$4.50, with the same 1M context and 131K output (262K when thinking), and it takes images and video. In Maestro it leads planning and security and stands behind 3.7 Plus for the rest of the deep work; 3.8 Flash coordinates. Prices are Alibaba\'s published international rates; 3.7 Plus is tiered (input rises above 256K tokens) and the figure shown is the base tier. 3.8 Max, 3.5 Plus and 3.5 Flash were retired on 2026-11-19: a saved choice of one of them now runs on 4 Max, 3.7 Plus or 3.8 Flash.',
     models: [
-      { id: 'qwen3.8-max', displayName: 'Qwen 3.8 Max — Alibaba\'s flagship, 131K output, video in', inputPricePerM: 2.00, outputPricePerM: 6.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen4-max', displayName: 'Qwen 4 Max — Alibaba\'s flagship, 1M context, video in', inputPricePerM: 1.50, outputPricePerM: 4.50, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.8-flash', displayName: 'Qwen 3.8 Flash — coordinates Maestro', inputPricePerM: 0.15, outputPricePerM: 0.47, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus', inputPricePerM: 0.40, outputPricePerM: 1.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — legacy', inputPricePerM: 0.40, outputPricePerM: 2.40, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — legacy, text only', inputPricePerM: 0.10, outputPricePerM: 0.40, contextWindow: 262_000, capabilities: ['tools', 'streaming'] },
     ],
   },
   {

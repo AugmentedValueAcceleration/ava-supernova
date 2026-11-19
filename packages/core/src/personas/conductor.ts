@@ -160,7 +160,7 @@ export class Conductor {
     /**
      * Optional cheap fast provider/model for personas tagged
      * `modelTier: 'light'`. Pass the same pair resolved by the Auto
-     * Coordinator's intent gate (Qwen 3.5 Flash on platform, Haiku /
+     * Coordinator's intent gate (Qwen 3.7 Flash on platform, Haiku /
      * DeepSeek on BYOK). When omitted the Conductor runs every persona
      * on the heavy model — previous behaviour.
      */

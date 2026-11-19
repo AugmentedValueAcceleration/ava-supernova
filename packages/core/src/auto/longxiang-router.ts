@@ -118,7 +118,11 @@ export const LONGXIANG_BUILDER_ID = 'kimi-k3';
  *  Supernova so both fleets look at a picture with the same model. */
 export const LONGXIANG_VISION_ID = 'qwen3.8-flash';
 
-/** Intent gate — Qwen 3.5 Flash, the cheapest and fastest model in the fleet.
+/** Intent gate — Qwen 3.7 Flash, the same gate Maestro and Supernova run.
+ *
+ *  (The reasoning below was written when the gate moved to 3.5 Flash; all
+ *  three fleets have since moved to 3.7 Flash, and 3.5 Flash was retired on
+ *  2026-11-19.)
  *
  *  This was DeepSeek Flash, picked when it was the cheap half of a two-tier
  *  DeepSeek. It is not cheap any more relative to the alternatives: $0.15

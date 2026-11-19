@@ -68,7 +68,7 @@ export class AutoCoordinator {
   private projectInstructions: string;
   private systemPromptOpts: Record<string, unknown>;
   /**
-   * Cheap fast model (Qwen 3.5 Flash preferred) for upstream intent
+   * Cheap fast model (Qwen 3.7 Flash preferred) for upstream intent
    * classification. If available, runs before the spawn decision to
    * decide whether the coordinator can handle the prompt directly or
    * whether to route to the specialist team. Null when no suitable
@@ -634,7 +634,7 @@ export class AutoCoordinator {
     }
 
     // ── Upstream Flash intent gate ────────────────────────────────────
-    // Before we route + spawn, ask a cheap fast model (Qwen 3.5 Flash)
+    // Before we route + spawn, ask a cheap fast model (Qwen 3.7 Flash)
     // whether the coordinator can handle this directly or whether the
     // specialist team is genuinely warranted. Most prompts do NOT need
     // the team — a ~200-token Flash call saves 10K–20K tokens of

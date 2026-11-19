@@ -1975,8 +1975,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     };
 
     // Qwen Flash — lightweight auxiliary model for the Intent Classifier
-    // (tool-use gate).
-    const qwenFlash = this.providerRegistry.resolveModel('qwen:qwen3.5-flash');
+    // (tool-use gate). 3.8 Flash since 3.5 Flash was retired (2026-11-19);
+    // a 3.5 Flash id would roll forward to it anyway.
+    const qwenFlash = this.providerRegistry.resolveModel('qwen:qwen3.8-flash');
 
     // Intent Classifier — tool-use gate. Classifies each user message
     // as task/conversational/ambiguous before the coordinator sees it.

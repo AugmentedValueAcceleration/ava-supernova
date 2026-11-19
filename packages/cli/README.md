@@ -37,7 +37,7 @@ Pick any model your keys reach:
 
 | Provider | Models |
 |---|---|
-| **Qwen (Alibaba)** | Qwen 3.8 Max, 3.8 Flash, 3.7 Plus, 3.7 Flash, 3.5 Plus, 3.5 Flash, Coder Next / Flash |
+| **Qwen (Alibaba)** | Qwen 4 Max, 3.8 Flash, 3.7 Plus, 3.7 Flash, Coder Next / Flash |
 | **DeepSeek** | DeepSeek V4.1 Flash |
 | **Moonshot** | Kimi K3, K2.7 Code, K2.6 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash |

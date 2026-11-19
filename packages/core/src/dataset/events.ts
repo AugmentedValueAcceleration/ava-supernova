@@ -225,7 +225,7 @@ export interface VerificationEvidencePayload {
 export interface TaskClassificationPayload {
   input_signature: string;              // intent category, never raw user text
   classified_as: string;                // 'coding' | 'planning' | 'vision' | etc.
-  classifier_model: string;             // typically 'qwen3.5-flash'
+  classifier_model: string;             // typically 'qwen3.7-flash'
   confidence?: number;
 }
 

@@ -32,9 +32,12 @@ interface RouteEntry {
   creationModelId?: string;
 }
 
-// Maestro routing — Qwen-only. The deep work (coding, planning, security,
-// teach, brainstorm) runs on Qwen 3.7 Plus, with 3.5 Plus as its outage
-// fallback. Chat, image generation, image reading and long context run on
+// Maestro routing — Qwen-only. Since 2026-11-19 (his call): planning and
+// security — low-volume, think-hard work — lead on Qwen 4 Max with 3.7 Plus
+// beneath; coding, teach and brainstorm stay on Qwen 3.7 Plus (coding is the
+// highest-volume seat, and 4 Max at 3–4x the price is measured before it
+// moves there), with Qwen 4 Max as their outage fallback — a step UP, where
+// 3.5 Plus used to sit (retired: gone from Alibaba's model list). Chat, image generation, image reading and long context run on
 // Qwen 3.8 Flash (his call, 2 Nov 2026): they sat on 3.5 Flash and 3.7 Plus
 // from April, before 3.8 Flash existed, and were never revisited. 3.8 Flash
 // reads images and video natively, has 1M context and a 131K reply ceiling,
@@ -42,7 +45,7 @@ interface RouteEntry {
 // and legacy to Alibaba. 3.7 Plus is every 3.8 Flash route's fallback.
 // MiniMax is BYOK chat only (M3) — never a platform route; creative generation uses Qwen-Image / Wan / Qwen3-TTS.
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
-  coding:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen3.5-plus' },
+  coding:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen4-max' },
   // Vision — Qwen 3.7 Plus sees images + video natively (1M context).
   vision:       { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — native vision + video, 1M context', fallbackModelId: 'qwen3.7-plus', requiresVision: true },
   // image_gen orchestrates the generate_image tool call to Wan — no agentic
@@ -50,18 +53,18 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   image_gen:    { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — orchestrates generate_image tool calls and sees reference images', fallbackModelId: 'qwen3.7-plus' },
   design:       { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — Creative Studio turns, as before they had their own seat', fallbackModelId: 'qwen3.7-plus' },
   // computer_use route retired alongside the Holo3 integration.
-  planning:     { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — 1M context for architecture + planning depth', fallbackModelId: 'qwen3.5-plus' },
+  planning:     { modelId: 'qwen4-max',         reason: 'Qwen 4 Max — Alibaba flagship for architecture + planning depth, 1M context', fallbackModelId: 'qwen3.7-plus' },
   // Chat = direct conversational response, on the same model that
   // coordinates — and one that can see an image dropped into the chat.
   chat:         { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — fast, sees images, 1M context', fallbackModelId: 'qwen3.7-plus' },
   long_context: { modelId: 'qwen3.8-flash',     reason: 'Qwen 3.8 Flash — 1M context at flash cost', fallbackModelId: 'qwen3.7-plus' },
-  // Teach runs on the flagship — operator call (2026-07-04): 3.5 Plus retired
-  // from primary routes. 3.5 Plus remains as the outage fallback only.
-  teach:        { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — flagship-quality long-form tutorials, 1M context', fallbackModelId: 'qwen3.5-plus', creationModelId: 'qwen3.7-plus' },
-  security:     { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — security analysis with full codebase context + depth', fallbackModelId: 'qwen3.5-plus' },
-  // Brainstorm on the flagship — operator call (2026-07-04): 3.5 Plus retired
-  // from primary routes. 3.5 Plus remains as the outage fallback only.
-  brainstorm:   { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — flagship ideation, 1M context', fallbackModelId: 'qwen3.5-plus' },
+  // Teach runs on 3.7 Plus (operator call 2026-07-04); Qwen 4 Max is its
+  // outage fallback since 3.5 Plus was retired (2026-11-19).
+  teach:        { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — flagship-quality long-form tutorials, 1M context', fallbackModelId: 'qwen4-max', creationModelId: 'qwen3.7-plus' },
+  security:     { modelId: 'qwen4-max',         reason: 'Qwen 4 Max — Alibaba flagship for security analysis with full codebase context + depth', fallbackModelId: 'qwen3.7-plus' },
+  // Brainstorm on 3.7 Plus (operator call 2026-07-04); Qwen 4 Max is its
+  // outage fallback since 3.5 Plus was retired (2026-11-19).
+  brainstorm:   { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — flagship ideation, 1M context', fallbackModelId: 'qwen4-max' },
 };
 
 /**
@@ -206,7 +209,7 @@ export class ModelRouter {
   private resolveAnyModel(reason: string): RouteResult | null {
     // A locked fleet never leaves its own providers, even as a last resort.
     if (this.lockedTo) {
-      for (const id of ['qwen3.7-plus', 'deepseek-flash', 'qwen3.8-flash', 'qwen3.5-plus', 'qwen3.5-flash']) {
+      for (const id of ['qwen3.7-plus', 'deepseek-flash', 'qwen3.8-flash', 'qwen4-max']) {
         const r = this.resolveRoute(id, reason);
         if (r) return r;
       }
@@ -222,7 +225,7 @@ export class ModelRouter {
     // `deepseek-reasoner`) on 2026-07-24, after which it 400s. Since
     // 2026-09-10 there is exactly one DeepSeek model, `deepseek-flash`, and
     // every id we have ever shipped maps onto it via DEEPSEEK_RETIRED_IDS.
-    const byokModels = ['kimi-k3', 'kimi-k2.7-code', 'kimi-k2.6', 'deepseek-flash', 'glm-5.3', 'mistral-large-4', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
+    const byokModels = ['kimi-k3', 'kimi-k2.7-code', 'kimi-k2.6', 'deepseek-flash', 'glm-5.3', 'mistral-large-4', 'qwen3.7-plus', 'qwen3.8-flash', 'qwen4-max'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {

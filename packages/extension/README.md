@@ -90,7 +90,7 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 
 | Source | Models |
 |---|---|
-| **BYOK — Qwen** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash |
+| **BYOK — Qwen** | Qwen 4 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen3 Coder Next / Flash |
 | **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
 | **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |

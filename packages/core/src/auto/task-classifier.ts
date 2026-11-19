@@ -19,7 +19,9 @@ const MODEL_ALIASES: Record<string, string> = {
   'm3': 'MiniMax-M3',
   // Qwen
   'qwen': 'qwen3.7-plus',
-  'qwen flash': 'qwen3.5-flash',
+  'qwen flash': 'qwen3.8-flash',
+  'qwen max': 'qwen4-max',
+  'qwen 4': 'qwen4-max',
   // Bare 'qwen plus' = the current Plus flagship (3.5 Plus retired from
   // primary routes — operator, 2026-07-04).
   'qwen plus': 'qwen3.7-plus',

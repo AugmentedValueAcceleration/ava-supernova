@@ -17,7 +17,7 @@ import { avaEvents } from '../dataset/emitter.js';
  * mean" — all handled directly by the coordinator at 1/10th the cost
  * of a full persona chain.
  *
- * Cost: ~200 input + ~30 output tokens on Qwen 3.5 Flash per call.
+ * Cost: ~200 input + ~30 output tokens on Qwen 3.7 Flash per call.
  * Cheap enough to run on every prompt, and saves 10K–20K tokens per
  * prompt when it correctly skips orchestration.
  *
@@ -50,7 +50,7 @@ export interface TeachDepthDecision {
 }
 
 /**
- * Resolve a cheap fast model for intent gating. Prefers Qwen 3.5 Flash;
+ * Resolve a cheap fast model for intent gating. Prefers Qwen 3.7 Flash;
  * falls back to anything cheap + fast if that's unavailable. Returns
  * null if nothing viable exists — callers then skip the gate entirely.
  */
@@ -62,7 +62,7 @@ export function resolveIntentGateModel(
 ): { provider: Provider; model: ModelDefinition } | null {
   if (onlyProviders) {
     // Aurora's gate is Small 4 — the only one of these on Mistral.
-    for (const id of ['qwen3.7-flash', 'qwen3.5-flash', 'qwen3.8-flash', 'deepseek-flash', 'mistral-small-4']) {
+    for (const id of ['qwen3.7-flash', 'qwen3.8-flash', 'deepseek-flash', 'mistral-small-4']) {
       for (const p of onlyProviders) {
         const r = providerRegistry.resolveModel(`${p}:${id}`);
         if (r && r.provider.name === p) return { provider: r.provider, model: r.model };
@@ -94,10 +94,9 @@ export function resolveIntentGateModel(
   const fallbacks = [
     // 3.7 Flash leads on measurement, not on price: 99.6% against 3.5 Flash's
     // 92.9% over 280 calls, for 32ms at p50. See scripts/gate-bench.mjs.
-    // 3.5 Flash stays right behind it — cheapest input in the family and a
-    // 847ms p99, so it is a good fallback even though it is no longer first.
+    // 3.5 Flash stood right behind it until it was retired (2026-11-19, gone
+    // from Alibaba's model list); DeepSeek Flash and Nemotron follow.
     'qwen3.7-flash',
-    'qwen3.5-flash',
     'deepseek-flash',
     'nvidia/nemotron-3.5-lightning-30b-a3b',
   ];

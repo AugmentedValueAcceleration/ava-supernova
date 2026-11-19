@@ -35,8 +35,17 @@ describe('resolveApiModel — model-id translation', () => {
   });
 
   it('rolls Qwen legacy aliases forward', () => {
-    expect(resolveApiModel('qwen-flash')).toBe('qwen3.5-flash');
-    expect(resolveApiModel('qwen-turbo')).toBe('qwen3.5-flash');
+    expect(resolveApiModel('qwen-flash')).toBe('qwen3.8-flash');
+    expect(resolveApiModel('qwen-turbo')).toBe('qwen3.8-flash');
+  });
+
+  // Retired 2026-11-19 (his call): a saved choice keeps working on the replacement.
+  it('rolls retired Qwen models forward: 3.8 Max → 4 Max, 3.5 Plus → 3.7 Plus, 3.5 Flash → 3.8 Flash', () => {
+    expect(resolveApiModel('qwen3.8-max')).toBe('qwen4-max');
+    expect(resolveApiModel('qwen3.7-max')).toBe('qwen4-max');
+    expect(resolveApiModel('qwen3.5-plus')).toBe('qwen3.7-plus');
+    expect(resolveApiModel('qwen3.5-flash')).toBe('qwen3.8-flash');
+    expect(resolveApiModel('qwen4-max')).toBe('qwen4-max');
   });
 
   it('passes unknown ids through unchanged', () => {
@@ -45,7 +54,8 @@ describe('resolveApiModel — model-id translation', () => {
   });
 
   it('reroutes text-only models to vision variants when images are present', () => {
-    expect(resolveApiModel('qwen3.5-flash', true)).toBe('qwen3.7-plus');
+    // 3.5 Flash (text-only) now rolls forward to 3.8 Flash, which takes images itself.
+    expect(resolveApiModel('qwen3.5-flash', true)).toBe('qwen3.8-flash');
     // DeepSeek V4 is text-only at the API level -> Qwen 3.7 Plus (native vision + video)
     // DeepSeek is NOT rerouted for vision any more. V4 Pro and V4 Flash were
     // both text-only at the API level and this sent their images to Qwen;

@@ -62,24 +62,25 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'kimi-k2.5': { inputPerMillion: 0.60,  outputPerMillion: 3.00 },
   },
   qwen: {
-    'qwen3.8-max':  { inputPerMillion: 2.00,  outputPerMillion: 6.00 }, // flagship from 2026-08-03, DashScope intl
+    'qwen4-max':    { inputPerMillion: 1.50,  outputPerMillion: 4.50 }, // flagship from 2026-11-16, Model Studio Singapore
+    // 3.8 Max, 3.5 Plus and 3.5 Flash retired 2026-11-19 and ROLLED FORWARD
+    // (model-ids): a call on one of them is a call on 4 Max / 3.7 Plus /
+    // 3.8 Flash, so each is priced as what is actually called — the
+    // MiniMax M2.7 precedent above.
+    'qwen3.8-max':  { inputPerMillion: 1.50,  outputPerMillion: 4.50 }, // → qwen4-max
     // UNREACHABLE — retained only so existing receipts still cost out.
-    // Retired from the catalogue 2026-08-09 in favour of 3.8 Max, which is
-    // cheaper and more capable, so nothing routes here any more.
+    // Retired from the catalogue 2026-08-09 in favour of 3.8 Max (itself
+    // retired for 4 Max, 2026-11-19), so nothing routes here any more.
     'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 },
     'qwen3.8-flash':{ inputPerMillion: 0.15,  outputPerMillion: 0.47 },
     'qwen3.7-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.60 },
-    // Was $0.40 in — double the real rate, so BYOK 3.5 Plus turns were
-    // costed at twice what they actually cost. Corrected 2026-08-16.
-    'qwen3.5-plus': { inputPerMillion: 0.20,  outputPerMillion: 1.20 },
+    'qwen3.5-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.60 }, // → qwen3.7-plus
     // Tiered upstream ($0.03/$0.13 <32K, $0.10/$0.40 <256K, $0.20/$0.80 <1M).
     // Middle tier: a real turn clears 32K almost at once.
     'qwen3-coder-next':  { inputPerMillion: 0.12,  outputPerMillion: 0.80 },
     'qwen3-coder-flash': { inputPerMillion: 0.195, outputPerMillion: 0.975 },
     'qwen3.7-flash': { inputPerMillion: 0.10, outputPerMillion: 0.40 },
-    // Was $0.15 out against a real $0.40 — a 2.7x under-report on the
-    // highest-volume model we run. Corrected 2026-08-16.
-    'qwen3.5-flash':{ inputPerMillion: 0.05,  outputPerMillion: 0.40 },
+    'qwen3.5-flash':{ inputPerMillion: 0.15,  outputPerMillion: 0.47 }, // → qwen3.8-flash
   },
   xiaomi: {
     // Absent entirely until 2026-08-16, so BYOK MiMo turns costed at $0.00

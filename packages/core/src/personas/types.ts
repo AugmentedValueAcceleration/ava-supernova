@@ -15,7 +15,7 @@ export type PersonaPhase = 'idle' | 'active' | 'complete' | 'error';
  * - 'heavy' = coordinator model (Qwen 3.7 Plus / Kimi K3 / DeepSeek Flash).
  *   Architects, Builders, Researchers — the personas doing real reasoning
  *   or generating code. Pays the premium for quality.
- * - 'light' = cheap fast model (Qwen 3.5 Flash / DeepSeek Flash).
+ * - 'light' = cheap fast model (Qwen 3.7 Flash / DeepSeek Flash).
  *   Critics, gatekeepers, routers, summarisers — personas whose job is to
  *   read, compare, flag, and synthesise. Flash handles these competently
  *   at roughly an eighth of the input cost and a quarter of the output.

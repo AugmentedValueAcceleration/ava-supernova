@@ -15,9 +15,8 @@ import type { TaskCategory } from './types.js';
  *                          are no longer distinct tiers.
  *   - Qwen 3.7 Plus      — agent loops (Terminal-Bench leader), vision input,
  *                          MCP tool orchestration, production-tested
- *   - Qwen 3.5 Plus      — OUTAGE FALLBACK ONLY (retired from primary routes,
- *                          operator decision 2026-07-04)
- *   - Qwen 3.5 Flash     — light filtering / classification (cheapest input)
+ *   - Qwen 3.7 Flash     — the intent gate (light classification)
+ *   (Qwen 3.5 Plus and 3.5 Flash were retired on 2026-11-19.)
  *   - Qwen 3.5 Omni Plus — vision + audio (the only audio-capable model)
  *
  * The table here is the operator-locked routing map — see the conversation

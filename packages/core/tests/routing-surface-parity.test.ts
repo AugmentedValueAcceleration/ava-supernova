@@ -194,9 +194,13 @@ describe('Chat routes to the cheap tier, never the coordinator', () => {
 
 describe('Maestro — Qwen on the user\'s key', () => {
   for (const [label, setup] of [['BYOK qwen', byok('qwen')]] as const) {
-    it(`deep work on Qwen 3.7 Plus, the rest on Qwen 3.8 Flash (${label})`, () => {
+    it(`planning and security on Qwen 4 Max, the other deep work on Qwen 3.7 Plus, the rest on Qwen 3.8 Flash (${label})`, () => {
       const r = router('auto', setup);
-      for (const c of ['coding', 'planning', 'security', 'teach', 'brainstorm'] as const) {
+      // His call, 19 Nov 2026: Qwen 4 Max leads the low-volume think-hard seats.
+      for (const c of ['planning', 'security'] as const) {
+        expect(modelFor(r, c)).toBe('qwen4-max');
+      }
+      for (const c of ['coding', 'teach', 'brainstorm'] as const) {
         expect(modelFor(r, c)).toBe('qwen3.7-plus');
       }
       // Moved off 3.5 Flash / 3.7 Plus on 2 Nov 2026 (his call).

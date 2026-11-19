@@ -31,7 +31,7 @@ const FLEET_LADDER: Record<string, readonly string[]> = {
   aurora: ['mistral-small-4'],
 };
 
-const OWN_KEYS_LADDER = ['qwen3.7-plus', 'deepseek-flash', 'mistral-small-4', 'qwen3.8-flash', 'qwen3.7-flash', 'qwen3.5-flash', 'nvidia/nemotron-3.5-lightning-30b-a3b'];
+const OWN_KEYS_LADDER = ['qwen3.7-plus', 'deepseek-flash', 'mistral-small-4', 'qwen3.8-flash', 'qwen3.7-flash', 'nvidia/nemotron-3.5-lightning-30b-a3b'];
 
 /** A local model (Ollama, LM Studio, any OpenAI-compatible server they run): registered as `generic`. */
 export function isLocalModel(current: { provider: Provider } | null | undefined): boolean {

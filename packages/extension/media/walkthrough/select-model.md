@@ -4,8 +4,9 @@ Pick the model that fits your workflow. Every model runs on your own key — the
 
 | Model | Best For |
 |---|---|
-| **Qwen 3.5 Flash** | Free-tier default — fast and reliable for everyday turns |
-| **Qwen 3.7 Plus** | Flagship Qwen — agentic coding, 1M context, vision |
+| **Qwen 3.8 Flash** | Fast and cheap for everyday turns — 1M context, reads images and video |
+| **Qwen 3.7 Plus** | Agentic coding, 1M context, vision |
+| **Qwen 4 Max** | Alibaba's flagship — deep planning and analysis, 1M context |
 | **DeepSeek Flash** | Frontier reasoning, 1M context (MIT open-weight) |
 | **DeepSeek Flash** | Best value — fast general-purpose coding |
 | **Kimi K2.7 Code** | Agentic coding, strong tool calling, 256K context |

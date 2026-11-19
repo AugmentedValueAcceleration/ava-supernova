@@ -1,18 +1,22 @@
 import type { ModelDefinition } from '../../core/types.js';
 
 export const QWEN_MODELS: ModelDefinition[] = [
-  // Qwen 3.8 Max (3 August 2026) — Alibaba's flagship, and a straight upgrade
-  // on 3.7 Max rather than a trade-off: cheaper ($2/$6 vs $2.50/$7.50), double
-  // the output ceiling (131,072 vs 65,536), 2.4T MoE / ~95B active, and video
-  // in as well as images. Id verified live against DashScope intl — the docs
-  // page had not caught up yet, the API had.
+  // Qwen 4 Max (`qwen4-max`, Model Studio "latest model", pages updated 16–18
+  // Nov 2026) — Alibaba's flagship, and cheaper than the 3.8 Max it replaces:
+  // $1.50/$4.50 against $2/$6 (Singapore / international, thinking and
+  // non-thinking alike, one tier to 1M). 1M context; 131,072 output, 262,144
+  // when thinking. Text, image and video in; function calling, thinking,
+  // structured output, explicit + implicit cache ($0.075 per 1M cache hit).
+  // Read from alibabacloud.com/help/en/model-studio/qwen4-max and
+  // /model-pricing, 19 Nov 2026. Alibaba published no benchmarks for it.
   //
-  // Still BYOK-first for single-pick, same reasoning as 3.7 Max: $2/$6 does not
-  // fit the credit-plan margin as a default. Qwen 3.7 Plus stays the Maestro
-  // conductor.
+  // In Maestro (his call, 19 Nov): the deep-work fallback, and the lead seat
+  // for planning and security — low-volume, think-hard work. Coding stays on
+  // 3.7 Plus until 4 Max is measured on our own traffic (3–4x the price on the
+  // highest-volume seat needs proof first).
   {
-    id: 'qwen3.8-max',
-    name: 'Qwen 3.8 Max',
+    id: 'qwen4-max',
+    name: 'Qwen 4 Max',
     provider: 'qwen',
     contextWindow: 1000000,
     maxOutputTokens: 131072,
@@ -21,7 +25,26 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true,
-    pricing: { inputPerMillion: 2.00, outputPerMillion: 6.00 },
+    pricing: { inputPerMillion: 1.50, outputPerMillion: 4.50 },
+  },
+  // Qwen 3.8 Max — RETIRED 19 Nov 2026 in favour of Qwen 4 Max (his call):
+  // newer, cheaper ($1.50/$4.50 against $2/$6), same context and output.
+  // Rolled forward, not removed (the qwen3.7-max precedent): model-ids sends
+  // it as qwen4-max, so a saved choice keeps working. Hidden from the picker;
+  // priced and described as what is actually called.
+  {
+    id: 'qwen3.8-max',
+    name: 'Qwen 3.8 Max (now Qwen 4 Max)',
+    provider: 'qwen',
+    contextWindow: 1000000,
+    maxOutputTokens: 131072,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    hiddenFromPicker: true,
+    pricing: { inputPerMillion: 1.50, outputPerMillion: 4.50 },
   },
   // Qwen 3.7 Max was here until 2026-08-09, retired in favour of 3.8 Max.
   // Even on your own key there is no reason to send it: same provider, lower
@@ -70,46 +93,40 @@ export const QWEN_MODELS: ModelDefinition[] = [
     desktopCapable: true,
     pricing: { inputPerMillion: 0.40, outputPerMillion: 1.60 },
   },
+  // Qwen 3.5 Plus and 3.5 Flash — RETIRED 19 Nov 2026 (his call): Alibaba's
+  // current model list no longer carries either, and Maestro still leaned on
+  // them as fallbacks, which would fail exactly when needed if Alibaba
+  // switched them off. Rolled forward like 3.8 Max: model-ids sends 3.5 Plus
+  // as 3.7 Plus and 3.5 Flash as 3.8 Flash, so a saved choice keeps working.
+  // Hidden; priced and described as what is actually called. No route,
+  // ladder or gate names them any more.
   {
     id: 'qwen3.5-plus',
-    name: 'Qwen 3.5 Plus',
+    name: 'Qwen 3.5 Plus (now Qwen 3.7 Plus)',
     provider: 'qwen',
     contextWindow: 1000000,
-    maxOutputTokens: 128000,
+    maxOutputTokens: 65536,
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true,
-    hiddenFromPicker: true, // superseded by Qwen 3.7 Plus — kept for routing/fallback only
-    pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
+    hiddenFromPicker: true,
+    pricing: { inputPerMillion: 0.40, outputPerMillion: 1.60 },
   },
   {
     id: 'qwen3.5-flash',
-    name: 'Qwen 3.5 Flash',
+    name: 'Qwen 3.5 Flash (now Qwen 3.8 Flash)',
     provider: 'qwen',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
+    contextWindow: 1000000,
+    maxOutputTokens: 131072,
     supportsToolCalls: true,
     supportsStreaming: true,
-    // FALSE IS DELIBERATE, AND THE NAME IS MISLEADING. This model DOES reason
-    // by default — measured 2026-08-16, 142 reasoning tokens on "reply with
-    // one word". So read as a capability claim, the flag is simply wrong.
-    //
-    // But the only thing it controls is whether agent.ts REPLAYS
-    // reasoning_content back to the provider on the next turn, and Qwen
-    // rejects that with a 422 (the companion route carries the same note:
-    // "reasoning_content is output-only — replaying it as input 422s on Qwen
-    // and Mistral and 400s on DeepSeek"). So false produces the correct
-    // behaviour — strip it — and flipping it to true to "fix" the label would
-    // start 422-ing every multi-turn Qwen conversation.
-    //
-    // If you want to stop this model reasoning, that is a different lever:
-    // enable_thinking: false on the request (see ChatCompletionRequest). The
-    // intent gate does exactly that.
-    supportsThinking: false,
-    supportsVision: false,
-    pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    hiddenFromPicker: true,
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.47 },
   },
   {
     // Qwen 3.7 Flash (Jul 2026) — 1M context, multimodal, function calling.

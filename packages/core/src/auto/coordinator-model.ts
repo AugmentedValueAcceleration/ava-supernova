@@ -13,9 +13,10 @@ import type { RoutingMode } from './routing-modes.js';
  *
  * Priority (all coordinator-eligible Plus models are 1M context; Flash tiers are 256K).
  * Every plan has access to every model — tier differs by token allowance, not model access.
- *   Platform  → Qwen 3.8 Flash (1M) → Qwen 3.7 Plus (1M) → Qwen 3.5 Flash (256K)
+ *   Platform  → Qwen 3.8 Flash (1M) → Qwen 3.7 Plus (1M)
  *   BYOK      → Kimi K3 > K2.7 Code > K2.6 > DeepSeek > Qwen 3.7 Plus > GLM-5.3
- *               > Mistral Large 3 > Qwen 3.8 Flash > Qwen 3.5 Flash
+ *               > Mistral Large 3 > Qwen 3.8 Flash > Qwen 4 Max
+ *   (Qwen 3.5 Flash was last in both until it was retired, 2026-11-19.)
  *
  * Both lines above were wrong until 2026-10-07 and contradicted the arrays
  * directly beneath them: the platform ladder still led with 3.7 Plus (3.8 Flash
@@ -54,7 +55,7 @@ const BYOK_PRIORITY = [
   { id: 'glm-5.3',              reason: 'Zhipu GLM-5.3 — open-weights, 1M context, tools + thinking (text only)' },
   { id: 'mistral-large-4',      reason: 'Mistral Large 4 — Mistral flagship, 1M context, reasoning + vision' },
   { id: 'qwen3.8-flash',        reason: 'Qwen 3.8 Flash — 1M context, multimodal, newer generation at flash cost' },
-  { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },
+  { id: 'qwen4-max',            reason: 'Qwen 4 Max — Alibaba flagship, 1M context, vision + video, reasoning' },
 ];
 
 /**
@@ -93,10 +94,11 @@ export function resolveOnFleet(
  * Maestro's coordinator ladder.
  * 3.8 Flash leads (the operator's call of 6 Oct 2026: classify-and-pick is a
  * light job, and it runs on every step of every turn); 3.7 Plus beneath it, so
- * the fallback is a step UP in capability; 3.5 Flash last.
+ * the fallback is a step UP in capability. 3.5 Flash was last until it was
+ * retired (2026-11-19, gone from Alibaba's model list).
  */
 export const MAESTRO_PROVIDER = 'qwen';
-export const MAESTRO_COORDINATOR_LADDER = ['qwen3.8-flash', 'qwen3.7-plus', 'qwen3.5-flash'] as const;
+export const MAESTRO_COORDINATOR_LADDER = ['qwen3.8-flash', 'qwen3.7-plus'] as const;
 
 /** Maestro's coordinator on the user's Qwen key — null without one. */
 export function resolveMaestroCoordinator(providerRegistry: ProviderRegistry): CoordinatorModelResult | null {

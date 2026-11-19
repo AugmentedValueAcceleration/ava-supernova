@@ -23,14 +23,22 @@
  */
 export const MODEL_API_NAMES: Record<string, string> = {
   // Qwen legacy rolling aliases -> current generation
-  'qwen-flash':        'qwen3.5-flash',
-  'qwen-turbo':        'qwen3.5-flash',
+  'qwen-flash':        'qwen3.8-flash',
+  'qwen-turbo':        'qwen3.8-flash',
+  // Qwen 3.5 Plus / 3.5 Flash retired 2026-11-19 (gone from Alibaba's model
+  // list; his call): rolled forward to the current Plus and Flash, so a saved
+  // selection keeps working on a better, multimodal model.
+  'qwen3.5-plus':      'qwen3.7-plus',
+  'qwen3.5-flash':     'qwen3.8-flash',
+  // Qwen 3.8 Max retired 2026-11-19 in favour of Qwen 4 Max — newer and
+  // cheaper ($1.50/$4.50 against $2/$6), same 1M context (his call).
+  'qwen3.8-max':       'qwen4-max',
   // 3.7 Max retired 2026-08-09 in favour of 3.8 Max, which is better on every
   // axis AND cheaper ($2/$6 against $2.50/$7.50, 131K output against 65K) and
   // therefore costs FEWER credits (2.58x against 3.22x). Rolled forward rather
   // than removed: a saved selection keeps working, and the person holding it
   // gets a better model for less money without being asked to do anything.
-  'qwen3.7-max':       'qwen3.8-max',
+  'qwen3.7-max':       'qwen4-max',
   // MiniMax M2.7 (+ Highspeed) retired upstream 2026-11-18 (closed to new
   // users 2026-10-19). MiniMax routes them to M3.1 Flash on its plans; we do
   // the same for own-key calls, so a saved choice survives the shutdown.
@@ -67,7 +75,9 @@ export const MODEL_API_NAMES: Record<string, string> = {
  * When a request carries images, reroute text-only models to a vision-capable
  * equivalent. Keys/values are POST-translation ids (run after MODEL_API_NAMES).
  *
- * qwen3.5-flash is text-only. DeepSeek V4 (Pro + Flash) is text-only at the API
+ * (qwen3.5-flash, text-only, used to be here; since 2026-11-19 it and the qwen-flash /
+ * qwen-turbo aliases roll forward to qwen3.8-flash, which takes images itself.)
+ * DeepSeek V4 (Pro + Flash) is text-only at the API
  * level (verified against api.deepseek.com 2026-04-25) so image requests reroute
  * to Qwen 3.7 Plus (native vision + video). Aurora coordinates on Medium 3.5,
  * whose vision encoder was trained from scratch, so images stay in-fleet and
@@ -76,9 +86,6 @@ export const MODEL_API_NAMES: Record<string, string> = {
  * now.)
  */
 export const VISION_REROUTE: Record<string, string> = {
-  'qwen3.5-flash':       'qwen3.7-plus',
-  'qwen-flash':          'qwen3.7-plus',
-  'qwen-turbo':          'qwen3.7-plus',
   // DeepSeek is deliberately absent: V4 Pro and V4 Flash were both text-only
   // at the API level and rerouted here. V4.1 Flash is multimodal, so it takes
   // the image itself — rerouting it would hand its own work to Qwen.
