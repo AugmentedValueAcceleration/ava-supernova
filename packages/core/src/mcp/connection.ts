@@ -172,6 +172,9 @@ export async function signInToServer(
 export class McpConnection {
   private toolList: McpToolInfo[] = [];
   private closed = false;
+  /** Calls in flight: a heartbeat never runs while one is (a long compile isn't "gone"). */
+  private inFlight = 0;
+  private heartbeat: ReturnType<typeof setInterval> | null = null;
   private readonly closeListeners: Array<() => void> = [];
   private readonly changeListeners: Array<() => void> = [];
   /**
@@ -293,6 +296,15 @@ export class McpConnection {
   private async callNow(name: string, args: Record<string, unknown>, opts: { signal?: AbortSignal; timeoutMs?: number }): Promise<McpCallResult> {
     if (this.closed) throw new Error(`${this.config.name} is not connected.`);
     opts.signal?.throwIfAborted();
+    this.inFlight++;
+    try {
+      return await this.callTool(name, args, opts);
+    } finally {
+      this.inFlight--;
+    }
+  }
+
+  private async callTool(name: string, args: Record<string, unknown>, opts: { signal?: AbortSignal; timeoutMs?: number }): Promise<McpCallResult> {
     const res = await this.client.callTool({ name, arguments: args }, undefined, {
       signal: opts.signal,
       timeout: opts.timeoutMs ?? this.callTimeoutMs,
@@ -334,8 +346,37 @@ export class McpConnection {
     }
   }
 
+  /**
+   * Notice a web server going away. A server reached over plain web requests
+   * (Unreal's editor, any http MCP server) keeps no open link, so closing it
+   * went unnoticed until the next call — his report, 19 Nov: Unreal closed,
+   * the card still said Connected. MCP's own ping every `everyMs`; two misses
+   * in a row and it counts as closed (onClose listeners run). Never while a
+   * call is running: Unreal does one thing at a time, and a ten-minute
+   * compile is busy, not gone.
+   */
+  startHeartbeat(everyMs: number, timeoutMs = 4000): void {
+    if (this.heartbeat || this.closed) return;
+    let misses = 0;
+    let pinging = false;
+    this.heartbeat = setInterval(() => {
+      if (this.closed || pinging || this.inFlight > 0) return;
+      pinging = true;
+      this.client.ping({ timeout: timeoutMs })
+        .then(() => { misses = 0; })
+        .catch(() => {
+          misses++;
+          if (misses >= 2) void this.close();
+        })
+        .finally(() => { pinging = false; });
+    }, everyMs);
+    // A heartbeat must never keep a program (the CLI, a test) running on its own.
+    (this.heartbeat as { unref?: () => void }).unref?.();
+  }
+
   private markClosed(): void {
     if (this.closed) return;
+    if (this.heartbeat) { clearInterval(this.heartbeat); this.heartbeat = null; }
     this.closed = true;
     for (const l of this.closeListeners) {
       try { l(); } catch { /* a listener's problem is not ours */ }

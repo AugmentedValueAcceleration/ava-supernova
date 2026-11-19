@@ -427,20 +427,25 @@ function UnrealAsked({ asked, busy, onAlways }: { asked: string[]; busy: boolean
  */
 function UnrealTools({ s, busy, onAskAgain }: { s: Server; busy: boolean; onAskAgain: (inner: string) => void }) {
   const allowed = s.unreal?.allowed ?? [];
+  // Collapsed by default: the list grows with every "Always allow" (his ask, 19 Nov).
+  const [showAllowed, setShowAllowed] = useState(false);
   return (
     <>
       <div style={note}>{tt('mcp.page.unreal.hint', 'When I only look, I go straight ahead; before I change your project or run anything, I ask you.')}</div>
       {allowed.length > 0 && (
         <>
-          <div style={{ ...note, marginTop: 10 }}>{tt('mcp.page.unreal.always', 'Always allowed in Unreal')}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px 12px', fontSize: 13, marginTop: 6, alignItems: 'center' }}>
+          <button style={{ ...link, ...note, marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }} aria-expanded={showAllowed} onClick={() => setShowAllowed(!showAllowed)}>
+            <span style={{ display: 'inline-block', width: 10 }}>{showAllowed ? '▾' : '▸'}</span>
+            {tt('mcp.page.unreal.always', 'Always allowed in Unreal')} ({allowed.length})
+          </button>
+          {showAllowed && <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px 12px', fontSize: 13, marginTop: 6, alignItems: 'center' }}>
             {allowed.map((inner) => (
               <Fragment key={inner}>
                 <span style={{ fontFamily: mono, fontSize: 12.5, color: C.text, minWidth: 0, overflowWrap: 'anywhere' }}>{inner}</span>
                 <button style={btn} disabled={busy} onClick={() => onAskAgain(inner)}>{tt('mcp.page.ask_again', 'Ask me again')}</button>
               </Fragment>
             ))}
-          </div>
+          </div>}
         </>
       )}
     </>

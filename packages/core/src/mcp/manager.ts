@@ -20,7 +20,7 @@
 import { existsSync, watch, type FSWatcher } from 'node:fs';
 import { basename, dirname } from 'node:path';
 import type { Tool } from '../tools/types.js';
-import { McpConnection, signInToServer, type McpTransportConfig } from './connection.js';
+import { McpConnection, isLocalUrl, signInToServer, type McpTransportConfig } from './connection.js';
 import { avaToolName, mcpToolsForAva } from './tools.js';
 import {
   cleanServerId, describeEntry, expandValue, fingerprint, isWebEntry, mcpConfigPath, projectMcpPath,
@@ -98,6 +98,13 @@ interface Running {
 }
 
 const CONNECT_TIMEOUT_MS = 60_000; // npx / uvx may download the server on first start
+/** How often a web server is pinged to notice it closing: on this computer, and online. */
+// AVA_TEST_MCP_TICK_MS: tests run the heartbeat and the reconnect check fast.
+const tick = () => Number(process.env.AVA_TEST_MCP_TICK_MS) || 0;
+const HEARTBEAT_LOCAL_MS = () => tick() || 5_000;
+const HEARTBEAT_ONLINE_MS = () => tick() || 60_000;
+/** How often a closed Unreal Editor is looked for again, to reconnect when it's back. */
+const UNREAL_RETRY_MS = () => tick() || 5_000;
 const key = (scope: McpScope, id: string) => `${scope}:${id}`;
 
 export class McpServers {
@@ -135,6 +142,8 @@ export class McpServers {
   private reloadChain: Promise<void> = Promise.resolve();
   private reloadTimer: ReturnType<typeof setTimeout> | null = null;
   private started = false;
+  /** Looks for a closed Unreal Editor coming back (watchForUnreal). */
+  private unrealWatch: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     setMcpRuleCheck((name, args) => this.ruleFor(name, args));
@@ -146,6 +155,7 @@ export class McpServers {
   async start(projectRoot?: string | null): Promise<void> {
     if (projectRoot !== undefined) this.projectRoot = projectRoot || null;
     this.started = true;
+    this.watchForUnreal();
     this.watchFiles();
     await this.reload();
   }
@@ -159,6 +169,7 @@ export class McpServers {
   }
 
   async stopAll(): Promise<void> {
+    if (this.unrealWatch) { clearInterval(this.unrealWatch); this.unrealWatch = null; }
     for (const l of this.signingIn.values()) l.close();
     this.signingIn.clear();
     for (const w of this.watchers) w.close();
@@ -654,6 +665,9 @@ export class McpServers {
       );
       if (!set(this.readyStatus(scope, id, e, conn, allow))) { await conn.close(); return; }
       this.running.set(k, { conn, fingerprint: fp });
+      // A web server keeps no open link: listen for it going (19 Nov). Often
+      // for one on this computer, rarely for one online.
+      if (transport.kind === 'url') conn.startHeartbeat(isLocalUrl(transport.url) ? HEARTBEAT_LOCAL_MS() : HEARTBEAT_ONLINE_MS());
       // Its tools changed while connected (Unreal: a toolset switched on):
       // re-read the files so the page and Ava's tool list follow.
       conn.onChange(() => { if (this.running.get(k)?.conn === conn) this.reload().catch(() => {}); });
@@ -692,6 +706,30 @@ export class McpServers {
 
   // ── Watching ──────────────────────────────────────────────────────────────
 
+  /**
+   * Reconnect Unreal by itself when the editor opens again (19 Nov: closing
+   * it now shows straight away, so opening it should too). While Unreal's
+   * card says the editor isn't open, quietly ask its address whether anything
+   * is listening — no "connecting" flicker on the card — and restart only
+   * when something answers.
+   */
+  private watchForUnreal(): void {
+    if (this.unrealWatch) return;
+    let looking = false;
+    this.unrealWatch = setInterval(() => {
+      if (looking) return;
+      const closed = [...this.statuses.values()].filter((s) => s.reason === 'unreal-closed' && s.online);
+      if (!closed.length) return;
+      looking = true;
+      void (async () => {
+        for (const s of closed) {
+          if (await somethingListens(s.shows)) await this.restart(s.scope, s.id).catch(() => {});
+        }
+      })().finally(() => { looking = false; });
+    }, UNREAL_RETRY_MS());
+    (this.unrealWatch as { unref?: () => void }).unref?.();
+  }
+
   private watchFiles(): void {
     for (const w of this.watchers) w.close();
     this.watchers = [];
@@ -714,6 +752,16 @@ export class McpServers {
 }
 
 /** A server at Unreal Engine's address (it can't say its name until it answers). */
+/** Is anything listening at this address? (A refused connection = no; any answer = yes.) */
+async function somethingListens(url: string): Promise<boolean> {
+  try {
+    await fetch(url, { method: 'GET', signal: AbortSignal.timeout(2000) });
+    return true;
+  } catch (err) {
+    return !refusedConnection(err) && !(err instanceof Error && err.name === 'TimeoutError');
+  }
+}
+
 function isUnrealAddress(e: McpServerEntry): boolean {
   return isWebEntry(e) && !!e.url && e.url.replace(/\/+$/, '') === UNREAL_DEFAULT_URL;
 }
