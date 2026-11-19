@@ -5055,6 +5055,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': 'Alleen lezen: ik onderzoek en plan',
   'acp.fleet': 'Ava-vloot',
   'acp.allow_once': 'Eén keer toestaan',
+  'acp.allow_session': 'Toestaan voor deze sessie',
   'acp.plan_title': 'Gaan we verder met dit plan?',
   'acp.added_unreal': 'Ik heb Unreal Engine aan je Verbindingen toegevoegd, zodat VS Code en de Ava IDE deze editor ook kunnen bereiken. Vóór een wijziging in de editor vraag ik het je hier; wil je dat ik het voor één Unreal-tool niet meer vraag, gebruik dan \'Altijd toestaan\' onder \'Onlangs gevraagd in Unreal\' op de kaart ervan in Verbindingen.',
   'acp.no_key': 'Er staat nog geen AI-sleutel op deze computer. Voeg er een toe in VS Code of de Ava IDE (Instellingen → API-sleutels) en start daarna hier een nieuwe chat.',

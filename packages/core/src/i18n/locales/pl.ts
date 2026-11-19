@@ -5035,6 +5035,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': 'Tylko odczyt: szukam informacji i planuję',
   'acp.fleet': 'Flota Avy',
   'acp.allow_once': 'Zezwól raz',
+  'acp.allow_session': 'Zezwól w tej sesji',
   'acp.plan_title': 'Działamy według tego planu?',
   'acp.added_unreal': 'Dodałam Unreal Engine do twoich Połączeń, więc VS Code i Ava IDE też mogą dotrzeć do tego edytora. Przed zmianą w edytorze pytam cię tutaj; żebym przestała pytać o jedno narzędzie Unreal, użyj „Zawsze zezwalaj” w sekcji „Ostatnio pytane w Unreal” na jego karcie w Połączeniach.',
   'acp.no_key': 'Na tym komputerze nie ma jeszcze klucza AI. Dodaj go w VS Code lub Ava IDE (Ustawienia → Klucze API), a potem rozpocznij tu nowy czat.',

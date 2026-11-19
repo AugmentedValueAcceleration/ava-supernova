@@ -5057,6 +5057,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': '読み取り専用：調べて計画します',
   'acp.fleet': 'Ava のモデル群',
   'acp.allow_once': '今回だけ許可',
+  'acp.allow_session': 'このセッション中は許可',
   'acp.plan_title': 'この計画で進めますか？',
   'acp.added_unreal': 'Unreal Engine を連携に追加しました。これで VS Code と Ava IDE からもこのエディターに届きます。エディターで何かを変更する前は、ここで確認します。特定の Unreal ツールで確認をやめたい場合は、連携にあるそのカードの「Unreal で最近確認したツール」で「常に許可」を選んでください。',
   'acp.no_key': 'このコンピューターにはまだ AI キーがありません。VS Code か Ava IDE で追加してから（設定 → API キー）、ここで新しいチャットを始めてください。',

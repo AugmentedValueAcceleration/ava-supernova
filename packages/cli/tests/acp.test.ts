@@ -187,6 +187,20 @@ describe('Ava in Unreal\'s panel', () => {
     expect(JSON.parse(readFileSync(join(home, '.ava', 'mcp.json'), 'utf8')).mcpServers.unreal.asked).toEqual(['EditorToolset.ActorToolset.SpawnActor']);
   }, 60_000);
 
+  it('"Allow for this session" covers that Unreal tool for the rest of the chat (his call, 19 Nov)', async () => {
+    const options = (permissionAsks[0].options as Array<{ optionId: string; kind: string }>);
+    expect(options.map((o) => o.optionId)).toEqual(['allow', 'allow_session', 'deny']);
+    expect(options.find((o) => o.optionId === 'allow_session')?.kind).toBe('allow_once');
+    permissionAnswer = 'allow_session';
+    await send('session/prompt', { sessionId, prompt: [{ type: 'text', text: 'spawn a third' }] });
+    permissionAnswer = 'allow';
+    expect(permissionAsks).toHaveLength(3);
+    updates.length = 0;
+    await send('session/prompt', { sessionId, prompt: [{ type: 'text', text: 'spawn a fourth' }] });
+    expect(permissionAsks).toHaveLength(3);
+    expect(updates.find((u) => u.sessionUpdate === 'tool_call_update')?.status).toBe('completed');
+  }, 60_000);
+
   it('Code · Talk looks but changes nothing: a change is refused, without asking', async () => {
     const r = await send('session/set_config_option', { sessionId, configId: 'mode', value: 'talk' });
     expect((r.result as Record<string, any>).configOptions.find((o: { id: string }) => o.id === 'mode').currentValue).toBe('talk');
@@ -194,7 +208,7 @@ describe('Ava in Unreal\'s panel', () => {
     await send('session/prompt', { sessionId, prompt: [{ type: 'text', text: 'spawn one more' }] });
     const told = requests.filter((q) => q.stream).flatMap((q) => q.messages).filter((m) => m.role === 'tool').map((m) => textOf(m.content)).pop();
     // Refused before it runs (core sends no tool line for a refused call): no prompt, nothing done.
-    expect(permissionAsks).toHaveLength(2);
+    expect(permissionAsks).toHaveLength(3);
     expect(updates.some((u) => u.sessionUpdate === 'tool_call_update' && u.status === 'completed')).toBe(false);
     expect(told).toContain('the Talk switch is on');
     const last = requests.filter((q) => q.stream).pop()!;

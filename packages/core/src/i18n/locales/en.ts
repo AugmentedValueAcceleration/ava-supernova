@@ -5324,6 +5324,7 @@ export const enStrings = {
   'acp.mode.plan_desc': 'Read-only: I research and plan',
   'acp.fleet': 'Ava fleet',
   'acp.allow_once': 'Allow once',
+  'acp.allow_session': 'Allow for this session',
   'acp.plan_title': 'Go ahead with this plan?',
   'acp.added_unreal': 'I\'ve added Unreal Engine to your Connections, so VS Code and the Ava IDE can reach this editor too. Before a change in the editor I ask you here; to stop me asking for one Unreal tool, use "Always allow" under "Asked recently in Unreal" on its card in Connections.',
   'acp.no_key': 'I have no AI key on this computer yet. Add one in VS Code or the Ava IDE (Settings → API Keys), then start a new chat here.',

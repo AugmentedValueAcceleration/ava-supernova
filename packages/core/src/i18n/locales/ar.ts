@@ -5055,6 +5055,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': 'قراءة فقط: أبحث وأخطّط',
   'acp.fleet': 'مجموعة Ava',
   'acp.allow_once': 'اسمح مرة واحدة',
+  'acp.allow_session': 'اسمح طوال هذه الجلسة',
   'acp.plan_title': 'هل نمضي في هذه الخطة؟',
   'acp.added_unreal': 'أضفتُ Unreal Engine إلى الاتصالات لديك، كي يصل VS Code وAva IDE إلى هذا المحرّر أيضًا. قبل أي تغيير في المحرّر أسألك هنا؛ ولكي أتوقف عن السؤال عن أداة Unreal معيّنة، استخدم «اسمح دائمًا» تحت «طُلب مؤخرًا في Unreal» على بطاقتها في الاتصالات.',
   'acp.no_key': 'لا يوجد مفتاح ذكاء اصطناعي على هذا الحاسوب بعد. أضف مفتاحًا في VS Code أو Ava IDE (الإعدادات → مفاتيح API)، ثم ابدأ محادثة جديدة هنا.',

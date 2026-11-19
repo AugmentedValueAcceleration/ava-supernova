@@ -5053,6 +5053,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': 'Hanya baca: saya meneliti dan merencanakan',
   'acp.fleet': 'Armada Ava',
   'acp.allow_once': 'Izinkan sekali',
+  'acp.allow_session': 'Izinkan untuk sesi ini',
   'acp.plan_title': 'Lanjut dengan rencana ini?',
   'acp.added_unreal': 'Saya sudah menambahkan Unreal Engine ke Koneksi Anda, jadi VS Code dan Ava IDE juga bisa menjangkau editor ini. Sebelum ada perubahan di editor, saya bertanya di sini; agar saya berhenti bertanya untuk satu alat Unreal, gunakan "Selalu izinkan" di bawah "Baru ditanyakan di Unreal" pada kartunya di Koneksi.',
   'acp.no_key': 'Belum ada kunci AI di komputer ini. Tambahkan satu di VS Code atau Ava IDE (Pengaturan → API Key), lalu mulai chat baru di sini.',

@@ -5055,6 +5055,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': 'Salt okunur: araştırır ve planlarım',
   'acp.fleet': 'Ava filosu',
   'acp.allow_once': 'Bir kez izin ver',
+  'acp.allow_session': 'Bu oturum için izin ver',
   'acp.plan_title': 'Bu planla devam edelim mi?',
   'acp.added_unreal': 'Unreal Engine\'i Bağlantılarınıza ekledim; böylece VS Code ve Ava IDE de bu editöre ulaşabilir. Editörde bir değişiklikten önce size burada sorarım; bir Unreal aracı için artık sormamamı isterseniz, Bağlantılar\'daki kartında "Unreal\'da yakın zamanda soruldu" altından "Her zaman izin ver"i kullanın.',
   'acp.no_key': 'Bu bilgisayarda henüz bir yapay zekâ anahtarı yok. VS Code\'da ya da Ava IDE\'de bir tane ekleyin (Ayarlar → API Anahtarları), ardından burada yeni bir sohbet başlatın.',

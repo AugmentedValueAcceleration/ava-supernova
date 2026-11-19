@@ -5055,6 +5055,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': '읽기 전용: 조사하고 계획합니다',
   'acp.fleet': 'Ava 모델 묶음',
   'acp.allow_once': '한 번 허용',
+  'acp.allow_session': '이 세션 동안 허용',
   'acp.plan_title': '이 계획대로 진행할까요?',
   'acp.added_unreal': 'Unreal Engine을 연동에 추가했습니다. 이제 VS Code와 Ava IDE에서도 이 에디터에 닿을 수 있습니다. 에디터에서 무언가 바꾸기 전에는 여기서 여쭤볼게요. 특정 Unreal 도구에 대해 그만 묻게 하려면, 연동의 해당 카드에서 "Unreal에서 최근 확인한 도구" 아래의 "항상 허용"을 사용하세요.',
   'acp.no_key': '이 컴퓨터에는 아직 AI 키가 없습니다. VS Code나 Ava IDE에서 키를 추가한 뒤(설정 → API 키), 여기서 새 대화를 시작하세요.',

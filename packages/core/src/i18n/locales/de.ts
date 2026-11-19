@@ -5035,6 +5035,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': 'Nur lesen: Ich recherchiere und plane',
   'acp.fleet': 'Ava-Flotte',
   'acp.allow_once': 'Einmal erlauben',
+  'acp.allow_session': 'Für diese Sitzung erlauben',
   'acp.plan_title': 'Mit diesem Plan loslegen?',
   'acp.added_unreal': 'Ich habe Unreal Engine zu deinen Verbindungen hinzugefügt, damit auch VS Code und die Ava IDE diesen Editor erreichen. Vor einer Änderung im Editor frage ich dich hier; damit ich bei einem Unreal-Tool nicht mehr frage, nutze „Immer erlauben“ unter „Kürzlich in Unreal gefragt“ auf seiner Karte in Verbindungen.',
   'acp.no_key': 'Auf diesem Computer gibt es noch keinen KI-Schlüssel. Füge einen in VS Code oder der Ava IDE hinzu (Einstellungen → API-Schlüssel) und starte dann hier einen neuen Chat.',

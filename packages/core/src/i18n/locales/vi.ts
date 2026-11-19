@@ -5055,6 +5055,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': 'Chỉ đọc: mình tìm hiểu và lên kế hoạch',
   'acp.fleet': 'Nhóm mô hình Ava',
   'acp.allow_once': 'Cho phép một lần',
+  'acp.allow_session': 'Cho phép trong phiên này',
   'acp.plan_title': 'Làm theo kế hoạch này nhé?',
   'acp.added_unreal': 'Mình đã thêm Unreal Engine vào Kết nối của bạn, để VS Code và Ava IDE cũng tới được trình biên tập này. Trước mỗi thay đổi trong trình biên tập, mình hỏi bạn ở đây; để mình thôi hỏi với một công cụ Unreal, hãy dùng "Luôn cho phép" trong mục "Đã hỏi gần đây trong Unreal" trên thẻ của nó ở Kết nối.',
   'acp.no_key': 'Máy tính này chưa có khóa AI nào. Hãy thêm một khóa trong VS Code hoặc Ava IDE (Cài đặt → API Key), rồi bắt đầu một cuộc trò chuyện mới ở đây.',

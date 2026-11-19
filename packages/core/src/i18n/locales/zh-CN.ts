@@ -5035,6 +5035,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': '只读：我调研并做计划',
   'acp.fleet': 'Ava 模型组合',
   'acp.allow_once': '允许一次',
+  'acp.allow_session': '本次会话中允许',
   'acp.plan_title': '就按这个计划进行吗？',
   'acp.added_unreal': '我已把 Unreal Engine 添加到你的连接中，这样 VS Code 和 Ava IDE 也能连到这个编辑器。在编辑器里做任何修改前，我都会在这里问你；如果不想让我为某个 Unreal 工具再询问，在连接中它的卡片上，“最近在 Unreal 中询问过”下选择“始终允许”。',
   'acp.no_key': '这台电脑上还没有 AI 密钥。请在 VS Code 或 Ava IDE 中添加一个（设置 → API 密钥），然后在这里开始新的聊天。',

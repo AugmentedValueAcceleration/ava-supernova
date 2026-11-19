@@ -5053,6 +5053,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'acp.mode.plan_desc': 'Somente leitura: eu pesquiso e planejo',
   'acp.fleet': 'Frota da Ava',
   'acp.allow_once': 'Permitir uma vez',
+  'acp.allow_session': 'Permitir nesta sessão',
   'acp.plan_title': 'Seguimos com este plano?',
   'acp.added_unreal': 'Adicionei o Unreal Engine às suas Conexões, para que o VS Code e o Ava IDE também alcancem este editor. Antes de uma mudança no editor eu pergunto aqui; para eu parar de perguntar sobre uma ferramenta do Unreal, use "Sempre permitir" em "Pedidos recentes no Unreal", no cartão dele em Conexões.',
   'acp.no_key': 'Ainda não há nenhuma chave de IA neste computador. Adicione uma no VS Code ou no Ava IDE (Configurações → Chaves de API) e depois comece um novo chat aqui.',

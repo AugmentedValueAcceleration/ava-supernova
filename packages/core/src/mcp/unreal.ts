@@ -91,7 +91,18 @@ export function unrealInnerTool(args: Record<string, unknown> | undefined | null
   const tool = typeof args.tool_name === 'string' ? args.tool_name.trim() : '';
   if (!tool) return undefined;
   const set = typeof args.toolset_name === 'string' ? args.toolset_name.trim() : '';
-  return set ? `${set}.${tool}` : tool;
+  // She sometimes passes the tool's FULL name as well as its toolset: joining
+  // them doubled the name ("LevelToolset.EditorToolset.LevelToolset.GetCurrentLevel",
+  // seen in his allow list 19 Nov), so it matched nothing and a look-only tool
+  // asked. A name that already has dots is the tool's own full name.
+  if (!set || tool.includes('.')) return tool;
+  return `${set}.${tool}`;
+}
+
+/** A doubled name written before that fix ("A.B.A.B.Tool" → "A.B.Tool"). */
+export function undoubleUnrealName(name: string): string {
+  const m = /^(.+?)\.\1\.(.+)$/.exec(name);
+  return m ? `${m[1]}.${m[2]}` : name;
 }
 
 /** Toolset names from list_toolsets' text ("- Name: description", descriptions may run over several lines). */
@@ -150,7 +161,21 @@ export class UnrealCatalog {
     if (!inner) return undefined;
     // Unreal's own discovery tools, reached through call_tool, only look.
     if (inner === 'list_toolsets' || inner === 'describe_toolsets' || inner === 'describe_tools') return 'read';
-    return this.access.get(inner);
+    return this.access.get(this.canonical(inner) ?? inner);
+  }
+
+  /**
+   * Unreal's one full name for a tool however it was written: a doubled name
+   * undoubled, and a bare name ("DescribeMode") resolved when exactly one
+   * tool has it. So "always allow", the asking rule and the Connections list
+   * agree on one name. Unknown names come back as given.
+   */
+  canonical(inner: string | undefined): string | undefined {
+    if (!inner) return inner;
+    const name = undoubleUnrealName(inner);
+    if (this.access.has(name) || name.includes('.')) return name;
+    const hits = [...this.access.keys()].filter((k) => k.endsWith(`.${name}`));
+    return hits.length === 1 ? hits[0] : name;
   }
 
   /** The project's toolset plugins are off: none of actors, levels or assets is there. */

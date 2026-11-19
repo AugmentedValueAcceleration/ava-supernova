@@ -8,7 +8,7 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  McpServers, syncMcpTools, setMcpKeychain, parseToolsetNames, unrealInnerTool, unrealVersionOk, MCP_SUGGESTIONS,
+  McpServers, syncMcpTools, setMcpKeychain, parseToolsetNames, unrealInnerTool, unrealVersionOk, MCP_SUGGESTIONS, mcpToolNeedsAsking,
 } from '../src/mcp/index.js';
 import { mcpPage } from '../src/mcp/page.js';
 import { unrealPromptSection, unrealToolNames } from '../src/mcp/unreal-context.js';
@@ -264,5 +264,32 @@ describe('reading what Unreal says', () => {
     expect(unrealInnerTool({ tool_name: 'list_toolsets' })).toBe('list_toolsets');
     expect(unrealInnerTool({})).toBeUndefined();
     expect(unrealInnerTool(undefined)).toBeUndefined();
+  });
+
+  // 19 Nov: his allow list held "LevelToolset.EditorToolset.LevelToolset.GetCurrentLevel"
+  // and a bare "DescribeMode" — matched nothing, and look-only tools asked.
+  it("one name per Unreal tool: a full name with its toolset isn't doubled, a bare name is found", async () => {
+    expect(unrealInnerTool({ toolset_name: 'EditorToolset.LevelToolset', tool_name: 'EditorToolset.LevelToolset.GetCurrentLevel' })).toBe('EditorToolset.LevelToolset.GetCurrentLevel');
+    const { m } = await startUnreal();
+    // A look-only tool named either way runs without asking.
+    expect(mcpToolNeedsAsking(CALL, { toolset_name: 'EditorToolset.LevelToolset', tool_name: 'EditorToolset.LevelToolset.GetCurrentLevel', arguments: {} })).toBe(false);
+    expect(mcpToolNeedsAsking(CALL, { tool_name: 'GetCurrentLevel', arguments: {} })).toBe(false);
+    // "Always" given with a bare name is stored under the full name.
+    await m.allowTool(CALL, true, { tool_name: 'SpawnActor', arguments: {} });
+    await settled();
+    expect(m.status()[0].unreal?.allowed).toEqual(['EditorToolset.ActorToolset.SpawnActor']);
+  });
+
+  it('a doubled name already in his list counts as the tool it meant, and "Ask me again" removes it', async () => {
+    writeConfig({ mcpServers: { unreal: { command: node, args: [FAKE], allow: ['call_tool:EditorToolset.ActorToolset.EditorToolset.ActorToolset.SpawnActor'] } } });
+    const m = McpServers.current();
+    await m.start(null);
+    await settled();
+    expect(m.status()[0].unreal?.allowed).toEqual(['EditorToolset.ActorToolset.SpawnActor']);
+    expect(mcpToolNeedsAsking(CALL, call('EditorToolset.ActorToolset', 'SpawnActor'))).toBe(false);
+    await mcpPage('allow', { avaName: CALL, on: false, inner: 'EditorToolset.ActorToolset.SpawnActor' });
+    await settled();
+    expect(m.status()[0].unreal?.allowed).toEqual([]);
+    expect(mcpToolNeedsAsking(CALL, call('EditorToolset.ActorToolset', 'SpawnActor'))).toBe(true);
   });
 });

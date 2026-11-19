@@ -33,6 +33,8 @@ import {
   getWorkTalkPrefix,
   isUserMcpTool,
   t,
+  unrealInnerTool,
+  UNREAL_CALL_TOOL,
   loadDecisionsState,
   loadProjectInstructions,
   memoryV4Root,
@@ -77,6 +79,13 @@ class Session {
   /** Said once, with her first reply (e.g. "I added Unreal to your Connections"). */
   notice: string | undefined;
   memory: MemorySession | undefined;
+  /**
+   * What he said "Allow for this session" to: tool names, and for Unreal's
+   * call_tool the Unreal tool it names (Toolset.Tool) — so allowing Python
+   * for the session never also allows deleting actors. Ends with the chat
+   * (a New Chat is a new program). His call, 19 Nov.
+   */
+  readonly sessionAllowed = new Set<string>();
   readonly sharedState: Record<string, unknown>;
 
   constructor(readonly id: string, readonly root: string, readonly history: HistoryManager, base: Record<string, unknown>) {
@@ -364,6 +373,10 @@ export class AcpServer {
       this.showMode(s);
       return `Mode transition approved. Switching to ${next === 'code' ? 'work' : next} mode. Carry on in it from their next message.`;
     }
+    // A plan or a mode change is a decision each time; anything else he
+    // allowed for this session runs without asking again.
+    const sessionKey = name === 'present_plan' ? null : sessionAllowKey(name, args);
+    if (sessionKey && s.sessionAllowed.has(sessionKey)) return true;
     const title = name === 'present_plan' ? t('acp.plan_title') : toolRequestInWords(name, args);
     let outcome: { outcome?: string; optionId?: string } | undefined;
     try {
@@ -376,8 +389,11 @@ export class AcpServer {
           status: 'pending',
           rawInput: args,
         },
+        // Unreal dropped an allow_always option in Phase 0, so "for this
+        // session" goes as a second allow_once — Ava keeps it, not Unreal.
         options: [
           { optionId: 'allow', name: t('acp.allow_once'), kind: 'allow_once' },
+          ...(sessionKey ? [{ optionId: 'allow_session', name: t('acp.allow_session'), kind: 'allow_once' }] : []),
           { optionId: 'deny', name: t('tool.deny'), kind: 'reject_once' },
         ],
       });
@@ -386,7 +402,9 @@ export class AcpServer {
       this.log(`The permission prompt failed: ${e instanceof Error ? e.message : e}`);
       return false;
     }
-    const yes = outcome?.outcome === 'selected' && outcome.optionId === 'allow';
+    const chosen = outcome?.outcome === 'selected' ? outcome.optionId : undefined;
+    const yes = chosen === 'allow' || chosen === 'allow_session';
+    if (chosen === 'allow_session' && sessionKey) s.sessionAllowed.add(sessionKey);
     // The panel has no "always": an Unreal tool allowed once is offered for
     // "Always allow" on the Connections page (his call, 18 Nov).
     if (yes && isUserMcpTool(name)) await McpServers.current().noteAllowedOnce(name, args).catch(() => {});
@@ -414,6 +432,15 @@ export class AcpServer {
     await Promise.race([Promise.all(work), new Promise((r) => setTimeout(r, 20_000))]);
     await McpServers.current().stopAll().catch(() => {});
   }
+}
+
+/** What "Allow for this session" covers: the tool, or for Unreal's call_tool the Unreal tool it names. */
+export function sessionAllowKey(name: string, args: Record<string, unknown>): string | null {
+  if (isUserMcpTool(name) && name.endsWith(`_${UNREAL_CALL_TOOL}`)) {
+    const inner = unrealInnerTool(args);
+    return inner ? `${name}:${inner}` : null;
+  }
+  return name;
 }
 
 function parseArgs(raw: string): Record<string, unknown> {

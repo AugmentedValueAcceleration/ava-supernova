@@ -298,7 +298,7 @@ export class McpServers {
     }
     // Offering call_tool's schema: Plan gets it, and each call is checked.
     if (!args) return { ask: true, planOk: true };
-    const inner = unrealInnerTool(args);
+    const inner = unreal.canonical(unrealInnerTool(args));
     const access = unreal.accessOf(inner);
     if (access === 'read') return { ask: false, planOk: true };
     const allowed = !!inner && (this.statuses.get(key(t.scope, t.id))?.unreal?.allowed ?? []).includes(inner);
@@ -317,15 +317,19 @@ export class McpServers {
     const t = this.toolByAvaName(avaName);
     if (!t) return false;
     let entry = t.name;
-    if (t.name === UNREAL_CALL_TOOL && this.connFor(t.scope, t.id)?.unreal) {
-      const which = inner ?? unrealInnerTool(args);
+    const unreal = t.name === UNREAL_CALL_TOOL ? this.connFor(t.scope, t.id)?.unreal : undefined;
+    if (unreal) {
+      const which = unreal.canonical(inner ?? unrealInnerTool(args));
       if (!which) return false;
       entry = unrealAllowKey(which);
     }
+    // Taking one back removes every spelling of it (names written before the
+    // undoubling fix included), so "Ask me again" really asks again.
+    const same = (a: string) => a === entry
+      || (!!unreal && a.startsWith(unrealAllowKey('')) && unrealAllowKey(unreal.canonical(a.slice(unrealAllowKey('').length)) ?? '') === entry);
     const flip = (list: string[] | undefined) => {
-      const set = new Set(list ?? []);
-      if (on) set.add(entry); else set.delete(entry);
-      return [...set];
+      const kept = (list ?? []).filter((a) => !same(a));
+      return on ? [...kept, entry] : kept;
     };
     if (t.scope === 'user') {
       await updateMcpFile((f) => { const e = f.mcpServers[t.id]; if (e) e.allow = flip(e.allow); });
@@ -350,8 +354,9 @@ export class McpServers {
   async noteAllowedOnce(avaName: string, args?: Record<string, unknown>): Promise<void> {
     const t = this.toolByAvaName(avaName);
     if (!t || t.scope !== 'user' || t.name !== UNREAL_CALL_TOOL) return;
-    const inner = unrealInnerTool(args);
-    if (!inner || this.connFor(t.scope, t.id)?.unreal?.accessOf(inner) === 'read') return;
+    const unreal = this.connFor(t.scope, t.id)?.unreal;
+    const inner = unreal ? unreal.canonical(unrealInnerTool(args)) : unrealInnerTool(args);
+    if (!inner || unreal?.accessOf(inner) === 'read') return;
     await updateMcpFile((f) => {
       const e = f.mcpServers[t.id];
       if (e) e.asked = [inner, ...(e.asked ?? []).filter((x) => x !== inner)].slice(0, 12);
@@ -576,8 +581,12 @@ export class McpServers {
         unreal: {
           tools: conn.unreal.size,
           toolsetsOff: conn.unreal.toolsetsOff,
-          allowed: allow.filter((a) => a.startsWith(prefix)).map((a) => a.slice(prefix.length)).sort(),
-          asked: (scope === 'user' ? e.asked ?? [] : []).filter((a) => !allowSet.has(unrealAllowKey(a))),
+          // One name per Unreal tool, however it was written (doubled names
+          // from before 19 Nov count as the tool they meant).
+          allowed: [...new Set(allow.filter((a) => a.startsWith(prefix)).map((a) => conn.unreal!.canonical(a.slice(prefix.length)) ?? a.slice(prefix.length)))].sort(),
+          asked: (scope === 'user' ? e.asked ?? [] : [])
+            .map((a) => conn.unreal!.canonical(a) ?? a)
+            .filter((a, i, all) => all.indexOf(a) === i && !allow.some((x) => x.startsWith(prefix) && (conn.unreal!.canonical(x.slice(prefix.length)) ?? '') === a)),
         },
       } : {}),
     };

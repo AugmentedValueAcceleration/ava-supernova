@@ -233,11 +233,19 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
         </div>
         {!waiting && <button style={link} onClick={() => setOpen(!open)}>{tt('mcp.page.details', 'Tools & details')}</button>}
         {s.docs && <button style={btn} title={s.docs} onClick={() => void request('open_docs', { url: s.docs })}>{tt('mcp.page.docs', 'Docs')}</button>}
+        {s.scope === 'user' && !removing && <button style={noBtn} onClick={() => setRemoving(true)}>{tt('mcp.page.remove', 'Remove')}</button>}
         {s.scope === 'user' && (
           <Switch on={s.state !== 'off'} title={s.state !== 'off' ? tt('mcp.page.switch_off', 'Switch off') : tt('mcp.page.switch_on', 'Switch on')}
             onChange={(on) => void run('enable', { id: s.id, on })} />
         )}
       </div>
+      {s.scope === 'user' && removing && (
+        <div style={{ ...acts, marginTop: 8 }}>
+          <span style={{ fontSize: 12.5, color: C.text2 }}>{tt('mcp.page.remove_confirm', 'Remove {name} and forget its keys?').replace('{name}', s.id)}</span>
+          <button style={noBtn} disabled={busy} onClick={() => void run('remove', { id: s.id })}>{tt('mcp.page.remove', 'Remove')}</button>
+          <button style={btn} onClick={() => setRemoving(false)}>{tt('mcp.page.cancel', 'Cancel')}</button>
+        </div>
+      )}
 
       {s.ava?.view && (
         <div style={opinion}><b style={{ color: C.text, fontWeight: 500 }}>{tt('mcp.page.my_view', 'My view:')}</b> {s.ava.view}</div>
@@ -296,15 +304,6 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
                     ? <button style={btn} disabled={busy} onClick={() => void run('answer', { id: s.id, answer: 'not-now' })}>{tt('mcp.page.ask_again', 'Ask me again')}</button>
                     : <button style={btn} disabled={busy} onClick={() => void run('answer', { id: s.id, answer: 'not-now' })}>{tt('mcp.page.stop_here', 'Stop using it here')}</button>
                 )}
-                {s.scope === 'user' && (removing ? (
-                  <>
-                    <span style={{ fontSize: 12.5, color: C.text2 }}>{tt('mcp.page.remove_confirm', 'Remove {name} and forget its keys?').replace('{name}', s.id)}</span>
-                    <button style={noBtn} disabled={busy} onClick={() => void run('remove', { id: s.id })}>{tt('mcp.page.remove', 'Remove')}</button>
-                    <button style={btn} onClick={() => setRemoving(false)}>{tt('mcp.page.cancel', 'Cancel')}</button>
-                  </>
-                ) : (
-                  <button style={noBtn} onClick={() => setRemoving(true)}>{tt('mcp.page.remove', 'Remove')}</button>
-                ))}
               </>
             )}
           </div>
@@ -845,7 +844,7 @@ export function ConnectionsPage({ request, onWaitingChange, onAskAva }: {
   }
 
   return (
-    <div style={{ padding: '26px 32px 80px', maxWidth: 1000, color: C.text }}>
+    <div style={{ padding: '26px 32px 80px', color: C.text }}>
       <h1 style={{ fontSize: 20, fontWeight: 500, margin: '0 0 2px' }}>{tt('dash.nav.connections', 'Connections')}</h1>
       <div style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>{tt('mcp.page.subtitle', 'MCP servers give me more tools: your GitHub, your files, your other apps. Nothing here runs until you say yes.')}</div>
       {body}
