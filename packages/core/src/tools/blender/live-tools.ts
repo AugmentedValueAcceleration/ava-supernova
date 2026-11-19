@@ -276,7 +276,7 @@ export class DesignLiveSaveTool implements Tool {
     'Do this when a step is worth keeping, and always before stopping. Their own changes in Blender are saved with it.',
     {
       description: { type: 'string', description: 'What this saved step is, in a few words.' },
-      fbx: { type: 'boolean', description: 'Also export an .fbx (for Unreal and other engines).' },
+      fbx: { type: 'boolean', description: 'Also export an .fbx — for rigged or animated models (characters) going to Unreal or Unity. Props go to Unreal as the .glb, which is always exported (tested on Unreal 5.9, 19 Nov: cleaner import, packed textures, no warnings).' },
     }, []);
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
@@ -294,7 +294,7 @@ if os.path.normcase(os.path.abspath(bpy.data.filepath or "")) != os.path.normcas
     raise RuntimeError("The file open in Blender isn't the model any more. Open it again with design_live_open_model.")
 bpy.ops.wm.save_mainfile()
 bpy.ops.export_scene.gltf(filepath=${py(glb)}, export_format="GLB", use_selection=False)
-${args.fbx === true ? `bpy.ops.export_scene.fbx(filepath=${py(fbx)}, use_selection=False)` : 'pass'}
+${args.fbx === true ? `bpy.ops.export_scene.fbx(filepath=${py(fbx)}, use_selection=False, apply_scale_options='FBX_SCALE_ALL', path_mode='COPY', embed_textures=True, mesh_smooth_type='FACE')` : 'pass'}
 tris = 0
 lo = [1e18] * 3
 hi = [-1e18] * 3

@@ -382,7 +382,9 @@ try:
     result['files'].append(NAME + '.glb')
     if JOB.get('fbx'):
         fbx = os.path.join(ASSET_DIR, NAME + '.fbx')
-        bpy.ops.export_scene.fbx(filepath=fbx, use_selection=False, apply_scale_options='FBX_SCALE_ALL', path_mode='COPY', embed_textures=True)
+        # mesh_smooth_type='FACE': without smoothing groups Unreal warns on every
+        # part (seen importing the wooden crate into 5.9, 19 Nov).
+        bpy.ops.export_scene.fbx(filepath=fbx, use_selection=False, apply_scale_options='FBX_SCALE_ALL', path_mode='COPY', embed_textures=True, mesh_smooth_type='FACE')
         result['files'].append(NAME + '.fbx')
     # Live shaders do not export. Say so whenever the export will reach an
     # engine bare — the gap she lost twenty minutes in on the first model.

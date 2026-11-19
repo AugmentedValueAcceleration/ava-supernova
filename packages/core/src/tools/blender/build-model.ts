@@ -211,7 +211,7 @@ export class DesignBuildModelTool implements Tool {
         },
         fbx: {
           type: 'boolean',
-          description: 'Also export an .fbx (Unreal / Unity). A .glb is always exported.',
+          description: 'Also export an .fbx — for rigged or animated models (characters) going to Unreal or Unity. Props go to Unreal as the .glb, which is always exported (tested on Unreal 5.9, 19 Nov: cleaner import, packed textures, no warnings).',
         },
         timeout_seconds: {
           type: 'number',
