@@ -1,6 +1,6 @@
 {
   "displayName": "Ava Supernova",
-  "description": "An open-source AI coding agent that does not stop at code. Ava reads your codebase, plans the work and executes it task by task — then keeps going: your training and meals, what you want to learn, the assets you need. 7 modes, 90+ tools, 24 specialist personas, and frontier open-weight models from every major lab. Runs on your own machine — memory, history and journal stay there. Free and open source: no account, no card — bring your own API key or run a local model. Apache 2.0, so you can read every line of it.",
+  "description": "An open-source AI coding agent that does not stop at code. Ava reads your codebase, plans the work and executes it task by task — then keeps going: your training and meals, what you want to learn, the assets you need. 6 modes, 70+ tools, 24 specialist personas, and frontier open-weight models from every major lab. Runs on your own machine — memory, history and journal stay there. Free and open source: no account, no card — bring your own API key or run a local model. Apache 2.0, so you can read every line of it.",
   "viewContainer.title": "Ava Supernova",
   "view.chat.name": "Chat",
   "command.openChat.title": "Open Chat — Start an AI coding session",

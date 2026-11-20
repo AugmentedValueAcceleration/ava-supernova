@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   McpServers, syncMcpTools, setMcpKeychain, parseToolsetNames, unrealInnerTool, unrealVersionOk, MCP_SUGGESTIONS, mcpToolNeedsAsking,
+  ALL_MCP_SUGGESTIONS, UNREAL_RELEASED, suggestionFor,
 } from '../src/mcp/index.js';
 import { mcpPage } from '../src/mcp/page.js';
 import { unrealPromptSection, unrealToolNames } from '../src/mcp/unreal-context.js';
@@ -92,9 +93,11 @@ describe('knowing it is Unreal', () => {
     expect(unrealVersionOk('')).toBe(true); // can't read it: the name already says it's Unreal
   });
 
-  it('is offered as a suggestion, on this computer', () => {
-    const g = MCP_SUGGESTIONS.find((x) => x.id === 'unreal')!;
-    expect(g).toMatchObject({ kind: 'local', url: 'http://127.0.0.1:8000/mcp', publisher: 'Epic Games' });
+  it('is held back from the Suggested list until 5.9\'s full release, but a set-up server keeps its card', () => {
+    expect(UNREAL_RELEASED).toBe(false);
+    expect(MCP_SUGGESTIONS.find((x) => x.id === 'unreal')).toBeUndefined();
+    expect(ALL_MCP_SUGGESTIONS.find((x) => x.id === 'unreal')).toMatchObject({ kind: 'local', url: 'http://127.0.0.1:8000/mcp', publisher: 'Epic Games' });
+    expect(suggestionFor('http://127.0.0.1:8000/mcp')).toMatchObject({ id: 'unreal', kind: 'local' });
   });
 });
 

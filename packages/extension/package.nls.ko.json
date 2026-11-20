@@ -53,7 +53,7 @@
   "setting.section.help": "도움말 및 문서",
   "setting.help.docs": "**[문서 열기](command:ava-supernova.openDocs)** — 모델, 도구, 명령어 및 설정에 대한 전체 참조 가이드.",
   "setting.help.gettingStarted": "**[시작하기 열기](command:ava-supernova.gettingStarted)** — 신규 사용자를 위한 단계별 설정 안내.",
-  "description": "코드에만 국한되지 않는 오픈소스 AI 코딩 에이전트입니다. Ava 는 코드베이스를 읽고 작업을 계획하며 태스크별로 실행합니다 — 그 후에도 계속 진행합니다: 당신의 운동과 식사, 배우고 싶은 것, 필요한 자산 등. 7 가지 모드, 90 개 이상의 도구, 24 명 전문가 페르소나, 주요 연구소의 최첨단 오픈 웨이트 모델. 자체 머신에서 실행됩니다 — 메모리, 히스토리 및 저널은 그곳에 유지됩니다. 무료 및 오픈소스: 계정이나 카드 불필요 — 자체 API 키를 가져오거나 로컬 모델을 실행하세요. Apache 2.0 라이선스 적용으로 모든 줄을 확인할 수 있습니다.",
+  "description": "코드에만 국한되지 않는 오픈소스 AI 코딩 에이전트입니다. Ava 는 코드베이스를 읽고 작업을 계획하며 태스크별로 실행합니다 — 그 후에도 계속 진행합니다: 당신의 운동과 식사, 배우고 싶은 것, 필요한 자산 등. 6 가지 모드, 70 개 이상의 도구, 24 명 전문가 페르소나, 주요 연구소의 최첨단 오픈 웨이트 모델. 자체 머신에서 실행됩니다 — 메모리, 히스토리 및 저널은 그곳에 유지됩니다. 무료 및 오픈소스: 계정이나 카드 불필요 — 자체 API 키를 가져오거나 로컬 모델을 실행하세요. Apache 2.0 라이선스 적용으로 모든 줄을 확인할 수 있습니다.",
   "command.switchModel.title": "모델 전환 — Maestro, Supernova, Aurora 또는 키가 지원하는 모든 모델 선택",
   "setting.activeModel.description": "사용할 AI 모델을 선택하세요. 네 개의 조정된 플릿 — Maestro(Qwen 앙상블), Supernova(DeepSeek + Qwen), Aurora(Mistral 전용 EU 스택), Longxiang(Kimi + Qwen + DeepSeek) — 그리고 자체 키로 사용하는 단일 모델: DeepSeek, Kimi, Qwen, Mistral, Zhipu/GLM, MiniMax, NVIDIA, Tencent, Xiaomi 등.",
   "walkthrough.step.apiKey.title": "API 키 추가",

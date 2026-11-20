@@ -80,7 +80,7 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 
 | Fleet | Needs | Coordinator | How it splits the work |
 |---|---|---|---|
-| **Maestro** | A **Qwen** key | Qwen 3.8 Flash | Flash coordinates and handles chat, image reading, image generation and long context · Qwen 3.7 Plus does the deep work — coding and the Builder, planning, security, teaching, brainstorming |
+| **Maestro** | A **Qwen** key | Qwen 3.8 Flash | Flash coordinates and handles chat, image reading, image generation and long context · Qwen 3.7 Plus does the deep work — coding and the Builder, teaching, brainstorming · Qwen 4 Max, Alibaba's flagship, leads planning and security |
 | **Supernova** | **DeepSeek + Qwen** keys | DeepSeek V4.1 Flash | DeepSeek does nearly everything — coding and the Builder, planning, chat, long context, security, teaching, brainstorming · Qwen 3.8 Flash reads and generates images |
 | **Aurora** | A **Mistral** key | Mistral Large 4 | Every model from Mistral, a European lab · Large 4 does the deep work — coding and the Builder, planning, security, teaching, image reading, 1M context · Small 4 handles chat, brainstorming and image requests |
 
@@ -102,6 +102,17 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 | **Local** | Ollama, LM Studio, vLLM, any standard API endpoint |
 
 Make Qwen keys in Alibaba Cloud Model Studio's **Singapore** region — keys are region-locked and Ava uses the international endpoint. **Web search** works out of the box with DuckDuckGo; add a Brave Search key for better results.
+
+---
+
+## Connect your own tools — MCP
+
+Give Ava more tools through **MCP servers**: GitHub, Notion, Linear, documentation and more. The **Connections** page in the sidebar shows your servers, whether each one is running, and its tools, and notices when a server stops answering instead of still showing it as connected. Your servers are shared by the extension and the IDE.
+
+- **Suggested** — nine free servers from the companies themselves, each one checked. Context7, DeepWiki, Microsoft Learn, Cloudflare Docs and Hugging Face need no account; Notion, Linear and Atlassian need a free account and a sign-in; GitHub takes a free token.
+- **Ask Ava, or add your own** — tell her what you want to connect: she finds the official server, checks its publisher in the official MCP Registry, and gives you her honest view first. Or paste a command or address yourself, or bring in the servers you set up in Claude Desktop, Cursor or VS Code. **Remove** takes one off again.
+- **Sign in safely** — you sign in on the company's own page, and Ava keeps only a pass for that one server, in your keychain. Keys are typed on the Connections page, never in the chat.
+- **Nothing runs until you say yes** — you see the exact command or address first, and each tool asks the first time it's used until you choose **Always**.
 
 ---
 
@@ -143,7 +154,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 
 **Her internal team activates for complex work:** Scout → Architect → Verifier → Sequencer → Challenger → Builder. Simple questions skip orchestration entirely — zero overhead.
 
-Pick the fleet that fits the job: **Maestro** (Qwen — Qwen 3.8 Flash coordinates, Qwen 3.7 Plus builds), **Supernova** (DeepSeek V4.1 Flash coordinates and builds, Qwen 3.8 Flash handles images) or **Aurora** (Mistral — Large 4 coordinates and builds, Small 4 handles chat).
+Pick the fleet that fits the job: **Maestro** (Qwen — Qwen 3.8 Flash coordinates, Qwen 3.7 Plus builds, Qwen 4 Max plans), **Supernova** (DeepSeek V4.1 Flash coordinates and builds, Qwen 3.8 Flash handles images) or **Aurora** (Mistral — Large 4 coordinates and builds, Small 4 handles chat).
 
 </details>
 
@@ -161,7 +172,7 @@ Ava ships with a **Creative Studio** that generates real assets and integrates t
 | **Voice** | Voiceovers and narration — same voice, any of 19 languages |
 | **Background removal** | Cut out subjects from existing images |
 | **2D in GIMP** | Icon sets, game UI, sprites, textures and web graphics — made in GIMP on your computer, as layered files you can open yourself |
-| **3D in Blender** | Game-ready models built in Blender on your computer, with baked textures, exported as .glb and .fbx |
+| **3D in Blender** | Game-ready models built in Blender on your computer, with baked textures, exported as .glb and .fbx (smoothing and textures carried inside the .fbx) |
 
 **Logos and icons are built, not guessed.** Ava composes them from geometric primitives and real fonts into clean, resolution-independent SVG — so a mark stays razor-sharp at any size and drops straight into your favicon or JSX. She'll show you **several directions and let you pick** the one that fits.
 

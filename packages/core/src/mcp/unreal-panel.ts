@@ -12,7 +12,7 @@
 import { McpServers, type McpServerStatus } from './manager.js';
 import { readMcpFile } from './servers-config.js';
 import { addMcpServers, settleMcpServers } from './setup.js';
-import { MCP_SUGGESTIONS } from './suggested.js';
+import { ALL_MCP_SUGGESTIONS } from './suggested.js';
 
 const sameUrl = (a: string | undefined, b: string) =>
   !!a && a.trim().replace(/\/+$/, '').toLowerCase() === b.trim().replace(/\/+$/, '').toLowerCase();
@@ -41,7 +41,7 @@ export async function ensureUnrealServer(url: string): Promise<UnrealServerInPan
   }
   let id = 'unreal';
   for (let n = 2; file.mcpServers[id]; n++) id = `unreal-${n}`;
-  const view = MCP_SUGGESTIONS.find((s) => s.id === 'unreal')?.view;
+  const view = ALL_MCP_SUGGESTIONS.find((s) => s.id === 'unreal')?.view;
   await addMcpServers([{ id, entry: { type: 'http', url, ...(view ? { ava: { view, at: new Date().toISOString() } } : {}) } }]);
   return { id, added: true, off: false };
 }

@@ -203,12 +203,11 @@ describe('redacting secrets for the AI', () => {
 describe('suggested servers', () => {
   it('the page lists them, checks one like any other, and adds it with his-language view', async () => {
     const st = await mcpPage('state') as { suggested: Array<{ id: string; kind: string; added: boolean }> };
-    expect(st.suggested.map((s) => s.id)).toEqual(['context7', 'deepwiki', 'microsoft-learn', 'cloudflare-docs', 'huggingface', 'notion', 'linear', 'atlassian', 'github', 'unreal']);
+    // Unreal is held back until Unreal Engine 5.9's full release (UNREAL_RELEASED).
+    expect(st.suggested.map((s) => s.id)).toEqual(['context7', 'deepwiki', 'microsoft-learn', 'cloudflare-docs', 'huggingface', 'notion', 'linear', 'atlassian', 'github']);
     for (const s of st.suggested) expect(s.added).toBe(false);
-    // Unreal's server is on this computer: no "sent to" note.
-    const u = await mcpPage('check_suggested', { id: 'unreal' }) as { ok: boolean; shows: string; notes: Array<{ code: string }> };
-    expect(u).toMatchObject({ ok: true, shows: 'http://127.0.0.1:8000/mcp' });
-    expect(u.notes).toEqual([]);
+    const u = await mcpPage('check_suggested', { id: 'unreal' }) as { ok: boolean };
+    expect(u.ok).toBe(false);
     const c = await mcpPage('check_suggested', { id: 'github' }) as { ok: boolean; shows: string; slots: string[]; notes: Array<{ code: string }> };
     expect(c).toMatchObject({ ok: true, shows: 'https://api.githubcopilot.com/mcp/', slots: ['github.key'] });
     expect(c.notes.map((n) => n.code)).toContain('online');

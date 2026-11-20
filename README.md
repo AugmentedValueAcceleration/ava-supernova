@@ -94,7 +94,7 @@ You don't have to pick a model — pick the work, and a fleet routes each part o
 
 | Fleet | Needs | Coordinator | How it splits the work |
 |---|---|---|---|
-| **Maestro** | A Qwen key | Qwen 3.8 Flash | Flash coordinates and handles chat, images and long context; Qwen 3.7 Plus does the deep work — coding, planning, security, teaching. |
+| **Maestro** | A Qwen key | Qwen 3.8 Flash | Flash coordinates and handles chat, images and long context; Qwen 3.7 Plus does the deep work — coding and teaching; Qwen 4 Max, Alibaba's flagship, leads planning and security. |
 | **Supernova** | DeepSeek + Qwen keys | DeepSeek V4.1 Flash | DeepSeek does nearly everything; Qwen 3.8 Flash reads and makes images. |
 | **Aurora** | A Mistral key | Mistral Large 4 | Every model from Mistral, a European lab: Large 4 does the deep work with 1M context, Small 4 handles chat and brainstorming. |
 
@@ -102,7 +102,7 @@ Or pick any single model your keys reach:
 
 | Provider | Models |
 |---|---|
-| **Qwen (Alibaba)** | Qwen 3.8 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen 3.5 Plus, Qwen 3.5 Flash, Qwen3 Coder Next / Flash — up to 1M context, vision, reasoning |
+| **Qwen (Alibaba)** | Qwen 4 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen3 Coder Next / Flash — up to 1M context, vision, reasoning |
 | **DeepSeek** | DeepSeek V4.1 Flash — MIT open-weight, 1M context |
 | **Moonshot** | Kimi K3 (1M context, native vision), K2.7 Code, K2.6 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash — MIT open-weight, 1M context |
@@ -116,6 +116,15 @@ Or pick any single model your keys reach:
 **Images, voiceovers and video** in the Creative Studio run on your own **Qwen key**, billed by Alibaba at Alibaba's rates; without one, those are switched off. Make Qwen keys in Alibaba Cloud Model Studio's **Singapore** region — keys are region-locked and Ava uses the international endpoint.
 
 **Web search** uses DuckDuckGo out of the box; add a Brave Search key for better results.
+
+## Connect your own tools — MCP
+
+Give Ava more tools through **MCP servers**: GitHub, Notion, Linear, documentation and more. The **Connections** page in the sidebar shows your servers, whether each one is running, and its tools, and notices when a server stops answering instead of still showing it as connected. Your servers are shared by the extension and the IDE.
+
+- **Suggested** — nine free servers from the companies themselves, each one checked. Context7, DeepWiki, Microsoft Learn, Cloudflare Docs and Hugging Face need no account; Notion, Linear and Atlassian need a free account and a sign-in; GitHub takes a free token.
+- **Ask Ava, or add your own** — tell her what you want to connect: she finds the official server, checks its publisher in the official MCP Registry, and gives you her honest view first. Or paste a command or address yourself, or bring in the servers you set up in Claude Desktop, Cursor or VS Code. **Remove** takes one off again.
+- **Sign in safely** — you sign in on the company's own page, and Ava keeps only a pass for that one server, in your keychain. Keys are typed on the Connections page, never in the chat.
+- **Nothing runs until you say yes** — you see the exact command or address first, and each tool asks the first time it's used until you choose **Always**.
 
 ## Getting Started
 

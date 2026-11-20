@@ -53,7 +53,7 @@
   "setting.section.help": "說明與文件",
   "setting.help.docs": "**[開啟文件](command:ava-supernova.openDocs)** — 模型、工具、指令和設定的完整參考指南。",
   "setting.help.gettingStarted": "**[開啟快速入門](command:ava-supernova.gettingStarted)** — 面向新使用者的逐步設定指南。",
-  "description": "一個開源的人工智慧編碼代理，不僅限於代碼。Ava 會閱讀您的程式碼庫，規劃工作並逐個任務執行——然後繼續進行：您的訓練和餐點、您想學習的內容、您需要的資產。7 種模式、90+ 工具、24 位專業人設，以及來自各大實驗室的前沿開權重模型。運行在您自己的機器上——記憶體、歷史記錄和日誌都留在當地。免費且開源：無需帳戶，無需卡片——自帶 API 金鑰或運行本地模型。Apache 2.0 授權，因此您可以閱讀其中的每一行。",
+  "description": "一個開源的人工智慧編碼代理，不僅限於代碼。Ava 會閱讀您的程式碼庫，規劃工作並逐個任務執行——然後繼續進行：您的訓練和餐點、您想學習的內容、您需要的資產。6 種模式、70+ 工具、24 位專業人設，以及來自各大實驗室的前沿開權重模型。運行在您自己的機器上——記憶體、歷史記錄和日誌都留在當地。免費且開源：無需帳戶，無需卡片——自帶 API 金鑰或運行本地模型。Apache 2.0 授權，因此您可以閱讀其中的每一行。",
   "command.switchModel.title": "切換模型 — 選擇 Maestro、Supernova、Aurora，或任何您的金鑰支援的模型",
   "setting.activeModel.description": "選擇要使用的人工智慧模型。四個協調集群 — Maestro（Qwen 集成）、Supernova（DeepSeek + Qwen）、Aurora（僅 Mistral 歐盟堆疊）、Longxiang（Kimi + Qwen + DeepSeek）— 加上單個模型，使用您自己的金鑰跨 DeepSeek、Kimi、Qwen、Mistral、Zhipu/GLM、MiniMax、NVIDIA、Tencent 和 Xiaomi。",
   "walkthrough.step.apiKey.title": "新增您的 API 金鑰",

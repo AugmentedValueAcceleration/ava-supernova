@@ -49,7 +49,7 @@ export interface McpSuggestion {
   view: string;
 }
 
-export const MCP_SUGGESTIONS: McpSuggestion[] = [
+export const ALL_MCP_SUGGESTIONS: McpSuggestion[] = [
   {
     id: 'context7', name: 'Context7', publisher: 'Upstash', registry: 'io.github.upstash/context7', kind: 'open',
     url: 'https://mcp.context7.com/mcp', docs: 'https://github.com/upstash/context7',
@@ -119,9 +119,24 @@ export const MCP_SUGGESTIONS: McpSuggestion[] = [
   },
 ];
 
-/** A suggested server, matched by its address. */
+/**
+ * Unreal Engine is held back from the Suggested list until Unreal Engine 5.9's
+ * full release (his call, 19 Nov 2026): in the 5.9 preview, Epic's animation
+ * generation leans Manny and Quinn back, and offering it now would promise
+ * more than it can do. Everything else stays built — a server someone has
+ * already set up keeps working, and he keeps testing on his own editor.
+ * Flip this to true for the release that ships it.
+ */
+export const UNREAL_RELEASED = false;
+
+/** The servers offered in Connections and by Ava. */
+export const MCP_SUGGESTIONS: McpSuggestion[] =
+  ALL_MCP_SUGGESTIONS.filter((s) => UNREAL_RELEASED || s.id !== 'unreal');
+
+/** A suggested server, matched by its address — held-back ones included, so a
+ *  server already set up keeps its card details. */
 export function suggestionFor(url: string | undefined): McpSuggestion | undefined {
-  return url ? MCP_SUGGESTIONS.find((s) => s.url === url) : undefined;
+  return url ? ALL_MCP_SUGGESTIONS.find((s) => s.url === url) : undefined;
 }
 
 /** The permissions a suggested server should ask for, matched by address. */
