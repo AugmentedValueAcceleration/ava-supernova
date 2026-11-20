@@ -4,16 +4,17 @@ import type { ClassificationResult } from './types.js';
 // ─── Model name patterns for user inline overrides ───────────────────────────
 
 const MODEL_ALIASES: Record<string, string> = {
-  // Kimi / Moonshot — bare 'kimi' / 'moonshot' route to the current flagship
-  // K3. 'k2' stays on the K2 line (K2.7 Code, the value agentic coder); the
-  // 'k2.7'/'k2.6' aliases pin the older models explicitly. k2.5 is gone:
-  // Moonshot switches it off on 2026-08-31.
-  'kimi': 'kimi-k3',
+  // Kimi / Moonshot — bare 'kimi' / 'moonshot' route to the current flagship,
+  // K3.1 Pro (20 Nov 2026). 'k3' still pins K3. The K2 line retires at the end
+  // of December 2026 and rolls forward to K3.1 Pro, so its spoken aliases go
+  // straight there.
+  'kimi': 'kimi-k3.1-pro',
+  'k3.1': 'kimi-k3.1-pro',
   'k3': 'kimi-k3',
-  'k2': 'kimi-k2.7-code',
-  'k2.7': 'kimi-k2.7-code',
-  'k2.6': 'kimi-k2.6',
-  'moonshot': 'kimi-k3',
+  'k2': 'kimi-k3.1-pro',
+  'k2.7': 'kimi-k3.1-pro',
+  'k2.6': 'kimi-k3.1-pro',
+  'moonshot': 'kimi-k3.1-pro',
   // MiniMax (BYOK chat, M3 only) — bare 'minimax'/'m3' route to M3.
   'minimax': 'MiniMax-M3',
   'm3': 'MiniMax-M3',
@@ -25,9 +26,9 @@ const MODEL_ALIASES: Record<string, string> = {
   // Bare 'qwen plus' = the current Plus flagship (3.5 Plus retired from
   // primary routes — operator, 2026-07-04).
   'qwen plus': 'qwen3.7-plus',
-  // DeepSeek — every alias lands in the same place, because there is only one
-  // DeepSeek model since 2026-09-10. 'deepseek pro' is kept as a spoken alias
-  // deliberately: users will keep asking for it by name for a long while yet.
+  // DeepSeek — every alias lands on V4.1 Flash, which DeepSeek's own tests put
+  // ahead of V4 Pro. 'deepseek pro' is kept as a spoken alias deliberately:
+  // users will keep asking for it by name for a long while yet.
   'deepseek': 'deepseek-flash',
   'deepseek pro': 'deepseek-flash',
   'deepseek flash': 'deepseek-flash',

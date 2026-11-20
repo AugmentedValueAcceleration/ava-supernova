@@ -4,10 +4,17 @@ import type { ModelDefinition } from '../../core/types.js';
 // MoE variants. Both support 1M context, dual thinking/non-thinking modes,
 // native OpenAI + Anthropic API compat.
 //
-// ONE MODEL. DeepSeek collapsed the line on 2026-09-10: `deepseek-flash`
-// (V4.1 Flash, and note there is no version number in the id) is the only
-// live model. V4 Pro is retiring and redirects to it; `deepseek-flash`
-// survives only as a legacy alias.
+// ONE MODEL offered: `deepseek-flash` (V4.1 Flash, now the 1017 build; note
+// there is no version number in the id).
+//
+// V4 Pro is NOT retired — DeepSeek announced it would be on 2026-09-10, then
+// changed course the same day and still serves it at its old price. We route
+// it to V4.1 Flash anyway, on DeepSeek's own word: their V4.1 Flash notice
+// says tests "put V4.1-Flash ahead of V4-Pro on performance, cost, speed &
+// total runtime", and Pro costs about four times as much ($0.66/$1.98 against
+// $0.15/$0.60 off-peak). Quality first, then cost — Flash wins both, so a Pro
+// pick gets the better model (his call, 20 Nov 2026). Revisit when V4.1 Pro
+// ships, which DeepSeek has said is coming.
 //
 // Every retired id we have ever shipped is mapped in DEEPSEEK_RETIRED_IDS
 // below and rewritten by us before a request goes out, rather than trusting
@@ -60,6 +67,8 @@ export const DEEPSEEK_RETIRED_IDS: Readonly<Record<string, string>> = {
   // NOTE: these KEYS are the retired ids and must keep their old spelling —
   // that is the entire point of the map. A global rename across the package
   // flattened them once already.
+  // V4 Pro is still served, but routed to Flash on purpose — see the top of
+  // this file.
   'deepseek-v4-pro': 'deepseek-flash',
   'deepseek-v4-pro-platform': 'deepseek-flash-platform',
   'deepseek-v4-flash': 'deepseek-flash',

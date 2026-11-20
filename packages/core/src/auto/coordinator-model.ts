@@ -45,9 +45,8 @@ const BYOK_PRIORITY = [
   // K3 leads this list on merit as well as by default: Moonshot's launch table
   // put it ahead on agentic work (Terminal Bench 88.3, BrowseComp 91.2) at a
   // fraction of closed-frontier pricing.
+  { id: 'kimi-k3.1-pro',        reason: 'Kimi K3.1 Pro — Moonshot flagship, post-trained K3, 1M context, vision, top open-weight model on Arena' },
   { id: 'kimi-k3',              reason: 'Kimi K3 — Moonshot frontier model, 2.8T MoE, 1M context, leads agentic + browsing benchmarks' },
-  { id: 'kimi-k2.7-code',       reason: 'Kimi K2.7 Code — Moonshot flagship agentic coder, ~30% fewer reasoning tokens than K2.6, 256K context' },
-  { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — agentic coding fallback (SWE-Bench Pro 58.6), 256K context' },
   { id: 'deepseek-flash',      reason: 'DeepSeek V4.1 Flash — frontier coding + long-context reasoning' },
   { id: 'qwen3.7-plus',         reason: 'Qwen 3.7 Plus — #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },
   // 'tools + vision' stood here for six weeks after the catalogue was

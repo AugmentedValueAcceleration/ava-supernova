@@ -44,6 +44,16 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // the same for own-key calls, so a saved choice survives the shutdown.
   'MiniMax-M2.7':           'MiniMax-M3.1-Flash',
   'MiniMax-M2.7-highspeed': 'MiniMax-M3.1-Flash',
+  // Kimi K2.7 Code and K2.6 close to new Moonshot accounts on 2026-11-01 and
+  // retire at the end of December 2026: rolled forward to K3.1 Pro (his
+  // call, 20 Nov 2026), so a saved choice survives the shutdown.
+  'kimi-k2.7-code':        'kimi-k3.1-pro',
+  'kimi-k2.6':             'kimi-k3.1-pro',
+  // Tencent Hy3 replaced by Hy4 (his call, 20 Nov 2026) — the like-for-like
+  // flagship step: 1M context against 256K, and it takes images. The April
+  // preview id goes the same way.
+  'hy3':                   'hy4',
+  'hy3-preview':           'hy4',
   // Managed DeepSeek — strip the `-platform` disambiguator
   'deepseek-flash-platform':   'deepseek-flash',
   // Managed Kimi K3 (Longxiang's lead seat) — strip the disambiguator.
@@ -55,7 +65,7 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // alongside it — so every surface reading that row (extension, IDE, hub)
   // would have sent the suffixed id to Moonshot and taken the same 404 the
   // line above exists to prevent.
-  'kimi-k2.7-code-platform':    'kimi-k2.7-code',
+  'kimi-k2.7-code-platform':    'kimi-k3.1-pro', // K2.7 Code rolled forward (above)
   // Managed Mistral (Aurora's fleet) — friendly name -> the id Mistral accepts.
   // Large 3 and Small 4 use date-stamped snapshots. Medium 3.5 is pinned to the
   // SEMANTIC id `mistral-medium-3-5` (what Mistral's own rate-limit console
@@ -77,18 +87,14 @@ export const MODEL_API_NAMES: Record<string, string> = {
  *
  * (qwen3.5-flash, text-only, used to be here; since 2026-11-19 it and the qwen-flash /
  * qwen-turbo aliases roll forward to qwen3.8-flash, which takes images itself.)
- * DeepSeek V4 (Pro + Flash) is text-only at the API
- * level (verified against api.deepseek.com 2026-04-25) so image requests reroute
- * to Qwen 3.7 Plus (native vision + video). Aurora coordinates on Medium 3.5,
+ * DeepSeek is absent: V4 Pro (text-only) is routed to V4.1 Flash before it
+ * gets here, and V4.1 Flash takes images itself. Aurora coordinates on Medium 3.5,
  * whose vision encoder was trained from scratch, so images stay in-fleet and
  * the EU-stack guarantee holds instead of falling to Qwen. (Large 3 — text-only
  * — was the coordinator before the fleet was re-tiered; it's the heavy reserve
  * now.)
  */
 export const VISION_REROUTE: Record<string, string> = {
-  // DeepSeek is deliberately absent: V4 Pro and V4 Flash were both text-only
-  // at the API level and rerouted here. V4.1 Flash is multimodal, so it takes
-  // the image itself — rerouting it would hand its own work to Qwen.
   'mistral-large-2512':  'mistral-medium-3-5',
 };
 

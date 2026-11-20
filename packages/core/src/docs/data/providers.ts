@@ -79,7 +79,7 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'deepseek',
     name: 'DeepSeek',
     kind: 'byok',
-    notes: 'One model, since DeepSeek collapsed the line on 2026-09-10 and retired V4 Pro into V4.1 Flash — open-weight MIT, 1M context, 384K max output, multimodal, dual thinking modes. Every retired id we have shipped (V4 Pro, V4 Flash, and the older V3.2 deepseek-chat / deepseek-reasoner) is rewritten to this one before the request goes out, so an old saved setting keeps working. Prices are off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri) is exactly double.',
+    notes: 'One model: V4.1 Flash — open-weight MIT, 1M context, 384K max output, multimodal, dual thinking modes. DeepSeek still serves V4 Pro, but its own tests put V4.1 Flash ahead on performance, cost and speed, at about a quarter of the price — so a V4 Pro choice is sent to V4.1 Flash. So is every retired id we have shipped (V4 Flash, and the older V3.2 deepseek-chat / deepseek-reasoner), so an old saved setting keeps working. Prices are off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri) is exactly double.',
     models: [
       { id: 'deepseek-flash', displayName: 'DeepSeek V4.1 Flash', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
@@ -101,11 +101,11 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'kimi',
     name: 'Kimi (Moonshot AI)',
     kind: 'byok',
-    notes: 'K3 is Moonshot\'s frontier model (2.8T MoE, 1M context, native vision; open weights due 2026-07-27). K2.7 Code remains the cheaper agentic coder at roughly a third of K3\'s price. All benchmarks Moonshot-reported: K3 leads Opus 4.8 on most agentic rows but trails Claude Fable 5 on FrontierSWE, HLE and GDPval.',
+    notes: 'K3.1 Pro (23 October 2026) is Moonshot\'s flagship: a post-trained K3 with 1M context and native vision, better than K3 and cheaper. Highspeed is the same model about 2-3x faster, at double the price. K3 stays available. K2.7 Code and K2.6 retire at the end of December 2026; if you had one picked, it moves on to K3.1 Pro by itself.',
     models: [
+      { id: 'kimi-k3.1-pro', displayName: 'Kimi K3.1 Pro', inputPricePerM: 2.00, outputPricePerM: 10.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'kimi-k3.1-pro-highspeed', displayName: 'Kimi K3.1 Pro Highspeed', inputPricePerM: 4.00, outputPricePerM: 20.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k3', displayName: 'Kimi K3', inputPricePerM: 3.00, outputPricePerM: 15.00, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'kimi-k2.7-code', displayName: 'Kimi K2.7 Code', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'kimi-k2.6', displayName: 'Kimi K2.6', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {
@@ -144,9 +144,10 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'tencent',
     name: 'Tencent Hunyuan',
     kind: 'byok',
-    notes: 'Hunyuan Hy3 — open-weight MoE (295B total / 21B active), hybrid fast/slow reasoning, built for agentic workflows. OpenAI-compatible, 262K context, very cheap. BYOK.',
+    notes: 'Hunyuan Hy4 (4 November 2026) is Tencent\'s flagship — 1M context, vision and reasoning, built for agentic work. Hy4 Flash is the fast, very cheap one, with the same 1M context and vision. Both are at half price for a limited time (Flash until 30 November, Hy4 until 31 December 2026); the prices shown are the full ones. Hy3 has been replaced: if you had it picked, it moves on to Hy4 by itself. BYOK.',
     models: [
-      { id: 'hy3', displayName: 'Hunyuan Hy3', inputPricePerM: 0.15, outputPricePerM: 0.59, contextWindow: 262_144, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'hy4', displayName: 'Hunyuan Hy4', inputPricePerM: 0.834, outputPricePerM: 2.501, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'hy4-flash', displayName: 'Hunyuan Hy4 Flash', inputPricePerM: 0.07, outputPricePerM: 0.281, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {

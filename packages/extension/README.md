@@ -92,12 +92,12 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 |---|---|
 | **BYOK — Qwen** | Qwen 4 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen3 Coder Next / Flash |
 | **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
-| **BYOK — Moonshot** | Kimi K3 *(2.8T MoE, 1M context, native vision)*, K2.7 Code, K2.6 |
+| **BYOK — Moonshot** | Kimi K3.1 Pro *(1M context, native vision)*, K3.1 Pro Highspeed, K3 |
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
 | **BYOK — Mistral** | Large 4 *(1M context, reads images)*, Small 4 |
 | **BYOK — MiniMax** | M3 *(1M context, reads images)*, M3.1 Flash |
 | **BYOK — Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
-| **BYOK — Tencent** | Hunyuan Hy3 *(open-weight MoE, 262K context)* |
+| **BYOK — Tencent** | Hunyuan Hy4 and Hy4 Flash *(1M context, vision)* |
 | **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning *(open-weight, 1M context)* |
 | **Local** | Ollama, LM Studio, vLLM, any standard API endpoint |
 

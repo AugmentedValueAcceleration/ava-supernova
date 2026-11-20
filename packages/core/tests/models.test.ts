@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import type { ModelDefinition } from '../src/core/types.js';
 import { DEEPSEEK_MODELS, DEEPSEEK_RETIRED_IDS } from '../src/providers/deepseek/models.js';
 import { KIMI_MODELS } from '../src/providers/kimi/models.js';
+import { TENCENT_MODELS } from '../src/providers/tencent/models.js';
+import { resolveApiModel } from '../src/providers/request-shaping/model-ids.js';
 import { QWEN_MODELS } from '../src/providers/qwen/models.js';
 import { ZHIPU_MODELS } from '../src/providers/zhipu/models.js';
 import { MISTRAL_MODELS } from '../src/providers/mistral/models.js';
@@ -26,12 +28,12 @@ describe('Model definitions', () => {
       }
     });
 
-    it('is exactly one model — deepseek-flash', () => {
-      // ONE since 2026-09-10: DeepSeek retired V4 Pro into V4.1 Flash and
-      // `deepseek-flash` (no version in the id) is all that is live. Carrying
-      // two would mean selling the same model twice under different names at
-      // different credit rates, which is what we had for a few hours.
+    it('offers one model — deepseek-flash — and sends V4 Pro there', () => {
+      // V4 Pro is still served, but DeepSeek's own V4.1 Flash notice puts Flash
+      // ahead of it on performance, cost and speed, at a quarter of the price
+      // (his call, 20 Nov 2026: leave Pro out).
       expect(DEEPSEEK_MODELS.map((m) => m.id)).toEqual(['deepseek-flash']);
+      expect(DEEPSEEK_RETIRED_IDS['deepseek-v4-pro']).toBe('deepseek-flash');
     });
 
     it('deepseek-flash thinks, sees, and takes 384K of output', () => {
@@ -65,12 +67,18 @@ describe('Model definitions', () => {
       }
     });
 
-    it('kimi-k2.6 supports thinking, vision and tools', () => {
-      const k26 = KIMI_MODELS.find((m) => m.id === 'kimi-k2.6');
-      expect(k26).toBeDefined();
-      expect(k26?.supportsThinking).toBe(true);
-      expect(k26?.supportsVision).toBe(true);
-      expect(k26?.supportsToolCalls).toBe(true);
+    it('K3.1 Pro leads, and the retiring K2 line rolls forward to it', () => {
+      const pro = KIMI_MODELS.find((m) => m.id === 'kimi-k3.1-pro');
+      expect(pro).toMatchObject({ supportsThinking: true, supportsVision: true, supportsToolCalls: true });
+      expect(pro?.pricing).toEqual({ inputPerMillion: 2.00, outputPerMillion: 10.00 });
+      // K2.7 Code and K2.6 retire at the end of December 2026: hidden, still
+      // resolvable, and sent to Moonshot as K3.1 Pro.
+      for (const id of ['kimi-k2.7-code', 'kimi-k2.6', 'kimi-k2.7-code-platform']) {
+        expect(resolveApiModel(id)).toBe('kimi-k3.1-pro');
+      }
+      for (const id of ['kimi-k2.7-code', 'kimi-k2.6']) {
+        expect(KIMI_MODELS.find((m) => m.id === id)?.hiddenFromPicker).toBe(true);
+      }
     });
 
     // Moonshot switches kimi-k2.5 off on 2026-08-31 and it is already closed to
@@ -80,6 +88,22 @@ describe('Model definitions', () => {
     // somebody else's terminal.
     it('kimi-k2.5 is retired and no longer offered', () => {
       expect(KIMI_MODELS.find((m) => m.id === 'kimi-k2.5')).toBeUndefined();
+    });
+  });
+
+  describe('Tencent', () => {
+    it('offers Hy4 and Hy4 Flash, both seeing, 1M context', () => {
+      const shown = TENCENT_MODELS.filter((m) => !m.hiddenFromPicker).map((m) => m.id);
+      expect(shown).toEqual(['hy4', 'hy4-flash']);
+      for (const id of shown) {
+        expect(TENCENT_MODELS.find((m) => m.id === id)).toMatchObject({ supportsVision: true, contextWindow: 1048576 });
+      }
+    });
+
+    it('Hy3 and its preview roll forward to Hy4', () => {
+      expect(resolveApiModel('hy3')).toBe('hy4');
+      expect(resolveApiModel('hy3-preview')).toBe('hy4');
+      expect(TENCENT_MODELS.find((m) => m.id === 'hy3')?.hiddenFromPicker).toBe(true);
     });
   });
 

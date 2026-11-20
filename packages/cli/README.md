@@ -39,12 +39,12 @@ Pick any model your keys reach:
 |---|---|
 | **Qwen (Alibaba)** | Qwen 4 Max, 3.8 Flash, 3.7 Plus, 3.7 Flash, Coder Next / Flash |
 | **DeepSeek** | DeepSeek V4.1 Flash |
-| **Moonshot** | Kimi K3, K2.7 Code, K2.6 |
+| **Moonshot** | Kimi K3.1 Pro, K3.1 Pro Highspeed, K3 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash |
 | **Mistral** | Large 4, Small 4 |
 | **MiniMax** | M3, M3.1 Flash |
 | **Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
-| **Tencent** | Hunyuan Hy3 |
+| **Tencent** | Hunyuan Hy4, Hy4 Flash |
 | **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning |
 | **Local** | Ollama, LM Studio, vLLM, any standard API-format endpoint |
 

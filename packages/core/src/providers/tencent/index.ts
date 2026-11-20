@@ -5,8 +5,10 @@ import { TENCENT_MODELS } from './models.js';
 /**
  * Tencent Hunyuan — BYOK provider (OpenAI-compatible).
  *
- * Talks to Tencent's TokenHub gateway (tokenhub-intl.tencentmaas.com — the
- * international endpoint, which is the one we use everywhere), mirroring
+ * Talks to Tencent's TokenHub gateway (tokenhub-intl.tencentcloudmaas.com —
+ * the international endpoint, as Tencent's own Hy API Guide gives it since
+ * the Hy4 launch; the older tokenhub-intl.tencentmaas.com still answers, but
+ * the guide is the one to follow), mirroring
  * the OpenAI chat-completions shape including tool calling + reasoning_effort.
  * Bring your own Tencent Hunyuan key.
  */
@@ -15,7 +17,7 @@ export class TencentProvider extends BaseProvider {
   readonly displayName = 'Tencent Hunyuan';
 
   protected getDefaultBaseUrl(): string {
-    return 'https://tokenhub-intl.tencentmaas.com/v1';
+    return 'https://tokenhub-intl.tencentcloudmaas.com/v1';
   }
 
   listModels(): ModelDefinition[] {

@@ -9,22 +9,18 @@ import type { SessionStats, ConversationEntry, ConversationSurface, Page } from 
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
 import { useTabTransition } from '../lib/useTabTransition';
 import { TabSpinner } from '../components/TabSpinner';
+import { usdRateFor } from '@ava/core/audit/cost';
 
 // ─── Model pricing (per 1M tokens) ──────────────────────────────────────────
+// Read from core's rate card (usdRateFor) — the same one every receipt uses,
+// and the one the IDE's Usage page reads. This page had its own list until
+// 20 Nov 2026: five Qwen ids from 2025, so every model in use was guessed.
 
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  'qwen-turbo-latest': { input: 0.05, output: 0.40 },
-  'qwen-plus-latest': { input: 0.20, output: 1.20 },
-  'qwen3-235b-a22b': { input: 0.20, output: 1.20 },
-  'qwq-plus': { input: 0.20, output: 1.20 },
-  'qwen-max-latest': { input: 0.80, output: 3.20 },
-};
+const DEFAULT_PRICING = { inputPerMillion: 0.20, outputPerMillion: 1.20 };
 
-const DEFAULT_PRICING = { input: 0.20, output: 1.20 };
-
-function estimateCost(inputTokens: number, outputTokens: number, model: string): number {
-  const pricing = MODEL_PRICING[model] ?? DEFAULT_PRICING;
-  return (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output;
+function estimateCost(inputTokens: number, outputTokens: number, model: string, provider?: string): number {
+  const pricing = usdRateFor(model, provider) ?? DEFAULT_PRICING;
+  return (inputTokens / 1_000_000) * pricing.inputPerMillion + (outputTokens / 1_000_000) * pricing.outputPerMillion;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -909,7 +905,7 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
 
   const totalCost = useMemo(() => {
     if (!stats) return 0;
-    return stats.model_breakdown.reduce((sum, m) => sum + estimateCost(m.input_tokens, m.output_tokens, m.model), 0);
+    return stats.model_breakdown.reduce((sum, m) => sum + estimateCost(m.input_tokens, m.output_tokens, m.model, m.provider), 0);
   }, [stats]);
 
   return (
@@ -962,7 +958,7 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
               {breakdown.map((m) => {
                 const total = m.input_tokens + m.output_tokens;
                 const pct = (total / maxTotal) * 100;
-                const cost = estimateCost(m.input_tokens, m.output_tokens, m.model);
+                const cost = estimateCost(m.input_tokens, m.output_tokens, m.model, m.provider);
                 return (
                   <div key={`${m.provider}:${m.model}`} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
                     <div className="mb-2 flex items-center justify-between">

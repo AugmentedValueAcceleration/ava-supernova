@@ -1,6 +1,6 @@
 {
   "name": "@ava/core",
-  "version": "0.2.191",
+  "version": "0.2.192",
   "description": "Core engine for Ava Supernova — agent, providers, tools, config",
   "type": "module",
   "main": "./dist/index.js",
@@ -73,6 +73,11 @@
       "import": "./dist/history/conversation-title.js",
       "require": "./dist/history/conversation-title.js",
       "types": "./dist/history/conversation-title.d.ts"
+    },
+    "./audit/cost": {
+      "import": "./dist/audit/cost.js",
+      "require": "./dist/audit/cost.js",
+      "types": "./dist/audit/cost.d.ts"
     },
     "./audit/patterns": {
       "import": "./dist/audit/patterns.js",

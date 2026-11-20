@@ -104,12 +104,12 @@ Or pick any single model your keys reach:
 |---|---|
 | **Qwen (Alibaba)** | Qwen 4 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen3 Coder Next / Flash — up to 1M context, vision, reasoning |
 | **DeepSeek** | DeepSeek V4.1 Flash — MIT open-weight, 1M context |
-| **Moonshot** | Kimi K3 (1M context, native vision), K2.7 Code, K2.6 |
+| **Moonshot** | Kimi K3.1 Pro (1M context, native vision), K3.1 Pro Highspeed, K3 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash — MIT open-weight, 1M context |
 | **Mistral** | Large 4 (1M context), Small 4 |
 | **MiniMax** | M3, M3.1 Flash — 1M context |
 | **Xiaomi** | MiMo V2.6-Pro, V2.6-Flash — 1M context, native multimodal |
-| **Tencent** | Hunyuan Hy3 — open-weight MoE, 262K context |
+| **Tencent** | Hunyuan Hy4, Hy4 Flash — 1M context, vision |
 | **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning — open-weight, 1M context |
 | **Local** | Ollama, LM Studio, vLLM, or any standard API-format endpoint — no key, no cost |
 

@@ -8,7 +8,7 @@
 
 import type { AuditCost } from './types.js';
 
-interface ProviderRate {
+export interface ProviderRate {
   /** USD per million input tokens. */
   inputPerMillion: number;
   /** USD per million output tokens. */
@@ -39,9 +39,9 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'MiniMax-M2.7-highspeed': { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
   deepseek: {
-    // ONE model since 2026-09-10: V4 Pro and V4 Flash both retired into
-    // V4.1 Flash. Off-peak; peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri)
-    // is exactly double.
+    // ONE model offered: V4 Pro and V4 Flash are both routed to V4.1 Flash
+    // (Pro is still served, but DeepSeek's own tests put Flash ahead). Off-peak;
+    // peak (01:00-04:00 and 06:00-10:00 UTC, Mon-Fri) is exactly double.
     'deepseek-flash': { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
   kimi: {
@@ -49,9 +49,12 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     // K2.6/K2.5 were previously 0.60/2.40 and 0.55/2.20 here — both wrong, and
     // both disagreed with providers/kimi/models.ts. Cost audits under-reported
     // Kimi spend by ~37% until this was corrected.
+    // K3.1 Pro and Highspeed verified on platform.kimi.ai 2026-11-20.
+    'kimi-k3.1-pro':           { inputPerMillion: 2.00, outputPerMillion: 10.00 },
+    'kimi-k3.1-pro-highspeed': { inputPerMillion: 4.00, outputPerMillion: 20.00 },
     'kimi-k3': { inputPerMillion: 3.00, outputPerMillion: 15.00 },
-    'kimi-k2.7-code': { inputPerMillion: 0.95, outputPerMillion: 4.00 },
-    'kimi-k2.6': { inputPerMillion: 0.95,  outputPerMillion: 4.00 },
+    'kimi-k2.7-code': { inputPerMillion: 2.00, outputPerMillion: 10.00 }, // → kimi-k3.1-pro
+    'kimi-k2.6':      { inputPerMillion: 2.00, outputPerMillion: 10.00 }, // → kimi-k3.1-pro
     // UNREACHABLE — retained only so existing receipts still cost out.
     // Dropped from the catalogue ahead of Moonshot's 31 August switch-off, so
     // nothing can select it and no new call can produce it. The rate stays
@@ -119,7 +122,10 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
   // history, unlike the retired ids below — those still cost out real logged
   // usage, whereas these could only cost out a provider that is gone.
   tencent: {
-    'hy3':         { inputPerMillion: 0.15,  outputPerMillion: 0.59 },
+    // Hy4 and Hy4 Flash: TokenHub list prices (USD), verified 2026-11-20.
+    'hy4':         { inputPerMillion: 0.834, outputPerMillion: 2.501 },
+    'hy4-flash':   { inputPerMillion: 0.07,  outputPerMillion: 0.281 },
+    'hy3':         { inputPerMillion: 0.834, outputPerMillion: 2.501 }, // → hy4
     // UNREACHABLE — retained only so existing receipts still cost out.
     // The April preview, replaced by the GA hy3 above.
     'hy3-preview': { inputPerMillion: 0.063, outputPerMillion: 0.210 },
@@ -173,6 +179,36 @@ function estimateByokUsd(provider: string | undefined, model: string | undefined
   const rate = PROVIDER_USD_RATES[provider]?.[model];
   if (!rate) return undefined;
   return (inputTokens / 1_000_000) * rate.inputPerMillion + (outputTokens / 1_000_000) * rate.outputPerMillion;
+}
+
+/**
+ * USD per 1M tokens for a model, from the same rate card every receipt uses —
+ * so the Usage pages in the extension and the IDE price a model exactly as
+ * its receipt does, and a model added here is priced there with no second
+ * list to keep in step (each kept its own, and both had drifted: the
+ * extension's knew five Qwen ids from 2025, the IDE's had no Mistral, GLM,
+ * MiMo, Hunyuan or Nemotron).
+ *
+ * Takes a bare id ('qwen4-max'), a qualified one ('qwen:qwen4-max') or a
+ * managed '-platform' id. The provider is optional: ids are unique across
+ * providers. Pure — no imports beyond types — so it is safe in a browser
+ * bundle via `@ava/core/audit/cost`. undefined when there is no rate.
+ */
+export function usdRateFor(model: string | undefined, provider?: string): ProviderRate | undefined {
+  if (!model) return undefined;
+  let id = model;
+  let prov = provider;
+  const colon = id.indexOf(':');
+  if (colon > 0) {
+    prov = prov ?? id.slice(0, colon);
+    id = id.slice(colon + 1);
+  }
+  id = id.replace(/-platform$/, '');
+  if (prov && PROVIDER_USD_RATES[prov]?.[id]) return PROVIDER_USD_RATES[prov][id];
+  for (const rates of Object.values(PROVIDER_USD_RATES)) {
+    if (rates[id]) return rates[id];
+  }
+  return undefined;
 }
 
 /** Format a cost record for display. Returns a short string suitable
