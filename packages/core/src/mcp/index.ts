@@ -15,7 +15,7 @@ export type { McpKeychain } from './secrets.js';
 export { isUserMcpTool, mcpToolInMode, mcpToolAlwaysAllowed, mcpToolNeedsAsking, USER_MCP_PREFIX } from './permissions.js';
 export type { McpCallRule } from './permissions.js';
 export {
-  UnrealCatalog, isUnrealServer, unrealInnerTool, unrealAllowKey, parseToolsetNames,
+  UnrealCatalog, isUnrealServer, isUnrealCaptureTool, unrealInnerTool, unrealAllowKey, parseToolsetNames,
   UNREAL_SERVER_NAME, UNREAL_DEFAULT_URL, UNREAL_CALL_TOOL, UNREAL_MIN_VERSION, unrealVersionOk,
 } from './unreal.js';
 export type { UnrealAccess } from './unreal.js';

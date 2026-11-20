@@ -45,9 +45,10 @@ function fakeModel(): Server {
     }
     if (last?.role === 'tool') { sse(res, [delta({ role: 'assistant', content: 'Done.' }), delta({}, 'stop')]); return; }
     const said = textOf(last?.content).toLowerCase();
-    const tool = said.includes('spawn') ? 'SpawnActor' : said.includes('list') ? 'ListActors' : null;
+    const tool = said.includes('snapzebra') ? 'CaptureEditorImage' : said.includes('spawn') ? 'SpawnActor' : said.includes('list') ? 'ListActors' : null;
     if (!tool) { sse(res, [delta({ role: 'assistant', content: 'Hello.' }), delta({}, 'stop')]); return; }
-    const args = JSON.stringify({ toolset_name: 'EditorToolset.ActorToolset', tool_name: tool, arguments: {} });
+    const toolset = tool === 'CaptureEditorImage' ? 'EditorToolset.EditorAppToolset' : 'EditorToolset.ActorToolset';
+    const args = JSON.stringify({ toolset_name: toolset, tool_name: tool, arguments: {} });
     sse(res, [
       delta({ role: 'assistant', tool_calls: [{ index: 0, id: `call_${++n}`, type: 'function', function: { name: 'mcp_unreal_call_tool', arguments: args } }] }),
       delta({}, 'tool_calls'),
@@ -88,7 +89,7 @@ beforeAll(async () => {
     local_model: { baseUrl: modelUrl, modelName: 'fake', label: 'Fake', models: ['fake'] },
   }));
 
-  unreal = spawn(process.execPath, [FAKE_UNREAL, '--http', '0'], { cwd: resolve(CLI, '../core') });
+  unreal = spawn(process.execPath, [FAKE_UNREAL, '--http', '0', '--capture'], { cwd: resolve(CLI, '../core') });
   unrealUrl = await new Promise<string>((r) => {
     createInterface({ input: unreal.stdout! }).on('line', (l) => { const m = /^listening (\S+)/.exec(l); if (m) r(m[1]); });
   });
@@ -201,6 +202,25 @@ describe('Ava in Unreal\'s panel', () => {
     expect(updates.find((u) => u.sessionUpdate === 'tool_call_update')?.status).toBe('completed');
   }, 60_000);
 
+  it('a picture from Unreal asks every time: no "Allow for this session", and never offered "Always allow" (his call, 20 Nov)', async () => {
+    const before = permissionAsks.length;
+    updates.length = 0;
+    // Unreal labels this capture read-only; it asks anyway.
+    await send('session/prompt', { sessionId, prompt: [{ type: 'text', text: 'snapzebra: a picture of the level' }] });
+    expect(permissionAsks).toHaveLength(before + 1);
+    const options = (permissionAsks[before].options as Array<{ optionId: string }>);
+    expect(options.map((o) => o.optionId)).toEqual(['allow', 'deny']);
+    expect(updates.find((u) => u.sessionUpdate === 'tool_call_update')?.status).toBe('completed');
+    // Even answering "for this session" (were Unreal to send it), the next picture asks again.
+    permissionAnswer = 'allow_session';
+    await send('session/prompt', { sessionId, prompt: [{ type: 'text', text: 'snapzebra again' }] });
+    permissionAnswer = 'allow';
+    await send('session/prompt', { sessionId, prompt: [{ type: 'text', text: 'snapzebra once more' }] });
+    expect(permissionAsks).toHaveLength(before + 3);
+    const asked = JSON.parse(readFileSync(join(home, '.ava', 'mcp.json'), 'utf8')).mcpServers.unreal.asked as string[];
+    expect(asked.some((a) => /capture/i.test(a))).toBe(false);
+  }, 60_000);
+
   it('Code · Talk looks but changes nothing: a change is refused, without asking', async () => {
     const r = await send('session/set_config_option', { sessionId, configId: 'mode', value: 'talk' });
     expect((r.result as Record<string, any>).configOptions.find((o: { id: string }) => o.id === 'mode').currentValue).toBe('talk');
@@ -208,7 +228,7 @@ describe('Ava in Unreal\'s panel', () => {
     await send('session/prompt', { sessionId, prompt: [{ type: 'text', text: 'spawn one more' }] });
     const told = requests.filter((q) => q.stream).flatMap((q) => q.messages).filter((m) => m.role === 'tool').map((m) => textOf(m.content)).pop();
     // Refused before it runs (core sends no tool line for a refused call): no prompt, nothing done.
-    expect(permissionAsks).toHaveLength(3);
+    expect(permissionAsks).toHaveLength(6);
     expect(updates.some((u) => u.sessionUpdate === 'tool_call_update' && u.status === 'completed')).toBe(false);
     expect(told).toContain('the Talk switch is on');
     const last = requests.filter((q) => q.stream).pop()!;

@@ -32,6 +32,7 @@ import {
   getWorkModePrefix,
   getWorkTalkPrefix,
   isUserMcpTool,
+  isUnrealCaptureTool,
   t,
   unrealInnerTool,
   UNREAL_CALL_TOOL,
@@ -180,6 +181,9 @@ export class AcpServer {
     const m = McpServers.current();
     if (!this.mcpStarted) {
       this.mcpStarted = true;
+      // A picture from Unreal asks every time here too, as in the extension
+      // (his call, 20 Nov): never "always", never "for this session".
+      m.setCaptureAlwaysAsks(true);
       m.onChange(() => { if (this.host) syncMcpTools(this.host.toolRegistry); });
     }
     if (unreal) {
@@ -438,7 +442,9 @@ export class AcpServer {
 export function sessionAllowKey(name: string, args: Record<string, unknown>): string | null {
   if (isUserMcpTool(name) && name.endsWith(`_${UNREAL_CALL_TOOL}`)) {
     const inner = unrealInnerTool(args);
-    return inner ? `${name}:${inner}` : null;
+    // A capture asks every time: no "Allow for this session" (his call, 20 Nov).
+    if (!inner || isUnrealCaptureTool(inner)) return null;
+    return `${name}:${inner}`;
   }
   return name;
 }

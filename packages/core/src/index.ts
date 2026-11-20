@@ -669,7 +669,7 @@ export {
   readProjectServers, readEntry, fingerprint, describeEntry, secretsUsed, cleanServerId, isWebEntry,
   setMcpKeychain, hasMcpKeychain, getMcpSecret, setMcpSecret, mcpSecretNames, getMcpAuth, setMcpAuth,
   isUserMcpTool, mcpToolInMode, mcpToolAlwaysAllowed, mcpToolNeedsAsking, USER_MCP_PREFIX,
-  UnrealCatalog, isUnrealServer, unrealInnerTool, unrealAllowKey, UNREAL_SERVER_NAME, UNREAL_DEFAULT_URL, UNREAL_CALL_TOOL,
+  UnrealCatalog, isUnrealServer, isUnrealCaptureTool, unrealInnerTool, unrealAllowKey, UNREAL_SERVER_NAME, UNREAL_DEFAULT_URL, UNREAL_CALL_TOOL,
   ensureUnrealServer, settleUnrealServer, unrealPanelPrompt, unrealVersionOk, UNREAL_MIN_VERSION,
   setUnrealProgramSource, unrealProgramState, installUnrealProgram, downloadNodeRuntime, unrealProgramPaths, UNREAL_NODE_VERSION,
   mcpPage, splitCommandLine, MCP_HEAVY_TOOLS, riskNotes,
