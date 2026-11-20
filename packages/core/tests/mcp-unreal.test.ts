@@ -14,6 +14,7 @@ import {
 import { mcpPage } from '../src/mcp/page.js';
 import { unrealPromptSection, unrealToolNames } from '../src/mcp/unreal-context.js';
 import { unrealEditorInfo } from '../src/mcp/unreal.js';
+import { uprojectFromCommandLine, engineVersionOf } from '../src/mcp/unreal-local.js';
 import { getWorkTalkPrefix, getWorkModePrefix, getPlanModePrefix } from '../src/agent/system-prompt.js';
 import { ToolRegistry } from '../src/tools/tool-registry.js';
 import { toolPassesModeGate } from '../src/agent/agent.js';
@@ -67,7 +68,7 @@ describe('knowing it is Unreal', () => {
   it('reads every Unreal tool\'s label when it connects', async () => {
     const { s } = await startUnreal();
     expect(s.state).toBe('ready');
-    expect(s.unreal).toEqual({ tools: 7, toolsetsOff: false, allowed: [], asked: [] });
+    expect(s.unreal).toEqual({ tools: 7, toolsetsOff: false, labelled: true, assistantPanel: true, allowed: [], asked: [] });
     expect(s.tools.map((t) => t.avaName).sort()).toEqual([CALL, 'mcp_unreal_describe_tools', 'mcp_unreal_describe_toolsets', 'mcp_unreal_list_toolsets']);
   });
 
@@ -77,10 +78,10 @@ describe('knowing it is Unreal', () => {
     expect(reg.getTool('mcp_unreal_list_toolsets')!.description).toContain('All Toolsets');
   });
 
-  it("only Unreal 5.9 and later: an older editor isn't connected, and says why", async () => {
-    const { s } = await startUnreal(['--version', '5.8.2-12345']);
+  it("only Unreal 5.8 and later: an older editor isn't connected, and says why", async () => {
+    const { s } = await startUnreal(['--version', '5.7.4-12345']);
     expect(s).toMatchObject({ state: 'error', reason: 'unreal-old' });
-    expect(s.message).toContain('older than 5.9');
+    expect(s.message).toContain('older than 5.8');
     expect(McpServers.current().tools()).toEqual([]);
   });
 
@@ -88,16 +89,101 @@ describe('knowing it is Unreal', () => {
     expect(unrealVersionOk('5.9.0-60351404')).toBe(true);
     expect(unrealVersionOk('5.10.1')).toBe(true);
     expect(unrealVersionOk('6.0.0')).toBe(true);
-    expect(unrealVersionOk('5.8.2-123')).toBe(false);
+    expect(unrealVersionOk('5.8.2-123')).toBe(true);
+    expect(unrealVersionOk('5.7.4-123')).toBe(false);
     expect(unrealVersionOk('4.27.2')).toBe(false);
     expect(unrealVersionOk('')).toBe(true); // can't read it: the name already says it's Unreal
   });
 
-  it('is held back from the Suggested list until 5.9\'s full release, but a set-up server keeps its card', () => {
-    expect(UNREAL_RELEASED).toBe(false);
-    expect(MCP_SUGGESTIONS.find((x) => x.id === 'unreal')).toBeUndefined();
+  it('is offered in Suggested since its 5.8 release, and pointed at our own setup guide', () => {
+    expect(UNREAL_RELEASED).toBe(true);
+    expect(MCP_SUGGESTIONS.find((x) => x.id === 'unreal')).toMatchObject({ name: 'Unreal MCP', docs: 'https://avasupernova.com/guides/unreal-mcp-setup' });
     expect(ALL_MCP_SUGGESTIONS.find((x) => x.id === 'unreal')).toMatchObject({ kind: 'local', url: 'http://127.0.0.1:8000/mcp', publisher: 'Epic Games' });
     expect(suggestionFor('http://127.0.0.1:8000/mcp')).toMatchObject({ id: 'unreal', kind: 'local' });
+  });
+});
+
+// His 5.8 editor (20 Nov 2026): blank name and version, three meta-tools,
+// describe_toolset one at a time, 5.8's toolset names, and no labels at all.
+describe('Unreal 5.8', () => {
+  it('is known as Unreal by its tools, though it gives no name', async () => {
+    const { s } = await startUnreal(['--58']);
+    expect(s.state).toBe('ready');
+    // Every tool counted, though none is labelled (the page said "0 Unreal tools", 20 Nov).
+    expect(s.unreal).toMatchObject({ tools: 5, toolsetsOff: false, labelled: false, assistantPanel: false });
+    expect(s.tools.map((t) => t.avaName).sort()).toEqual([CALL, 'mcp_unreal_describe_toolset', 'mcp_unreal_list_toolsets']);
+  });
+
+  // 20 Nov: the page said connected, Ava said "Unknown tool". The extension and
+  // the IDE read the tools when "ready" is announced, and the server wasn't
+  // running yet at that moment. 5.9 hid it with a later "tools changed".
+  for (const flag of [[], ['--58']]) {
+    it(`its tools reach Ava when "ready" is announced${flag.length ? ' (5.8)' : ''}`, async () => {
+      writeConfig({ mcpServers: { unreal: { command: node, args: [FAKE, ...flag] } } });
+      const m = McpServers.current();
+      const reg = new ToolRegistry();
+      m.onChange(() => { syncMcpTools(reg); });
+      await m.start(null);
+      await settled();
+      expect(reg.getTool('mcp_unreal_list_toolsets')).toBeDefined();
+      expect(reg.getTool(CALL)).toBeDefined();
+    });
+  }
+
+  it('its discovery tools only look; every Unreal tool asks, since 5.8 labels none', async () => {
+    const { reg } = await startUnreal(['--58']);
+    expect(reg.needsConfirmation(reg.getTool('mcp_unreal_list_toolsets')!, {})).toBe(false);
+    expect(reg.needsConfirmation(reg.getTool('mcp_unreal_describe_toolset')!, { toolset_name: 'x' })).toBe(false);
+    const t = reg.getTool(CALL)!;
+    expect(reg.needsConfirmation(t, call('editor_toolset.toolsets.scene.SceneTools', 'get_current_level'))).toBe(true);
+    expect(reg.needsConfirmation(t, call('editor_toolset.toolsets.scene.SceneTools', 'add_to_scene_from_asset'))).toBe(true);
+  });
+
+  it('Ava is given 5.8\'s own tools and guidance, and told every tool asks', async () => {
+    await startUnreal(['--58']);
+    const section = unrealPromptSection('build');
+    expect(section).toContain('mcp_unreal_describe_toolset');
+    expect(section).not.toContain('mcp_unreal_describe_toolsets');
+    expect(section).toContain('Working in Unreal 5.8');
+    expect(section).not.toContain('PythonScriptingTools');
+    expect(section).toContain("doesn't mark which of its tools only look");
+    expect(unrealToolNames()).toBe(', mcp_unreal_list_toolsets, mcp_unreal_describe_toolset, mcp_unreal_call_tool');
+  });
+
+  it('finds the project from the editor\'s command line, relative to the editor', () => {
+    const exe = 'C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor.exe';
+    const p = uprojectFromCommandLine(`"${exe}" "../../../../../../Users/me/.ava/projects/DawnSets/DawnSets.uproject"`, exe)!;
+    expect(p.replace(/\\/g, '/')).toMatch(/\/Users\/me\/\.ava\/projects\/DawnSets\/DawnSets\.uproject$/);
+    expect(uprojectFromCommandLine('UnrealEditor /home/me/Game/Game.uproject -log')).toBe('/home/me/Game/Game.uproject');
+    expect(uprojectFromCommandLine('UnrealEditor -log')).toBeUndefined();
+    expect(engineVersionOf(undefined, exe)).toBe('5.8');
+  });
+});
+
+// His call, 20 Nov: in the VS Code extension a picture from Unreal asks every
+// time — even a capture Unreal calls read-only, and with no "always".
+describe('capture tools in the extension', () => {
+  it('ask every time, refuse "always", and stay out of Plan and the allowed list', async () => {
+    const { m } = await startUnreal(['--capture']);
+    m.setCaptureAlwaysAsks(true);
+    const reg = new ToolRegistry();
+    syncMcpTools(reg);
+    const t = reg.getTool(CALL)!;
+    const cap = call('EditorToolset.EditorAppToolset', 'CaptureEditorImage');
+    expect(reg.needsConfirmation(t, cap)).toBe(true);
+    // A plain read still runs straight away.
+    expect(reg.needsConfirmation(t, call('EditorToolset.ActorToolset', 'ListActors'))).toBe(false);
+    expect(await m.allowTool(CALL, true, cap)).toBe(false);
+    expect(toolPassesModeGate(CALL, new Set(), 'plan', cap)).toBe(false);
+    await m.noteAllowedOnce(CALL, cap);
+    await settled();
+    expect(m.status()[0].unreal?.asked ?? []).not.toContain('EditorToolset.EditorAppToolset.CaptureEditorImage');
+    expect(unrealPromptSection('build')).toContain('every picture from Unreal');
+  });
+
+  it('in the IDE (the rule off) a read-only capture runs as its label says', async () => {
+    const { reg } = await startUnreal(['--capture']);
+    expect(reg.needsConfirmation(reg.getTool(CALL)!, call('EditorToolset.EditorAppToolset', 'CaptureEditorImage'))).toBe(false);
   });
 });
 

@@ -28,6 +28,7 @@
  */
 
 import { McpServers, type McpServerStatus } from './manager.js';
+import { runningUnrealEditors, unrealInstalls } from './unreal-local.js';
 import {
   cleanServerId, describeEntry, readMcpFile, secretsUsed, updateMcpFile, type McpServerEntry,
 } from './servers-config.js';
@@ -279,6 +280,10 @@ export async function mcpPage(op: string, args: Record<string, unknown> = {}): P
     }
     // Ava in Unreal's Assistant panel (plan 2026-11-18-unreal, Phase 2): is
     // Ava.exe set up, and set it up (or bring it up to date).
+    // Setup steps for the Unreal versions on this computer (20 Nov 2026): what
+    // the Launcher installed, and any editor running (its MCP server may be off).
+    case 'unreal_setup':
+      return { installed: unrealInstalls(), running: (await runningUnrealEditors()).map((r) => ({ version: r.version, project: r.project })) };
     case 'unreal_panel':
       return unrealProgramState();
     case 'unreal_panel_install':

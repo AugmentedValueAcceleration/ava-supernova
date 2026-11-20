@@ -584,6 +584,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // tools follow every change — a server starting, stopping, or his answers.
     if (!this.mcpFollowing) {
       this.mcpFollowing = true;
+      // Unreal's capture tools ask every time in VS Code, never "always" (his
+      // call, 20 Nov 2026): the Marketplace's stance on screen capture.
+      McpServers.current().setCaptureAlwaysAsks(true);
       McpServers.current().onChange(() => { if (this.toolRegistry) syncMcpTools(this.toolRegistry); });
       // Ava in Unreal's panel: her program ships in dist/unreal; Node comes from
       // nodejs.org when he sets it up (plan 2026-11-18-unreal, his decision 6).

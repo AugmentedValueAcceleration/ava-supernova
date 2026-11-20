@@ -20,6 +20,14 @@ import { McpServers } from './manager.js';
 
 const norm = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
 
+/** An editor's meta-tools in the order she should use them: list, describe, call. 5.9 has four, 5.8 three. */
+const META_ORDER = ['list_toolsets', 'describe_toolsets', 'describe_toolset', 'describe_tools', 'call_tool'];
+function metaTools(tools: string[] | undefined): string[] {
+  const own = tools?.length ? tools : ['list_toolsets', 'describe_toolsets', 'describe_tools', 'call_tool'];
+  const rank = (t: string) => { const i = META_ORDER.indexOf(t); return i === -1 ? META_ORDER.length : i; };
+  return [...own].sort((a, b) => rank(a) - rank(b));
+}
+
 /**
  * The open editors' tools, for the mode's own list of what she can use (",
  * mcp_unreal_list_toolsets, …"), or '' when no editor is open.
@@ -37,8 +45,9 @@ export function unrealToolNames(): string {
   } catch {
     return '';
   }
+  // The editor's own meta-tools: 5.9 has four, 5.8 three (describe_toolset, one at a time).
   const names = editors.filter((e) => e.open).flatMap((e) =>
-    ['list_toolsets', 'describe_toolsets', 'describe_tools', 'call_tool'].map((t) => `${e.toolPrefix}${t}`));
+    metaTools(e.tools).map((t) => `${e.toolPrefix}${t}`));
   return names.length ? `, ${names.join(', ')}` : '';
 }
 
@@ -54,12 +63,22 @@ export function unrealPromptSection(mode: 'build' | 'talk' | 'plan'): string {
   const root = McpServers.current().projectFolder;
   const lines: string[] = [];
   for (const e of editors) {
+    if (!e.open && e.off) {
+      // An editor is running, but its MCP server is off (20 Nov): say exactly that.
+      const v = e.off.version ?? '';
+      const fix = v && v.localeCompare('5.9', undefined, { numeric: true }) >= 0
+        ? 'Edit → Plugins in Unreal: Unreal MCP and All Toolsets ticked, then restart the editor'
+        : 'tick Auto Start Server under Editor Preferences → General → Model Context Protocol in Unreal (and Unreal MCP and All Toolsets under Edit → Plugins), then restart the editor';
+      lines.push(`- Unreal Engine ${v} is open${e.off.project ? ` with the project "${e.off.project}"` : ''}, but its MCP server is off, so you can't reach the editor yet. If they ask about it, say so and how to fix it: ${fix}; it connects by itself once the server is on. Don't answer from files as if it were the editor.`);
+      continue;
+    }
     if (!e.open) {
       lines.push(`- Unreal Engine is set up in Connections ("${e.id}"), but the editor isn't open. If they ask about their Unreal project in the editor, say so: open the project in Unreal, then press Restart on Unreal's card in Connections. Don't answer from files as if it were the editor.`);
       continue;
     }
     const p = e.toolPrefix;
-    lines.push(`- **Unreal Engine ${e.engineVersion ?? ''} is open on this computer**${e.project ? `, with the project "${e.project}"` : ''}${e.projectDir ? ` (${e.projectDir})` : ''}. Its tools reach the LIVE editor: ${p}list_toolsets, ${p}describe_toolsets, ${p}describe_tools and ${p}call_tool.`);
+    const meta = metaTools(e.tools).map((t) => `${p}${t}`);
+    lines.push(`- **Unreal Engine ${e.engineVersion ?? ''} is open on this computer**${e.project ? `, with the project "${e.project}"` : ''}${e.projectDir ? ` (${e.projectDir})` : ''}. Its tools reach the LIVE editor: ${meta.slice(0, -1).join(', ')} and ${meta[meta.length - 1]}.`);
     lines.push(`- For anything about Unreal or what is in the editor — the open project and level, its actors, assets, how it looks, the log, what just happened — ask the editor FIRST: ${p}list_toolsets to see what it offers, then ${p}call_tool. Files come second. Never work it out from files: a level that was never saved, and every change since the last save, exist only in the editor.`);
     if (e.projectDir && root && norm(e.projectDir) !== norm(root)) {
       lines.push(`- The folder open here (${root}) is a different project from the one in the editor. Files you read are that folder's, not the editor's: say which project you mean, and ask if it's unclear which they do.`);
@@ -67,13 +86,27 @@ export function unrealPromptSection(mode: 'build' | 'talk' | 'plan'): string {
     if (e.toolsetsOff) {
       lines.push(`- Most of Unreal's tools are switched off in this project: tell them to turn on All Toolsets (Edit → Plugins in Unreal) and restart the editor.`);
     }
-    lines.push(mode === 'build'
-      ? `- Tools that only look run straight away; anything that changes the project or runs something asks them first, so say what you're about to do.`
-      : `- Here you may use its tools that only look. Anything that changes the project or runs something waits for ${mode === 'talk' ? 'the Build switch' : 'Code mode'}: describe it instead.`);
+    if (e.captureAsks) {
+      // The VS Code extension: no picture they didn't approve (20 Nov).
+      lines.push(`- Here, in VS Code, every picture from Unreal (any Capture tool) asks them first, every time — even ones that only look.${mode === 'build' ? ' Take one only when seeing is worth that question, and say what you want to look at.' : ` In ${mode === 'talk' ? 'Talk' : 'Plan'} you can't take one: describe what you'd look at instead.`}`);
+    }
+    if (e.labelled === false) {
+      // 5.8: Unreal doesn't mark which tools only look (read from his editor, 20 Nov).
+      lines.push(mode === 'build'
+        ? `- This editor doesn't mark which of its tools only look, so every Unreal tool asks them the first time, until they choose Always for it. Say what you're about to do and why, and group what you need rather than asking one tiny step at a time.`
+        : `- Here you may list and describe its toolsets. This editor doesn't mark which of its tools only look, so calling them waits for ${mode === 'talk' ? 'the Build switch' : 'Code mode'}: describe what you'd do instead.`);
+    } else {
+      lines.push(mode === 'build'
+        ? `- Tools that only look run straight away; anything that changes the project or runs something asks them first, so say what you're about to do.`
+        : `- Here you may use its tools that only look. Anything that changes the project or runs something waits for ${mode === 'talk' ? 'the Build switch' : 'Code mode'}: describe it instead.`);
+    }
   }
   const open = editors.filter((e) => e.open);
   const kimodo = open.some((e) => !!e.projectDir && projectUsesKimodo(e.projectDir));
-  return `\n## Unreal Editor\n${lines.join('\n')}\n${open.length ? UNREAL_KNOWLEDGE : ''}${kimodo ? KIMODO_KNOWLEDGE : ''}`;
+  // 5.8's toolbox is smaller and named differently (describe_toolset, one at
+  // a time, is its sign): its own guidance, so she doesn't reach for 5.9 tools.
+  const knowledge = !open.length ? '' : open.every((e) => e.oneAtATime) ? UNREAL_KNOWLEDGE_58 : UNREAL_KNOWLEDGE;
+  return `\n## Unreal Editor\n${lines.join('\n')}\n${knowledge}${kimodo ? KIMODO_KNOWLEDGE : ''}`;
 }
 
 const kimodoSeen = new Map<string, { mtime: number; on: boolean }>();
@@ -109,6 +142,12 @@ export function projectUsesKimodo(projectDir: string): boolean {
  * says, not on memory of older engines. Names are `Toolset.Tool` as call_tool
  * takes them. Only sent while an editor is open.
  */
+/** What holds in every Unreal Ava works with (5.8 and 5.9). */
+const UNREAL_SHARED = `- One Unreal call runs at a time, and compiling or starting play can take a while: tell them what you're waiting on.
+- **When a plugin gives the editor a button, menu or dialog for a job, that is the way it's meant to be done** — tell them which to press rather than rebuilding the job by hand from lower-level tools.
+- **Stop and report rather than hunting.** When two different approaches to the same step have failed, stop: tell them what you tried, what you found, and what you'd suggest — then wait. Long hunts through tools and engine source drift, and they are worse than a clear "here's where I'm stuck".
+`;
+
 const UNREAL_KNOWLEDGE = `
 ### Working in Unreal
 - **This editor tells you how it works.** AIAssistantEditor.AIAssistantToolset.GetProjectContext gives Unreal's conventions (100 units is 1 metre, folder paths end in /, screen coordinates run 0–1 from the top left); GetDockedContext shows what they have open. When a request is unclear, look at what they have selected (EditorToolset.EditorAppToolset.GetSelectedActors / GetSelectedAssets).
@@ -119,10 +158,28 @@ const UNREAL_KNOWLEDGE = `
 - **C++**: you write it with your own file tools in the project's Source folder. Compile with LiveCodingToolset (IsLiveCodingReady, EnableLiveCoding if it's off, then CompileLiveCoding). Live Coding is for changing function bodies; new classes and new or changed reflected members (UPROPERTY, UFUNCTION, USTRUCT) need the editor closed and a full build — say so rather than forcing it.
 - **See your work, don't assume it.** Make the change → compile if it was code → StartPIE (it times out after 30 seconds) → look → read the log for errors and warnings (GetLogEntries) → StopPIE → fix. Looking: SceneCaptureToolset.CaptureGameViewport shows play as the player sees it, game UI included; CaptureActiveEditorView renders the 3D scene from the editor camera, offscreen, without the editor's UI; EditorToolset.EditorAppToolset.CaptureEditorImage shows the whole editor window as they see it. You see the image; they don't. For lighting and material problems, the scene-capture skill explains the diagnostic modes.
 - **Nothing is saved until it's saved.** A new level lives in /Temp until they save it; edits to an asset are unsaved until AssetToolset.SaveAsset. Say what's unsaved; every editor change is also in Undo history (Ctrl+Z).
-- One Unreal call runs at a time, and compiling or starting play can take a while: tell them what you're waiting on.
-- **When a plugin gives the editor a button, menu or dialog for a job, that is the way it's meant to be done** — tell them which to press rather than rebuilding the job by hand from lower-level tools.
-- **Stop and report rather than hunting.** When two different approaches to the same step have failed, stop: tell them what you tried, what you found, and what you'd suggest — then wait. Long hunts through tools and engine source drift, and they are worse than a clear "here's where I'm stuck".
-`;
+${UNREAL_SHARED}`;
+
+/**
+ * Unreal 5.8 — its own guidance (20 Nov 2026), from the catalogue read off his
+ * 5.8 editor (52 toolsets, 830 tools, scratchpad unreal-catalog-58.json): no
+ * Project Context, no free Python, no Live Coding and no scene-capture toolset;
+ * toolsets named editor_toolset.toolsets.* ; import tools for meshes and
+ * textures; nothing labelled read / write / execute.
+ */
+const UNREAL_KNOWLEDGE_58 = `
+### Working in Unreal 5.8
+- **This is Unreal 5.8.** Its toolbox is smaller than 5.9's and named differently. Use describe_toolset (one toolset at a time) before calling a tool you haven't used in this chat, rather than writing a call from memory or from what a newer Unreal offers. When a request is unclear, look at what they have selected (EditorToolset.EditorAppToolset.GetSelectedActors / GetSelectedAssets).
+- **Epic ships Agent Skills** — guides written for assistants. ToolsetRegistry.AgentSkillToolset.ListSkills, then GetSkills for the one that fits, before that kind of work. Creating or changing a skill is theirs to ask for.
+- **The level**: editor_toolset.toolsets.scene.SceneTools — get_current_level, find_actors, add_to_scene_from_asset / add_to_scene_from_class, remove_from_scene, load_level, save_actor. An actor's transform, components and tags: editor_toolset.toolsets.actor.ActorTools. Any object's properties: editor_toolset.toolsets.object.ObjectTools (list_properties, get_properties, set_properties).
+- **Assets**: editor_toolset.toolsets.asset.AssetTools — find_assets, load_asset, duplicate, move, delete, is_dirty, save_assets.
+- **Bringing files in** (a model from Blender, a texture): editor_toolset.toolsets.static_mesh.StaticMeshTools.import_file for props, editor_toolset.toolsets.skeletal_mesh.SkeletalMeshTools.import_file for rigged or animated models (it can bring the animations too), editor_toolset.toolsets.texture.TextureTools.import_file for images — each takes the content folder, the new asset's name and the file's absolute path. From the Design Studio's Blender room (~/.ava/creative/blender/<model>/), use the .fbx: it carries the smoothing and textures, and it is the format these tools are built around.
+- **Blueprints**: editor_toolset.toolsets.blueprint.BlueprintTools — read_graph_dsl / write_graph_dsl (call get_graph_dsl_docs once first), then compile_blueprint when the graph changes are done.
+- **Several calls at once**: editor_toolset.toolsets.programmatic.ProgrammaticToolset.execute_tool_script runs a short Python script against these same toolset tools — call get_execution_environment once per chat first and follow its instructions. It is not general editor Python: it can only reach the toolsets.
+- **C++**: you write it with your own file tools in the project's Source folder. This editor has no tool to compile it: tell them to compile (Live Coding, Ctrl+Alt+F11, for changed function bodies; new classes or new reflected members need the editor closed and a full build).
+- **See your work, don't assume it.** Make the change → StartPIE (EditorToolset.EditorAppToolset) → look → read the log for errors and warnings (EditorToolset.LogsToolset.GetLogEntries) → StopPIE → fix. Looking: EditorAppToolset.CaptureViewport shows the level viewport (it can add a grid and actor labels); CaptureEditorImage the whole editor as they see it; CaptureAssetImage one asset. You see the image; they don't.
+- **Nothing is saved until it's saved.** A new level lives in /Temp until they save it; edits to an asset are unsaved until AssetTools.save_assets. Say what's unsaved; every editor change is also in Undo history (Ctrl+Z).
+${UNREAL_SHARED}`;
 
 /**
  * Kimodo — Epic's text-to-animation plugin (with AnimGenOffline) in 5.9.

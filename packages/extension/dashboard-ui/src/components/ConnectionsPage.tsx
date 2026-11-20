@@ -22,7 +22,9 @@ interface Server {
   reason?: 'new' | 'changed' | 'declined' | 'shadowed' | 'stopped' | 'signin' | 'unreal-closed' | 'unreal-old';
   missing?: string[]; notes: Note[]; online: boolean; shows: string;
   /** Unreal Engine's server: the Unreal tools Ava knows, toolsets off, and his "always" ones (Toolset.Tool). */
-  unreal?: { tools: number; toolsetsOff: boolean; allowed: string[]; asked?: string[] };
+  unreal?: { tools: number; toolsetsOff: boolean; labelled?: boolean; assistantPanel?: boolean; allowed: string[]; asked?: string[] };
+  /** Unreal can't be reached but an editor is running: its version and project (its MCP server is off). */
+  unrealOff?: { version?: string; project?: string };
   tools: ToolRow[]; keys: Array<{ name: string; set: boolean }>; server?: { name: string; version: string };
   signedIn?: boolean; signingIn?: boolean;
   ava?: { view?: string; registry?: string; repository?: string; from?: string };
@@ -108,10 +110,14 @@ function statusLine(s: Server): { color: string; glow?: boolean; text: string } 
       : tt('mcp.page.status.waiting', 'Waiting for your yes. A project can never turn on its own servers.') };
     case 'needs-key': return { color: C.warn, text: tt('mcp.page.status.needs_key', "It needs a key that isn't in your keychain yet.") };
     case 'needs-signin': return { color: C.warn, text: tt('mcp.page.status.needs_signin', 'It wants a sign-in, or its key was refused.') };
-    case 'error': return s.reason === 'unreal-closed'
-      ? { color: C.muted, text: tt('mcp.page.status.unreal_closed', "Unreal Editor isn't open. Open your project in Unreal, then press Restart.") }
+    case 'error': return s.reason === 'unreal-closed' && s.unrealOff
+      ? { color: C.warn, text: (s.unrealOff.project
+          ? tt('mcp.page.status.unreal_off_project', 'Unreal {version} is open with {project}, but its MCP server is off. The steps below switch it on.').replace('{project}', s.unrealOff.project)
+          : tt('mcp.page.status.unreal_off', 'Unreal {version} is open, but its MCP server is off. The steps below switch it on.')).replace('{version}', s.unrealOff.version ?? '') }
+      : s.reason === 'unreal-closed'
+      ? { color: C.muted, text: tt('mcp.page.status.unreal_closed', "Unreal Editor isn't open, or its MCP server is off. Open your project in Unreal (in 5.8, tick Auto Start Server under Editor Preferences → General → Model Context Protocol), then press Restart.") }
       : s.reason === 'unreal-old'
-      ? { color: C.warn, text: tt('mcp.page.status.unreal_old', 'This Unreal Editor is older than 5.9. I work with Unreal Engine 5.9 and later.') }
+      ? { color: C.warn, text: tt('mcp.page.status.unreal_old', 'This Unreal Editor is older than 5.8. I work with Unreal Engine 5.8 and later.') }
       : { color: C.danger, text: s.reason === 'stopped' ? tt('mcp.page.status.stopped', 'It stopped.') : tt('mcp.page.status.error', "It couldn't start.") };
     case 'off': return { color: C.muted, text: s.reason === 'declined' ? tt('mcp.page.status.declined', 'You said never for this project.')
       : s.reason === 'shadowed' ? tt('mcp.page.status.shadowed', "One of your own servers has the same name, so this one isn't used.")
@@ -204,7 +210,8 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 15, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', color: C.text }}>
-            {s.id}
+            {/* "Unreal MCP", his name for it (20 Nov); the id stays "unreal" so its saved "Always" choices keep working. */}
+            {isUnrealCard(s) || s.id === 'unreal' ? 'Unreal MCP' : s.id}
             {!onThisComputer(s)
               ? <span style={chip(C.online, 'rgba(96,165,250,0.35)')}>{tt('mcp.page.online', 'Online')}</span>
               : <span style={chip(C.ok, 'rgba(52,211,153,0.3)')}>{tt('mcp.page.local', 'On this computer')}</span>}
@@ -213,6 +220,7 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
           <div style={{ fontSize: 12.5, marginTop: 3, color: C.text2, display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={dot(st.color, st.glow)} /> <span>{st.text}</span>
           </div>
+          {s.state === 'error' && s.reason === 'unreal-closed' && <UnrealSetup request={request} />}
           {s.state === 'ready' && s.unreal?.toolsetsOff && (
             <div style={{ ...note, color: C.warn }}>{tt('mcp.page.unreal.toolsets_off', "Most of Unreal's tools are switched off in this project. In Unreal, open Edit → Plugins, turn on All Toolsets, then restart the editor.")}</div>
           )}
@@ -248,10 +256,14 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
       )}
 
       {s.ava?.view && (
-        <div style={opinion}><b style={{ color: C.text, fontWeight: 500 }}>{tt('mcp.page.my_view', 'My view:')}</b> {s.ava.view}</div>
+        <div style={opinion}><b style={{ color: C.text, fontWeight: 500 }}>{tt('mcp.page.my_view', 'My view:')}</b> {
+          // Unreal's view is read live, in his language: the copy saved when it
+          // was added goes stale (it still said "5.9 and later" on 20 Nov).
+          isUnrealCard(s) || s.id === 'unreal' ? tt('mcp.suggest.unreal.view', s.ava.view) : s.ava.view
+        }</div>
       )}
 
-      {s.scope === 'user' && isUnrealCard(s) && <UnrealPanelSetup request={request} />}
+      {s.scope === 'user' && isUnrealCard(s) && s.unreal?.assistantPanel !== false && <UnrealPanelSetup request={request} />}
       {s.state === 'ready' && (s.unreal?.asked?.length ?? 0) > 0 && (
         <UnrealAsked asked={s.unreal!.asked!} busy={busy} onAlways={(inner) => {
           const call = s.tools.find((t) => t.name === 'call_tool');
@@ -308,6 +320,61 @@ function ServerCard({ s, request, onState }: { s: Server; request: ConnectionsRe
             )}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Setting up Unreal, by the versions on this computer (his call, 20 Nov 2026):
+ * 5.8 is what Ava offers until 5.9's full release; 5.9's steps show only to
+ * someone who has 5.9 (it works, but isn't advertised). Versions come from the
+ * Epic Games Launcher's list and any editor running (core unreal-local.ts).
+ */
+function UnrealSetup({ request }: { request: ConnectionsRequest }) {
+  const [info, setInfo] = useState<{ installed: string[]; running: Array<{ version?: string; project?: string }> } | null>(null);
+  useEffect(() => {
+    let live = true;
+    request('unreal_setup')
+      .then((r) => { if (live) setInfo(r as { installed: string[]; running: Array<{ version?: string; project?: string }> }); })
+      .catch(() => { if (live) setInfo({ installed: [], running: [] }); });
+    return () => { live = false; };
+    // Once per card: each look starts a small PowerShell lookup on Windows.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  if (!info) return null;
+  const num = (v: string) => v.split('.').map(Number);
+  const atLeast = (v: string, min: string) => { const [a, b] = [num(v), num(min)]; return a[0] > b[0] || (a[0] === b[0] && (a[1] ?? 0) >= (b[1] ?? 0)); };
+  const versions = [...new Set([...info.installed, ...info.running.map((r) => r.version).filter((v): v is string => !!v)])];
+  const has59 = versions.some((v) => atLeast(v, '5.9'));
+  const has58 = versions.some((v) => atLeast(v, '5.8') && !atLeast(v, '5.9'));
+  const old = versions.filter((v) => !atLeast(v, '5.8'));
+  const nothing = !has58 && !has59;
+  const step: CSSProperties = { margin: '4px 0 0 18px', padding: 0 };
+  return (
+    <div style={{ ...note, marginTop: 10 }}>
+      <div style={{ fontWeight: 500, color: C.text }}>{tt('mcp.unreal.setup.title', 'Setting up Unreal')}</div>
+      {nothing && old.length > 0 && <div style={{ marginTop: 4, color: C.warn }}>{tt('mcp.unreal.setup.old', 'Unreal {versions} is older than 5.8: I work with Unreal Engine 5.8 and later.').replace('{versions}', old.join(', '))}</div>}
+      {nothing && old.length === 0 && <div style={{ marginTop: 4 }}>{tt('mcp.unreal.setup.none', "I couldn't find Unreal Engine installed through the Epic Games Launcher. I work with Unreal Engine 5.8 and later.")}</div>}
+      {(has58 || nothing) && (
+        <>
+          <div style={{ marginTop: 6, color: C.text2 }}>Unreal Engine 5.8</div>
+          <ol style={step}>
+            <li>{tt('mcp.unreal.setup.s58_plugins', 'Edit → Plugins: tick Unreal MCP and All Toolsets.')}</li>
+            <li>{tt('mcp.unreal.setup.s58_autostart', "Edit → Editor Preferences → General → Model Context Protocol: tick Auto Start Server (it's off in 5.8).")}</li>
+            <li>{tt('mcp.unreal.setup.restart', 'Restart Unreal with your project open. I connect by myself once its server is on.')}</li>
+          </ol>
+        </>
+      )}
+      {has59 && (
+        <>
+          <div style={{ marginTop: 6, color: C.text2 }}>Unreal Engine 5.9</div>
+          <ol style={step}>
+            <li>{tt('mcp.unreal.setup.s59_plugins', 'Edit → Plugins: tick All Toolsets (Unreal MCP is on already).')}</li>
+            <li>{tt('mcp.unreal.setup.s59_server', "Its MCP server starts with the editor, so there's nothing to switch on.")}</li>
+            <li>{tt('mcp.unreal.setup.restart', 'Restart Unreal with your project open. I connect by myself once its server is on.')}</li>
+          </ol>
+        </>
       )}
     </div>
   );
@@ -431,7 +498,10 @@ function UnrealTools({ s, busy, onAskAgain }: { s: Server; busy: boolean; onAskA
   const [showAllowed, setShowAllowed] = useState(false);
   return (
     <>
-      <div style={note}>{tt('mcp.page.unreal.hint', 'When I only look, I go straight ahead; before I change your project or run anything, I ask you.')}</div>
+      <div style={note}>{s.unreal?.labelled === false
+        // 5.8: Unreal doesn't label its tools, so nothing runs without asking.
+        ? tt('mcp.page.unreal.hint_unlabelled', "This Unreal doesn't mark which tools only look, so each one asks the first time, until you choose Always.")
+        : tt('mcp.page.unreal.hint', 'When I only look, I go straight ahead; before I change your project or run anything, I ask you.')}</div>
       {allowed.length > 0 && (
         <>
           <button style={{ ...link, ...note, marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }} aria-expanded={showAllowed} onClick={() => setShowAllowed(!showAllowed)}>

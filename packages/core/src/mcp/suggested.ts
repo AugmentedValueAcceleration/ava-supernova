@@ -112,22 +112,22 @@ export const ALL_MCP_SUGGESTIONS: McpSuggestion[] = [
   {
     // Recognised by the name it reports, not this address (unreal.ts): he can
     // change the port in Unreal, and Ava's rules follow the server.
-    id: 'unreal', name: 'Unreal Engine', publisher: 'Epic Games', kind: 'local',
-    url: 'http://127.0.0.1:8000/mcp', docs: 'https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-mcp-in-unreal-editor',
+    id: 'unreal', name: 'Unreal MCP', publisher: 'Epic Games', kind: 'local',
+    url: 'http://127.0.0.1:8000/mcp', docs: 'https://avasupernova.com/guides/unreal-mcp-setup',
     what: 'Work inside your open Unreal project: levels, actors, assets, Blueprints, materials, test play and screenshots.',
-    view: "Epic's own server, built into Unreal Engine 5.9 and later. It runs inside the editor on your computer: no account, and nothing leaves your machine. When I only look, I go straight ahead; before I change your project or run anything, I ask you. Open your project in Unreal before switching it on, and turn on All Toolsets once per project (Edit → Plugins in Unreal), or most of its tools stay hidden.",
+    view: "Epic's own server, in Unreal Engine 5.8. It runs inside the editor on your computer: no account, and nothing leaves your machine. Unreal doesn't mark which of its tools only look, so each one asks the first time, until you choose Always. Switch it on in Unreal first: Edit → Plugins, tick Unreal MCP and All Toolsets; Edit → Editor Preferences → General → Model Context Protocol, tick Auto Start Server; then restart the editor with your project open.",
   },
 ];
 
 /**
- * Unreal Engine is held back from the Suggested list until Unreal Engine 5.9's
- * full release (his call, 19 Nov 2026): in the 5.9 preview, Epic's animation
- * generation leans Manny and Quinn back, and offering it now would promise
- * more than it can do. Everything else stays built — a server someone has
- * already set up keeps working, and he keeps testing on his own editor.
- * Flip this to true for the release that ships it.
+ * Unreal Engine in the Suggested list. Held back on 19 Nov 2026 (the 5.9
+ * preview's animation generation leaned Manny and Quinn back); RELEASED for
+ * Unreal 5.8 — a full release — on 20 Nov 2026 (his call), with ext 0.120.0 /
+ * IDE 0.65.0. 5.9 works but isn't advertised until its full release: the card
+ * and the setup guide speak of 5.8, and 5.9's steps show only to someone who
+ * has 5.9 installed (ConnectionsPage UnrealSetup).
  */
-export const UNREAL_RELEASED = false;
+export const UNREAL_RELEASED = true;
 
 /** The servers offered in Connections and by Ava. */
 export const MCP_SUGGESTIONS: McpSuggestion[] =

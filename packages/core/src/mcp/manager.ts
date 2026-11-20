@@ -34,7 +34,8 @@ import {
 import { riskNotes, type McpRiskNote } from './risk.js';
 import { suggestedScopes } from './suggested.js';
 import { USER_MCP_PREFIX, isUserMcpTool, setMcpRuleCheck, type McpCallRule } from './permissions.js';
-import { UNREAL_CALL_TOOL, UNREAL_DEFAULT_URL, unrealAllowKey, unrealInnerTool, unrealToolGuidance } from './unreal.js';
+import { compareVersions, runningUnrealEditors } from './unreal-local.js';
+import { UNREAL_CALL_TOOL, UNREAL_DEFAULT_URL, UNREAL_DISCOVERY_TOOLS, isUnrealCaptureTool, unrealAllowKey, unrealInnerTool, unrealToolGuidance } from './unreal.js';
 
 export type McpServerState =
   | 'off'           // switched off (or he said never, for a project's server)
@@ -70,7 +71,13 @@ export interface McpServerStatus {
    * labels of, whether the project's toolsets are switched off, and the Unreal
    * tools he said "always allow" for (as Unreal names them, Toolset.Tool).
    */
-  unreal?: { tools: number; toolsetsOff: boolean; allowed: string[]; asked?: string[] };
+  unreal?: { tools: number; toolsetsOff: boolean; labelled?: boolean; assistantPanel?: boolean; allowed: string[]; asked?: string[] };
+  /**
+   * Unreal can't be reached, but an Unreal Editor IS running on this computer
+   * (unreal-local.ts): its version and project, so the page and Ava can say
+   * "5.8 is open with DawnSets, but its MCP server is off" (20 Nov 2026).
+   */
+  unrealOff?: { version?: string; project?: string };
   /** The keys it needs that aren't in the keychain (needs-key). */
   missing?: string[];
   /** What to point out about its command or address before it runs (risk.ts). */
@@ -123,6 +130,60 @@ export class McpServers {
 
   private projectRoot: string | null = null;
   private file: McpFile = { mcpServers: {} };
+  /**
+   * The VS Code extension sets this: Unreal's capture tools ask every time,
+   * never "always" and never in Plan or Talk (his call, 20 Nov 2026 — the
+   * Marketplace's screen-capture stance). The IDE leaves it off.
+   */
+  private captureAlwaysAsks = false;
+  /** Running Unreal Editors, read at most every 15 s (a closed Unreal is retried every 5 s). */
+  private editorsSeen: { at: number; list: Awaited<ReturnType<typeof runningUnrealEditors>> } | null = null;
+
+  private editorsProbe: typeof runningUnrealEditors = runningUnrealEditors;
+
+  /** Tests: what "running Unreal Editors" returns (this machine's own would make tests depend on it). */
+  setRunningEditorsProbe(probe: typeof runningUnrealEditors): void {
+    this.editorsProbe = probe;
+    this.editorsSeen = null;
+  }
+
+  /**
+   * Unreal can't be reached. If an editor IS running, its MCP server is off
+   * (or stopped): say which editor and what its version needs (20 Nov 2026).
+   * Otherwise the editor isn't open, and `closed` says so.
+   */
+  private async unrealUnreachable(
+    fail: (state: McpServerState, message: string, extra?: Partial<McpServerStatus>) => unknown,
+    closed: string,
+  ): Promise<void> {
+    const open = (await this.runningEditors())[0];
+    if (!open) {
+      fail('error', closed, { reason: 'unreal-closed' });
+      return;
+    }
+    const howTo = open.version && compareVersions(open.version, '5.9') >= 0
+      ? 'In Unreal, check Edit → Plugins: Unreal MCP and All Toolsets ticked, then restart the editor.'
+      : 'In Unreal, tick Auto Start Server under Editor Preferences → General → Model Context Protocol (and Unreal MCP and All Toolsets under Edit → Plugins), then restart the editor.';
+    fail('error', `Unreal ${open.version ?? ''} is open${open.project ? ` with ${open.project}` : ''}, but its MCP server is off. ${howTo}`.replace(/\s+/g, ' '), {
+      reason: 'unreal-closed', unrealOff: { ...(open.version ? { version: open.version } : {}), ...(open.project ? { project: open.project } : {}) },
+    });
+  }
+
+  private async runningEditors(): Promise<Awaited<ReturnType<typeof runningUnrealEditors>>> {
+    if (this.editorsSeen && Date.now() - this.editorsSeen.at < 15_000) return this.editorsSeen.list;
+    const list = await this.editorsProbe();
+    this.editorsSeen = { at: Date.now(), list };
+    return list;
+  }
+
+  /** The extension's rule for Unreal's capture tools (see captureAlwaysAsks). */
+  setCaptureAlwaysAsks(on: boolean): void {
+    this.captureAlwaysAsks = on;
+  }
+
+  private captureAsks(inner: string | undefined | null): boolean {
+    return this.captureAlwaysAsks && isUnrealCaptureTool(inner);
+  }
   private project: Record<string, McpServerEntry> = {};
   private problems: string[] = [];
   private readonly running = new Map<string, Running>();
@@ -263,7 +324,7 @@ export class McpServers {
    * one with the project its editor has open and the start of its tools'
    * names, and each one set up whose editor isn't open.
    */
-  unrealEditors(): Array<{ id: string; toolPrefix: string; open: boolean; project?: string; projectDir?: string; engineVersion?: string; toolsetsOff?: boolean }> {
+  unrealEditors(): Array<{ id: string; toolPrefix: string; open: boolean; project?: string; projectDir?: string; engineVersion?: string; toolsetsOff?: boolean; tools?: string[]; labelled?: boolean; oneAtATime?: boolean; captureAsks?: boolean; off?: { version?: string; project?: string } }> {
     const out: ReturnType<McpServers['unrealEditors']> = [];
     for (const s of this.statuses.values()) {
       const conn = this.connFor(s.scope, s.id);
@@ -272,9 +333,15 @@ export class McpServers {
           id: s.id, toolPrefix: avaToolName(conn.config.id, ''), open: true,
           ...conn.unrealEditor, engineVersion: conn.unrealEditor?.engineVersion ?? conn.server?.version,
           toolsetsOff: conn.unreal.toolsetsOff,
+          // Its own meta-tools (5.8 and 5.9 differ), whether it labels its
+          // tools read / write / execute (5.8 doesn't), and 5.8's shape.
+          tools: conn.tools().map((t) => t.name),
+          labelled: conn.unreal.labelled,
+          oneAtATime: conn.unreal.oneAtATime,
+          captureAsks: this.captureAlwaysAsks,
         });
       } else if (s.reason === 'unreal-closed') {
-        out.push({ id: s.id, toolPrefix: '', open: false });
+        out.push({ id: s.id, toolPrefix: '', open: false, ...(s.unrealOff ? { off: s.unrealOff } : {}) });
       }
     }
     return out;
@@ -304,12 +371,16 @@ export class McpServers {
     const unreal = this.connFor(t.scope, t.id)?.unreal;
     if (!unreal) return { ask: !t.allowed, planOk: t.readOnly };
     if (t.name !== UNREAL_CALL_TOOL) {
-      // Unreal's discovery tools (list_toolsets, describe_*) only look.
-      return { ask: !(t.readOnly || t.allowed), planOk: t.readOnly };
+      // Unreal's discovery tools (list_toolsets, describe_*) only look —
+      // 5.8's carry no read-only hint, so they're known by name.
+      const look = t.readOnly || UNREAL_DISCOVERY_TOOLS.includes(t.name);
+      return { ask: !(look || t.allowed), planOk: look };
     }
     // Offering call_tool's schema: Plan gets it, and each call is checked.
     if (!args) return { ask: true, planOk: true };
     const inner = unreal.canonical(unrealInnerTool(args));
+    // A picture from Unreal, in the extension: asks every time, "always" or not.
+    if (this.captureAsks(inner)) return { ask: true, planOk: false };
     const access = unreal.accessOf(inner);
     if (access === 'read') return { ask: false, planOk: true };
     const allowed = !!inner && (this.statuses.get(key(t.scope, t.id))?.unreal?.allowed ?? []).includes(inner);
@@ -332,6 +403,8 @@ export class McpServers {
     if (unreal) {
       const which = unreal.canonical(inner ?? unrealInnerTool(args));
       if (!which) return false;
+      // No "always" for a capture tool in the extension; taking one back is fine.
+      if (on && this.captureAsks(which)) return false;
       entry = unrealAllowKey(which);
     }
     // Taking one back removes every spelling of it (names written before the
@@ -367,7 +440,7 @@ export class McpServers {
     if (!t || t.scope !== 'user' || t.name !== UNREAL_CALL_TOOL) return;
     const unreal = this.connFor(t.scope, t.id)?.unreal;
     const inner = unreal ? unreal.canonical(unrealInnerTool(args)) : unrealInnerTool(args);
-    if (!inner || unreal?.accessOf(inner) === 'read') return;
+    if (!inner || unreal?.accessOf(inner) === 'read' || this.captureAsks(inner)) return;
     await updateMcpFile((f) => {
       const e = f.mcpServers[t.id];
       if (e) e.asked = [inner, ...(e.asked ?? []).filter((x) => x !== inner)].slice(0, 12);
@@ -592,12 +665,18 @@ export class McpServers {
         unreal: {
           tools: conn.unreal.size,
           toolsetsOff: conn.unreal.toolsetsOff,
+          // 5.8 doesn't label its tools: every Unreal tool asks until "always".
+          labelled: conn.unreal.labelled,
+          // 5.8's Assistant panel can't run an outside agent (he checked, 20 Nov).
+          assistantPanel: !conn.unreal.oneAtATime,
           // One name per Unreal tool, however it was written (doubled names
           // from before 19 Nov count as the tool they meant).
-          allowed: [...new Set(allow.filter((a) => a.startsWith(prefix)).map((a) => conn.unreal!.canonical(a.slice(prefix.length)) ?? a.slice(prefix.length)))].sort(),
+          // Capture tools never show as "always" in the extension: they ask every time there.
+          allowed: [...new Set(allow.filter((a) => a.startsWith(prefix)).map((a) => conn.unreal!.canonical(a.slice(prefix.length)) ?? a.slice(prefix.length)))]
+            .filter((a) => !this.captureAsks(a)).sort(),
           asked: (scope === 'user' ? e.asked ?? [] : [])
             .map((a) => conn.unreal!.canonical(a) ?? a)
-            .filter((a, i, all) => all.indexOf(a) === i && !allow.some((x) => x.startsWith(prefix) && (conn.unreal!.canonical(x.slice(prefix.length)) ?? '') === a)),
+            .filter((a, i, all) => all.indexOf(a) === i && !this.captureAsks(a) && !allow.some((x) => x.startsWith(prefix) && (conn.unreal!.canonical(x.slice(prefix.length)) ?? '') === a)),
         },
       } : {}),
     };
@@ -663,8 +742,19 @@ export class McpServers {
         { id: `${USER_MCP_PREFIX}${cleanServerId(id)}`, name: id, transport },
         { timeoutMs: CONNECT_TIMEOUT_MS },
       );
-      if (!set(this.readyStatus(scope, id, e, conn, allow))) { await conn.close(); return; }
+      // Running BEFORE "ready" is announced: the announcement is when the
+      // extension and the IDE read every server's tools for Ava, and a server
+      // not yet in `running` gave none — she saw "Unknown tool" while the page
+      // said connected (found 20 Nov on Unreal 5.8, which never sends a later
+      // "tools changed" to cover for it, as 5.9 does). A newer start of the
+      // same server wins: don't overwrite it.
+      if (this.gens.get(k) !== gen) { await conn.close(); return; }
       this.running.set(k, { conn, fingerprint: fp });
+      if (!set(this.readyStatus(scope, id, e, conn, allow))) {
+        if (this.running.get(k)?.conn === conn) this.running.delete(k);
+        await conn.close();
+        return;
+      }
       // A web server keeps no open link: listen for it going (19 Nov). Often
       // for one on this computer, rarely for one online.
       if (transport.kind === 'url') conn.startHeartbeat(isLocalUrl(transport.url) ? HEARTBEAT_LOCAL_MS() : HEARTBEAT_ONLINE_MS());
@@ -676,7 +766,7 @@ export class McpServers {
         if (r?.conn !== conn) return;
         this.running.delete(k);
         if (conn.unreal) {
-          fail('error', 'Unreal Editor was closed (or its MCP server stopped). Open your project in Unreal again, then press Restart.', { reason: 'unreal-closed' });
+          void this.unrealUnreachable(fail, 'Unreal Editor was closed (or its MCP server stopped). Open your project in Unreal again, then press Restart.');
           return;
         }
         const said = conn.recentErrors().slice(-3).join(' | ');
@@ -686,14 +776,15 @@ export class McpServers {
       const unauthorized = (err as { unauthorized?: boolean }).unauthorized === true;
       const tooOld = (err as { unrealTooOld?: string }).unrealTooOld;
       if (tooOld !== undefined) {
-        // Ava works with Unreal 5.9 and later only (his call, 18 Nov).
-        fail('error', `This Unreal Editor (${tooOld || 'unknown version'}) is older than 5.9. Ava works with Unreal Engine 5.9 and later.`, { reason: 'unreal-old' });
+        // Ava works with Unreal 5.8 and later (5.9 from 18 Nov; opened to 5.8 on 20 Nov).
+        fail('error', `This Unreal Editor (${tooOld || 'unknown version'}) is older than 5.8. Ava works with Unreal Engine 5.8 and later.`, { reason: 'unreal-old' });
         return;
       }
       if (!unauthorized && isUnrealAddress(e) && refusedConnection(err)) {
         // Nothing listening at Unreal's address: the editor isn't open, or
-        // its MCP server is off. Not a fault — say what to do.
-        fail('error', 'Unreal Editor isn\'t open (or its MCP server is off). Open your project in Unreal Engine 5.9 or later, then press Restart.', { reason: 'unreal-closed' });
+        // its MCP server is off. Not a fault — say what to do. When an editor
+        // IS running, say which, and what its version needs (20 Nov).
+        await this.unrealUnreachable(fail, 'Unreal Editor isn\'t open (or its MCP server is off: in 5.8, tick Auto Start Server under Editor Preferences → General → Model Context Protocol). Open your project in Unreal Engine 5.8 or later, then press Restart.');
         return;
       }
       fail(unauthorized ? 'needs-signin' : 'error', unauthorized

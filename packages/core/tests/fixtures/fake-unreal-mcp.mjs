@@ -4,6 +4,9 @@
 // annotations.accessMode (read / write / execute). Local program (stdio).
 //
 //   --off             the project's toolset plugins are off: no actor / level / asset toolsets
+//   --capture         the editor toolset also has CaptureEditorImage, labelled read (as 5.9 may)
+//   --58              shaped like his 5.8 editor (20 Nov 2026): a BLANK name and version, three
+//                     meta-tools (describe_toolset, one at a time), 5.8's toolset names, no labels
 //   --version <v>     report this engine version (default 5.9.0-test)
 //   --http <port>     serve over HTTP at http://127.0.0.1:<port>/mcp, as the real editor does (0 = any
 //                     free port; prints "listening <url>" on stdout) — the panel tests (plan Phase 2)
@@ -12,10 +15,15 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const off = process.argv.includes('--off');
+const v58 = process.argv.includes('--58');
 const versionAt = process.argv.indexOf('--version');
-const version = versionAt === -1 ? '5.9.0-test' : process.argv[versionAt + 1];
+const version = v58 ? '' : versionAt === -1 ? '5.9.0-test' : process.argv[versionAt + 1];
 
-const TOOLSETS = {
+const TOOLSETS = v58 ? {
+  'editor_toolset.toolsets.actor.ActorTools': { description: 'Actors.', tools: { get_actor_transform: null, set_actor_transform: null } },
+  'editor_toolset.toolsets.scene.SceneTools': { description: 'The level.', tools: { get_current_level: null, add_to_scene_from_asset: null } },
+  'EditorToolset.EditorAppToolset': { description: 'The editor.', tools: { StartPIE: null } },
+} : {
   'EditorToolset.ActorToolset': {
     description: 'Actors in the open level.',
     tools: { ListActors: 'read', SpawnActor: 'write', DeleteActor: 'write' },
@@ -24,6 +32,7 @@ const TOOLSETS = {
   'EditorToolset.EditorAppToolset': { description: 'The editor.', tools: { StartPIE: 'execute', StopPIE: 'write' } },
   'Test.SlowToolset': { description: 'Takes a while.', tools: { Wait: 'read' } },
 };
+if (process.argv.includes('--capture')) TOOLSETS['EditorToolset.EditorAppToolset'].tools.CaptureEditorImage = 'read';
 if (off) {
   delete TOOLSETS['EditorToolset.ActorToolset'];
   delete TOOLSETS['EditorToolset.LevelToolset'];
@@ -35,9 +44,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const text = (t) => ({ content: [{ type: 'text', text: t }] });
 
 function makeServer() {
-const server = new Server({ name: 'unreal-mcp', version }, { capabilities: { tools: { listChanged: true } } });
+const server = new Server({ name: v58 ? '' : 'unreal-mcp', version }, { capabilities: { tools: { listChanged: true } } });
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
+server.setRequestHandler(ListToolsRequestSchema, async () => (v58 ? {
+  tools: [
+    { name: 'list_toolsets', description: 'List all available toolsets with names and descriptions.', inputSchema: { type: 'object', properties: {} } },
+    { name: 'describe_toolset', description: 'Get detailed information about a toolset.', inputSchema: { type: 'object', properties: { toolset_name: { type: 'string' } }, required: ['toolset_name'] } },
+    { name: 'call_tool', description: 'Call a tool by name.', inputSchema: { type: 'object', properties: { toolset_name: { type: 'string' }, tool_name: { type: 'string' }, arguments: { type: 'object' } }, required: ['tool_name'] } },
+  ],
+} : {
   tools: [
     { name: 'call_tool', description: 'Call a tool by name.', inputSchema: { type: 'object', properties: { toolset_name: { type: 'string' }, tool_name: { type: 'string' }, arguments: { type: 'object' } }, required: ['tool_name'] } },
     { name: 'describe_tools', description: 'Schemas.', inputSchema: { type: 'object', properties: { tool_names: { type: 'array', items: { type: 'string' } } }, required: ['tool_names'] }, annotations: { readOnlyHint: true } },
@@ -51,6 +66,13 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   if (name === 'list_toolsets') {
     // Like the real one: "- Name: description", and descriptions may run over lines that also start with "- ".
     return text(Object.entries(TOOLSETS).map(([n, s]) => `- ${n}: ${s.description}\n- Graph\n  more words`).join('\n'));
+  }
+  if (name === 'describe_toolset') {
+    // 5.8: one toolset, as {name, version, description, tools} — no accessMode labels.
+    const n = args.toolset_name;
+    const s = TOOLSETS[n];
+    if (!s) return text(`Toolset '${n}' not found. Available toolsets: ${Object.keys(TOOLSETS).join(', ')}`);
+    return text(JSON.stringify({ name: n, version: '1.0', description: s.description, tools: Object.keys(s.tools).map((t) => ({ name: `${n}.${t}`, description: t, inputSchema: { type: 'object' } })) }));
   }
   if (name === 'describe_toolsets') {
     const toolsets = {};

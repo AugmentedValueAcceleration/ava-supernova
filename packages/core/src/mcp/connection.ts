@@ -25,6 +25,7 @@ import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.
 import type { FetchLike, Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { UNREAL_CALL_TIMEOUT_MS, UnrealCatalog, isUnrealServer, unrealEditorInfo, unrealVersionOk, type UnrealEditorInfo } from './unreal.js';
+import { unrealEditorAt } from './unreal-local.js';
 
 /**
  * Keep the server's answer to `initialize`. The SDK keeps only its name,
@@ -213,24 +214,31 @@ export class McpConnection {
     // Ava a list that's gone stale.
     client.setNotificationHandler(ToolListChangedNotificationSchema, async () => {
       await conn.refreshTools().catch(() => {});
-      if (conn.unreal) conn.unreal = await UnrealCatalog.load(conn);
+      if (conn.unreal) conn.unreal = await UnrealCatalog.load(conn, conn.unreal.oneAtATime);
       conn.emitChange();
     });
     try {
       await client.connect(transport, { timeout: opts.timeoutMs ?? 30_000 });
       const info = client.getServerVersion();
-      if (isUnrealServer(info) && !unrealVersionOk(info?.version)) {
-        // Too old for Ava (5.9 and later only): don't connect at all.
-        const old = new Error(`This Unreal Editor (${info?.version}) is older than 5.9. Ava works with Unreal Engine 5.9 and later.`);
-        (old as Error & { unrealTooOld?: string }).unrealTooOld = String(info?.version ?? '');
-        throw old;
-      }
       await conn.refreshTools();
-      if (isUnrealServer(info)) {
+      // Known by name (5.9) or, when it reports none (5.8), by its meta-tools.
+      const names = conn.toolList.map((t) => t.name);
+      if (isUnrealServer(info, names)) {
+        // 5.9 says which project is open; 5.8 doesn't, so ask this computer
+        // which editor is listening at the address (unreal-local.ts).
+        const t = config.transport as { url?: string };
+        const editor = unrealEditorInfo(initResult) ?? await unrealEditorAt(t.url);
+        const version = info?.version?.trim() || editor?.engineVersion;
+        if (!unrealVersionOk(version)) {
+          // Too old for Ava (5.8 and later only): don't connect at all.
+          const old = new Error(`This Unreal Editor (${version}) is older than 5.8. Ava works with Unreal Engine 5.8 and later.`);
+          (old as Error & { unrealTooOld?: string }).unrealTooOld = String(version ?? '');
+          throw old;
+        }
         conn.serial = true;
         conn.callTimeoutMs = UNREAL_CALL_TIMEOUT_MS;
-        conn.unrealEditor = unrealEditorInfo(initResult);
-        conn.unreal = await UnrealCatalog.load(conn);
+        conn.unrealEditor = editor;
+        conn.unreal = await UnrealCatalog.load(conn, !names.includes('describe_toolsets'));
       }
     } catch (err) {
       await client.close().catch(() => {});
@@ -238,7 +246,7 @@ export class McpConnection {
       const out = new Error(`Could not connect to ${config.name}: ${err instanceof Error ? err.message : String(err)}${said ? ` (it said: ${said})` : ''}`, { cause: err });
       // An online server that wants a sign-in (or a key it didn't accept).
       (out as Error & { unauthorized?: boolean }).unauthorized = isUnauthorized(err);
-      // An Unreal older than 5.9: the manager says so in his language.
+      // An Unreal older than 5.8: the manager says so in his language.
       const tooOld = (err as { unrealTooOld?: string } | undefined)?.unrealTooOld;
       if (tooOld !== undefined) (out as Error & { unrealTooOld?: string }).unrealTooOld = tooOld;
       throw out;

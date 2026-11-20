@@ -121,7 +121,8 @@ Or pick any single model your keys reach:
 
 Give Ava more tools through **MCP servers**: GitHub, Notion, Linear, documentation and more. The **Connections** page in the sidebar shows your servers, whether each one is running, and its tools, and notices when a server stops answering instead of still showing it as connected. Your servers are shared by the extension and the IDE.
 
-- **Suggested** — nine free servers from the companies themselves, each one checked. Context7, DeepWiki, Microsoft Learn, Cloudflare Docs and Hugging Face need no account; Notion, Linear and Atlassian need a free account and a sign-in; GitHub takes a free token.
+- **Suggested** — ten free servers from the companies themselves, each one checked. Context7, DeepWiki, Microsoft Learn, Cloudflare Docs and Hugging Face need no account; Notion, Linear and Atlassian need a free account and a sign-in; GitHub takes a free token.
+- **Unreal Engine 5.8** — Epic's own server, inside the editor on your computer. Ava looks at your level, places and changes things, imports models from the Blender room, compiles Blueprints and test-plays, asking before anything changes (in VS Code, before every picture of the editor too). The card shows the setup steps for the Unreal on your computer.
 - **Ask Ava, or add your own** — tell her what you want to connect: she finds the official server, checks its publisher in the official MCP Registry, and gives you her honest view first. Or paste a command or address yourself, or bring in the servers you set up in Claude Desktop, Cursor or VS Code. **Remove** takes one off again.
 - **Sign in safely** — you sign in on the company's own page, and Ava keeps only a pass for that one server, in your keychain. Keys are typed on the Connections page, never in the chat.
 - **Nothing runs until you say yes** — you see the exact command or address first, and each tool asks the first time it's used until you choose **Always**.

@@ -11,6 +11,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { McpServers, setMcpKeychain } from '../src/mcp/index.js';
+import { unrealPromptSection } from '../src/mcp/unreal-context.js';
+import { compareVersions } from '../src/mcp/unreal-local.js';
 
 const FAKE = resolve(__dirname, 'fixtures/fake-unreal-mcp.mjs');
 let dir: string;
@@ -52,6 +54,7 @@ describe('a web server closing and opening again', () => {
     await startUnreal(port);
     writeFileSync(process.env.AVA_MCP_CONFIG!, JSON.stringify({ mcpServers: { unreal: { type: 'http', url } } }));
     const m = McpServers.current();
+    m.setRunningEditorsProbe(async () => []);
     await m.start(null);
     await until(() => m.status()[0]?.state === 'ready');
 
@@ -63,4 +66,31 @@ describe('a web server closing and opening again', () => {
     await until(() => m.status()[0]?.state === 'ready');
     expect(m.status()[0].unreal?.tools).toBeGreaterThan(0);
   }, 40_000);
+
+  // 20 Nov: Unreal 5.8 was open with DawnSets but its server was off (5.8's
+  // Auto Start Server is off by default). Say exactly that, not "isn't open".
+  it('an editor that is running with its server off is named, with its fix', async () => {
+    const port = await freePort();
+    const url = `http://127.0.0.1:${port}/mcp`;
+    await startUnreal(port);
+    writeFileSync(process.env.AVA_MCP_CONFIG!, JSON.stringify({ mcpServers: { unreal: { type: 'http', url } } }));
+    const m = McpServers.current();
+    m.setRunningEditorsProbe(async () => [{ version: '5.8', project: 'DawnSets', projectDir: 'C:/p/DawnSets' }]);
+    await m.start(null);
+    await until(() => m.status()[0]?.state === 'ready');
+    // Its server stops; the editor (the probe) is still running.
+    unreal!.kill();
+    await until(() => !!m.status()[0]?.unrealOff);
+    const s = m.status()[0];
+    expect(s.unrealOff).toEqual({ version: '5.8', project: 'DawnSets' });
+    expect(s.message).toContain('Unreal 5.8 is open with DawnSets, but its MCP server is off');
+    expect(s.message).toContain('Auto Start Server');
+    expect(unrealPromptSection('build')).toContain('Unreal Engine 5.8 is open with the project "DawnSets", but its MCP server is off');
+  }, 40_000);
+});
+
+describe('versions', () => {
+  it('orders Unreal versions as numbers', () => {
+    expect(['5.9', '5.10', '5.8'].sort(compareVersions)).toEqual(['5.8', '5.9', '5.10']);
+  });
 });
