@@ -24,6 +24,11 @@ console.warn = toErr;
   if (!process.env.AVA_FONTS_DIR && existsSync(join(fonts, 'NotoSans-Regular.ttf'))) process.env.AVA_FONTS_DIR = fonts;
 }
 
+// The usage ledger (~/.ava/usage): what the Assistant panel in Unreal spends
+// shows on the Usage timeline in the extension and the IDE, filed as 'unreal'.
+const { configureUsageLedger } = await import('@ava/core');
+configureUsageLedger({ surface: 'unreal' });
+
 const { JsonRpc } = await import('./rpc.js');
 const { AcpServer } = await import('./server.js');
 

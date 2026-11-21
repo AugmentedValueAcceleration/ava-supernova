@@ -1,6 +1,6 @@
 {
   "name": "@ava/core",
-  "version": "0.2.194",
+  "version": "0.2.195",
   "description": "Core engine for Ava Supernova — agent, providers, tools, config",
   "type": "module",
   "main": "./dist/index.js",
@@ -198,6 +198,11 @@
       "import": "./dist/health/starters.js",
       "require": "./dist/health/starters.js",
       "types": "./dist/health/starters.d.ts"
+    },
+    "./usage": {
+      "import": "./dist/usage/ledger.js",
+      "require": "./dist/usage/ledger.js",
+      "types": "./dist/usage/ledger.d.ts"
     },
     "./projects": {
       "import": "./dist/projects/project-data.js",

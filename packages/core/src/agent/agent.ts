@@ -64,6 +64,8 @@ import { toldToKeepGoing } from '../tools/design-checkin.js';
 import { appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AVA_HOME } from '../core/constants.js';
+import { withUsageScope } from '../usage/ledger.js';
+import { deriveConversationSurface } from '../history/conversation-title.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
 import { PNG } from 'pngjs';
 import { personsWords } from '../tools/making-record.js';
@@ -1521,7 +1523,11 @@ export class Agent {
       ? withChildTrajectory
       : withTrajectory;
 
-    return openTrajectory(
+    // Every paid call made during this turn — the replies, compression, the
+    // curator, auto mode's builder — is filed in the usage ledger under the
+    // room and mode the user is in. The ledger records at the provider
+    // (base-provider.ts); this only says where the spend belongs.
+    return withUsageScope({ room: deriveConversationSurface(messages), mode: detectedMode }, () => openTrajectory(
       {
         session_id: this.sessionId,
         surface: this.surface,
@@ -1631,7 +1637,7 @@ export class Agent {
           };
         }
       },
-    );
+    ));
   }
 
   private async runInner(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {

@@ -686,3 +686,10 @@ export { DesignLiveSetupTool, DesignLiveSetupCheckTool, latestServerRelease, ble
 export { brainstormPage, brainstormRoomContext, setBrainstormPageStore } from './brainstorm/page.js';
 export type { BrainstormPageState, BrainstormPageDetail } from './brainstorm/page.js';
 export { assignedPlansContext, setWorkPlansStore } from './brainstorm/work-plans.js';
+// Usage ledger — every paid call, one line each, in ~/.ava/usage (the Usage
+// timeline, 21 Nov 2026). Off until a program calls configureUsageLedger.
+export {
+  configureUsageLedger, usageLedgerEnabled, usageDir, recordUsage, readUsage, summariseUsage,
+  usageMonths, usageCost, withUsageScope, currentUsageScope, localIso, entryDay,
+} from './usage/ledger.js';
+export type { UsageEntry, UsageSurface, UsageTotals, UsageSummary } from './usage/ledger.js';

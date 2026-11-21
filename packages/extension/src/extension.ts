@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { ensureProjectsHome } from '@ava/core/projects';
+import { configureUsageLedger } from '@ava/core/usage';
 import { migrateProjectsLayout } from '@ava/core/projects/migrate';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
@@ -33,6 +34,10 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
   // The fonts PDFs are written with, shipped beside the bundle (every script
   // Ava writes in — core tools/authoring/pdf-fonts.ts reads this).
   process.env.AVA_FONTS_DIR = vscodeContext.asAbsolutePath(path.join('dist', 'fonts'));
+
+  // The usage ledger (~/.ava/usage): every paid call, one line each, shared
+  // with the IDE — the Usage timeline (21 Nov 2026).
+  configureUsageLedger({ surface: 'ext' });
 
   // Provider keys live in the OS keychain the IDE shares, so a user with both
   // apps enters each key once. Everything below gets the wrapped context, and

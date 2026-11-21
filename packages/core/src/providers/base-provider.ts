@@ -3,6 +3,7 @@ import type { ModelDefinition, CompletionResponse, StreamChunk } from '../core/t
 import { ProviderError } from '../core/errors.js';
 import { logger } from '../core/logger.js';
 import { shapeOpenAICompatBody } from './request-shaping/index.js';
+import { recordUsage } from '../usage/ledger.js';
 
 /**
  * Turn a provider's error body into one line a person can read.
@@ -388,7 +389,29 @@ export abstract class BaseProvider implements Provider {
     });
 
     const raw = await response.json();
-    return this.normalizeResponse(raw);
+    const result = this.normalizeResponse(raw);
+    this.recordSpend(body.model, result?.usage);
+    return result;
+  }
+
+  /**
+   * File one paid call in the usage ledger (usage/ledger.ts) — the Usage
+   * timeline's record, his call 21 Nov 2026. Here, in the one class every
+   * provider shares, because every paid call in core passes through it: the
+   * replies, compression, memory upkeep, auto mode, the curator. Under the
+   * provider that actually answered and the model id actually sent. A no-op
+   * until the program switches the ledger on; never throws.
+   */
+  protected recordSpend(model: unknown, usage: unknown): void {
+    const u = usage as { prompt_tokens?: number; completion_tokens?: number } | undefined;
+    if (!u || (typeof u.prompt_tokens !== 'number' && typeof u.completion_tokens !== 'number')) return;
+    try {
+      recordUsage({
+        provider: this.name,
+        model: typeof model === 'string' ? model : 'unknown',
+        usage: { ...(u as Record<string, unknown>), prompt_tokens: u.prompt_tokens ?? 0, completion_tokens: u.completion_tokens ?? 0 },
+      });
+    } catch { /* the record is a nicety, never a gate on the call */ }
   }
 
   /**
@@ -527,6 +550,9 @@ export abstract class BaseProvider implements Provider {
       }
     };
 
+    // The usage arrives on the last chunk (stream_options.include_usage); some
+    // providers repeat it cumulatively, so the last one seen is the total.
+    let lastUsage: unknown;
     try {
       while (true) {
         const { done, value } = await readWithTimeout();
@@ -539,16 +565,19 @@ export abstract class BaseProvider implements Provider {
         for (const line of lines) {
           const result = processLine(line);
           if (result === 'done') return;
-          if (result) yield result;
+          if (result) { if (result.usage) lastUsage = result.usage; yield result; }
         }
       }
 
       // Process any remaining data in the buffer (final line without trailing newline)
       if (buffer.trim()) {
         const result = processLine(buffer);
-        if (result && result !== 'done') yield result;
+        if (result && result !== 'done') { if (result.usage) lastUsage = result.usage; yield result; }
       }
     } finally {
+      // In finally, so a reply the user stopped part-way is still counted
+      // when the provider had already reported what it used.
+      this.recordSpend(body.model, lastUsage);
       try { reader.cancel(); } catch { /* already closed */ }
       reader.releaseLock();
     }

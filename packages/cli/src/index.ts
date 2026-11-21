@@ -30,6 +30,7 @@ import {
   setLocale,
   resolveLocale,
   installDatasetConsumer,
+  configureUsageLedger,
   resolveVisionDescriber,
   mergeAccountFolders,
   GenericProvider,
@@ -52,6 +53,9 @@ async function main(): Promise<void> {
   // and waits. When the user later flips the toggle, capture starts
   // working without a restart.
   installDatasetConsumer();
+  // The usage ledger (~/.ava/usage): what this program spends shows on the
+  // Usage timeline in the extension and the IDE alongside their own.
+  configureUsageLedger({ surface: 'cli' });
 
   const cwd = process.cwd();
   const projectRoot = detectProjectRoot(cwd) ?? undefined;
