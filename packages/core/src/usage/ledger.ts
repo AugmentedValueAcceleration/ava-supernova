@@ -27,32 +27,12 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { AVA_HOME } from '../core/constants.js';
 import { usdRateFor } from '../audit/cost.js';
 
-/** Which program spent it. 'unreal' is the Assistant panel inside Unreal. */
-export type UsageSurface = 'ext' | 'ide' | 'cli' | 'unreal';
+import { parseUsageLines, filterUsage, monthsForRange, type UsageEntry, type UsageSurface } from './view.js';
 
-/** One model reply. Short keys: this is written thousands of times a month. */
-export interface UsageEntry {
-  /** When, ISO 8601 with the user's own offset — a day is THEIR day, not UTC's. */
-  t: string;
-  surface: UsageSurface;
-  /** main, health, learning, design, social, brainstorm — or 'background' for
-   *  a call made outside any turn (memory upkeep and the like). */
-  room: string;
-  /** The mode or room id the turn ran in: work, plan, chat, health, gym…
-   *  ('background' as above). */
-  mode: string;
-  provider: string;
-  model: string;
-  /** Input (prompt) tokens. */
-  in: number;
-  /** Output (completion) tokens. */
-  out: number;
-  /** Prompt tokens served from the provider's cache — only when it said so.
-   *  Absent means the provider reported nothing, not zero. */
-  cached?: number;
-  /** Estimated USD at the moment of spend. Absent when no rate was known. */
-  usd?: number;
-}
+// The shape of a line, the totals and everything the page works out live in
+// view.ts — no file access there, so the IDE's page (which reads these files
+// through Tauri) runs the same code. Re-exported so existing imports hold.
+export * from './view.js';
 
 let surface: UsageSurface | null = null;
 let dirOverride: string | null = null;
@@ -108,12 +88,6 @@ export function localIso(d: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
     + `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`
     + `${sign}${pad(off / 60)}:${pad(off % 60)}`;
-}
-
-/** The local calendar day of an entry, 'YYYY-MM-DD' — read off its own stamp,
- *  so a day stays the day it was spent even if the user later travels. */
-export function entryDay(e: Pick<UsageEntry, 't'>): string {
-  return e.t.slice(0, 10);
 }
 
 /** Prompt tokens served from cache, under whichever name the provider uses. */
@@ -179,12 +153,6 @@ export function recordUsage(r: {
   return entry;
 }
 
-function isEntry(v: unknown): v is UsageEntry {
-  const e = v as UsageEntry;
-  return !!e && typeof e.t === 'string' && typeof e.model === 'string'
-    && typeof e.in === 'number' && typeof e.out === 'number';
-}
-
 /** Every month file present, 'YYYY-MM', oldest first. */
 export function usageMonths(): string[] {
   try {
@@ -202,89 +170,8 @@ export function usageMonths(): string[] {
  */
 export function readUsage(from?: string, to?: string): UsageEntry[] {
   const out: UsageEntry[] = [];
-  for (const month of usageMonths()) {
-    if (from && month < from.slice(0, 7)) continue;
-    if (to && month > to.slice(0, 7)) continue;
-    let text: string;
-    try { text = readFileSync(join(usageDir(), `${month}.jsonl`), 'utf-8'); } catch { continue; }
-    for (const line of text.split('\n')) {
-      if (!line.trim()) continue;
-      let e: unknown;
-      try { e = JSON.parse(line); } catch { continue; }
-      if (!isEntry(e)) continue;
-      const day = entryDay(e);
-      if (from && day < from) continue;
-      if (to && day > to) continue;
-      out.push(e);
-    }
+  for (const month of monthsForRange(usageMonths(), from, to)) {
+    try { out.push(...parseUsageLines(readFileSync(join(usageDir(), `${month}.jsonl`), 'utf-8'))); } catch { /* unreadable month */ }
   }
-  return out.sort((a, b) => a.t.localeCompare(b.t));
-}
-
-/** Totals for a group of entries. */
-export interface UsageTotals {
-  usd: number;
-  in: number;
-  out: number;
-  replies: number;
-  /** Replies whose cost is unknown (no rate) — so a $ total is never silently short. */
-  unpriced: number;
-}
-
-export interface UsageSummary {
-  totals: UsageTotals;
-  /** One per local day that had usage, oldest first. */
-  byDay: Array<{ day: string } & UsageTotals>;
-  byModel: Array<{ model: string; provider: string } & UsageTotals>;
-  byRoom: Array<{ room: string } & UsageTotals>;
-  byMode: Array<{ mode: string } & UsageTotals>;
-  bySurface: Array<{ surface: string } & UsageTotals>;
-}
-
-function empty(): UsageTotals {
-  return { usd: 0, in: 0, out: 0, replies: 0, unpriced: 0 };
-}
-
-function add(t: UsageTotals, e: UsageEntry): void {
-  t.in += e.in;
-  t.out += e.out;
-  t.replies += 1;
-  if (typeof e.usd === 'number') t.usd += e.usd;
-  else t.unpriced += 1;
-}
-
-function grouped<K extends string>(entries: UsageEntry[], keyOf: (e: UsageEntry) => string, name: K) {
-  const map = new Map<string, UsageTotals>();
-  for (const e of entries) {
-    const k = keyOf(e);
-    let t = map.get(k);
-    if (!t) { t = empty(); map.set(k, t); }
-    add(t, e);
-  }
-  return [...map.entries()].map(([k, t]) => ({ [name]: k, ...t }) as { [P in K]: string } & UsageTotals);
-}
-
-/** Sum entries every way the page needs. Biggest spend first, except days. */
-export function summariseUsage(entries: UsageEntry[]): UsageSummary {
-  const totals = empty();
-  for (const e of entries) add(totals, e);
-  const bySpend = <T extends UsageTotals>(a: T, b: T) => (b.usd - a.usd) || ((b.in + b.out) - (a.in + a.out));
-  const byModel = (() => {
-    const map = new Map<string, { model: string; provider: string } & UsageTotals>();
-    for (const e of entries) {
-      const k = `${e.provider}\u0000${e.model}`;
-      let t = map.get(k);
-      if (!t) { t = { model: e.model, provider: e.provider, ...empty() }; map.set(k, t); }
-      add(t, e);
-    }
-    return [...map.values()].sort(bySpend);
-  })();
-  return {
-    totals,
-    byDay: grouped(entries, entryDay, 'day').sort((a, b) => a.day.localeCompare(b.day)),
-    byModel,
-    byRoom: grouped(entries, (e) => e.room, 'room').sort(bySpend),
-    byMode: grouped(entries, (e) => e.mode, 'mode').sort(bySpend),
-    bySurface: grouped(entries, (e) => e.surface, 'surface').sort(bySpend),
-  };
+  return filterUsage(out, from, to);
 }

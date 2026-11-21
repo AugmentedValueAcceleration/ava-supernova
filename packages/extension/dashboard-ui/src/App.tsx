@@ -295,7 +295,6 @@ export function App() {
   // the switch (boolean would deduplicate).
   const [plannerJournalNavTick, setPlannerJournalNavTick] = useState(0);
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
-const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(null);
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>(() => {
     try { const saved = localStorage.getItem('ava-dash-learning'); return saved ? JSON.parse(saved) : []; } catch { return []; }
   });
@@ -989,7 +988,6 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
         break;
       case 'session_stats_loaded':
         setSessionStatsData(msg.stats);
-        if ((msg as any).allTime) setLocalAllTimeData((msg as any).allTime);
         break;
       // Task messages
       case 'tasks_loaded':
@@ -1797,7 +1795,7 @@ const [localAllTimeData, setLocalAllTimeData] = useState<SessionStats | null>(nu
       case 'memory':
         return <MemoryV4Page request={memoryRequest} onPendingChange={(n) => setMemoryV4((m) => ({ ...m, pending: n }))} />;
       case 'history':
-        return <History sessionStats={sessionStatsData} localAllTime={localAllTimeData} auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
+        return <History auditLog={auditLog} auditFindings={auditFindings} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
       case 'library':
         return (
           <Library

@@ -199,6 +199,11 @@
       "require": "./dist/health/starters.js",
       "types": "./dist/health/starters.d.ts"
     },
+    "./usage/view": {
+      "import": "./dist/usage/view.js",
+      "require": "./dist/usage/view.js",
+      "types": "./dist/usage/view.d.ts"
+    },
     "./usage": {
       "import": "./dist/usage/ledger.js",
       "require": "./dist/usage/ledger.js",

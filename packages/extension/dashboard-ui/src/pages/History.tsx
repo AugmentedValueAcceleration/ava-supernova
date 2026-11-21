@@ -1,37 +1,17 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
-import { SectionGroup } from '../components/SectionGroup';
 import { Select } from '../components/Select';
 import { Icon } from '../components/Icon';
 import { Skeleton } from '../components/Skeleton';
-import type { SessionStats, ConversationEntry, ConversationSurface, Page } from '../types/messages';
+import type { ConversationEntry, ConversationSurface, Page } from '../types/messages';
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
 import { useTabTransition } from '../lib/useTabTransition';
 import { TabSpinner } from '../components/TabSpinner';
-import { usdRateFor } from '@ava/core/audit/cost';
-
-// ─── Model pricing (per 1M tokens) ──────────────────────────────────────────
-// Read from core's rate card (usdRateFor) — the same one every receipt uses,
-// and the one the IDE's Usage page reads. This page had its own list until
-// 20 Nov 2026: five Qwen ids from 2025, so every model in use was guessed.
-
-const DEFAULT_PRICING = { inputPerMillion: 0.20, outputPerMillion: 1.20 };
-
-function estimateCost(inputTokens: number, outputTokens: number, model: string, provider?: string): number {
-  const pricing = usdRateFor(model, provider) ?? DEFAULT_PRICING;
-  return (inputTokens / 1_000_000) * pricing.inputPerMillion + (outputTokens / 1_000_000) * pricing.outputPerMillion;
-}
+import { UsageTimeline } from '../components/UsageTimeline';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatNumber(n: number | null | undefined): string {
-  const v = Number(n ?? 0);
-  if (!Number.isFinite(v)) return '0';
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${Math.round(v / 1_000)}K`;
-  return String(Math.round(v));
-}
 
 
 // ─── Shared visual language ──────────────────────────────────────────────────
@@ -54,14 +34,6 @@ const TONE_BADGE: Record<Tone, string> = {
 // This is the one "clickable row" treatment for standalone cards across tabs.
 const INTERACTIVE_CARD = 'rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] transition hover:border-[var(--accent)]/45 hover:shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_16%,transparent)]';
 
-function costTone(cost: number): Tone {
-  if (cost < 0.10) return 'success';
-  if (cost < 0.50) return 'warn';
-  return 'danger';
-}
-function costColour(cost: number): string {
-  return TONE_TEXT[costTone(cost)];
-}
 
 // Shared search box — one styled input used by both the Conversations and
 // Audit tabs (they previously diverged). `compact` is the audit-toolbar size.
@@ -90,30 +62,6 @@ function EmptyState({ icon, children }: { icon: ReactNode; children: ReactNode }
   );
 }
 
-// Compact in-section placeholder — keeps every Usage section rendering a
-// consistent "nothing yet" card instead of some hiding and some showing zeros,
-// so a region header never sits above missing content.
-function SectionEmpty({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
-      <p className="text-xs text-[var(--text-muted)]">{children}</p>
-    </div>
-  );
-}
-
-// Labelled zone header — orients the two halves of the flattened Usage view
-// (This session / All time) now that the sub-toggle is gone.
-function UsageRegion({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <div className="mb-3 flex items-center gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{label}</span>
-        <div className="h-px flex-1 bg-[var(--border-card)]" />
-      </div>
-      {children}
-    </div>
-  );
-}
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -164,9 +112,6 @@ const SECURITY_META: Record<SecurityConcern, { labelKey: string; badge: string }
 };
 
 interface HistoryProps {
-  sessionStats: SessionStats | null;
-  /** Archived months + the live one, from local counters — what All-Time shows. */
-  localAllTime?: SessionStats | null;
   auditLog?: AuditEntry[];
   auditFindings?: AuditFinding[];
   /** Saved chat conversations from the host. Powers the Conversations
@@ -187,7 +132,7 @@ interface HistoryProps {
 // below — rather than a nested sub-toggle.
 type TopTab = 'conversations' | 'usage' | 'audit';
 
-export function History({ sessionStats, localAllTime, auditLog, auditFindings, conversations, loaded, onNavigate }: HistoryProps) {
+export function History({ auditLog, auditFindings, conversations, loaded, onNavigate }: HistoryProps) {
   useLocale();
   // Opens on the first tab every time — a page that remembers where you left
   // it last week is a page that opens somewhere you did not ask for.
@@ -294,16 +239,9 @@ export function History({ sessionStats, localAllTime, auditLog, auditFindings, c
       )}
 
       {activeTab === 'usage' && (
-        <div className="space-y-8">
-          {/* This session — always available (works for BYOK + local). */}
-          <UsageRegion label={t('dash.usage.session')}>
-            <SessionView stats={sessionStats} />
-          </UsageRegion>
-          {/* All-time — your own usage, from the local counters. */}
-          <UsageRegion label={t('dash.usage.all_time')}>
-            <AllTimeView localAllTime={localAllTime} />
-          </UsageRegion>
-        </div>
+        // The timeline (21 Nov 2026): any period, money and tokens together,
+        // from ~/.ava/usage — the same record the IDE reads.
+        <UsageTimeline />
       )}
 
       {activeTab === 'audit' && (
@@ -889,135 +827,4 @@ function AuditView({ entries, findings, loading }: { entries: AuditEntry[]; find
   );
 }
 
-/** The 1st of next month — when the counters clear. Derived rather than stored,
- *  so it stays right across month lengths and year boundaries. */
-function nextMonthStart(): Date {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth() + 1, 1);
-}
 
-// ─── Session View ────────────────────────────────────────────────────────────
-
-function SessionView({ stats }: { stats: SessionStats | null }) {
-  const totalTokens = stats ? stats.total_input_tokens + stats.total_output_tokens : 0;
-  const breakdown = stats?.model_breakdown ?? [];
-  const maxTotal = breakdown.length > 0 ? Math.max(...breakdown.map(m => m.input_tokens + m.output_tokens)) : 1;
-
-  const totalCost = useMemo(() => {
-    if (!stats) return 0;
-    return stats.model_breakdown.reduce((sum, m) => sum + estimateCost(m.input_tokens, m.output_tokens, m.model, m.provider), 0);
-  }, [stats]);
-
-  return (
-    <>
-      {/* Summary Cards */}
-      <div className="mb-6">
-        <SectionGroup label={t('dash.usage.session_summary')}>
-          <div className="grid grid-cols-3 gap-3">
-            <StatCard label={t('dash.usage.input_tokens')} value={formatNumber(stats?.total_input_tokens ?? 0)} />
-            <StatCard label={t('dash.usage.output_tokens')} value={formatNumber(stats?.total_output_tokens ?? 0)} />
-            <StatCard label={t('dash.usage.total_tokens')} value={formatNumber(totalTokens)} highlight />
-            <StatCard label={t('dash.usage.messages')} value={String(stats?.messages ?? 0)} />
-            <StatCard label={t('dash.usage.tool_calls')} value={String(stats?.tool_calls ?? 0)} />
-            {/* The window these figures cover, and when it clears. A duration
-                since a session start made sense when this WAS a session; over a
-                month it would have read "since 00:00", which tells nobody
-                anything. Naming the reset date is the useful fact — it is the
-                one thing someone checking their usage needs to know. */}
-            <StatCard
-              label={t('dash.usage.period')}
-              value={new Date(stats?.session_start ?? Date.now()).toLocaleDateString('en-GB', { month: 'long' })}
-              sub={t('dash.usage.resets_on', { date: nextMonthStart().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) })}
-            />
-          </div>
-        </SectionGroup>
-      </div>
-
-      {/* Cost Estimate */}
-      <div className="mb-6">
-        <SectionGroup label={t('dash.usage.estimated_cost')}>
-          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-            <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold ${costColour(totalCost)}`}>
-                ${totalCost.toFixed(4)}
-              </span>
-              <span className="text-xs text-[var(--text-muted)]">{t('dash.usage.this_session')}</span>
-            </div>
-            <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-              {t('dash.usage.cost_note')}
-            </p>
-          </div>
-        </SectionGroup>
-      </div>
-
-      {/* Model Breakdown */}
-      <div className="mb-6">
-        <SectionGroup label={t('dash.usage.models_used')}>
-          {breakdown.length > 0 ? (
-            <div className="space-y-2">
-              {breakdown.map((m) => {
-                const total = m.input_tokens + m.output_tokens;
-                const pct = (total / maxTotal) * 100;
-                const cost = estimateCost(m.input_tokens, m.output_tokens, m.model, m.provider);
-                return (
-                  <div key={`${m.provider}:${m.model}`} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium">{m.model}</span>
-                      <div className="flex items-center gap-3">
-                        <span className={`text-[10px] font-medium ${costColour(cost)}`}>${cost.toFixed(4)}</span>
-                        <span className="text-[10px] text-[var(--text-muted)]">
-                          {m.requests} {m.requests === 1 ? t('dash.usage.req') : t('dash.usage.reqs')}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mb-2 h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-3 text-[10px] text-[var(--text-muted)]">
-                      <span>{t('status.in')}: {formatNumber(m.input_tokens)}</span>
-                      <span>{t('status.out')}: {formatNumber(m.output_tokens)}</span>
-                      <span>{t('status.total')}: {formatNumber(total)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <SectionEmpty>{t('dash.usage.no_usage_session')}</SectionEmpty>
-          )}
-        </SectionGroup>
-      </div>
-    </>
-  );
-}
-
-// ─── All-Time View ───────────────────────────────────────────────────────────
-
-function AllTimeView({ localAllTime }: { localAllTime?: SessionStats | null }) {
-  // What YOU have spent, from the local counters — every completed month plus
-  // the live one. (The credits view that sat here was for accounts, gone 1 Nov 2026.)
-  return (
-    <>
-      <div className="mb-3">
-        <p className="text-sm font-medium text-[var(--text-secondary)]">{t('dash.usage.your_usage')}</p>
-        <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.est_note')}</p>
-      </div>
-      <SessionView stats={localAllTime ?? null} />
-    </>
-  );
-}
-
-function StatCard({ label, value, sub, highlight, title }: { label: string; value: string; sub?: string; highlight?: boolean; title?: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4" title={title}>
-      <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
-      <p className={`mt-1 text-lg font-bold ${highlight ? 'bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-transparent' : ''}`}>
-        {value}
-      </p>
-      {sub && <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{sub}</p>}
-    </div>
-  );
-}

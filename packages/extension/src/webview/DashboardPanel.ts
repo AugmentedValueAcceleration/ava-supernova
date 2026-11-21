@@ -111,6 +111,7 @@ import { exportDocument } from '@ava/core/authoring';
 import { modelFolder, readLocalCreative, readLocalCreativeSized, saveLocalCreative, deleteLocalCreative, pruneLocalCreative, renameLocalCreative, copyCreativeToProject, type CreativeKind } from './creative-store.js';
 import { scanStorage, reclaimStorage, measureProjects, readProjectsUsage } from './storage-scan.js';
 import { projectsHomeFrom } from '@ava/core/projects/home';
+import { readUsage, usageCsv, usageDir } from '@ava/core/usage';
 import { qwenImage, qwenTts, wanSubmit, wanWait } from '@ava/core/creative/dashscope';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
@@ -396,6 +397,23 @@ export class DashboardPanel {
       kitsFile.onDidChange(kitsChanged); kitsFile.onDidCreate(kitsChanged);
       this.disposables.push(kitsFile);
       this.disposables.push(watcher, briefs, imageBriefs, imageOptions, { dispose: () => { if (timer) clearTimeout(timer); } });
+    }
+
+    // The Usage timeline follows ~/.ava/usage: a line written by this window,
+    // another window or the IDE tells the page to read again. Debounced — a
+    // turn writes several lines in a burst.
+    {
+      try { mkdirSync(usageDir(), { recursive: true }); } catch { /* watched anyway */ }
+      let usageTimer: ReturnType<typeof setTimeout> | undefined;
+      const usageWatcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(vscode.Uri.file(usageDir()), '*.jsonl'),
+      );
+      const usageChanged = () => {
+        if (usageTimer) clearTimeout(usageTimer);
+        usageTimer = setTimeout(() => this.post({ type: 'usage_ledger_changed' }), 1500);
+      };
+      usageWatcher.onDidChange(usageChanged); usageWatcher.onDidCreate(usageChanged);
+      this.disposables.push(usageWatcher, { dispose: () => { if (usageTimer) clearTimeout(usageTimer); } });
     }
 
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'AvaSupernovaIcon.png');
@@ -750,6 +768,34 @@ export class DashboardPanel {
         break;
 
       // ─── BYOK messages ──────────────────────────────────────────────────────
+
+      // ─── Usage timeline (~/.ava/usage) ─────────────────────────────────────
+      // The host reads the lines; the page works everything out with core's
+      // usage/view.ts, the same code the IDE runs.
+      case 'load_usage_ledger': {
+        let entries: ReturnType<typeof readUsage> = [];
+        try { entries = readUsage(msg.from, msg.to); } catch { /* an empty page, not a broken one */ }
+        this.post({ type: 'usage_ledger_loaded', requestId: msg.requestId, entries });
+        break;
+      }
+
+      case 'export_usage_csv': {
+        try {
+          const entries = readUsage(msg.from, msg.to);
+          const name = `ava-usage-${msg.from ?? 'start'}-to-${msg.to ?? 'today'}.csv`;
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(path.join(os.homedir(), 'Downloads', name)),
+            filters: { CSV: ['csv'] },
+          });
+          if (!uri) break;
+          const fs = await import('node:fs/promises');
+          await fs.writeFile(uri.fsPath, usageCsv(entries), 'utf-8');
+          this.post({ type: 'info', message: `Usage exported to ${uri.fsPath}` } as any);
+        } catch (err) {
+          this.post({ type: 'error', message: `Usage export failed: ${err instanceof Error ? err.message : err}` } as any);
+        }
+        break;
+      }
 
       case 'load_session_stats':
         this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });

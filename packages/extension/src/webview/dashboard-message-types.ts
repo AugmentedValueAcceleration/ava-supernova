@@ -8,6 +8,7 @@
 import type { LearnerProgression, GradeResult } from '@ava/core/learning';
 import type { ExportFormat } from '@ava/core/authoring/formats';
 import type { ProjectsUsage } from '@ava/core/projects/storage';
+import type { UsageEntry } from '@ava/core/usage/view';
 
 export type MemoryCategory = 'pattern' | 'preference' | 'architecture' | 'bug-fix' | 'convention' | 'tool-config' | 'decision' | 'person' | 'health' | 'general';
 
@@ -1514,6 +1515,10 @@ export type ExtToDashboardMessage =
   | { type: 'local_memory_upserted'; memory: MemoryEntry }
   // `allTime` is archived months + the live one, from local counters.
   | { type: 'session_stats_loaded'; stats: SessionStats; allTime?: SessionStats }
+  // Usage timeline: the lines for a range (ask with load_usage_ledger), and a
+  // nudge whenever ~/.ava/usage changes, from this window or the IDE.
+  | { type: 'usage_ledger_loaded'; requestId?: number; entries: UsageEntry[] }
+  | { type: 'usage_ledger_changed' }
   // Task messages
   | { type: 'tasks_loaded'; tasks: DashboardTaskEntry[] }
   | { type: 'task_upserted'; task: DashboardTaskEntry }
@@ -1874,6 +1879,8 @@ export type DashboardToExtMessage =
   | { type: 'archive_local_memory'; id: string }
   | { type: 'restore_local_memory'; id: string }
   | { type: 'load_session_stats' }
+  | { type: 'load_usage_ledger'; from?: string; to?: string; requestId?: number }
+  | { type: 'export_usage_csv'; from?: string; to?: string }
   | { type: 'set_working_hours'; start: number; end: number }
   | { type: 'download_asset'; path: string }
   | { type: 'delete_all_memories' }
