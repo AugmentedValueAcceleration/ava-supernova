@@ -690,6 +690,6 @@ export { assignedPlansContext, setWorkPlansStore } from './brainstorm/work-plans
 // timeline, 21 Nov 2026). Off until a program calls configureUsageLedger.
 export {
   configureUsageLedger, usageLedgerEnabled, usageDir, recordUsage, readUsage,
-  usageMonths, usageCost, withUsageScope, currentUsageScope, localIso,
+  usageMonths, withUsageScope, currentUsageScope, localIso, importLegacyUsage,
 } from './usage/ledger.js';
 export * from './usage/view.js';

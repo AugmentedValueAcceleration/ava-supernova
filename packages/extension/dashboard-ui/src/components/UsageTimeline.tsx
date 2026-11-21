@@ -43,7 +43,7 @@ export function rangeLabel(k: UsageRangeKey): string {
 
 const ROOM_EN: Record<string, string> = {
   main: 'Main chat', health: 'Health', learning: 'Learning', design: 'Design Studio', social: 'Posts',
-  brainstorm: 'Brainstorm', background: 'Background',
+  brainstorm: 'Brainstorm', background: 'Background', earlier: 'Before daily records',
 };
 export function roomLabel(id: string): string {
   return tt(`dash.usage.tl.room.${id}`, ROOM_EN[id] ?? id);
@@ -51,7 +51,7 @@ export function roomLabel(id: string): string {
 
 const MODE_EN: Record<string, string> = {
   'work:talking': 'Code (Talk)', health: 'Health Room', design: 'Design Studio', social: 'Posts', news: 'Newsroom',
-  pantry: 'Pantry', gym: 'Gym', classroom: 'Classroom', background: 'Background',
+  pantry: 'Pantry', gym: 'Gym', classroom: 'Classroom', background: 'Background', earlier: 'Before daily records',
 };
 export function modeLabel(id: string): string {
   const own = t(`mode.${id}`);
@@ -70,6 +70,11 @@ export function tokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
   return String(Math.round(n));
+}
+
+/** What an outlined bar is: a month's total from the old counters. */
+function earlierNote(): string {
+  return tt('dash.usage.tl.earlier_note', 'a month total from before daily records began (21 Nov 2026), so it has no daily detail');
 }
 
 function dayText(day: string, locale: string, withYear = false): string {
@@ -148,11 +153,15 @@ function Bars({ bars, metric, bucket, selected, onSelect, locale }: {
             <g key={b.start} onClick={() => onSelect(isSel ? null : b)} style={{ cursor: b.replies ? 'pointer' : 'default' }}>
               {/* A full-height hit area, so a small bar is still easy to click. */}
               <rect x={i * W} y={0} width={W} height={H} fill="transparent">
-                <title>{`${barText(b, bucket, locale)}: ${fmt(b)} · ${b.replies} ${tt('dash.usage.tl.calls_word', 'calls')}`}</title>
+                <title>{`${barText(b, bucket, locale)}: ${fmt(b)} · ${b.replies} ${tt('dash.usage.tl.calls_word', 'calls')}${b.earlier ? ` — ${earlierNote()}` : ''}`}</title>
               </rect>
               <rect
                 x={i * W + W * 0.15} y={H - h} width={W * 0.7} height={h} rx="0.6"
-                fill={isSel ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 55%, transparent)'}
+                fill={isSel ? 'var(--accent)' : b.earlier ? 'color-mix(in srgb, var(--accent) 22%, transparent)' : 'color-mix(in srgb, var(--accent) 55%, transparent)'}
+                stroke={b.earlier ? 'var(--accent)' : 'none'}
+                strokeDasharray={b.earlier ? '3 2' : undefined}
+                strokeWidth={b.earlier ? 1 : 0}
+                vectorEffect="non-scaling-stroke"
                 pointerEvents="none"
               />
             </g>
@@ -287,6 +296,12 @@ export function UsageTimeline() {
         {loaded && totals.replies === 0
           ? <p className="py-8 text-center text-xs text-[var(--text-muted)]">{tt('dash.usage.tl.empty', 'Nothing spent in this period.')}</p>
           : <Bars bars={view.bars} metric={saved.metric} bucket={view.bucket} selected={selected?.start ?? null} onSelect={setSelected} locale={locale} />}
+        {view.bars.some((b) => b.earlier) && (
+          <p className="mt-2 text-[10px] text-[var(--text-muted)]">
+            <span className="mr-1 inline-block h-2 w-3 rounded-sm border border-dashed border-[var(--accent)] align-middle" />
+            {tt('dash.usage.tl.earlier_legend', 'Outlined: a month total from before daily records began (21 Nov 2026).')}
+          </p>
+        )}
       </div>
 
       {/* Breakdown */}

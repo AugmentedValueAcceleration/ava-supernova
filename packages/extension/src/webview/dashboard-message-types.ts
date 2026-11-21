@@ -119,21 +119,6 @@ export interface ConversationEntry {
   surface?: ConversationSurface;
 }
 
-export interface SessionStats {
-  messages: number;
-  tool_calls: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  model_breakdown: Array<{
-    model: string;
-    provider: string;
-    requests: number;
-    input_tokens: number;
-    output_tokens: number;
-  }>;
-  session_start: string;
-}
-
 // ─── Task Management ─────────────────────────────────────────────────────────
 
 export interface DashboardTaskEntry {
@@ -1513,8 +1498,6 @@ export type ExtToDashboardMessage =
   | { type: 'local_memories_loaded'; memories: MemoryEntry[] }
   | { type: 'local_memory_deleted'; id: string }
   | { type: 'local_memory_upserted'; memory: MemoryEntry }
-  // `allTime` is archived months + the live one, from local counters.
-  | { type: 'session_stats_loaded'; stats: SessionStats; allTime?: SessionStats }
   // Usage timeline: the lines for a range (ask with load_usage_ledger), and a
   // nudge whenever ~/.ava/usage changes, from this window or the IDE.
   | { type: 'usage_ledger_loaded'; requestId?: number; entries: UsageEntry[] }
@@ -1878,7 +1861,6 @@ export type DashboardToExtMessage =
   | { type: 'upsert_local_memory'; id?: string; content: string; category?: string | null }
   | { type: 'archive_local_memory'; id: string }
   | { type: 'restore_local_memory'; id: string }
-  | { type: 'load_session_stats' }
   | { type: 'load_usage_ledger'; from?: string; to?: string; requestId?: number }
   | { type: 'export_usage_csv'; from?: string; to?: string }
   | { type: 'set_working_hours'; start: number; end: number }

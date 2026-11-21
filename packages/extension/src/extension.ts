@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { ensureProjectsHome } from '@ava/core/projects';
-import { configureUsageLedger } from '@ava/core/usage';
+import { configureUsageLedger, importLegacyUsage, type LegacyMonth } from '@ava/core/usage';
 import { migrateProjectsLayout } from '@ava/core/projects/migrate';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
@@ -20,7 +20,6 @@ import {
   setMcpBrowserOpener,
   McpServers,
 } from '@ava/core';
-import { sessionStats } from './session-stats.js';
 import { withSharedProviderKeys } from './secrets/shared-keychain.js';
 import { syncSharedOnboarding } from './webview/onboarding-state.js';
 import { SharedSettingsSync } from './shared-settings.js';
@@ -145,15 +144,28 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
   // toggles capture on, events start landing without restarting VS Code.
   installDatasetConsumer();
 
-  // Usage stats persist across reloads, per calendar month. Before this they
-  // lived only in memory and were wiped every time the window reloaded, so the
-  // Usage tab looked as though nothing was ever recorded. Attaching here — the
-  // first thing after activation — means the month's figures are restored
-  // before any turn can add to them.
-  sessionStats.attach({
-    get: <T,>(key: string) => context.globalState.get<T>(key),
-    update: (key: string, value: unknown) => context.globalState.update(key, value),
-  });
+  // The months the old usage counter kept (VS Code storage, per calendar
+  // month, tokens per model) come into ~/.ava/usage once, as monthly totals
+  // marked "before daily records" — the Usage timeline, phase 3 (21 Nov 2026).
+  // A marker file makes every later start a no-op. The old keys are left in
+  // place, unread; a later release removes them.
+  try {
+    type OldMonth = { month?: string; model_breakdown?: Array<{ model: string; provider?: string; requests?: number; input_tokens?: number; output_tokens?: number }> };
+    const old = [
+      ...(context.globalState.get<OldMonth[]>('ava-supernova.usageHistory') ?? []),
+      context.globalState.get<OldMonth>('ava-supernova.usageStats'),
+    ];
+    const months: LegacyMonth[] = old
+      .filter((m): m is OldMonth & { month: string } => !!m && typeof m.month === 'string')
+      .map((m) => ({
+        month: m.month,
+        models: (m.model_breakdown ?? []).map((x) => ({
+          model: x.model, provider: x.provider, in: x.input_tokens ?? 0, out: x.output_tokens ?? 0, requests: x.requests ?? 0,
+        })),
+      }));
+    importLegacyUsage('ext', months);
+  } catch { /* the old months are a nicety; nothing depends on them */ }
+
 
   // Defensive vault hygiene: older builds briefly stored the platform key
   // in plaintext globalState. Evict any stragglers so SecretStorage stays

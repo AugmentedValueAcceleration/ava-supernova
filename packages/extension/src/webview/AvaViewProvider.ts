@@ -134,7 +134,6 @@ import { DocumentViewerPanel } from './DocumentViewerPanel';
 import { DocumentPreviewPanel } from './DocumentPreviewPanel.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
-import { sessionStats } from '../session-stats.js';
 import { markShared } from './onboarding-state.js';
 import {
   logTo,
@@ -229,6 +228,11 @@ function describeProfileValue(def: ProfileFieldShape, value: unknown): string {
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
   private static readonly SILENT_TOOLS = new Set(['detect_language']);
+  /** This window's session, for the auto-journal: messages and tool calls
+   *  since the window opened. It read the month-wide usage counter until 21
+   *  Nov 2026, so a journal said "worked for 30,000 minutes" — the minutes
+   *  since the 1st. Usage itself lives in ~/.ava/usage now. */
+  private readonly journalSession = { messages: 0, tool_calls: 0, session_start: new Date().toISOString() };
 
   private view?: vscode.WebviewView;
   private panel?: vscode.WebviewPanel;
@@ -3251,7 +3255,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (this.sharedState) {
       this.sharedState.conductorSynthesizedThisTurn = false;
     }
-    sessionStats.recordMessage();
+    this.journalSession.messages += 1;
     this.pendingTurnError = null;
     this.updateStatusBar('busy');
 
@@ -3347,7 +3351,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             });
           }
           this.log(`Tool call: ${event.toolCall.function.name}`);
-          sessionStats.recordToolCall();
+          this.journalSession.tool_calls += 1;
           break;
         }
         case 'tool_call_partial': {
@@ -3526,13 +3530,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             contextWindow: this.activeModelDef?.contextWindow,
           });
           this.log(`Usage: ${event.usage.prompt_tokens}+${event.usage.completion_tokens} tokens${event.cost ? ` ($${event.cost.toFixed(4)})` : ''}`);
-          // Track session stats
-          sessionStats.recordUsage(
-            this.activeModelDef?.id ?? 'unknown',
-            this.activeModelDef?.provider ?? 'unknown',
-            event.usage.prompt_tokens,
-            event.usage.completion_tokens,
-          );
+          // Usage is recorded by core, in ~/.ava/usage (the Usage timeline).
           break;
         }
         case 'error': {
@@ -3931,7 +3929,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       try {
         if (this.journalManager && this.conversation) {
           const today = todayLocal();
-          const stats = sessionStats.getStats();
+          const stats = this.journalSession;
           const duration = Math.round((Date.now() - new Date(stats.session_start).getTime()) / 60000);
 
           // Only journal sessions with actual substance (2+ messages)

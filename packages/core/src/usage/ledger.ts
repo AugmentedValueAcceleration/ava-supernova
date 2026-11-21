@@ -21,13 +21,12 @@
 // Plain files, append-only, one per month — the same pattern as memory and the
 // audit log. A line is ~200 bytes; a heavy month is a few MB.
 
-import { appendFileSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { AVA_HOME } from '../core/constants.js';
-import { usdRateFor } from '../audit/cost.js';
 
-import { parseUsageLines, filterUsage, monthsForRange, type UsageEntry, type UsageSurface } from './view.js';
+import { parseUsageLines, filterUsage, monthsForRange, usageCost, legacyUsageLines, type LegacyMonth, type UsageEntry, type UsageSurface } from './view.js';
 
 // The shape of a line, the totals and everything the page works out live in
 // view.ts — no file access there, so the IDE's page (which reads these files
@@ -100,14 +99,6 @@ function cachedFrom(usage: Record<string, unknown> | undefined): number | undefi
   return undefined;
 }
 
-/** What a reply cost, in USD, at today's rate card. Falls back to the cost the
- *  model definition worked out, when the rate card does not know the model. */
-export function usageCost(model: string, provider: string, input: number, output: number, fallback?: number): number | undefined {
-  const rate = usdRateFor(model, provider);
-  if (rate) return (input / 1_000_000) * rate.inputPerMillion + (output / 1_000_000) * rate.outputPerMillion;
-  return typeof fallback === 'number' && Number.isFinite(fallback) ? fallback : undefined;
-}
-
 /**
  * Record one reply. Never throws and never blocks the turn: a ledger that
  * cannot be written is a lost line, not a failed reply.
@@ -174,4 +165,28 @@ export function readUsage(from?: string, to?: string): UsageEntry[] {
     try { out.push(...parseUsageLines(readFileSync(join(usageDir(), `${month}.jsonl`), 'utf-8'))); } catch { /* unreadable month */ }
   }
   return filterUsage(out, from, to);
+}
+
+/**
+ * Bring this program's old monthly totals into the ledger — ONCE. A marker
+ * file per program (`imported-<surface>`) makes a second run a no-op, so it is
+ * safe to call at every start-up. Called at the first start of the version
+ * that stops the old counters, so the ledger lines taken off the current month
+ * are exactly the ones the old counter also counted. Never throws.
+ */
+export function importLegacyUsage(surface: UsageSurface, months: LegacyMonth[]): { imported: number; skipped: boolean } {
+  try {
+    const dir = usageDir();
+    const marker = join(dir, `imported-${surface}`);
+    if (existsSync(marker)) return { imported: 0, skipped: true };
+    mkdirSync(dir, { recursive: true });
+    const wanted = months.map((m) => m.month).sort();
+    const recorded = wanted.length ? readUsage(`${wanted[0]}-01`, `${wanted[wanted.length - 1]}-31`) : [];
+    const lines = legacyUsageLines(surface, months, recorded);
+    for (const e of lines) appendFileSync(join(dir, `${e.t.slice(0, 7)}.jsonl`), JSON.stringify(e) + '\n', 'utf-8');
+    writeFileSync(marker, `${new Date().toISOString()} ${lines.length} lines\n`, 'utf-8');
+    return { imported: lines.length, skipped: false };
+  } catch {
+    return { imported: 0, skipped: false };
+  }
 }

@@ -63,7 +63,6 @@ import type { Personality } from '@ava/core';
 import type { TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch, getDeviceId } from '../utils/platform-api.js';
-import { sessionStats } from '../session-stats.js';
 import { markShared } from './onboarding-state.js';
 import type { AvaViewProvider } from './AvaViewProvider.js';
 import type {
@@ -796,10 +795,6 @@ export class DashboardPanel {
         }
         break;
       }
-
-      case 'load_session_stats':
-        this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
-        break;
 
       case 'load_session_tasks':
         this.post({ type: 'session_tasks_updated', tasks: this.getSessionTasks() });
@@ -3086,9 +3081,6 @@ export class DashboardPanel {
 
     const workingHours = this.context.globalState.get<{ start: number; end: number }>('ava.workingHours') ?? null;
     this.post({ type: 'init', account: null, settings, providerKeys, locale, onboarding, consentAccepted, userAvatar, workingHours });
-
-    // Session stats are local, so the Usage panel renders straight away.
-    this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats(), allTime: { ...sessionStats.getAllTime(), session_start: sessionStats.getStats().session_start } });
   }
 
   // ─── Provider Keys ────────────────────────────────────────────────────────

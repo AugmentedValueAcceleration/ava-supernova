@@ -96,7 +96,7 @@ describe('CSV', () => {
   it('one row per line, and nothing a spreadsheet would run as a formula', () => {
     const csv = usageCsv([e('2026-11-21T10:00:00.000+00:00', { model: '=HYPERLINK("x")', cached: 40 })]);
     const [head, row] = csv.trim().split('\r\n');
-    expect(head).toBe('time,program,room,mode,provider,model,input_tokens,output_tokens,cached_tokens,estimated_usd');
-    expect(row).toBe('2026-11-21T10:00:00.000+00:00,ext,main,work,deepseek,"=HYPERLINK(""x"")",100,10,40,0.01');
+    expect(head).toBe('time,program,room,mode,provider,model,input_tokens,output_tokens,cached_tokens,estimated_usd,calls,period');
+    expect(row).toBe('2026-11-21T10:00:00.000+00:00,ext,main,work,deepseek,"=HYPERLINK(""x"")",100,10,40,0.01,1,call');
   });
 });

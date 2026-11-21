@@ -12,7 +12,6 @@ import type {
   DashboardTaskEntry,
   HealthPlan,
   Page,
-  SessionStats,
 } from '../types/messages';
 import { HealthDashboard } from './HealthDashboard';
 import { type AuditFinding, localizeFinding } from '../lib/auditFindings';
@@ -92,7 +91,6 @@ function truncate(str: string, len: number): string {
 
 interface OverviewProps {
   onNavigate: (page: Page) => void;
-  sessionStats?: SessionStats | null;
   /** Your name from the local general profile (the one Ava uses). */
   userName: string | null;
   /** Save a new name to the local general profile. */
@@ -138,7 +136,6 @@ let lastCcTab: CcTab = 'daily';
 
 export function Overview({
   onNavigate,
-  sessionStats: _stats,
   userName,
   onRenameUser,
   tasks,

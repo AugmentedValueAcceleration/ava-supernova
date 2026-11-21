@@ -32,6 +32,13 @@ export interface UsageEntry {
   cached?: number;
   /** Estimated USD at the moment of spend. Absent when no rate was known. */
   usd?: number;
+  /** How many calls this line stands for. Absent = 1. Only an imported
+   *  month (below) is more than one. */
+  n?: number;
+  /** 'month': a whole month's total from the counters kept before daily
+   *  records began (imported once, 21 Nov 2026). Stamped on the 1st; its
+   *  room and mode are 'earlier' because the old counters never knew them. */
+  span?: 'month';
 }
 
 /** Totals for a group of entries. */
@@ -53,6 +60,8 @@ export interface UsageSummary {
   byMode: Array<{ mode: string } & UsageTotals>;
   bySurface: Array<{ surface: string } & UsageTotals>;
 }
+
+import { usdRateFor } from '../audit/cost.js';
 
 // ─── Lines ──────────────────────────────────────────────────────────────────
 
@@ -101,11 +110,12 @@ export function emptyTotals(): UsageTotals {
 }
 
 function add(t: UsageTotals, e: UsageEntry): void {
+  const n = typeof e.n === 'number' && e.n >= 0 ? e.n : 1;
   t.in += e.in;
   t.out += e.out;
-  t.replies += 1;
+  t.replies += n;
   if (typeof e.usd === 'number') t.usd += e.usd;
-  else t.unpriced += 1;
+  else t.unpriced += Math.max(n, 1);
 }
 
 function grouped<K extends string>(entries: UsageEntry[], keyOf: (e: UsageEntry) => string, name: K) {
@@ -258,6 +268,9 @@ export interface UsageBar extends UsageTotals {
   start: string;
   /** Last day of the bar, clipped to the range. */
   end: string;
+  /** Holds a month total from before daily records (span 'month') — drawn
+   *  apart and labelled, so a month's total never passes for one day's. */
+  earlier?: boolean;
 }
 
 /** One bar per bucket across the WHOLE range — empty days show as empty, so a
@@ -276,7 +289,7 @@ export function usageBars(entries: UsageEntry[], from: string, to: string, bucke
     const day = entryDay(e);
     if (day < from || day > to) continue;
     const bar = index.get(bucketStart(day, bucket));
-    if (bar) add(bar, e);
+    if (bar) { add(bar, e); if (e.span === 'month') bar.earlier = true; }
   }
   return bars;
 }
@@ -331,7 +344,91 @@ function csvCell(v: unknown): string {
 
 /** Every line in the range as CSV — the same lines every total is summed from. */
 export function usageCsv(entries: UsageEntry[]): string {
-  const head = ['time', 'program', 'room', 'mode', 'provider', 'model', 'input_tokens', 'output_tokens', 'cached_tokens', 'estimated_usd'];
-  const rows = entries.map((e) => [e.t, e.surface, e.room, e.mode, e.provider, e.model, e.in, e.out, e.cached, e.usd].map(csvCell).join(','));
+  const head = ['time', 'program', 'room', 'mode', 'provider', 'model', 'input_tokens', 'output_tokens', 'cached_tokens', 'estimated_usd', 'calls', 'period'];
+  const rows = entries.map((e) => [
+    e.t, e.surface, e.room, e.mode, e.provider, e.model, e.in, e.out, e.cached, e.usd,
+    typeof e.n === 'number' ? e.n : 1, e.span === 'month' ? 'month total (before daily records)' : 'call',
+  ].map(csvCell).join(','));
   return [head.join(','), ...rows].join('\r\n') + '\r\n';
+}
+
+// ─── Pricing ────────────────────────────────────────────────────────────────
+
+/** What a call cost, in USD, at today's rate card. Falls back to the cost the
+ *  model definition worked out, when the rate card does not know the model. */
+export function usageCost(model: string, provider: string | undefined, input: number, output: number, fallback?: number): number | undefined {
+  const rate = usdRateFor(model, provider && provider !== 'unknown' ? provider : undefined);
+  if (rate) return (input / 1_000_000) * rate.inputPerMillion + (output / 1_000_000) * rate.outputPerMillion;
+  return typeof fallback === 'number' && Number.isFinite(fallback) ? fallback : undefined;
+}
+
+// ─── The months before daily records ────────────────────────────────────────
+
+/** A month from the old counters (extension: VS Code storage; IDE: browser
+ *  storage) — tokens per model, no days, no rooms, no prices. */
+export interface LegacyMonth {
+  month: string; // 'YYYY-MM'
+  models: Array<{ model: string; provider?: string; in: number; out: number; requests: number }>;
+}
+
+/** Midnight on the 1st of a month, local time, as a ledger stamp. */
+function monthStamp(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, (m || 1) - 1, 1, 0, 0, 0, 0);
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const pad = (n: number) => String(Math.abs(Math.trunc(n))).padStart(2, '0');
+  return `${month}-01T00:00:00.000${sign}${pad(off / 60)}:${pad(off % 60)}`;
+}
+
+/**
+ * The ledger lines that bring one program's old monthly totals into the
+ * timeline — one line per model per month, marked span 'month'.
+ *
+ * `recorded` is what the ledger already holds. The old counters kept running
+ * alongside the ledger from the day it began until this import, so whatever
+ * the ledger recorded from the same program in a month is taken off that
+ * month's old total: nothing is counted twice. Priced at today's rates — the
+ * only price there is for a month that never stored one.
+ */
+export function legacyUsageLines(surface: UsageSurface, months: LegacyMonth[], recorded: UsageEntry[]): UsageEntry[] {
+  const seen = new Map<string, { in: number; out: number; n: number }>();
+  for (const e of recorded) {
+    if (e.surface !== surface || e.span === 'month') continue;
+    const k = `${e.t.slice(0, 7)}\u0000${e.model}`;
+    const v = seen.get(k) ?? { in: 0, out: 0, n: 0 };
+    v.in += e.in; v.out += e.out; v.n += typeof e.n === 'number' ? e.n : 1;
+    seen.set(k, v);
+  }
+  const out: UsageEntry[] = [];
+  const done = new Set<string>();
+  for (const m of [...months].sort((a, b) => a.month.localeCompare(b.month))) {
+    if (!/^\d{4}-\d{2}$/.test(m.month) || done.has(m.month)) continue;
+    done.add(m.month);
+    // The same model can appear more than once in an old record (once per
+    // provider spelling); merged so the subtraction is against the whole.
+    const merged = new Map<string, { model: string; provider?: string; in: number; out: number; requests: number }>();
+    for (const x of m.models) {
+      if (!x || typeof x.model !== 'string') continue;
+      const v = merged.get(x.model) ?? { model: x.model, provider: x.provider, in: 0, out: 0, requests: 0 };
+      v.in += Number(x.in) || 0; v.out += Number(x.out) || 0; v.requests += Number(x.requests) || 0;
+      v.provider = v.provider ?? x.provider;
+      merged.set(x.model, v);
+    }
+    for (const x of merged.values()) {
+      const already = seen.get(`${m.month}\u0000${x.model}`);
+      const input = Math.max(0, x.in - (already?.in ?? 0));
+      const output = Math.max(0, x.out - (already?.out ?? 0));
+      if (input <= 0 && output <= 0) continue;
+      const provider = x.provider && x.provider !== 'unknown' ? x.provider : 'unknown';
+      const line: UsageEntry = {
+        t: monthStamp(m.month), surface, room: 'earlier', mode: 'earlier', provider, model: x.model,
+        in: input, out: output, n: Math.max(0, x.requests - (already?.n ?? 0)), span: 'month',
+      };
+      const usd = usageCost(x.model, provider, input, output);
+      if (usd !== undefined) line.usd = Math.round(usd * 1e8) / 1e8;
+      out.push(line);
+    }
+  }
+  return out;
 }

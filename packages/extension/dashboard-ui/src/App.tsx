@@ -42,7 +42,6 @@ import type {
   DashboardJournalMonthEntry,
   DashboardJournalKind,
   DashboardJournalSearchHit,
-  SessionStats,
   DashboardSettings,
   ProviderKeyStatus,
   ExtToDashboardMessage,
@@ -294,7 +293,6 @@ export function App() {
   // rather than a boolean so re-clicking the same date still triggers
   // the switch (boolean would deduplicate).
   const [plannerJournalNavTick, setPlannerJournalNavTick] = useState(0);
-  const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>(() => {
     try { const saved = localStorage.getItem('ava-dash-learning'); return saved ? JSON.parse(saved) : []; } catch { return []; }
   });
@@ -760,8 +758,8 @@ export function App() {
     library: ['library_loaded', 'library_paths_loaded'],
     // load_active_health_plans + load_health_plans.
     health: ['active_health_plans_loaded', 'health_plans_loaded'],
-    // load_conversations + load_session_stats.
-    history: ['conversations_loaded', 'session_stats_loaded'],
+    // load_conversations. (The Usage tab reads ~/.ava/usage itself.)
+    history: ['conversations_loaded'],
     // help is deliberately absent too: it only asks for the roadmap, a network
     // call that can fail silently. It used to wait on support_tickets_loaded,
     // which nothing has sent since tickets retired (1 Nov 2026) — so every
@@ -985,9 +983,6 @@ export function App() {
         break;
       case 'conversation_deleted':
         setConversations((prev) => prev.filter((c) => c.id !== msg.id));
-        break;
-      case 'session_stats_loaded':
-        setSessionStatsData(msg.stats);
         break;
       // Task messages
       case 'tasks_loaded':
@@ -1553,15 +1548,9 @@ export function App() {
   // Load data when navigating to pages
   useEffect(() => {
     if (page === 'history') {
-      // Load session stats for everyone
-      post({ type: 'load_session_stats' });
-      // Load conversations for the Conversations tab
+      // Load conversations for the Conversations tab. The Usage tab loads
+      // its own range and follows ~/.ava/usage through the host's watcher.
       post({ type: 'load_conversations' });
-      // Auto-refresh every 15 seconds while on this page
-      const interval = setInterval(() => {
-        post({ type: 'load_session_stats' });
-      }, 15_000);
-      return () => clearInterval(interval);
     }
     // Load learning when navigating to learning page
     if (page === 'learning') {
@@ -1597,7 +1586,6 @@ export function App() {
       post({ type: 'load_news' });
       post({ type: 'load_latest_release' });
       post({ type: 'get_storage_scan' });  // powers the header storage bar
-      post({ type: 'load_session_stats' });
     }
     // Unified Library — load all three data sources when the page opens.
     // The creative gallery and local files power the Assets / Documents tabs;
@@ -1758,7 +1746,7 @@ export function App() {
             />
           );
         }
-        return <Overview onNavigate={setPagePersist} sessionStats={sessionStatsData} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memoryFacts={memoryV4.facts} memoryWaiting={memoryV4.pending} memoryLatest={memoryV4.latest} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} forYou={forYou} forYouHandlers={{
+        return <Overview onNavigate={setPagePersist} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memoryFacts={memoryV4.facts} memoryWaiting={memoryV4.pending} memoryLatest={memoryV4.latest} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} forYou={forYou} forYouHandlers={{
           onOpenItem: (kind, slug) => { setHealthOpenItem({ kind, slug }); setHealthInitialTab(kind === 'recipe' ? 'recipes' : 'exercises'); setPagePersist('health'); },
           onStartPlan: (seed) => { setWizardSeed(seed); setHealthInitialTab('plans'); setPagePersist('health'); },
           onProfile: () => { setHealthInitialTab('profile'); setPagePersist('health'); },
