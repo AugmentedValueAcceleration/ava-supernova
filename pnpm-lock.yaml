@@ -533,8 +533,8 @@ importers:
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@project-ava-supernova/core':
-        specifier: 0.2.186
-        version: 0.2.186(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
+        specifier: 0.2.194
+        version: 0.2.194(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@supabase/ssr':
         specifier: ^0.6.0
         version: 0.6.1(@supabase/supabase-js@2.97.0)
@@ -2167,8 +2167,8 @@ packages:
       screenshot-desktop:
         optional: true
 
-  '@project-ava-supernova/core@0.2.186':
-    resolution: {integrity: sha512-xCgpYQOqH5Z3LvuFIYQ/PCmpyvDCiVoBIjFwbrNMpYNae93KdfTpTOqgi/QibXw/cAvc6b0AKRGScu9D2Me5rQ==}
+  '@project-ava-supernova/core@0.2.194':
+    resolution: {integrity: sha512-2OyPL+Lg5mRwxX9ML4AP9DzEhptsEJgyJSz2hvMo82Qvbh4puwO6k4yGkuvKFfBpt8zxD8B2xCHIYxMi9UDTlQ==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -7912,8 +7912,9 @@ snapshots:
       - '@emnapi/runtime'
       - '@napi-rs/canvas'
 
-  '@project-ava-supernova/core@0.2.186(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+  '@project-ava-supernova/core@0.2.194(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
     dependencies:
+      '@modelcontextprotocol/sdk': 1.32.2(zod@4.3.6)
       '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
       fflate: 0.8.3
       glob: 13.0.6
@@ -7933,9 +7934,11 @@ snapshots:
       playwright: 1.58.2
       screenshot-desktop: 1.15.3
     transitivePeerDependencies:
+      - '@cfworker/json-schema'
       - '@emnapi/core'
       - '@emnapi/runtime'
       - '@napi-rs/canvas'
+      - supports-color
 
   '@protobufjs/aspromise@1.1.2': {}
 
