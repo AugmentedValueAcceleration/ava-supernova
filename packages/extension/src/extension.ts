@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { existsSync } from 'node:fs';
 import { ensureProjectsHome } from '@ava/core/projects';
-import { configureUsageLedger, importLegacyUsage, type LegacyMonth } from '@ava/core/usage';
+import { configureUsageLedger, importLegacyUsage, usageDir, type LegacyMonth } from '@ava/core/usage';
 import { migrateProjectsLayout } from '@ava/core/projects/migrate';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
@@ -147,13 +148,16 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
   // The months the old usage counter kept (VS Code storage, per calendar
   // month, tokens per model) come into ~/.ava/usage once, as monthly totals
   // marked "before daily records" — the Usage timeline, phase 3 (21 Nov 2026).
-  // A marker file makes every later start a no-op. The old keys are left in
-  // place, unread; a later release removes them.
+  // A marker file makes every later start a no-op. Once the marker exists the
+  // months are safely in ~/.ava/usage, so the old keys are deleted (his call,
+  // 22 Nov 2026) — never before, so a failed import keeps the source to retry.
   try {
     type OldMonth = { month?: string; model_breakdown?: Array<{ model: string; provider?: string; requests?: number; input_tokens?: number; output_tokens?: number }> };
+    const OLD_HISTORY = 'ava-supernova.usageHistory';
+    const OLD_LIVE = 'ava-supernova.usageStats';
     const old = [
-      ...(context.globalState.get<OldMonth[]>('ava-supernova.usageHistory') ?? []),
-      context.globalState.get<OldMonth>('ava-supernova.usageStats'),
+      ...(context.globalState.get<OldMonth[]>(OLD_HISTORY) ?? []),
+      context.globalState.get<OldMonth>(OLD_LIVE),
     ];
     const months: LegacyMonth[] = old
       .filter((m): m is OldMonth & { month: string } => !!m && typeof m.month === 'string')
@@ -164,6 +168,11 @@ export function activate(vscodeContext: vscode.ExtensionContext): void {
         })),
       }));
     importLegacyUsage('ext', months);
+    if (existsSync(path.join(usageDir(), 'imported-ext'))) {
+      for (const key of [OLD_HISTORY, OLD_LIVE]) {
+        if (context.globalState.get(key) !== undefined) void context.globalState.update(key, undefined);
+      }
+    }
   } catch { /* the old months are a nicety; nothing depends on them */ }
 
 

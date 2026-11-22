@@ -74,7 +74,7 @@ export function tokens(n: number): string {
 
 /** What an outlined bar is: a month's total from the old counters. */
 function earlierNote(): string {
-  return tt('dash.usage.tl.earlier_note', 'a month total from before daily records began (21 Nov 2026), so it has no daily detail');
+  return tt('dash.usage.tl.earlier_note', 'a month total from before daily records began, so it has no daily detail');
 }
 
 function dayText(day: string, locale: string, withYear = false): string {
@@ -107,13 +107,24 @@ function Change({ now, before }: { now: number; before: number | undefined }) {
   );
 }
 
-function Headline({ label, value, sub, now, before }: { label: string; value: string; sub?: string; now: number; before?: number }) {
+function Headline({ label, value, sub, now, before, loading }: { label: string; value: string; sub?: string; now: number; before?: number; loading?: boolean }) {
   return (
     <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
       <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
-      <p className="mt-1 text-lg font-bold">{value}</p>
-      {sub && <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{sub}</p>}
-      <Change now={now} before={before} />
+      {/* While the record is being read, no figure at all — a 0 here reads as "you spent nothing". */}
+      <p className={`mt-1 text-lg font-bold ${loading ? 'text-[var(--text-muted)]' : ''}`}>{loading ? '…' : value}</p>
+      {!loading && sub && <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{sub}</p>}
+      {!loading && <Change now={now} before={before} />}
+    </div>
+  );
+}
+
+/** Shown in place of the bars and the breakdown while the record is read. */
+function Loading() {
+  return (
+    <div role="status" className="flex items-center justify-center gap-2 py-8 text-xs text-[var(--text-muted)]">
+      <span className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--accent)]/25 border-t-[var(--accent)]" aria-hidden />
+      {t('dash.common.loading')}
     </div>
   );
 }
@@ -182,7 +193,10 @@ export function UsageTimeline() {
   const locale = useLocale();
   const [saved, setSaved] = useState<Saved>(loadSaved);
   const [entries, setEntries] = useState<UsageEntry[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  // True on the first read and whenever the range changes, so the page never
+  // shows 0 (or the last range's figures) while the record is being read.
+  // The quiet refresh after a new call (usage_ledger_changed) doesn't set it.
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<UsageBar | null>(null);
   const requestRef = useRef(0);
 
@@ -208,7 +222,7 @@ export function UsageTimeline() {
         // A slow answer for a range the user has already left is dropped.
         if (msg.requestId !== undefined && msg.requestId !== requestRef.current) return;
         setEntries(Array.isArray(msg.entries) ? msg.entries : []);
-        setLoaded(true);
+        setLoading(false);
       } else if (msg?.type === 'usage_ledger_changed') {
         load();
       }
@@ -217,7 +231,7 @@ export function UsageTimeline() {
     return () => window.removeEventListener('message', onMessage);
   });
 
-  useEffect(() => { setSelected(null); load(); }, [saved.key, range.from, range.to]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setSelected(null); setLoading(true); load(); }, [saved.key, range.from, range.to]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const view = useMemo(() => buildUsageView(entries, saved.key, range), [entries, saved.key, range]);
   const { totals } = view.summary;
@@ -246,7 +260,7 @@ export function UsageTimeline() {
         <button
           type="button"
           onClick={() => post({ type: 'export_usage_csv', from: view.range.from, to: view.range.to })}
-          disabled={totals.replies === 0}
+          disabled={loading || totals.replies === 0}
           className="rounded-md border border-[var(--border-card)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] transition hover:border-[var(--accent)]/45 disabled:opacity-40"
         >{tt('dash.usage.tl.export', 'Export CSV')}</button>
       </div>
@@ -266,17 +280,18 @@ export function UsageTimeline() {
 
       {/* Totals for the range, money and tokens side by side */}
       <div className="grid grid-cols-3 gap-3">
-        <Headline label={t('dash.usage.estimated_cost')} value={money(totals.usd)} now={totals.usd} before={before?.usd} />
+        <Headline loading={loading} label={t('dash.usage.estimated_cost')} value={money(totals.usd)} now={totals.usd} before={before?.usd} />
         <Headline
+          loading={loading}
           label={t('dash.usage.total_tokens')}
           value={tokens(totals.in + totals.out)}
           sub={`${t('status.in')} ${tokens(totals.in)} · ${t('status.out')} ${tokens(totals.out)}`}
           now={totals.in + totals.out}
           before={before ? before.in + before.out : undefined}
         />
-        <Headline label={tt('dash.usage.tl.calls', 'Calls')} value={String(totals.replies)} now={totals.replies} before={before?.replies} />
+        <Headline loading={loading} label={tt('dash.usage.tl.calls', 'Calls')} value={String(totals.replies)} now={totals.replies} before={before?.replies} />
       </div>
-      {totals.unpriced > 0 && (
+      {!loading && totals.unpriced > 0 && (
         <p className="text-[10px] text-[var(--text-muted)]">
           {t('dash.usage.tl.unpriced', { count: totals.unpriced })}
         </p>
@@ -293,13 +308,15 @@ export function UsageTimeline() {
             <Chip active={saved.metric === 'tokens'} onClick={() => update({ metric: 'tokens' })}>{tt('dash.usage.tl.tokens', 'Tokens')}</Chip>
           </div>
         </div>
-        {loaded && totals.replies === 0
+        {loading
+          ? <Loading />
+          : totals.replies === 0
           ? <p className="py-8 text-center text-xs text-[var(--text-muted)]">{tt('dash.usage.tl.empty', 'Nothing spent in this period.')}</p>
           : <Bars bars={view.bars} metric={saved.metric} bucket={view.bucket} selected={selected?.start ?? null} onSelect={setSelected} locale={locale} />}
-        {view.bars.some((b) => b.earlier) && (
+        {!loading && view.bars.some((b) => b.earlier) && (
           <p className="mt-2 text-[10px] text-[var(--text-muted)]">
             <span className="mr-1 inline-block h-2 w-3 rounded-sm border border-dashed border-[var(--accent)] align-middle" />
-            {tt('dash.usage.tl.earlier_legend', 'Outlined: a month total from before daily records began (21 Nov 2026).')}
+            {tt('dash.usage.tl.earlier_legend', 'Outlined: a month total from before daily records began.')}
           </p>
         )}
       </div>
@@ -318,7 +335,9 @@ export function UsageTimeline() {
             <Chip active={saved.by === 'mode'} onClick={() => update({ by: 'mode' })}>{tt('dash.usage.tl.by_mode', 'Mode')}</Chip>
           </div>
         </div>
-        {rows.length === 0
+        {loading
+          ? <Loading />
+          : rows.length === 0
           ? <p className="py-4 text-center text-xs text-[var(--text-muted)]">{tt('dash.usage.tl.empty', 'Nothing spent in this period.')}</p>
           : (
             <div className="space-y-3">
