@@ -243,6 +243,7 @@ The work that isn't code, but still has to happen:
   - **Documents & spreadsheets** (`.docx`, `.xlsx`, `.pdf`, `.csv`, `.md`)
 - **Browser automation** — drives a headless Chromium via Playwright when a task needs real-world interaction: navigate, click, fill forms, screenshot, extract text, run JavaScript. Fully opt-in, approved on first use. Desktop-level automation (app control, screen capture) lives in the dedicated Ava IDE, not this extension.
 - **Tasks** — track work across global and project scopes, shown on the dashboard
+- **Usage** — a timeline of what you've spent over any period, money and tokens side by side, day by day, by model, room and mode, with a CSV export. Kept on your machine and shared with the Ava IDE
 - **Journal** — your entry and Ava's, side by side, with mood tracking and streaks
 - **Daily briefing** — a proactive morning check-in: today's tasks, overdue items, journal streak, learning progress
 
@@ -324,7 +325,7 @@ A dedicated **Memory Agent** curates a short brief of what's relevant to your cu
 
 **20 languages** — the whole interface translates, not just the chat, and switches **live the moment you change it** — no restart. Pick your language right from the welcome tour or in Settings; auto-detected from your locale or set manually. Each language is shown in both your current language and its own, so yours is easy to find. Code stays English; conversation matches you.
 
-**Local-only storage** — memory, tasks, journal, learning, history, settings, personality all stored on your machine. None of it is copied to the cloud.
+**Local-only storage** — memory, tasks, journal, learning, history, usage, settings, personality all stored on your machine. None of it is copied to the cloud.
 
 **API keys encrypted** in your OS keychain. Credentials blocked from memory at runtime. No analytics, no telemetry, no screen captures. Prompt-injection resistance built in.
 

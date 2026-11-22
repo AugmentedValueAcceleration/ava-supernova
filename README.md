@@ -32,7 +32,7 @@ Agentic coding shouldn't be a luxury. Ava Supernova is a full AI coding agent �
 She's free, open source and **local-first**:
 
 - **No account, no sign-in, no subscription.** Install, add an API key from any supported provider (or point her at a local model), and go. You pay your provider directly, at their rates — Ava never sits in the middle.
-- **Your data stays on your machine.** Memory, history, journal, tasks — all stored locally. There is no cloud sync.
+- **Your data stays on your machine.** Memory, history, usage, journal, tasks — all stored locally. There is no cloud sync.
 - **No gatekeeping.** Every capability — including the security toolkit and the teaching engine — is there for everyone. Nothing is held back for a paid tier, because there isn't one.
 
 > Ask Ava `what can you do?` and she'll read her own source code and tell you herself.
