@@ -5134,6 +5134,6 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': '模式',
   'dash.usage.tl.room.earlier': '每日记录之前',
   'dash.usage.tl.mode.earlier': '每日记录之前',
-  'dash.usage.tl.earlier_note': '这是每日记录开始（2026年11月21日）之前的月度总计，因此没有每日明细',
-  'dash.usage.tl.earlier_legend': '仅描边：每日记录开始（2026年11月21日）之前的月度总计。',
+  'dash.usage.tl.earlier_note': '这是每日记录开始之前的月度总计，因此没有每日明细',
+  'dash.usage.tl.earlier_legend': '仅描边：每日记录开始之前的月度总计。',
 };

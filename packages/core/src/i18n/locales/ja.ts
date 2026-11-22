@@ -5156,6 +5156,6 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'モード',
   'dash.usage.tl.room.earlier': '日別記録の開始前',
   'dash.usage.tl.mode.earlier': '日別記録の開始前',
-  'dash.usage.tl.earlier_note': '日別記録の開始（2026年11月21日）より前の月合計のため、日ごとの内訳はありません',
-  'dash.usage.tl.earlier_legend': '枠線のみ：日別記録の開始（2026年11月21日）より前の月合計です。',
+  'dash.usage.tl.earlier_note': '日別記録の開始より前の月合計のため、日ごとの内訳はありません',
+  'dash.usage.tl.earlier_legend': '枠線のみ：日別記録の開始より前の月合計です。',
 };

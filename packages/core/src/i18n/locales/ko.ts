@@ -5154,6 +5154,6 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': '모드',
   'dash.usage.tl.room.earlier': '일별 기록 이전',
   'dash.usage.tl.mode.earlier': '일별 기록 이전',
-  'dash.usage.tl.earlier_note': '일별 기록이 시작되기(2026년 11월 21일) 전의 월 합계라서 일별 세부 내역이 없습니다',
-  'dash.usage.tl.earlier_legend': '테두리만 표시: 일별 기록이 시작되기(2026년 11월 21일) 전의 월 합계입니다.',
+  'dash.usage.tl.earlier_note': '일별 기록이 시작되기 전의 월 합계라서 일별 세부 내역이 없습니다',
+  'dash.usage.tl.earlier_legend': '테두리만 표시: 일별 기록이 시작되기 전의 월 합계입니다.',
 };

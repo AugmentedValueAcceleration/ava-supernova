@@ -5134,6 +5134,6 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Режим',
   'dash.usage.tl.room.earlier': 'До щоденних записів',
   'dash.usage.tl.mode.earlier': 'До щоденних записів',
-  'dash.usage.tl.earlier_note': 'підсумок за місяць до початку щоденних записів (21 лист. 2026 р.), тому без розбивки за днями',
-  'dash.usage.tl.earlier_legend': 'З контуром: підсумок за місяць до початку щоденних записів (21 лист. 2026 р.).',
+  'dash.usage.tl.earlier_note': 'підсумок за місяць до початку щоденних записів, тому без розбивки за днями',
+  'dash.usage.tl.earlier_legend': 'З контуром: підсумок за місяць до початку щоденних записів.',
 };

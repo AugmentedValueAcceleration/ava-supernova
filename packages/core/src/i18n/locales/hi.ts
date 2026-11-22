@@ -5154,6 +5154,6 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'मोड',
   'dash.usage.tl.room.earlier': 'दैनिक रिकॉर्ड से पहले',
   'dash.usage.tl.mode.earlier': 'दैनिक रिकॉर्ड से पहले',
-  'dash.usage.tl.earlier_note': 'दैनिक रिकॉर्ड शुरू होने (21 नवंबर 2026) से पहले का मासिक कुल, इसलिए इसमें दिन-वार विवरण नहीं है',
-  'dash.usage.tl.earlier_legend': 'सिर्फ़ बॉर्डर वाला:दैनिक रिकॉर्ड शुरू होने (21 नवंबर 2026) से पहले का मासिक कुल।',
+  'dash.usage.tl.earlier_note': 'दैनिक रिकॉर्ड शुरू होने से पहले का मासिक कुल, इसलिए इसमें दिन-वार विवरण नहीं है',
+  'dash.usage.tl.earlier_legend': 'सिर्फ़ बॉर्डर वाला: दैनिक रिकॉर्ड शुरू होने से पहले का मासिक कुल।',
 };

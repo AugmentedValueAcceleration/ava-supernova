@@ -5126,6 +5126,6 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Modo',
   'dash.usage.tl.room.earlier': 'Antes de los registros diarios',
   'dash.usage.tl.mode.earlier': 'Antes de los registros diarios',
-  'dash.usage.tl.earlier_note': 'un total mensual de antes de que empezaran los registros diarios (21 nov 2026), así que no tiene detalle diario',
-  'dash.usage.tl.earlier_legend': 'Con contorno: un total mensual de antes de que empezaran los registros diarios (21 nov 2026).',
+  'dash.usage.tl.earlier_note': 'un total mensual de antes de que empezaran los registros diarios, así que no tiene detalle diario',
+  'dash.usage.tl.earlier_legend': 'Con contorno: un total mensual de antes de que empezaran los registros diarios.',
 };

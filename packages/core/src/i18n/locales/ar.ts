@@ -5154,6 +5154,6 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'الوضع',
   'dash.usage.tl.room.earlier': 'قبل السجلات اليومية',
   'dash.usage.tl.mode.earlier': 'قبل السجلات اليومية',
-  'dash.usage.tl.earlier_note': 'إجمالي شهري من قبل بدء السجلات اليومية (21 نوفمبر 2026)، لذا لا تفاصيل يومية له',
-  'dash.usage.tl.earlier_legend': 'المحدَّد بإطار: إجمالي شهري من قبل بدء السجلات اليومية (21 نوفمبر 2026).',
+  'dash.usage.tl.earlier_note': 'إجمالي شهري من قبل بدء السجلات اليومية، لذا لا تفاصيل يومية له',
+  'dash.usage.tl.earlier_legend': 'المحدَّد بإطار: إجمالي شهري من قبل بدء السجلات اليومية.',
 };

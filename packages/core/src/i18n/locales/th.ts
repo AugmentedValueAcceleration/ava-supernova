@@ -5154,6 +5154,6 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'โหมด',
   'dash.usage.tl.room.earlier': 'ก่อนมีบันทึกรายวัน',
   'dash.usage.tl.mode.earlier': 'ก่อนมีบันทึกรายวัน',
-  'dash.usage.tl.earlier_note': 'ยอดรวมรายเดือนจากก่อนเริ่มบันทึกรายวัน (21 พ.ย. 2026) จึงไม่มีรายละเอียดรายวัน',
-  'dash.usage.tl.earlier_legend': 'แบบมีเส้นขอบ: ยอดรวมรายเดือนจากก่อนเริ่มบันทึกรายวัน (21 พ.ย. 2026)',
+  'dash.usage.tl.earlier_note': 'ยอดรวมรายเดือนจากก่อนเริ่มบันทึกรายวัน จึงไม่มีรายละเอียดรายวัน',
+  'dash.usage.tl.earlier_legend': 'แบบมีเส้นขอบ: ยอดรวมรายเดือนจากก่อนเริ่มบันทึกรายวัน',
 };

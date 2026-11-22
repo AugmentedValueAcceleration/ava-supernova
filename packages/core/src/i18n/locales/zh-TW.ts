@@ -5155,6 +5155,6 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': '模式',
   'dash.usage.tl.room.earlier': '每日紀錄之前',
   'dash.usage.tl.mode.earlier': '每日紀錄之前',
-  'dash.usage.tl.earlier_note': '這是每日紀錄開始（2026年11月21日）之前的月份總計，因此沒有每日明細',
-  'dash.usage.tl.earlier_legend': '僅外框：每日紀錄開始（2026年11月21日）之前的月份總計。',
+  'dash.usage.tl.earlier_note': '這是每日紀錄開始之前的月份總計，因此沒有每日明細',
+  'dash.usage.tl.earlier_legend': '僅外框：每日紀錄開始之前的月份總計。',
 };

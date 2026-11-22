@@ -5154,6 +5154,6 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Режим',
   'dash.usage.tl.room.earlier': 'До ежедневных записей',
   'dash.usage.tl.mode.earlier': 'До ежедневных записей',
-  'dash.usage.tl.earlier_note': 'итог за месяц до начала ежедневных записей (21 нояб. 2026 г.), поэтому без разбивки по дням',
-  'dash.usage.tl.earlier_legend': 'С контуром: итог за месяц до начала ежедневных записей (21 нояб. 2026 г.).',
+  'dash.usage.tl.earlier_note': 'итог за месяц до начала ежедневных записей, поэтому без разбивки по дням',
+  'dash.usage.tl.earlier_legend': 'С контуром: итог за месяц до начала ежедневных записей.',
 };

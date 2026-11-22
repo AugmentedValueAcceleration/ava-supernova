@@ -5134,6 +5134,6 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Tryb',
   'dash.usage.tl.room.earlier': 'Przed zapisami dziennymi',
   'dash.usage.tl.mode.earlier': 'Przed zapisami dziennymi',
-  'dash.usage.tl.earlier_note': 'suma miesięczna sprzed rozpoczęcia zapisów dziennych (21 lis 2026), więc bez szczegółów dziennych',
-  'dash.usage.tl.earlier_legend': 'Obrys: suma miesięczna sprzed rozpoczęcia zapisów dziennych (21 lis 2026).',
+  'dash.usage.tl.earlier_note': 'suma miesięczna sprzed rozpoczęcia zapisów dziennych, więc bez szczegółów dziennych',
+  'dash.usage.tl.earlier_legend': 'Obrys: suma miesięczna sprzed rozpoczęcia zapisów dziennych.',
 };

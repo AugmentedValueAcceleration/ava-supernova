@@ -5134,6 +5134,6 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Modus',
   'dash.usage.tl.room.earlier': 'Vor den Tagesaufzeichnungen',
   'dash.usage.tl.mode.earlier': 'Vor den Tagesaufzeichnungen',
-  'dash.usage.tl.earlier_note': 'eine Monatssumme aus der Zeit vor Beginn der Tagesaufzeichnungen (21. Nov. 2026), daher ohne Tagesdetails',
-  'dash.usage.tl.earlier_legend': 'Umrandet: eine Monatssumme aus der Zeit vor Beginn der Tagesaufzeichnungen (21. Nov. 2026).',
+  'dash.usage.tl.earlier_note': 'eine Monatssumme aus der Zeit vor Beginn der Tagesaufzeichnungen, daher ohne Tagesdetails',
+  'dash.usage.tl.earlier_legend': 'Umrandet: eine Monatssumme aus der Zeit vor Beginn der Tagesaufzeichnungen.',
 };

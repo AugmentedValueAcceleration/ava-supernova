@@ -5154,6 +5154,6 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Chế độ',
   'dash.usage.tl.room.earlier': 'Trước khi ghi theo ngày',
   'dash.usage.tl.mode.earlier': 'Trước khi ghi theo ngày',
-  'dash.usage.tl.earlier_note': 'tổng của một tháng trước khi bắt đầu ghi theo ngày (21/11/2026), nên không có chi tiết từng ngày',
-  'dash.usage.tl.earlier_legend': 'Chỉ có viền: tổng của một tháng trước khi bắt đầu ghi theo ngày (21/11/2026).',
+  'dash.usage.tl.earlier_note': 'tổng của một tháng trước khi bắt đầu ghi theo ngày, nên không có chi tiết từng ngày',
+  'dash.usage.tl.earlier_legend': 'Chỉ có viền: tổng của một tháng trước khi bắt đầu ghi theo ngày.',
 };

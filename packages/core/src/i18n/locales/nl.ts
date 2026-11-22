@@ -5154,6 +5154,6 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Modus',
   'dash.usage.tl.room.earlier': 'Vóór de dagelijkse registratie',
   'dash.usage.tl.mode.earlier': 'Vóór de dagelijkse registratie',
-  'dash.usage.tl.earlier_note': 'een maandtotaal van vóór de start van de dagelijkse registratie (21 nov 2026), dus zonder details per dag',
-  'dash.usage.tl.earlier_legend': 'Omlijnd: een maandtotaal van vóór de start van de dagelijkse registratie (21 nov 2026).',
+  'dash.usage.tl.earlier_note': 'een maandtotaal van vóór de start van de dagelijkse registratie, dus zonder details per dag',
+  'dash.usage.tl.earlier_legend': 'Omlijnd: een maandtotaal van vóór de start van de dagelijkse registratie.',
 };

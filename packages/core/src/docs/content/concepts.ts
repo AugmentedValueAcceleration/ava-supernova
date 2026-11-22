@@ -80,7 +80,7 @@ export const CONCEPT_PAGES: DocPage[] = [
         'Break it down by model, by room or by mode.',
         "Export CSV gives you every line behind the figures, to check against your provider's bill.",
       ]},
-      { type: 'callout', variant: 'note', text: "The cost is an estimate from each provider's published prices at the time of each call; your provider's own bill is the real figure. A model with no published price, such as one on your own computer, is counted in tokens but not in the cost, and the page says how many calls that is. Months from before 21 Nov 2026, when daily records began, show as one outlined bar per month." },
+      { type: 'callout', variant: 'note', text: "The cost is an estimate from each provider's published prices at the time of each call; your provider's own bill is the real figure. A model with no published price, such as one on your own computer, is counted in tokens but not in the cost, and the page says how many calls that is. Months from before daily records began show as one outlined bar per month." },
     ],
   },
   {

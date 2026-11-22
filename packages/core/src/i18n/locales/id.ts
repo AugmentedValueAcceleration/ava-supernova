@@ -5152,6 +5152,6 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Modus',
   'dash.usage.tl.room.earlier': 'Sebelum catatan harian',
   'dash.usage.tl.mode.earlier': 'Sebelum catatan harian',
-  'dash.usage.tl.earlier_note': 'total bulanan dari sebelum catatan harian dimulai (21 Nov 2026), jadi tidak ada rincian hariannya',
-  'dash.usage.tl.earlier_legend': 'Bergaris tepi: total bulanan dari sebelum catatan harian dimulai (21 Nov 2026).',
+  'dash.usage.tl.earlier_note': 'total bulanan dari sebelum catatan harian dimulai, jadi tidak ada rincian hariannya',
+  'dash.usage.tl.earlier_legend': 'Bergaris tepi: total bulanan dari sebelum catatan harian dimulai.',
 };

@@ -5154,6 +5154,6 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Mod',
   'dash.usage.tl.room.earlier': 'Günlük kayıtlardan önce',
   'dash.usage.tl.mode.earlier': 'Günlük kayıtlardan önce',
-  'dash.usage.tl.earlier_note': 'günlük kayıtlar başlamadan (21 Kas 2026) önceki aylık toplam; bu yüzden günlük ayrıntısı yok',
-  'dash.usage.tl.earlier_legend': 'Çerçeveli: günlük kayıtlar başlamadan (21 Kas 2026) önceki aylık toplam.',
+  'dash.usage.tl.earlier_note': 'günlük kayıtlar başlamadan önceki aylık toplam; bu yüzden günlük ayrıntısı yok',
+  'dash.usage.tl.earlier_legend': 'Çerçeveli: günlük kayıtlar başlamadan önceki aylık toplam.',
 };

@@ -5150,6 +5150,6 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.usage.tl.by_mode': 'Mode',
   'dash.usage.tl.room.earlier': 'Avant les relevés quotidiens',
   'dash.usage.tl.mode.earlier': 'Avant les relevés quotidiens',
-  'dash.usage.tl.earlier_note': 'un total mensuel d\'avant le début des relevés quotidiens (21 nov. 2026), donc sans détail par jour',
-  'dash.usage.tl.earlier_legend': 'Contour : un total mensuel d\'avant le début des relevés quotidiens (21 nov. 2026).',
+  'dash.usage.tl.earlier_note': 'un total mensuel d\'avant le début des relevés quotidiens, donc sans détail par jour',
+  'dash.usage.tl.earlier_legend': 'Contour : un total mensuel d\'avant le début des relevés quotidiens.',
 };
