@@ -25,7 +25,7 @@ export const CONCEPT_PAGES: DocPage[] = [
         rows: [
           ['Keys needed',     'Qwen',                     'DeepSeek + Qwen'],
           ['Coordinator',     'Qwen 3.8 Flash',           'DeepSeek V4.1 Flash (1M ctx, multimodal)'],
-          ['Builder',         'Qwen 3.7 Plus',            'Qwen 3.7 Plus'],
+          ['Builder',         'Qwen 3.7 Plus',            'DeepSeek V4.1 Flash'],
           ['Planning, security, teaching', 'Qwen 4 Max (teaching: Qwen 3.7 Plus)', 'DeepSeek V4.1 Flash'],
           ['Specialists',     'Run on the coordinator',   'Run on the coordinator'],
           ['Intent gate',     'Qwen 3.7 Flash',           'Qwen 3.7 Flash'],
@@ -39,7 +39,7 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'Maestro' },
       { type: 'paragraph', text: 'Qwen routing on one key. Qwen 3.8 Flash coordinates, chats, reads images and handles image prompts — fast and cheap on the bulk of everyday messages. Qwen 3.7 Plus builds and teaches. Qwen 4 Max, Alibaba\'s flagship, takes planning and security, where depth matters more than volume, and steps in if 3.7 Plus is ever unavailable. The intent gate — the quick check that decides whether a job needs a specialist team at all — runs on Qwen 3.7 Flash, because a miss there spawns a whole team rather than merely answering less well. Specialists run on the coordinator\'s model.' },
       { type: 'heading', level: 3, text: 'Supernova' },
-      { type: 'paragraph', text: 'Polyglot ensemble. DeepSeek V4.1 Flash coordinates and dispatches each subtask to its best-suited specialist: Qwen 3.7 Plus runs every Builder spawn, DeepSeek V4.1 Flash handles chat plus planning, security, teaching, long-context work and the specialist team, Qwen 3.8 Flash orchestrates image-gen tool calls and reads vision input. Vision is worth a note: it sits outside the DeepSeek family by CHOICE now rather than necessity. Both of V4.1 Flash\'s predecessors were blind at the API level and vision had to leave; V4.1 Flash sees perfectly well, and the seat stays with Qwen because that is what our vision paths are tuned against and Qwen takes video too. The whole fleet now runs at flash-tier prices without giving up frontier-class work — which is less of a trade than it sounds, because on both of these vendors the flash line is where the newest model lands first.' },
+      { type: 'paragraph', text: 'Polyglot ensemble. DeepSeek V4.1 Flash coordinates and dispatches each subtask to its best-suited specialist: DeepSeek V4.1 Flash itself runs every Builder spawn and handles chat plus planning, security, teaching, brainstorming, long-context work and the specialist team, with Qwen 3.7 Plus standing by if it is ever unavailable; Qwen 3.8 Flash orchestrates image-gen tool calls and reads vision input. Vision is worth a note: it sits outside the DeepSeek family by CHOICE now rather than necessity. Both of V4.1 Flash\'s predecessors were blind at the API level and vision had to leave; V4.1 Flash sees perfectly well, and the seat stays with Qwen because that is what our vision paths are tuned against and Qwen takes video too. The whole fleet now runs at flash-tier prices without giving up frontier-class work — which is less of a trade than it sounds, because on both of these vendors the flash line is where the newest model lands first.' },
     ],
   },
   {
@@ -69,6 +69,18 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'heading', level: 3, text: 'How Ava is funded' },
       { type: 'paragraph', text: 'By donations and sponsors. Donating unlocks nothing — everything is already free for everyone, and it stays that way.' },
       { type: 'callout', variant: 'tip', text: 'Local-first: the Custom Model card runs Ollama, LM Studio, vLLM or any endpoint that speaks the standard API format — your model, your machine, nothing to pay.' },
+      // Added at the END (21 Nov 2026, the Usage timeline): translations are
+      // keyed by block position, so blocks above must not move.
+      { type: 'heading', level: 3, text: "Seeing what you've spent" },
+      { type: 'paragraph', text: 'History, then Usage, shows what you have spent with Ava. It is worked out on your own computer from every call Ava makes on your keys — in the extension, the desktop app and the Assistant panel in Unreal Engine — kept in plain files in your .ava folder, and it never leaves your machine.' },
+      { type: 'list', ordered: false, items: [
+        'Pick a period: today, the last 7 or 30 days, this month, last month, all time, or your own dates.',
+        'See the estimated cost, the tokens and the number of calls for that period, and how each compares with the period before.',
+        'A bar for each day (each week or month over a longer period). Click one to see where that day went.',
+        'Break it down by model, by room or by mode.',
+        "Export CSV gives you every line behind the figures, to check against your provider's bill.",
+      ]},
+      { type: 'callout', variant: 'note', text: "The cost is an estimate from each provider's published prices at the time of each call; your provider's own bill is the real figure. A model with no published price, such as one on your own computer, is counted in tokens but not in the cost, and the page says how many calls that is. Months from before 21 Nov 2026, when daily records began, show as one outlined bar per month." },
     ],
   },
   {

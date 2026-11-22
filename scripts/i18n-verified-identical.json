@@ -63,7 +63,8 @@
         "mcp.page.add.name": "Name",
         "mcp.page.online": "Online",
         "brainstorm.room.tab.plan": "Plan",
-        "mcp.unreal_panel.step1": "1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent."
+        "mcp.unreal_panel.step1": "1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent.",
+        "dash.usage.tl.tokens": "Tokens"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -95,7 +96,9 @@
         "dash.studio.asset.model_mcp": "Blender (MCP)",
         "dash.studio.live.mcp": "MCP",
         "brainstorm.room.tab.ideas": "Ideas",
-        "brainstorm.room.tab.plan": "Plan"
+        "brainstorm.room.tab.plan": "Plan",
+        "dash.usage.tl.tokens_word": "tokens",
+        "dash.usage.tl.tokens": "Tokens"
       },
       "fr": {
         "health.plans.n_cook": "{n} min",
@@ -153,7 +156,10 @@
         "dash.studio.live.mcp": "MCP",
         "brainstorm.room.col.candidate": "Candidates",
         "brainstorm.room.note": "Note",
-        "brainstorm.room.tab.plan": "Plan"
+        "brainstorm.room.tab.plan": "Plan",
+        "dash.usage.tl.tokens_word": "tokens",
+        "dash.usage.tl.tokens": "Tokens",
+        "dash.usage.tl.by_mode": "Mode"
       },
       "hi": {
         "learning.room.tab.ava": "Ava",
@@ -191,7 +197,9 @@
         "memory.v4.folder": "Folder: {path}",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
         "dash.studio.live.mcp": "MCP",
-        "mcp.page.online": "Online"
+        "mcp.page.online": "Online",
+        "dash.usage.tl.mode.gym": "Gym",
+        "dash.usage.tl.by_model": "Model"
       },
       "it": {
         "health.plans.n_cook": "{n} min",
@@ -315,7 +323,14 @@
         "brainstorm.room.title": "Brainstorm",
         "brainstorm.room.tab.plan": "Plan",
         "brainstorm.room.mode_label": "Brainstorm",
-        "mcp.unreal_panel.step1": "1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent."
+        "mcp.unreal_panel.step1": "1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent.",
+        "dash.usage.tl.room.social": "Posts",
+        "dash.usage.tl.room.brainstorm": "Brainstorm",
+        "dash.usage.tl.mode.social": "Posts",
+        "dash.usage.tl.tokens_word": "tokens",
+        "dash.usage.tl.per_week": "Per week",
+        "dash.usage.tl.tokens": "Tokens",
+        "dash.usage.tl.by_model": "Model"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",
@@ -337,7 +352,8 @@
         "dash.studio.asset.model_mcp": "Blender (MCP)",
         "dash.studio.live.mcp": "MCP",
         "mcp.page.online": "Online",
-        "brainstorm.room.tab.plan": "Plan"
+        "brainstorm.room.tab.plan": "Plan",
+        "dash.usage.tl.by_model": "Model"
       },
       "pt": {
         "health.plans.n_cook": "{n} min",
@@ -367,7 +383,9 @@
         "health.browse.sort.name": "A–Z",
         "health.results.mins": "{n} min",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
-        "dash.studio.live.mcp": "MCP"
+        "dash.studio.live.mcp": "MCP",
+        "dash.usage.tl.tokens_word": "tokens",
+        "dash.usage.tl.tokens": "Tokens"
       },
       "ru": {
         "learning.room.tab.ava": "Ava",
@@ -407,7 +425,8 @@
         "health.wizard.sum.plan": "Plan",
         "dash.studio.asset.model_mcp": "Blender (MCP)",
         "dash.studio.live.mcp": "MCP",
-        "brainstorm.room.tab.plan": "Plan"
+        "brainstorm.room.tab.plan": "Plan",
+        "dash.usage.tl.by_model": "Model"
       },
       "uk": {
         "learning.room.tab.ava": "Ava",

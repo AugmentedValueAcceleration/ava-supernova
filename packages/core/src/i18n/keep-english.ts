@@ -334,4 +334,8 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   // Unreal's own field name, shown exactly as Unreal shows it (Unreal's menu names
   // stay English in every language — plan 2026-11-18-unreal, Phase 2).
   'mcp.unreal_panel.step3',
+  // Design Studio is a product name, kept English in every language (as in
+  // mcp.page.blender_note) — the Usage timeline's room and mode labels, 21 Nov 2026.
+  'dash.usage.tl.room.design',
+  'dash.usage.tl.mode.design',
 ] as StringKey[]);
