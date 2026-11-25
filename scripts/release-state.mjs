@@ -119,7 +119,7 @@ async function marketplaceLatest(extensionId) {
 
 async function releaseNotesRows() {
   const supaUrl = readEnv(WEB_ENV, 'NEXT_PUBLIC_SUPABASE_URL');
-  const key = readEnv(WEB_ENV, 'SUPABASE_SERVICE_ROLE_KEY');
+  const key = readEnv(WEB_ENV, 'SUPABASE_SECRET_KEY');
   if (!supaUrl || !key) return { error: 'no supabase credentials in packages/web/.env.local' };
   try {
     const res = await fetch(

@@ -98,7 +98,7 @@ jobs:
       #
       # packages/web prerenders three pages that read Supabase through the ADMIN
       # client, so `next build` needs NEXT_PUBLIC_SUPABASE_URL and
-      # SUPABASE_SERVICE_ROLE_KEY simply to EXIST. Supplying the real ones would
+      # SUPABASE_SECRET_KEY simply to EXIST. Supplying the real ones would
       # put the service-role key — the most privileged credential we have — into
       # CI permanently, to make a build step go green. Not a trade worth making.
       #
@@ -120,8 +120,8 @@ jobs:
         run: pnpm build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.invalid
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
-          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-real-key
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-not-a-real-key
+          SUPABASE_SECRET_KEY: ci-placeholder-not-a-real-key
 
   # Cross-platform check — only on PRs to main
   check-cross-platform:
@@ -174,8 +174,8 @@ jobs:
         run: pnpm build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.invalid
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
-          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-real-key
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-not-a-real-key
+          SUPABASE_SECRET_KEY: ci-placeholder-not-a-real-key
 
   security:
     name: Security Scanning
