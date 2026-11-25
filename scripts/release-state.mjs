@@ -39,14 +39,11 @@ const AS_JSON = process.argv.includes('--json');
  *  which is how IDE 0.45.0'''s notes came to announce three features that had
  *  shipped in 0.44.0 nine days earlier.
  *
- *  The hub is a submodule of this repo. Resolve it from the repo root so the
- *  file we read is the one that ships, and keep the old path only as a
- *  fallback for a machine that genuinely has it there. */
-const HUB_ENV_CANDIDATES = [
-  path.join(repoRoot, 'packages', 'augmented-value-acceleration', '.env.local'),
-  'C:/Users/stewa/Desktop/Stew.AI/ava-supernova/packages/augmented-value-acceleration/.env.local',
-];
-const HUB_ENV = HUB_ENV_CANDIDATES.find((f) => fs.existsSync(f)) ?? HUB_ENV_CANDIDATES[0];
+ *  The release token now lives in the repo root's .env.local as
+ *  GITHUB_RELEASE_TOKEN (fine-grained; write on ava-supernova and
+ *  ava-supernova-ide only). It used to be the hub's VITE_GITHUB_TOKEN, which
+ *  Vite bundled into every hub build (security review, 25 Nov 2026). */
+const RELEASE_ENV = path.join(repoRoot, '.env.local');
 const WEB_ENV = path.join(repoRoot, 'packages', 'web', '.env.local');
 
 function readEnv(file, key) {
@@ -86,7 +83,7 @@ async function githubLatest(repo, token) {
       res = await attempt(false);
       usedToken = false;
       if (res.ok) authWarning = `GitHub token rejected (was HTTP 401/403) — read unauthenticated. `
-        + `That token is the hub's VITE_GITHUB_TOKEN and is what PUBLISHES releases, so publishing will fail too.`;
+        + `That token is GITHUB_RELEASE_TOKEN in the repo root's .env.local and is what PUBLISHES releases, so publishing will fail too.`;
     }
     if (!res.ok) return { error: `HTTP ${res.status}` };
     const list = await res.json();
@@ -133,7 +130,7 @@ async function releaseNotesRows() {
   } catch (err) { return { error: err.message }; }
 }
 
-const ghToken = readEnv(HUB_ENV, 'VITE_GITHUB_TOKEN');
+const ghToken = readEnv(RELEASE_ENV, 'GITHUB_RELEASE_TOKEN');
 
 const [ext, ide, market, notes] = await Promise.all([
   githubLatest('AugmentedValueAcceleration/ava-supernova', ghToken),
