@@ -12,13 +12,15 @@
  */
 
 import { createHash } from 'node:crypto';
-import { basename, join, resolve } from 'node:path';
+import { basename, join, resolve, win32 } from 'node:path';
 import type { ProjectRecord } from './types.js';
 import { readIfExists, writeAtomic } from './files.js';
 import { slugFor } from './fact-file.js';
 
 export function normalizeProjectPath(path: string, platform: NodeJS.Platform = process.platform): string {
-  let p = resolve(path).replace(/\\/g, '/');
+  // Windows rules when the path is a Windows one, whatever machine runs this
+  // (identical on Windows; on Linux, resolve() glued C:\A onto the cwd).
+  let p = (platform === 'win32' ? win32.resolve : resolve)(path).replace(/\\/g, '/');
   if (p.length > 1) p = p.replace(/\/+$/, '');
   return platform === 'win32' ? p.toLowerCase() : p;
 }

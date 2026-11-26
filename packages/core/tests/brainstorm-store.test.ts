@@ -40,7 +40,8 @@ describe('nothing is written into a project', () => {
     expect(await readdir(project)).toEqual([]);
   });
 
-  it('hashes the project path the same way regardless of trailing slash or case (shared with project data)', () => {
+  // A Windows promise (drive letters, backslashes, any case): checked where it applies.
+  it.runIf(process.platform === 'win32')('hashes the project path the same way regardless of trailing slash or case (shared with project data)', () => {
     expect(projectHash('C:\\Work\\App\\')).toBe(projectHash('c:/work/app'));
   });
 });
