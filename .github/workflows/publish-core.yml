@@ -40,7 +40,9 @@ jobs:
         with:
           # Trusted publishing needs npm 11.5.1+ and Node 22.14+; Node 24 ships npm 11.19.
           node-version: 24
-          registry-url: https://registry.npmjs.org
+          # No registry-url on purpose: with it, setup-node writes an .npmrc
+          # holding a placeholder token, npm tries that instead of trusted
+          # publishing, and the registry answers 404 (26 Nov 2026).
 
       - name: Install dependencies (core and what it needs, nothing else)
         run: pnpm install --frozen-lockfile --filter "@ava/core..."
