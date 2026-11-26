@@ -50,3 +50,7 @@ jobs:
       - name: Publish
         working-directory: packages/core
         run: node scripts/publish-public.mjs
+        env:
+          # npm's trusted-publishing sign-in fails silently otherwise; verbose
+          # prints why (it never prints a secret).
+          NPM_CONFIG_LOGLEVEL: verbose
