@@ -28,10 +28,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          submodules: true
-          # Same read-only token as ci.yml: two submodules are private and the
-          # workspace install needs them present.
-          token: ${{ secrets.SUBMODULE_TOKEN }}
+          # No submodules and no extra token: core depends on none of the
+          # private repos, so this job never holds a key to them.
           persist-credentials: false
 
       - name: Install pnpm
@@ -44,8 +42,8 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install dependencies (core and what it needs, nothing else)
+        run: pnpm install --frozen-lockfile --filter "@ava/core..."
 
       - name: Publish
         working-directory: packages/core
