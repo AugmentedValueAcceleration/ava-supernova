@@ -5,6 +5,8 @@ on:
     branches: [development, main]
   pull_request:
     branches: [development, main]
+  # Run by hand from the Actions tab (e.g. after renewing SUBMODULE_TOKEN).
+  workflow_dispatch:
 
 # Read-only by default (security review, 25 Nov 2026). Jobs that need more ask
 # for it themselves; nothing here pushes, tags or comments.
