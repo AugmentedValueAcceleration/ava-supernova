@@ -348,6 +348,7 @@
             "description": "%setting.language.description%"
           },
           "ava-supernova.preferences.permissionMode": {
+            "scope": "application",
             "type": "string",
             "default": "strict",
             "order": 3,
@@ -400,12 +401,14 @@
             "description": "Local embedding model (served by Ollama) used when semantic recall is enabled."
           },
           "ava-supernova.preferences.projectsHome": {
+            "scope": "application",
             "type": "string",
             "default": "",
             "order": 11,
             "markdownDescription": "Folder where Ava creates new projects. Leave empty for `~/Ava Projects`. Deliberately not inside `~/.ava` — that is hidden application data, and source code kept in a dotfolder gets lost and gets skipped by backup tools."
           },
           "ava-supernova.preferences.embeddingBaseUrl": {
+            "scope": "application",
             "type": "string",
             "default": "http://localhost:11434/v1",
             "order": 10,
@@ -418,12 +421,14 @@
             "description": "%setting.streamResponses.description%"
           },
           "ava-supernova.contributeSharedLearning": {
+            "scope": "application",
             "type": "boolean",
             "default": false,
             "order": 8,
             "markdownDescription": "Help improve Ava for everyone. When enabled, anonymised feedback data (ratings, model and mode used — no code, no conversation content) is shared to improve response quality. **Off by default.** See [Privacy Policy](https://avasupernova.com/privacy) for details."
           },
           "ava-supernova.loopPrevention.enabled": {
+            "scope": "application",
             "type": "boolean",
             "default": true,
             "order": 9,

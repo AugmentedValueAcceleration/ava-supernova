@@ -11,7 +11,10 @@ const TAIL_TIMEOUT_MS = 10_000;
 export class DebugLogsTool implements Tool {
   readonly name = 'debug_logs';
   readonly description = 'Read and filter log files or command output for debugging';
-  readonly riskLevel: ToolRiskLevel = 'safe';
+  // 'dangerous', like bash: it runs any shell command it is given, so it asks
+  // under your shell setting. Was 'safe', which skipped the approval card
+  // entirely (security review, 25 Nov 2026).
+  readonly riskLevel: ToolRiskLevel = 'dangerous';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {

@@ -11,13 +11,19 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 // Mock security — tests use fake paths outside cwd
-vi.mock('../src/tools/security.js', () => ({
-  validatePath: vi.fn((rawPath: string, cwd: string) => {
+// (validateWritePath is the write tools' check since the security review of
+// 25 Nov 2026; it is tested for real in write-path-and-symlinks.test.ts.)
+vi.mock('../src/tools/security.js', () => {
+  const fakeResolve = (rawPath: string, cwd: string) => {
     if (rawPath.startsWith('/') || rawPath.startsWith('C:')) return rawPath;
     return `${cwd}/${rawPath}`;
-  }),
-  containsCredentials: vi.fn(() => false),
-}));
+  };
+  return {
+    validatePath: vi.fn(fakeResolve),
+    validateWritePath: vi.fn(fakeResolve),
+    containsCredentials: vi.fn(() => false),
+  };
+});
 
 import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 

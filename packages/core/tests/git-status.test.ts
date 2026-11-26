@@ -58,10 +58,47 @@ describe('GitStatusTool', () => {
     expect(result.success).toBe(true);
     expect(mockExecFile).toHaveBeenCalledWith(
       'git',
-      ['log', '--oneline', '-2'],
+      ['log', '--no-ext-diff', '--no-textconv', '--oneline', '-2'],
       expect.anything(),
       expect.any(Function),
     );
+  });
+
+  // Security review, 25 Nov 2026: "read-only" has to hold for the arguments.
+  it.each([
+    ['diff', '--output=../../evil.txt'],
+    ['log', '--output=/tmp/x'],
+    ['diff', '--ext-diff'],
+    ['diff', '--ext'],
+    ['show', '--textconv'],
+    ['show', '--textc'],
+    ['branch', 'new-branch'],
+    ['branch', '-D main'],
+    ['branch', '--delete main'],
+    ['branch', '-m old new'],
+    ['branch', '--set-upstream-to=origin/x'],
+  ])('refuses git %s %s', async (command, args) => {
+    const result = await tool.execute({ command, args }, ctx);
+    expect(result.success).toBe(false);
+    expect(mockExecFile).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['branch', '-a'],
+    ['branch', '--show-current'],
+    ['branch', '--list feat/*'],
+    ['branch', '--merged main'],
+    ['branch', '-vv'],
+  ])('still lists with git %s %s', async (command, args) => {
+    setupExecFile('* main');
+    const result = await tool.execute({ command, args }, ctx);
+    expect(result.success).toBe(true);
+  });
+
+  it('never runs an external diff program for diff/log/show', async () => {
+    setupExecFile('');
+    await tool.execute({ command: 'diff', args: 'HEAD~1' }, ctx);
+    expect(mockExecFile.mock.calls[0][1].slice(0, 3)).toEqual(['diff', '--no-ext-diff', '--no-textconv']);
   });
 
   it('rejects disallowed commands', async () => {

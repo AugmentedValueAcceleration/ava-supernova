@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { validatePath } from './security.js';
+import { validateWritePath } from './security.js';
 
 export class FileWriteTool implements Tool {
   readonly name = 'file_write';
@@ -49,7 +49,7 @@ export class FileWriteTool implements Tool {
 
     let absolutePath: string;
     try {
-      absolutePath = validatePath(filePath, context.cwd);
+      absolutePath = validateWritePath(filePath, context.cwd);
     } catch (err) {
       return { success: false, output: (err as Error).message };
     }

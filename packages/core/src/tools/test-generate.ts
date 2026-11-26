@@ -3,7 +3,7 @@ import { join, dirname, basename, extname } from 'node:path';
 import { glob } from 'glob';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { validatePath } from './security.js';
+import { validatePath, validateWritePath } from './security.js';
 
 const MAX_FILE_SIZE = 50_000;
 
@@ -101,7 +101,7 @@ export class TestGenerateTool implements Tool {
     let testPath: string;
     if (outputPath) {
       try {
-        testPath = validatePath(outputPath, context.cwd);
+        testPath = validateWritePath(outputPath, context.cwd);
       } catch (err) {
         return { success: false, output: (err as Error).message };
       }

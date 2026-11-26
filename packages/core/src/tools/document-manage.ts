@@ -4,7 +4,7 @@ import { dirname, extname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { SpreadsheetContent, CsvContent } from './document-templates.js';
-import { validatePath } from './security.js';
+import { validateWritePath } from './security.js';
 import { readPdfText, readDocxText, unreadable } from './authoring/read-office.js';
 import { documentPathFor } from './authoring/document-places.js';
 import { exportDocument, parseCsv } from './authoring/export-document.js';
@@ -102,9 +102,9 @@ export class DocumentManageTool implements Tool {
   /** Inside the project only; a bare name for something NEW goes to documents/. */
   private target(given: string | undefined, cwd: string, isNew: boolean): string {
     if (!given) throw new Error('Missing required field: file_path');
-    const direct = validatePath(given, cwd);
+    const direct = validateWritePath(given, cwd);
     if (/[\\/]/.test(given.trim())) return direct;
-    const inDocs = validatePath(documentPathFor(given), cwd);
+    const inDocs = validateWritePath(documentPathFor(given), cwd);
     if (isNew) return inDocs;
     return existsSync(direct) ? direct : inDocs;
   }
@@ -177,7 +177,7 @@ export class DocumentManageTool implements Tool {
     if (!to) return { success: false, output: 'Missing required field: export_format' };
     const from = this.formatOf(fullPath);
     const outPath = args.export_path
-      ? validatePath(args.export_path as string, context.cwd)
+      ? validateWritePath(args.export_path as string, context.cwd)
       : fullPath.replace(new RegExp(`\\.${from}$`, 'i'), `.${to}`);
     await mkdir(dirname(outPath), { recursive: true });
 

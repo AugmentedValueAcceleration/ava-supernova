@@ -1,4 +1,36 @@
-import { resolve, isAbsolute, normalize, sep } from 'node:path';
+import { resolve, isAbsolute, normalize, sep, dirname, basename, join, relative } from 'node:path';
+import { realpathSync } from 'node:fs';
+
+/**
+ * Where a path REALLY points, following symlinks and junctions.
+ *
+ * The containment checks below compared the path as written, so a link inside
+ * the project that points at C:\Windows or ~/.ssh passed as "inside the
+ * project" (security review, 25 Nov 2026). The path may not exist yet (a file
+ * about to be written), so the deepest part that DOES exist is resolved and the
+ * rest is put back on the end.
+ */
+function realTarget(p: string): string {
+  let existing = p;
+  const rest: string[] = [];
+  for (;;) {
+    try {
+      const real = realpathSync.native(existing);
+      return rest.length ? join(real, ...rest.reverse()) : real;
+    } catch {
+      const parent = dirname(existing);
+      if (parent === existing) return p; // nothing on this path exists at all
+      rest.push(basename(existing));
+      existing = parent;
+    }
+  }
+}
+
+/** Contained by the path as written AND by where it really points. */
+function isReallyWithin(candidate: string, boundary: string): boolean {
+  return isWithinDirectory(candidate, boundary)
+    && isWithinDirectory(realTarget(candidate), realTarget(boundary));
+}
 
 /**
  * Check if `candidate` is within `boundary` using proper path separator validation.
@@ -69,23 +101,60 @@ export function validatePath(rawPath: string, cwd: string): string {
   }
 
   // Allow paths strictly within the project directory
-  if (isWithinDirectory(absolutePath, normalizedCwd)) {
+  if (isReallyWithin(absolutePath, normalizedCwd)) {
     return absolutePath;
   }
 
   // Allow paths strictly within ~/.ava/ (config, memory, feedback — NOT the entire home directory)
-  const home = process.env.HOME || process.env.USERPROFILE || '';
-  if (home) {
-    const avaDir = normalize(resolve(home, '.ava'));
-    if (isWithinDirectory(absolutePath, avaDir)) {
-      return absolutePath;
-    }
+  const avaDir = avaHomeDir();
+  if (avaDir && isReallyWithin(absolutePath, avaDir)) {
+    return absolutePath;
   }
 
   throw new Error(
     `Path "${rawPath}" resolves outside the project directory. ` +
     `Access is restricted to "${normalizedCwd}" and ~/.ava/.`
   );
+}
+
+function avaHomeDir(): string | null {
+  const home = process.env.HOME || process.env.USERPROFILE || '';
+  return home ? normalize(resolve(home, '.ava')) : null;
+}
+
+/**
+ * The parts of ~/.ava that decide what Ava may DO, rather than what she knows.
+ * Her file tools could rewrite them (security review, 25 Nov 2026): one
+ * `file_write` to mcp.json adds a server that runs a command on the next start,
+ * one to settings.json switches her to Autonomous. A web page or a file she was
+ * asked to read could talk her into either. Reading them stays allowed; they
+ * are changed through Settings and the MCP screen, where the person sees it.
+ */
+const PROTECTED_AVA_ENTRIES = ['mcp.json', 'mcp', 'settings.json', 'config.json', 'bin', 'audit-log.jsonl'];
+
+/**
+ * validatePath, for a tool about to WRITE: also refuses Ava's own control
+ * files (PROTECTED_AVA_ENTRIES), wherever the path or a link in it points.
+ */
+export function validateWritePath(rawPath: string, cwd: string): string {
+  const absolutePath = validatePath(rawPath, cwd);
+  const avaDir = avaHomeDir();
+  if (avaDir) {
+    const realAva = realTarget(avaDir);
+    for (const target of [absolutePath, realTarget(absolutePath)]) {
+      for (const base of [avaDir, realAva]) {
+        if (!isWithinDirectory(target, base)) continue;
+        const first = relative(base, target).split(/[\\/]/)[0]?.toLowerCase();
+        if (first && PROTECTED_AVA_ENTRIES.includes(first)) {
+          throw new Error(
+            `"${rawPath}" is one of Ava's own settings files (~/.ava/${first}). ` +
+            `It can be read, but it is changed in Settings or the MCP screen, not by a file tool.`
+          );
+        }
+      }
+    }
+  }
+  return absolutePath;
 }
 
 /**

@@ -18,7 +18,10 @@ async function readBaselines(): Promise<Baselines> {
 export class BenchmarkTool implements Tool {
   readonly name = 'benchmark';
   readonly description = 'Run a command and measure its execution time, optionally comparing against a stored baseline';
-  readonly riskLevel: ToolRiskLevel = 'safe';
+  // 'dangerous', like bash: it runs any shell command it is given, so it asks
+  // under your shell setting. Was 'safe', which skipped the approval card
+  // entirely (security review, 25 Nov 2026).
+  readonly riskLevel: ToolRiskLevel = 'dangerous';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {

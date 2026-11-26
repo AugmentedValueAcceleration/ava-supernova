@@ -1,11 +1,12 @@
 import { writeFile, mkdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
 import type { GenerationTracker } from '../dataset/generation-emit.js';
 import { TTS_VOICES, TTS_VOICE_CATALOGUE } from '../creative/index.js';
 import { qwenTts } from '../creative/dashscope.js';
+import { validateWritePath } from './security.js';
 
 /**
  * Generate AI voice/speech from text via Qwen3-TTS.
@@ -131,7 +132,7 @@ export class GenerateVoiceTool implements Tool {
 
       // Save to project — use target_path if provided
       const relativePath = targetPath || defaultPath;
-      const savePath = join(context.cwd, relativePath);
+      const savePath = validateWritePath(relativePath, context.cwd);
       await mkdir(dirname(savePath), { recursive: true });
       await writeFile(savePath, audioBuffer);
 

@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { validatePath } from './security.js';
+import { validateWritePath } from './security.js';
 
 const GIT_TIMEOUT_MS = 15_000;
 
@@ -61,7 +61,7 @@ export class ApplyPlanTool implements Tool {
     const validated: Array<{ change: FileChange; absolutePath: string }> = [];
     for (const change of changes) {
       try {
-        const abs = validatePath(change.path, context.cwd);
+        const abs = validateWritePath(change.path, context.cwd);
         validated.push({ change, absolutePath: abs });
       } catch (err) {
         return { success: false, output: `Invalid path "${change.path}": ${(err as Error).message}` };

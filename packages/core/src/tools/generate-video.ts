@@ -1,10 +1,11 @@
 import { writeFile, mkdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
 import type { GenerationTracker } from '../dataset/generation-emit.js';
 import { wanSubmit, wanWait } from '../creative/dashscope.js';
+import { validateWritePath } from './security.js';
 
 /**
  * Generate a short AI video (with synchronized audio) from a text prompt with
@@ -107,7 +108,7 @@ export class GenerateVideoTool implements Tool {
 
       // Save to project — use target_path if provided
       const relativePath = targetPath || `.ava/creative/video/${filename}.mp4`;
-      const savePath = join(context.cwd, relativePath);
+      const savePath = validateWritePath(relativePath, context.cwd);
       await mkdir(dirname(savePath), { recursive: true });
       await writeFile(savePath, videoBuffer);
 

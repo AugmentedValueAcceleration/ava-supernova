@@ -3,7 +3,7 @@ import { join, dirname, relative } from 'node:path';
 import { glob } from 'glob';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { validatePath } from './security.js';
+import { validateWritePath } from './security.js';
 
 export class DocGenerateTool implements Tool {
   readonly name = 'doc_generate';
@@ -46,7 +46,7 @@ export class DocGenerateTool implements Tool {
     };
 
     const outputPath = outputArg
-      ? validatePath(outputArg, context.cwd)
+      ? validateWritePath(outputArg, context.cwd)
       : join(context.cwd, defaultPaths[type] || 'DOCS.md');
 
     // Gather project info

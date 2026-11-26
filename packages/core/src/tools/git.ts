@@ -11,6 +11,35 @@ const GIT_TIMEOUT_MS = 30_000;
 /** Whitelist of read-only git subcommands. */
 const ALLOWED_COMMANDS = new Set(['status', 'diff', 'log', 'branch', 'show']);
 
+/** `branch` only LISTS here: these are its listing options. A bare name
+ *  creates a branch, so names are only accepted after a filter that takes one. */
+const BRANCH_LIST_FLAGS = /^(-a|-r|-v|-vv|-l|--all|--remotes|--verbose|--list|--show-current|--column|--no-column|--color|--no-color|--ignore-case|--omit-empty|--abbrev=\d+|--no-abbrev|--sort=\S+|--format=\S+|--merged|--no-merged|--contains|--no-contains|--points-at)$/;
+const BRANCH_TAKES_NAME = /^(-l|--list|--merged|--no-merged|--contains|--no-contains|--points-at)$/;
+
+/** Git takes any unambiguous start of a long option (`--ext` = `--ext-diff`). */
+const isAbbrevOf = (arg: string, full: string, minLen: number): boolean =>
+  arg.length >= minLen && full.startsWith(arg.split('=')[0]);
+
+function refusedGitArg(command: string, args: string[]): string | null {
+  for (const a of args) {
+    if (/^--output(=|$)/.test(a)) return a;
+    // "--ext" and "--textc" are the shortest unambiguous forms.
+    if (isAbbrevOf(a, '--ext-diff', 5) || isAbbrevOf(a, '--textconv', 7)) return a;
+  }
+  if (command === 'branch') {
+    let nameAllowed = false;
+    for (const a of args) {
+      if (a.startsWith('-')) {
+        if (!BRANCH_LIST_FLAGS.test(a)) return a;
+        if (BRANCH_TAKES_NAME.test(a)) nameAllowed = true;
+      } else if (!nameAllowed) {
+        return a;
+      }
+    }
+  }
+  return null;
+}
+
 export class GitStatusTool implements Tool {
   readonly name = 'git_status';
   readonly description = 'Run read-only git commands (status, diff, log, branch, show)';
@@ -62,7 +91,21 @@ export class GitStatusTool implements Tool {
     }
 
     // Split args into array for execFile (no shell interpretation)
-    const gitArgs = [command, ...(extraArgs ? extraArgs.split(/\s+/).filter(Boolean) : [])];
+    const userArgs = extraArgs ? extraArgs.split(/\s+/).filter(Boolean) : [];
+
+    // "Read-only" has to hold for the ARGUMENTS too (security review, 25 Nov
+    // 2026): `diff --output=<path>` wrote a file anywhere on the disk,
+    // `branch <name>` / `branch -D <name>` created and deleted branches, and
+    // --ext-diff / --textconv run programs a repo's own config names.
+    const refused = refusedGitArg(command, userArgs);
+    if (refused) {
+      return { success: false, output: `Argument "${refused}" is not allowed: git_status is read-only.` };
+    }
+
+    // diff/log/show never run an external diff or textconv program, even when
+    // the repo's config asks for one.
+    const noExternal = ['diff', 'log', 'show'].includes(command) ? ['--no-ext-diff', '--no-textconv'] : [];
+    const gitArgs = [command, ...noExternal, ...userArgs];
     const fullCommand = `git ${gitArgs.join(' ')}`;
 
     return new Promise((resolve) => {

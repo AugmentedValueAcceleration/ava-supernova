@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import { join, basename } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { validateWritePath } from './security.js';
 
 /**
  * Project-aware env-file writer for granted secrets.
@@ -84,7 +85,7 @@ export class EnvWriteTool implements Tool {
 
     const projectRoot = context.cwd;
     const fileName = explicitFile || pickEnvFile([frameworkHint]);
-    const fullPath = join(projectRoot, fileName);
+    const fullPath = validateWritePath(fileName, projectRoot);
 
     if (!(await isGitignored(projectRoot, fileName))) {
       return {

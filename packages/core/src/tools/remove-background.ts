@@ -1,8 +1,9 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join, dirname, extname } from 'node:path';
+import { dirname, extname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { removeWhiteBackground } from '../creative/image-local.js';
+import { validatePath, validateWritePath } from './security.js';
 
 /**
  * Remove the background from an image, making white/near-white pixels transparent.
@@ -51,12 +52,12 @@ export class RemoveBackgroundTool implements Tool {
     const threshold = Math.min(255, Math.max(0, (args.threshold as number) || 240));
     const edgeSoftness = Math.min(255, Math.max(0, (args.edge_softness as number) || 40));
 
-    const absInput = join(context.cwd, inputPath);
+    const absInput = validatePath(inputPath, context.cwd);
 
     // Default output: input-transparent.png
     const outputPath = (args.output_path as string) ||
       inputPath.replace(extname(inputPath), '-transparent.png');
-    const absOutput = join(context.cwd, outputPath);
+    const absOutput = validateWritePath(outputPath, context.cwd);
 
     context.onOutput?.(`Reading ${inputPath}...\n`);
 

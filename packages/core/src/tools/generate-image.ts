@@ -1,8 +1,9 @@
 import { writeFile, mkdir, readFile } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
+import { validateWritePath } from './security.js';
 
 /**
  * Generate an AI image and save it to the project.
@@ -164,7 +165,7 @@ export class GenerateImageTool implements Tool {
         // Save to disk — use target_path if provided, otherwise default images/ folder
         const filename = `${rawFilename}.png`;
         const relativePath = targetPath || `images/${filename}`;
-        const absoluteSavePath = join(context.cwd, relativePath);
+        const absoluteSavePath = validateWritePath(relativePath, context.cwd);
         await mkdir(dirname(absoluteSavePath), { recursive: true });
         await writeFile(absoluteSavePath, imageBuffer);
         genManager?.update(jobId, { progress: 85 });

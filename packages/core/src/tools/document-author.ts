@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { validatePath } from './security.js';
+import { validateWritePath } from './security.js';
 import { FileEditTool } from './file-edit.js';
 import { parseMarkdown } from './authoring/md-parse.js';
 import { renderDocument, type RenderTarget } from './authoring/index.js';
@@ -410,9 +410,9 @@ export class DocumentAuthorTool implements Tool {
    *  name in documents/, where create puts it. So "build proposal.md" finds the
    *  file "create proposal.md" made. */
   private locate(given: string, cwd: string): string {
-    const direct = validatePath(given, cwd);
+    const direct = validateWritePath(given, cwd);
     if (/[\\/]/.test(given.trim()) || existsSync(direct)) return direct;
-    const inDocs = validatePath(documentPathFor(given), cwd);
+    const inDocs = validateWritePath(documentPathFor(given), cwd);
     return existsSync(inDocs) ? inDocs : direct;
   }
 

@@ -19,7 +19,10 @@ interface DetectedRunner {
 export class TestRunTool implements Tool {
   readonly name = 'test_run';
   readonly description = 'Detect the project test framework and run tests (full suite or specific file)';
-  readonly riskLevel: ToolRiskLevel = 'safe';
+  // 'dangerous', like bash: it runs any shell command it is given, so it asks
+  // under your shell setting. Was 'safe', which skipped the approval card
+  // entirely (security review, 25 Nov 2026).
+  readonly riskLevel: ToolRiskLevel = 'dangerous';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
