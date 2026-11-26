@@ -41,7 +41,7 @@ export class DesktopLearnedSteps {
 
   static async open(avaHome: string): Promise<DesktopLearnedSteps> {
     const file = join(avaHome, 'desktop', 'learned-steps.json');
-    let entries: LearnedSteps[] = [];
+    let entries: LearnedSteps[];
     const raw = await readIfExists(file);
     if (raw !== null) {
       try { entries = (JSON.parse(raw) as { steps?: LearnedSteps[] }).steps ?? []; } catch { entries = []; }

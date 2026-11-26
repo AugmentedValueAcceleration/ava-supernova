@@ -192,6 +192,7 @@ function cleanName(raw: string): FolderResult<string> {
   const name = String(raw ?? '').replace(/\s+/g, ' ').trim();
   if (!name) return { ok: false, error: 'Give the folder a name.' };
   if (name.length > MAX_FOLDER_NAME) return { ok: false, error: `Folder names can be up to ${MAX_FOLDER_NAME} characters.` };
+  // eslint-disable-next-line no-control-regex -- control characters are refused in names on purpose
   if (/[\\/:*?"<>|\u0000-\u001f]/.test(name)) return { ok: false, error: 'Folder names can\'t contain \\ / : * ? " < > |, because a folder can be downloaded as a real one.' };
   if (/^\.+$/.test(name)) return { ok: false, error: 'That name can\'t be used for a folder.' };
   return { ok: true, value: name };

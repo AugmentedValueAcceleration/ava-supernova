@@ -92,7 +92,7 @@ export async function withLock<T>(root: string, fn: () => Promise<T>): Promise<T
         continue;
       }
       if (Date.now() - started > LOCK_WAIT_MS) {
-        throw new Error('Memory is busy in another window — try again in a moment.');
+        throw new Error('Memory is busy in another window — try again in a moment.', { cause: err });
       }
       await sleep(Math.min(5 + 5 * attempt, 50));
     }

@@ -42,7 +42,7 @@ const SECRET_SHAPES = [
 export function redactSecrets(text: string): string {
   return text
     .replace(/\b([a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:)[^\s/@]+@/gi, '$1•••@')
-    .replace(/\b(ghp_|github_pat_|sk-|xox[abpr]-|AKIA|AIza|glpat-|npm_)[A-Za-z0-9_\-]{6,}/g, '$1•••')
+    .replace(/\b(ghp_|github_pat_|sk-|xox[abpr]-|AKIA|AIza|glpat-|npm_)[A-Za-z0-9_-]{6,}/g, '$1•••')
     .replace(/(--?(?:token|password|passwd|secret|api[-_]?key|key)[= ])\S+/gi, '$1•••');
 }
 

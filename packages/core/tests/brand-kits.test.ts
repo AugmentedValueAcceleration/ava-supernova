@@ -3,7 +3,16 @@
  * never the real ~/.ava.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Proposing a kit asks GIMP which fonts are installed. On a machine with GIMP
+// that STARTS GIMP, a few seconds each, past 30 under a full parallel run, so
+// these tests timed out on this PC and passed on CI (no GIMP). The font check
+// has its own tests (design-fonts, font-choices); here it is stood in for.
+vi.mock('../src/tools/design-fonts.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/tools/design-fonts.js')>()),
+  missingFonts: async () => [],
+}));
 import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, sep } from 'node:path';

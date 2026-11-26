@@ -163,9 +163,9 @@ export async function readMcpFile(): Promise<{ file: McpFile; problem?: string }
  */
 export async function updateMcpFile(change: (file: McpFile) => void): Promise<McpFile> {
   const path = mcpConfigPath();
-  let raw: Record<string, unknown> = {};
+  let raw: Record<string, unknown>;
   try { raw = (await readJson(path) as Record<string, unknown> | null) ?? {}; } catch (err) {
-    throw new Error(`~/.ava/mcp.json isn't valid JSON, so it wasn't changed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`~/.ava/mcp.json isn't valid JSON, so it wasn't changed: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
   }
   const key = raw.mcpServers ? 'mcpServers' : raw.servers ? 'servers' : 'mcpServers';
   const rawServers = (raw[key] && typeof raw[key] === 'object' ? raw[key] : {}) as Record<string, unknown>;

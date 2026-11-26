@@ -66,7 +66,7 @@ export function serializeFact(fact: Fact): string {
  * Returns null only when there is no fact text at all.
  */
 export function parseFact(id: string, content: string, state: FactState): Fact | null {
-  const text = content.replace(/^﻿/, '').replace(/\r\n/g, '\n');
+  const text = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
   const fields: Record<string, string | string[]> = {};
   let body = text;
   const m = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);

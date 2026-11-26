@@ -68,7 +68,7 @@ function fitBrief(parts: BriefSection[], projectRoot: string): string {
   }
 
   let brief = join(kept);
-  let note = dropped.length > 0
+  const note = dropped.length > 0
     ? ` (${dropped.length} section${dropped.length === 1 ? '' : 's'} trimmed to fit: ${dropped.join(', ')})`
     : '';
 

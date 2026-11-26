@@ -266,8 +266,8 @@ export class DesignApiLookupTool implements Tool {
     }
     const id = randomUUID();
     const scriptPath = join(tmpdir(), `ava-lookup-${id}.py`);
-    let out = '';
-    let version = '';
+    let out: string;
+    let version: string;
     try {
       if (tool === 'blender') {
         const b = await findBlender();

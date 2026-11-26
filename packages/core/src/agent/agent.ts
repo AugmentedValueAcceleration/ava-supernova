@@ -2404,7 +2404,7 @@ export class Agent {
       let assistantMessage: AssistantMessage;
       let promptTokens: number;
       let streamInterrupted;
-      let streamTruncated = false;
+      let streamTruncated: boolean;
       const estimatedInput = this.estimateTokenCount(messages);
       logger.debug(`[agent] Calling streamResponse (est. ${estimatedInput} input tokens, model context: ${this.model.contextWindow})`);
       try {

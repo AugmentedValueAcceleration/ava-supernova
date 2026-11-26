@@ -85,6 +85,7 @@ export class CreateProjectTool implements Tool {
     }
     // Windows refuses these outright and the failure is obscure when it comes
     // from the filesystem instead of from here.
+    // eslint-disable-next-line no-control-regex -- control characters are refused in names on purpose
     if (/[<>:"|?*\x00-\x1f]/.test(raw)) {
       return {
         success: false,

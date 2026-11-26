@@ -138,7 +138,7 @@ function makeTransport(cfg: McpTransportConfig, stderrLines: string[]): Transpor
 export function isUnauthorized(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as { name?: string; code?: number; message?: string; unauthorized?: boolean };
-  return e.unauthorized === true || e.name === 'UnauthorizedError' || e.code === 401 || /401|unauthori[sz]ed/i.test(e.message ?? '');
+  return e.unauthorized === true || e.name === 'UnauthorizedError' || e.code === 401 || /\b401\b|unauthori[sz]ed/i.test(e.message ?? '');
 }
 
 /**

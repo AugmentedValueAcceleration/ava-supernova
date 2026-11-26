@@ -120,7 +120,7 @@ export class SuggestBeatsTool implements Tool {
       return {
         success: false,
         output:
-          `${videos.length} beats want a video — the day has ONE (the operator\'s rule). Review the beats that promote us `
+          `${videos.length} beats want a video — the day has ONE (the operator's rule). Review the beats that promote us `
           + '(our work and the every-day posts), give needs_video to the single best film, say why in its `why`, and false on the rest.',
       };
     }
@@ -128,7 +128,7 @@ export class SuggestBeatsTool implements Tool {
       return {
         success: false,
         output:
-          `The video is on "${videos[0].angle}", a ${videos[0].kind} beat. The day\'s one video only ever promotes us — `
+          `The video is on "${videos[0].angle}", a ${videos[0].kind} beat. The day's one video only ever promotes us — `
           + 'move needs_video to an our-work or every-day beat (the best film among them), or none.',
       };
     }

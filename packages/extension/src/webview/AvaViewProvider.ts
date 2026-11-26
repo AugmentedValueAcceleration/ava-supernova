@@ -1524,7 +1524,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
 
       try {
-        let activeModelId = config.get<string>('activeModel') || '';
+        const activeModelId = config.get<string>('activeModel') || '';
 
         // (A reset of any MiniMax model back to Auto lived here, from when
         // MiniMax was reserved for Creative Studio. Since 1 Nov 2026 MiniMax M3 and

@@ -28,7 +28,7 @@ const WIN = process.platform === 'win32';
 /** Prefer the versioned console (gimp-console-3.2.exe), newest first. */
 function consoleIn(binDir: string): string | null {
   if (!existsSync(binDir)) return null;
-  let names: string[] = [];
+  let names: string[];
   try { names = readdirSync(binDir); } catch { return null; }
   const found = names.filter((n) => /^gimp-console(-\d+(\.\d+)*)?(\.exe)?$/i.test(n))
     .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));

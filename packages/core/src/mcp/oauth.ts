@@ -255,7 +255,6 @@ export async function listenForSignIn(words: McpSignInWords = {}, timeoutMs = 5 
   const code = new Promise<string>((resolve, reject) => { settle = { resolve, reject }; });
   code.catch(() => {}); // whoever awaits it hears; nobody listening is fine too
   let done = false;
-  let server: Server;
   const finish = (err: Error | null, value?: string) => {
     if (done) return;
     done = true;
@@ -264,7 +263,7 @@ export async function listenForSignIn(words: McpSignInWords = {}, timeoutMs = 5 
     server.closeAllConnections?.();
     if (err) settle.reject(err); else settle.resolve(value!);
   };
-  server = createServer((req, res) => {
+  const server: Server = createServer((req, res) => {
     const u = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (u.pathname !== '/callback') { res.writeHead(404).end(); return; }
     const send = (ok: boolean, text: string) => {

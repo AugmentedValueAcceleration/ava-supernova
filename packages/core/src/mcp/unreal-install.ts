@@ -152,7 +152,7 @@ export async function installUnrealProgram(home = AVA_HOME): Promise<UnrealProgr
     } catch (e) {
       await rm(temp, { force: true });
       if ((e as NodeJS.ErrnoException).code === 'EBUSY' || (e as NodeJS.ErrnoException).code === 'EPERM') {
-        throw new Error('Unreal is using Ava right now. Close Ava\'s chats in the Assistant panel (or Unreal), then try again.');
+        throw new Error('Unreal is using Ava right now. Close Ava\'s chats in the Assistant panel (or Unreal), then try again.', { cause: e });
       }
       throw e;
     }
