@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [development, main]
 
+# Read-only by default (security review, 25 Nov 2026). Jobs that need more ask
+# for it themselves; nothing here pushes, tags or comments.
+permissions:
+  contents: read
+
 jobs:
   # Fast check on every push — ubuntu only
   check:
@@ -14,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           submodules: true
           # Two of the four submodules are PRIVATE (ava-supernova-platform,
@@ -29,9 +34,10 @@ jobs:
           # default token rather than adding to it. NOTE: it expires, and
           # the failure when it does looks exactly like the 404 above.
           token: ${{ secrets.SUBMODULE_TOKEN }}
+          persist-credentials: false
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         # No `version:` here on purpose. package.json's packageManager
         # field (pnpm@10.30.1) is the single source of truth, and
         # action-setup v4 errors outright when both are set rather than
@@ -40,7 +46,7 @@ jobs:
         # developer's machine.
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: pnpm
@@ -135,7 +141,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           submodules: true
           # Two of the four submodules are PRIVATE (ava-supernova-platform,
@@ -150,9 +156,10 @@ jobs:
           # default token rather than adding to it. NOTE: it expires, and
           # the failure when it does looks exactly like the 404 above.
           token: ${{ secrets.SUBMODULE_TOKEN }}
+          persist-credentials: false
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         # No `version:` here on purpose. package.json's packageManager
         # field (pnpm@10.30.1) is the single source of truth, and
         # action-setup v4 errors outright when both are set rather than
@@ -161,7 +168,7 @@ jobs:
         # developer's machine.
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: pnpm
@@ -181,11 +188,12 @@ jobs:
     name: Security Scanning
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           submodules: true
           # Two of the four submodules are PRIVATE (ava-supernova-platform,
@@ -200,10 +208,11 @@ jobs:
           # default token rather than adding to it. NOTE: it expires, and
           # the failure when it does looks exactly like the 404 above.
           token: ${{ secrets.SUBMODULE_TOKEN }}
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         # No `version:` here on purpose. package.json's packageManager
         # field (pnpm@10.30.1) is the single source of truth, and
         # action-setup v4 errors outright when both are set rather than
@@ -212,7 +221,7 @@ jobs:
         # developer's machine.
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: pnpm
@@ -227,7 +236,7 @@ jobs:
 
       # Secret detection — free CLI mode, no license needed
       - name: Secret detection (Gitleaks)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: false
@@ -236,19 +245,22 @@ jobs:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@74c1aea9df7c0f02e9b7bfe4a8935abf2e5e3aa6 # v3.39.5
         with:
           languages: javascript-typescript
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@74c1aea9df7c0f02e9b7bfe4a8935abf2e5e3aa6 # v3.39.5
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@74c1aea9df7c0f02e9b7bfe4a8935abf2e5e3aa6 # v3.39.5

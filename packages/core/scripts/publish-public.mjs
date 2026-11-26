@@ -17,7 +17,14 @@
  * the extension / IDE / CLI that bundle `@ava/core` from the workspace are
  * completely untouched. Run a `pnpm build` in core first (or let this do it).
  *
- * AUTH: put the token in `packages/core/.env.local` as NPM_TOKEN=… and this
+ * AUTH, since 26 Nov 2026: npm TRUSTED PUBLISHING. Pushing a `core-v<version>`
+ * tag runs .github/workflows/publish-core.yml, which runs this script on
+ * GitHub; npm checks GitHub's signed identity for that workflow, so no token
+ * exists anywhere and every version carries a provenance statement linking it
+ * to the commit it was built from. The NPM_TOKEN below (a token that skipped
+ * 2FA) was the security review's finding; it is the fallback until revoked.
+ *
+ * OLD AUTH: put the token in `packages/core/.env.local` as NPM_TOKEN=… and this
  * script does the rest. `.env.*` is gitignored at the repo root, so it stays on
  * the machine and never needs to be pasted anywhere to be used. A granular
  * access token with 2FA bypass is required — npm rejects a plain session token
@@ -80,6 +87,20 @@ const originalName = pkg.name;
 pkg.name = publishName;
 delete pkg.private;
 pkg.publishConfig = { ...(pkg.publishConfig || {}), access: 'public' };
+// npm only accepts a trusted (and provenance-stamped) publish when this
+// matches the GitHub repo exactly.
+pkg.repository = {
+  type: 'git',
+  url: 'git+https://github.com/AugmentedValueAcceleration/ava-supernova.git',
+  directory: 'packages/core',
+};
+
+// On GitHub Actions with id-token permission, npm signs in by itself.
+const trusted = !!process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+if (trusted && process.env.GITHUB_REF_NAME && process.env.GITHUB_REF_NAME !== `core-v${pkg.version}`) {
+  console.error(`✗ Tag ${process.env.GITHUB_REF_NAME} does not match core's version ${pkg.version}.`);
+  process.exit(1);
+}
 
 // 3. Assemble a clean publish dir (dist + transformed manifest + license/readme).
 const stage = mkdtempSync(join(tmpdir(), 'ava-core-publish-'));
@@ -97,7 +118,7 @@ try {
   // NAME, not the value — npm substitutes ${NPM_TOKEN} from the environment at
   // read time, so the secret is never written to disk. The stage directory is
   // removed in the finally below either way.
-  if (!dryRun) {
+  if (!dryRun && !trusted) {
     if (!process.env.NPM_TOKEN) {
       console.error('✗ NPM_TOKEN is not set.');
       console.error('  Put it in packages/core/.env.local as:  NPM_TOKEN=npm_xxxxxxxx');

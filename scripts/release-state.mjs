@@ -27,6 +27,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
+import { readSecret } from './secret.mjs';
 
 const repoRoot = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const AS_JSON = process.argv.includes('--json');
@@ -42,7 +43,10 @@ const AS_JSON = process.argv.includes('--json');
  *  The release token now lives in the repo root's .env.local as
  *  GITHUB_RELEASE_TOKEN (fine-grained; write on ava-supernova and
  *  ava-supernova-ide only). It used to be the hub's VITE_GITHUB_TOKEN, which
- *  Vite bundled into every hub build (security review, 25 Nov 2026). */
+ *  Vite bundled into every hub build (security review, 25 Nov 2026).
+ *
+ *  Since 26 Nov it lives in the Windows keychain (scripts/secret.mjs) and the
+ *  .env.local line is gone; the file is still read as a fallback. */
 const RELEASE_ENV = path.join(repoRoot, '.env.local');
 const WEB_ENV = path.join(repoRoot, 'packages', 'web', '.env.local');
 
@@ -83,7 +87,7 @@ async function githubLatest(repo, token) {
       res = await attempt(false);
       usedToken = false;
       if (res.ok) authWarning = `GitHub token rejected (was HTTP 401/403) — read unauthenticated. `
-        + `That token is GITHUB_RELEASE_TOKEN in the repo root's .env.local and is what PUBLISHES releases, so publishing will fail too.`;
+        + `That token is GITHUB_RELEASE_TOKEN (keychain: node scripts/secret.mjs has GITHUB_RELEASE_TOKEN) and is what PUBLISHES releases, so publishing will fail too.`;
     }
     if (!res.ok) return { error: `HTTP ${res.status}` };
     const list = await res.json();
@@ -130,7 +134,7 @@ async function releaseNotesRows() {
   } catch (err) { return { error: err.message }; }
 }
 
-const ghToken = readEnv(RELEASE_ENV, 'GITHUB_RELEASE_TOKEN');
+const ghToken = readSecret('GITHUB_RELEASE_TOKEN') || readEnv(RELEASE_ENV, 'GITHUB_RELEASE_TOKEN');
 
 const [ext, ide, market, notes] = await Promise.all([
   githubLatest('AugmentedValueAcceleration/ava-supernova', ghToken),

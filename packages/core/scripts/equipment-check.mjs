@@ -13,8 +13,9 @@
  *
  * Exits 1 on drift so CI can fail on it; run it with --quiet in a hook.
  *
- * Credential: the Supabase MANAGEMENT token (`sbp_…`) from
- * packages/web/.env.local — the same one migrations are applied with. Read-only
+ * Credential: the Supabase MANAGEMENT token (`sbp_…`), kept in the Windows
+ * keychain since 26 Nov 2026 (scripts/secret.mjs, SUPABASE_ACCESS_TOKEN) — the
+ * same one migrations are applied with. packages/web/.env.local is a fallback. Read-only
  * here. No platform key is spent; this is internal tooling.
  *
  * Usage:  node scripts/equipment-check.mjs [--quiet]
@@ -22,6 +23,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
+import { readSecret } from '../../../scripts/secret.mjs';
 
 const root = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const QUIET = process.argv.includes('--quiet');
@@ -30,12 +32,14 @@ const PROJECT_REF = 'dpxdjnpqaxhsydoeaogl';
 const envPath = path.join(root, '..', 'web', '.env.local');
 const token = (() => {
   if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN;
+  const kept = readSecret('SUPABASE_ACCESS_TOKEN');
+  if (kept) return kept;
   try { return fs.readFileSync(envPath, 'utf8').match(/sbp_[A-Za-z0-9_]+/)?.[0] ?? null; }
   catch { return null; }
 })();
 
 if (!token) {
-  console.error('No Supabase management token — set SUPABASE_ACCESS_TOKEN or add it to packages/web/.env.local.');
+  console.error('No Supabase management token — not in the keychain (node scripts/secret.mjs has SUPABASE_ACCESS_TOKEN) or SUPABASE_ACCESS_TOKEN.');
   process.exit(2);
 }
 

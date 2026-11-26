@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@napi-rs/keyring": "2.1.2",
     "@tauri-apps/cli": "^2.10.1",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",

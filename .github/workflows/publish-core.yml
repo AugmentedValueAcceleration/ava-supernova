@@ -1,0 +1,52 @@
+name: publish-core
+
+# Publishes @project-ava-supernova/core to npm with npm TRUSTED PUBLISHING
+# (security review, 25 Nov 2026). npm checks GitHub's signed identity for THIS
+# workflow file in THIS repo, so there is no npm token anywhere, and every
+# version gets a provenance statement tying it to the commit it was built from.
+#
+# Run it by pushing a tag:   git tag core-v0.2.198 && git push origin core-v0.2.198
+# The tag must match packages/core/package.json's version, or nothing publishes.
+#
+# The file name is part of the npm setting (Packages → core → Settings →
+# Trusted publishing → workflow "publish-core.yml"). Renaming it stops publishing.
+on:
+  push:
+    tags: ['core-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # GitHub's signed identity, which npm checks instead of a token
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          submodules: true
+          # Same read-only token as ci.yml: two submodules are private and the
+          # workspace install needs them present.
+          token: ${{ secrets.SUBMODULE_TOKEN }}
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          # Trusted publishing needs npm 11.5.1+ and Node 22.14+; Node 24 ships npm 11.19.
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish
+        working-directory: packages/core
+        run: node scripts/publish-public.mjs
