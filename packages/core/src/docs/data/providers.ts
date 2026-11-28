@@ -157,6 +157,7 @@ export const PROVIDERS: ProviderFact[] = [
     notes: 'Nemotron 3 Ultra — open-weight MoE (550B total / 55B active), hybrid Transformer-Mamba, frontier reasoning + agent orchestration, 1M context. NVIDIA Open Model License. BYOK only.',
     models: [
       { id: 'nvidia/nemotron-3-ultra-550b-a55b', displayName: 'Nemotron 3 Ultra', inputPricePerM: 0.50, outputPricePerM: 2.20, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'nvidia/nemotron-3.5-super-vl-120b-a12b', displayName: 'Nemotron 3.5 Super VL — 120B total / 12B active, reads images', inputPricePerM: 0.20, outputPricePerM: 0.50, contextWindow: 262_144, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'nvidia/nemotron-3.5-lightning-30b-a3b', displayName: 'Nemotron 3.5 Lightning — 30B total / 3B active, open weights under OpenMDW-1.1', inputPricePerM: 0.05, outputPricePerM: 0.20, contextWindow: 1_000_000, capabilities: ['tools', 'streaming'] },
     ],
   },

@@ -39,6 +39,9 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // than removed: a saved selection keeps working, and the person holding it
   // gets a better model for less money without being asked to do anything.
   'qwen3.7-max':       'qwen4-max',
+  // Qwen3 Coder Next retired upstream (404 "Model not exist", found 28 Nov
+  // 2026): rolled forward to Qwen 3.7 Plus, Maestro's coding seat (his call).
+  'qwen3-coder-next':  'qwen3.7-plus',
   // MiniMax M2.7 (+ Highspeed) retired upstream 2026-11-18 (closed to new
   // users 2026-10-19). MiniMax routes them to M3.1 Flash on its plans; we do
   // the same for own-key calls, so a saved choice survives the shutdown.

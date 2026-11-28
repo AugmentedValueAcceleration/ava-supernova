@@ -54,8 +54,8 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0
       '@project-ava-supernova/core':
-        specifier: 0.2.185
-        version: 0.2.185(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@25.3.0))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
+        specifier: 0.2.199
+        version: 0.2.199(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@25.3.0))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@supabase/supabase-js':
         specifier: ^2.99.3
         version: 2.99.3
@@ -2193,8 +2193,8 @@ packages:
       react: '>= 16.8'
       react-dom: '>= 16.8'
 
-  '@project-ava-supernova/core@0.2.185':
-    resolution: {integrity: sha512-/mGIwpG0sfRaY2cglH7gOe9Z+GkXRdCAtLEn10etGZL33niDusH/WKCl8VCBAMtYTPtJjeMW0x0gmhJDVC/Csg==}
+  '@project-ava-supernova/core@0.2.197':
+    resolution: {integrity: sha512-vRBmiLype6dtFLRSDUssNojzyZCFRoGa6DYpm88/m9ohvmzOKD6BFTF86fWf03AnVjQyKfmy03Hh6JPnJWEy+w==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -2225,8 +2225,8 @@ packages:
       screenshot-desktop:
         optional: true
 
-  '@project-ava-supernova/core@0.2.197':
-    resolution: {integrity: sha512-vRBmiLype6dtFLRSDUssNojzyZCFRoGa6DYpm88/m9ohvmzOKD6BFTF86fWf03AnVjQyKfmy03Hh6JPnJWEy+w==}
+  '@project-ava-supernova/core@0.2.199':
+    resolution: {integrity: sha512-N+jtBlAMifvwKjTrsA4Ex9ak/dlVKAfpl3Kc8HBB0YMmbvpIAOpA7YaoSVePTejNGFyuH9PAFK4OL3A4ig58bw==}
     peerDependencies:
       better-sqlite3: '>=9.0.0'
       docx: '>=9.0.0'
@@ -7992,31 +7992,6 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  '@project-ava-supernova/core@0.2.185(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@25.3.0))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
-    dependencies:
-      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
-      fflate: 0.8.3
-      glob: 13.0.6
-      jpeg-js: 0.4.4
-      marked: 17.0.3
-      pngjs: 7.0.0
-      unpdf: 2.1.0(@napi-rs/canvas@1.1.1)
-      zod: 4.3.6
-    optionalDependencies:
-      better-sqlite3: 12.6.2
-      docx: 9.6.1
-      exceljs: 4.4.0
-      mammoth: 1.12.0
-      mysql2: 3.19.0(@types/node@25.3.0)
-      pdfkit: 0.18.0
-      pg: 8.20.0
-      playwright: 1.58.2
-      screenshot-desktop: 1.15.3
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-      - '@napi-rs/canvas'
-
   '@project-ava-supernova/core@0.2.197(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.2(zod@4.3.6)
@@ -8034,6 +8009,34 @@ snapshots:
       exceljs: 4.4.0
       mammoth: 1.12.0
       mysql2: 3.19.0(@types/node@22.19.11)
+      pdfkit: 0.18.0
+      pg: 8.20.0
+      playwright: 1.58.2
+      screenshot-desktop: 1.15.3
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - '@emnapi/core'
+      - '@emnapi/runtime'
+      - '@napi-rs/canvas'
+      - supports-color
+
+  '@project-ava-supernova/core@0.2.199(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)(@napi-rs/canvas@1.1.1)(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@25.3.0))(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.32.2(zod@4.3.6)
+      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.8.1)
+      fflate: 0.8.3
+      glob: 13.0.6
+      jpeg-js: 0.4.4
+      marked: 17.0.3
+      pngjs: 7.0.0
+      unpdf: 2.1.0(@napi-rs/canvas@1.1.1)
+      zod: 4.3.6
+    optionalDependencies:
+      better-sqlite3: 12.6.2
+      docx: 9.6.1
+      exceljs: 4.4.0
+      mammoth: 1.12.0
+      mysql2: 3.19.0(@types/node@25.3.0)
       pdfkit: 0.18.0
       pg: 8.20.0
       playwright: 1.58.2

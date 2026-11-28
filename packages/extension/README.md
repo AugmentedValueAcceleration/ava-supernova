@@ -90,7 +90,7 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 
 | Source | Models |
 |---|---|
-| **BYOK — Qwen** | Qwen 4 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen3 Coder Next / Flash |
+| **BYOK — Qwen** | Qwen 4 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen3 Coder Flash |
 | **BYOK — DeepSeek** | DeepSeek V4.1 Flash *(MIT-licensed open-weight, 1M context, multimodal)* |
 | **BYOK — Moonshot** | Kimi K3.1 Pro *(1M context, native vision)*, K3.1 Pro Highspeed, K3 |
 | **BYOK — Zhipu** | GLM-5.3, GLM-5.3 Flash *(MIT-licensed open-weight, 1M context — GLM-5.3 is text only, GLM-5.3 Flash reads images and video)* |
@@ -98,7 +98,7 @@ Every claim of completion — "it's fixed", "tests pass", "deployed" — is chec
 | **BYOK — MiniMax** | M3 *(1M context, reads images)*, M3.1 Flash |
 | **BYOK — Xiaomi** | MiMo V2.6-Pro, V2.6-Flash, V2.6-Pro UltraSpeed |
 | **BYOK — Tencent** | Hunyuan Hy4 and Hy4 Flash *(1M context, vision)* |
-| **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning *(open-weight, 1M context)* |
+| **BYOK — NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Super VL, Nemotron 3.5 Lightning *(open-weight; Super VL reads images)* |
 | **Local** | Ollama, LM Studio, vLLM, any standard API endpoint |
 
 Make Qwen keys in Alibaba Cloud Model Studio's **Singapore** region — keys are region-locked and Ava uses the international endpoint. **Web search** works out of the box with DuckDuckGo; add a Brave Search key for better results.

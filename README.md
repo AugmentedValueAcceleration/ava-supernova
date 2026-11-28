@@ -103,7 +103,7 @@ Or pick any single model your keys reach:
 
 | Provider | Models |
 |---|---|
-| **Qwen (Alibaba)** | Qwen 4 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen3 Coder Next / Flash — up to 1M context, vision, reasoning |
+| **Qwen (Alibaba)** | Qwen 4 Max, Qwen 3.8 Flash, Qwen 3.7 Plus, Qwen 3.7 Flash, Qwen3 Coder Flash — up to 1M context, vision, reasoning |
 | **DeepSeek** | DeepSeek V4.1 Flash — MIT open-weight, 1M context |
 | **Moonshot** | Kimi K3.1 Pro (1M context, native vision), K3.1 Pro Highspeed, K3 |
 | **Zhipu** | GLM-5.3, GLM-5.3 Flash — MIT open-weight, 1M context |
@@ -111,7 +111,7 @@ Or pick any single model your keys reach:
 | **MiniMax** | M3, M3.1 Flash — 1M context |
 | **Xiaomi** | MiMo V2.6-Pro, V2.6-Flash — 1M context, native multimodal |
 | **Tencent** | Hunyuan Hy4, Hy4 Flash — 1M context, vision |
-| **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Lightning — open-weight, 1M context |
+| **NVIDIA** | Nemotron 3 Ultra, Nemotron 3.5 Super VL, Nemotron 3.5 Lightning — open-weight; Super VL reads images |
 | **Local** | Ollama, LM Studio, vLLM, or any standard API-format endpoint — no key, no cost |
 
 **Images, voiceovers and video** in the Creative Studio run on your own **Qwen key**, billed by Alibaba at Alibaba's rates; without one, those are switched off. Make Qwen keys in Alibaba Cloud Model Studio's **Singapore** region — keys are region-locked and Ava uses the international endpoint.

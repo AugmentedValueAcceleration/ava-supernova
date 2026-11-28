@@ -80,7 +80,7 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'qwen3.5-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.60 }, // → qwen3.7-plus
     // Tiered upstream ($0.03/$0.13 <32K, $0.10/$0.40 <256K, $0.20/$0.80 <1M).
     // Middle tier: a real turn clears 32K almost at once.
-    'qwen3-coder-next':  { inputPerMillion: 0.12,  outputPerMillion: 0.80 },
+    'qwen3-coder-next':  { inputPerMillion: 0.40,  outputPerMillion: 1.60 }, // → qwen3.7-plus (retired 28 Nov 2026)
     'qwen3-coder-flash': { inputPerMillion: 0.195, outputPerMillion: 0.975 },
     'qwen3.7-flash': { inputPerMillion: 0.10, outputPerMillion: 0.40 },
     'qwen3.5-flash':{ inputPerMillion: 0.15,  outputPerMillion: 0.47 }, // → qwen3.8-flash
@@ -135,6 +135,7 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     // Added 2026-08-16, the same day it reached the BYOK surfaces. Shipping a
     // model without its rate is how the MiniMax and MiMo holes happened.
     'nvidia/nemotron-3.5-lightning-30b-a3b': { inputPerMillion: 0.05, outputPerMillion: 0.20 },
+    'nvidia/nemotron-3.5-super-vl-120b-a12b': { inputPerMillion: 0.20, outputPerMillion: 0.50 },
   },
 };
 

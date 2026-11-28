@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava Supernova",
   "description": "%description%",
-  "version": "0.125.0",
+  "version": "0.125.1",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -216,7 +216,6 @@
               "qwen:qwen3.7-flash",
               "qwen:qwen3.7-plus",
               "qwen:qwen4-max",
-              "qwen:qwen3-coder-next",
               "qwen:qwen3-coder-flash",
               "zhipu:glm-5.3",
               "zhipu:glm-5.3-flash",
@@ -230,7 +229,8 @@
               "tencent:hy4",
               "tencent:hy4-flash",
               "nvidia:nvidia/nemotron-3-ultra-550b-a55b",
-              "nvidia:nvidia/nemotron-3.5-lightning-30b-a3b"
+              "nvidia:nvidia/nemotron-3.5-lightning-30b-a3b",
+              "nvidia:nvidia/nemotron-3.5-super-vl-120b-a12b"
             ],
             "enumDescriptions": [
               "No model selected — add a provider key, or point Ava at a local model",
@@ -242,7 +242,6 @@
               "Qwen 3.7 Flash — 1M context, vision, tiered pricing; reasons by default so short answers cost more than the headline rate",
               "Qwen 3.7 Plus — flagship Qwen, agentic coding, 1M context, vision",
               "Qwen 4 Max — Alibaba's flagship, 1M context, image + video, thinking",
-              "Qwen3 Coder Next — coding specialist, 256K context, text only, very cheap",
               "Qwen3 Coder Flash — coding specialist, 1M context, text only",
               "GLM-5.3 — MIT open-weight, 1M context, thinking (text only)",
               "GLM-5.3 Flash — BYOK, 1M context, reads images and video",
@@ -256,7 +255,8 @@
               "Hunyuan Hy4 — Tencent's flagship, 1M context, vision, reasoning (BYOK)",
               "Hunyuan Hy4 Flash — fast and very cheap, 1M context, vision (BYOK)",
               "Nemotron 3 Ultra — NVIDIA open-weight, 1M context, frontier reasoning (BYOK)",
-              "Nemotron 3.5 Lightning — NVIDIA's small open model, fully open data, 1M context, very cheap (BYOK)"
+              "Nemotron 3.5 Lightning — NVIDIA's small open model, fully open data, 1M context, very cheap (BYOK)",
+              "Nemotron 3.5 Super VL — NVIDIA's mid-size open model, reads images, 256K context (BYOK)"
             ],
             "description": "%setting.activeModel.description%"
           }

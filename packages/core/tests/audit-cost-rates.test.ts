@@ -46,17 +46,23 @@ function readRateCard(): Record<string, Record<string, Rate>> {
   return out;
 }
 
-/** provider -> id -> [inputPerMillion, outputPerMillion] from the catalogues. */
-function readCatalogues(): Record<string, Record<string, Rate>> {
-  const out: Record<string, Record<string, Rate>> = {};
+/** provider -> id -> [inputPerMillion, outputPerMillion] from the catalogues,
+ *  or null for a model listed without a price. Each entry is read only up to
+ *  the next `id:`, so an unpriced model can never borrow its neighbour's rate
+ *  (a lazy match across entries did exactly that when GLM-5.4 joined unpriced). */
+function readCatalogues(): Record<string, Record<string, Rate | null>> {
+  const out: Record<string, Record<string, Rate | null>> = {};
   for (const dir of readdirSync(join(SRC, 'providers'))) {
     const file = join(SRC, 'providers', dir, 'models.ts');
     if (!existsSync(file)) continue;
     const src = readFileSync(file, 'utf8');
     out[dir] = {};
-    const re = /id:\s*'([^']+)'[\s\S]*?pricing:\s*\{\s*inputPerMillion:\s*([\d.]+),\s*outputPerMillion:\s*([\d.]+)/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(src))) out[dir][m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
+    const ids = [...src.matchAll(/id:\s*'([^']+)'/g)];
+    ids.forEach((m, i) => {
+      const entry = src.slice(m.index!, ids[i + 1]?.index ?? src.length);
+      const p = entry.match(/pricing:\s*\{\s*inputPerMillion:\s*([\d.]+),\s*outputPerMillion:\s*([\d.]+)/);
+      out[dir][m[1]] = p ? [parseFloat(p[1]), parseFloat(p[2])] : null;
+    });
   }
   return out;
 }
@@ -105,7 +111,7 @@ describe('BYOK audit rate card', () => {
     // like agreement. These floors make that impossible.
     expect(Object.keys(card).length).toBeGreaterThan(5);
     expect(Object.keys(cat).length).toBeGreaterThan(5);
-    expect(Object.values(cat).some(m => Object.keys(m).length > 0)).toBe(true);
+    expect(Object.values(cat).some(m => Object.values(m).some(Boolean))).toBe(true);
   });
 
   it('quotes the same price as the catalogue for every shared id', () => {
@@ -125,7 +131,7 @@ describe('BYOK audit rate card', () => {
     for (const [provider, models] of Object.entries(card))
       for (const id of Object.keys(models)) {
         const key = `${provider}/${id}`;
-        if (!cat[provider]?.[id] && !UNREACHABLE_KEPT_FOR_RECEIPTS.has(key)) dead.push(key);
+        if (!(cat[provider] && id in cat[provider]) && !UNREACHABLE_KEPT_FOR_RECEIPTS.has(key)) dead.push(key);
       }
     expect(dead).toEqual([]);
   });

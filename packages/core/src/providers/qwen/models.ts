@@ -177,16 +177,23 @@ export const QWEN_MODELS: ModelDefinition[] = [
     // Verified live before shipping: it answers, and it does NOT burn reasoning
     // tokens on trivial replies (2 completion tokens for "ok", where Qwen 3.7
     // Flash spent 167).
+    //
+    // RETIRED upstream (found 28 Nov 2026: Alibaba answers 404 "Model not
+    // exist" and it is gone from the model list). Hidden from the pickers; a
+    // saved choice rolls forward to Qwen 3.7 Plus, Maestro's own coding seat
+    // (MODEL_API_NAMES, his call 28 Nov 2026).
     id: 'qwen3-coder-next',
-    name: 'Qwen3 Coder Next',
+    name: 'Qwen3 Coder Next (now Qwen 3.7 Plus)',
     provider: 'qwen',
-    contextWindow: 256000,
+    // Priced and described as what is actually called (the qwen3.8-max rule).
+    contextWindow: 1000000,
     maxOutputTokens: 65536,
     supportsToolCalls: true,
     supportsStreaming: true,
-    supportsThinking: false,
-    supportsVision: false,
-    pricing: { inputPerMillion: 0.12, outputPerMillion: 0.80 },
+    supportsThinking: true,
+    supportsVision: true,
+    hiddenFromPicker: true,
+    pricing: { inputPerMillion: 0.40, outputPerMillion: 1.60 },
   },
   {
     // Qwen3 Coder Flash — 1M context, tool-calling coder.

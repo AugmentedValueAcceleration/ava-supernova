@@ -54,4 +54,32 @@ export const NVIDIA_MODELS: ModelDefinition[] = [
     desktopCapable: true,
     pricing: { inputPerMillion: 0.05, outputPerMillion: 0.20 },
   },
+  {
+    // Nemotron 3.5 Super VL (NVIDIA, 2026) — 120B total / 12B active, the
+    // middle of the family between Lightning and Ultra, and the first
+    // Nemotron here that SEES: image input on NVIDIA's own endpoint.
+    //
+    // Tested live on integrate.api.nvidia.com before adding (28 Nov 2026, his
+    // call): it answers, reads an image correctly, makes a proper tool call,
+    // and keeps its reasoning in reasoning tokens rather than leaking it into
+    // the answer — so it is NOT in CONTENT_LEAKING_REASONERS.
+    //
+    // Context: hosts disagree (256K at Together, ~1M elsewhere) and NVIDIA's
+    // own endpoint publishes no figure, so this records the smaller one rather
+    // than promise a window a long request might not get.
+    //
+    // Pricing is the most widely published paid rate (Baseten $0.20/$0.50);
+    // other hosts charge more. BYOK-only.
+    id: 'nvidia/nemotron-3.5-super-vl-120b-a12b',
+    name: 'Nemotron 3.5 Super VL',
+    provider: 'nvidia',
+    contextWindow: 262144,
+    maxOutputTokens: 16384,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 0.20, outputPerMillion: 0.50 },
+  },
 ];
