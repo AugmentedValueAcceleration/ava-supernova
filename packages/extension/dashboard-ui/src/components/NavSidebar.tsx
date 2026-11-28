@@ -4,7 +4,7 @@ import { post } from '../App';
 import type { Page, DashboardJournalDaySummary, HealthPlanSummary, ProviderKeyStatus } from '../types/messages';
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
-  Brain, ChartLineUp, GearSix, Question, Barbell, GraduationCap,
+  Brain, UserCircle, ChartLineUp, GearSix, Question, Barbell, GraduationCap,
   ArrowsLeftRight, CaretLeft, CaretRight, Heart, PlugsConnected, Lightbulb,
 } from '@phosphor-icons/react';
 
@@ -92,6 +92,8 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     // Health, Learning, Creative Studio. Not a warning: it tells someone where a
     // feature actually is in its development. Keep in step with the IDE Sidebar.
     { page: 'creative-studio', icon: <Palette weight="duotone" size={18} />, label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice'), earlyAccess: true },
+    // What Ava knows about you, and where (plan 2026-11-27-profile-index). Keep in step with the IDE Sidebar.
+    { page: 'profile', icon: <UserCircle weight="duotone" size={18} />, label: tt('dash.nav.profile', 'Profile'), description: tt('dash.nav.profile_desc', 'What Ava knows about you') },
     { page: 'memory', icon: <Brain weight="duotone" size={18} />, label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
     // His MCP servers (plan 2026-11-17-mcp-servers). Keep in step with the IDE Sidebar.
     { page: 'connections', icon: <PlugsConnected weight="duotone" size={18} />, label: tt('dash.nav.connections', 'Connections'), description: tt('dash.nav.connections_desc', 'Your MCP servers') },

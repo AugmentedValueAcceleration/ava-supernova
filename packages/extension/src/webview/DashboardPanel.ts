@@ -57,6 +57,7 @@ import {
   loadSafetyProfile, hasHardRules, fetchSafetyFacts, checkRecipeSafety, checkExerciseSafety, type StoreId, restoreModelStep, touchLibraryEntry, agreePackPlan, editPlanItem, deletePackPlan, planStatuses,
   brandKitsForApps, importBrandKits, saveBrandKit, deleteBrandKit, setActiveBrandKit, setBrandLogoFromFile, linkBrandKit, unlinkBrandKit, agreeBrandKit, setBrandPiece, kitLibraryChoices, isLibraryFile, addPieceFromLibrary, addPieceUpload, removePieceFile, fontChoices, installFontTheyChose, type BrandKitRecord,
   AvaMemory, memoryPage, memoryV4Root, removeOldMemoryFiles, type PageOp,
+  MemorySession, profileOverview, writeProfileVisibility,
   McpServers, mcpPage, brainstormPage,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
@@ -1737,6 +1738,20 @@ export class DashboardPanel {
         };
         await healthStore.writeProfile(this.healthDir(), profile);
         this.post({ type: 'health_profile_saved', profile });
+        break;
+      }
+
+      // The Profile page (plan 2026-11-27-profile-index, Part 2): each area as
+      // Ava sees it, and the switch that keeps an area to its own room.
+      case 'load_profile_overview': {
+        this.post({ type: 'profile_overview_loaded', sections: await this.getProfileOverview() });
+        break;
+      }
+
+      case 'set_profile_visibility': {
+        try { writeProfileVisibility(msg.section, msg.visibility, this.getUserDataDir()); }
+        catch (err) { console.error('[Profile] visibility write failed:', err); }
+        this.post({ type: 'profile_overview_loaded', sections: await this.getProfileOverview() });
         break;
       }
 
@@ -4680,6 +4695,18 @@ export class DashboardPanel {
    *  On first read, seeds it (in memory, then persists in the background) from
    *  any legacy HealthProfile.body so existing users keep their body basics.
    *  Returns the empty scaffold when there's nothing to read or seed from. */
+  /** The Profile page's read-out, built by core from the same files Ava's index reads. */
+  private async getProfileOverview() {
+    try {
+      const session = await MemorySession.open({ root: memoryV4Root(), profileHome: this.getUserDataDir() });
+      const sources = await session.profileSources();
+      return sources ? profileOverview(sources, todayLocal()) : [];
+    } catch (err) {
+      console.error('[Profile] overview failed:', err);
+      return [];
+    }
+  }
+
   private getGeneralProfile(): GeneralProfile {
     const scoped = this.getUserDataDir();
     const stored = readGeneralProfile(scoped);

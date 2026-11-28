@@ -307,6 +307,8 @@ Every role above uses the same memory. That's why Ava gets better at helping *yo
 | **4 — Cross-memory insights** | Finds themes, contradictions, consolidation opportunities. |
 | **5 — Semantic search** | Vector embeddings for intelligent recall (opt-in, local-first). |
 
+**She knows when your life is relevant.** Ava keeps a short index of what you're studying, how you train, how you eat and what you're building, made fresh from your own records. Ask what to cook tonight or whether to train when you're tired, and she looks up the detail before she answers; a bug fix won't bring up your dinner. The **Profile** page in the sidebar shows each line exactly as she sees it, with a switch to keep any area to its own room.
+
 A dedicated **Memory Agent** curates a short brief of what's relevant to your current message instead of dumping raw memories into the conversation. Context stays lean. Recall stays sharp.
 
 > **Local only.** Your memory stays on your machine — there is no cloud copy.

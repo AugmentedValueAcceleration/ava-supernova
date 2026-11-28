@@ -33,7 +33,8 @@ import {
   brandKitSummary,
   type DesignRoom,
   loadFreshDesignContext,
-  summariseEquipment,
+  healthProfileSummary,
+  healthPlansSummary,
   coerceLoad,
   killBackgroundProcesses,
   detectProjectRoot,
@@ -2354,7 +2355,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     try {
       // First start after the update: the old memory comes across once, free.
       await ensureOldMemoryImported(new AvaMemory({ root }), AVA_HOME, (m) => this.log(m));
-      const session = await MemorySession.open({ root, projectPath: this.projectRoot ?? null, embeddingService: this.resolveEmbeddingService() });
+      const session = await MemorySession.open({ root, projectPath: this.projectRoot ?? null, embeddingService: this.resolveEmbeddingService(), profileHome: this.accountScopedDir });
       this.log(`memory: open (${root})${session.project ? `, project ${session.project.name}` : ''}`);
       return session;
     } catch (err) {
@@ -4294,73 +4295,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    *  the prompt asks for the gaps. Local-first, on-device only. */
   private getHealthProfileSummary(): string | undefined {
     try {
-      const p: any = readProfile(join(this.accountScopedDir, 'health'));
-      // Body basics now live in the account-level general profile; fall back to
-      // the legacy health.body for profiles not yet migrated.
-      const g: any = readGeneralProfile(this.accountScopedDir);
-      const sex = g?.sex ?? p?.body?.sex;
-      const dob = g?.date_of_birth ?? p?.body?.date_of_birth;
-      const heightCm = g?.height_cm ?? p?.body?.height_cm;
-      const weightKg = g?.weight_kg ?? p?.body?.weight_kg;
-      const lines: string[] = [];
-      if (p?.goals?.primary) lines.push(`Primary goal: ${String(p.goals.primary).replace(/_/g, ' ')}`);
-      if (p?.goals?.weekly_focus) lines.push(`This week's focus: ${p.goals.weekly_focus}`);
-      if (sex) lines.push(`Sex: ${sex}`);
-      if (dob) {
-        const age = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
-        if (age > 0 && age < 130) lines.push(`Age: ${age}`);
-      }
-      if (heightCm) lines.push(`Height: ${heightCm} cm`);
-      if (weightKg) lines.push(`Weight: ${weightKg} kg`);
-      if (p?.constraints?.allergens?.length) lines.push(`Allergens: ${p.constraints.allergens.join(', ')}`);
-      if (p?.constraints?.dietary?.length) lines.push(`Dietary preferences: ${p.constraints.dietary.join(', ')}`);
-      if (p?.constraints?.injuries?.length) lines.push(`Injuries / limitations: ${p.constraints.injuries.join(', ')}`);
-      // Places, load ranges and gym days — not a flat list of slugs. The slug
-      // list said nothing about whether the next weight up exists or whether
-      // the squat rack is reachable today, which are the two things a week is
-      // actually planned around. Built in core so this and the IDE sidecar
-      // cannot drift.
-      for (const line of summariseEquipment(
-        p?.constraints?.equipment_available,
-        p?.constraints?.equipment_loads,
-        p?.constraints?.gym_days,
-      )) lines.push(line);
-      if (p?.constraints?.minutes_per_day_target) lines.push(`Time budget per day: ${p.constraints.minutes_per_day_target} minutes`);
-      const tw = p?.schedule?.training_window;
-      if (tw?.start && tw?.end) lines.push(`Training window: ${tw.start}–${tw.end}`);
-      const mt = p?.schedule?.meal_times;
-      if (mt && (mt.breakfast || mt.lunch || mt.dinner)) {
-        const parts = [mt.breakfast && `breakfast ${mt.breakfast}`, mt.lunch && `lunch ${mt.lunch}`, mt.dinner && `dinner ${mt.dinner}`].filter(Boolean);
-        if (parts.length) lines.push(`Meal times: ${parts.join(', ')}`);
-      }
-      const cookLine = summariseCookingTime(p?.schedule?.cooking_time);
-      if (cookLine) lines.push(cookLine);
-      // Training + kitchen. Omitted until 28 Jul, so the room planned somebody's
-      // week without knowing how often they can train or who they cook for —
-      // and would cheerfully write a five-day split for a twice-a-week trainer.
-      const tr = p?.training;
-      if (tr?.experience) lines.push(`Training experience: ${tr.experience}`);
-      if (tr?.days_per_week) lines.push(`Training days per week: ${tr.days_per_week}`);
-      if (tr?.training_days?.length) lines.push(`Trains on: ${tr.training_days.join(', ')}`);
-      if (tr?.baseline_lifts?.length) {
-        type Lift = { name?: string; weight_kg?: number | null; reps?: number | null };
-        const lifts = (tr.baseline_lifts as Lift[])
-          .filter((l) => l?.name)
-          .map((l) => [l.name, l.weight_kg != null ? `${l.weight_kg} kg` : null, l.reps != null ? `× ${l.reps}` : null].filter(Boolean).join(' '));
-        if (lifts.length) lines.push(`Baseline lifts: ${lifts.join('; ')}`);
-      }
-      const k = p?.kitchen;
-      if (k?.level) lines.push(`Cooking level: ${k.level}`);
-      if (k?.household_size) lines.push(`Cooks for: ${k.household_size} ${k.household_size === 1 ? 'person' : 'people'}`);
-      if (k?.cost_tier) lines.push(`Budget: ${k.cost_tier}`);
-      // `minutes_weekday` / `_weekend` are NOT summarised: they are a shortcut
-      // that writes the cooking grid, and the grid is already on `cookLine`
-      // above. Restating them would put a second, coarser answer to the same
-      // question in front of the model — exactly what decision 25 removed.
-      if (p?.food?.likes?.length) lines.push(`Food likes: ${p.food.likes.join(', ')}`);
-      if (p?.food?.dislikes?.length) lines.push(`Food dislikes (keep out of plans): ${p.food.dislikes.join(', ')}`);
-      if (p?.food?.cuisines?.length) lines.push(`Favourite cuisines: ${p.food.cuisines.join(', ')}`);
-      return lines.length ? lines.join('\n') : undefined;
+      // One copy in core for every host (27 Nov 2026): the IDE's had drifted
+      // and left out training and the kitchen.
+      return healthProfileSummary(readProfile(join(this.accountScopedDir, 'health')), readGeneralProfile(this.accountScopedDir));
     } catch {
       return undefined;
     }
@@ -4390,24 +4327,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private getHealthPlansSummary(): string | undefined {
     try {
       const healthDir = join(this.accountScopedDir, 'health');
-      const lines: string[] = [];
-      for (const id of listPlanIds(healthDir)) {
-        const p: any = readPlan(healthDir, id);
-        if (!p || p.status === 'archived') continue;
-        const days: any[] = Array.isArray(p.days) ? p.days : [];
-        const dayBits = days.map((d) => {
-          const bits = [`day ${d.day_index}`, d.kind || 'rest'];
-          if (d.title) bits.push(d.title);
-          const tc = Array.isArray(d.training) ? d.training.length : 0;
-          const mc = Array.isArray(d.meals) ? d.meals.length : 0;
-          if (tc) bits.push(`${tc} exercise${tc === 1 ? '' : 's'}`);
-          if (mc) bits.push(`${mc} meal${mc === 1 ? '' : 's'}`);
-          return bits.join(' · ');
-        });
-        const started = p.start_date ? `, started ${p.start_date}` : '';
-        lines.push(`- "${p.title}" (${p.type}, ${p.status}${started}, ${days.length} days) — id: ${p.id}\n  ${dayBits.join('\n  ')}`);
-      }
-      return lines.length ? lines.join('\n') : undefined;
+      const plans = listPlanIds(healthDir).map((id) => readPlan(healthDir, id)).filter((p) => !!p);
+      return healthPlansSummary(plans as unknown as Parameters<typeof healthPlansSummary>[0]);
     } catch {
       return undefined;
     }

@@ -18,6 +18,7 @@
 import { resolve as resolvePath } from 'node:path';
 import {
   APP_VERSION,
+  AVA_HOME,
   Conversation,
   HistoryManager,
   McpServers,
@@ -157,7 +158,7 @@ export class AcpServer {
 
     // Memory: the same ~/.ava/memory as every Ava app, for this project.
     try {
-      s.memory = await MemorySession.open({ root: memoryV4Root(), projectPath: root, embeddingService: host.embeddingService });
+      s.memory = await MemorySession.open({ root: memoryV4Root(), projectPath: root, embeddingService: host.embeddingService, profileHome: AVA_HOME });
       s.sharedState.memorySession = s.memory;
     } catch (e) {
       this.log(`Memory didn't open: ${e instanceof Error ? e.message : e}`);

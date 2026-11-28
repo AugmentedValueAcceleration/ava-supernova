@@ -157,7 +157,7 @@ async function main(): Promise<void> {
   let memorySession: MemorySession | undefined;
   try {
     await ensureOldMemoryImported(new AvaMemory({ root: memoryRoot }), AVA_HOME, (m) => console.log(`  ${m}`));
-    memorySession = await MemorySession.open({ root: memoryRoot, projectPath: projectRoot ?? null, embeddingService });
+    memorySession = await MemorySession.open({ root: memoryRoot, projectPath: projectRoot ?? null, embeddingService, profileHome: AVA_HOME });
   } catch {
     memorySession = undefined;
   }

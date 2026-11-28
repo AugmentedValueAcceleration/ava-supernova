@@ -132,6 +132,17 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'Before each message, the app looks up the memories that match it and hands them to her, so she has the right context without reading everything every time. She can also search her memory herself — including a particular day, or another project by its name.' },
       { type: 'paragraph', text: "A project's facts are used when that project is open, or when you mention it by name. Projects you link on the Memory page share what is relevant to each other. If something you taught her in one project comes up in another, she suggests remembering it everywhere — and waits for your yes." },
       { type: 'callout', variant: 'note', text: 'You are in charge of it. The Memory page shows everything she knows: say yes or no to what she noticed, edit or forget any fact, edit the core page, close threads, read the days, move or forget a project, or forget everything. Passwords and keys are blocked at the door — they can never land in memory.' },
+      // Added at the END (28 Nov 2026, the profile index): translations are
+      // keyed by block position, so blocks above must not move.
+      { type: 'heading', level: 3, text: 'Your profile — what she keeps in view' },
+      { type: 'paragraph', text: 'Beside her memory, Ava keeps a short index of your life: what you are studying, how you train, how you eat, and what you are building. It is a few lines, built fresh from your own records each time — your courses, your health profile and plans, and the projects in her memory — so it is never out of date.' },
+      { type: 'paragraph', text: 'When a conversation touches one of those areas — what to cook tonight, whether to train when you are tired, the course you are on, a project you name — she looks up the detail before she answers. When it does not, she leaves it alone: a bug fix or a git question will not bring up your dinner.' },
+      { type: 'list', ordered: false, items: [
+        'Open Profile in the sidebar to see each line exactly as she sees it, and what she can look up behind it.',
+        'Each area has a switch: Everywhere, or Only in its room. Kept to its room, your training and eating are seen only in Health & Nutrition, and your courses only in the Learning room and Teach mode.',
+        'Your name, picture and body basics are edited on the Profile page, and so are your training and eating details — all in one place.',
+      ]},
+      { type: 'callout', variant: 'note', text: 'Your profile lives on your computer, in the same ~/.ava folder as her memory, and the extension and the desktop app share it. Nothing is uploaded.' },
     ],
   },
   {

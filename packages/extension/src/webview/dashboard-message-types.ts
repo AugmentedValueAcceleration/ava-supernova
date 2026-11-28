@@ -765,6 +765,17 @@ export interface HealthProfile {
  * health surface. Split out of HealthProfile.body on 2026-06-21; the health
  * room + plans + morning brief read across both. See general-file-store.ts.
  */
+/** One area of the Profile page, as core's profileOverview builds it. */
+export type ProfileArea = 'learning' | 'training' | 'eating' | 'projects';
+export interface ProfileOverviewSection {
+  section: ProfileArea;
+  /** The line in Ava's index, or null when nothing is recorded. */
+  line: string | null;
+  /** What profile_lookup returns for this area. */
+  detail: string;
+  visibility: 'everywhere' | 'room';
+}
+
 export interface GeneralProfile {
   schema_version: 1;
   updated_at: string | null;
@@ -1097,7 +1108,7 @@ export interface PersonalityData {
 
 // ─── Usage Analytics Types ───────────────────────────────────────────────────
 
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'releases' | 'roadmap' | 'connections' | 'brainstorm' | 'history' | 'support' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'learning-room' | 'creative-studio' | 'library' | 'health' | 'personality' | 'releases' | 'roadmap' | 'connections' | 'brainstorm' | 'history' | 'support' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation' | 'profile';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
@@ -1560,6 +1571,7 @@ export type ExtToDashboardMessage =
   | { type: 'health_profile_saved'; profile: HealthProfile }
   | { type: 'general_profile_loaded'; profile: GeneralProfile | null }
   | { type: 'general_profile_saved'; profile: GeneralProfile }
+  | { type: 'profile_overview_loaded'; sections: ProfileOverviewSection[] }
   | { type: 'health_daily_plan_loaded'; plan: HealthDailyPlan }
   | { type: 'health_daily_plan_saved'; plan: HealthDailyPlan }
   // Multi-week Plans — library summaries + a single full plan.
@@ -2005,6 +2017,8 @@ export type DashboardToExtMessage =
   | { type: 'save_shopping_state'; state: ShoppingState }
   | { type: 'save_health_profile'; profile: HealthProfile }
   | { type: 'load_general_profile' }
+  | { type: 'load_profile_overview' }
+  | { type: 'set_profile_visibility'; section: ProfileArea; visibility: 'everywhere' | 'room' }
   | { type: 'save_general_profile'; profile: GeneralProfile }
   | { type: 'load_health_daily_plan'; date: string }
   | { type: 'save_health_daily_plan'; plan: HealthDailyPlan }

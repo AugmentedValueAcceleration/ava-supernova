@@ -37,6 +37,7 @@ import { DocsLookupTool } from './docs-lookup.js';
 import { SupportRequestTool } from './support-request.js';
 import { ProposeToolTool } from './propose-tool.js';
 import { GetDateTimeTool } from './get-datetime.js';
+import { ProfileLookupTool } from './profile-lookup.js';
 import { DetectLanguageTool } from './detect-language.js';
 import { TaskManageTool } from './task-manage.js';
 import { TaskSuggestTool } from './task-suggest.js';
@@ -479,6 +480,7 @@ export class ToolRegistry {
       new SupportRequestTool(),
       new ProposeToolTool(),
       new GetDateTimeTool(),
+      new ProfileLookupTool(),
       new DetectLanguageTool(),
       new TaskManageTool(),
       new TaskSuggestTool(),

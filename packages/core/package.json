@@ -1,6 +1,6 @@
 {
   "name": "@ava/core",
-  "version": "0.2.198",
+  "version": "0.2.199",
   "description": "Core engine for Ava Supernova — agent, providers, tools, config",
   "type": "module",
   "main": "./dist/index.js",
@@ -103,6 +103,11 @@
       "import": "./dist/learning/index.js",
       "require": "./dist/learning/index.js",
       "types": "./dist/learning/index.d.ts"
+    },
+    "./profile": {
+      "import": "./dist/profile/index.js",
+      "require": "./dist/profile/index.js",
+      "types": "./dist/profile/index.d.ts"
     },
     "./learning/export": {
       "import": "./dist/learning/progression-export.js",

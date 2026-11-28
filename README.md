@@ -52,6 +52,7 @@ Your keys and everything Ava knows about you — profile, personality, settings 
 ## What Makes Ava Different
 
 - **She remembers you.** A layered memory system learns your style, conventions, decisions, and the bugs you've fixed before — curated by a dedicated Memory Agent so context stays lean and recall stays sharp. Local-first, opt-in semantic recall.
+- **She knows when your life is relevant.** A short index of what you're studying, how you train, how you eat and what you're building stays in view; she looks up the detail only when the conversation touches it. The Profile page shows exactly what she sees, with a switch to keep any area to its own room.
 - **She thinks before she builds.** 24 specialist personas across her modes and rooms plan, verify, and challenge before executing. Simple questions skip orchestration entirely — zero overhead.
 - **She won't fake a "done."** A built-in honesty gate checks every claim of completion or success — "it's fixed", "tests pass", "deployed" — against the tools she actually ran that turn, and flags any it can't back with evidence. A guess never stands as fact. Always on, no off-switch.
 - **She picks the right fleet for the work.** You pick the job; the right multi-model fleet falls out of it (see [Models & Fleets](#models--fleets)).

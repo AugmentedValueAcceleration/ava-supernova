@@ -97,6 +97,7 @@ export const TOOLS: ToolFact[] = [
   { name: 'open_learning_room', category: 'learning', description: 'Open the focused Learning room for the user to build a study plan and start a guided course — shows a button rather than teaching in chat.', risk: 'safe' },
   { name: 'paper_fetch_full_text', category: 'web', description: 'Fetch a scientific paper (title, authors, abstract, and section-extracted body when available) from arXiv, OpenAlex, or Crossref. Powers the Library.', risk: 'safe' },
   { name: 'present_plan', category: 'documents', description: 'Present a structured plan for the user to review and approve before execution.', risk: 'write' },
+  { name: 'profile_lookup', category: 'memory', description: 'Look at what you are learning, how you train and eat, or what you are building, when the conversation makes it relevant. Your files only, read-only.', risk: 'safe' },
   { name: 'project_index', category: 'file_ops', description: 'Scan, refresh, or display the project structure index.', risk: 'safe' },
   { name: 'propose_tool', category: 'system', description: 'Propose a new tool to the development team when a capability gap is hit.', risk: 'write' },
   { name: 'release_notes', category: 'web', description: 'Fetch published release notes for Ava Supernova.', risk: 'safe' },

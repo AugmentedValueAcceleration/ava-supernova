@@ -22,6 +22,10 @@ export type { MemoryBrief, MemoryAgentOptions } from './memory/memory-agent.js';
 // Memory v4: Ava's memory — one store of plain files (see src/memory-v4).
 export { AvaMemory, MemorySession, memoryV4Root, datesIn } from './memory-v4/index.js';
 export type { Fact, FactKind, FactScope, FactSource, NewFact, Thread, ProjectRecord, RecallArgs, SearchHit as MemorySearchHit } from './memory-v4/index.js';
+// The profile (27 Nov 2026): the index every mode sees, profile_lookup's detail,
+// and the Health room's summaries, one copy for every host.
+export * from './profile/index.js';
+export { ProfileLookupTool } from './tools/profile-lookup.js';
 export { MemoryRecallV4Tool } from './tools/memory-recall-v4.js';
 export { MemorySaveV4Tool, MemoryUpdateV4Tool, MemoryDeleteV4Tool } from './tools/memory-write-v4.js';
 export { consolidateSession, resolveMemoryModel, memoryPage, ensureOldMemoryImported, removeOldMemoryFiles } from './memory-v4/index.js';

@@ -64,7 +64,8 @@
         "mcp.page.online": "Online",
         "brainstorm.room.tab.plan": "Plan",
         "mcp.unreal_panel.step1": "1. In Unreal: Edit → Editor Preferences → Unreal Assistant → External Agent.",
-        "dash.usage.tl.tokens": "Tokens"
+        "dash.usage.tl.tokens": "Tokens",
+        "profile.area.training": "Training"
       },
       "es": {
         "health.plans.n_cook": "{n} min",
@@ -330,7 +331,8 @@
         "dash.usage.tl.tokens_word": "tokens",
         "dash.usage.tl.per_week": "Per week",
         "dash.usage.tl.tokens": "Tokens",
-        "dash.usage.tl.by_model": "Model"
+        "dash.usage.tl.by_model": "Model",
+        "profile.area.training": "Training"
       },
       "pl": {
         "learning.room.tab.ava": "Ava",

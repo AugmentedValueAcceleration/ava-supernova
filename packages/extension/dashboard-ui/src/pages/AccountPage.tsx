@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { t, tt, useLocale } from '../i18n';
+import { tt, useLocale } from '../i18n';
 import { Settings } from './Settings';
 import { Personality } from './Personality';
-import { GeneralProfilePage } from './GeneralProfilePage';
 import type {
   DashboardSettings, ProviderKeyStatus, PersonalityData,
   Page,
-  GeneralProfile,
 } from '../types/messages';
 
-type AccountTab = 'settings' | 'personality' | 'profile';
+type AccountTab = 'settings' | 'personality';
 
-/** "{name}'s profile" holds what is genuinely ACCOUNT-shaped: who you are.
+/** The profile tab moved to its own sidebar page on 2026-11-28 (plan
+ *  2026-11-27-profile-index); the history below is kept for context.
+ *  "{name}'s profile" held what is genuinely ACCOUNT-shaped: who you are.
  *  Name, picture, body basics — reusable well beyond health.
  *
  *  The health profile and plans moved OUT to Nutrition & Fitness on 2026-07-28.
@@ -25,30 +25,23 @@ interface AccountPageProps {
   providerKeys: ProviderKeyStatus;
   onNavigate?: (page: Page) => void;
   personality?: PersonalityData | null;
-  avatarDataUrl?: string;
-  // "Your profile" tab — identity, picture and body basics.
-  generalProfile: GeneralProfile | null;
-  onSaveGeneralProfile: (next: GeneralProfile) => void;
 }
 
-function getAccountTabs(name?: string | null): { key: AccountTab; label: string }[] {
-  const firstName = name?.trim().split(/\s+/)[0];
+function getAccountTabs(): { key: AccountTab; label: string }[] {
   return [
     { key: 'settings', label: tt('dash.account.tab_settings', 'Settings') },
     { key: 'personality', label: tt('dash.account.tab_personality', "Ava's Style") },
-    { key: 'profile', label: firstName ? t('general.profile.account_tab_named', { name: firstName }) : t('general.profile.account_tab') },
   ];
 }
 
 export function AccountPage({
   settings, onSettingsChange, providerKeys,
-  personality, avatarDataUrl,
-  generalProfile, onSaveGeneralProfile,
+  personality,
 }: AccountPageProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<AccountTab>('settings');
 
-  const visibleTabs = getAccountTabs(generalProfile?.display_name);
+  const visibleTabs = getAccountTabs();
 
   return (
     <div className="space-y-4">
@@ -89,15 +82,6 @@ export function AccountPage({
         <Personality personality={personality ?? null} />
       )}
 
-      {/* One thing lives here now, so there is no tab strip: a row of tabs with
-          a single tab is furniture, not navigation. */}
-      {activeTab === 'profile' && (
-        <GeneralProfilePage
-          profile={generalProfile}
-          avatarDataUrl={avatarDataUrl}
-          onSave={onSaveGeneralProfile}
-        />
-      )}
     </div>
   );
 }

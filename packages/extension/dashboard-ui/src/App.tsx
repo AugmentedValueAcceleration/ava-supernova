@@ -26,6 +26,7 @@ import { Planner } from './pages/Planner';
 // the unified Library page as the Courses tab.
 import { CreativeStudio } from './pages/CreativeStudio';
 import { AccountPage } from './pages/AccountPage';
+import { ProfilePage, type ProfileTab } from './pages/ProfilePage';
 import { HelpPage } from './pages/HelpPage';
 import { DocumentationPageLazy } from './pages/DocumentationPage.lazy';
 import { ArticleReader } from './pages/ArticleReader';
@@ -67,6 +68,7 @@ import type {
   SharedResults,
   ProgressionOffer,
   GeneralProfile,
+  ProfileOverviewSection,
   HealthPlan,
   HealthPlanSummary,
   CreativeAsset,
@@ -417,13 +419,16 @@ export function App() {
   // General profile — account-level identity + body basics, shown under the
   // Account "{name}'s profile" tab. Reusable beyond health.
   const [generalProfile, setGeneralProfile] = useState<GeneralProfile | null>(null);
-  // Deep-link into the Account profile tab's sub-tab (set by Health's "Edit
-  // profile →"). Consumed once by AccountPage.
+  // The Profile page (plan 2026-11-27-profile-index): each area as Ava sees it.
+  // null until the host answers load_profile_overview.
+  const [profileOverview, setProfileOverview] = useState<ProfileOverviewSection[] | null>(null);
+  const [profileInitialTab, setProfileInitialTab] = useState<ProfileTab | null>(null);
+  const openProfile = (tab: ProfileTab) => { setProfileInitialTab(tab); setPagePersist('profile'); };
   // Deep-link target for the Health page's inner tab. Set when another
   // surface (e.g. the Health Dashboard's "Set your goals" pointer)
   // navigates here wanting a specific tab; Health consumes it once on
   // mount then clears it so a later sidebar visit lands on the default.
-  const [healthInitialTab, setHealthInitialTab] = useState<'plans' | 'exercises' | 'recipes' | 'profile' | 'ava' | null>(null);
+  const [healthInitialTab, setHealthInitialTab] = useState<'plans' | 'exercises' | 'recipes' | 'ava' | null>(null);
   /** "For you" (Health Part 4): undefined while loading, null when it could not be built. */
   const [forYou, setForYou] = useState<ForYouResult | null | undefined>(undefined);
   /** Results from the phone (Health Part 6): the "Add this session?" screen,
@@ -1227,6 +1232,9 @@ export function App() {
       case 'general_profile_saved':
         setGeneralProfile(msg.profile);
         break;
+      case 'profile_overview_loaded':
+        setProfileOverview(msg.sections);
+        break;
       case 'health_plans_loaded':
         setHealthPlans(msg.plans);
         break;
@@ -1462,7 +1470,7 @@ export function App() {
   // Command Center / Plans / profile would otherwise read stale state. Cheap
   // local reads; fires only on entering these pages.
   useEffect(() => {
-    if (page === 'overview' || page === 'account' || page === 'health') {
+    if (page === 'overview' || page === 'profile' || page === 'health') {
       post({ type: 'load_active_health_plans' });
       post({ type: 'load_health_plans' });
     }
@@ -1709,9 +1717,23 @@ export function App() {
             providerKeys={providerKeys}
             onNavigate={setPagePersist}
             personality={personalityData}
-            avatarDataUrl={avatarDataUrl}
+          />
+        );
+
+      case 'profile':
+        return (
+          <ProfilePage
+            overview={profileOverview}
+            initialTab={profileInitialTab}
+            onConsumeInitialTab={() => setProfileInitialTab(null)}
             generalProfile={generalProfile}
+            avatarDataUrl={avatarDataUrl}
             onSaveGeneralProfile={handleSaveGeneralProfile}
+            healthProfile={healthProfile}
+            taxonomies={healthTaxonomies}
+            onSaveHealthProfile={handleSaveHealthProfile}
+            onLoadTaxonomies={handleLoadHealthTaxonomies}
+            onNavigate={setPagePersist}
           />
         );
 
@@ -1749,7 +1771,7 @@ export function App() {
         return <Overview onNavigate={setPagePersist} userName={generalProfile?.display_name ?? null} onRenameUser={handleRenameUser} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memoryFacts={memoryV4.facts} memoryWaiting={memoryV4.pending} memoryLatest={memoryV4.latest} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} forYou={forYou} forYouHandlers={{
           onOpenItem: (kind, slug) => { setHealthOpenItem({ kind, slug }); setHealthInitialTab(kind === 'recipe' ? 'recipes' : 'exercises'); setPagePersist('health'); },
           onStartPlan: (seed) => { setWizardSeed(seed); setHealthInitialTab('plans'); setPagePersist('health'); },
-          onProfile: () => { setHealthInitialTab('profile'); setPagePersist('health'); },
+          onProfile: () => openProfile('health'),
           onOpenPlans: () => { setHealthInitialTab('plans'); setPagePersist('health'); },
         }} auditFindings={auditFindings} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'brainstorm':
@@ -1912,6 +1934,7 @@ export function App() {
             userAvatarUrl={avatarDataUrl || null}
             initialTab={healthInitialTab}
             onConsumeInitialTab={() => setHealthInitialTab(null)}
+            onOpenProfile={() => openProfile('health')}
           />
         );
       case 'learning-room':

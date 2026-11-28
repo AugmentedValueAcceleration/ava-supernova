@@ -16,7 +16,6 @@ import type { ExtToDashboardMessage } from '../types/messages';
 import { Skeleton } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
 import { HealthPlans } from './HealthPlans';
-import { HealthProfilePage } from './HealthProfilePage';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
   HealthRecipeSummary, HealthRecipeDetail,
@@ -89,7 +88,7 @@ const courseLabel = (course: string): string => t(`health.browse.course.${course
  * library you build from next, the profile behind it, and Ava last because she
  * is reached from everywhere.
  */
-type Tab = 'plans' | 'shopping' | 'starters' | 'exercises' | 'recipes' | 'profile' | 'ava';
+type Tab = 'plans' | 'shopping' | 'starters' | 'exercises' | 'recipes' | 'ava';
 /** Card layout for the browse grids. Persisted + shared across both tabs. */
 type View = 'grid' | 'list';
 const VIEW_KEY = 'ava-health-view';
@@ -159,6 +158,9 @@ interface Props {
   /** ~/.ava/health/shopping.json — ticks and cupboard staples (Shopping tab). */
   shopping: ShoppingState | null;
   onSaveShopping: (next: ShoppingState) => void;
+  /** The profile lives on its own page (plan 2026-11-27-profile-index), so
+   *  every profile field is edited in one place; Health has no Profile tab. */
+  onOpenProfile: () => void;
 }
 
 export function Health({
@@ -183,7 +185,7 @@ export function Health({
   taxonomies,
   onLoadTaxonomies,
   healthPlans, onAskAvaPlan,
-  healthProfile, onSaveHealthProfile, curated, dayAssist, trainingLog,
+  healthProfile, curated, dayAssist, trainingLog,
   onRegisterHealthChatDispatch,
   userName,
   userAvatarUrl,
@@ -192,6 +194,7 @@ export function Health({
   onConsumeInitialTab,
   starterRefs,
   openItem, onConsumeOpenItem, wizardSeed, onConsumeWizardSeed,
+  onOpenProfile,
 }: Props) {
   useLocale();
   // Lands on Plans, not the catalogue: the section is named after the thing
@@ -258,7 +261,7 @@ export function Health({
     : undefined;
   const retryFit = () => askedFit.current.clear();
   const fitFor = (v: FitView<unknown>): GridFit => ({
-    bar: <FitBar rules={rules} fitsOnly={fitsOnly} view={v} onToggle={() => setFitsOnly((x) => !x)} onProfile={() => switchTab('profile')} />,
+    bar: <FitBar rules={rules} fitsOnly={fitsOnly} view={v} onToggle={() => setFitsOnly((x) => !x)} onProfile={onOpenProfile} />,
     verdicts: rules ? fitState.results : {},
   });
 
@@ -314,7 +317,7 @@ export function Health({
       onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter, undefined, undefined, recipeExtra());
     }
     // Filter chips need the taxonomies (collections / diets / flags / cuisines).
-    if ((tab === 'recipes' || tab === 'profile') && !taxonomies) onLoadTaxonomies();
+    if (tab === 'recipes' && !taxonomies) onLoadTaxonomies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -440,7 +443,7 @@ export function Health({
         {/* Top tabs — canonical dashboard style (border-b-2 + --accent var,
             matches Settings/Planner/History/Overview). */}
         <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
-          {(['plans', 'shopping', 'starters', 'exercises', 'recipes', 'profile', 'ava'] as Tab[]).map((tabKey) => {
+          {(['plans', 'shopping', 'starters', 'exercises', 'recipes', 'ava'] as Tab[]).map((tabKey) => {
             const isActive = tab === tabKey;
             const label =
               tabKey === 'plans' ? t('health.browse.tab.plans') :
@@ -448,7 +451,6 @@ export function Health({
               tabKey === 'starters' ? t('health.browse.tab.starters') :
               tabKey === 'exercises' ? t('health.browse.tab.exercises') :
               tabKey === 'recipes' ? t('health.browse.tab.recipes') :
-              tabKey === 'profile' ? t('health.browse.tab.profile') :
               t('health.browse.tab.ava');
             return (
               <button
@@ -592,14 +594,6 @@ export function Health({
             shopping={shopping}
             onSaveShopping={onSaveShopping}
             onOpenUrl={(url) => post({ type: 'open_url', url })}
-          />
-        )}
-        {tab === 'profile' && (
-          <HealthProfilePage
-            profile={healthProfile}
-            taxonomies={taxonomies}
-            onSave={onSaveHealthProfile}
-            onLoadTaxonomies={onLoadTaxonomies}
           />
         )}
         {tab === 'exercises' && (

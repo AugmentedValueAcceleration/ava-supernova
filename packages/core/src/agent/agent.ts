@@ -252,7 +252,10 @@ const DESKTOP_ONLY_TOOLS: Set<string> = new Set(DESKTOP_TOOL_NAMES);
  * backstop was unreachable on the main surface. Read-only: it reads the current
  * run's transcript off sharedState, writes nothing.
  */
-const ALWAYS_ALLOWED_TOOLS: Set<string> = new Set(['self_inspect', 'conversation_recall']);
+// profile_lookup (27 Nov 2026) joins for the same reason: the profile index is
+// in every mode's prompt, and whether to look closer is decided by what the
+// conversation is about, not by the mode. Read-only, local files only.
+const ALWAYS_ALLOWED_TOOLS: Set<string> = new Set(['self_inspect', 'conversation_recall', 'profile_lookup']);
 
 /**
  * Stage gate for code mode's tool allowlist.
